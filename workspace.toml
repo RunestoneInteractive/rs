@@ -1,5 +1,5 @@
 [tool.polylith]
-namespace = "runestone"
+namespace = "rsptx"
 git_tag_pattern = "stable-*"
 
 [tool.polylith.structure]

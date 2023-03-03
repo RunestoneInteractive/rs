@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+
+  web:
+    build: ./projects/author_server
+    ports:
+      - 8005:8000
+    command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --reload
+    volumes:
+      - ./projects/author_server:/usr/src/app
+      - /Users/bmiller/Runestone/books:/books
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DEV_DBURL=${DEV_DBURL}
+    depends_on:
+      - redis
+
+  worker:
+    build: ./projects/author_server
+    command: celery -A rsptx.author_server_api.worker.celery worker
+    volumes:
+      - ./projects/author_server:/usr/src/app
+      - /Users/bmiller/Runestone/books:/books
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DEV_DBURL=${DEV_DBURL}
+      - WEB2PY_CONFIG=${SERVER_CONFIG}
+    depends_on:
+      - web
+      - redis
+
+  redis:
+    image: redis:6-alpine

@@ -1,18 +1,16 @@
 [tool.poetry]
-name = "rs"
+name = "author_server"
 version = "0.1.0"
 description = ""
-authors = ["Brad Miller <bonelake@mac.com>"]
-license = "MIT"
-readme = "README.md"
+authors = ['Brad Miller <bonelake@mac.com>']
+license = ""
+
 packages = [
-    # These are the components for the author server
-    {include = "development"},
-    {include = "rsptx/data_extract", from = "components"},
-    {include = "rsptx/visualization", from = "components"},
-    {include = "rsptx/db", from = "components"},
-    {include = "rsptx/forms", from = "components"},
-    {include = "rsptx/author_server_api", from = "bases"}
+    {include = "rsptx/data_extract", from = "../../components"},
+    {include = "rsptx/visualization", from = "../../components"},
+    {include = "rsptx/db", from = "../../components"},
+    {include = "rsptx/forms", from = "../../components"},
+    {include = "rsptx/author_server_api", from = "../../bases"}
 ]
 
 [tool.poetry.dependencies]
@@ -36,7 +34,10 @@ pandas = "^1.0.0"
 altair = "^4.2.0"
 WTForms = "^3.0.0"
 Starlette-WTF = "^0.4.3"
+tqdm = "^4.64.0"
+
+[tool.poetry.group.dev.dependencies]
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

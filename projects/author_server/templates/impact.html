@@ -1,0 +1,52 @@
+{% extends "_base.html" %} {% block content %}
+
+<div class="starter-template">
+  <h1>Runestone / PreTeXt Impact Report for</h1>
+  <h2>{{title}}</h2>
+  <hr />
+  <br />
+  
+  
+    <!-- Import Vega & Vega-Lite (does not have to be from CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@4"></script>
+    <!-- Import vega-embed -->
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  
+  <div class="row">
+    <div class="col-md-6">
+  <h1>Registered Students to Date</h1>
+  <p>This counts students from the start of the term (August 1) to today's date in both years.</p>
+  <div id="vis"></div>
+  
+  <script>
+      var enrollData = {{enrollData|safe}}
+      vegaEmbed('#vis', enrollData);
+  </script>
+    </div>
+
+    <div class="col-md-6">
+    <h1>Courses Created to Date</h1>
+    <p>This counts courses from the start of the term (August 1) to today's date in both years.</p>
+    <div id="visc"></div>
+    
+    <script>
+        var courseData = {{courseData|safe}}
+        vegaEmbed('#visc', courseData);
+    </script>
+      </div>
+  </div>    
+<h1>Weekly Usage Patterns</h1>
+<p>Note click on any row in the heatmap to view the details for that chapter.  It may take a few seconds.
+  These graphs are current as of about 5 AM UTC each day.
+</p>
+  <div id="chapterheat"></div>
+
+<script>
+    var chapterData = {{chapterData|safe}}
+    vegaEmbed('#chapterheat', chapterData);
+</script>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "_base.html" %}
+
+
+{% block content %}
+<div>
+    <h2>Edit book metadata for {{book}}</h2>
+    <form method="POST" action="/editlibrary/{{book}}">
+        {% for field in form %}
+            {{ with_errors(field)}}
+        {% endfor %}
+        <input type="submit" name="submit" />
+    </form>
+</div>
+
+<p>Note: The Available for courses checkbox will make your course visible on the create a custom course page.  The Visible to Everyone in Library will make it available to browse in the library.  If the home page for your course is not index.html you can change it on Main page.</p>
+<p>Once you have changed something here, modifying the conf.py file will not update the meta data.</p>
+{% endblock %}
