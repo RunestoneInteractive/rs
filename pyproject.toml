@@ -36,6 +36,7 @@ pandas = "^1.0.0"
 altair = "^4.2.0"
 WTForms = "^3.0.0"
 Starlette-WTF = "^0.4.3"
+tqdm = "^4.65.0"
 
 [build-system]
 requires = ["poetry-core"]

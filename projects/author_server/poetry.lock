@@ -1605,14 +1605,14 @@ files = [
 
 [[package]]
 name = "pytest"
-version = "7.2.1"
+version = "7.2.2"
 description = "pytest: simple powerful testing with Python"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pytest-7.2.1-py3-none-any.whl", hash = "sha256:c7c6ca206e93355074ae32f7403e8ea12163b1163c976fee7d4d84027c162be5"},
-    {file = "pytest-7.2.1.tar.gz", hash = "sha256:d45e0952f3727241918b8fd0f376f5ff6b301cc0777c6f9a556935c92d8a7d42"},
+    {file = "pytest-7.2.2-py3-none-any.whl", hash = "sha256:130328f552dcfac0b1cec75c12e3f005619dc5f874f0a06e8ff7263f0ee6225e"},
+    {file = "pytest-7.2.2.tar.gz", hash = "sha256:c99ab0c73aceb050f68929bc93af19ab6db0558791c6a0715723abe9d0ade9d4"},
 ]
 
 [package.dependencies]
@@ -1786,14 +1786,14 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "runestone"
-version = "6.5.2"
+version = "6.5.4"
 description = "Sphinx extensions for writing interactive documents."
 category = "main"
 optional = false
 python-versions = ">=3.7.0,<4.0.0"
 files = [
-    {file = "runestone-6.5.2-py3-none-any.whl", hash = "sha256:b4c68b747b6f1fe7f385995d26269856c030548370ab159fef6c47c8d8a0774c"},
-    {file = "runestone-6.5.2.tar.gz", hash = "sha256:6d789cf1938f92a79813be6163e088579423c706a5506a11a56a8a2ef45b0ba3"},
+    {file = "runestone-6.5.4-py3-none-any.whl", hash = "sha256:db51c981a24ac97e824943ac96829a65231edc3c0cfb2a2b23d090a9263ad177"},
+    {file = "runestone-6.5.4.tar.gz", hash = "sha256:74c1b4c4eda11fe909252b353faf03fd9705f6ffe8ad91c7ae53fa6d0492ecd7"},
 ]
 
 [package.dependencies]
@@ -2166,6 +2166,27 @@ files = [
 ]
 
 [[package]]
+name = "tqdm"
+version = "4.65.0"
+description = "Fast, Extensible Progress Meter"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "tqdm-4.65.0-py3-none-any.whl", hash = "sha256:c4f53a17fe37e132815abceec022631be8ffe1b9381c2e6e30aa70edc99e9671"},
+    {file = "tqdm-4.65.0.tar.gz", hash = "sha256:1871fb68a86b8fb3b59ca4cdd3dcccbc7e6d613eeed31f4c332531977b89beb5"},
+]
+
+[package.dependencies]
+colorama = {version = "*", markers = "platform_system == \"Windows\""}
+
+[package.extras]
+dev = ["py-make (>=0.1.0)", "twine", "wheel"]
+notebook = ["ipywidgets (>=6)"]
+slack = ["slack-sdk"]
+telegram = ["requests"]
+
+[[package]]
 name = "typing-extensions"
 version = "4.5.0"
 description = "Backported and Experimental Type Hints for Python 3.7+"
@@ -2314,4 +2335,4 @@ email = ["email-validator"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "d42e50a83b401dc353cdd9f59bd11e666e36697753906c561ab5fd08f51a699f"
+content-hash = "8e0b21cde37ecc9a425a6f00f9f43db8beb2c7b2944f0163e631298e404db44e"

@@ -71,8 +71,11 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+# The static and templates folders are siblings with this file.
+# We need to create a path that will work inside and outside of docker.
+base_dir = pathlib.Path(__file__).parent
+app.mount("/static", StaticFiles(directory=base_dir / "static"), name="static")
+templates = Jinja2Templates(directory=base_dir / "templates")
 
 # make sure to set this in production
 secret = os.environ.get("JWT_SECRET", "supersecret")
