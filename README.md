@@ -8,6 +8,10 @@ The goal of this re-working of the Runestone code will provide us with a very do
 
 <img src="docs/images/RunestoneArch.svg" />
 
+Each of the servers in the diagram above will become a project in this repo.
+* Each project is runnable from the top level
+* Each project builds its own docker image
+* The entire Project is orchestrated by the `docker-compose.yml` file
 
 ## Understanding the Code Structure
 
