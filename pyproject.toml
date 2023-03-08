@@ -27,7 +27,7 @@ requests = "^2.28.1"
 uvicorn = "^0.18.2"
 pretext = "^1.0.0"
 runestone = ">=6.5.0,<7.0"
-SQLAlchemy = "^1.4.39"
+SQLAlchemy = "^1.4.0"
 psycopg2-binary = "^2.9.3"
 fastapi-login = "^1.8.2"
 myst-parser = "^0.18.0"
@@ -37,6 +37,11 @@ altair = "^4.2.0"
 WTForms = "^3.0.0"
 Starlette-WTF = "^0.4.3"
 tqdm = "^4.65.0"
+# additional for dash server
+dash = {extras = ["celery", "diskcache"], version = "^2.7.0"}
+dash-bootstrap-components = "^1.2.1"
+gunicorn = "^20.1.0"
+
 
 [build-system]
 requires = ["poetry-core"]

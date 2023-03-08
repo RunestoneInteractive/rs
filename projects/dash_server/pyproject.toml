@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "dash_server"
+version = "0.1.0"
+description = ""
+authors = ['Brad Miller <bonelake@mac.com>']
+license = ""
+
+packages = [
+ {include = "rsptx/dash_server_api", from = "../../bases"}
+ ]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^1.5.1"
+dash = {extras = ["celery", "diskcache"], version = "^2.7.0"}
+sqlalchemy = "^1.4.44"
+psycopg2-binary = "^2.9.5"
+dash-bootstrap-components = "^1.2.1"
+gunicorn = "^20.1.0"
+
+[tool.poetry.group.dev.dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

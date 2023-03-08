@@ -2,7 +2,7 @@
 FROM python:3.10-bullseye
 
 # This is the name of the wheel that we build using `poetry build-project`
-ARG wheel=author_server-0.1.0-py3-none-any.whl
+ARG wheel=dash_server-0.1.0-py3-none-any.whl
 
 # set work directory
 WORKDIR /usr/src/app
@@ -11,20 +11,18 @@ WORKDIR /usr/src/app
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
-ENV CELERY_BROKER_URL=redis://redis:6379/0
-ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
 
 # install dependencies
 RUN pip install --upgrade pip
 RUN apt update
-RUN apt install -y --fix-missing git texlive-full xsltproc pdf2svg rsync sagemath
+
 
 # copy project
 COPY ./dist/$wheel /usr/src/app/$wheel
 # When you pip install a wheel it also installs all of the dependencies
 # which are stored in the METADATA file inside the wheel
 RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
-
+#COPY . .
 #COPY .ssh/id_rsa .
 
-CMD ["uvicorn", "rsptx.author_server_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["gunicorn", "rsptx.dash_server_api.core:server", "--bind", "0.0.0.0:8000"]
