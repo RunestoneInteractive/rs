@@ -1,3 +1,5 @@
+# This is the Root pyproject.toml
+#
 [tool.poetry]
 name = "rs"
 version = "0.1.0"
@@ -12,7 +14,13 @@ packages = [
     {include = "rsptx/visualization", from = "components"},
     {include = "rsptx/db", from = "components"},
     {include = "rsptx/forms", from = "components"},
-    {include = "rsptx/author_server_api", from = "bases"}
+    {include = "rsptx/auth", from = "components"},
+    {include = "rsptx/logging", from = "components"},
+    {include = "rsptx/response_helpers", from = "components"},
+    {include = "rsptx/validation", from = "components"},
+    {include = "rsptx/author_server_api", from = "bases"},
+    {include = "rsptx/book_server_api", from = "bases"}
+
 ]
 
 [tool.poetry.dependencies]
@@ -41,6 +49,16 @@ tqdm = "^4.65.0"
 dash = {extras = ["celery", "diskcache"], version = "^2.7.0"}
 dash-bootstrap-components = "^1.2.1"
 gunicorn = "^20.1.0"
+botocore = "^1.29.87"
+python-dateutil = "^2.8.2"
+aiosqlite = "^0.18.0"
+pyhumps = "^3.8.0"
+pydal = "^20221110.1"
+bleach = "^6.0.0"
+boto3 = "^1.26.88"
+multi-await = "^1.0.4"
+aioredis = "^2.0.1"
+asyncpg = "^0.27.0"
 
 
 [build-system]

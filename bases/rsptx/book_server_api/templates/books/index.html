@@ -1,0 +1,77 @@
+
+{% extends "_base.html" %}
+{% block css %}
+
+<link
+    href="/ns/staticAssets/index.css"
+    rel="stylesheet"
+    media="screen"
+/>
+{% endblock %}
+
+{% block content %}
+<div class="col-md-12">
+    <h2>Runestone Academy Library of Books</h2>
+    <p>
+        The books on Runestone.Academy are all free and open source textbooks. We
+        encourage you to browse the library and make use of these books in your
+        courses. If you are a new instructor and want to do this, please take a look
+        at the
+        <a href="/ns/books/published/instructorguide/frontmatter-1.html?mode=browsing"
+            >Help for Instructors page</a
+        >
+        before you make a course.  <strong>Note: The links to books on this page
+        are for browsing only.</strong>  If you want your work to be saved you should enroll in the course
+        from the <a href="/runestone/default/courses">Change Course</a> page.
+    </p>
+    <div class="searchbar">
+        <input
+            type="text"
+            id="searchbar"
+            onkeyup="search_book()"
+            placeholder="Search by keyword..."
+        />
+    </div>
+    {% for section in sections: %}
+    <div class="sectionName" style="font-size: 25px">{{ section}} Textbooks:</div>
+
+        {% for book in book_list: %}
+            {% if book['shelf_section'] == section: %}
+                <div class="library_entry">
+                    <div class="book_title">
+
+                        <a href="{{canonical_host}}/ns/books/published/{{book['basecourse']}}/{{ book['main_page']}}?mode=browsing">
+                            <span class="link1">{{ book['title'] }}</span>
+                        </a>
+                    </div>
+                    <div class="book_descript">
+                        {% if book['authors'] %}
+                        <p style="margin-bottom: 0"><b>By:</b> {{book['authors']}}</p>
+                        {% endif %}
+                        <p><b>Description:</b> {{ book['description'] }} </p>
+                        <a href="/runestone/default/enroll?course_name={{book['basecourse']}}" role="button" class="btn-sm btn-primary" >Register for <code>{{ book['basecourse'] }}</code> </a>
+                        <p style="display: none">keywords: {{ book['key_words'] }}</p>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+
+    <h3>License Information</h3>
+    <p>
+        The books published on Runestone are all licensed under the Creative Commons
+        CC-BY license or the GNU Free Documentation license. The source code for each
+        book can be found on
+        <a href="https://github.com/RunestoneInteractive">Our Github Page</a> and
+        will give you the specifics of the license. We encourage you to report any
+        inaccuracies, typos or leave us suggestions using the Github issues page for
+        each book.
+    </p>
+</div>
+
+
+{% endblock %}
+
+{% block js %}
+<script src="/ns/staticAssets/books.js"></script>
+{% endblock %}

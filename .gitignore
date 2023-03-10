@@ -18,3 +18,4 @@ build_info
 sphinx_settings.json
 dist
 .venv
+cache

@@ -1,0 +1,33 @@
+/* custom css */
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+body {
+  padding-top: 2rem;
+  margin-bottom: 60px;
+}
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 50px;
+  line-height: 50px;
+}
+
+.taskbox {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.navbar {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.container {
+  width: 45em;
+  margin-left: auto;
+  margin-right: auto;
+}

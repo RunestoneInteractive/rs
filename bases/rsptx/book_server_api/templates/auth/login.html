@@ -1,0 +1,23 @@
+<!--
+***************************************
+|docname| - template for the login page
+***************************************
+See `login`. TODO: more docs.
+-->
+<html>
+  <head>
+    <title>Login</title>
+  </head>
+  <body>
+    <h1>Login</h1>
+    <form action="/auth/validate" method="post">
+      <label for="loginuser">Username</label>
+      <input type="text" name="username" id="loginuser" />
+
+      <label for="loginpw">Password</label>
+      <input type="password" name="password" id="loginpw" />
+
+      <input type="submit" id="login_button" />
+    </form>
+  </body>
+</html>
