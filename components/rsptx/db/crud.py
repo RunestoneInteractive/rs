@@ -41,6 +41,7 @@ from rsptx.db.models import (
     AssignmentQuestionValidator,
     AuthUser,
     AuthUserValidator,
+    BookAuthor,
     Chapter,
     Code,
     CodeValidator,
@@ -1034,8 +1035,56 @@ async def fetch_library_books():
         return book_list
 
 
-async def create_library_book():
-    ...
+async def fetch_library_book(book):
+    query = select(Library).where(Library.basecourse == book)  # noqa: E712
+    async with async_session() as session:
+        res = await session.execute(query)
+        # the result type of this query is a sqlalchemy CursorResult
+        # .all will return a list of Rows
+        ret = res.scalars().first()
+        # the result of .scalars().first() is a single Library object
+
+        return ret
+
+
+async def update_library_book(bookid, vals):
+    if "for classes" in vals:
+        vals["for_classes"] = "T" if vals["for_classes"] else "F"
+    if "is_visible" in vals:
+        vals["is_visible"] = "T" if vals["is_visible"] else "F"
+
+    stmt = update(Library).where(Library.id == bookid).values(**vals)
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+
+
+# TODO finish this use bookid as title temporarily
+async def create_library_book(bookid, vals):
+    vals["title"] = bookid
+    stmt = insert(Library).values(**vals)
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+
+
+async def create_book_author(author: str, document_id: str):
+    new_ba = BookAuthor(author=author, book=document_id)
+    # Now execute all of the statments in a single transaction.
+    async with async_session.begin() as session:
+        session.add(new_ba)
+
+
+async def fetch_books_by_author(author: str):
+    query = (
+        select(Library, BookAuthor)
+        .join(BookAuthor, BookAuthor.book == Library.basecourse)
+        .where(BookAuthor.author == author)
+        .order_by(BookAuthor.book)
+    )
+    async with async_session() as sess:
+        res = await sess.execute(query)
+        # for row in res.scalars().fetchall():
+        #     print("ROW is ", row.title)
+        return res.scalars().fetchall()
 
 
 async def fetch_course_practice(course_name: str) -> CoursePractice:

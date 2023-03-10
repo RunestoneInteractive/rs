@@ -17,7 +17,7 @@ import time
 import subprocess
 import logging
 import pathlib
-from rsptx.db.models import Session, auth_user, courses, library, BookAuthor
+
 from sqlalchemy import update, create_engine
 
 # Third Party
@@ -133,16 +133,6 @@ def clone_runestone_book(self, repo, bcname):
     return True
 
 
-def update_last_build(book):
-    stmt = (
-        library.update()
-        .where(library.c.basecourse == book)
-        .values(last_build=datetime.datetime.utcnow())
-    )
-    with Session.begin() as session:
-        session.execute(stmt)
-
-
 @celery.task(bind=True, name="build_runestone_book")
 def build_runestone_book(self, book):
     logger.debug(f"Building {book}")
@@ -186,7 +176,8 @@ def build_runestone_book(self, book):
     if res.returncode != 0:
         return False
     self.update_state(state="SUCCESS", meta={"current": "build complete"})
-    update_last_build(book)
+    # update_last_build(book)
+    # todo: replace with update_library_book -- but it is async
     return True
 
 
