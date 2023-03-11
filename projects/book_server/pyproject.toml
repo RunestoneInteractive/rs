@@ -12,6 +12,7 @@ packages = [
     {include = "rsptx/validation", from = "../../components"},
     {include = "rsptx/configuration", from = "../../components"},
     {include = "rsptx/response_helpers", from = "../../components"},
+    {include = "rsptx/lp_sim_builder", from = "../../components"},
     {include = "rsptx/book_server_api", from = "../../bases"}
 ]
 
@@ -65,6 +66,11 @@ psycopg2-binary = "^2.0.0"
 # This is used by VSCode for Python refactoring
 rope = "^0.21.0"
 
+# Scripts
+# =======
+# See `scripts <https://python-poetry.org/docs/pyproject/#scripts>`_.
+[tool.poetry.scripts]
+bookserver = 'rsptx.book_server_api.__main__:run'
 
 
 [build-system]
