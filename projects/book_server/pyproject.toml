@@ -10,6 +10,7 @@ packages = [
     {include = "rsptx/logging", from = "../../components"},
     {include = "rsptx/db", from = "../../components"},
     {include = "rsptx/validation", from = "../../components"},
+    {include = "rsptx/configuration", from = "../../components"},
     {include = "rsptx/response_helpers", from = "../../components"},
     {include = "rsptx/book_server_api", from = "../../bases"}
 ]

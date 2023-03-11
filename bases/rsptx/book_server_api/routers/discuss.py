@@ -57,6 +57,7 @@ from rsptx.configuration import settings
 from rsptx.db.crud import create_useinfo_entry
 from rsptx.db.models import UseinfoValidation
 from rsptx.validation.schemas import PeerMessage
+from ..localconfig import local_settings
 
 # from ..session import auth_manager
 
@@ -68,7 +69,9 @@ router = APIRouter(
     tags=["discuss"],
 )
 
-templates = Jinja2Templates(directory=f"{settings._book_server_path}/templates/discuss")
+templates = Jinja2Templates(
+    directory=f"{local_settings._book_server_path}/templates/discuss"
+)
 
 
 class ConnectionManager:

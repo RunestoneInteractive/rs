@@ -53,20 +53,14 @@ class Settings(BaseSettings):
     # This is a really nice way to keep from
     # committing any data you want to keep private.
 
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+
     google_ga: str = ""
 
-    # Provide a path to the book server files. The leading underscore prevents environment variables from affecting this value. See the `docs <https://pydantic-docs.helpmanual.io/usage/models/#automatically-excluded-attributes>`_, which don't say this explicitly, but testing confirms it.
-    _book_server_path: str = str(
-        Path(pkg_resources.resource_filename("rsptx.book_server_api", "")).absolute()
-    )
-
     # The path to the Runestone application inside web2py.
-    runestone_path: Path = Path(
-        os.environ.get(
-            "RUNESTONE_PATH",
-            Path(_book_server_path).parents[1] / "web2py/applications/runestone",
-        )
-    ).resolve()
+    runestone_path: str = Path(os.environ.get("RUNESTONE_PATH")).resolve()
 
     # _`book_path`: specify the directory to serve books from. For now, default to serving from the same place as the Runestone server, since the server uses some of these files.
     book_path: Path = runestone_path / "books"
@@ -88,9 +82,9 @@ class Settings(BaseSettings):
     #
     # - ``sqlite:///./runestone.db``
     # - ``postgresql://postgres:bully@localhost/runestone``
-    dburl: str = f"sqlite:///{_book_server_path}/runestone.db"
-    dev_dburl: str = f"sqlite:///{_book_server_path}/runestone_dev.db"
-    test_dburl: str = f"sqlite:///{_book_server_path}/runestone_test.db"
+    dburl: str = f"sqlite:///{runestone_path}/runestone.db"
+    dev_dburl: str = f"sqlite:///{runestone_path}/runestone_dev.db"
+    test_dburl: str = f"sqlite:///{runestone_path}/runestone_test.db"
 
     # Given a sync database URI, return its async equivalent.
     @staticmethod

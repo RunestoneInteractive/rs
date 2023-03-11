@@ -19,3 +19,4 @@ sphinx_settings.json
 dist
 .venv
 cache
+.check_*

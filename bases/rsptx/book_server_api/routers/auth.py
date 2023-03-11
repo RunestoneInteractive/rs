@@ -34,6 +34,7 @@ from rsptx.logging import rslogger
 from rsptx.configuration import settings
 from rsptx.db.crud import create_user
 from rsptx.db.models import AuthUserValidator
+from ..localconfig import local_settings
 
 # Routing
 # =======
@@ -44,7 +45,7 @@ router = APIRouter(
 )
 
 templates = Jinja2Templates(
-    directory=f"{settings._book_server_path}/templates{router.prefix}"
+    directory=f"{local_settings._book_server_path}/templates{router.prefix}"
 )
 
 

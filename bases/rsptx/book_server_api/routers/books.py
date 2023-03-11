@@ -41,6 +41,7 @@ from rsptx.db.crud import (
 )
 from rsptx.db.models import UseinfoValidation
 from rsptx.auth.session import is_instructor
+from ..localconfig import local_settings
 
 # .. _APIRouter config:
 #
@@ -380,7 +381,7 @@ async def library(request: Request, response_class=HTMLResponse):
         username = ""
         instructor_status = False
     templates = Jinja2Templates(
-        directory=f"{settings._book_server_path}/templates{router.prefix}"
+        directory=f"{local_settings._book_server_path}/templates{router.prefix}"
     )
     return templates.TemplateResponse(
         "index.html",
