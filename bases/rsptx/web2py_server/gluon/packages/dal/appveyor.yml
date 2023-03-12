@@ -1,0 +1,59 @@
+build: false
+
+services:
+  - mssql2014
+
+environment:
+  matrix:
+    - PYTHON: "C:/Python27"
+      PY_VER: "2.7"
+      adapter: "mssql"
+    - PYTHON: "C:/Python27"
+      PY_VER: "2.7"
+      adapter: "mssqln"
+    - PYTHON: "C:/Python34"
+      PY_VER: "3.4"
+      adapter: "mssql"
+    - PYTHON: "C:/Python34"
+      PY_VER: "3.4"
+      adapter: "mssqln"
+    - PYTHON: "C:/Python35"
+      PY_VER: "3.5"
+      adapter: "mssql"
+    - PYTHON: "C:/Python35"
+      PY_VER: "3.5"
+      adapter: "mssqln"
+    - PYTHON: "C:/Python36-x64"
+      PY_VER: "3.6"
+      PYTHON_ARCH: "64"
+      adapter: "mssql"
+    - PYTHON: "C:/Python36-x64"
+      PY_VER: "3.6"
+      PYTHON_ARCH: "64"
+      adapter: "mssqln"
+
+clone_depth: 50
+
+init:
+  - "ECHO %PYTHON%"
+  - set PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
+
+install:
+  - appveyor DownloadFile https://bootstrap.pypa.io/pip/%PY_VER%/get-pip.py
+  - python get-pip.py
+  - pip install tox==1.9.2
+  - pip install codecov
+
+before_test:
+  - ps: |
+        while($LASTEXITCODE -ne 0)
+        {
+          & sqlcmd -S "(local)\SQL2014" -b -U "sa" -P "Password12!" -Q "CREATE DATABASE pydal COLLATE Latin1_General_CS_AS;" -d "master"
+          sleep 10; $val++; Write-Host Waiting ... $val; if($val -ge 10) {break}
+        }
+
+test_script:
+  - tox -e coverage-%adapter%
+
+after_test:
+  - codecov

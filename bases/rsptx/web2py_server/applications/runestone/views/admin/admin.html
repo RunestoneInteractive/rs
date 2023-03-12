@@ -1,0 +1,412 @@
+{{ extend "admin/instructors.html"}}
+
+{{ block tabcontent }}
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/jquery-ui.min.js"></script>
+<link href="https://ajax.aspnetcdn.com/ajax/jquery.ui/1.8.10/themes/ui-lightness/jquery-ui.css" rel="stylesheet"
+    type="text/css" />
+
+<div class="col-md-3">
+    <h3 style="visibility: hidden">Admin Panel</h3>
+
+
+    <a id="gradebookLink" href="/{{=request.application}}/dashboard/grades" class="list-group-item">
+        <h4 style="text-align: center" class="list-group-item-heading">Grade Book</h4>
+    </a>
+    <a id="chapoverviewLink" href="/{{=request.application}}/dashboard/subchapoverview" class="list-group-item">
+        <h4 style="text-align: center" class="list-group-item-heading">Chapter Activity</h4>
+    </a>
+    <a id="courseTab" data-toggle="tab" href="#coursedata" class="list-group-item">
+        <h4 style="text-align: center" class="list-group-item-heading">Course Settings</h4>
+    </a>
+    <a id="studentsTab" data-toggle="tab" href="#manageStudents" class="list-group-item">
+        <h4 style="text-align: center" class="list-group-item-heading">Manage Students</h4>
+    </a>
+    <a id="AddInstructorTab" data-toggle="tab" href="#AddInstructor" class="list-group-item">
+        <h4 style="text-align: center" class="list-group-item-heading">Add TA</h4>
+    </a>
+    <a id="courselog" href="/{{=request.application}}/admin/courselog" class="list-group-item">
+        <h4 style="text-align: center" class="list-group-item-heading">Download Log</h4>
+    </a>
+    <a id="activeLink" href="/{{=request.application}}/dashboard/active" class="list-group-item">
+        <h4 style="text-align: center" class="list-group-item-heading">Students Online</h4>
+    </a>
+    <a id="aresetTab" data-toggle="tab" href="#assessmentReset" class="list-group-item">
+        <h4 style="text-align: center" class="list-group-item-heading">Reset Student Exam</h4>
+    </a>
+    <a id="CopyAssignmentsTab" data-toggle="tab" href="#CopyAssignments" class="list-group-item">
+        <h4 style="text-align: center" class="list-group-item-heading">Copy Assignments</h4>
+    </a>
+    {{ if settings.lti_interface: }}
+    <a id="LTITab" data-toggle="tab" href="#SetupLTI" class="list-group-item">
+        <h4 style="text-align: center" class="list-group-item-heading">LTI Integration</h4>
+    </a>
+    {{ pass }}
+    <a id="DeleteTab" data-toggle="tab" href="#Delete" class="list-group-item">
+        <h4 style="text-align: center" class="list-group-item-heading">Delete</h4>
+    </a>
+
+    <div style="margin-top: 125px; border-top: dashed">
+
+
+
+        <form style="margin-top: 20px;" action="/{{=request.application}}/designer/index" method="post">
+            <button style="text-align: center; font-size: 12pt;" class="list-group-item" type="submit">New
+                Course</button>
+        </form>
+    </div>
+
+</div>
+
+<div class="tab-content">
+
+
+    <div id="coursedata" class="tab-pane fade">
+        <div class="col-md-5">
+            <h3 style="text-align: center;">Course Settings</h3>
+            <div class="settingsbox">
+            <label for="start_date">Term Start Date</label>
+            <input type="text" id="start_date" value="{{=startDate}}" onchange="updateCourse(this, 'new_date')">
+            </div>
+            <div class="settingsbox">
+            <label for="downloads">Enable ActiveCode Downloads</label>
+            <input type="checkbox" id="downloads"
+            {{ if downloads_enabled == "true": }}
+              checked
+            {{ pass }}
+            onchange="updateCourse(this,'downloads_enabled')">
+            </div>
+            <div class="settingsbox">
+            <label for="pairs">Allow Pairs</label>
+            <input type="checkbox" id="pairs"
+            {{ if allow_pairs == "true": }}
+              checked
+            {{ pass }}
+            onchange="updateCourse(this,'allow_pairs')">
+            </div>
+            <div class="settingsbox">
+                <label for="pairs">Enable Compare Me Button</label>
+                <input type="checkbox" id="compare_me"
+                {{ if "enable_compare_me" not in globals() or enable_compare_me == "true": }}
+                  checked
+                {{ pass }}
+                onchange="updateCourse(this,'enable_compare_me')">
+                </div>
+    
+        </div>
+    </div>
+
+    <div id="manageStudents" class="tab-pane fade">
+        <form id="removeStudents" method="POST" action="/{{=request.application}}/admin/removeStudents">
+            <div class="col-md-3">
+                <h3 style="text-align: center">Students</h3>
+                <select id="studentList" class="form-control" size="10" name="studentList" multiple>
+                    <option value="None" selected>--Select Student(s) for Action--</option>
+                    {{ for person in students: }}
+                    <option value="{{=person}}">{{ =students[person] }}</option>
+                    {{ pass }}
+                </select>
+                <div style="text-align: center">
+                    <input style="height:30px; margin-bottom: 10px" type="submit" value="Remove Student(s)"> <br/>
+                    <button type="button" id="passwordreset" onclick="resetOnePassword()">Reset Password</button>
+                </div>
+                <p>Removing a student drops them from your course and transfers them to the "open" course for the same book.</p><p>You
+                   will not see them in the grading interface or gradebook anymore, but no data is lost.</p>
+
+            </div>
+        </form>
+        <div class="col-md-6">
+            <h3 style="text-align: center">Register Students</h3>
+            <p>Upload a csv file with the following format to automatically register your students.
+            Each row must have six elements in the order shown below.</p>
+            <pre>username,email,first_name,last_name,password,course</pre>
+        <form method="POST" action="/{{=request.application}}/admin/enroll_students" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="studentuploads">Choose a CSV file with student information</label>
+                <input id="studentuploads" type="file" name="students">
+            </div>
+            <input type="submit" name="Send" value="Register Students">
+        </form>
+        <br />
+        <p>You can make the file in your favorite Spreadsheet app and then export it to a CSV file to upload here.  Please export without headers.</p>
+            <p><strong>Notes -- Please Read</strong></p> 
+            <ol>
+                <li>If anything fails then none of the students will be added. Fix your errors and try again.</li>
+                <li>If you need to <strong>add new students,</strong> put them in a new CSV file and upload. Your existing students will not be impacted.</li>
+                <li>If you are trying to add <strong>existing students</strong> to a <strong>new</strong> class, that is not supported.  Once a student is registered they can add themselves to any course from the 👤 menu -> Change Course page.</li>
+            </ol>
+        </div>
+    </div>
+
+
+    <div class="tab-pane fade" id="rebuild">
+        <div class="col-sm-3"></div>
+        <div class="col-sm-6">
+
+            <h4 style="text-align: center">Change Log</h4>
+            <div style="border: groove; white-space: pre; max-height: 25em; overflow: auto;" id="changelog"></div>
+
+            <form name="confirm" method="POST" action="/{{=request.application}}/admin/admin">
+                <input type="hidden" name="projectname" value="{{=coursename}}" />
+                <input type="hidden" name="coursetype" value="rebuildcourse" />
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" name="loginreq" value="yes" checked />
+                        Require a username to access this course
+                    </label>
+                </div>
+
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" name="python3" value="true" id="python3" checked="checked" />
+                        Use Python3 print function and true division
+                    </label>
+                </div>
+
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" name="allowpairs" value="false" id="allowpairs" />
+                        Enable <strong>experimental</strong> pair programming features.
+                    </label>
+                </div>
+
+                <div class="form-group row">
+                    <div class="col-lg-3">
+                        <label for="startdate">Course start date</label>
+                        <input type="text" name="startdate" id="startdate" value="{{=startDate}}" />
+                    </div>
+                </div>
+                <input type="submit" class="btn btn-default" value="Update course" />
+            </form>
+
+        </div>
+    </div>
+
+
+    <div id="AddInstructor" class="tab-pane fade">
+        <div class="col-md-4" style="text-align: center">
+            <h3>Remove a Current Instructor</h3>
+            <div class="list-group">
+                <form method="POST" id="removeins" action="Javascript:remove_instructor();">
+                    <select size="10" id="instructorlist" name="instructor" class="form-control">
+                        {{ for person in sorted(list(instructors.values()), key=lambda s: str(s).split()[-1]): }}
+                        <option value="{{=person}}">{{ =person }}</option>
+                        {{ pass }}
+                    </select>
+                    <div style="text-align: center">
+                        <input type="submit" value="-">
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-4" style="text-align: center">
+            <h3>Add a New Instructor</h3>
+            <div class="list-group-item">
+                <div>
+                    <input id="TA_search" type="text" placeholder="Search..." onkeyup="TA_search()">
+                </div>
+                <form id="addins" method="POST" action="Javascript:add_instructor();">
+                    <select size="10" id="studentlist" name="student" class="form-control">
+                        {{ for user in students: }}
+                        <option class="available_students" value="{{=user}}">{{ =students[user] }}</option>
+                        {{ pass }}
+                    </select>
+                    <div style="text-align: center">
+                        <button id="activatorbutton" type="submit" value="+">+</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        ​
+    </div>
+
+    <div id="assessmentReset" class="tab-pane fade">
+        <div class="col-md-5">
+            <h3 style="text-align: center;">Reset an Exam</h3>
+            <div class="settingsbox">
+                <select id="exstudentList" class="form-control" size="10" name="exstudentList">
+                    <option value="None" selected>--Select Student to Reset--</option>
+                    {{ for person in students: }}
+                    <option value="{{=person}}">{{ =students[person] }}</option>
+                    {{ pass }}
+                </select>
+            </div>
+            <div class="settingsbox">
+                <select id="examList" class="form-control" size="10" name="examList">
+                    <option value="None" selected>--Select Assessment to Reset --</option>
+                    {{ for exam in examlist: }}
+                    <option value="{{=exam}}">{{ =exam }}</option>
+                    {{ pass }}
+                </select>
+            </div>
+            <button type="button" class="btn btn-danger" onclick="resetExam()">Reset</button>
+        </div>
+    </div>    ​
+    ​
+    <div id="Delete" class="tab-pane fade">
+        <div class="col-md-8">
+            <h2 style="text-align: center">Delete a Course</h2>
+            <h3 style="text-align: center">This action CANNOT BE UNDONE</h3>
+            <div style="text-align: center">
+                <form action="/{{=request.application}}/admin/deletecourse" method="post"
+                    onsubmit="return confirm('Are you sure you want to delete this course? This will remove the course for all students and all custom assignments you have made will be deleted. This cannot be undone.')">
+                    <button type="submit" style="width: 33%; align-self: center;">Really Delete</button>
+                </form>
+            </div>
+            <h3 style="text-align: center">This will delete all sections under this course. Students will not be able to
+                access course materials.</h3>
+        </div>
+    </div>
+
+
+    <div id="CopyAssignments" class="tab-pane fade">
+        <div class="col-md-8">
+            <h2 style="text-align: center">Copy Assignments</h2>
+            <label for="courseSelection">Select the course you want to copy assignments from.</label>
+            <div class="col-sm-3">
+                <select id="courseSelection" class="form-control" onchange="getAssignList(this);">
+                    <option value="">Select a Course</option>
+                    {{ for course in instructor_course_list: }}
+                    <option value="{{=course.course_name}}">{{=course.course_name}}</option>
+                    {{ pass }}
+                </select>
+                <div id="assignSelection"></div>
+                <button onclick="copyAssignments();" class="btn btn-primary">Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="SetupLTI" class="tab-pane fade">
+        <div class="col-md-8">
+            <h2 style="text-align: center">LTI Configuration</h2>
+            <p>LTI is <strong>Community Supported!</strong> It works but you need to know how to configure things on your own LMS.
+               There is strong evidence that LTI works on Canvas, Sakai, Moodle, and Desire2Learn.  
+               Please <a href="https://runestoneserver.readthedocs.io/en/latest/docs/lti.html" rel="noopener noreferrer" target="_blank">Read the docs <span class="glyphicon glyphicon-link"></span></a>  first,
+            then feel free to ask for help on the <code>#lti_community_support</code> channel on Slack. If you have it working on another
+            LMS please helps us out and contribute to the docs so that others can benefit.</p> 
+            <p>To launch lti on Runestone use <code>https://runestone.academy/runestone/lti</code></p>
+            <div class="col-sm-8 col-md-8">
+                <button onclick="generateLTIKeys();" class="btn btn-primary">Create LTI Key and Secret</button>
+                <table style="width: 500px">
+                <tr><td>Consumer Key:</td> <td><span id="ckey_value">{{=consumer}}</span></td></tr>
+                <tr><td>Secret:</td> <td><div id="secret_value" class="collapse">{{=secret}}</div></td></tr>
+                <tr><td></td><td><a href="#secret_value" class="btn btn-default btn-small" data-toggle="collapse">Show Secret</a></td></tr>
+                </table>
+            </div>
+
+
+        </div>
+    </div>
+
+    <div id="rsnews" class="tab-pane" style="margin-top:30px;">
+        <div class="col-md-8" style="background-color: aliceblue;border-radius: 10px;margin-left: 20px;border: solid;">
+            <h2>Runestone News</h2>
+            {{=XML(motd)}}
+        </div>
+    </div>
+
+</div>
+
+<script>
+    $(".dashboardnav").removeClass("active");
+    $("#admintab").addClass("active")
+    $('#startdate').datepicker();
+    $('#start_date').datepicker();
+    $("#rsnews").show()
+
+
+    $('#sectionsTab').click(function () {
+        $('#sectionsTab').css('background-color', 'gainsboro');
+        $('#studentsTab').css('background-color', 'transparent');
+        $('#AddInstructorTab').css('background-color', 'transparent');
+        $('#DeleteTab').css('background-color', 'transparent');
+        $('#CopyAssignmentsTab').css('background-color', 'transparent');
+        $('#courseTab').css('background-color', 'transparent');
+        $('#LTITab').css('background-color', 'transparent');
+        $("aresetTab").css('background-color', 'transparent')
+        $("#rsnews").hide()
+    });
+
+    $('#courseTab').click(function () {
+        $('#sectionsTab').css('background-color', 'transparent');
+        $('#courseTab').css('background-color', 'gainsboro');
+        $('#studentsTab').css('background-color', 'transparent');
+        $('#AddInstructorTab').css('background-color', 'transparent');
+        $('#DeleteTab').css('background-color', 'transparent');
+        $('#CopyAssignmentsTab').css('background-color', 'transparent');
+        $('#LTITab').css('background-color', 'transparent');
+        $("aresetTab").css('background-color', 'transparent')
+        $("#rsnews").hide()
+    });
+
+    $('#AddInstructorTab').click(function () {
+        $('#AddInstructorTab').css('background-color', 'gainsboro');
+        $('#sectionsTab').css('background-color', 'transparent');
+        $('#studentsTab').css('background-color', 'transparent');
+        $('#DeleteTab').css('background-color', 'transparent');
+        $('#CopyAssignmentsTab').css('background-color', 'transparent');
+        $('#courseTab').css('background-color', 'transparent');
+        $('#LTITab').css('background-color', 'transparent');
+        $("aresetTab").css('background-color', 'transparent')
+        $("#rsnews").hide()
+    });
+
+    $('#aresetTab').click(function () {
+        $("aresetTab").css('background-color', 'gainsboro')
+        $('#AddInstructorTab').css('background-color', 'transparent');
+        $('#sectionsTab').css('background-color', 'transparent');
+        $('#studentsTab').css('background-color', 'transparent');
+        $('#DeleteTab').css('background-color', 'transparent');
+        $('#CopyAssignmentsTab').css('background-color', 'transparent');
+        $('#courseTab').css('background-color', 'transparent');
+        $("#rsnews").hide()
+    });
+
+    $('#DeleteTab').click(function () {
+        $('#DeleteTab').css('background-color', 'gainsboro');
+        $('#sectionsTab').css('background-color', 'transparent');
+        $('#studentsTab').css('background-color', 'transparent');
+        $('#AddInstructorTab').css('background-color', 'transparent');
+        $('#CopyAssignmentsTab').css('background-color', 'transparent');
+        $('#courseTab').css('background-color', 'transparent');
+        $('#LTITab').css('background-color', 'transparent');
+        $("aresetTab").css('background-color', 'transparent')
+        $("#rsnews").hide()
+    });
+
+    $('#CopyAssignmentsTab').click(function () {
+        $('#CopyAssignmentsTab').css('background-color', 'gainsboro');
+        $('#DeleteTab').css('background-color', 'transparent');
+        $('#sectionsTab').css('background-color', 'transparent');
+        $('#studentsTab').css('background-color', 'transparent');
+        $('#AddInstructorTab').css('background-color', 'transparent');
+        $('#courseTab').css('background-color', 'transparent');
+        $('#LTITab').css('background-color', 'transparent');
+        $("#rsnews").hide()
+    });
+
+    $('#LTITab').click(function () {
+        $('#LTITab').css('background-color', 'gainsboro');
+        $('#DeleteTab').css('background-color', 'transparent');
+        $('#CopyAssignmentsTab').css('background-color', 'transparent');
+        $('#sectionsTab').css('background-color', 'transparent');
+        $('#studentsTab').css('background-color', 'transparent');
+        $('#AddInstructorTab').css('background-color', 'transparent');
+        $('#courseTab').css('background-color', 'transparent');
+        $("aresetTab").css('background-color', 'transparent')
+        $("#rsnews").hide()
+    });
+
+    $('#studentsTab').click(function () {
+        $('#studentsTab').css('background-color', 'gainsboro');
+        $('#sectionsTab').css('background-color', 'transparent');
+        $('#DeleteTab').css('background-color', 'transparent');
+        $('#AddInstructorTab').css('background-color', 'transparent');
+        $('#CopyAssignmentsTab').css('background-color', 'transparent');
+        $('#courseTab').css('background-color', 'transparent');
+        $('#LTITab').css('background-color', 'transparent');
+        $("aresetTab").css('background-color', 'transparent')
+        $("#rsnews").hide()
+    });
+</script>
+
+{{ end }}

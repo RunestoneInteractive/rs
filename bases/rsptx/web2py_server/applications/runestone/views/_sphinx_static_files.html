@@ -1,0 +1,169 @@
+{{ base_static_url = get_course_url('_static') }}
+
+<!--
+Sphinx includes
+===============
+These files are copied from a Sphinx build.
+-->
+<link rel="stylesheet" href="{{=URL('static','css/pygments.css')}}" type="text/css" />
+<link rel="stylesheet" href="{{=URL('static','css/basic.css')}}" type="text/css" />
+<link rel="stylesheet" type="text/css" href="{{=URL('static', 'css/accessibility.css')}}" />
+<script src="{{=URL('static', 'js/jquery.js')}}"></script>
+<script src="{{=URL('static', 'js/jquery-fix.js')}}"></script>
+
+<script src="https://pretextbook.org/js/0.2/pretext-webwork/2.17/pretext-webwork.js"></script>
+<script src="https://webwork-hosting.runestone.academy/webwork2_files/node_modules/iframe-resizer/js/iframeResizer.min.js"></script>
+
+{{  import json
+    from pathlib import Path
+    import os
+
+    # Import webpack CSS and JS.
+    with open(Path(
+        os.environ["BOOK_PATH"],
+        course["base_course"],
+        "published",
+        course["base_course"],
+        "_static/webpack_static_imports.json"
+    ), encoding="utf-8") as f:
+        wp_imports = json.load(f)
+    pass
+    for css_import in wp_imports["css"]:
+        response.write(f'<link rel="stylesheet" type="text/css" href="{base_static_url}/{css_import}" />\n', escape=False)
+    pass
+    for js_import in wp_imports["js"]:
+        response.write(f"<script src='{base_static_url}/{js_import}'></script>\n", escape=False)
+    pass
+}}
+
+<script id="documentation_options" data-url_root="./" src="{{=URL('static','js/documentation_options.js')}}"></script>
+
+<script src="{{=URL('static','js/underscore.js')}}"></script>
+<script src="{{=URL('static','js/doctools.js')}}"></script>
+<script src="{{=URL('static','js/animationbase.js')}}"></script>
+<script src="{{=URL('static','css/html4css1.css')}}"></script>
+<script src="{{=URL('static','js/FileSaver.min.js')}}"></script>
+
+
+<!--
+Common includes
+===============
+These are used in several places in the instructor interface. TODO: identify where these are used.
+-->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2-bootstrap-theme/0.1.0-beta.10/select2-bootstrap.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.full.js"></script>
+
+<!-- TODO: load this dynamically from the e-book's webpack instead. -->
+<script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css" rel="stylesheet" media="screen">
+
+<script type="text/javascript" src="{{=URL('static', 'js/superfish.js')}}"></script>
+
+<script src="{{=URL('static', 'js/jquery.datetimepicker.full.min.js')}}"></script>
+<link rel="stylesheet" type="text/css" href="{{=URL('static', 'jquery.datetimepicker.min.css')}}" />
+
+<script>
+var runestoneMathReady = new Promise((resolve) => window.rsMathReady = resolve);
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(','\\)']],
+    tags: "none",
+    tagSide: "right",
+    tagIndent: ".8em",
+    packages: {'[+]': ['base', 'extpfeil', 'ams', 'amscd', 'newcommand', 'knowl']}
+  },
+  options: {
+    ignoreHtmlClass: "tex2jax_ignore|ignore-math",
+    processHtmlClass: "process-math",
+    renderActions: {
+        findScript: [10, function (doc) {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(function(node) {
+                var display = !!node.type.match(/; *mode=display/);
+                var math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+                var text = document.createTextNode('');
+                node.parentNode.replaceChild(text, node);
+                math.start = {node: text, delim: '', n: 0};
+                math.end = {node: text, delim: '', n: 0};
+                doc.math.push(math);
+            });
+        }, '']
+    },
+  },
+  chtml: {
+    scale: 0.88,
+    mtextInheritFont: true
+  },
+  loader: {
+    load: ['input/asciimath', '[tex]/extpfeil', '[tex]/amscd', '[tex]/newcommand', '[pretext]/mathjaxknowl3.js'],
+    paths: {pretext: "https://pretextbook.org/js/lib"},
+  },
+  startup: {
+    pageReady() {
+      return MathJax.startup.defaultPageReady().then(function () {
+      console.log("in ready function");
+      rsMathReady();
+      }
+    )}
+},
+};
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+<style>
+    .completed {
+        list-style-image: url('{{=base_static_url}}/completed.png');
+    }
+    .started {
+        list-style-type: circle;
+        list-style-image: url('{{=base_static_url}}/active.png');
+    }
+    .gradeablerow:hover {
+        background-color: #cccccc;
+    }
+    .gradeablerow {
+        color: blue;
+        text-decoration: underline;
+    }
+    .clipcopy:active {
+	    background-color: lightblue;
+    }
+    .graphwrapper {
+        display: grid;
+        grid-template-columns: 50% 50%;
+    }
+
+</style>
+
+
+<script>
+    $('#hideId').css('display','none');
+</script>
+
+<script type="text/javascript">
+  if(typeof eBookConfig === "undefined") {
+      eBookConfig = {};
+  }
+  eBookConfig.host = '';
+  eBookConfig.app = eBookConfig.host+'/{{=request.application}}';
+  eBookConfig.ajaxURL = eBookConfig.app+'/ajax/';
+  eBookConfig.course = "{{=course['course_name']}}";
+  eBookConfig.logLevel = 10;
+  eBookConfig.loginRequired = true;
+  eBookConfig.python3 = true ? "{{=course['python3']}}" == "True" : false;
+  {{ if 'auth' in globals() and auth.user: }}
+  eBookConfig.username = "{{=auth.user.username}}"
+  eBookConfig.email = "{{=auth.user.email}}"
+    {{ if 'is_instructor' in globals() and is_instructor: }}
+        eBookConfig.isInstructor = true;
+    {{pass}}
+  {{pass}}
+  eBookConfig.isLoggedIn = true ? "{{='auth' in globals()}}" == "True" : false;
+  eBookConfig.useRunestoneServices = true;
+  eBookConfig.basecourse = "{{=course['base_course']}}";
+  eBookConfig.gradeRecordingUrl = `${eBookConfig.app}/assignments/record_grade`;
+  eBookConfig.new_server_prefix = "/{{=settings.bks}}";
+  eBookConfig.websocketUrl = "{{=settings.websocket_url}}" // web2py should set this in 1.py
+</script>

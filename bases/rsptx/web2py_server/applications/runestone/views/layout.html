@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>
+            {{=response.title or request.application}}
+        </title>
+        <meta charset='utf-8'>
+        <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="description" content="Learning Python should be fun and easy.  We provide an interactive Python textbook that helps you learn to program in Python right in your browser.">
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" rel="stylesheet"  crossorigin="anonymous">
+        <link rel="stylesheet" type="text/css" href="{{=URL('static', 'runestone-custom-sphinx-bootstrap.css')}}" />
+        <link rel="stylesheet" type="text/css" href="{{=URL('static', 'css/dd.css')}}" />
+        <link rel="shortcut icon"
+            href="{{=URL('static','favicon.ico')}}" type="image/ico" />
+
+        <script src="{{=URL('static', 'js/jquery.js')}}"></script>
+        <script src="{{=URL('static', 'js/jquery-fix.js')}}"></script>
+        <script src="{{=URL('static', 'js/web2py.js')}}"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"  crossorigin="anonymous"></script>
+
+        {{ block moreincludes }}
+        {{ end }}
+        <script type="text/javascript">
+            if(typeof eBookConfig === "undefined") {
+                eBookConfig = {};
+            }
+            var portPart = '';
+            eBookConfig.host = "";
+            eBookConfig.app = eBookConfig.host+'/{{=request.application}}';
+            eBookConfig.ajaxURL = eBookConfig.app+'/ajax/';
+            eBookConfig.logLevel = 10;
+            eBookConfig.loginRequired = true;
+        </script>
+
+    </head>
+    <body>
+        {{ block navbar }}
+        <!-- Begin navbar -->
+        <div id="navbar" class="navbar navbar-default navbar-fixed-top" role="navigation">
+            {{ if response.flash: }}
+                <div class="flash">{{=response.flash or ''}}</div>
+            {{ pass }}
+            <div class="container">
+                <div class="navbar-header">
+                    <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+                    <button type='button' class='navbar-toggle' data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    </button>
+                    <div>
+                       {{ if settings.lti_only_mode: }}
+                            <a class="brand-logo" style='background: transparent url("{{=URL('static', 'images/RAIcon.png')}}") no-repeat 0px 0px;'">&nbsp;</a>
+                        {{ else: }}
+                            <a class="brand-logo" style='background: transparent url("{{=URL('static', 'images/RAIcon.png')}}") no-repeat 0px 0px;' href="{{=URL('default', 'user/login')}}">&nbsp; </a>
+                        {{ pass }}
+                    </div>
+                </div>
+                <div class="navbar-collapse collapse navbar-ex1-collapse">
+                    <ul class="nav navbar-nav navbar-right">
+                        <li class="divider-vertical"></li>
+                        <!-- social media dropdown -->
+                     {{ if settings.academy_mode: }}
+
+                        <li class="dropdown">
+                            <a class="dropdown-toggle" href="#" data-toggle="dropdown">
+                            <i class="glyphicon glyphicon-globe" style="opacity: 0.9"></i>
+                            </a>
+                            <ul class="dropdown-menu social-menu">
+                                <li>
+                                    <div>
+                                        <b>Runestone in social media:</b>
+                                    </div>
+                                    <a href="https://twitter.com/iRunestone" class="twitter-follow-button" data-show-count="true">Follow @iRunestone</a>
+
+                                    <a href="https://www.facebook.com/RunestoneInteractive"> Our Facebook page</a>
+                                </li>
+                                <li class="divider"></li>
+                                <li>
+                                    <div>
+                                        <b>Help support us:</b>
+                                    </div>
+                                    <div>
+                                        <a href="{{=URL("default", "donate")}}"> <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" alt="PayPal - The safer, easier way to pay online!"></a>
+                                    </div>
+                                </li>
+                            </ul>
+                        </li>
+                        {{ pass }}
+                        <!-- end social media dropdown -->
+                        <!-- Search Menu -->
+                        {{ if auth.user: }}
+                        <li class="divider-vertical"></li>
+                        <li class="dropdown">
+                            <a class="dropdown-toggle" href="#" data-toggle="dropdown">
+                              <i class="glyphicon glyphicon-search" style='opacity:0.9;'><span aria-label="Search" class="visuallyhidden">Search</span></i>
+                            </a>
+                            <ul class='dropdown-menu'>
+                              <li><a href="{{=get_course_url('index.html') }}" aria-label="index-page">Table of Contents</a></li>
+                              <li><a href="{{=get_course_url('genindex.html') }}">Book Index</a></li>
+                              <li class="divider"></li>
+                              <li style="width: 240px;">
+                                <form class="navbar-search" style="margin:10px;" action="{{ =get_course_url('search.html') }}" method="get">
+                                  <div class="input-group">
+                                    <input type="text" class="form-control" name="q" placeholder="Search this book" />
+                                    <span class="input-group-btn">
+                                      <button class="btn btn-primary" style="margin:0;" type="submit">
+                                        <i class="glyphicon glyphicon-search"></i>
+                                      </button>
+                                    </span>
+                                  </div><!-- /input-group -->
+                                  <input type="hidden" name="check_keywords" value="yes" />
+                                  <input type="hidden" name="area" value="default" />
+                                </form>
+                              </li>
+                            </ul>
+                        </li>
+                        {{pass}}
+                        <!-- user account dropdown -->
+                        <li class="dropdown">
+                            <a class="dropdown-toggle" href="#" data-toggle="dropdown">
+                                <i class="glyphicon glyphicon-user" style="opacity:0.9;"></i>
+                            </a>
+                            <ul class="dropdown-menu user-menu">
+                                {{ if auth.user: }}
+                                    <li><span class='loggedinuser'>{{=auth.user.username}}</span></li>
+                                {{ else: }}
+                                    <li><span class='loggedinuser'>Not logged in</span></li>
+                                {{ pass }}
+                                {{ if auth.user: }}
+                                    <li class="divider"></li>
+                                    <li><a href="{{=URL('assignments','chooseAssignment')}}">Assignments</a></li>
+                                    <li><a href="{{=URL('assignments','practice')}}">Practice</a></li>
+                                    <li id="inst_peer_link"><a href='/runestone/peer/instructor.html'>Peer Instruction (Instructor)</a></li>            
+                                    <li><a href='/runestone/peer/student.html'>Peer Instruction (Student)</a></li>            
+                                    <li class="divider"></li>
+                                    {{ if settings.academy_mode: }}
+                                    <li><a href='/{{=request.application}}/default/courses'>Change Course</a></li>
+                                    {{ pass }}
+                                {{ pass }}
+                                <!---
+                                    <li class="divider"></li>
+                                    <li><a href='/{{=request.application}}/mygroup/schedule'>Group Schedule</a></li>
+                                    <li><a href='/{{=request.application}}/mygroup/newschedule'>Schedule New Chapter</a></li>
+                                    <li><a href='/{{=request.application}}/mygroup/manageGroup'>Manage Group</a></li> -->
+                                {{ if not settings.lti_only_mode: }}
+                                {{ if auth.user: }}
+                                <li class="divider"></li>
+                                <li><a href='/{{=request.application}}/admin/index'>Instructor's Page</a></li>
+                                {{ pass }}
+                                <li class="divider"></li>
+                                {{ pass }}
+                                {{ if not settings.lti_only_mode: }}
+                                    {{ if auth.user: }}
+                                        {{if is_editor(auth.user.id): }}
+                                        <li><a href='/{{=request.application}}/admin/manage_exercises'>Editorial Page</a></li>
+                                        {{ pass }}
+                                        {{if is_author(auth.user.id): }}
+                                        <li><a href='https://author.runestone.academy'>Author Tools</a></li>
+                                        {{ pass }}
+                                        <li><a href="{{=URL('dashboard','studentreport')}}">Progress Page</a></li>
+                                        <li class="divider"></li>
+                                        <li><a href="/{{=request.application}}/default/user/profile">Edit Profile</a>
+                                        <li><a href="/{{=request.application}}/default/user/change_password">Change Password</a>
+                                        <li class='loginout'><a href='{{=URL("default", "user/logout")}}'>Log Out</a></li>
+                                    {{ else: }}
+                                        <li><a href='{{=URL("default", "user/register")}}'>Register</a></li>
+                                        <li class='loginout'><a href='{{=URL("default", "user/login")}}'>Login</a></li>
+                                    {{ pass }}
+                                {{ else: }}
+                                    <li><a href="{{=URL('assignments','index')}}">Progress Page</a></li>
+                                {{ pass }}
+                            </ul>
+                        </li>
+                        <!-- end user account dropdown -->
+                        <li class="divider-vertical"></li>
+                        {{ if settings.academy_mode: }}
+                            <!-- Omit the scratch activecode icon if ``no_scratch_activecode`` is True. Otherwise, include it. -->
+                            {{ if "no_scratch_activecode" not in globals() or not no_scratch_activecode: }}
+                                <li id="scratch_ac_link" class="dropdown"><a href="javascript:runestoneComponents.popupScratchAC()">
+                                    <i class="glyphicon glyphicon-pencil" style="opacity:0.9;"><span aria-label="Scratch Activecode" class="visuallyhidden">Scratch Activecode</span></i></a></li>
+                            {{pass}}
+                            <!-- help menu dropdown -->
+                            <li class="dropdown">
+                                <a class="dropdown-toggle" href="#" data-toggle="dropdown">
+                                <i class="glyphicon glyphicon-question-sign" style="opacity:0.9;"></i>
+                                </a>
+                                <ul class="dropdown-menu user-menu">
+                                    <li><a href='https://blog.runestone.academy/pages/faq.html'>FAQ</a></li>
+                                    <li><a href='https://runestone.academy/ns/books/published/instructorguide/frontmatter-1.html?mode=browsing'>Instructors Guide</a></li>
+                                    <li class="divider"></li>
+                                    <li><a href='https://blog.runestone.academy/pages/about.html'>About Runestone</a></li>
+                                    <li><a href='/{{=request.application}}/default/reportabug'>Report A Problem</a></li>
+                                </ul>
+                            </li>
+                            <li class="divider-vertical"></li>
+                        {{pass}}
+                    </ul>
+                    <ul class="nav navbar-nav">
+                        <li class="divider-vertical"></li>
+                        {{ if request.controller == "default" and settings.academy_mode:}}
+                            <li><a href="/ns/books/index">Our Library</a> </li>
+                            <li><a href="https://blog.runestone.academy">Runestone News</a> </li>
+                        {{ pass }}
+                        {{ if auth.user: }}
+                            <li><a href="{{=get_course_url('index.html')}}">Back to {{=auth.user.course_name}}</a></li>
+                        {{ pass }}
+                        <li class="divider-vertical"></li>
+                        {{if 'user_navs' in globals() and user_navs: }}
+                            {{if 'auth' in globals() and auth.user:}}
+                                <li><a href="/{{=request.application}}/designer/index">Create a Course</a> </li>
+                            {{pass}}
+                            {{if 'auth' in globals() and not auth.user and request.args(0) != 'login' and not settings.lti_only_mode:}}
+                                <li><a href="/{{=request.application}}/default/user/login">Login</a> </li>
+                            {{pass}}
+                        {{pass}}
+                        <li class="divider-vertical"></li>
+                    </ul>
+                    {{if not auth.user and (request.args(0) == 'login' or request.controller == 'books') and settings.academy_mode:}}
+                        <a href="/{{=request.application}}/default/user/register" class="btn btn-primary navbar-btn" ><span class="glyphicon glyphicon-user"></span> Sign Up</a>
+                    {{pass}}
+                </div>
+            </div>
+        </div>
+
+        <!-- End navbar -->
+        {{ end }}
+        <!-- begin body content -->
+        <div class="container">
+            {{include}}
+        </div>
+        <!-- end body content -->
+        {{ block footer }}
+        <!-- begin footer -->
+        <footer class="footer" style="margin-top:20px;">
+            <div class="container">
+                <p class="pull-right">
+                    {{ if auth.user: }}
+                        <span class='loggedinuser'>{{=auth.user.email}}</span> | <a href="#">Back to top</a>
+                    {{ else: }}
+                        <span class='loggedinuser'>Not logged in</span> | <a href="#">Back to top</a>
+                    {{ pass }}
+                </p>
+                <p>
+                    &copy; Copyright {{=request.now.year}} Runestone Academy Ltd
+                    {{ if settings.academy_mode: }}
+                        &emsp; ● <a href="/{{=request.application}}/default/privacy">Privacy Policy</a> &emsp; ●  <a href="/{{=request.application}}/default/terms">Terms of Service</a>
+                    {{ pass }}
+                </p>
+            </div>
+        </footer>
+        <!-- end footer -->
+        {{ end }}
+
+        {{ if settings.academy_mode: }}
+        <script type="text/javascript" id="cookieinfo"
+            src="//cookieinfoscript.com/js/cookieinfo.min.js"
+            data-bg="#645862"
+            data-fg="#FFFFFF"
+            data-link="#F1D600"
+            data-cookie="CookieInfoScript"
+            data-message="By continuing to visit this site you agree to our use of cookies and our privacy policy."
+            data-moreinfo="https://runestone.academy/runestone/default/privacy"
+            data-text-align="left"
+            data-close-text="Got it!"></script>
+        {{ pass }}
+        <script type='text/javascript'>
+            // do some styling of the web2py login and registration form
+            // this is done here because web2py doesn't have an easy way
+            // to add class to the auth form. We don't want to duplicate the
+            // styles from .form-control into our custom CSS.
+            var el = $("#web2py_user_form");
+            el.find("input[type='text']").addClass('form-control');
+            el.find("input[type='password']").addClass('form-control');
+        </script>
+        {{ if request.application == 'runestone': }}
+            <script type="text/javascript">
+                var _gaq = _gaq || [];
+                _gaq.push(['_setAccount', '{{=settings.google_ga}}']);
+                _gaq.push(['_trackPageview']);
+
+                (function() {
+                  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+                  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+                  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+                })();
+            </script>
+        {{ pass }}
+    </body>
+</html>

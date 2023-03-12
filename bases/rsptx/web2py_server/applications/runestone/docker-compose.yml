@@ -1,0 +1,63 @@
+# ******************************************************
+# |docname| - Configure containerized Docker application
+# ******************************************************
+version: "3"
+
+services:
+  jobe:
+    image: runestone/jobeinabox
+    build: ./jobeinabox/
+    volumes:
+    - ./jobeinabox/files:/usr/local/lib/java
+  runestone:
+    image: runestone/server
+    restart: always
+    ports:
+      # Allow HTTP, so the web server can forward to https.
+      - "80:80"
+      - "443:443"
+    environment:
+      # Database vars.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DBNAME: ${POSTGRES_DBNAME}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      DBURL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DBNAME}"
+      DEV_DBURL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DBNAME}_dev"
+      TEST_DBURL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DBNAME}_test"
+      # Server vars.
+      WEB2PY_CONFIG: ${SERVER_CONFIG}
+      BOOK_SERVER_CONFIG: ${SERVER_CONFIG}
+      WEB2PY_MIGRATE: "No"
+      PGPASSWORD: ${POSTGRES_PASSWORD} # auto login from docker-tools shell
+      WEB2PY_ADMIN_PASSWORD: ${WEB2PY_ADMIN_PASSWORD}
+      WEB2PY_SALT: ${WEB2PY_SALT}
+      JWT_SECRET: ${JWT_SECRET}
+      # Misc vars.
+      REDIS_URI: "redis://redis:6379/0"
+      RUNESTONE_HOST: ${RUNESTONE_HOST}
+      CERTBOT_EMAIL: ${CERTBOT_EMAIL}
+      LOAD_BALANCER_HOST: '${LOAD_BALANCER_HOST}'
+      # Stripe settings.
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_DEV_PUBLISHABLE_KEY: ${STRIPE_DEV_PUBLISHABLE_KEY}
+      STRIPE_DEV_SECRET_KEY: ${STRIPE_DEV_SECRET_KEY}
+      STRIPE_TEST_PUBLISHABLE_KEY: ${STRIPE_TEST_PUBLISHABLE_KEY}
+      STRIPE_TEST_SECRET_KEY: ${STRIPE_TEST_SECRET_KEY}
+      # E-mail settings.
+      EMAIL_SERVER: ${EMAIL_SERVER}
+      EMAIL_SENDER: ${EMAIL_SENDER}
+      EMAIL_LOGIN: ${EMAIL_LOGIN}
+
+      # LOGIN_URL will override the bookserver setting login_url so that it redirects back to web2py
+      LOGIN_URL: "/runestone/default/user"
+      ADSENSEID: ${ADSENSEID}
+      GOOGLE_GA: ${GOOGLE_GA}
+      ADS_FILE: '${ADS_FILE}'
+      QUICK_START: ${QUICK_START}
+      WORKER_NAME: ${HOSTNAME}
+      SPACES_KEY: ${SPACES_KEY}
+      SPACES_SECRET: ${SPACES_SECRET}
+    links:
+    - jobe

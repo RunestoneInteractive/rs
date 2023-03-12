@@ -1,0 +1,100 @@
+{{extend 'layout.html'}}
+{{block moreincludes}}
+{{include '_sphinx_static_files.html'}}
+{{end}}
+
+<script>
+    eBookConfig.peer = true;
+    eBookConfig.peerMOde = "async";
+</script>
+
+<h2>Peer Instruction Question (After Class)</h2>
+<div id="imessage">
+    <p>This page is meant for you to use <i>after</i> the inclass peer instruction is over.
+        <ol>
+            <li>Answer the question as best you can.</li>
+            <li>Then, in the space provided write a justification for your answer.</li>
+            <li>Read the dialog between two of your peers on why they answered the question the way they did.</li>
+            <li>Answer the question <strong>again.</strong>  Even if you are not changing your answer from the first time.</li>
+        </ol>
+    </p>
+</div>
+
+<div class="row">
+    {{ if not all_done: }}
+    <div class="oneq col-md-6">{{=XML(current_question['htmlsrc'])}}</div>
+    {{ else: }}
+    <div class="oneq col-md-6">
+        <h3>Congratulations, you have completed this assignment!</h3>
+    </div>
+    {{ pass }}
+    {{ if not all_done: }}
+    <div class="col-md-6">
+        <p>
+            Please provide an explanation for why you answered
+            <span id="current_answer">__</span>
+        </p>
+        <textarea id="messageText" rows="6" cols="80"> </textarea> <br />
+        <button type="button" onclick="showPeerEnableVote2()">Submit</button>
+        <div>
+            <h4>A discussion for you to consider</h4>
+            <p id="peerName"></p>
+            <p id="peerJust"></p>
+            <p id="nextStep"></p>
+        </div>
+    </div>
+    {{pass}}
+</div>
+
+{{ if not all_done: }}
+<div>
+    <form action="/peer/peer_async">
+        <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
+        <input type="hidden" name="question_num" value="{{=nextQnum}}" />
+        <button type="submit" onclick="return checkVoteCount()">Next Question</button>
+    </form>
+</div>
+{{ pass }}
+<script src="/runestone/static/js/peer.js?v={{=request.peer_mtime}}"></script>
+<script>
+    var user = "{{=auth.user.username}}";
+    var currentQuestion = "{{=XML(current_question.name)}}";
+    document.addEventListener("DOMContentLoaded", function (event) {
+        setTimeout(connect, 1000);
+    });
+    var studentVoteCount = 1;
+    var studentSubmittedVote2 = false;
+    var vote2done = false;
+    var nextQuestionNumber = {{= nextQnum}};
+    var assignId = '{{=assignment_id}}'
+
+    function checkVoteCount() {
+        if (studentVoteCount < 2 || studentSubmittedVote2 == false) {
+            alert("You must vote twice before moving on");
+            return false;
+        }
+        return true;
+    }
+
+    // this cannot happen until the event that indicates components are loaded
+    $(document).on("runestone:login-complete", function () {
+        logPeerEvent({
+            sid: eBookConfig.username,
+            div_id: `${assignId}`,
+            event: "peer",
+            act: "start_async",
+            course: eBookConfig.course,
+        })
+        setTimeout(function () {
+            $(window.mcList[currentQuestion].submitButton).click(function () {
+                if (studentVoteCount == 1) {
+                    let currAnswer = window.mcList[currentQuestion].answer;
+                    console.log(`current answer is ${currAnswer}`);
+                    let sAnswer = answerToString(currAnswer);
+                    console.log(sAnswer);
+                    $("#current_answer").html(sAnswer)
+                }
+            })
+        }, 2000)
+    });
+</script>

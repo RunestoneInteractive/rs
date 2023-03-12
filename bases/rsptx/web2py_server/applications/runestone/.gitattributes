@@ -1,0 +1,6 @@
+# Ensure files that must always have LF line endings on checkout will by ensuring Docker build and bash scripts will work regardless of OS
+
+Dockerfile text eol=lf
+*.sh text eol=lf
+scripts/** text eol=lf
+docker/docker_tools.py eol=lf
