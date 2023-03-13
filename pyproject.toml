@@ -19,46 +19,75 @@ packages = [
     {include = "rsptx/response_helpers", from = "components"},
     {include = "rsptx/validation", from = "components"},
     {include = "rsptx/author_server_api", from = "bases"},
-    {include = "rsptx/book_server_api", from = "bases"}
+    {include = "rsptx/book_server_api", from = "bases"},
+    {include = "rsptx/web2py_server", from = "bases"}
 
 ]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-fastapi = "^0.78.0"
-celery = "^5.2.7"
+
 aiofiles = "^0.8.0"
-Jinja2 = "^3.0.0"
-pytest = "^7.1.2"
-redis = "^4.3.4"
-requests = "^2.28.1"
-uvicorn = "^0.18.2"
-pretext = "^1.0.0"
-runestone = ">=6.5.0,<7.0"
-SQLAlchemy = "^1.4.0"
-psycopg2-binary = "^2.9.3"
-fastapi-login = "^1.8.2"
-myst-parser = "^0.18.0"
-sphinx-reredirects = "^0.1.1"
-pandas = "^1.0.0"
-altair = "^4.2.0"
-WTForms = "^3.0.0"
-Starlette-WTF = "^0.4.3"
-tqdm = "^4.65.0"
-# additional for dash server
-dash = {extras = ["celery", "diskcache"], version = "^2.7.0"}
-dash-bootstrap-components = "^1.2.1"
-gunicorn = "^20.1.0"
-botocore = "^1.29.87"
-python-dateutil = "^2.8.2"
+aioredis = "^2.0.1"
 aiosqlite = "^0.18.0"
-pyhumps = "^3.8.0"
-pydal = "^20221110.1"
+altair = "^4.2.0"
+asyncpg = "^0.27.0"
+beautifulsoup4 = "^4.0.0"
 bleach = "^6.0.0"
 boto3 = "^1.26.88"
+botocore = "^1.29.87"
+celery = "^5.2.7"
+cryptography = "^3.0.0"
+cssselect = ">= 1.0"
+dash = {extras = ["celery", "diskcache"], version = "^2.7.0"}
+dash-bootstrap-components = "^1.2.1"
+diff-match-patch = ">= 20110725.1"
+fastapi = "^0.78.0"
+fastapi-login = "^1.8.2"
+gunicorn = "^20.1.0"
+Jinja2 = "^3.0.0"
+lxml = ">= 4.6.2"
 multi-await = "^1.0.4"
-aioredis = "^2.0.1"
-asyncpg = "^0.27.0"
+myst-parser = "^0.18.0"
+numpy = ">= 1.9.2"
+oauth2 = ">=1.9"
+pandas = "^1.0.0"
+pretext = "^1.0.0"
+psycopg2-binary = "^2.9.3"
+pydal = "^20221110.1"
+pyhumps = "^3.8.0"
+pyjwt = "== 2.0.1"
+pylint = ">= 1.2.1"
+python-dateutil = "^2.8.2"
+pytz = ">= 2016.6.1"
+redis = "^4.3.4"
+requests = "^2.28.1"
+runestone = ">=6.5.0,<7.0"
+Sphinx = "> 4.1.0,<6.0"
+sphinx-reredirects = "^0.1.1"
+SQLAlchemy = "^1.4.0"
+Starlette-WTF = "^0.4.3"
+stripe = "^2.0.0"
+tqdm = "^4.65.0"
+uvicorn = "^0.18.2"
+WTForms = "^3.0.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "~= 22.0"
+CodeChat = "^1.0.0"
+contextlib2 = "^0.6.0"
+coverage = "^6.0.0"
+coveralls = "^3.0.0"
+flake8 = "^4.0.0"
+html5validator = "^0.3.0"
+locust = "^1.0.0"
+mock = "^4.0.0"
+# For the plugin.
+polling2 = "^0.5.0"
+pytest = "^7.0.0"
+pyvirtualdisplay = "^3.0.0"
+pywin32 = { version = ">= 301", markers = "sys.platform == 'win32'" }
+selenium = "^3.0.0"
 
 
 [build-system]
