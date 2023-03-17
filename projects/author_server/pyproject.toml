@@ -10,6 +10,11 @@ packages = [
     {include = "rsptx/visualization", from = "../../components"},
     {include = "rsptx/db", from = "../../components"},
     {include = "rsptx/forms", from = "../../components"},
+    {include = "rsptx/auth", from = "../../components"},
+    {include = "rsptx/configuration", from = "../../components"},
+    {include = "rsptx/logging", from = "../../components"},
+    {include = "rsptx/validation", from = "../../components"},
+    {include = "rsptx/response_helpers", from = "../../components"},
     {include = "rsptx/author_server_api", from = "../../bases"}
 ]
 
@@ -35,6 +40,9 @@ altair = "^4.2.0"
 WTForms = "^3.0.0"
 Starlette-WTF = "^0.4.3"
 tqdm = "^4.64.0"
+asyncpg = "^0.27.0"
+pyhumps = "^3.8.0"
+pydal = "^20221110.1"
 
 [tool.poetry.group.dev.dependencies]
 
