@@ -512,7 +512,7 @@ def _autograde_one_q(
     if not autograde:
         logger.debug("autograde not set returning 0")
         return 0
-
+    score = 0
     # If previously manually graded and it is required to save the score, don't overwrite.
     logger.debug("AGDB - checking for existing")
     existing = (
@@ -854,6 +854,7 @@ def _autograde_one_q(
                 logger.error(
                     "Scoring function must be _score_peer_instruction for all_answer"
                 )
+                score = 0
 
         else:
             logger.error("Unknown Scoring Scheme %s ", which_to_grade)
