@@ -383,6 +383,8 @@ async def library(request: Request, response_class=HTMLResponse):
     templates = Jinja2Templates(
         directory=f"{local_settings._book_server_path}/templates{router.prefix}"
     )
+    sorted_sections = list(sections)
+    sorted_sections.sort()
     return templates.TemplateResponse(
         "index.html",
         {
