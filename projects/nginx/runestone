@@ -38,25 +38,25 @@ server {
     #
     # root supplies the uptree path the match gets appended to the path specified
     # by the root directive
-    location ~* /(?!admin/)(\w+)/static/ {
-        root /srv/web2py/applications/;
-    }
+    #location ~* /(?!admin/)(\w+)/static/ {
+    #    root /srv/web2py/applications/;
+    #}
 
     # Match web2py static paths with no application specified; assume the default application is ``runestone``.
-    location /static/ {
-        root /srv/web2py/applications/runestone;
-    }
+    #location /static/ {
+    #    root /srv/web2py/applications/runestone;
+    #}
 
     # Route static book files from web2py with an application specified. Regex fun: ``(?!ns/)`` prevents a match with a prefix of ``ns/`` (since this should be routed to the new server instead).
     ##              $1                 $2        $3              $4             $5
     location ~* ^/(?!ns/)(\w+)/books/(published|draft)/(\w+)/(_static|_images|images)/(.*)$ {
-        alias /srv/web2py/applications/$1/books/$3/$2/$3/$4/$5;
+        alias /usr/books/$3/$2/$3/$4/$5;
     }
 
     # Route static book files from web2py with no application specified; assume the default application is ``runestone``.
     ##                         $1           $2               $3           $4
     location ~* ^/books/(published|draft)/(\w+)/(_static|_images|images)/(.*)$ {
-        alias /srv/web2py/applications/runestone/books/$2/$1/$2/$3/$4;
+        alias /usr/books/$2/$1/$2/$3/$4;
     }
 
     # Route the ``/ns`` (new server) path to gunicorn.
