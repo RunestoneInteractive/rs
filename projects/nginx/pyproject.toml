@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "nginx"
+version = "0.1.0"
+description = ""
+authors = ['Brad Miller <bonelake@mac.com>']
+license = ""
+
+packages = []
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.group.dev.dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -55,8 +55,41 @@ services:
       # Note: host.docker.internal refers back to the host so we can just use a local instance
       # of postgresql
       - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      - DOCKER_COMPOSE=1
     links:
       - redis
 
+  runestone:
+      build: ./projects/w2p_login_assign_grade
+      ports:
+        - 8112:8112
+      command: gunicorn --bind 0.0.0.0:8112 --workers 1 rsptx.web2py_server.wsgihandler:application
+
+      #command: tail -f /var/log/lastlog
+      restart: always
+      volumes:
+        - /Users/bmiller/Runestone/books:/usr/books
+
+      environment:
+        - BOOK_PATH=/usr/books
+        - SERVER_CONFIG=${SERVER_CONFIG}
+        - WEB2PY_CONFIG=${SERVER_CONFIG}
+        - RUNESTONE_PATH=/usr/src/app
+        - REDIS_URI=redis://redis:6379/0
+        # Note: host.docker.internal refers back to the host so we can just use a local instance
+        # of postgresql
+        - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      links:
+        - redis
+
+  nginx:
+    build: ./projects/nginx
+
+    ports:
+      - 80:80
+      #- 443:443
+    links:
+      - runestone
+      - bookserver
 
 
