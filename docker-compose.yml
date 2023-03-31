@@ -37,6 +37,9 @@ services:
   redis:
     image: redis:6-alpine
 
+  jobe:
+    build: ./projects/jobe
+
   bookserver:
     build: ./projects/book_server
     ports:
@@ -58,6 +61,7 @@ services:
       - DOCKER_COMPOSE=1
     links:
       - redis
+      - jobe
 
   runestone:
       build: ./projects/w2p_login_assign_grade
@@ -81,6 +85,7 @@ services:
         - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
       links:
         - redis
+        - jobe
 
   nginx:
     build: ./projects/nginx

@@ -1,0 +1,4 @@
+# This file gets triggerd by Docker Hub
+sut:
+  build: .
+  command: bash /container-test.sh
