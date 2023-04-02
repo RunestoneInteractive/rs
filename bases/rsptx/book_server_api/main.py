@@ -35,6 +35,7 @@ from rsptx.lp_sim_builder.feedback import init_graders
 from .routers import assessment
 from .routers import auth
 from .routers import books
+from .routers import coach
 from .routers import rslogging
 from .routers import discuss
 from rsptx.auth.session import auth_manager
