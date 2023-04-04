@@ -427,6 +427,20 @@ class AuthUserValidator(BaseAuthUserValidator):  # type: ignore
     ##     return v
 
 
+class AuthGroup(Base, IdMixin):
+    __tablename__ = "auth_group"
+
+    role = Column(String(512))
+    description = Column(Text)
+
+
+class AuthMembership(Base, IdMixin):
+    __tablename__ = "auth_membership"
+
+    user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"))
+    group_id = Column(ForeignKey("auth_group.id", ondelete="CASCADE"))
+
+
 class CourseInstructor(Base, IdMixin):
     __tablename__ = "course_instructor"
     __table_args__ = (Index("c_i_idx", "course", "instructor"),)
@@ -490,6 +504,21 @@ class Question(Base, IdMixin):
 
 
 QuestionValidator = sqlalchemy_to_pydantic(Question)
+
+
+class Tag(Base, IdMixin):
+    __tablename__ = "tags"
+
+    tag_name = Column(String(512), unique=True)
+
+
+class QuestionTag(Base, IdMixin):
+    __tablename__ = "question_tags"
+
+    question_id = Column(
+        ForeignKey("questions.id", ondelete="CASCADE", onupdate="CASCADE")
+    )
+    tag_id = Column(ForeignKey("tags.id", ondelete="CASCADE", onupdate="CASCADE"))
 
 
 class Assignment(Base, IdMixin):
@@ -674,6 +703,15 @@ UserStateValidator = sqlalchemy_to_pydantic(UserState)
 # -----------------------------------------------
 
 
+class SubChapterTaught(Base, IdMixin):
+    __tablename__ = "sub_chapter_taught"
+
+    course_name = Column(String(512))
+    chapter_label = Column(String(512))
+    sub_chapter_label = Column(String(512))
+    teaching_date = Column(Date)
+
+
 class UserExperiment(Base, IdMixin):
     __tablename__ = "user_experiment"
 
@@ -793,6 +831,13 @@ class BookAuthor(Base):
     )
 
 
+class EditorBasecourse(Base, IdMixin):
+    __tablename__ = "editor_basecourse"
+
+    editor = Column(ForeignKey("auth_user.id", ondelete="CASCADE"))
+    base_course = Column(String(512))
+
+
 # Tables for practice feature
 #
 class CoursePractice(Base, IdMixin):
@@ -835,6 +880,66 @@ class UserTopicPractice(Base, IdMixin):
 
 UserTopicPracticeValidator = sqlalchemy_to_pydantic(UserTopicPractice)
 
+
+class UserTopicPracticeCompletion(Base, IdMixin):
+    __tablename__ = "user_topic_practice_completion"
+
+    user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE", onupdate="CASCADE"))
+    course_name = Column(String(512))
+    practice_completion_date = Column(Date)
+
+
+class UserTopicPracticeFeedback(Base, IdMixin):
+    __tablename__ = "user_topic_practice_feedback"
+
+    user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE", onupdate="CASCADE"))
+    course_name = Column(String(512))
+    feedback = Column(String(512))
+    response_time = Column(DateTime)
+    timezoneoffset = Column(Integer)
+
+
+class UserTopicPracticeLog(Base, IdMixin):
+    __tablename__ = "user_topic_practice_log"
+
+    user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE", onupdate="CASCADE"))
+    course_name = Column(String(512))
+    chapter_label = Column(String(512))
+    sub_chapter_label = Column(String(512))
+    question_name = Column(String(512))
+    i_interval = Column(Integer, nullable=False)
+    e_factor = Column(Float(53), nullable=False)
+    q = Column(Integer, nullable=False, default=-1)
+    trials_num = Column(Integer, nullable=False)
+    available_flashcards = Column(Integer, nullable=False, default=-1)
+    start_practice = Column(DateTime)
+    end_practice = Column(DateTime)
+    timezoneoffset = Column(Integer)
+    next_eligible_date = Column(Date)
+
+
+class UserTopicPracticeSurvey(Base, IdMixin):
+    __tablename__ = "user_topic_practice_survey"
+
+    user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE", onupdate="CASCADE"))
+    course_name = Column(String(512))
+    like_practice = Column(String(512))
+    response_time = Column(DateTime)
+    timezoneoffset = Column(Integer)
+
+
+# It is very unclear how much this table is actually used.
+# It may only be used in the case of practice plus the LTI integration
+class PracticeGrade(Base, IdMixin):
+    __tablename__ = "practice_grades"
+
+    auth_user = Column(ForeignKey("auth_user.id", ondelete="CASCADE"))
+    course_name = Column(String(512))
+    score = Column(Float(53))
+    lis_result_sourcedid = Column(String(512))
+    lis_outcome_url = Column(String(512))
+
+
 # TODO: migrate away from this stuff below in author server
 
 # engine = create_engine(os.environ["DEV_DBURL"])
@@ -851,3 +956,13 @@ UserTopicPracticeValidator = sqlalchemy_to_pydantic(UserTopicPractice)
 # course_instructor = Table(
 #     "course_instructor", meta, autoload=True, autoload_with=engine
 # )
+
+
+class InvoiceRequest(Base, IdMixin):
+    __tablename__ = "invoice_request"
+
+    timestamp = Column(DateTime)
+    sid = Column(String(512))
+    course_name = Column(String(512))
+    email = Column(String(512))
+    processed = Column(Web2PyBoolean)

@@ -2,20 +2,11 @@ import sys
 from pathlib import Path
 
 
-# Launch into the Docker container before attempting imports that are only installed there. (If Docker isn't installed, we assume the current venv already contains the necessary packages.)
-wd = (Path(__file__).parents[1]).resolve()
-sys.path.extend([str(wd / "docker"), str(wd / "tests")])
-try:
-    # Assume that a development version of the Runestone Server -- meaning the presence of `../docker/docker_tools_misc.py` -- implies Docker.
-    from docker_tools_misc import ensure_in_docker, in_docker
-
-    ensure_in_docker(True)
-except ModuleNotFoundError:
-    pass
-
 import asyncio
-import click
+import anyio
+import asyncclick as click
 import csv
+import datetime
 import json
 import os
 import re
@@ -31,11 +22,27 @@ from sqlalchemy.exc import IntegrityError
 from pgcli.main import cli as clipg
 from psycopg2.errors import UniqueViolation
 
-from bookserver.crud import create_initial_courses_users
-from bookserver.db import init_models, term_models
-from bookserver.config import settings
+from rsptx.db.crud import (
+    create_initial_courses_users,
+    create_course,
+    create_instructor_course_entry,
+    fetch_course,
+    fetch_courses_for_user,
+    fetch_group,
+    fetch_instructor_courses,
+    fetch_membership,
+    fetch_user,
+    create_user,
+    create_membership,
+)
+from rsptx.db.models import CoursesValidator, AuthUserValidator
+from rsptx.db.async_session import init_models, term_models
+import rsptx.db.models
+from rsptx.configuration import settings
 from runestone.pretext.chapter_pop import manifest_data_to_db
 from runestone.server.utils import _build_runestone_book, _build_ptx_book
+
+import pdb
 
 
 class Config(object):
@@ -60,11 +67,11 @@ BOOKSDIR = f"{APP_PATH}/books"
 @click.option("--verbose", is_flag=True, help="More verbose output")
 @click.option("--if_clean", is_flag=True, help="only run if database is uninitialized")
 @pass_config
-def cli(config, verbose, if_clean):
+async def cli(config, verbose, if_clean):
     """Type subcommand --help for help on any subcommand"""
     checkEnvironment()
 
-    conf = os.environ.get("WEB2PY_CONFIG", "production")
+    conf = settings.server_config
 
     if conf == "production":
         config.dburl = os.environ.get("DBURL")
@@ -260,7 +267,7 @@ def migrate(config, fake):
     help="enable experimental pair programming support",
 )
 @pass_config
-def addcourse(
+async def addcourse(
     config,
     course_name,
     basecourse,
@@ -277,8 +284,6 @@ def addcourse(
 ):
     """Create a course in the database"""
 
-    os.chdir(findProjectRoot())  # change to a known location
-    eng = create_engine(config.dburl)
     done = False
     if course_name:
         use_defaults = True
@@ -315,9 +320,7 @@ def addcourse(
         else:
             allow_pairs = "T" if allow_pairs else "F"
 
-        res = eng.execute(
-            "select id from courses where course_name = '{}'".format(course_name)
-        ).first()
+        res = await fetch_course(course_name)
         if not res:
             done = True
         else:
@@ -329,22 +332,19 @@ def addcourse(
                 abort=True,
             )
 
-    eng.execute(
-        f"""insert into courses
-           (course_name, base_course, python3, term_start_date, login_required, institution, courselevel, downloads_enabled, allow_pairs, new_server)
-                values ('{course_name}',
-                '{basecourse}',
-                '{python3}',
-                '{start_date}',
-                '{login_required}',
-                '{institution}',
-                '{courselevel}',
-                '{allowdownloads}',
-                '{allow_pairs}',
-                '{"T" if newserver else "F"}')
-                """
+    newCourse = CoursesValidator(
+        course_name=course_name,
+        base_course=basecourse,
+        python3=python3,
+        term_start_date=start_date,
+        login_required=login_required,
+        institution=institution,
+        courselevel=courselevel,
+        downloads_enabled=allowdownloads,
+        allow_pairs=allow_pairs,
+        new_server="T",
     )
-
+    await create_course(newCourse)
     click.echo("Course added to DB successfully")
 
 
@@ -431,7 +431,7 @@ def build(config, clone, ptx, gen, manifest, course):
     help="ignore duplicate student errors and keep processing",
 )
 @pass_config
-def adduser(
+async def adduser(
     config,
     instructor,
     fromfile,
@@ -444,7 +444,7 @@ def adduser(
     ignore_dupes,
 ):
     """Add a user (or users from a csv file)"""
-    os.chdir(findProjectRoot())
+
     mess = [
         "Success",
         "Value Error -- check the format of your CSV file",
@@ -463,28 +463,33 @@ def adduser(
             if "@" not in line[1]:
                 click.echo("emails should have an @ in them in column 2")
                 exit(1)
-            userinfo = {}
-            userinfo["username"] = line[0]
-            userinfo["password"] = line[4]
-            userinfo["first_name"] = line[2]
-            userinfo["last_name"] = line[3]
-            userinfo["email"] = line[1]
-            userinfo["course"] = line[5]
-            userinfo["instructor"] = False
             os.environ["RSM_USERINFO"] = json.dumps(userinfo)
-            res = subprocess.call(
-                f"{sys.executable} web2py.py --no-banner -S runestone -M -R applications/runestone/rsmanage/makeuser.py",
-                shell=True,
+            newUser = AuthUserValidator(
+                username=line[0],
+                password=line[4],
+                first_name=line[2],
+                last_name=line[3],
+                email=line[1],
+                course=line[5],
+                instructor=False,
+                created_on=datetime.datetime.utcnow(),
+                modified_on=datetime.datetime.utcnow(),
+                registration_key="",
+                registration_id="",
+                reset_password_key="",
+                course_id=course.id,
+                active=True,
+                donated=False,
+                accept_tcp=True,
             )
-            if res != 0:
+            res = await create_user(newUser)
+            if not res:
                 click.echo(
                     "Failed to create user {} error {}".format(line[0], mess[res])
                 )
-                if res == 2 and ignore_dupes:
-                    click.echo(f"ignoring duplicate user {userinfo['username']}")
-                    continue
-                else:
-                    exit(res)
+                exit(1)
+            else:
+                exit(0)
 
     else:
         userinfo = {}
@@ -493,7 +498,7 @@ def adduser(
         userinfo["first_name"] = first_name or click.prompt("First Name")
         userinfo["last_name"] = last_name or click.prompt("Last Name")
         userinfo["email"] = email or click.prompt("email address")
-        userinfo["course"] = course or click.prompt("course name")
+        userinfo["course_name"] = course or click.prompt("course name")
         if not instructor:
             if (
                 username and course
@@ -503,13 +508,21 @@ def adduser(
                 userinfo["instructor"] = click.confirm(
                     "Make this user an instructor", default=False
                 )
-
-        os.environ["RSM_USERINFO"] = json.dumps(userinfo)
-        res = subprocess.call(
-            f"{sys.executable} web2py.py --no-banner -S runestone -M -R applications/runestone/rsmanage/makeuser.py",
-            shell=True,
+        course = await fetch_course(userinfo["course_name"])
+        new_user = AuthUserValidator(
+            **userinfo,
+            created_on=datetime.datetime.utcnow(),
+            modified_on=datetime.datetime.utcnow(),
+            registration_key="",
+            registration_id="",
+            reset_password_key="",
+            course_id=course.id,
+            active=True,
+            donated=False,
+            accept_tcp=True,
         )
-        if res != 0:
+        res = await create_user(new_user)
+        if not res:
             click.echo(
                 "Failed to create user {} error {} fix your data and try again. Use --verbose for more detail".format(
                     userinfo["username"], res
@@ -621,79 +634,58 @@ def env(config, checkdb):
 @click.option("--username", default=None, help="user to promote to instructor")
 @click.option("--course", default=None, help="name of course")
 @pass_config
-def addinstructor(config, username, course):
+async def addinstructor(config, username, course):
     """
     Add an existing user as an instructor for a course
     """
-    eng = create_engine(config.dburl)
+
     username = username or click.prompt("Username")
     course = course or click.prompt("Course name")
 
-    res = eng.execute("select id from auth_user where username=%s", username).first()
+    res = await fetch_user(username)
     if res:
-        userid = res[0]
+        userid = res.id
     else:
         print("Sorry, that user does not exist")
         sys.exit(-1)
 
-    res = eng.execute("select id from courses where course_name=%s", course).first()
+    res = await fetch_course(course)
     if res:
-        courseid = res[0]
+        courseid = res.id
     else:
         print("Sorry, that course does not exist")
         sys.exit(-1)
 
     # if needed insert a row into auth_membership
-    res = eng.execute("select id from auth_group where role='instructor'").first()
+    res = await fetch_group("instructor")
     if res:
-        role = res[0]
+        role = res.id
     else:
         print(
             "Sorry, your system does not have the instructor role setup -- this is bad"
         )
         sys.exit(-1)
 
-    res = eng.execute(
-        "select * from auth_membership where user_id=%s and group_id=%s", userid, role
-    ).first()
+    res = await fetch_membership(role, userid)
     if not res:
-        eng.execute(
-            "insert into auth_membership (user_id, group_id) values (%s, %s)",
-            userid,
-            role,
-        )
+        await create_membership(role, userid)
         print("made {} an instructor".format(username))
     else:
         print("{} is already an instructor".format(username))
 
     # if needed insert a row into user_courses
-    res = eng.execute(
-        "select * from user_courses where user_id=%s and course_id=%s ",
-        userid,
-        courseid,
-    ).first()
+    res = await fetch_courses_for_user(userid)
     if not res:
-        eng.execute(
-            "insert into user_courses (user_id, course_id) values (%s, %s)",
-            userid,
-            courseid,
-        )
+        await create_user_course_entry(userid, courseid)
         print("enrolled {} in {}".format(username, course))
     else:
         print("{} is already enrolled in {}".format(username, course))
 
     # if needed insert a row into course_instructor
-    res = eng.execute(
-        "select * from course_instructor where instructor=%s and course=%s ",
-        userid,
-        courseid,
-    ).first()
+    res = await fetch_instructor_courses(userid, courseid)
+    pdb.set_trace()
     if not res:
-        eng.execute(
-            "insert into course_instructor (instructor, course) values (%s, %s)",
-            userid,
-            courseid,
-        )
+        await create_instructor_course_entry(userid, courseid)
         print("made {} and instructor for {}".format(username, course))
     else:
         print("{} is already an instructor for {}".format(username, course))
@@ -1174,4 +1166,4 @@ def addbookauthor(config, book, author, github):
 
 
 if __name__ == "__main__":
-    cli()
+    cli(_anyio_backend="asyncio")

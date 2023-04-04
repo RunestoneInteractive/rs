@@ -77,6 +77,7 @@ class Settings(BaseSettings):
     #    Our style will be to compare against the Enum not the ``.name`` attribute.
     #
     book_server_config: BookServerConfig = "development"  # type: ignore
+    server_config: str = "development"
 
     # Database setup: this must be an standard (synchronous) connection; for example:
     #
@@ -148,7 +149,7 @@ class Settings(BaseSettings):
         # Put the cache here; above the def, it produces ``TypeError: unhashable type: 'Settings'``.
         @lru_cache
         def read_key():
-            key_file = self.runestone_path / "private/auth.key"
+            key_file = Path(self.runestone_path, "private", "auth.key")
             if key_file.exists():
                 with open(key_file, encoding="utf-8") as f:
                     return f.read().strip()
@@ -158,7 +159,11 @@ class Settings(BaseSettings):
                 )
                 return self.jwt_secret
 
-        return read_key()
+        key = os.environ.get("WEB2PY_PRIVATE_KEY", None)
+        if key:
+            return key
+        else:
+            return read_key()
 
     # if you want to reinitialize your database set this to ``Yes``.
     # All data in the database will be lost! This will only work for

@@ -20,3 +20,6 @@ dist
 .venv
 cache
 .check_*
+httpserver.log
+httpserver.pid
+parameters_*.py

@@ -39,6 +39,8 @@ from rsptx.db.models import (
     Assignment,
     AssignmentQuestion,
     AssignmentQuestionValidator,
+    AuthGroup,
+    AuthMembership,
     AuthUser,
     AuthUserValidator,
     BookAuthor,
@@ -68,6 +70,7 @@ from rsptx.db.models import (
     UseinfoValidation,
     UserChapterProgress,
     UserChapterProgressValidator,
+    UserCourse,
     UserExperiment,
     UserExperimentValidator,
     UserState,
@@ -335,6 +338,28 @@ async def create_course(course_info: CoursesValidator) -> None:
         session.add(new_course)
 
 
+async def fetch_courses_for_user(
+    user_id: int, course_id: Optional[int] = None
+) -> UserCourse:
+    query = select(Courses).where(
+        and_(UserCourse.user_id == user_id, UserCourse.course_id == Courses.id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        # When selecting ORM entries it is useful to use the ``scalars`` method
+        # This modifies the result so that you are getting the ORM object
+        # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
+        return res.scalars()
+
+
+async def create_user_course_entry(user_id: int, course_id: int) -> UserCourse:
+    new_uc = UserCourse(user_id=user_id, course_id=course_id)
+    async with async_session.begin() as session:
+        session.add(new_uc)
+
+    return new_uc
+
+
 # course_attributes
 # -----------------
 
@@ -398,6 +423,39 @@ async def create_user(user: AuthUserValidator) -> Optional[AuthUserValidator]:
     return AuthUserValidator.from_orm(new_user)
 
 
+async def fetch_group(group_name):
+    query = select(AuthGroup).where(AuthGroup.role == group_name)  # noqa: E712
+    async with async_session() as session:
+        res = await session.execute(query)
+        # the result type of this query is a sqlalchemy CursorResult
+        # .all will return a list of Rows
+        ret = res.scalars().first()
+        # the result of .scalars().first() is a single Library object
+
+        return ret
+
+
+async def fetch_membership(group_id, user_id):
+    query = select(AuthMembership).where(
+        and_(AuthMembership.group_id == group_id, AuthMembership.user_id == user_id)
+    )  # noqa: E712
+    async with async_session() as session:
+        res = await session.execute(query)
+        # the result type of this query is a sqlalchemy CursorResult
+        # .all will return a list of Rows
+        ret = res.scalars().first()
+        # the result of .scalars().first() is a single Library object
+
+        return ret
+
+
+async def create_membership(group_id, user_id):
+    new_mem = AuthMembership(user_id=user_id, group_id=group_id)
+    async with async_session.begin() as session:
+        session.add(new_mem)
+    return new_mem
+
+
 # instructor_courses
 # ------------------
 async def fetch_instructor_courses(
@@ -425,6 +483,13 @@ async def fetch_instructor_courses(
             CourseInstructorValidator.from_orm(x) for x in res.scalars().fetchall()
         ]
         return course_list
+
+
+async def create_instructor_course_entry(iid: int, cid: int) -> CourseInstructor:
+    nci = CourseInstructor(course=cid, instructor=iid)
+    async with async_session.begin() as session:
+        session.add(nci)
+    return nci
 
 
 # Code

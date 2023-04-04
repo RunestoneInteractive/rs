@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "rsmanage"
+version = "0.1.0dev1"
+description = ""
+authors = ['Brad Miller <bonelake@mac.com>']
+license = ""
+
+packages = [
+    {include = "rsptx/db", from = "../../components"},
+    {include = "rsptx/configuration", from = "../../components"},
+    {include = "rsptx/rsmanage", from = "../../bases"},
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+asyncclick = "^8.1.3.4"
+redis = "^4.5.4"
+runestone = "^6.6.1"
+pgcli = "^3.5.0"
+sqlalchemy = "^1.4.0"
+psycopg2-binary = "^2.9.6"
+anyio = "^3.6.2"
+pydantic = {version = "^1.10.7", extras = ["dotenv"]}
+asyncpg = "^0.27.0"
+greenlet = "^2.0.2"
+pyhumps = "^3.8.0"
+fastapi = "^0.95.0"
+pydal = "^20221110.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+# Scripts
+# =======
+# See `scripts <https://python-poetry.org/docs/pyproject/#scripts>`_.
+[tool.poetry.scripts]
+rsmanage = 'rsptx.rsmanage.core:cli'
