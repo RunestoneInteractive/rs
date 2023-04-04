@@ -23,7 +23,7 @@ import traceback
 # -------------------
 from fastapi.exceptions import HTTPException
 from pydal.validators import CRYPT
-from sqlalchemy import and_, distinct, func, update
+from sqlalchemy import and_, distinct, func, update, insert
 from sqlalchemy.sql import select, text, delete
 from starlette.requests import Request
 
@@ -341,15 +341,25 @@ async def create_course(course_info: CoursesValidator) -> None:
 async def fetch_courses_for_user(
     user_id: int, course_id: Optional[int] = None
 ) -> UserCourse:
-    query = select(Courses).where(
-        and_(UserCourse.user_id == user_id, UserCourse.course_id == Courses.id)
-    )
+    if course_id is not None:
+        query = select(Courses).where(
+            and_(UserCourse.user_id == user_id, UserCourse.course_id == Courses.id)
+        )
+    else:
+        query = select(Courses).where(
+            and_(
+                UserCourse.user_id == user_id,
+                UserCourse.course_id == course_id,
+                UserCourse.course_id == Courses.id,
+            )
+        )
     async with async_session() as session:
         res = await session.execute(query)
         # When selecting ORM entries it is useful to use the ``scalars`` method
         # This modifies the result so that you are getting the ORM object
         # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
-        return res.scalars()
+        course_list = [CoursesValidator.from_orm(x) for x in res.scalars().fetchall()]
+        return course_list
 
 
 async def create_user_course_entry(user_id: int, course_id: int) -> UserCourse:
@@ -421,6 +431,16 @@ async def create_user(user: AuthUserValidator) -> Optional[AuthUserValidator]:
     async with async_session.begin() as session:
         session.add(new_user)
     return AuthUserValidator.from_orm(new_user)
+
+
+async def update_user(user_id: int, new_vals: dict):
+    if "password" in new_vals:
+        crypt = CRYPT(key=settings.web2py_private_key, salt=True)
+        new_vals["password"] = str(crypt(user.password)[0])
+    stmt = update(AuthUser).where((AuthUser.id == user_id)).values(**new_vals)
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+    rslogger.debug("SUCCESS")
 
 
 async def fetch_group(group_name):
@@ -1125,10 +1145,9 @@ async def update_library_book(bookid, vals):
 
 # TODO finish this use bookid as title temporarily
 async def create_library_book(bookid, vals):
-    vals["title"] = bookid
-    stmt = insert(Library).values(**vals)
+    new_book = Library(**vals, basecourse=bookid)
     async with async_session.begin() as session:
-        await session.execute(stmt)
+        session.add(new_book)
 
 
 async def create_book_author(author: str, document_id: str):
@@ -1263,3 +1282,23 @@ async def fetch_qualified_questions(
         questionlist = [QuestionValidator.from_orm(x) for x in res.scalars().fetchall()]
 
     return questionlist
+
+
+async def is_editor(userid):
+    ed = await fetch_group("editor")
+    row = await fetch_membership(ed.id, userid)
+
+    if row:
+        return True
+    else:
+        return False
+
+
+async def is_author(userid):
+    ed = await fetch_group("author")
+    row = await fetch_membership(ed.id, userid)
+
+    if row:
+        return True
+    else:
+        return False

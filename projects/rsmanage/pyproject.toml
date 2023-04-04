@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rsmanage"
-version = "0.1.0dev1"
+version = "0.1.0dev2"
 description = ""
 authors = ['Brad Miller <bonelake@mac.com>']
 license = ""
@@ -8,6 +8,7 @@ license = ""
 packages = [
     {include = "rsptx/db", from = "../../components"},
     {include = "rsptx/configuration", from = "../../components"},
+    {include = "rsptx/logging", from = "../../components"},
     {include = "rsptx/rsmanage", from = "../../bases"},
 ]
 

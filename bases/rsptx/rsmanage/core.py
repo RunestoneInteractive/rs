@@ -24,8 +24,10 @@ from psycopg2.errors import UniqueViolation
 
 from rsptx.db.crud import (
     create_initial_courses_users,
+    create_book_author,
     create_course,
     create_instructor_course_entry,
+    create_library_book,
     fetch_course,
     fetch_courses_for_user,
     fetch_group,
@@ -34,6 +36,8 @@ from rsptx.db.crud import (
     fetch_user,
     create_user,
     create_membership,
+    is_author,
+    is_editor,
 )
 from rsptx.db.models import CoursesValidator, AuthUserValidator
 from rsptx.db.async_session import init_models, term_models
@@ -60,7 +64,6 @@ APP_PATH = "applications/{}".format(APP)
 DBSDIR = "{}/databases".format(APP_PATH)
 BUILDDIR = "{}/build".format(APP_PATH)
 PRIVATEDIR = "{}/private".format(APP_PATH)
-BOOKSDIR = f"{APP_PATH}/books"
 
 
 @click.group(chain=True)
@@ -123,12 +126,6 @@ def _initdb(config):
         await term_models()
 
     asyncio.run(async_funcs())
-
-    os.environ["WEB2PY_MIGRATE"] = "Yes"
-    subprocess.call(
-        f"{sys.executable} web2py.py -S runestone -M -R applications/runestone/rsmanage/noop.py",
-        shell=True,
-    )
 
     eng = create_engine(config.dburl)
     eng.execute("""insert into auth_group (role) values ('instructor')""")
@@ -217,24 +214,6 @@ def initdb(config, list_tables, reset, fake, force):
 
     if not reset:
         _initdb(config)
-
-
-@cli.command()
-@click.option("--fake", is_flag=True, help="perform a fake migration")
-@pass_config
-def migrate(config, fake):
-    "Startup web2py and load the models with Migrate set to Yes"
-    os.chdir(findProjectRoot())
-
-    if fake:
-        os.environ["WEB2PY_MIGRATE"] = "fake"
-    else:
-        os.environ["WEB2PY_MIGRATE"] = "Yes"
-
-    subprocess.call(
-        f"{sys.executable} web2py.py -S runestone -M -R applications/runestone/rsmanage/migrate.py",
-        shell=True,
-    )
 
 
 #
@@ -381,7 +360,7 @@ def build(config, clone, ptx, gen, manifest, course):
         )
         exit(1)
 
-    os.chdir(BOOKSDIR)
+    os.chdir(settings.book_path)
     if clone:
         if os.path.exists(course):
             click.echo("Book repo already cloned, skipping")
@@ -537,34 +516,19 @@ async def adduser(
 @click.option("--username", help="Username, must be unique")
 @click.option("--password", help="password - plaintext -- sorry")
 @pass_config
-def resetpw(config, username, password):
+async def resetpw(config, username, password):
     """Utility to change a users password. Useful If they can't do it through the normal mechanism"""
-    os.chdir(findProjectRoot())
     userinfo = {}
-    userinfo["username"] = username or click.prompt("Username")
+    username = username or click.prompt("Username")
     userinfo["password"] = password or click.prompt("Password", hide_input=True)
-    eng = create_engine(config.dburl)
-    res = eng.execute(
-        "select * from auth_user where username = %s", userinfo["username"]
-    ).first()
+
+    res = await fetch_user(username)
     if not res:
         click.echo("ERROR - User: {} does not exist.".format(userinfo["username"]))
         exit(1)
+    res = await update_user(res.id, userinfo)
 
-    os.environ["RSM_USERINFO"] = json.dumps(userinfo)
-    res = subprocess.call(
-        f"{sys.executable} web2py.py --no-banner -S runestone -M -R applications/runestone/rsmanage/makeuser.py -A --resetpw",
-        shell=True,
-    )
-    if res != 0:
-        click.echo(
-            "Failed to create user {} error {} fix your data and try again. Use --verbose for more detail".format(
-                userinfo["username"], res
-            )
-        )
-        exit(1)
-    else:
-        click.echo("Success")
+    click.echo("Success")
 
 
 @cli.command()
@@ -572,7 +536,7 @@ def resetpw(config, username, password):
 @pass_config
 def rmuser(config, username):
     """Utility to remove a user from the system completely."""
-    os.chdir(findProjectRoot())
+
     sid = username or click.prompt("Username")
 
     eng = create_engine(config.dburl)
@@ -603,7 +567,6 @@ def env(config, checkdb):
         2: database exists but no databases folder
         3: both database and databases folder exist
     """
-    os.chdir(findProjectRoot())
     dbinit = 0
     dbdir = 0
     if checkdb:
@@ -1015,6 +978,9 @@ def checkEnvironment():
 
 def echoEnviron(config):
     click.echo("WEB2PY_CONFIG is {}".format(config.conf))
+    click.echo("SERVER_CONFIG is {}".format(settings.server_config))
+    click.echo("RUNESTONE_PATH is {}".format(settings.runestone_path))
+    click.echo("BOOK_PATH is {}".format(settings.book_path))
     click.echo("The database URL is configured as {}".format(config.dburl))
     click.echo("DBNAME is {}".format(config.dbname))
 
@@ -1027,8 +993,6 @@ def findProjectRoot():
             return start
         prevdir = start
         start = os.path.dirname(start)
-    if in_docker():
-        return "/srv/web2py"
 
     raise IOError("You must be in a web2py application to run rsmanage")
 
@@ -1036,18 +1000,6 @@ def findProjectRoot():
 #
 #    fill_practice_log_missings
 #
-
-
-@cli.command()
-@pass_config
-def fill_practice_log_missings(config):
-    """Only for one-time use to fill out the missing values of the columns that we added to user_topic_practice_log table during the semester."""
-    os.chdir(findProjectRoot())
-
-    subprocess.call(
-        f"{sys.executable} web2py.py -S runestone -M -R applications/runestone/rsmanage/fill_practice_log_missings.py",
-        shell=True,
-    )
 
 
 def check_db_for_useinfo(config):
@@ -1069,59 +1021,37 @@ def peergroups(course):
         click.echo(f"No Peer Groups found for {course}")
 
 
-def is_author(config, userid):
-    engine = create_engine(config.dburl)
-    ed = engine.execute(
-        """select id from auth_group where auth_group.role = 'author'"""
-    ).first()
-
-    row = engine.execute(
-        f"""select * from auth_membership where user_id = {userid} and group_id = {ed.id}"""
-    ).first()
-
-    if row:
-        return True
-    else:
-        return False
-
-
 @cli.command()
 @click.option("--book", help="document-id or basecourse")
 @click.option("--author", help="username")
 @click.option("--github", help="url of book on github", default="")
 @pass_config
-def addbookauthor(config, book, author, github):
+async def addbookauthor(config, book, author, github):
     book = book or click.prompt("document-id or basecourse ")
     author = author or click.prompt("username of author ")
     engine = create_engine(config.dburl)
-    a_row = engine.execute(
-        f"""select * from auth_user where username = '{author}'"""
-    ).first()
+    a_row = await fetch_user(author)
     if not a_row:
         click.echo(f"Error - author {author} does not exist")
         sys.exit(-1)
-    res = engine.execute(
-        f"""select * from courses where course_name = '{book}' and base_course='{book}'"""
-    ).first()
+    res = await fetch_course(book)  # verify this is a base course?
     if res:
         click.echo(f"Warning - Book {book} already exists in courses table")
     # Create an entry in courses (course_name, term_start_date, institution, base_course, login_required, allow_pairs, student_price, downloads_enabled, courselevel, newserver)
     if not res:
-        res = engine.execute(
-            f"""insert into courses
-            (course_name, base_course, python3, term_start_date, login_required, institution, courselevel, downloads_enabled, allow_pairs, new_server)
-                values ('{book}',
-                '{book}',
-                'T',
-                '2022-01-01',
-                'F',
-                'Runestone',
-                '',
-                'F',
-                'F',
-                'T')
-                """
+        new_course = CoursesValidator(
+            course_name=book,
+            base_course=book,
+            python3=True,
+            term_start_date=datetime.datetime.utcnow(),
+            login_required=False,
+            institution="Runestone",
+            courselevel="",
+            downloads_enabled=False,
+            allow_pairs=False,
+            new_server=True,
         )
+        await create_course(new_course)
     else:
         # Try to deduce the github url from the working directory
         if not github:
@@ -1129,40 +1059,22 @@ def addbookauthor(config, book, author, github):
 
     # create an entry in book_author (author, book)
     try:
-        res = engine.execute(
-            f"""
-            insert into library
-            (title, basecourse)
-            values ( 'Temporary title for {book}', '{book}' )
-            """
-        )
+        vals = dict(title=f"Temporary title for {book}")
+        await create_library_book(book, vals)
     except Exception as e:
         click.echo(f"Warning Book already exists in library {e}")
 
     try:
-        res = engine.execute(
-            f"""insert into book_author
-                (author, book)
-                values ( '{author}', '{book}' )
-            """
-        )
+        await create_book_author(author, book)
     except Exception as e:
         click.echo(f"Warning setting book,author pair failed {e}")
 
     # create an entry in auth_membership (group_id, user_id)
-    auth_row = engine.execute(
-        """select * from auth_group where role = 'author'"""
-    ).first()
-    auth_group_id = auth_row[0]
+    auth_row = await fetch_group("author")
+    auth_group_id = auth_row.id
 
-    if not is_author(config, a_row.id):
-        res = engine.execute(
-            f"""
-            insert into auth_membership
-            (group_id, user_id)
-            values ({auth_group_id}, {a_row[0]})
-            """
-        )
+    if not await is_author(a_row.id):
+        await create_membership(auth_group_id, a_row.id)
 
 
 if __name__ == "__main__":
