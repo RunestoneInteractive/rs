@@ -25,6 +25,7 @@ COPY ./dist/$wheel /usr/src/app/$wheel
 # which are stored in the METADATA file inside the wheel
 RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
 
+COPY gitconfig /root/.gitconfig
 #COPY .ssh/id_rsa .
 
 CMD ["uvicorn", "rsptx.author_server_api.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,7 @@
+[safe]
+        directory = *
+[pull]
+        rebase = false
+[user]
+        name = Runestone Author Server
+        email = runestoneinteractive@gmail.com
