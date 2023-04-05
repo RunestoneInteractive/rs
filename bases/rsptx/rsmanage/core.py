@@ -797,38 +797,20 @@ async def addattribute(config, course, attr, value):
     "--course", help="The name of a course that should already exist in the DB"
 )
 @pass_config
-def instructors(config, course):
+async def instructors(config, course):
     """
     List instructor information for all courses or just for a single course
 
     """
-    eng = create_engine(config.dburl)
-    where_clause = ""
     if course:
-        where_clause = "where courses.course_name = '{}'".format(course)
+        print(f"Instructors for {course}")
+        res = await fetch_course_instructors(course)
 
-    res = eng.execute(
-        """select username, first_name, last_name, email, courses.course_name
-    from auth_user
-    join course_instructor ON course_instructor.instructor = auth_user.id
-    join courses ON courses.id = course_instructor.course
-    {}
-    order by username;""".format(
-            where_clause
-        )
-    )
-    outline = ""
-    row = next(res)
-    current = row[0]
-    outline = "{:<10} {:<10} {:<10} {:<20} {}".format(*row)
+    else:
+        res = await fetch_course_instructors()
+
     for row in res:
-        if row[0] == current:
-            outline += " {}".format(row[-1])
-        else:
-            print(outline)
-            outline = "{:<10} {:<10} {:<10} {:<20} {}".format(*row)
-            current = row[0]
-    print(outline)
+        print(row.id, row.username, row.first_name, row.last_name, row.email)
 
 
 #
@@ -859,32 +841,6 @@ def grade(config, course, pset, enforce):
         f"{sys.executable} web2py.py -S runestone -M -R applications/runestone/rsmanage/grade.py",
         shell=True,
     )
-
-
-@cli.command()
-@click.option("--course", help="name of course")
-@pass_config
-def findinstructor(config, course):
-    """
-    Print the PII of the instructor for a given course.
-    """
-    if not course:
-        course = click.prompt("enter the course name")
-    eng = create_engine(config.dburl)
-    query = """
-    select username, first_name, last_name, email
-from auth_user join course_instructor on auth_user.id = instructor join courses on course = courses.id
-where courses.course_name = %s order by last_name
-"""
-    res = eng.execute(query, course)
-
-    if res:
-        for row in res:
-            print("{} {} {} {}").format(
-                row.first_name, row.last_name, row.email, row.username
-            )
-    else:
-        print("No instructors found for {}".format(course))
 
 
 @cli.command()

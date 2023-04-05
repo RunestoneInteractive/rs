@@ -287,6 +287,7 @@ class UnittestAnswers(Base, CorrectAnswerMixin):
 
 UnittestAnswersValidation = sqlalchemy_to_pydantic(UnittestAnswers)
 
+
 # An answer to a fill-in-the-blank question.
 @register_answer_table
 class WebWorkAnswers(Base, CorrectAnswerMixin):

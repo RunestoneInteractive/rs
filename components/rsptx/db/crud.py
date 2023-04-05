@@ -533,21 +533,26 @@ async def fetch_instructor_courses(
         return course_list
 
 
-async def fetch_course_instructors(course_name: str) -> List[AuthUserValidator]:
+async def fetch_course_instructors(
+    course_name: Optional[str] = None,
+) -> List[AuthUserValidator]:
     """
     return a list of courses for which the given userid is an instructor.
     If the optional course_id value is included then return the row for that
     course to verify that instructor_id is an instructor for course_id
     """
-    course = await fetch_course(course_name)
     query = select(AuthUser)
-
-    query = query.where(
-        and_(
-            CourseInstructor.course == course.id,
-            CourseInstructor.instructor == AuthUser.id,
+    if course_name:
+        course = await fetch_course(course_name)
+        query = query.where(
+            and_(
+                CourseInstructor.course == course.id,
+                CourseInstructor.instructor == AuthUser.id,
+            )
         )
-    )
+    else:
+        query = query.where(CourseInstructor.instructor == AuthUser.id)
+
     async with async_session() as session:
         res = await session.execute(query)
 
