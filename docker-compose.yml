@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
 
-  web:
+  author:
     build: ./projects/author_server
     ports:
       - 8005:8000
@@ -31,7 +31,7 @@ services:
       - DEV_DBURL=${DEV_DBURL}
       - WEB2PY_CONFIG=${SERVER_CONFIG}
     depends_on:
-      - web
+      - author
       - redis
 
   redis:
@@ -40,7 +40,7 @@ services:
   jobe:
     build: ./projects/jobe
 
-  bookserver:
+  book:
     build: ./projects/book_server
     ports:
       - 8111:8111
