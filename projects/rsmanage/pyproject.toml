@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rsmanage"
-version = "0.1.0dev4"
+version = "0.1.0dev5"
 description = ""
 authors = ['Brad Miller <bonelake@mac.com>']
 license = ""
