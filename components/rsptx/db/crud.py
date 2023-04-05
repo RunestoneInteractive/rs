@@ -23,7 +23,7 @@ import traceback
 # -------------------
 from fastapi.exceptions import HTTPException
 from pydal.validators import CRYPT
-from sqlalchemy import and_, distinct, func, update, insert
+from sqlalchemy import and_, distinct, func, update
 from sqlalchemy.sql import select, text, delete
 from starlette.requests import Request
 
@@ -54,6 +54,7 @@ from rsptx.db.models import (
     CoursePractice,
     Courses,
     CoursesValidator,
+    EditorBasecourse,
     Library,
     LibraryValidator,
     Question,
@@ -436,7 +437,7 @@ async def create_user(user: AuthUserValidator) -> Optional[AuthUserValidator]:
 async def update_user(user_id: int, new_vals: dict):
     if "password" in new_vals:
         crypt = CRYPT(key=settings.web2py_private_key, salt=True)
-        new_vals["password"] = str(crypt(user.password)[0])
+        new_vals["password"] = str(crypt(new_vals["password"])[0])
     stmt = update(AuthUser).where((AuthUser.id == user_id)).values(**new_vals)
     async with async_session.begin() as session:
         await session.execute(stmt)
@@ -1282,6 +1283,12 @@ async def fetch_qualified_questions(
         questionlist = [QuestionValidator.from_orm(x) for x in res.scalars().fetchall()]
 
     return questionlist
+
+
+async def create_editor_for_basecourse(user_id: int, bc_name: str):
+    new_ed = EditorBasecourse(user_id, bc_name)
+    async with async_session.begin() as session:
+        session.add(new_ed)
 
 
 async def is_editor(userid):

@@ -822,7 +822,7 @@ LibraryValidator = sqlalchemy_to_pydantic(Library)
 class BookAuthor(Base):
     __tablename__ = "book_author"
     # See https://stackoverflow.com/questions/28047027/sqlalchemy-not-find-table-for-creating-foreign-key
-    # for why we do not use a string to specify the foreign key for author
+    # for why we use a string to specify the foreign key for author
     author = Column(
         String(512), ForeignKey("auth_user.username"), primary_key=True, nullable=False
     )
@@ -833,7 +833,7 @@ class BookAuthor(Base):
 
 class EditorBasecourse(Base, IdMixin):
     __tablename__ = "editor_basecourse"
-
+    __table_args__ = (UniqueConstraint("editor", "base_course"),)
     editor = Column(ForeignKey("auth_user.id", ondelete="CASCADE"))
     base_course = Column(String(512))
 
