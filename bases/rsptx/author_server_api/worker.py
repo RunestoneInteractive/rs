@@ -177,7 +177,7 @@ def build_runestone_book(self, book):
         return False
     self.update_state(state="SUCCESS", meta={"current": "build complete"})
     # update_last_build(book)
-    # todo: replace with update_library_book -- but it is async
+    # todo: replace with update_library_book (see crud.py) -- but it is async
     return True
 
 
@@ -228,7 +228,7 @@ def build_ptx_book(self, book):
         return False
 
     self.update_state(state="SUCCESS", meta={"current": "build complete"})
-    update_last_build(book)
+    # update_last_build(book)
     return True
 
 
