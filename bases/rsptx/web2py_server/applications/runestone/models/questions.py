@@ -37,14 +37,14 @@ db.define_table(
 db.define_table(
     "tags",
     Field("tag_name", type="string", unique=True),
-    migrate=table_migrate_prefix + "tags.table",
+    migrate=bookserver_owned("tags.table"),
 )
 
 db.define_table(
     "question_tags",
     Field("question_id", db.questions),
     Field("tag_id", db.tags),
-    migrate=table_migrate_prefix + "question_tags.table",
+    migrate=bookserver_owned("question_tags.table"),
 )
 
 ## assignment <--> questions is a many-to-many relation. This table associates them

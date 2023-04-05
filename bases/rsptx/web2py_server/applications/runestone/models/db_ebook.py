@@ -295,7 +295,7 @@ db.define_table(
     Field("course_name", "string"),
     Field("email", "string"),
     Field("processed", "boolean"),
-    migrate=table_migrate_prefix + "invoice_request.table",
+    migrate=bookserver_owned("invoice_request.table"),
 )
 
 # editor_basecourse
@@ -306,7 +306,7 @@ db.define_table(
     "editor_basecourse",
     Field("editor", db.auth_user),
     Field("base_course", "string"),
-    migrate=table_migrate_prefix + "editor_basecourse.table",
+    migrate=bookserver_owned("editor_basecourse.table"),
 )
 
 # course_attributes

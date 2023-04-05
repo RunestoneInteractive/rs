@@ -408,7 +408,7 @@ db.auth_user.email.requires = (
 )
 db.auth_user.course_id.requires = IS_COURSE_ID()
 
-auth.define_tables(username=True, signature=False, migrate=table_migrate_prefix + "")
+auth.define_tables(username=True, signature=False, migrate=bookserver_owned(""))
 
 # Because so many pages rely on `views/_sphinx_static_file.html` it makes
 # sense to provide some default values for variables used in the template here

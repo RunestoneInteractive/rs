@@ -61,7 +61,7 @@ db.define_table(
     # guid for the student x assignment cell in the external gradebook
     Field("lis_outcome_url", "string"),
     # web service endpoint where you send signed xml messages to insert into gradebook; guid above will be one parameter you send in that xml; the actual grade and comment will be others
-    migrate=table_migrate_prefix + "practice_grades.table",
+    migrate=bookserver_owned("practice_grades.table"),
 )
 
 

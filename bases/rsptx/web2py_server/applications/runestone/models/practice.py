@@ -62,7 +62,7 @@ db.define_table(
     Field("end_practice", type="datetime"),
     Field("timezoneoffset", type="integer", default=0),
     Field("next_eligible_date", type="date"),
-    migrate=table_migrate_prefix + "spacing_log.table",
+    migrate=bookserver_owned("spacing_log.table"),
 )
 
 
@@ -71,7 +71,7 @@ db.define_table(
     Field("user_id", db.auth_user),
     Field("course_name", "string"),
     Field("practice_completion_date", type="date"),
-    migrate=table_migrate_prefix + "user_topic_practice_Completion.table",
+    migrate=bookserver_owned("user_topic_practice_Completion.table"),
 )
 
 
@@ -94,7 +94,7 @@ db.define_table(
         writable=False,
     ),
     Field("timezoneoffset", type="integer", default=0),
-    migrate=table_migrate_prefix + "user_topic_practice_survey.table",
+    migrate=bookserver_owned("user_topic_practice_survey.table"),
 )
 
 
@@ -117,5 +117,5 @@ db.define_table(
         writable=False,
     ),
     Field("timezoneoffset", type="integer", default=0),
-    migrate=table_migrate_prefix + "user_topic_practice_feedback.table",
+    migrate=bookserver_owned("user_topic_practice_feedback.table"),
 )

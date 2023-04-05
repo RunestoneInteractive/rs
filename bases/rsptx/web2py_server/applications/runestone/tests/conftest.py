@@ -377,7 +377,6 @@ def runestone_db(runestone_controller, web2py_server):
  public.tags,
  public.timed_exam,
  public.useinfo,
- public.user_biography,
  public.user_chapter_progress,
  public.user_courses,
  public.user_state,

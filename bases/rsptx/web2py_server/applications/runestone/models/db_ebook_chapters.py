@@ -58,7 +58,7 @@ db.define_table(
     Field("chapter_label", "string"),
     Field("sub_chapter_label", "string"),
     Field("teaching_date", "date", default=datetime.datetime.utcnow()),
-    migrate=table_migrate_prefix + "sub_chapter_taught.table",
+    migrate=bookserver_owned("sub_chapter_taught.table"),
 )
 
 
