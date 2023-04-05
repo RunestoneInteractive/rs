@@ -11,7 +11,6 @@
 
 # Standard library imports
 
-import asyncio
 import asyncclick as click
 import csv
 import datetime
@@ -34,17 +33,21 @@ from rsptx.db.crud import (
     create_initial_courses_users,
     create_book_author,
     create_course,
+    create_course_attribute,
     create_editor_for_basecourse,
     create_instructor_course_entry,
     create_library_book,
     create_user_course_entry,
     fetch_course,
     fetch_courses_for_user,
+    fetch_course_instructors,
     fetch_group,
     fetch_instructor_courses,
+    fetch_users_for_course,
     fetch_membership,
     fetch_user,
     create_user,
+    create_group,
     create_membership,
     is_author,
     is_editor,
@@ -125,21 +128,17 @@ async def cli(config, verbose, if_clean):
     config.verbose = verbose
 
 
-def _initdb(config):
+async def _initdb(config):
     # Because click won't natively support making commands async we can use this simple method
     # to call async functions.
     # Since we successfully dropped the database we need to initialize it here.
-    async def async_funcs():
-        await init_models()
-        await create_initial_courses_users()
-        await term_models()
 
-    asyncio.run(async_funcs())
-
-    eng = create_engine(config.dburl)
-    eng.execute("""insert into auth_group (role) values ('instructor')""")
-    eng.execute("""insert into auth_group (role) values ('editor')""")
-    eng.execute("""insert into auth_group (role) values ('author')""")
+    await init_models()
+    await create_initial_courses_users()
+    await term_models()
+    await create_group("instructor")
+    await create_group("editor")
+    await create_group("author")
 
 
 #
@@ -155,7 +154,7 @@ def _initdb(config):
 @click.option("--fake", is_flag=True, help="perform a fake migration")
 @click.option("--force", is_flag=True, help="answer Yes to confirm questions")
 @pass_config
-def initdb(config, list_tables, reset, fake, force):
+async def initdb(config, list_tables, reset, fake, force):
     """Initialize and optionally reset the database"""
     os.chdir(findProjectRoot())
     if not os.path.exists(DBSDIR):
@@ -204,7 +203,7 @@ def initdb(config, list_tables, reset, fake, force):
         # to call async functions.
         # Since we successfully dropped the database we need to initialize it here.
         settings.drop_tables = "Yes"
-        _initdb(config)
+        await _initdb(config)
         click.echo("Created new tables")
 
     if len(os.listdir("{}/databases".format(APP_PATH))) > 1 and not fake and not force:
@@ -222,7 +221,7 @@ def initdb(config, list_tables, reset, fake, force):
     )
 
     if not reset:
-        _initdb(config)
+        await _initdb(config)
 
 
 #
@@ -709,37 +708,24 @@ async def addeditor(config, username, basecourse):
 @cli.command()
 @click.option("--name", help="Name of the course")
 @pass_config
-def courseinfo(config, name):
+async def courseinfo(config, name):
     """
     List all information for a single course
 
     """
-    eng = create_engine(config.dburl)
+
     if not name:
         name = click.prompt("What course do you want info about?")
 
-    course = eng.execute(
-        """select id, term_start_date, institution, base_course from courses where course_name = %s""",
-        name,
-    ).first()
-    cid = course[0]
-    start_date = course[1]
-    inst = course[2]
-    bc = course[3]
+    course = await fetch_course(name)
+    cid = course.id
+    start_date = course.term_start_date
+    inst = course.institution
+    bc = course.base_course
 
-    s_count = eng.execute(
-        """select count(*) from user_courses where course_id=%s""", cid
-    ).first()[0]
-
-    res = eng.execute(
-        """select username, first_name, last_name, email, courses.course_name
-    from auth_user
-    join course_instructor ON course_instructor.instructor = auth_user.id
-    join courses ON courses.id = course_instructor.course
-    where course_instructor.course = %s
-    order by username;""",
-        cid,
-    )
+    student_list = await fetch_users_for_course(name)
+    s_count = len(student_list)
+    res = await fetch_course_instructors(name)
 
     print("Course Information for {} -- ({})".format(name, cid))
     print(inst)
@@ -748,38 +734,32 @@ def courseinfo(config, name):
     print("Number of students: {}".format(s_count))
     print("Instructors:")
     for row in res:
-        print(" ".join(row[:-1]))
+        print(" ", row.first_name, row.last_name, row.username, row.email)
 
 
 @cli.command()
 @click.option("--student", default=None, help="Name of the student")
 @pass_config
-def studentinfo(config, student):
+async def studentinfo(config, student):
     """
     display PII and all courses enrolled for a username
     """
-    eng = create_engine(config.dburl)
 
     if not student:
         student = click.prompt("Student Id: ")
 
-    res = eng.execute(
-        f"""
-        select auth_user.id, first_name, last_name, email, courses.course_name, courses.id
-        from auth_user join user_courses ON user_courses.user_id = auth_user.id
-        join courses on courses.id = user_courses.course_id where username = '{student}'"""
-    )
-    # fetchone fetches the first row without closing the cursor.
-    first = res.fetchone()
+    student = await fetch_user(student)
+    courses = await fetch_courses_for_user(student.id)
+
     print("id\tFirst\tLast\temail")
-    print("\t".join(str(x) for x in first[:4]))
+    print(f"{student.id}\t{student.first_name}\t{student.last_name}\t{student.email}")
     print("")
     print("         Course        cid")
     print("--------------------------")
-    print(f"{first[-2].rjust(15)} {str(first[-1]).rjust(10)}")
-    if res:
-        for row in res:
-            print(f"{row[-2].rjust(15)} {str(row[-1]).rjust(10)}")
+
+    if courses:
+        for row in courses:
+            print(f"{row.course_name.rjust(15)} {str(row.id).rjust(10)}")
 
 
 @cli.command()
@@ -787,7 +767,7 @@ def studentinfo(config, student):
 @click.option("--attr", default=None, help="Attribute to add")
 @click.option("--value", default=None, help="Attribute Value")
 @pass_config
-def addattribute(config, course, attr, value):
+async def addattribute(config, course, attr, value):
     """
     Add an attribute to the `course_attributes` table
 
@@ -796,19 +776,14 @@ def addattribute(config, course, attr, value):
     attr = attr or click.prompt("Attribute to set: ")
     value = value or click.prompt(f"Value of {attr}: ")
 
-    eng = create_engine(config.dburl)
-
-    res = eng.execute("select id from courses where course_name=%s", course).first()
+    res = await fetch_course(course)
     if res:
-        course_id = res[0]
+        course_id = res.id
     else:
         print("Sorry, that course does not exist")
         sys.exit(-1)
     try:
-        res = eng.execute(
-            f"""insert into course_attributes (course_id, attr, value)
-        values ({course_id}, '{attr}', '{value}')"""
-        )
+        res = await create_course_attribute(course_id, attr, value)
     except UniqueViolation:
         click.echo(f"Can only have one attribute {attr} per course")
     except IntegrityError:

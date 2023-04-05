@@ -342,7 +342,7 @@ async def create_course(course_info: CoursesValidator) -> None:
 async def fetch_courses_for_user(
     user_id: int, course_id: Optional[int] = None
 ) -> UserCourse:
-    if course_id is not None:
+    if course_id is None:
         query = select(Courses).where(
             and_(UserCourse.user_id == user_id, UserCourse.course_id == Courses.id)
         )
@@ -361,6 +361,24 @@ async def fetch_courses_for_user(
         # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
         course_list = [CoursesValidator.from_orm(x) for x in res.scalars().fetchall()]
         return course_list
+
+
+#
+async def fetch_users_for_course(course_name: str) -> list[AuthUserValidator]:
+    course = await fetch_course(course_name)
+    query = select(AuthUser).where(
+        and_(
+            UserCourse.user_id == AuthUser.id,
+            UserCourse.course_id == course.id,
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        # When selecting ORM entries it is useful to use the ``scalars`` method
+        # This modifies the result so that you are getting the ORM object
+        # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
+        user_list = [AuthUserValidator.from_orm(x) for x in res.scalars().fetchall()]
+        return user_list
 
 
 async def create_user_course_entry(user_id: int, course_id: int) -> UserCourse:
@@ -387,8 +405,10 @@ async def fetch_one_course_attribute():
     raise NotImplementedError()
 
 
-async def create_course_attribute():
-    raise NotImplementedError()
+async def create_course_attribute(course_id: int, attr: str, value: str):
+    new_attr = CourseAttribute(course_id=course_id, attr=attr, value=value)
+    async with async_session.begin() as session:
+        session.add(new_attr)
 
 
 async def get_course_origin(base_course):
@@ -456,6 +476,13 @@ async def fetch_group(group_name):
         return ret
 
 
+async def create_group(group_name):
+    new_group = AuthGroup(role=group_name)
+    async with async_session.begin() as session:
+        session.add(new_group)
+    return new_group
+
+
 async def fetch_membership(group_id, user_id):
     query = select(AuthMembership).where(
         and_(AuthMembership.group_id == group_id, AuthMembership.user_id == user_id)
@@ -504,6 +531,28 @@ async def fetch_instructor_courses(
             CourseInstructorValidator.from_orm(x) for x in res.scalars().fetchall()
         ]
         return course_list
+
+
+async def fetch_course_instructors(course_name: str) -> List[AuthUserValidator]:
+    """
+    return a list of courses for which the given userid is an instructor.
+    If the optional course_id value is included then return the row for that
+    course to verify that instructor_id is an instructor for course_id
+    """
+    course = await fetch_course(course_name)
+    query = select(AuthUser)
+
+    query = query.where(
+        and_(
+            CourseInstructor.course == course.id,
+            CourseInstructor.instructor == AuthUser.id,
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+
+    instructor_list = [AuthUserValidator.from_orm(x) for x in res.scalars().fetchall()]
+    return instructor_list
 
 
 async def create_instructor_course_entry(iid: int, cid: int) -> CourseInstructor:
