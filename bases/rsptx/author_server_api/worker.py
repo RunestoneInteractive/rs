@@ -10,15 +10,13 @@
 #
 # Standard library
 # ----------------
-import datetime
 import os
 import sys
-import time
 import subprocess
 import logging
 import pathlib
 
-from sqlalchemy import update, create_engine
+from sqlalchemy import create_engine
 
 # Third Party
 # -----------
@@ -92,7 +90,7 @@ celery.conf.result_backend = os.environ.get(
 def clone_runestone_book(self, repo, bcname):
     self.update_state(state="CLONING", meta={"current": "cloning"})
     logger.debug(f"Running clone command for {repo}")
-    cwd = os.getcwd()
+    os.getcwd()
     try:
         res = subprocess.run(
             ["git", "clone", repo, bcname], capture_output=True, cwd="/books"
@@ -166,12 +164,12 @@ def build_runestone_book(self, book):
         self.update_state(state="BUILDING", meta={"current": "Build failed -- see log"})
 
     res = subprocess.run(
-        f"chgrp -R www-data .", shell=True, capture_output=True, cwd=f"/books/{book}"
+        "chgrp -R www-data .", shell=True, capture_output=True, cwd=f"/books/{book}"
     )
     if res.returncode != 0:
         return False
     res = subprocess.run(
-        f"chmod -R go+rw .", shell=True, capture_output=True, cwd=f"/books/{book}"
+        "chmod -R go+rw .", shell=True, capture_output=True, cwd=f"/books/{book}"
     )
     if res.returncode != 0:
         return False
@@ -186,7 +184,7 @@ def build_ptx_book(self, book):
     logger.debug(f"Building {book}")
     self.update_state(state="CHECKING", meta={"current": "pull latest"})
     res = subprocess.run(
-        f"git pull --no-edit", shell=True, capture_output=True, cwd=f"/books/{book}"
+        "git pull --no-edit", shell=True, capture_output=True, cwd=f"/books/{book}"
     )
     logger.debug(f"Checking results of pull for {book}")
     if res.returncode != 0:
@@ -217,12 +215,12 @@ def build_ptx_book(self, book):
         return False
 
     res = subprocess.run(
-        f"chgrp -R www-data .", shell=True, capture_output=True, cwd=f"/books/{book}"
+        "chgrp -R www-data .", shell=True, capture_output=True, cwd=f"/books/{book}"
     )
     if res.returncode != 0:
         return False
     res = subprocess.run(
-        f"chmod -R go+rw .", shell=True, capture_output=True, cwd=f"/books/{book}"
+        "chmod -R go+rw .", shell=True, capture_output=True, cwd=f"/books/{book}"
     )
     if res.returncode != 0:
         return False
@@ -254,7 +252,7 @@ def deploy_book(self, book):
             logger.debug(res.stdout)
             logger.debug(res.stderr)
             return False
-    self.update_state(state="SUCCESS", meta={"current": f"deploy complete"})
+    self.update_state(state="SUCCESS", meta={"current": "deploy complete"})
     return True
 
 
@@ -263,7 +261,7 @@ def useinfo_to_csv(self, classname, username):
     os.chdir("/usr/src/app")
     dburl = os.environ.get("DEV_DBURL")
     eng = create_engine(dburl)
-    self.update_state(state="QUERYING", meta={"current": f"extracting from database"})
+    self.update_state(state="QUERYING", meta={"current": "extracting from database"})
     df = pd.read_sql_query(
         """select * from useinfo where course_id = %(cname)s order by id""",
         params=dict(cname=classname),
@@ -272,9 +270,9 @@ def useinfo_to_csv(self, classname, username):
     p = pathlib.Path("logfiles", username)
     p.mkdir(parents=True, exist_ok=True)
     p = p / f"{classname}_useinfo.csv.zip"
-    self.update_state(state="WRITING", meta={"current": f"creating csv.zip file"})
+    self.update_state(state="WRITING", meta={"current": "creating csv.zip file"})
     df.to_csv(p, index=False, compression={"method": "zip"})
-    self.update_state(state="SUCCESS", meta={"current": f"csv.zip file created"})
+    self.update_state(state="SUCCESS", meta={"current": "csv.zip file created"})
     return True
 
 
@@ -283,7 +281,7 @@ def code_to_csv(self, classname, username):
     os.chdir("/usr/src/app")
     dburl = os.environ.get("DEV_DBURL")
     eng = create_engine(dburl)
-    self.update_state(state="QUERYING", meta={"current": f"extracting from database"})
+    self.update_state(state="QUERYING", meta={"current": "extracting from database"})
     df = pd.read_sql_query(
         """select acid, code, emessage, course_id, sid, timestamp, comment, language
         from code join courses on code.course_id = courses.id
@@ -294,9 +292,9 @@ def code_to_csv(self, classname, username):
     p = pathlib.Path("logfiles", username)
     p.mkdir(parents=True, exist_ok=True)
     p = p / f"{classname}_code.csv.zip"
-    self.update_state(state="WRITING", meta={"current": f"creating csv.zip file"})
+    self.update_state(state="WRITING", meta={"current": "creating csv.zip file"})
     df.to_csv(p, index=False, compression={"method": "zip"})
-    self.update_state(state="SUCCESS", meta={"current": f"csv.zip file created"})
+    self.update_state(state="SUCCESS", meta={"current": "csv.zip file created"})
     return True
 
 
@@ -309,25 +307,25 @@ def anonymize_data_dump(self, **kwargs):
     del kwargs["user"]
     a = Anonymizer(basecourse, config.dburl, **kwargs)
     print("Choosing Courses")
-    self.update_state(state="WORKING", meta={"current": f"Choosing courses"})
+    self.update_state(state="WORKING", meta={"current": "Choosing courses"})
     a.choose_courses()
     print("Getting Users")
-    self.update_state(state="WORKING", meta={"current": f"Anonymizing users"})
+    self.update_state(state="WORKING", meta={"current": "Anonymizing users"})
     a.get_users()
     print("Getting user activities")
-    self.update_state(state="WORKING", meta={"current": f"Processing user activities"})
+    self.update_state(state="WORKING", meta={"current": "Processing user activities"})
     a.get_user_activities()
     print("sessionizing")
-    self.update_state(state="WORKING", meta={"current": f"Sessionizing the data"})
+    self.update_state(state="WORKING", meta={"current": "Sessionizing the data"})
     a.sessionize_data()
     print("combining to datashop")
     self.update_state(
-        state="WORKING", meta={"current": f"combining all data (be patient)"}
+        state="WORKING", meta={"current": "combining all data (be patient)"}
     )
     a.create_datashop_data()
-    self.update_state(state="WORKING", meta={"current": f"Writing datashop file"})
+    self.update_state(state="WORKING", meta={"current": "Writing datashop file"})
     p = pathlib.Path("datashop", username)
     p.mkdir(parents=True, exist_ok=True)
     a.write_datashop(path=p)
-    self.update_state(state="SUCCESS", meta={"current": f"Ready for download"})
+    self.update_state(state="SUCCESS", meta={"current": "Ready for download"})
     return True

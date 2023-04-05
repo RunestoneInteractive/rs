@@ -20,7 +20,6 @@ from pathlib import Path
 
 # Third-party imports
 # -------------------
-import pkg_resources
 from pydantic import BaseSettings
 
 # Local application imports

@@ -4,15 +4,13 @@
 import os
 import random
 import re
-import numpy as np
 import pandas as pd
 import pathlib
 from sqlalchemy import create_engine
 from tqdm import tqdm
 
+
 tqdm.pandas(desc="Progress...")
-import datetime
-import altair as alt
 
 
 def remove_names(row):
@@ -220,11 +218,11 @@ class Anonymizer:
         SELECT
             username
         FROM
-	        auth_user
-	        JOIN course_instructor ON auth_user.id = instructor
-	        JOIN courses ON courses.id = course
+            auth_user
+            JOIN course_instructor ON auth_user.id = instructor
+            JOIN courses ON courses.id = course
         WHERE
-	        courses.course_name in {self.in_course_list};
+            courses.course_name in {self.in_course_list};
         """,
             self.eng,
         )
@@ -400,7 +398,7 @@ class Anonymizer:
         self.all_answers = all_answers
 
     def write_old_files(self):
-        useinfo.to_csv(f"{self.BASECOURSE}_useinfo.csv.zip", index=False)
+        self.useinfo.to_csv(f"{self.BASECOURSE}_useinfo.csv.zip", index=False)
 
         self.user_df.to_csv(
             f"{self.BASECOURSE}_userinfo.csv.zip",

@@ -1,33 +1,43 @@
-import sys
-from pathlib import Path
+#
+# rsmanage -- utility commands to help manage a Runestone Server
+#
+#
+# There is no real reason for this command line utility to be async, but
+# because all of our database access functions are written for use with
+# async database access we do it anyway so we can get better code reuse.
+# Thankfully Asyncclick is a wrapper around
+# click that allows you to declare your subcommand functions async.
+#
 
+# Standard library imports
 
 import asyncio
-import anyio
 import asyncclick as click
 import csv
 import datetime
 import json
 import os
 import re
-import shutil
-import signal
+import sys
 import subprocess
-import redis
-import xml.etree.ElementTree as ET
-from xml.etree import ElementInclude
 
+# third party imports
+import redis
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from pgcli.main import cli as clipg
 from psycopg2.errors import UniqueViolation
 
+# our own package imports
+
 from rsptx.db.crud import (
     create_initial_courses_users,
     create_book_author,
     create_course,
+    create_editor_for_basecourse,
     create_instructor_course_entry,
     create_library_book,
+    create_user_course_entry,
     fetch_course,
     fetch_courses_for_user,
     fetch_group,
@@ -38,12 +48,11 @@ from rsptx.db.crud import (
     create_membership,
     is_author,
     is_editor,
+    update_user,
 )
 from rsptx.db.models import CoursesValidator, AuthUserValidator
 from rsptx.db.async_session import init_models, term_models
-import rsptx.db.models
 from rsptx.configuration import settings
-from runestone.pretext.chapter_pop import manifest_data_to_db
 from runestone.server.utils import _build_runestone_book, _build_ptx_book
 
 import pdb
@@ -341,16 +350,12 @@ async def addcourse(
 @click.option("--manifest", default="runestone-manifest.xml", help="Manifest file")
 @click.argument("course", nargs=1)
 @pass_config
-def build(config, clone, ptx, gen, manifest, course):
+async def build(config, clone, ptx, gen, manifest, course):
     """
     rsmanage build [options] COURSE
     Build the book for an existing course
     """
-    os.chdir(findProjectRoot())  # change to a known location
-    eng = create_engine(config.dburl)
-    res = eng.execute(
-        "select id from courses where course_name = '{}'".format(course)
-    ).first()
+    res = await fetch_course(course)
     if not res:
         click.echo(
             "Error:  The course {} must already exist in the database -- use rsmanage addcourse".format(
@@ -365,6 +370,7 @@ def build(config, clone, ptx, gen, manifest, course):
         if os.path.exists(course):
             click.echo("Book repo already cloned, skipping")
         else:
+            # check to make sure repo name and course name match
             res = subprocess.call("git clone {}".format(clone), shell=True)
             if res != 0:
                 click.echo(
@@ -442,7 +448,6 @@ async def adduser(
             if "@" not in line[1]:
                 click.echo("emails should have an @ in them in column 2")
                 exit(1)
-            os.environ["RSM_USERINFO"] = json.dumps(userinfo)
             newUser = AuthUserValidator(
                 username=line[0],
                 password=line[4],
@@ -658,31 +663,27 @@ async def addinstructor(config, username, course):
 @click.option("--username", help="user to promote to instructor")
 @click.option("--basecourse", help="name of base course")
 @pass_config
-def addeditor(config, username, basecourse):
+async def addeditor(config, username, basecourse):
     """
     Add an existing user as an instructor for a course
     """
-    eng = create_engine(config.dburl)
-    res = eng.execute("select id from auth_user where username=%s", username).first()
+
+    res = await fetch_user(username)
     if res:
-        userid = res[0]
+        userid = res.id
     else:
         click.echo("Sorry, that user does not exist", color="red")
         sys.exit(-1)
 
-    res = eng.execute(
-        "select id from courses where course_name=%s and base_course=%s",
-        basecourse,
-        basecourse,
-    ).first()
+    res = await fetch_course(basecourse)
     if not res:
         click.echo("Sorry, that base course does not exist", color="red")
         sys.exit(-1)
 
     # if needed insert a row into auth_membership
-    res = eng.execute("select id from auth_group where role='editor'").first()
+    res = await fetch_group("editor")
     if res:
-        role = res[0]
+        role = res.id
     else:
         click.echo(
             "Sorry, your system does not have the editor role setup -- this is bad",
@@ -690,38 +691,19 @@ def addeditor(config, username, basecourse):
         )
         sys.exit(-1)
 
-    res = eng.execute(
-        "select * from auth_membership where user_id=%s and group_id=%s", userid, role
-    ).first()
-    if not res:
-        eng.execute(
-            "insert into auth_membership (user_id, group_id) values (%s, %s)",
-            userid,
-            role,
-        )
+    if not is_editor(userid):
+        await create_membership(role, userid)
         click.echo("made {} an editor".format(username), color="green")
     else:
         click.echo("{} is already an editor".format(username), color="red")
 
-    # if needed insert a row into user_courses
-    res = eng.execute(
-        "select * from editor_basecourse where editor=%s and base_course=%s ",
-        userid,
-        basecourse,
-    ).first()
-    if not res:
-        eng.execute(
-            "insert into editor_basecourse (editor, base_course) values (%s, %s)",
-            userid,
-            basecourse,
-        )
-        click.echo(
-            "made {} an editor for {}".format(username, basecourse), color="green"
-        )
-    else:
-        click.echo(
-            "{} is already an editor for {}".format(username, basecourse), color="red"
-        )
+    try:
+        await create_editor_for_basecourse(userid, basecourse)
+    except:
+        click.echo("could not add {username} as editor - They probably already are")
+        sys.exit(-1)
+
+    click.echo("made {} an editor for {}".format(username, basecourse), color="green")
 
 
 @cli.command()
@@ -1029,7 +1011,7 @@ def peergroups(course):
 async def addbookauthor(config, book, author, github):
     book = book or click.prompt("document-id or basecourse ")
     author = author or click.prompt("username of author ")
-    engine = create_engine(config.dburl)
+
     a_row = await fetch_user(author)
     if not a_row:
         click.echo(f"Error - author {author} does not exist")
