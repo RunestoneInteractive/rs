@@ -449,7 +449,11 @@ class CourseInstructor(Base, IdMixin):
     course = Column(
         Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False
     )
-    instructor = Column(Integer, ForeignKey("auth_user.id"), nullable=False)
+    instructor = Column(
+        Integer,
+        ForeignKey("auth_user.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     verified = Column(Web2PyBoolean)
     paid = Column(Web2PyBoolean)
 

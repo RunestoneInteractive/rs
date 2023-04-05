@@ -61,6 +61,7 @@ from rsptx.db.models import (
     QuestionGrade,
     QuestionGradeValidator,
     QuestionValidator,
+    runestone_component_dict,
     SelectedQuestion,
     SelectedQuestionValidator,
     SubChapter,
@@ -462,6 +463,27 @@ async def update_user(user_id: int, new_vals: dict):
     async with async_session.begin() as session:
         await session.execute(stmt)
     rslogger.debug("SUCCESS")
+
+
+async def delete_user(username):
+    # We do not have foreign key constraints on the username in the answer tables
+    # so delete all of the rows matching the username schedule for deletion
+    stmt_list = []
+    for tbl, item in runestone_component_dict.items():
+        stmt = delete(item.model).where(item.model.sid == username)
+        stmt_list.append(stmt)
+
+    delcode = delete(Code).where(Code.sid == username)
+    deluse = delete(Useinfo).where(Useinfo.sid == username)
+    deluser = delete(AuthUser).where(AuthUser.username == username)
+    async with async_session.begin() as session:
+        for stmt in stmt_list:
+            await session.execute(stmt)
+        await session.execute(delcode)
+        await session.execute(deluse)
+        await session.execute(deluser)
+        # This will delete many other things as well based on the CASECADING
+        # foreign keys
 
 
 async def fetch_group(group_name):

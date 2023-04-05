@@ -38,6 +38,7 @@ from rsptx.db.crud import (
     create_instructor_course_entry,
     create_library_book,
     create_user_course_entry,
+    delete_user,
     fetch_course,
     fetch_courses_for_user,
     fetch_course_instructors,
@@ -538,26 +539,11 @@ async def resetpw(config, username, password):
 @cli.command()
 @click.option("--username", help="Username, must be unique")
 @pass_config
-def rmuser(config, username):
+async def rmuser(config, username):
     """Utility to remove a user from the system completely."""
 
     sid = username or click.prompt("Username")
-
-    eng = create_engine(config.dburl)
-    eng.execute("delete from auth_user where username = %s", sid)
-    eng.execute("delete from useinfo where sid = %s", sid)
-    eng.execute("delete from code where sid = %s", sid)
-    for t in [
-        "clickablearea",
-        "codelens",
-        "dragndrop",
-        "fitb",
-        "lp",
-        "mchoice",
-        "parsons",
-        "shortanswer",
-    ]:
-        eng.execute("delete from {}_answers where sid = '{}'".format(t, sid))
+    await delete_user(sid)
 
 
 @cli.command()
