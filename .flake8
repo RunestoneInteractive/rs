@@ -22,3 +22,21 @@ exclude =
   alembic/
   .tox/
   .venv/
+
+
+# for web2py legacy code
+
+builtins=settings,
+  request,
+  response,
+  db,
+  auth,
+  redirect,
+  XML,
+  URL,
+  T,
+  HTTP,
+  cache,
+  gluon,
+  verifyInstructorStatus
+  
