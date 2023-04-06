@@ -1,11 +1,13 @@
 # *************************************************
 # |docname| - reusable functions for our data model
 # *************************************************
-# Create Retrieve Update and Delete (CRUD) functions for database tables
-#
-# Rather than litter the code with raw database queries the vast majority should be
-# turned into reusable functions that are defined in this file.
-#
+"""
+Create Retrieve Update and Delete (CRUD) functions for database tables
+
+Rather than litter the code with raw database queries the vast majority should be
+turned into reusable functions that are defined in this file.
+
+"""
 # Imports
 # =======
 # These are listed in the order prescribed by `PEP 8`_.
@@ -16,7 +18,7 @@ import datetime
 import hashlib
 import json
 from collections import namedtuple
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import traceback
 
 # Third-party imports
@@ -104,6 +106,13 @@ EVENT2TABLE = {
 # useinfo
 # -------
 async def create_useinfo_entry(log_entry: UseinfoValidation) -> UseinfoValidation:
+    """Add a row to the ``useinfo`` table.
+
+    :param log_entry: Log entries contain a timestamp, an event, details about the event, a student id, and the identifier of the book element that was interacted with.
+    :type log_entry: UseinfoValidation
+    :return: A representation of the row inserted.
+    :rtype: UseinfoValidation
+    """
     async with async_session.begin() as session:
         new_entry = Useinfo(**log_entry.dict())
         rslogger.debug(f"timestamp = {log_entry.timestamp} ")
@@ -117,12 +126,19 @@ async def create_useinfo_entry(log_entry: UseinfoValidation) -> UseinfoValidatio
 async def count_useinfo_for(
     div_id: str, course_name: str, start_date: datetime.datetime
 ) -> List[tuple]:
-    """
-    return a list of tuples that include the [(act, count), (act, count)]
+    """return a list of tuples that include the [(act, count), (act, count)]
     act is a freeform field in the useinfo table that varies from event
     type to event type.
-    """
 
+    :param div_id: Unique identifier of a Runestone component
+    :type div_id: str
+    :param course_name: The current course
+    :type course_name: str
+    :param start_date:
+    :type start_date: datetime.datetime
+    :return: A list of tuples [(act, count), (act), count)]
+    :rtype: List[tuple]
+    """
     query = (
         select(Useinfo.act, func.count(Useinfo.act).label("count"))
         .where(
@@ -144,9 +160,6 @@ async def fetch_chapter_for_subchapter(subchapter: str, base_course: str) -> str
     due to the flat structure produced by pretext build.  In this case the
     old RST structure where we get the chapter and subchapter from the URL
     /book/chapter/subchapter.html gives us the wrong answer of the book.
-    select chapter_label
-        from sub_chapters join chapters on chapter_id = chapters.id
-        where course_id = <base_course> and sub_chapter_label = <subchapter>
     """
 
     query = (
@@ -209,14 +222,21 @@ async def fetch_page_activity_counts(
 
 async def fetch_poll_summary(div_id: str, course_name: str) -> List[tuple]:
     """
-    find the last answer for each student and then aggregate
-    those answers to provide a summary of poll responses for the
-    given question.  for a poll the value of act is a response
-    number 0--N where N is the number of different choices.
+    Find the last answer for each student and then aggregate those answers to provide a summary of poll
+    responses for the given question. For a poll, the value of act is a response number 0--N where N is
+    the number of different choices.
+
+    :param div_id: The div_id of the poll
+    :type div_id: str
+    :param course_name: The name of the course
+    :type course_name: str
+    :return: A list of tuples where the first element is the response number and the second element is the count
+             of students who chose that response.
+    :rtype: List[tuple]
     """
     query = text(
         """select act, count(*) from useinfo
-        join (select sid,  max(id) mid
+        join (select sid, max(id) mid
         from useinfo where event='poll' and div_id = :div_id and course_id = :course_name group by sid) as T
         on id = T.mid group by act"""
     )
@@ -229,7 +249,17 @@ async def fetch_poll_summary(div_id: str, course_name: str) -> List[tuple]:
 
 
 async def fetch_top10_fitb(dbcourse: CoursesValidator, div_id: str) -> List[tuple]:
-    "Return the top 10 answers to a fill in the blank question"
+    """
+    Return the top 10 answers to a fill in the blank question.
+
+    :param dbcourse: The course for which to retrieve the top answers.
+    :type dbcourse: CoursesValidator
+    :param div_id: The div_id of the fill in the blank question.
+    :type div_id: str
+    :return: A list of tuples where the first element is the answer and the second element is the count of times
+             that answer was given.
+    :rtype: List[tuple]
+    """
     rcd = runestone_component_dict["fitb_answers"]
     tbl = rcd.model
     query = (
@@ -256,6 +286,15 @@ async def create_answer_table_entry(
     # The event type.
     event: str,
 ) -> schemas.LogItemIncoming:
+    """Populate the xxx_answers table with the incoming data
+
+    :param log_entry:
+    :type log_entry: schemas.LogItemIncoming
+    :param event: Will be something like "mchoice", "parsons", etc.
+    :type event: str
+    :return: Returns the newly created item
+    :rtype: schemas.LogItemIncoming
+    """
     rslogger.debug(f"hello from create at {log_entry}")
     rcd = runestone_component_dict[EVENT2TABLE[event]]
     new_entry = rcd.model(**log_entry.dict())  # type: ignore
@@ -269,6 +308,13 @@ async def create_answer_table_entry(
 async def fetch_last_answer_table_entry(
     query_data: schemas.AssessmentRequest,
 ) -> schemas.LogItemIncoming:
+    """The xxx_answers table contains ALL of the answers a student has made for this question.  but most often all we want is the most recent answer
+
+    :param query_data:
+    :type query_data: schemas.AssessmentRequest
+    :return: The most recent answer
+    :rtype: schemas.LogItemIncoming
+    """
     rcd = runestone_component_dict[EVENT2TABLE[query_data.event]]
     tbl = rcd.model
     deadline_offset_naive = query_data.deadline.replace(tzinfo=None)
@@ -311,6 +357,14 @@ async def fetch_last_poll_response(sid: str, course_name: str, poll_id: str) -> 
 # Courses
 # -------
 async def fetch_course(course_name: str) -> CoursesValidator:
+    """
+    Fetches a course by its name.
+
+    :param course_name: The name of the course to be fetched.
+    :type course_name: str
+    :return: A CoursesValidator instance representing the fetched course.
+    :rtype: CoursesValidator
+    """
     query = select(Courses).where(Courses.course_name == course_name)
     async with async_session() as session:
         res = await session.execute(query)
@@ -322,6 +376,14 @@ async def fetch_course(course_name: str) -> CoursesValidator:
 
 
 async def fetch_base_course(base_course: str) -> CoursesValidator:
+    """
+    Fetches a base course by its name.
+
+    :param base_course: The name of the base course to be fetched.
+    :type base_course: str
+    :return: A CoursesValidator instance representing the fetched base course.
+    :rtype: CoursesValidator
+    """
     query = select(Courses).where(
         (Courses.base_course == base_course) & (Courses.course_name == base_course)
     )
@@ -335,6 +397,13 @@ async def fetch_base_course(base_course: str) -> CoursesValidator:
 
 
 async def create_course(course_info: CoursesValidator) -> None:
+    """
+    Creates a new course in the database.
+
+    :param course_info: A CoursesValidator instance representing the course to be created.
+    :type course_info: CoursesValidator
+    :return: None
+    """
     new_course = Courses(**course_info.dict())
     async with async_session.begin() as session:
         session.add(new_course)
@@ -1221,20 +1290,45 @@ async def update_library_book(bookid, vals):
 
 
 # TODO finish this use bookid as title temporarily
-async def create_library_book(bookid, vals):
+async def create_library_book(bookid: str, vals: Dict[str, Any]) -> None:
+    """
+    Creates a new Library object using the provided parameters and saves it in the database.
+
+    :param bookid: The unique identifier of the book.
+    :type bookid: str
+    :param vals: The dictionary containing the properties of the book.
+    :type vals: dict[str, Any]
+    :return: None
+    """
     new_book = Library(**vals, basecourse=bookid)
     async with async_session.begin() as session:
         session.add(new_book)
 
 
-async def create_book_author(author: str, document_id: str):
+async def create_book_author(author: str, document_id: str) -> None:
+    """
+    Creates a new BookAuthor object using the provided parameters and saves it in the database.
+
+    :param author: The name of the author.
+    :type author: str
+    :param document_id: The unique identifier of the book.
+    :type document_id: str
+    :return: None
+    """
     new_ba = BookAuthor(author=author, book=document_id)
-    # Now execute all of the statments in a single transaction.
     async with async_session.begin() as session:
         session.add(new_ba)
 
 
-async def fetch_books_by_author(author: str):
+async def fetch_books_by_author(author: str) -> List[Tuple[Library, BookAuthor]]:
+    """
+    Fetches all books written by a given author.
+
+    :param author: The name of the author.
+    :type author: str
+    :return: A list of tuples, each containing a Library and a BookAuthor object.
+    :rtype: list[tuple[Library, BookAuthor]]
+    """
     query = (
         select(Library, BookAuthor)
         .join(BookAuthor, BookAuthor.book == Library.basecourse)
@@ -1243,15 +1337,17 @@ async def fetch_books_by_author(author: str):
     )
     async with async_session() as sess:
         res = await sess.execute(query)
-        # for row in res.scalars().fetchall():
-        #     print("ROW is ", row.title)
         return res.scalars().fetchall()
 
 
-async def fetch_course_practice(course_name: str) -> CoursePractice:
+async def fetch_course_practice(course_name: str) -> Optional[CoursePractice]:
     """
-    Fetch the course_practice row for a given course.  The course practice row
-    contains the configuration of the practice feature for the given course.
+    Fetches the course practice row for a given course.
+
+    :param course_name: The name of the course.
+    :type course_name: str
+    :return: The CoursePractice object containing the configuration of the practice feature for the given course.
+    :rtype: Optional[CoursePractice]
     """
     query = (
         select(CoursePractice)
@@ -1361,13 +1457,32 @@ async def fetch_qualified_questions(
     return questionlist
 
 
-async def create_editor_for_basecourse(user_id: int, bc_name: str):
+async def create_editor_for_basecourse(user_id: int, bc_name: str) -> EditorBasecourse:
+    """
+    Creates a new editor for a given basecourse.
+
+    :param user_id: The ID of the user creating the editor.
+    :type user_id: int
+    :param bc_name: The name of the basecourse for which the editor is being created.
+    :type bc_name: str
+    :return: The newly created editor for the basecourse.
+    :rtype: EditorBasecourse
+    """
     new_ed = EditorBasecourse(user_id, bc_name)
     async with async_session.begin() as session:
         session.add(new_ed)
+    return new_ed
 
 
-async def is_editor(userid):
+async def is_editor(userid: int) -> bool:
+    """
+    Checks if a user is an editor.
+
+    :param userid: The ID of the user to check.
+    :type userid: int
+    :return: True if the user is an editor, False otherwise.
+    :rtype: bool
+    """
     ed = await fetch_group("editor")
     row = await fetch_membership(ed.id, userid)
 
@@ -1377,7 +1492,15 @@ async def is_editor(userid):
         return False
 
 
-async def is_author(userid):
+async def is_author(userid: int) -> bool:
+    """
+    Checks if a user is an author.
+
+    :param userid: The ID of the user to check.
+    :type userid: int
+    :return: True if the user is an author, False otherwise.
+    :rtype: bool
+    """
     ed = await fetch_group("author")
     row = await fetch_membership(ed.id, userid)
 
