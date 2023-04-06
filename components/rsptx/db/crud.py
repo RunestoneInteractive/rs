@@ -18,7 +18,7 @@ import datetime
 import hashlib
 import json
 from collections import namedtuple
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 import traceback
 
 # Third-party imports
@@ -83,7 +83,6 @@ from rsptx.db.models import (
     UserSubChapterProgressValidator,
     UserTopicPractice,
     UserTopicPracticeValidator,
-    runestone_component_dict,
 )
 
 # Map from the ``event`` field of a ``LogItemIncoming`` to the database table used to store data associated with this event.
@@ -339,6 +338,11 @@ async def fetch_last_answer_table_entry(
 async def fetch_last_poll_response(sid: str, course_name: str, poll_id: str) -> str:
     """
     Return a student's (sid) last response to a given poll (poll_id)
+
+    :param sid: str, the student id
+    :param course_name: str, the name of the course
+    :param poll_id: str, the id of the poll
+    :return: str, the last response of the student for the given poll
     """
     query = (
         select(Useinfo.act)
@@ -412,6 +416,13 @@ async def create_course(course_info: CoursesValidator) -> None:
 async def fetch_courses_for_user(
     user_id: int, course_id: Optional[int] = None
 ) -> UserCourse:
+    """
+    Retrieve a list of courses for a given user (user_id)
+
+    :param user_id: int, the user id
+    :param course_id: Optional[int], the id of the course (optional)
+    :return: List[UserCourse], a list of UserCourse objects representing the courses
+    """
     if course_id is None:
         query = select(Courses).where(
             and_(UserCourse.user_id == user_id, UserCourse.course_id == Courses.id)
@@ -435,6 +446,12 @@ async def fetch_courses_for_user(
 
 #
 async def fetch_users_for_course(course_name: str) -> list[AuthUserValidator]:
+    """
+    Retrieve a list of users enrolled in a given course (course_name)
+
+    :param course_name: str, the name of the course
+    :return: list[AuthUserValidator], a list of AuthUserValidator objects representing the users
+    """
     course = await fetch_course(course_name)
     query = select(AuthUser).where(
         and_(
@@ -452,6 +469,13 @@ async def fetch_users_for_course(course_name: str) -> list[AuthUserValidator]:
 
 
 async def create_user_course_entry(user_id: int, course_id: int) -> UserCourse:
+    """
+    Create a new user course entry for a given user (user_id) and course (course_id)
+
+    :param user_id: int, the user id
+    :param course_id: int, the course id
+    :return: UserCourse, the newly created UserCourse object
+    """
     new_uc = UserCourse(user_id=user_id, course_id=course_id)
     async with async_session.begin() as session:
         session.add(new_uc)
@@ -464,6 +488,12 @@ async def create_user_course_entry(user_id: int, course_id: int) -> UserCourse:
 
 
 async def fetch_all_course_attributes(course_id: int) -> dict:
+    """
+    Retrieve all attributes and their values for a given course (course_id)
+
+    :param course_id: int, the id of the course
+    :return: dict, a dictionary containing all course attributes and their values
+    """
     query = select(CourseAttribute).where(CourseAttribute.course_id == course_id)
 
     async with async_session() as session:
@@ -472,16 +502,34 @@ async def fetch_all_course_attributes(course_id: int) -> dict:
 
 
 async def fetch_one_course_attribute():
+    """
+    Fetch a single course attribute (not implemented)
+
+    :raises: NotImplementedError
+    """
     raise NotImplementedError()
 
 
 async def create_course_attribute(course_id: int, attr: str, value: str):
+    """
+    Create a new course attribute for a given course (course_id)
+
+    :param course_id: int, the id of the course
+    :param attr: str, the attribute name
+    :param value: str, the attribute value
+    """
     new_attr = CourseAttribute(course_id=course_id, attr=attr, value=value)
     async with async_session.begin() as session:
         session.add(new_attr)
 
 
 async def get_course_origin(base_course):
+    """
+    Retrieve the origin of a given course (base_course)
+
+    :param base_course: str, the name of the base course
+    :return: str, the origin of the course
+    """
     query = select(CourseAttribute).where(
         (CourseAttribute.course_id == base_course)
         & (CourseAttribute.attr == "markup_system")
@@ -496,6 +544,12 @@ async def get_course_origin(base_course):
 # auth_user
 # ---------
 async def fetch_user(user_name: str) -> AuthUserValidator:
+    """
+    Retrieve a user by their username (user_name)
+
+    :param user_name: str, the username of the user
+    :return: AuthUserValidator, the AuthUserValidator object representing the user
+    """
     query = select(AuthUser).where(AuthUser.username == user_name)
     async with async_session() as session:
         res = await session.execute(query)
@@ -507,6 +561,9 @@ async def create_user(user: AuthUserValidator) -> Optional[AuthUserValidator]:
     """
     The given user will have the password in plain text.  First we will hash
     the password then add this user to the database.
+
+    :param user: AuthUserValidator, the AuthUserValidator object representing the user to be created
+    :return: Optional[AuthUserValidator], the newly created AuthUserValidator object if successful, None otherwise
     """
     if await fetch_user(user.username):
         raise HTTPException(
@@ -525,6 +582,12 @@ async def create_user(user: AuthUserValidator) -> Optional[AuthUserValidator]:
 
 
 async def update_user(user_id: int, new_vals: dict):
+    """
+    Update a user's information by their id (user_id)
+
+    :param user_id: int, the id of the user
+    :param new_vals: dict, a dictionary containing the new values to be updated
+    """
     if "password" in new_vals:
         crypt = CRYPT(key=settings.web2py_private_key, salt=True)
         new_vals["password"] = str(crypt(new_vals["password"])[0])
@@ -535,6 +598,11 @@ async def update_user(user_id: int, new_vals: dict):
 
 
 async def delete_user(username):
+    """
+    Delete a user by their username (username)
+
+    :param username: str, the username of the user to be deleted
+    """
     # We do not have foreign key constraints on the username in the answer tables
     # so delete all of the rows matching the username schedule for deletion
     stmt_list = []
@@ -556,6 +624,12 @@ async def delete_user(username):
 
 
 async def fetch_group(group_name):
+    """
+    Retrieve a group by its name (group_name)
+
+    :param group_name: str, the name of the group
+    :return: AuthGroup, the AuthGroup object representing the group
+    """
     query = select(AuthGroup).where(AuthGroup.role == group_name)  # noqa: E712
     async with async_session() as session:
         res = await session.execute(query)
@@ -568,6 +642,12 @@ async def fetch_group(group_name):
 
 
 async def create_group(group_name):
+    """
+    Create a new group with the given name (group_name)
+
+    :param group_name: str, the name of the group to be created
+    :return: AuthGroup, the newly created AuthGroup object
+    """
     new_group = AuthGroup(role=group_name)
     async with async_session.begin() as session:
         session.add(new_group)
@@ -575,6 +655,13 @@ async def create_group(group_name):
 
 
 async def fetch_membership(group_id, user_id):
+    """
+    Retrieve a membership record by the group id (group_id) and user id (user_id)
+
+    :param group_id: int, the id of the group
+    :param user_id: int, the id of the user
+    :return: AuthMembership, the AuthMembership object representing the membership record
+    """
     query = select(AuthMembership).where(
         and_(AuthMembership.group_id == group_id, AuthMembership.user_id == user_id)
     )  # noqa: E712
@@ -589,6 +676,13 @@ async def fetch_membership(group_id, user_id):
 
 
 async def create_membership(group_id, user_id):
+    """
+    Create a new membership record with the given group id (group_id) and user id (user_id)
+
+    :param group_id: int, the id of the group
+    :param user_id: int, the id of the user
+    :return: AuthMembership, the newly created AuthMembership object
+    """
     new_mem = AuthMembership(user_id=user_id, group_id=group_id)
     async with async_session.begin() as session:
         session.add(new_mem)
@@ -601,9 +695,13 @@ async def fetch_instructor_courses(
     instructor_id: int, course_id: Optional[int] = None
 ) -> List[CourseInstructorValidator]:
     """
-    return a list of courses for which the given userid is an instructor.
+    Retrieve a list of courses for which the given instructor id (instructor_id) is an instructor.
     If the optional course_id value is included then return the row for that
     course to verify that instructor_id is an instructor for course_id
+
+    :param instructor_id: int, the id of the instructor
+    :param course_id: Optional[int], the id of the course (if provided)
+    :return: List[CourseInstructorValidator], a list of CourseInstructorValidator objects representing the courses
     """
     query = select(CourseInstructor)
     if course_id is not None:
@@ -628,22 +726,16 @@ async def fetch_course_instructors(
     course_name: Optional[str] = None,
 ) -> List[AuthUserValidator]:
     """
-    return a list of courses for which the given userid is an instructor.
-    If the optional course_id value is included then return the row for that
-    course to verify that instructor_id is an instructor for course_id
+    Retrieve a list of instructors for the given course name (course_name).
+    If course_name is not provided, return a list of all instructors.
+
+    :param course_name: Optional[str], the name of the course (if provided)
+    :return: List[AuthUserValidator], a list of AuthUserValidator objects representing the instructors
     """
-    query = select(AuthUser)
+    query = select(AuthUser).join(CourseInstructor)
     if course_name:
         course = await fetch_course(course_name)
-        query = query.where(
-            and_(
-                CourseInstructor.course == course.id,
-                CourseInstructor.instructor == AuthUser.id,
-            )
-        )
-    else:
-        query = query.where(CourseInstructor.instructor == AuthUser.id)
-
+        query = query.where(CourseInstructor.course == course.id)
     async with async_session() as session:
         res = await session.execute(query)
 
@@ -652,6 +744,13 @@ async def fetch_course_instructors(
 
 
 async def create_instructor_course_entry(iid: int, cid: int) -> CourseInstructor:
+    """
+    Create a new CourseInstructor entry with the given instructor id (iid) and course id (cid)
+
+    :param iid: int, the id of the instructor
+    :param cid: int, the id of the course
+    :return: CourseInstructor, the newly created CourseInstructor object
+    """
     nci = CourseInstructor(course=cid, instructor=iid)
     async with async_session.begin() as session:
         session.add(nci)
@@ -661,6 +760,12 @@ async def create_instructor_course_entry(iid: int, cid: int) -> CourseInstructor
 # Code
 # ----
 async def create_code_entry(data: CodeValidator) -> CodeValidator:
+    """
+    Create a new code entry with the given data (data)
+
+    :param data: CodeValidator, the CodeValidator object representing the code entry data
+    :return: CodeValidator, the newly created CodeValidator object
+    """
     new_code = Code(**data.dict())
     async with async_session.begin() as session:
         session.add(new_code)
@@ -669,6 +774,14 @@ async def create_code_entry(data: CodeValidator) -> CodeValidator:
 
 
 async def fetch_code(sid: str, acid: str, course_id: int) -> List[CodeValidator]:
+    """
+    Retrieve a list of code entries for the given student id (sid), assignment id (acid), and course id (course_id).
+
+    :param sid: str, the id of the student
+    :param acid: str, the id of the assignment
+    :param course_id: int, the id of the course
+    :return: List[CodeValidator], a list of CodeValidator objects representing the code entries
+    """
     query = (
         select(Code)
         .where((Code.sid == sid) & (Code.acid == acid) & (Code.course_id == course_id))
@@ -684,7 +797,15 @@ async def fetch_code(sid: str, acid: str, course_id: int) -> List[CodeValidator]
 # Server-side grading
 # -------------------
 # Return the feedback associated with this question if this question should be graded on the server instead of on the client; otherwise, return None.
-async def is_server_feedback(div_id, course):
+async def is_server_feedback(div_id: str, course: str) -> Optional[Dict[str, Any]]:
+    """
+    Check if server feedback is available for the given div id (div_id) and course name (course).
+    If server feedback is available and login is required, return the decoded feedback.
+
+    :param div_id: str, the id of the div element
+    :param course: str, the name of the course
+    :return: Optional[Dict[str, Any]], a dictionary representing the decoded feedback (if available)
+    """
     # Get the information about this question.
     query = (
         select(Question, Courses)
@@ -706,8 +827,12 @@ async def is_server_feedback(div_id, course):
 
 # Development and Testing Utils
 # -----------------------------
-# This function populates the database with the common base courses and creates a test user.
+
+
 async def create_initial_courses_users():
+    """
+    This function populates the database with the common base courses and creates a test user.
+    """
     BASE_COURSES = [
         "boguscourse",
         "ac1",
@@ -773,6 +898,13 @@ async def create_initial_courses_users():
 
 
 async def create_user_state_entry(user_id: int, course_name: str) -> UserStateValidator:
+    """
+    Create a new UserState entry with the given user id (user_id) and course name (course_name)
+
+    :param user_id: int, the id of the user
+    :param course_name: str, the name of the course
+    :return: UserStateValidator, the newly created UserStateValidator object
+    """
     new_us = UserState(user_id=user_id, course_name=course_name)
     async with async_session.begin() as session:
         session.add(new_us)
@@ -780,6 +912,11 @@ async def create_user_state_entry(user_id: int, course_name: str) -> UserStateVa
 
 
 async def update_user_state(user_data: schemas.LastPageData):
+    """
+    Update the UserState entry with the given user data (user_data)
+
+    :param user_data: LastPageData, the LastPageData object representing the user data
+    """
     ud = user_data.dict()
     # LastPageData contains information for both user_state and user_sub_chapter_progress tables
     # we do not need the completion flag in the user_state table
@@ -799,6 +936,11 @@ async def update_user_state(user_data: schemas.LastPageData):
 
 
 async def update_sub_chapter_progress(user_data: schemas.LastPageData):
+    """
+    Update the UserSubChapterProgress entry with the given user data (user_data)
+
+    :param user_data: LastPageData, the LastPageData object representing the user data
+    """
     ud = user_data.dict()
     ud.pop("last_page_url")
     ud.pop("last_page_scroll_location")
@@ -829,6 +971,13 @@ async def update_sub_chapter_progress(user_data: schemas.LastPageData):
 
 
 async def fetch_last_page(user: AuthUserValidator, course_name: str):
+    """
+    Retrieve the last page accessed by the given user (user) for the given course name (course_name)
+
+    :param user: AuthUserValidator, the AuthUserValidator object representing the user
+    :param course_name: str, the name of the course
+    :return: Tuple[str, str, str, str, str], a tuple representing the last page accessed
+    """
     course = await fetch_course(course_name)
 
     query = (
@@ -868,8 +1017,15 @@ async def fetch_last_page(user: AuthUserValidator, course_name: str):
 
 async def fetch_user_sub_chapter_progress(
     user, last_page_chapter=None, last_page_subchapter=None
-) -> UserSubChapterProgressValidator:
+) -> List[UserSubChapterProgressValidator]:
+    """
+    Retrieve the UserSubChapterProgress entries for the given user (user) and optional chapter and subchapter.
 
+    :param user: AuthUserValidator, the AuthUserValidator object representing the user
+    :param last_page_chapter: str, the chapter label of the last page accessed (optional)
+    :param last_page_subchapter: str, the subchapter label of the last page accessed (optional)
+    :return: List[UserSubChapterProgressValidator], a list of UserSubChapterProgressValidator objects
+    """
     where_clause = (UserSubChapterProgress.user_id == user.id) & (
         UserSubChapterProgress.course_name == user.course_name
     )
@@ -895,7 +1051,16 @@ async def fetch_user_sub_chapter_progress(
 async def create_user_sub_chapter_progress_entry(
     user, last_page_chapter, last_page_subchapter, status=-1
 ) -> UserSubChapterProgressValidator:
+    """
+    Create a new UserSubChapterProgress entry with the given user (user), chapter label (last_page_chapter),
+    subchapter label (last_page_subchapter), and status (status)
 
+    :param user: AuthUserValidator, the AuthUserValidator object representing the user
+    :param last_page_chapter: str, the chapter label of the last page accessed
+    :param last_page_subchapter: str, the subchapter label of the last page accessed
+    :param status: int, the completion status (default is -1)
+    :return: UserSubChapterProgressValidator, the newly created UserSubChapterProgressValidator object
+    """
     new_uspe = UserSubChapterProgress(
         user_id=user.id,
         chapter_id=last_page_chapter,
@@ -912,6 +1077,13 @@ async def create_user_sub_chapter_progress_entry(
 async def fetch_user_chapter_progress(
     user, last_page_chapter: str
 ) -> UserChapterProgressValidator:
+    """
+    Retrieve the UserChapterProgress entry for the given user (user) and chapter label (last_page_chapter).
+
+    :param user: AuthUserValidator, the AuthUserValidator object representing the user
+    :param last_page_chapter: str, the chapter label of the last page accessed
+    :return: UserChapterProgressValidator, the UserChapterProgressValidator object
+    """
     query = select(UserChapterProgress).where(
         (
             UserChapterProgress.user_id == str(user.id)
@@ -928,6 +1100,14 @@ async def fetch_user_chapter_progress(
 async def create_user_chapter_progress_entry(
     user, last_page_chapter, status
 ) -> UserChapterProgressValidator:
+    """
+    Create a new UserChapterProgress entry with the given user (user), chapter label (last_page_chapter), and status (status)
+
+    :param user: AuthUserValidator, the AuthUserValidator object representing the user
+    :param last_page_chapter: str, the chapter label of the last page accessed
+    :param status: int, the completion status
+    :return: UserChapterProgressValidator, the newly created UserChapterProgressValidator object
+    """
     new_ucp = UserChapterProgress(
         user_id=str(user.id),
         chapter_id=last_page_chapter,
@@ -951,6 +1131,16 @@ async def create_selected_question(
     points: Optional[int] = None,
     competency: Optional[str] = None,
 ) -> SelectedQuestionValidator:
+    """
+    Create a new SelectedQuestion entry with the given sid, selector_id, selected_id, points, and competency.
+
+    :param sid: str, the student id
+    :param selector_id: str, the id of the question selector
+    :param selected_id: str, the id of the selected question
+    :param points: int, the points earned (optional)
+    :param competency: str, the competency (optional)
+    :return: SelectedQuestionValidator, the newly created SelectedQuestionValidator object
+    """
     new_sqv = SelectedQuestion(
         sid=sid,
         selector_id=selector_id,
@@ -967,10 +1157,11 @@ async def fetch_selected_question(
     sid: str, selector_id: str
 ) -> SelectedQuestionValidator:
     """
-    Used with selectquestions.  This returns the information about
-    a question previously chosen for the given (selector_id) question
-    for a particular student (sid) - see `get_question_source` for
-    more info on select questions.
+    Retrieve the SelectedQuestion entry for the given sid and selector_id.
+
+    :param sid: str, the student id
+    :param selector_id: str, the id of the question selector
+    :return: SelectedQuestionValidator, the SelectedQuestionValidator object
     """
     query = select(SelectedQuestion).where(
         (SelectedQuestion.sid == sid) & (SelectedQuestion.selector_id == selector_id)
@@ -984,8 +1175,11 @@ async def fetch_selected_question(
 
 async def update_selected_question(sid: str, selector_id: str, selected_id: str):
     """
-    Used in conjunction with the toggle feature of select question to update
-    which question the student has chosen to work on.
+    Update the selected_id of the SelectedQuestion entry for the given sid and selector_id.
+
+    :param sid: str, the student id
+    :param selector_id: str, the id of the question selector
+    :param selected_id: str, the id of the selected question
     """
     stmt = (
         update(SelectedQuestion)
@@ -1017,6 +1211,11 @@ async def fetch_question(
     database and that is definitely a direction to keep pushing.  But
     it is possible that there are duplicates but we are not going to
     worry about that we are just going to return the first one we find.
+
+    :param name: str, the name (div_id) of the question
+    :param basecourse: str, the base course (optional)
+    :param assignment: str, the assignment (optional)
+    :return: QuestionValidator, the QuestionValidator object
     """
     where_clause = Question.name == name
     if basecourse:
@@ -1031,7 +1230,12 @@ async def fetch_question(
 
 
 async def count_matching_questions(name: str) -> int:
+    """
+    Count the number of Question entries that match the given name.
 
+    :param name: str, the name (div_id) of the question
+    :return: int, the number of matching questions
+    """
     query = select(func.count(Question.name)).where(Question.name == name)
 
     async with async_session() as session:
@@ -1099,7 +1303,11 @@ async def fetch_assignment_question(
     assignment_name: str, question_name: str
 ) -> AssignmentQuestionValidator:
     """
-    Get an assignment question row object
+    Retrieve the AssignmentQuestion entry for the given assignment_name and question_name.
+
+    :param assignment_name: str, the name of the assignment
+    :param question_name: str, the name (div_id) of the question
+    :return: AssignmentQuestionValidator, the AssignmentQuestionValidator object
     """
     query = select(AssignmentQuestion).where(
         (Assignment.name == assignment_name)
@@ -1116,7 +1324,12 @@ async def fetch_assignment_question(
 
 async def fetch_question_grade(sid: str, course_name: str, qid: str):
     """
-    Get the grade and any comments for this question
+    Retrieve the QuestionGrade entry for the given sid, course_name, and qid.
+
+    :param sid: str, the student id
+    :param course_name: str, the course name
+    :param qid: str, the question id (div_id)
+    :return: QuestionGradeValidator, the QuestionGradeValidator object
     """
     query = (
         select(QuestionGrade)
@@ -1142,6 +1355,10 @@ async def fetch_user_experiment(sid: str, ab_name: str) -> int:
 
     This number indicates whether the student will see the 1st or 2nd
     question in the question list.
+
+    :param sid: str, the student id
+    :param ab_name: str, the name of the AB experiment
+    :return: int, the experiment group number
     """
     query = (
         select(UserExperiment.exp_group)
@@ -1159,8 +1376,12 @@ async def create_user_experiment_entry(
     sid: str, ab: str, group: int
 ) -> UserExperimentValidator:
     """
-    Store the number of the group number (group) this student (sid) hass been assigned to
-    for this particular experiment (ab)
+    Create a new UserExperiment entry with the given sid, ab, and group.
+
+    :param sid: str, the student id
+    :param ab: str, the name of the AB experiment
+    :param group: int, the experiment group number
+    :return: UserExperimentValidator, the UserExperimentValidator object
     """
     new_ue = UserExperiment(sid=sid, exp_group=group, experiment_id=ab)
     async with async_session.begin() as session:
@@ -1170,13 +1391,19 @@ async def create_user_experiment_entry(
 
 async def fetch_viewed_questions(sid: str, questionlist: List[str]) -> List[str]:
     """
-    Used for the selectquestion `get_question_source` to filter out questions
-    that a student (sid) has seen before.  One criteria of a select question
+    Retrieve a list of questions from the given questionlist that a student (sid)
+    has viewed before. Used for the selectquestion `get_question_source` to filter
+    out questions that a student has seen before. One criteria of a select question
     is to make sure that a student has never seen a question before.
 
     The best approximation we have for that is that they will have clicked on the
-    run button for that quesiton.  Of course they may have seen said question
-    but not run it but this is the best we can do.
+    run button for that question. Of course, they may have seen the question but not
+    run it, but this is the best we can do.
+
+    :param sid: str, the student id
+    :param questionlist: List[str], a list of question ids (div_id)
+    :return: List[str], a list of question ids from the given questionlist that the
+             student has viewed before
     """
     query = select(Useinfo).where(
         (Useinfo.sid == sid) & (Useinfo.div_id.in_(questionlist))
@@ -1189,6 +1416,12 @@ async def fetch_viewed_questions(sid: str, questionlist: List[str]) -> List[str]
 
 
 async def fetch_previous_selections(sid) -> List[str]:
+    """
+    Retrieve a list of selected question ids for the given student id (sid).
+
+    :param sid: str, the student id
+    :return: List[str], a list of selected question ids
+    """
     query = select(SelectedQuestion).where(SelectedQuestion.sid == sid)
     async with async_session() as session:
         res = await session.execute(query)
@@ -1199,6 +1432,14 @@ async def fetch_previous_selections(sid) -> List[str]:
 async def fetch_timed_exam(
     sid: str, exam_id: str, course_name: str
 ) -> TimedExamValidator:
+    """
+    Retrieve the TimedExam entry for the given sid, exam_id, and course_name.
+
+    :param sid: str, the student id
+    :param exam_id: str, the id of the timed exam
+    :param course_name: str, the name of the course
+    :return: TimedExamValidator, the TimedExamValidator object
+    """
     query = (
         select(TimedExam)
         .where(
@@ -1216,7 +1457,11 @@ async def fetch_timed_exam(
 
 async def fetch_subchapters(course, chap):
     """
-    Fetch all subchapters for a given chapter
+    Retrieve all subchapters for a given chapter.
+
+    :param course: str, the name of the course
+    :param chap: str, the label of the chapter
+    :return: ResultProxy, the result of the query
     """
     # Note: we are joining two tables so this query will not result in an defined in schemas.py
     # instead it will simply produce a bunch of tuples with the columns in the order given in the
@@ -1239,6 +1484,13 @@ async def fetch_subchapters(course, chap):
 
 
 async def create_traceback(exc: Exception, request: Request, host: str):
+    """
+    Create a new TraceBack entry with the given Exception, Request, and host.
+
+    :param exc: Exception, the exception that occurred
+    :param request: Request, the request object
+    :param host: str, the hostname
+    """
     async with async_session.begin() as session:
         tbtext = "".join(traceback.format_tb(exc.__traceback__))
         new_entry = TraceBack(
@@ -1254,6 +1506,11 @@ async def create_traceback(exc: Exception, request: Request, host: str):
 
 
 async def fetch_library_books():
+    """
+    Retrieve a list of visible library books ordered by shelf section and title.
+
+    :return: List[LibraryValidator], a list of LibraryValidator objects
+    """
     query = (
         select(Library)
         .where(Library.is_visible == True)  # noqa: E712
@@ -1267,6 +1524,12 @@ async def fetch_library_books():
 
 
 async def fetch_library_book(book):
+    """
+    Retrieve the Library entry for the given book.
+
+    :param book: str, the name of the book
+    :return: Library, the Library object
+    """
     query = select(Library).where(Library.basecourse == book)  # noqa: E712
     async with async_session() as session:
         res = await session.execute(query)
@@ -1279,6 +1542,12 @@ async def fetch_library_book(book):
 
 
 async def update_library_book(bookid, vals):
+    """
+    Update the Library entry with the given bookid and values.
+
+    :param bookid: int, the id of the book
+    :param vals: dict, a dictionary of values to update
+    """
     if "for classes" in vals:
         vals["for_classes"] = "T" if vals["for_classes"] else "F"
     if "is_visible" in vals:
@@ -1294,10 +1563,8 @@ async def create_library_book(bookid: str, vals: Dict[str, Any]) -> None:
     """
     Creates a new Library object using the provided parameters and saves it in the database.
 
-    :param bookid: The unique identifier of the book.
-    :type bookid: str
-    :param vals: The dictionary containing the properties of the book.
-    :type vals: dict[str, Any]
+    :param bookid: str, the unique identifier of the book
+    :param vals: Dict[str, Any], the dictionary containing the properties of the book
     :return: None
     """
     new_book = Library(**vals, basecourse=bookid)
@@ -1309,10 +1576,8 @@ async def create_book_author(author: str, document_id: str) -> None:
     """
     Creates a new BookAuthor object using the provided parameters and saves it in the database.
 
-    :param author: The name of the author.
-    :type author: str
-    :param document_id: The unique identifier of the book.
-    :type document_id: str
+    :param author: str, the name of the author
+    :param document_id: str, the unique identifier of the book
     :return: None
     """
     new_ba = BookAuthor(author=author, book=document_id)
@@ -1371,6 +1636,14 @@ async def fetch_one_user_topic_practice(
     A particular question should ony be in the table once per student.  This row also contains
     information about scheduling and correctness to help the practice algorithm select the
     best question to show a student.
+
+    Retrieve a single UserTopicPractice entry for the given user, chapter, subchapter, and question.
+
+    :param user: AuthUserValidator, the AuthUserValidator object
+    :param last_page_chapter: str, the label of the chapter
+    :param last_page_subchapter: str, the label of the subchapter
+    :param qname: str, the name of the question
+    :return: UserTopicPracticeValidator, the UserTopicPracticeValidator object
     """
     query = select(UserTopicPractice).where(
         (UserTopicPractice.user_id == user.id)
@@ -1388,9 +1661,14 @@ async def fetch_one_user_topic_practice(
 
 async def delete_one_user_topic_practice(qid: int) -> None:
     """
+    Delete a single UserTopicPractice entry for the given id.
+
     Used by ad hoc question selection.  If a student un-marks a page as completed then if there
     is a question from the page it will be removed from the set of possible flashcards a student
     can see.
+
+    :param qid: int, the id of the UserTopicPractice entry
+    :return: None
     """
     query = delete(UserTopicPractice).where(UserTopicPractice.id == qid)
     async with async_session.begin() as session:
@@ -1407,7 +1685,16 @@ async def create_user_topic_practice(
     tz_offset: float,
 ):
     """
-    Add a question for the user to practice on
+    Add a new UserTopicPractice entry for the given user, chapter, subchapter, and question.
+
+    :param user: AuthUserValidator, the AuthUserValidator object
+    :param last_page_chapter: str, the label of the chapter
+    :param last_page_subchapter: str, the label of the subchapter
+    :param qname: str, the name of the question
+    :param now_local: datetime.datetime, the current local datetime
+    :param now: datetime.datetime, the current utc datetime
+    :param tz_offset: float, the timezone offset
+    :return: None
     """
     async with async_session.begin() as session:
         new_entry = UserTopicPractice(
@@ -1430,11 +1717,15 @@ async def create_user_topic_practice(
 
 
 async def fetch_qualified_questions(
-    base_course, chapter_label, sub_chapter_label
+    base_course: str, chapter_label: str, sub_chapter_label: str
 ) -> list[QuestionValidator]:
     """
-    Return a list of possible questions for a given chapter and subchapter.  These
-    questions will all have the practice flag set to true.
+    Retrieve a list of qualified questions for a given chapter and subchapter.
+
+    :param base_course: str, the base course
+    :param chapter_label: str, the label of the chapter
+    :param sub_chapter_label: str, the label of the subchapter
+    :return: list[QuestionValidator], a list of QuestionValidator objects
     """
     query = select(Question).where(
         (Question.base_course == base_course)
