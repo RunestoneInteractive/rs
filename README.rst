@@ -45,6 +45,8 @@ A Roadmap
 Docs
 ----
 
+See `Our Read the Docs page <https://runestone-monorepo.readthedocs.io/en/latest/developing.html>`_ for more complete documentation.
+
 This setup uses poetry and two important plugins, the multi-project
 plugin and the polylith plugin.
 

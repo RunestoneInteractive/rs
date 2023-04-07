@@ -189,6 +189,16 @@ Authentication
 
 At the time of this writing (April 2023) authentication is a bit over complicated.  That is part of what this monorepo project is trying to straighten out.
 
+web2py has its own system for doing authentication that uses session tokens and encrypted session information stored as a python pickle in the database.
+
+There are better ways including Javascript Web Token (JWTs) that modern frameworks use and share.   Right now we use both.  When you log in on the web2py server not only do you get a session cookie, but you also get a JWT.  All of the other services rely on that JWT.  We do like the role based authentication that we get from web2py so we want to keep that idea around, but eliminate the ``session`` and ``auth`` objects that web2py creates.
+
+We are using the FastAPI_Login extension for much of what we do.  But JWTs are easy enough to check that it works with other non-FastAPI servers.
+
+
+Running one or more servers
+---------------------------
+
 To run a project, for example the author server main web app:
 
 .. code:: bash
