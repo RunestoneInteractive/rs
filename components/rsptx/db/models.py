@@ -634,6 +634,8 @@ class Grade(Base, IdMixin):
     is_submit = Column(String(512))
 
 
+GradeValidator = sqlalchemy_to_pydantic(Grade)
+
 # Book Structure Tables
 # ---------------------
 class Chapter(Base, IdMixin):

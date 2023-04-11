@@ -26,7 +26,7 @@ from pydantic import BaseModel
 # Local application imports
 # -------------------------
 from rsptx.logging import rslogger
-from rsptx.db.crud import fetch_assignments
+from rsptx.db.crud import fetch_assignments, fetch_all_assignment_stats
 from fastapi.templating import Jinja2Templates
 
 from rsptx.auth.session import is_instructor, auth_manager
@@ -66,11 +66,16 @@ async def get_assignments(
     )
     rslogger.debug(f"{local_settings._assignment_server_path}/templates{router.prefix}")
     assignments = await fetch_assignments(course)
-
+    stats_list = await fetch_all_assignment_stats(course, user.id)
+    stats = {}
+    for s in stats_list:
+        stats[s.assignment] = s
+    rslogger.debug(f"stats: {stats}")
     return templates.TemplateResponse(
         "chooseAssignment.html",
         {
             "assignment_list": assignments,
+            "stats": stats,
             "course": course,
             "user": sid,
             "request": request,

@@ -58,6 +58,8 @@ from rsptx.db.models import (
     Courses,
     CoursesValidator,
     EditorBasecourse,
+    Grade,
+    GradeValidator,
     Library,
     LibraryValidator,
     Question,
@@ -1215,22 +1217,57 @@ async def update_selected_question(sid: str, selector_id: str, selected_id: str)
 
 
 # write a function that fetches all Assignment objects given a course name
-async def fetch_assignments(course_name: str) -> List[AssignmentValidator]:
+async def fetch_assignments(
+    course_name: str, is_peer: Optional[bool] = False
+) -> List[AssignmentValidator]:
     """
     Fetch all Assignment objects for the given course name.
+    If is_peer is True then only select asssigments for peer isntruction.
 
     :param course_name: str, the course name
+    :param is_peer: bool, whether or not the assignment is a peer assignment
     :return: List[AssignmentValidator], a list of AssignmentValidator objects
     """
 
     query = select(Assignment).where(
-        and_(Assignment.course == Courses.id, Courses.course_name == course_name)
+        and_(
+            Assignment.course == Courses.id,
+            Courses.course_name == course_name,
+            Assignment.is_peer == is_peer,
+        )
     )
 
     async with async_session() as session:
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return [AssignmentValidator.from_orm(a) for a in res.scalars()]
+
+
+async def fetch_all_assignment_stats(
+    course_name: str, userid: int
+) -> list[GradeValidator]:
+    """
+    Fetch the Grade information for all assignments for a given student in a given course.
+
+    :param course_name: The name of the current course
+    :type course_name: str
+    :param userid: the users numeric id
+    :type userid: int
+    :return list[AssignmentValidator]: a list of AssignmentValidator objects
+    """
+    query = select(Grade).where(
+        and_(
+            Assignment.course == Courses.id,
+            Courses.course_name == course_name,
+            Grade.assignment == Assignment.id,
+            Grade.auth_user == userid,
+        )
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        return [GradeValidator.from_orm(a) for a in res.scalars()]
 
 
 async def fetch_question(
