@@ -181,6 +181,13 @@ def build_runestone_book(self, book):
 
 @celery.task(bind=True, name="build_ptx_book")
 def build_ptx_book(self, book):
+    """
+    Build a ptx book
+
+    :param self: celery task
+    :param book: book name
+    :return: True if successful
+    """
     logger.debug(f"Building {book}")
     self.update_state(state="CHECKING", meta={"current": "pull latest"})
     res = subprocess.run(

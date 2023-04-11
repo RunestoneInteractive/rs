@@ -1,6 +1,8 @@
 # Minimal makefile for Sphinx documentation
 #
 
+# To add more modules use sphinx-apidoc -o [output_dir] [package_dir] --separate
+
 # You can set these variables from the command line, and also
 # from the environment for the first two.
 SPHINXOPTS    ?=

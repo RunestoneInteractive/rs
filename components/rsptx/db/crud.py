@@ -39,6 +39,7 @@ from .async_session import async_session
 from rsptx.response_helpers.core import http_422error_detail
 from rsptx.db.models import (
     Assignment,
+    AssignmentValidator,
     AssignmentQuestion,
     AssignmentQuestionValidator,
     AuthGroup,
@@ -217,6 +218,21 @@ async def fetch_page_activity_counts(
         div_counts[row] = 1
 
     return div_counts
+
+
+# write a function that takes a QuestionValidator as a parameter and inserts a new Question into the database
+async def create_question(question: QuestionValidator) -> QuestionValidator:
+    """Add a row to the ``question`` table.
+
+    :param question: A question object
+    :type question: QuestionValidator
+    :return: A representation of the row inserted.
+    :rtype: QuestionValidator
+    """
+    async with async_session.begin() as session:
+        new_question = Question(**question.dict())
+        session.add(new_question)
+    return QuestionValidator.from_orm(new_question)
 
 
 async def fetch_poll_summary(div_id: str, course_name: str) -> List[tuple]:
@@ -1196,6 +1212,25 @@ async def update_selected_question(sid: str, selector_id: str, selected_id: str)
 
 # Questions and Assignments
 # -------------------------
+
+
+# write a function that fetches all Assignment objects given a course name
+async def fetch_assignments(course_name: str) -> List[AssignmentValidator]:
+    """
+    Fetch all Assignment objects for the given course name.
+
+    :param course_name: str, the course name
+    :return: List[AssignmentValidator], a list of AssignmentValidator objects
+    """
+
+    query = select(Assignment).where(
+        and_(Assignment.course == Courses.id, Courses.course_name == course_name)
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        return [AssignmentValidator.from_orm(a) for a in res.scalars()]
 
 
 async def fetch_question(

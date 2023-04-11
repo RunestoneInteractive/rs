@@ -552,6 +552,9 @@ class Assignment(Base, IdMixin):
     peer_async_visible = Column(Web2PyBoolean, default=False)
 
 
+AssignmentValidator = sqlalchemy_to_pydantic(Assignment)
+
+
 class AssignmentQuestion(Base, IdMixin):
     __tablename__ = "assignment_questions"
 
