@@ -3,14 +3,70 @@ name = "assignment_server"
 version = "0.1.0"
 description = ""
 authors = ['Brad Miller <bonelake@mac.com>']
-license = ""
+license = "MIT"
 
-packages = []
+packages = [
+    {include = "rsptx/auth", from = "../../components"},
+    {include = "rsptx/logging", from = "../../components"},
+    {include = "rsptx/db", from = "../../components"},
+    {include = "rsptx/validation", from = "../../components"},
+    {include = "rsptx/configuration", from = "../../components"},
+    {include = "rsptx/response_helpers", from = "../../components"},
+    {include = "rsptx/lp_sim_builder", from = "../../components"},
+    {include = "rsptx/templates", from = "../../components"},
+    {include = "rsptx/assignment_server_api", from = "../../bases"}
+]
+
 
 [tool.poetry.dependencies]
 python = "^3.10"
+aioredis = "^2.0.0"
+async-timeout = "^3.0.0"
+celery = {extras = ["redis"], version = "^5.0.0"}
+fastapi = "^0.87.0"
+# Per the `uvicorn docs <https://www.uvicorn.org/#quickstart>`_, install the standard (as opposed to minimal) uvicorn dependencies.
+uvicorn = {extras = ["standard"], version = "^0.17.0"}
+# See the `poetry docs <https://python-poetry.org/docs/dependency-specification/#using-environment-markers>`_.
+gunicorn = {version = "^20.0.0", markers = "sys.platform != 'win32'"}
+Jinja2 = "<3.1.0"
+aiofiles = "^0.8.0"
+alembic = "^1.0.0"
+python-dateutil = "^2.0.0"
+fastapi-login = "^1.8.0"
+pydal = ">=20210215.1"
+python-multipart = "^0.0.5"
+# asyncpg v. 0.25 has a `bug <https://github.com/MagicStack/asyncpg/issues/884>`_. Stay at v. 0.24 until it's fixed.
+asyncpg = "^0.24.0"
+SQLAlchemy = "^1.0.0"
+aiosqlite = "^0.17.0"
+redis = "^4.0.0"
+runestone = "^6.0.0"
+pyhumps = "^3.0.0"
+bleach = "^4.0.0"
+boto3 = "^1.0.0"
+multi-await = "^1.0.0"
+botocore = "^1.29.87"
+pyflakes = "^3.0.1"
 
 [tool.poetry.group.dev.dependencies]
+black = "~= 22.0"
+console-ctrl = "^0.1.0"
+pytest = "^7.0.0"
+flake8 = "^6.0.0"
+sphinx-rtd-theme = "^1.0.0"
+# Needed for the ``--install-types --non-interactive`` flags -- see the `mypy release notes <https://mypy-lang.blogspot.com/2021/06/mypy-0910-released.html>`_.
+mypy = "> 0.910"
+coverage = "^6.0.0"
+tox = "^3.0.0"
+selenium = "^3.0.0"
+PyVirtualDisplay = "^3.0"
+polling2 = "^0.5.0"
+pytest-asyncio = "^0.17.0"
+pytest-env = "^0.6.0"
+# This is a Runestone Components dependency that's needed when testing PostgreSQL.
+psycopg2-binary = "^2.0.0"
+# This is used by VSCode for Python refactoring
+rope = "^0.21.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

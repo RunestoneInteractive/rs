@@ -87,9 +87,36 @@ services:
         - redis
         - jobe
 
-  nginx:
-    build: ./projects/nginx
+  assignment:
+    build: ./projects/assignment_server
+    ports:
+      - 8113:8113
+    command: uvicorn rsptx.assignment_server_api.core:app --host 0.0.0.0 --port 8113
+    #command: tail -f /var/log/lastlog
+    restart: always
+    volumes:
+      - /Users/bmiller/Runestone/books:/usr/books
 
+    environment:
+      - BOOK_PATH=/usr/books
+      - SERVER_CONFIG=${SERVER_CONFIG}
+      - RUNESTONE_PATH=/usr/src/app
+      - REDIS_URI=redis://redis:6379/0
+      # Note: host.docker.internal refers back to the host so we can just use a local instance
+      # of postgresql
+      - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      - DOCKER_COMPOSE=1
+    links:
+      - redis
+      - jobe
+
+
+  nginx:
+    
+    build: 
+      context: ./
+      dockerfile: projects/nginx/Dockerfile
+    
     ports:
       - 80:80
       #- 443:443
@@ -97,6 +124,7 @@ services:
       - /Users/bmiller/Runestone/books:/usr/books
     links:
       - runestone
-      - bookserver
+      - book
+      - assignment
 
 

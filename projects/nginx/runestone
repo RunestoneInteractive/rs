@@ -47,6 +47,10 @@ server {
     #    root /srv/web2py/applications/runestone;
     #}
 
+    location ~* ^/staticAssets/(.*)$ {
+        alias /usr/share/nginx/html/staticAssets/$1;
+    }
+
     # Route static book files from web2py with an application specified. Regex fun: ``(?!ns/)`` prevents a match with a prefix of ``ns/`` (since this should be routed to the new server instead).
     ##              $1                 $2        $3              $4             $5
     location ~* ^/(?!ns/)(\w+)/books/(published|draft)/(\w+)/(_static|_images|images)/(.*)$ {
@@ -78,9 +82,21 @@ server {
         #
         # _`gunicorn socket`: This matches the ``--bind`` parameter when `gunicorn is run <run_bookserver>`.
         #proxy_pass http://unix:/run/fastapi.sock:/;
-        proxy_pass http://bookserver:8111/;
+        proxy_pass http://book:8111/;
         # For file uploads we need a larger limit than 1M for whiteboard pictures and pdf uploads
         client_max_body_size 25M;
+    }
+
+    # route assignment requests
+    location /assignment/ {
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header Host $http_host;
+       # we don't want nginx trying to do something clever with
+       # redirects, we set the Host: header above already.
+       proxy_redirect off;
+       proxy_pass http://assignment:8113/;
+
     }
 
     location / {

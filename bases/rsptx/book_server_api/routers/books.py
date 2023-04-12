@@ -386,11 +386,11 @@ async def library(request: Request, response_class=HTMLResponse):
         course = ""
         username = ""
         instructor_status = False
-    templates = Jinja2Templates(directory=f"{templates_folder}/books")
+    templates = Jinja2Templates(directory=f"{template_folder}")
     sorted_sections = list(sections)
     sorted_sections.sort()
     return templates.TemplateResponse(
-        "index.html",
+        "book/index.html",
         {
             "request": request,
             "book_list": books,
