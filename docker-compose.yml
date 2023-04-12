@@ -5,15 +5,15 @@ services:
   author:
     build: ./projects/author_server
     ports:
-      - 8005:8000
-    command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --reload
+      - 8114:8114
+    command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8114 --reload
     volumes:
       - ./projects/author_server:/usr/src/app
       - /Users/bmiller/Runestone/books:/books
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - DEV_DBURL=${DEV_DBURL}
+      - DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
       - RUNESTONE_PATH=/usr/src/app
     depends_on:
       - redis
@@ -113,6 +113,7 @@ services:
 
   nginx:
     
+    # Note we use context: ./ here so that the Dockerfile can copy from the components folder
     build: 
       context: ./
       dockerfile: projects/nginx/Dockerfile
@@ -126,5 +127,4 @@ services:
       - runestone
       - book
       - assignment
-
-
+      - author

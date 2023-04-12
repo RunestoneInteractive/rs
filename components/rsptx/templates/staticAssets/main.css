@@ -31,3 +31,7 @@ body {
   margin-left: auto;
   margin-right: auto;
 }
+
+.has-error {
+  color: red;
+}
