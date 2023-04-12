@@ -30,6 +30,7 @@ from rsptx.db.crud import fetch_assignments, fetch_all_assignment_stats
 from fastapi.templating import Jinja2Templates
 
 from rsptx.auth.session import is_instructor, auth_manager
+from rsptx.templates import template_folder
 
 from ..localconfig import local_settings
 
@@ -61,10 +62,8 @@ async def get_assignments(
     sid = user.username
     course = user.course_name
 
-    templates = Jinja2Templates(
-        directory=f"{local_settings._assignment_server_path}/templates{router.prefix}"
-    )
-    rslogger.debug(f"{local_settings._assignment_server_path}/templates{router.prefix}")
+    templates = Jinja2Templates(directory=template_folder)
+
     assignments = await fetch_assignments(course)
     stats_list = await fetch_all_assignment_stats(course, user.id)
     stats = {}
@@ -72,7 +71,7 @@ async def get_assignments(
         stats[s.assignment] = s
     rslogger.debug(f"stats: {stats}")
     return templates.TemplateResponse(
-        "chooseAssignment.html",
+        "assignment/student/chooseAssignment.html",
         {
             "assignment_list": assignments,
             "stats": stats,

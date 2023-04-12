@@ -13,6 +13,7 @@ packages = [
     {include = "rsptx/configuration", from = "../../components"},
     {include = "rsptx/response_helpers", from = "../../components"},
     {include = "rsptx/lp_sim_builder", from = "../../components"},
+    {include = "rsptx/templates", from = "../../components"},
     {include = "rsptx/book_server_api", from = "../../bases"}
 ]
 

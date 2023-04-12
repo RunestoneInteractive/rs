@@ -47,8 +47,11 @@ Choose Assignment
 
             <td>{{assignment.duedate}}</td>
             <td>
-                {% if assignment.id in stats %} {{stats[assignment.id].score}}
-                {% else %} No Score {% endif %}
+                {% if assignment.id in stats %}
+                {{stats[assignment.id].score}}
+                {% else %} 
+                No Score 
+                {% endif %}
             </td>
             <td>{{assignment.description}}</td>
         </tr>
