@@ -64,6 +64,7 @@ from rsptx.visualization.authorImpact import (
 )
 from rsptx.auth.session import auth_manager
 from rsptx.db.async_session import async_session
+from rsptx.templates import template_folder
 
 logger = logging.getLogger("runestone")
 handler = logging.StreamHandler(sys.stdout)
@@ -76,9 +77,9 @@ logger.setLevel(logging.DEBUG)
 app = FastAPI()
 # The static and templates folders are siblings with this file.
 # We need to create a path that will work inside and outside of docker.
-base_dir = pathlib.Path(__file__).parent
-app.mount("/static", StaticFiles(directory=base_dir / "static"), name="static")
-templates = Jinja2Templates(directory=base_dir / "templates")
+base_dir = pathlib.Path(template_folder)
+app.mount("/static", StaticFiles(directory=base_dir / "staticAssets"), name="static")
+templates = Jinja2Templates(directory=template_folder)
 
 
 async def create_book_entry(author: str, document_id: str, github: str):
@@ -125,7 +126,8 @@ async def home(request: Request, user=Depends(auth_manager)):
         # redirect them back somewhere....
 
     return templates.TemplateResponse(
-        "home.html", context={"request": request, "name": name, "book_list": book_list}
+        "author/home.html",
+        context={"request": request, "name": name, "book_list": book_list},
     )
 
 
@@ -148,7 +150,7 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
             ready_files = []
         logger.debug(f"{ready_files=}")
         return templates.TemplateResponse(
-            "logfiles.html",
+            "author/logfiles.html",
             context=dict(
                 request=request,
                 ready_files=ready_files,
@@ -239,7 +241,7 @@ async def impact(request: Request, book: str, user=Depends(auth_manager)):
     chapterHM = get_pv_heatmap(book)
 
     return templates.TemplateResponse(
-        "impact.html",
+        "author/impact.html",
         context={
             "request": request,
             "enrollData": resGraph,
@@ -264,7 +266,7 @@ async def subchapmap(
     info = await fetch_library_book(book)
     chapterHM = get_subchap_heatmap(chapter, book)
     return templates.TemplateResponse(
-        "subchapmap.html",
+        "author/subchapmap.html",
         context={"request": request, "subchapData": chapterHM, "title": info[1]},
     )
 
@@ -306,7 +308,7 @@ async def editlib(request: Request, book: str):
         await update_library_book(book_data.id, form.data)
         return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
-        "editlibrary.html", context=dict(request=request, form=form, book=book)
+        "author/editlibrary.html", context=dict(request=request, form=form, book=book)
     )
 
 
@@ -341,7 +343,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
 
         # return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
-        "anonymize_data.html",
+        "author/anonymize_data.html",
         context=dict(
             request=request,
             form=form,
@@ -355,7 +357,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
 @app.get("/notauthorized")
 def not_authorized(request: Request):
     return templates.TemplateResponse(
-        "notauthorized.html", context={"request": request}
+        "author/notauthorized.html", context={"request": request}
     )
 
 
