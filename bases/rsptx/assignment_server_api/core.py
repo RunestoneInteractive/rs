@@ -32,7 +32,7 @@ from rsptx.db.async_session import init_models, term_models
 from rsptx.lp_sim_builder.feedback import init_graders
 from .routers import student
 from rsptx.auth.session import auth_manager
-
+from rsptx.templates import template_folder
 
 # FastAPI setup
 # =============
@@ -52,7 +52,7 @@ rslogger.info(f"Serving books from {settings.book_path}.\n")
 # path that it is clearer to mount this at something NOT called static
 # WARNING this works in a dev build but does not work in production.  Need to supply a path to a folder containing the static files.  I imagine the same is true for the templates!  The build script should use  pkg_resources to find the files and copy them.
 # staticdir = pkg_resources.resource_filename("book_server_api", "staticAssets")
-base_dir = pathlib.Path(__file__).parent
+base_dir = pathlib.Path(template_folder)
 app.mount(
     "/staticAssets", StaticFiles(directory=base_dir / "staticAssets"), name="static"
 )
