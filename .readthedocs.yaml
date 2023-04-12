@@ -17,6 +17,8 @@ build:
             - poetry self add poetry-polylith-plugin
             - poetry self add poetry-multiproject-plugin
             - poetry install
+        post_build:
+            - RUNESTONE_PATH=.
 
 sphinx:
     configuration: docs/source/conf.py
