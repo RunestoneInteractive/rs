@@ -59,7 +59,8 @@ class Settings(BaseSettings):
     google_ga: str = ""
 
     # The path to the Runestone application inside web2py.
-    runestone_path: str = Path(os.environ.get("RUNESTONE_PATH")).resolve()
+
+    runestone_path: str = Path(os.environ.get("RUNESTONE_PATH", Path.home())).resolve()
 
     # _`book_path`: specify the directory to serve books from. For now, default to serving from the same place as the Runestone server, since the server uses some of these files.
     book_path: Path = runestone_path / "books"
