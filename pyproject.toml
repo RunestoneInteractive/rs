@@ -6,7 +6,8 @@ version = "0.1.0"
 description = ""
 authors = ["Brad Miller <bonelake@mac.com>"]
 license = "MIT"
-readme = "README.md"
+readme = "README.rst"
+
 packages = [
     # These are the components for the author server
     {include = "development"},
