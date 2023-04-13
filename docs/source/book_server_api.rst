@@ -1,6 +1,9 @@
 book\_server\_api package
 =========================
 
+The bookserver is at the heart of Runestone Academy, and is responsible for serving
+pages of content to students, and for managing the interaction between students and the system.
+
 Subpackages
 -----------
 

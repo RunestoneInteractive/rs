@@ -105,6 +105,10 @@ async def log_book_event(
     """
     This endpoint is called to log information for nearly every click that happens in the textbook.
     It uses the ``LogItemIncoming`` object to define the JSON payload it gets from a page of a book.
+
+    :param entry: The JSON payload from the textbook page.
+    :param request: The request object.
+    :param user: The user object.
     """
     # if entry.sid is there use that (likely for partner or group work)
     if not entry.sid:
@@ -174,6 +178,13 @@ def set_tz_offset(
     RS_info: Optional[str] = Cookie(None),
     response_class=JSONResponse,
 ):
+    """Set the timezone offset in the session cookie.
+
+    :param tzreq: The timezone offset.
+    :param RS_info: Cookie defaults to Cookie(None)
+    :param response_class: JSONResponse
+    :return: JSONResponse
+    """
     if RS_info:
         values = json.loads(RS_info)
     else:
@@ -194,6 +205,15 @@ def set_tz_offset(
 # The :ref:`logRunEvent` client-side function calls this endpoint to record an activecode run
 @router.post("/runlog")
 async def runlog(request: Request, response: Response, data: LogRunIncoming):
+    """Make an entry in the Code table to record an activecode run.
+
+    :param request: A FastAPI Request object
+    :param response: A FastAPI Response object
+    :type response: JSONResponse
+    :param data: the post data
+    :type data: LogRunIncoming
+    :return: JSONResponse
+    """
     # First add a useinfo entry for this run
     rslogger.debug(f"INCOMING: {data}")
     if request.state.user:
