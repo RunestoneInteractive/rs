@@ -2,6 +2,32 @@
 # |docname| - Define the BookServer
 # *********************************
 # :index:`docs to write`: notes on this design. :index:`question`: Why is there an empty module named ``dependencies.py``?
+"""
+Overview
+--------
+
+This module contains the main FastAPI app and the routers for the book server.
+
+routers are used to organize the code for the book server.  
+They are a way to group related routes together.  See `FastAPI Routers <https://fastapi.tiangolo.com/tutorial/bigger-applications/#routers>`_.
+We define routers for the following:
+
+* Retrieve results of questions - :mod:`rsptx.book_server_api.routers.assessment` 
+* Serve book files - :mod:`rsptx.book_server_api.routers.books`
+* Save activities from book interactions - :mod:`rsptx.book_server_api.routers.rslogging`
+* Authentication :mod:`rsptx.book_server_api.routers.auth`
+* Web Socket handling for peer instruction - :mod:`rsptx.book_server_api.routers.discuss`
+* Code Coach - :mod:`rsptx.book_server_api.routers.coach`
+
+
+This module also contains code for startup and shutdown events.  See `FastAPI Startup and Shutdown Events <https://fastapi.tiangolo.com/tutorial/bigger-applications/#startup-and-shutdown-events>`_.
+
+Finally some middleware is defined here.  See `FastAPI Middleware <https://fastapi.tiangolo.com/tutorial/middleware/>`_.
+
+Detailed Module Description
+---------------------------
+
+"""
 #
 # Imports
 # =======
@@ -20,7 +46,7 @@ import socket
 # -------------------
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic.error_wrappers import ValidationError
 
@@ -85,6 +111,11 @@ app.mount(
 # ^^^^^^^^^^^^
 @app.on_event("startup")
 async def startup():
+    """
+    This function is called every time the fastapi server is started.
+    It is used to initialize the database and the grader.
+    If you need to add other startup functionality this is a good place to do it.
+    """
     # Check/create paths used by the server.
     os.makedirs(settings.book_path, exist_ok=True)
     os.makedirs(settings.error_path, exist_ok=True)
@@ -98,6 +129,9 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
+    """
+    This function is called every time the fastapi server is shutdown.
+    """
     await term_models()
 
 
@@ -107,7 +141,19 @@ async def shutdown():
 # we'll drop the value into request.state this will make it generally avilable
 #
 @app.middleware("http")
-async def get_session_object(request: Request, call_next):
+async def get_session_object(request: Request, call_next) -> Response:
+    """
+    This middleware is called on every request.  It is used to parse the RS_info cookie
+    and add information from that cookie to the request.state object. This makes it
+    easier than having to manually parse the cookie in every request.
+
+    :param request: The fastapi request object
+    :type request: Request
+    :param call_next: the next function in the middleware chain
+    :type call_next: _type_
+    :return: A response object
+    :rtype: Response
+    """
     tz_cookie = request.cookies.get("RS_info")
     rslogger.debug(f"In timezone middleware cookie is {tz_cookie}")
     if tz_cookie:

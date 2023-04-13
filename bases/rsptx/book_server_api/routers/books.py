@@ -1,8 +1,20 @@
 # ***********************************
 # |docname| - Serve pages from a book
 # ***********************************
-# :index:`docs to write`: how this works...
-#
+"""
+Overview
+--------
+This module contains the router for serving pages from a book. It also contains the code for serving the library page.
+
+The following routes are defined:
+
+* ``/published/<book_name>/<page_name>`` - Serve a page from a book
+* ``/index/<book_name>/`` - Serve the library page
+
+Detailed Module Description
+---------------------------
+
+"""
 # Imports
 # =======
 # These are listed in the order prescribed by `PEP 8`_.
@@ -71,7 +83,18 @@ router = APIRouter(
 #
 
 # TODO: make published/draft configurable
-async def return_static_asset(course, kind, filepath):
+async def return_static_asset(course: str, kind: str, filepath: str):
+    """Return a static asset from a book.  These are typically images, css, or js files. they do not require any special processing or use of templates.
+
+    :param course: The name of the course
+    :type course: str
+    :param kind: What kind of assset is it?
+    :type kind: str
+    :param filepath: The path to the file
+    :type filepath: str
+    :raises HTTPException:
+    :return: Response object
+    """
     # Get the course row so we can use the base_course
     # We would like to serve book pages with the actual course name in the URL
     # instead of the base course.  This is a necessary step.
@@ -163,6 +186,34 @@ async def serve_page(
     RS_info: Optional[str] = Cookie(None),
     mode: Optional[str] = None,
 ):
+    """Serve a page from a book.
+
+    Book pages are not static, they are generated on the fly.  When you build a book, ptx or runestone bulds the pages of the book as Jinja2 templates.  This endpoint serves those pages by gathering data from the database and passing it to the template. Some key parts of the template include:
+
+    * course attributes
+    * user information
+    * whether to serve an ad or not
+    * whether to ask for a donation or not
+    * the subchapter navigation menu
+    * the page content
+
+    .. note:: Caution
+        Anyone modifying this function should exercise caution.  It is the core of the Runestone server and is used by all books.   It is called hundreds of thousands of times a day so performance is critical.
+
+    :param request: A FastAPI request object
+    :type request: Request
+    :param course_name: The name of the course (part of the URL)
+    :type course_name: constr, optional
+    :param pagepath: The path to the page (part of the URL)
+    :type pagepath: constr, optional
+    :param RS_info: An RS_info cookie, defaults to None
+    :type RS_info: Optional[str], optional
+    :param mode: _description_, defaults to None
+    :type mode: Optional[str], optional
+    :raises HTTPException: _description_
+    :return: response object
+    :rtype: Response
+    """
 
     if mode and mode == "browsing":
         use_services = False
@@ -370,6 +421,16 @@ async def crashme():
 
 @router.api_route("/index", methods=["GET", "POST"])
 async def library(request: Request, response_class=HTMLResponse):
+    """
+    Create the library page from the Library database table.
+
+    :param request: The FastAPI request object.
+    :type request: Request
+    :param response_class: defaults to HTMLResponse
+    :type response_class: _type_, optional
+    :return: HTMLResponse
+    :rtype: HTMLResponse
+    """
     books = await fetch_library_books()
 
     sections = set()
@@ -421,10 +482,11 @@ def XML(arg):
 # This is copied verbatim from https://github.com/pallets/werkzeug/blob/master/werkzeug/security.py#L216.
 def safe_join(directory, *pathnames):
     """Safely join ``directory`` and one or more untrusted ``pathnames``.  If this
-    cannot be done, this function returns ``None``.
+    cannot be done, this function returns ``None``.  The main thing this does is make sure that we do not allow relative pathnames going up the directory tree to be joined to the base directory.  This is important because it prevents an attacker from using a pathname like ``../../../etc/passwd`` to read an arbitrary file on the server filesystem.
 
-    :directory: the base directory.
-    :pathnames: the untrusted pathnames relative to that directory.
+    :param directory: the base directory.
+    :param pathnames: the untrusted pathnames relative to that directory.
+    :return: the joined path or ``None`` if this cannot be done.
     """
     parts = [directory]
     for filename in pathnames:
