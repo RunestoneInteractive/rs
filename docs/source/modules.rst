@@ -7,7 +7,7 @@ Bases define the API for a server that a user will interact with. Including thin
    :maxdepth: 4
 
    book_server_api
-
+   rsmanage
 
 Components
 ==========

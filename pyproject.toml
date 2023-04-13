@@ -91,6 +91,7 @@ pytest = "^7.0.0"
 pyvirtualdisplay = "^3.0.0"
 pywin32 = { version = ">= 301", markers = "sys.platform == 'win32'" }
 selenium = "^3.0.0"
+sphinx-click = "^4.4.0"
 
 
 [build-system]
