@@ -9,12 +9,8 @@
 #
 # Standard library
 # ----------------
-import datetime
-import json
 import os
 import pathlib
-import traceback
-import socket
 
 # Third-party imports
 # -------------------
@@ -26,12 +22,13 @@ from pydantic.error_wrappers import ValidationError
 
 # Local application imports
 # -------------------------
-from rsptx.logging import rslogger
-from rsptx.configuration import settings
-from rsptx.db.async_session import init_models, term_models
-from rsptx.lp_sim_builder.feedback import init_graders
 from .routers import student
 from rsptx.auth.session import auth_manager
+from rsptx.configuration import settings
+from rsptx.db.async_session import init_models, term_models
+from rsptx.exceptions.core import add_exception_handlers
+from rsptx.logging import rslogger
+from rsptx.lp_sim_builder.feedback import init_graders
 from rsptx.templates import template_folder
 
 # FastAPI setup
@@ -60,4 +57,6 @@ app.mount(
 
 app.include_router(student.router)
 
-
+# DRY: this is the same as in book_server_api and other servers
+# load a common set of middleware/exception handlers.
+add_exception_handlers(app)
