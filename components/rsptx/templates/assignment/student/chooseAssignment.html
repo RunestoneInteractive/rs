@@ -28,6 +28,9 @@ Choose Assignment
             <td>
                 {% if assignment.id in stats %}
                 {% set current = stats[assignment.id].is_submit %} 
+                {% else %}
+                {% set current = "" %} 
+                {% endif %}
                 <select required onchange="updateAssignmentProgress(this.value, {{assignment.id}})">
                     <option disabled selected value="">Track my Progress</option>
                     {% for option in ["Not Started", "In Progress", "Finished"]:%}
@@ -40,9 +43,6 @@ Choose Assignment
                          </option>
                     {% endfor %}
                 </select>
-    
-                {% else %} Not found 
-                {% endif %}
             </td>
 
             <td>{{assignment.duedate}}</td>
@@ -62,6 +62,8 @@ Choose Assignment
 
 </div>
 
-{% endblock %} {% block js %}
-<script src="/ns/staticAssets/books.js"></script>
+{% endblock %} 
+
+{% block js %}
+<script src="/staticAssets/assignment/student.js"></script>
 {% endblock %}

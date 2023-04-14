@@ -1,23 +1,13 @@
-function markComplete(assignment_id, student_id) {
-    // This function is deprecated as of December 2022
-    jQuery.ajax({
-        url: eBookConfig.app + '/assignments/update_submit',
-        type: "POST",
-        dataType: "JSON",
-        data: {
-            assignment_id: assignment_id,
-            student_id: student_id
-        },
-        success: function(retdata) {
-            window.location.reload(true);
-        }
-    });
-}
+/*
+ * This file is part of Runestone Academy
+ * This is javascript to support the assignment/student.py its pages and endpoints
+ * Copyright (C) 2023 by Runestone Academy LTD
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the MIT License.
+ *
+ */
 
-
-
-async function updateAssignmentProgress (newState, assignmentId) {
-
+async function updateAssignmentProgress(newState, assignmentId) {
     let data = {
         assignment_id: assignmentId,
         new_state: newState,
@@ -26,7 +16,7 @@ async function updateAssignmentProgress (newState, assignmentId) {
         "Content-type": "application/json; charset=utf-8",
         Accept: "application/json",
     });
-    let request = new Request(`${eBookConfig.app}/assignments/update_submit`, {
+    let request = new Request(`/student/update_submit`, {
         method: "POST",
         headers: jsheaders,
         body: JSON.stringify(data),

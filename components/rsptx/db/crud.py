@@ -1270,6 +1270,47 @@ async def fetch_all_assignment_stats(
         return [GradeValidator.from_orm(a) for a in res.scalars()]
 
 
+# write a function that given a userid and a courseid fetches a Grade object from the database
+async def fetch_grade(userid: int, assignmentid: int) -> Optional[GradeValidator]:
+    """
+    Fetch the Grade object for the given user and assignment.
+
+    :param userid: int, the user id
+    :param assignmentid: int, the assignment id
+    :return: Optional[GradeValidator], the GradeValidator object
+    """
+    query = select(Grade).where(
+        and_(
+            Grade.auth_user == userid,
+            Grade.assignment == assignmentid,
+        )
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        return GradeValidator.from_orm(res.scalars().first())
+
+
+# write a function that given a GradeValidator object inserts a new Grade object into the database
+# or updates an existing one
+#
+# This function should return the GradeValidator object that was inserted or updated
+async def upsert_grade(grade: GradeValidator) -> GradeValidator:
+    """
+    Insert a new Grade object into the database or update an existing one.
+
+    :param grade: GradeValidator, the GradeValidator object
+    :return: GradeValidator, the GradeValidator object
+    """
+    new_grade = Grade(**grade.dict())
+
+    async with async_session.begin() as session:
+        # merge either inserts or updates the object
+        await session.merge(new_grade)
+    return GradeValidator.from_orm(new_grade)
+
+
 async def fetch_question(
     name: str, basecourse: Optional[str] = None, assignment: Optional[str] = None
 ) -> QuestionValidator:
