@@ -1904,6 +1904,8 @@ def _get_toc_and_questions():
                 r_sub_ch_info["text"] = sub_ch.sub_chapter_name
 
             author = auth.user.first_name + " " + auth.user.last_name
+            # TODO:  add a check for showing from_source == True books
+            # TODO: add a better sorting mechanism.
             questions_query = db(
                 (db.courses.course_name == auth.user.course_name)
                 & (db.questions.base_course == db.courses.base_course)
