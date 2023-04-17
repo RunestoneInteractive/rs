@@ -12,6 +12,7 @@ if gae is not None:
     couchdb = None
     is_jdbc = False
 
+is_jdbc = False
 
 try:
     from sqlite3 import dbapi2 as sqlite3

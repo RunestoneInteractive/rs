@@ -11,15 +11,7 @@ import socket
 
 from textwrap import dedent
 
-try:
-    from mercurial import ui, hg, cmdutil
-    try:
-        from mercurial.scmutil import addremove
-    except:
-        from mercurial.cmdutil import addremove
-    have_mercurial = True
-except ImportError:
-    have_mercurial = False
+have_mercurial = False
 
 from gluon.utils import md5_hash
 from gluon.fileutils import listdir, cleanpath, up

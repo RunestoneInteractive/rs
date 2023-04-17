@@ -15,19 +15,6 @@ import logging
 logger = logging.getLogger(settings.logger)
 logger.setLevel(settings.log_level)
 
-## if you need to use OpenID, Facebook, MySpace, Twitter, Linkedin, etc.
-## register with janrain.com, write your domain:api_key in private/janrain.key
-# from gluon.contrib.login_methods.rpx_account import use_janrain
-# use_janrain(auth,filename='private/janrain.key')
-try:
-    from gluon.contrib.login_methods.janrain_account import RPXAccount
-except ImportError:
-    print("Warning you should upgrade to a newer web2py for better janrain support")
-    from gluon.contrib.login_methods.rpx_account import RPXAccount  # noqa: F401
-
-from gluon.contrib.login_methods.extended_login_form import (  # noqa: F401
-    ExtendedLoginForm,
-)
 
 from gluon.tools import Auth, Crud, Service, PluginManager, prettydate  # noqa: F401
 
