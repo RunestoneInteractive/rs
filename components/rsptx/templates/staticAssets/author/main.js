@@ -4,16 +4,16 @@
  * Date: 2022-07-11
  *
  */
-var taskId2Task = {}
+var taskId2Task = {};
 
 function handleClick(type) {
-    fetch("/tasks", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ type: type }),
-        })
+    fetch("/author/tasks", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ type: type }),
+    })
         .then((response) => response.json())
         .then((data) => {
             getStatus(data.task_id);
@@ -26,13 +26,13 @@ function handleClick(type) {
 function cloneTask() {
     let repo = document.querySelector("#gitrepo");
     let bcname = document.querySelector("#bcname");
-    fetch("/clone", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ url: repo.value, bcname: bcname.value }),
-        })
+    fetch("/author/clone", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: repo.value, bcname: bcname.value }),
+    })
         .then((response) => response.json())
         .then((data) => {
             getStatus(data.task_id);
@@ -41,13 +41,19 @@ function cloneTask() {
 
 // Schedule a task to build a book then follow its status
 function buildTask(bcname) {
-    fetch("/buildBook", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ bcname: bcname }),
-        })
+    // check to see if the generate box is checked
+    let generate = document.querySelector("#generate");
+    let gen = false;
+    if (generate.checked) {
+        gen = true;
+    }
+    fetch("/author/buildBook", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ bcname: bcname, generate: gen }),
+    })
         .then((response) => response.json())
         .then((data) => {
             taskId2Task[data.task_id] = `build ${bcname}`;
@@ -59,7 +65,7 @@ function buildPTXTask() {}
 
 // see checkDB in main.py
 async function checkDB(el) {
-    let response = await fetch("/book_in_db", {
+    let response = await fetch("/author/book_in_db", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -94,7 +100,7 @@ async function addCourse() {
         alert("You must provide a document-id or base course");
         return;
     }
-    let response = await fetch("/add_course", {
+    let response = await fetch("/author/add_course", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -103,12 +109,13 @@ async function addCourse() {
     });
     if (response.ok) {
         let data = await response.json();
-        if (data.detail == "success") {}
+        if (data.detail == "success") {
+        }
         cloneTask();
         // if clone fails we should remove from db? - maybe add a remove button?
         // check for repo to be present.
         let i = 0;
-        let iid = setInterval(async function() {
+        let iid = setInterval(async function () {
             let res = await getRepoStatus(bcname.value);
             if (res) {
                 // add row for the new book.
@@ -129,28 +136,28 @@ async function addCourse() {
 }
 
 function deployTask(bcname) {
-    fetch("/deployBook", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ bcname: bcname }),
-        })
+    fetch("/author/deployBook", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ bcname: bcname }),
+    })
         .then((response) => response.json())
         .then((data) => {
-            taskId2Task[data.task_id] = `deploy ${bcname}`
+            taskId2Task[data.task_id] = `deploy ${bcname}`;
             getStatus(data.task_id);
         });
 }
 
 function useinfoTask(classname) {
-    fetch("/dumpUseinfo", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ classname: classname }),
-        })
+    fetch("/author/dumpUseinfo", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ classname: classname }),
+    })
         .then((response) => response.json())
         .then((data) => {
             taskId2Task[data.task_id] = `dump log ${classname}`;
@@ -159,19 +166,18 @@ function useinfoTask(classname) {
 }
 
 function codeTask(classname) {
-    fetch("/dumpCode", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ classname: classname }),
-        })
+    fetch("/author/dumpCode", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ classname: classname }),
+    })
         .then((response) => response.json())
         .then((data) => {
             taskId2Task[data.task_id] = `dump log ${classname}`;
             getStatus(data.task_id);
         });
-
 }
 
 // Gets data from the form in anonymize_data.html
@@ -184,38 +190,42 @@ function startExtract() {
     data.start_date = document.getElementById("start_date").value;
     data.end_date = document.getElementById("end_date").value;
     data.sample_size = document.getElementById("sample_size").value;
-    data.include_basecourse = document.getElementById("include_basecourse").checked;
+    data.include_basecourse =
+        document.getElementById("include_basecourse").checked;
     data.specific_course = document.getElementById("specific_course").value;
 
     if (!data.start_date || !data.end_date) {
-        alert("You must set a start/end date")
+        alert("You must set a start/end date");
         return;
     }
 
     if (data.specific_course) {
-        validCourses = document.getElementById("clist").value.split(',');
+        validCourses = document.getElementById("clist").value.split(",");
         if (validCourses.indexOf(data.specific_course) < 0) {
-            alert(`You are not the instructor for ${data.specific_course}. See note.`)
+            alert(
+                `You are not the instructor for ${data.specific_course}. See note.`
+            );
             return;
         }
     }
-    fetch("/start_extract", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(data),
-        })
+    fetch("/author/start_extract", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+    })
         .then((response) => response.json())
         .then((data) => {
-            taskId2Task[data.task_id] = `Create Datashop for ${data.basecourse}`;
+            taskId2Task[
+                data.task_id
+            ] = `Create Datashop for ${data.basecourse}`;
             getStatus(data.task_id);
         });
-
 }
 
 async function getRepoStatus(bcname) {
-    let response = await fetch("/isCloned", {
+    let response = await fetch("/author/isCloned", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -233,11 +243,11 @@ async function getRepoStatus(bcname) {
 
 function showLog(book) {
     fetch(`/getlog/${book}`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        })
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    })
         .then((response) => response.json())
         .then((res) => {
             let d = new Date();
@@ -250,9 +260,8 @@ function showLog(book) {
 }
 
 function hideLog() {
-    document.getElementById("lastdiv").style.display = 'none';
+    document.getElementById("lastdiv").style.display = "none";
 }
-
 
 function updateDlList(res, kind) {
     let dlList = document.getElementById("csv_files_available");
@@ -263,20 +272,20 @@ function updateDlList(res, kind) {
     }
     for (f of res.ready_files) {
         if (onPage.indexOf(f) == -1) {
-            let li = document.createElement('li');
-            let a = document.createElement('a');
+            let li = document.createElement("li");
+            let a = document.createElement("a");
             // <li><a href="/getfile/{{lfile.name}}">{{lfile.name}}</a></li>
             if (kind === "datashop") {
-                a.href = `/getdatashop/${f}`
+                a.href = `/getdatashop/${f}`;
             } else {
-                a.href = `/getfile/${f}`
+                a.href = `/getfile/${f}`;
             }
             a.innerHTML = f;
             li.appendChild(a);
             dlList.appendChild(li);
         } else {
             if (f.indexOf(courseName) >= 0) {
-                let mt = document.getElementById(`${f}_mtime`)
+                let mt = document.getElementById(`${f}_mtime`);
                 let now = new Date();
                 mt.innerHTML = "Today " + now.toLocaleTimeString();
             }
@@ -284,16 +293,15 @@ function updateDlList(res, kind) {
     }
 }
 
-
 // This checks on the task status from a previously scheduled task.
 // todo: how to report the status better
 function getStatus(taskID) {
-    fetch(`/tasks/${taskID}`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        })
+    fetch(`/author/tasks/${taskID}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    })
         .then((response) => response.json())
         .then((res) => {
             let d = new Date();
@@ -316,25 +324,27 @@ function getStatus(taskID) {
 
             const taskStatus = res.task_status;
             if (taskStatus === "SUCCESS" || taskStatus === "FAILURE") {
-                if (res.task_result.current == "csv.zip file created" ||
-                    res.task_result.current == "Ready for download") {
+                if (
+                    res.task_result.current == "csv.zip file created" ||
+                    res.task_result.current == "Ready for download"
+                ) {
                     let kind = "datashop";
                     if (res.task_result.current == "csv.zip file created") {
                         kind = "logfiles";
                     }
                     // Get the list of files for download and add to the list.
                     fetch(`/dlsAvailable/${kind}`, {
-                            method: "GET",
-                            headers: {
-                                "Content-Type": "application/json",
-                            },
-                        })
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    })
                         .then((response) => response.json())
-                        .then((res) => updateDlList(res, kind))
+                        .then((res) => updateDlList(res, kind));
                 }
                 return false;
             }
-            setTimeout(function() {
+            setTimeout(function () {
                 getStatus(res.task_id);
             }, 1000);
         })

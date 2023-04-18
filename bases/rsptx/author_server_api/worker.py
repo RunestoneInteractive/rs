@@ -180,7 +180,7 @@ def build_runestone_book(self, book):
 
 
 @celery.task(bind=True, name="build_ptx_book")
-def build_ptx_book(self, book):
+def build_ptx_book(self, book, generate=False):
     """
     Build a ptx book
 
@@ -214,7 +214,7 @@ def build_ptx_book(self, book):
     logger.debug(f"Before building myclick self = {self}")
     myclick = MyClick(self, "PTXBUILD")
     logger.debug("Starting build")
-    res = _build_ptx_book(config, False, "runestone-manifest.xml", book, click=myclick)
+    res = _build_ptx_book(config, generate, "runestone-manifest.xml", book, click=myclick)
     if res:
         self.update_state(state="FINISHING", meta={"current": "updating permissions"})
     else:

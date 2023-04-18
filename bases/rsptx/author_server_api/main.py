@@ -408,6 +408,7 @@ async def check_repo(payload=Body(...)):
 @app.post("/buildBook", status_code=201)
 async def do_build(payload=Body(...)):
     bcname = payload["bcname"]
+    generate = payload["generate"]
     ptxproj = pathlib.Path("/books") / bcname / "project.ptx"
     if ptxproj.exists():
         book_system = "PreTeXt"
@@ -416,7 +417,7 @@ async def do_build(payload=Body(...)):
     if book_system == "Runestone":
         task = build_runestone_book.delay(bcname)
     else:
-        task = build_ptx_book.delay(bcname)
+        task = build_ptx_book.delay(bcname, generate)
 
     return JSONResponse({"task_id": task.id})
 
