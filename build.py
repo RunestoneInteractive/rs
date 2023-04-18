@@ -32,7 +32,7 @@ if finish:
 
 print("Building projects")
 for proj in os.listdir("projects"):
-    if os.path.isdir(proj):
+    if os.path.isdir(f"projects/{proj}"):
         os.chdir(f"projects/{proj}")
         print(f"Project: {proj}")
         if os.path.isfile("pyproject.toml"):
