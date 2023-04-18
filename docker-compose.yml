@@ -28,7 +28,7 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - RUNESTONE_PATH=/usr/src/app
-      - DEV_DBURL=${DEV_DBURL}
+      - DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
       - WEB2PY_CONFIG=${SERVER_CONFIG}
     depends_on:
       - author

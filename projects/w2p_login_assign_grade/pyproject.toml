@@ -42,6 +42,7 @@ Sphinx = "> 4.1.0"
 sphinxcontrib-paverutils = ">= 1.17"
 SQLAlchemy = ">= 1.0.14"
 stripe = "^2.0.0"
+pycrypto = "^2.6.1"
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"
 CodeChat = "^1.0.0"
