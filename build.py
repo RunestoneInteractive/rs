@@ -3,6 +3,9 @@
 
 import os
 import subprocess
+from dotenv import load_dotenv
+
+load_dotenv()
 
 print("Checking your environment")
 finish = False
