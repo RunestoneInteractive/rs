@@ -8,7 +8,6 @@ services:
       - 8114:8114
     command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8114 --reload
     volumes:
-      - ./projects/author_server:/usr/src/app
       - /Users/bmiller/Runestone/books:/books
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
@@ -22,7 +21,6 @@ services:
     build: ./projects/author_server
     command: celery -A rsptx.author_server_api.worker.celery worker
     volumes:
-      - ./projects/author_server:/usr/src/app
       - /Users/bmiller/Runestone/books:/books
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
