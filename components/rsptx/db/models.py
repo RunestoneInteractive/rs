@@ -428,6 +428,16 @@ class AuthUserValidator(BaseAuthUserValidator):  # type: ignore
     ##     return v
 
 
+class AuthEvent(Base, IdMixin):
+    __tablename__ = "auth_event"
+
+    time_stamp = Column(DateTime)
+    client_ip = Column(String(512))
+    user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"))
+    origin = Column(String(512))
+    description = Column(Text)
+
+
 class AuthGroup(Base, IdMixin):
     __tablename__ = "auth_group"
 
