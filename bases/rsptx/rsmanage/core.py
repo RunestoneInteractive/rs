@@ -88,16 +88,7 @@ async def cli(config, verbose, if_clean):
     checkEnvironment()
 
     conf = settings.server_config
-
-    if conf == "production":
-        config.dburl = os.environ.get("DBURL")
-    elif conf == "development":
-        config.dburl = os.environ.get("DEV_DBURL")
-    elif conf == "test":
-        config.dburl = os.environ.get("TEST_DBURL")
-    else:
-        click.echo("Incorrect WEB2PY_CONFIG")
-        sys.exit(1)
+    config.dburl = settings.database_url
 
     # DAL uses "postgres:", while SQLAlchemy (and the PostgreSQL spec) uses "postgresql:". Fix.
     remove_prefix = "postgres://"
@@ -107,6 +98,10 @@ async def cli(config, verbose, if_clean):
     config.conf = conf
     config.dbname = re.match(r"postgres.*//.*?@.*?/(.*)", config.dburl).group(1)
     config.dbhost = re.match(r"postgres.*//.*?@(.*?)/(.*)", config.dburl).group(1)
+
+    click.echo(f"Using configuration: {conf}")
+    click.echo(f"Using database: {config.dbname}")
+
     if conf != "production":
         config.dbuser = re.match(
             r"postgres.*//(.*?)(:.*?)?@(.*?)/(.*)", config.dburl

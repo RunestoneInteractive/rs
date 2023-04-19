@@ -76,8 +76,10 @@ class Settings(BaseSettings):
     #    a string.  The value will actually be ``BookServerConfig.development``` or whatever.
     #    Our style will be to compare against the Enum not the ``.name`` attribute.
     #
-    book_server_config: BookServerConfig = "development"  # type: ignore
     server_config: str = "development"
+
+    # server_config is the master make sure everything else matches
+    book_server_config: BookServerConfig = server_config  # type: ignore
 
     # Database setup: this must be an standard (synchronous) connection; for example:
     #
