@@ -154,8 +154,9 @@ async def _initdb(config):
 )
 @click.option("--force", is_flag=True, help="answer Yes to confirm questions")
 @pass_config
-async def initdb(config, list_tables, reset, fake, force):
+async def initdb(config, list_tables, reset, force):
     """Initialize and optionally reset the database"""
+    checkEnvironment()
     if reset:
         if not force:
             click.confirm(
