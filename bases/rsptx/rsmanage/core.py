@@ -136,10 +136,10 @@ async def _initdb(config):
 
     await init_models()
     await create_initial_courses_users()
-    await term_models()
     await create_group("instructor")
     await create_group("editor")
     await create_group("author")
+    await term_models()  # dispose of the engine
 
 
 #
@@ -152,16 +152,10 @@ async def _initdb(config):
 @click.option(
     "--reset", is_flag=True, help="drop database and delete all migration information"
 )
-@click.option("--fake", is_flag=True, help="perform a fake migration")
 @click.option("--force", is_flag=True, help="answer Yes to confirm questions")
 @pass_config
 async def initdb(config, list_tables, reset, fake, force):
     """Initialize and optionally reset the database"""
-    os.chdir(findProjectRoot())
-    if not os.path.exists(DBSDIR):
-        click.echo("Making databases folder")
-        os.mkdir(DBSDIR)
-
     if reset:
         if not force:
             click.confirm(
@@ -184,21 +178,6 @@ async def initdb(config, list_tables, reset, fake, force):
         if res != 0:
             click.echo("Failed to drop the database do you have permission?")
             sys.exit(1)
-
-        click.echo("Removing all files in databases/")
-        table_migrate_prefix = "runestone_"
-        if config.conf == "test":
-            table_migrate_prefix = "test_runestone_"
-        for the_file in os.listdir(DBSDIR):
-            file_path = os.path.join(DBSDIR, the_file)
-            try:
-                if os.path.isfile(file_path) and file_path.startswith(
-                    os.path.join(DBSDIR, table_migrate_prefix)
-                ):
-                    print(f"removing {file_path}")
-                    os.unlink(file_path)
-            except Exception as e:
-                print(e)
 
         # Because click won't natively support making commands async we can use this simple method
         # to call async functions.
