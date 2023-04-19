@@ -64,7 +64,7 @@ if not request.env.web2py_runtime_gae:
         response,
         db,
         masterapp=None,
-        migrate=table_migrate_prefix + "web2py_sessions.table",
+        migrate=False,
     )
 
 else:

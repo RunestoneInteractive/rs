@@ -46,6 +46,8 @@ from sqlalchemy import (
     types,
     Float,
     inspect,
+    LargeBinary,
+    CHAR,
 )
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.sql.schema import UniqueConstraint
@@ -986,3 +988,14 @@ class InvoiceRequest(Base, IdMixin):
     course_name = Column(String(512))
     email = Column(String(512))
     processed = Column(Web2PyBoolean)
+
+
+class Web2pySessionRunestone(Base, IdMixin):
+    __tablename__ = "web2py_session_runestone"
+
+    locked = Column(CHAR(1))
+    client_ip = Column(String(64))
+    created_datetime = Column(DateTime)
+    modified_datetime = Column(DateTime)
+    unique_key = Column(String(64))
+    session_data = Column(LargeBinary)
