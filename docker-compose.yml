@@ -10,7 +10,7 @@ services:
       - 8114:8114
     command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8114 --reload
     volumes:
-      - /Users/bmiller/Runestone/books:/books
+      - ${BOOK_PATH}:/books
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -25,7 +25,7 @@ services:
       - host.docker.internal:host-gateway
     command: celery -A rsptx.author_server_api.worker.celery worker
     volumes:
-      - /Users/bmiller/Runestone/books:/books
+      - ${BOOK_PATH}:/books
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -52,7 +52,7 @@ services:
     #command: tail -f /var/log/lastlog
     restart: always
     volumes:
-      - /Users/bmiller/Runestone/books:/usr/books
+      - ${BOOK_PATH}:/usr/books
 
     environment:
       - BOOK_PATH=/usr/books
@@ -78,7 +78,7 @@ services:
       #command: tail -f /var/log/lastlog
       restart: always
       volumes:
-        - /Users/bmiller/Runestone/books:/usr/books
+        - ${BOOK_PATH}:/usr/books
 
       environment:
         - BOOK_PATH=/usr/books
@@ -103,7 +103,7 @@ services:
     #command: tail -f /var/log/lastlog
     restart: always
     volumes:
-      - /Users/bmiller/Runestone/books:/usr/books
+      - ${BOOK_PATH}:/usr/books
 
     environment:
       - BOOK_PATH=/usr/books
@@ -130,7 +130,7 @@ services:
       - 80:80
       #- 443:443
     volumes:
-      - /Users/bmiller/Runestone/books:/usr/books
+      - ${BOOK_PATH}:/usr/books
     links:
       - runestone
       - book
