@@ -89,6 +89,7 @@ services:
         # Note: host.docker.internal refers back to the host so we can just use a local instance
         # of postgresql
         - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+        - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
       links:
         - redis
         - jobe

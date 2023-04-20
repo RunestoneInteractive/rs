@@ -68,8 +68,7 @@ settings.python_interpreter = f"{os.environ['RUNESTONE_PATH']}/.venv/bin/python3
 # for https servers
 # settings.websocket_url = "wss://dev.runestoneinteractive.org/ns"
 
-build_config_single = ${BUILD_CONFIG_SINGLE}
-if build_config_single:
+if "LOAD_BALANCER_HOST" not in os.environ:
     settings.websocket_url = f"ws{'s' if os.environ['CERTBOT_EMAIL'] else ''}://{os.environ['RUNESTONE_HOST']}/ns"
 else:
     settings.websocket_url = f"wss://{os.environ['LOAD_BALANCER_HOST']}/ns"
@@ -81,5 +80,6 @@ else:
 settings.bks = "ns"
 
 # Define the URL for the author server pages
-# settings.author_server = "https://author.runestone.academy"
+settings.author_server = "/author/home"
+
 # settings.canonical_server = "https://runestone.academy"
