@@ -57,6 +57,7 @@ services:
     environment:
       - BOOK_PATH=/usr/books
       - SERVER_CONFIG=${SERVER_CONFIG}
+      - RUNESTONE_HOST=${RUNESTONE_HOST}
       - RUNESTONE_PATH=/usr/src/app
       - REDIS_URI=redis://redis:6379/0
       # Note: host.docker.internal refers back to the host so we can just use a local instance
@@ -84,6 +85,7 @@ services:
         - BOOK_PATH=/usr/books
         - SERVER_CONFIG=${SERVER_CONFIG}
         - WEB2PY_CONFIG=${SERVER_CONFIG}
+        - RUNESTONE_HOST=${RUNESTONE_HOST}
         - RUNESTONE_PATH=/usr/src/app
         - REDIS_URI=redis://redis:6379/0
         # Note: host.docker.internal refers back to the host so we can just use a local instance
