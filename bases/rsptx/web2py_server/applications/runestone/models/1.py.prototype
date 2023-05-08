@@ -69,7 +69,7 @@ settings.python_interpreter = f"{os.environ['RUNESTONE_PATH']}/.venv/bin/python3
 # settings.websocket_url = "wss://dev.runestoneinteractive.org/ns"
 
 if "LOAD_BALANCER_HOST" not in os.environ:
-    settings.websocket_url = f"ws{'s' if os.environ['CERTBOT_EMAIL'] else ''}://{os.environ['RUNESTONE_HOST']}/ns"
+    settings.websocket_url = f"ws{'s' if os.environ.get('CERTBOT_EMAIL', False) else ''}://{os.environ['RUNESTONE_HOST']}/ns"
 else:
     settings.websocket_url = f"wss://{os.environ['LOAD_BALANCER_HOST']}/ns"
 
