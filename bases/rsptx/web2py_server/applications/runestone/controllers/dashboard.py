@@ -948,6 +948,7 @@ GRADEABLE_TYPES = {
     "fillintheblank": "fitb_answers",
     "parsonsprob": "parsons_answers",
     "dragndrop": "dragndrop_answers",
+    "webwork": "webwork_answers",
 }
 
 

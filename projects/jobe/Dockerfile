@@ -27,7 +27,7 @@ COPY 000-jobe.conf /
 COPY container-test.sh /
 COPY include/* /usr/include/
 RUN mkdir -p /usr/local/lib/java
-COPY files/* /usr/local/lib/java
+COPY files/* /usr/local/lib/java/
 RUN chmod a+w /usr/local/lib/java
 RUN chmod a+w /usr/local/lib/java/*.class
 

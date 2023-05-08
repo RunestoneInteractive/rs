@@ -238,6 +238,7 @@ async def addcourse(
     """Create a course in the database"""
 
     done = False
+    regex = r"^([\x30-\x39]|[\x41-\x5A]|[\x61-\x7A]|[_-])*$"
     if course_name:
         use_defaults = True
     else:
@@ -245,6 +246,10 @@ async def addcourse(
     while not done:
         if not course_name:
             course_name = click.prompt("Course Name")
+        if not re.match(regex, course_name):
+            click.echo("Course name must be alphanumeric or underscore")
+            course_name = None
+            continue
         if not python3 and not use_defaults:
             python3 = (
                 "T" if click.confirm("Use Python3 style syntax?", default="T") else "F"

@@ -1568,6 +1568,32 @@ async def fetch_timed_exam(
         return TimedExamValidator.from_orm(res.scalars().first())
 
 
+async def create_timed_exam_entry(
+    sid: str, exam_id: str, course_name: str, start_time: datetime
+) -> TimedExamValidator:
+    """
+    Create a new TimedExam entry with the given sid, exam_id, course_name, and start_time.
+
+    :param sid: str, the student id
+    :param exam_id: str, the id of the timed exam
+    :param course_name: str, the name of the course
+    :param start_time: datetime, the start time of the exam
+    :return: TimedExamValidator, the TimedExamValidator object
+    """
+    new_te = TimedExam(
+        div_id=exam_id,
+        sid=sid,
+        course_name=course_name,
+        start_time=start_time,
+        correct=0,
+        incorrect=0,
+        skipped=0,
+    )
+    async with async_session.begin() as session:
+        session.add(new_te)
+    return TimedExamValidator.from_orm(new_te)
+
+
 async def fetch_subchapters(course, chap):
     """
     Retrieve all subchapters for a given chapter.
