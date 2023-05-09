@@ -3,11 +3,28 @@
 
 import os
 import subprocess
-from dotenv import load_dotenv
+import sys
 
-load_dotenv()
+# use python-dotenv >= 0.21.0
+from dotenv import load_dotenv
+from rich.console import Console
+from rich.table import Table
 
 print("Checking your environment")
+if not os.path.exists(".env"):
+    print("No .env file found.  Please copy sample.env to .env and edit it.")
+    exit(1)
+
+if "--verbose" in sys.argv:
+    VERBOSE = True
+else:
+    VERBOSE = False
+
+load_dotenv()
+console = Console()
+table = Table(title="Environment Variables")
+table.add_column("Variable", justify="right", style="cyan", no_wrap=True)
+table.add_column("Set", style="magenta")
 finish = False
 for var in [
     "RUNESTONE_PATH",
@@ -17,12 +34,16 @@ for var in [
     "DEV_DBURL",
     "BOOK_PATH",
     "WEB2PY_CONFIG",
+    "JWT_SECRET",
+    "WEB2PY_PRIVATE_KEY",
 ]:
     if var not in os.environ:
-        print(f"Environment variable {var} not set")
+        table.add_row(var, "[red]No[/red]")
         finish = True
     else:
-        print(f"{var} is set")
+        table.add_row(var, "[green]Yes[/green]")
+
+console.print(table)
 
 if not os.path.isfile("bases/rsptx/web2py_server/applications/runestone/models/1.py"):
     # copy 1.py.prototype to 1.py
@@ -42,15 +63,39 @@ if finish:
     )
     exit(1)
 
-
-print("Building projects")
+table = Table(title="Build Wheels")
+table.add_column("Project", justify="right", style="cyan", no_wrap=True)
+table.add_column("Built", style="magenta")
 for proj in os.listdir("projects"):
     if os.path.isdir(f"projects/{proj}"):
         os.chdir(f"projects/{proj}")
-        print(f"Project: {proj}")
         if os.path.isfile("pyproject.toml"):
-            subprocess.run(["poetry", "build-project"])
+            res = subprocess.run(["poetry", "build-project"], capture_output=True)
+            if res.returncode == 0:
+                table.add_row(proj, "[green]Yes[/green]")
+            else:
+                table.add_row(proj, "[red]No[/red]")
+                if VERBOSE:
+                    print(res.stderr.decode("utf-8"))
+                else:
+                    with open("build.log", "a") as f:
+                        f.write(res.stderr.decode("utf-8"))
+            console.print(table)
         os.chdir("../..")
 
-print("Building docker images")
-subprocess.run(["docker", "compose", "build"])
+console.print(table)
+
+print("Building docker images...")
+res = subprocess.run(["docker", "compose", "build"], capture_output=True)
+if res.returncode == 0:
+    print("Docker images built successfully")
+    with open("build.log", "a") as f:
+        f.write(res.stdout.decode("utf-8"))
+else:
+    print(
+        "Docker images failed to build, see build.log for details (or run with --verbose)"
+    )
+    print(res.stderr.decode("utf-8"))
+    with open("build.log", "a") as f:
+        f.write(res.stderr.decode("utf-8"))
+    exit(1)
