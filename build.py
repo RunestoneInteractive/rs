@@ -9,6 +9,7 @@ import sys
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.table import Table
+from rich.live import Live
 
 print("Checking your environment")
 if not os.path.exists(".env"):
@@ -66,24 +67,24 @@ if finish:
 table = Table(title="Build Wheels")
 table.add_column("Project", justify="right", style="cyan", no_wrap=True)
 table.add_column("Built", style="magenta")
-for proj in os.listdir("projects"):
-    if os.path.isdir(f"projects/{proj}"):
-        os.chdir(f"projects/{proj}")
-        if os.path.isfile("pyproject.toml"):
-            res = subprocess.run(["poetry", "build-project"], capture_output=True)
-            if res.returncode == 0:
-                table.add_row(proj, "[green]Yes[/green]")
-            else:
-                table.add_row(proj, "[red]No[/red]")
-                if VERBOSE:
-                    print(res.stderr.decode("utf-8"))
+with Live(table, refresh_per_second=4):
+    for proj in os.listdir("projects"):
+        if os.path.isdir(f"projects/{proj}"):
+            os.chdir(f"projects/{proj}")
+            if os.path.isfile("pyproject.toml"):
+                res = subprocess.run(["poetry", "build-project"], capture_output=True)
+                if res.returncode == 0:
+                    table.add_row(proj, "[green]Yes[/green]")
                 else:
-                    with open("build.log", "a") as f:
-                        f.write(res.stderr.decode("utf-8"))
-            console.print(table)
-        os.chdir("../..")
+                    table.add_row(proj, "[red]No[/red]")
+                    if VERBOSE:
+                        print(res.stderr.decode("utf-8"))
+                    else:
+                        with open("build.log", "a") as f:
+                            f.write(res.stderr.decode("utf-8"))
+            os.chdir("../..")
 
-console.print(table)
+# console.print(table)
 
 print("Building docker images...")
 res = subprocess.run(["docker", "compose", "build"], capture_output=True)
