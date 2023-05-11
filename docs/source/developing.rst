@@ -222,6 +222,8 @@ Each project has a Dockerfile for building an image. These images should
 be push-able to our docker container registry and or the public docker
 container registry
 
+To build all of the docker containers and bring them up together.  You can run the ``build.py`` script in the top level directory. The dependencies for the build.py script are included in the top level ``pyproject.toml`` file.  ``poetry install`` will install everything you need and then you may will want to start up a poetry shell. The ``build.py`` script will build all of the Python wheels and Docker images, when that completes run ``docker-compose up``.  You can also run ``docker-compose up`` directly if you have already built the images.  
+
 When developing and you need multiple servers running
 =====================================================
 
