@@ -57,7 +57,7 @@ from _pytest.monkeypatch import MonkeyPatch
 # Local imports
 # -------------
 from .utils import COVER_DIRS, DictToObject
-from .ci_utils import xqt, pushd
+from rsptx.cl_utils.core import xqt, pushd
 
 
 # Set this to False if you want to turn off all web page validation.

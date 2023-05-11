@@ -1,6 +1,6 @@
 import sys
 import os
-from .ci_utils import xqt, pushd
+from rsptx.cl_utils.core import xqt, pushd
 import pytest
 
 
