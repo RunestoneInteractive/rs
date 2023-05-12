@@ -20,6 +20,7 @@ packages = [
     {include = "rsptx/response_helpers", from = "components"},
     {include = "rsptx/validation", from = "components"},
     {include = "rsptx/templates", from = "components"},    
+    {include = "rsptx/cl_utils", from = "components"},    
     {include = "rsptx/author_server_api", from = "bases"},
     {include = "rsptx/book_server_api", from = "bases"},
     {include = "rsptx/web2py_server", from = "bases"},
