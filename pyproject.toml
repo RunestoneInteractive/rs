@@ -19,13 +19,18 @@ packages = [
     {include = "rsptx/logging", from = "components"},
     {include = "rsptx/response_helpers", from = "components"},
     {include = "rsptx/validation", from = "components"},
-    {include = "rsptx/templates", from = "components"},    
-    {include = "rsptx/cl_utils", from = "components"},    
+    {include = "rsptx/templates", from = "components"},
+    {include = "rsptx/cl_utils", from = "components"},
+    {include = "rsptx/interactives", from = "bases"},    
     {include = "rsptx/author_server_api", from = "bases"},
     {include = "rsptx/book_server_api", from = "bases"},
     {include = "rsptx/web2py_server", from = "bases"},
-    {include = "rsptx/rsmanage", from = "bases"}
-
+    {include = "rsptx/rsmanage", from = "bases"},
+    {include = "rsptx/assignment_server_api",from = "bases"},
+    {include = "rsptx/dash_server_api",from = "bases"},
+    {include = "rsptx/lp_sim_builder",from = "components"},
+    {include = "rsptx/configuration",from = "components"},
+    {include = "rsptx/exceptions",from = "components"},
 ]
 
 [tool.poetry.dependencies]
@@ -77,6 +82,8 @@ uvicorn = "^0.18.2"
 WTForms = "^3.0.0"
 python-dotenv = "^1.0.0"
 rich = "^13.3.5"
+toml = "^0.10.2"
+json2xml = "^3.21.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"

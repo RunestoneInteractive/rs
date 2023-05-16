@@ -1,0 +1,4 @@
+# *********
+# |docname|
+# *********
+from .animation import *

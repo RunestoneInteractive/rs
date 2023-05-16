@@ -1,0 +1,1180 @@
+/* Variables holding theme colors */
+:root {
+    --background: #ffffff;
+    --outerBackground: #eeeeee;
+    --links: #0645ad;
+    --bodyFont: #000000;
+    --tooltip: #ffffff;
+    --grayToWhite: #333333;
+    --navbar: #f8f8f8;
+    --navbarFont: #707070;
+    --navbarFontHover: #000000;
+    --alerts: #d9edf7;
+    --completionButton: #ffaa2b;
+    --completionButtonHover: #ff9f19;
+    --admonition: #fcf8e3;
+    --admonitionBorder: #fbeed5;
+    --codeButtons: #474949;
+    --codeButtonsBorder: #474949;
+    --dangerAlerts: #f2dede;
+    --successAlerts: #dff0d8;
+    --contentWidthRegular: 660px;
+    --contentWidthWide: 1060px;
+    --componentBgColor: #f0f8ff;
+    --componentBorderColor: #000000;
+    --questionBgColor: #e1efff;
+}
+
+[data-theme="dark"] {
+    --background: #2c2f33;
+    --outerBackground: #23272a;
+    --links: #7289da;
+    --bodyFont: #99aab5;
+    --tooltip: #000000;
+    --grayToWhite: #ffffff;
+    --navbar: #3d3d3d;
+    --navbarFont: #ffffff;
+    --navbarFontHover: #d6d6d6;
+    --alerts: #714082;
+    --completionButton: #650087;
+    --completionButtonHover: #560073;
+    --admonition: #3d3d3d;
+    --admonitionBorder: #262626;
+    --codeButtons: #7289da;
+    --codeButtonsBorder: #ffffff;
+    --dangerAlerts: #8c2626;
+    --successAlerts: #217300;
+    --componentBgColor: #07467d;
+    --componentBorderColor: #939090;
+    --questionBgColor: rgb(23, 85, 93);
+}
+
+/* custom modification of basic.css for color-contrast (AA compliant) */
+td.linenos pre {
+    color: #6b6b6b;
+}
+
+/* custom modification of prettify.css for color-contrast (AA compliant) */
+.str {
+    color: #006b00;
+}
+
+/* custom modification of parsons.css for color-contrast (AA compliant) */
+.parsons .block {
+    background-color: #fafafa;
+}
+
+/* custom modification of pygments.css for color-contrast (AA compliant) */
+.highlight .c1 {
+    color: #376a7b;
+}
+
+.highlight .nn {
+    color: #0f6c95;
+}
+
+.highlight .gp {
+    color: #a14c08;
+}
+
+.highlight .si {
+    color: #3c773d;
+}
+
+.highlight .nc {
+    color: #0b719d;
+}
+
+/* `Search` functionality's result custom modification for color-contrast (AA compliant) */
+ul.search li div.context {
+    color: #6b6b6b;
+}
+
+span.highlighted {
+    color: #4d4d4d;
+}
+
+/* ActiveCode gutter custom modification for color-contrast (AA compliant) */
+
+.CodeMirror-linenumber {
+    color: #6b6b6b;
+}
+
+.alert-warning {
+    background-color: var(--admonition);
+    border-color: var(--admonitionBorder);
+}
+
+/* Python code output custom modification for color-contrast (AA compliant) */
+div.ExecutionVisualizer table#pyCodeOutput .lineNo {
+    color: #6b6b6b;
+}
+
+/* Runestone custom modifications */
+
+body {
+    counter-reset: rscomponent;
+    padding-top: 60px;
+    background-color: var(--outerBackground);
+}
+
+pre {
+    margin: 0 0 1em;
+}
+
+h5 {
+    font-weight: bold;
+    padding: 10px 0;
+}
+
+/* table-of-contents related styles for color-contrast (AA compliant) */
+#table-of-contents a {
+    color: var(--links);
+}
+
+#table-of-contents a:hover {
+    color: var(--links);
+    text-decoration: underline;
+}
+
+#table-of-contents.section {
+    font-size: 16px;
+}
+
+/* navbar-brand color contrast (AA compliant) */
+.navbar-default {
+    background-color: var(--navbar);
+}
+
+.navbar-default .navbar-nav > li {
+    color: var(--navbarFont);
+}
+
+.navbar-default .navbar-nav > li > a {
+    color: var(--navbarFont);
+}
+
+.navbar-default .navbar-nav > li > a:hover {
+    color: var(--navbarFontHover);
+}
+
+.navbar-default .navbar-brand {
+    color: var(--navbarFont);
+}
+
+/* acknowledgement related styles for color-contrast (AA compliant) */
+.toctree-wrapper {
+    font-size: 16px;
+}
+
+.toctree-wrapper a {
+    color: var(--links);
+}
+
+.toctree-wrapper a:hover {
+    color: var(--links);
+    text-decoration: underline;
+}
+
+/* index and search related styles for color-contrast (AA compliant) */
+#index-and-search.section {
+    font-size: 16px;
+}
+
+#index-and-search.section a {
+    color: var(--links);
+}
+
+#index-and-search.section a:hover {
+    color: var(--links);
+    text-decoration: underline;
+}
+
+/* custom style for `a` tag for color-contrast (AA compliant) */
+
+a {
+    color: var(--links);
+}
+
+/* navbar and menu related styles */
+@media (max-width: 768px) {
+    /* Remove top padding when top navbar goes collapsed in narrow viewports */
+    body {
+        padding-top: 0;
+    }
+
+    .navbar-fixed-top {
+        position: static;
+    }
+}
+
+@media (min-width: 768px) {
+    /* when navbar is collapsed we don't want any vertical dividers taking up space */
+    .navbar .divider-vertical {
+        margin: 0 3px;
+        border-left: 1px solid #f2f2f2;
+    }
+
+    .navbar-fixed-top .container {
+        padding: 0;
+    }
+}
+
+div.container {
+    background-color: var(--background);
+}
+
+.container {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.runestone {
+    clear: both;
+    background-color: var(--componentBgColor);
+    padding: 10px;
+    border-style: solid;
+    border-color: var(--componentBorderColor);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    margin-top: 20px;
+    }
+
+/* Sets width of content "column" */
+#main-content section > *:not(section) {
+    max-width: var(--contentWidthRegular);
+    margin-left: auto;
+    margin-right: auto;
+
+}
+
+/* Handle content in nested sections by allowing them to grow*/
+#main-content section > section,
+/* And then make sure a few items are wider by default */
+#main-content section > .runestone.ac_section,
+#main-content section > .runestone.codelens,
+#main-content section > .question,
+#main-content section > .runestone.parsons-container,
+#main-content section > .runestone.parsons-problems,
+#main-content section > .codelens,
+#main-content section > .timedAssessment,
+#main-content section > .jupyterlite_sphinx_iframe_container
+{
+    max-width: var(--contentWidthWide);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Allow individual elements to request being larger */
+#main-content section > .full-width {
+    max-width: var(--contentWidthWide);
+}
+
+.container section > img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.container-fluid > .navbar-collapse,
+.container-fluid > .navbar-header,
+.container > .navbar-collapse,
+.container > .navbar-header {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.navbar > .container .navbar-brand {
+    margin-left: 0;
+}
+
+.navbar > .container {
+    background-color: var(--navbar);
+}
+
+.navbar-toggle {
+    margin-right: 0px;
+}
+
+.footer > .container {
+    background-color: var(--outerBackground);
+}
+
+.footer > .container p > a {
+    color: var(--links);
+}
+
+.brand-logo {
+    float: left;
+    display: block;
+    margin-top: 4px;
+}
+
+.brand-logo img {
+    height: 40px;
+}
+
+.social-menu {
+    width: 220px;
+    padding: 10px 10px 15px 20px;
+}
+
+.fb-like {
+    margin-top: 7px;
+}
+
+.fb_iframe_widget span,
+.fb_iframe_widget iframe {
+    height: 20px !important;
+    width: 82px !important;
+}
+
+.twitter-follow-button {
+    margin-top: 10px;
+}
+
+.gittip {
+    margin-top: 8px;
+}
+
+.gittip-button {
+    margin-bottom: -6px;
+}
+
+.dropdown-menu > li > span,
+.dropdown-menu > li > div,
+.dropdown-menu > li > label {
+    display: block;
+    padding: 3px 20px;
+    clear: both;
+    font-weight: bold;
+    line-height: 20px;
+    color: var(--grayToWhite);
+    white-space: nowrap;
+}
+
+.dropdown-menu > li > label:hover, .dropdown-menu > li > label:focus {
+  color: #262626;
+  text-decoration: none;
+  background-color: #f5f5f5;
+}
+
+.dropdown-menu > li > a {
+    color: var(--grayToWhite);
+}
+
+.loggedinuser {
+    font-weight: bold;
+}
+
+/* end navbar and menu related styles */
+
+.CodeMirror {
+    margin: 0 0 1em 0;
+    background-color: var(--background);
+    height: auto;
+    clear: both;
+}
+
+.CodeMirror-scroll {
+    /* this allows CM elements to be resized to (almost) any
+     * height while still relying on max-height (which keeps
+     * the CM editors to no more than the size needed
+     * unless resized) */
+    max-height: 60em;
+    min-width: 30em;
+}
+
+.ac_section .CodeMirror pre {
+    -moz-border-radius: 0;
+    -webkit-border-radius: 0;
+    -o-border-radius: 0;
+    border-radius: 0;
+    border-width: 0;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-family: Monaco, Courier New, monospace;
+    font-size: inherit;
+    padding: 0;
+    margin: 0;
+    white-space: pre;
+    word-wrap: normal;
+}
+
+button.btn,
+btn.btn-sm,
+input[type="submit"].btn.btn-sm,
+input[type="button"].btn.btn-sm {
+    font-size: 1em;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* Fix search menu button */
+.dropdown-menu .input-group .input-group-btn button.btn {
+    font-size: 14px;
+}
+
+.btn {
+    margin: 5px;
+}
+
+.btn.disabled {
+    /* needed in Bootstrap 3 to allow tooltips on disabled buttons */
+    pointer-events: auto;
+}
+
+.btn-default,
+.btn-default.disabled,
+.btn-default[disabled],
+.btn-default.disabled:hover,
+.btn-default[disabled]:hover {
+    color: #ffffff;
+    background-color: var(--codeButtons);
+    border-color: var(codeButtonsBorder);
+}
+
+.btn-default:hover,
+.btn-default:focus,
+.btn-default:active,
+.btn-default.active {
+    background-color: #3a3c3c;
+    border-color: #2e2f2f;
+    color: #ffffff;
+}
+
+input[type="radio"],
+input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+.tooltip {
+    z-index: 2000 !important;
+}
+
+.tooltip.in {
+    opacity: 0.8;
+    filter: alpha(opacity=80);
+}
+
+h2 {
+    margin-top: 20px;
+}
+
+.alert form {
+    margin-bottom: 0;
+}
+
+/* default bookstrap alert color is hard to read (low contrast). */
+.alert {
+    color: var(--grayToWhite);
+    padding: 10px;
+}
+
+.alert-info {
+    background-color: var(--alerts);
+}
+
+.alert-danger {
+    background-color: var(--dangerAlerts);
+}
+
+/* override the color styles applied by Skulpt to the unittest results divs */
+.unittest-results.alert-danger {
+    background-color: var(--dangerAlerts) !important;
+}
+
+.unittest-results.alert-success {
+    background-color: var(--successAlerts) !important;
+}
+
+.alert label {
+    font-weight: normal;
+}
+
+.navbar_message {
+    margin-top: 15px;
+    font-weight: bold;
+}
+/*
+Missing brackets
+================
+The default styling from Sphinx's ``basic.css`` doesn't style multiple references to the same reference with brackets. Here's the relevant snippet of CSS:
+
+.. code-block:: CSS
+    :number-lines:
+
+    a.brackets:before,
+    span.brackets > a:before{
+        content: "[";
+    }
+
+    a.brackets:after,
+    span.brackets > a:after {
+        content: "]";
+    }
+
+The HTML for a footnote reference is:
+
+.. code-block:: HTML
+    :number-lines:
+
+    <a class="footnote-reference brackets" href="#assembled" id="id1">2</a>
+
+The HTML for a typical footnote is:
+
+.. code-block:: HTML
+    :number-lines:
+
+    <dl class="footnote brackets">
+        <dt class="label" id="xxx">
+            <span class="brackets">
+                <a class="fn-backref" href="#id2">1</a>
+            </span>
+        </dt>
+        <dd>Omitted this...</dd>
+    </dl>
+
+The HTML for a footnote referenced multiple times is:
+
+.. code-block:: HTML
+    :number-lines:
+
+    <dl class="footnote brackets">
+        <dt class="label" id="xxx">
+            <span class="brackets">1</span>
+            <span class="fn-backref">
+                (<a href="#id1">1</a>,<a href="#id2">2</a>,<a href="#id3">3</a>)
+            </span>
+        </dt>
+        <dd>Omitted this...</dd>
+    </dl>
+
+However, there's no (current) CSS selector that will add a ``content`` to the multiply-referenced footnote without adding an additional ``content`` to the typical footnote: we want to select ``dt.label > span.brackets > text-only content`` or ``dt.label > span.brackets > :not(:has a)`` (see the unsupported `:has selector <https://css-tricks.com/did-you-know-about-the-has-css-selector/>`_. So, I see no solution for this (outside JS).
+
+
+Incorrect color
+===============
+Second, the Bootstrap theme (v3.4.1) contains the following CSS, from ``node_modules/bootstrap/dist/css/less/labels.less``:
+
+.. code-block:: CSS
+    :number-lines:
+
+    .label {
+        display: inline;
+        padding: .2em .6em .3em;
+        font-size: 75%;
+        font-weight: 700;
+        line-height: 1;
+        color: @label-color;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: .25em;
+
+        ...more here omitted...
+    }
+
+ALL this therefore gets applied to footnotes, since they have the ``label`` class. Because the ``@label-color`` is white, this CSS makes the reference invisible against the default (light mode) white background. I like the rest of the styling changes (even though they differ from the standard Sphinx settings), so only the color is changed.
+*/
+dt.label > span.brackets:not(span.brackets > a),
+dt.label > span.fn-backref:not(span.fn-backref > a) {
+    color: black;
+}
+
+/* These admonition styles styles are copied from the Bootstrap .alert classes.
+ Most of the !important declarations are to override the Sphinx basic.css styles */
+.admonition {
+    padding: 8px 35px 8px 14px !important;
+    margin-bottom: 20px !important;
+    margin-top: 20px !important;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+    background-color: var(--admonition);
+    border: 1px solid #fbeed5;
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+}
+
+/* .alert-danger */
+.admonition.caution {
+    color: #a33f3e;
+    background-color: #f2dede;
+    border-color: #eed3d7;
+}
+
+/* .alert-info */
+.admonition.tip,
+.admonition.note {
+    color: #333;
+    background-color: #d9edf7;
+    border-color: #bce8f1;
+}
+
+/* from web2py.css */
+div.flash {
+    font-weight: bold;
+    position: fixed;
+    padding: 10px;
+    top: 55px;
+    right: 45px;
+    opacity: 0.95;
+    margin: 0 0 10px 10px;
+    vertical-align: middle;
+    cursor: pointer;
+    color: #ffffff;
+    background-color: #000;
+    border: 2px solid #fff;
+    border-radius: 8px;
+    -moz-border-radius: 8px;
+    -webkit-border-radius: 8px;
+    background-image: -webkit-linear-gradient(top, #222, #000);
+    background-image: -o-linear-gradient(top, #222, #000);
+    background-image: -moz-linear-gradient(90deg, #222, #000);
+    background-image: linear-gradient(top, #222, #000);
+    background-repeat: repeat-x;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    z-index: 2000;
+}
+
+/* Styles for the login, registration, and Janrain forms */
+#web2py_user_form {
+    margin-top: 10px;
+}
+
+#web2py_user_form form {
+    float: left;
+    margin-right: 150px;
+    padding-top: 3px;
+}
+
+#web2py_user_form td {
+    padding-bottom: 15px;
+}
+
+#web2py_user_form td.w2p_fw {
+    width: 299px;
+}
+
+#auth-actions {
+    margin-top: 50px;
+}
+
+#sign_in_text td {
+    font-size: 17px;
+    color: #333;
+    font-family: "lucida grande", Verdana, sans-serif;
+    padding-bottom: 13px;
+}
+
+#auth_user_remember {
+    margin-top: -20px;
+}
+
+/* End login, registration, Janrain styles */
+
+/* end-of-chapter exercises styles */
+#exercises > ol > li,
+#programming-exercises > ol > li {
+    margin-bottom: 30px;
+}
+
+#exercises > ol > li:nth-child(even),
+#programming-exercises > ol > li:nth-child(even) {
+    padding: 1.2em 1.4em;
+    background: #faf7df;
+    border: 1px solid #fbeed5;
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+}
+
+/* End chapter exercises styles */
+
+/* Modal dialog styles (scratch activecode, compare me, etc) */
+.scratch-ac-modal {
+    width: 90%;
+}
+
+.compare-modal .progress {
+    margin-bottom: 0;
+}
+
+.compare-me-progress {
+    width: 100%;
+}
+
+.compare-me-progress .progress-bar,
+.unittest-results-progress .progress-bar {
+    color: #333;
+}
+
+.modal-body {
+    background-color: var(--background);
+}
+
+.modal-header {
+    background-color: var(--background);
+}
+
+.unittest-results-progress {
+    width: 25%;
+}
+
+.compare-modal {
+    width: 350px;
+}
+
+.compare-modal table {
+    border-collapse: separate;
+    border-spacing: 10px 5px;
+}
+
+.codelens-modal {
+    /* we set some custom position styles so that the modal doesn't obscure the codelens visualizer */
+    top: 20%;
+    right: 20%;
+    left: auto;
+    bottom: auto;
+}
+
+@media (max-width: 768px) {
+    /* remove any custom position styles when the screen is small (mobile devices)
+    to prevent the modal from being partially off the screen */
+    .codelens-modal {
+        top: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        left: 0 !important;
+    }
+}
+
+.codelens-modal > .modal-dialog {
+    width: 400px;
+}
+
+/* End modal dialog styles */
+
+.footnote.table {
+    width: auto;
+    margin-bottom: 10px;
+}
+
+.footnote.table td.label {
+    padding: 2px 5px 2px 5px;
+    background-color: #d9edf7;
+}
+
+.ac-canvas {
+    background-color: white;
+    display: inline-block;
+}
+
+.video-play-overlay {
+    position: relative;
+    top: -150px;
+    left: 44%;
+    height: 85px;
+    width: 130px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.video_popup video {
+    width: var(--contentWidthRegular);
+    cursor: pointer;
+}
+
+.ui-sortable-helper {
+    height: auto !important;
+    width: auto !important;
+}
+
+.navLink {
+    z-index: 2;
+    display: inline;
+    bottom: 65px;
+    position: fixed;
+    opacity: 0.4;
+}
+
+.navLink:hover {
+    opacity: 1;
+}
+
+.navLink a {
+    display: inline-block;
+    background-color: white;
+    border-style: solid;
+    border-color: lightgrey;
+    border-width: 2px;
+    width: 100px;
+    height: 50px;
+}
+
+#relations-next {
+    right: 35px;
+}
+
+#relations-prev {
+    left: 35px;
+}
+
+.nextprev-list {
+    margin: 10px;
+    padding-left: 0;
+    height: 50px;
+}
+
+@media (max-width: 600px) {
+    .navLink {
+        display: inline-block;
+        bottom: auto;
+        position: absolute;
+    }
+
+    #relations-next,
+    #relations-prev {
+        width: 25%;
+        padding: 0 20px;
+        display: inline;
+    }
+}
+
+#completionButton {
+    margin-top: 25px;
+    margin-bottom: 15px;
+    padding-left: 70px;
+    padding-right: 70px;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.buttonAskCompletion {
+    background-color: var(--completionButton);
+    border-color: var(--completionButtonHover);
+    font-weight: bold;
+}
+
+.buttonAskCompletion:hover {
+    background-color: var(--completionButtonHover);
+    border-color: var(--completionButtonHover);
+}
+
+.buttonConfirmCompletion {
+    background-color: #50d392;
+    border-color: #3dc682;
+}
+
+.buttonConfirmCompletion:hover {
+    background-color: #3dc682;
+    border-color: #3dc682;
+}
+
+.navLinkBg {
+    height: 40px;
+    background-color: #ffffff;
+    z-index: 1;
+    position: fixed;
+    bottom: 55px;
+    color: #999;
+    font-weight: bold;
+    -webkit-box-shadow: 0px 0px 3px rgba(50, 50, 50, 0.5);
+    -moz-box-shadow: 0px 0px 3px rgba(50, 50, 50, 0.5);
+    box-shadow: 0px 0px 3px rgba(50, 50, 50, 0.5);
+}
+
+.navLinkBg:hover {
+    color: #999;
+}
+
+#navLinkBgRight {
+    right: -1000px;
+    padding: 10px 15px 0 65px;
+}
+
+#navLinkBgLeft {
+    left: -65px;
+    padding-left: 15px;
+    padding-right: 50px;
+}
+
+.activehtml {
+    width: 100%;
+    height: 400px;
+    background-color: #ffffff;
+}
+
+.container section > div.sidebar {
+    margin: 0 0 0.5em 1em;
+}
+
+a.disqus_thread_link {
+    display: block;
+}
+
+.reveal_button {
+    display: block;
+    margin-left: 0;
+}
+
+iframe[seamless] {
+    display: block;
+}
+
+@media (min-width: 768px) {
+    .container section > div.sidebar {
+        margin: 0 3em 0.5em 1em;
+    }
+}
+
+@media (min-width: 992px) {
+    .container section > div.sidebar {
+        margin: 0 11em 0.5em 1em;
+    }
+}
+
+@media (min-width: 1200px) {
+    .container section > div.sidebar {
+        margin: 0 18em 0.5em 1em;
+    }
+}
+
+div.ExecutionVisualizer table.visualizer {
+    width: auto;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: #ffffff;
+}
+
+.sltooltip {
+    position: absolute;
+    z-index: 1020;
+    display: block;
+    padding-bottom: 5px;
+    font-size: 11px;
+    visibility: visible;
+    margin-top: -2px;
+    bottom: 120%;
+    margin-left: -2em;
+}
+
+.sltooltip .sltooltip-arrow {
+    bottom: 0;
+    left: 50%;
+    margin-left: -5px;
+    border-top: 5px solid #000000;
+    border-right: 5px solid transparent;
+    border-left: 5px solid transparent;
+    position: absolute;
+    width: 0;
+    height: 0;
+}
+
+.sltooltip-inner {
+    max-width: 200px;
+    padding: 3px 8px;
+    color: var(--tooltip);
+    text-align: center;
+    text-decoration: none;
+    background-color: #000000;
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+}
+
+ul.dropdown-menu.globaltoc {
+    max-height: 700px;
+    overflow: auto;
+}
+
+.globaltoc span.caption-text {
+    display: inline-block;
+    font-weight: bold;
+    font-size: large;
+}
+
+/* Style lp textareas. */
+textarea.lp-result {
+    width: 100%;
+    height: 10em;
+    font-family: monospace;
+}
+
+/*
+ * Hide only visually, but have it available for screen readers:
+ * https://snook.ca/archives/html_and_css/hiding-content-for-accessibility
+ *
+ * 1. For long content, line feeds are not interpreted as spaces and small width
+ *    causes content to wrap 1 word per line:
+ *    https://medium.com/@jessebeach/beware-smushed-off-screen-accessible-text-5952a4c2cbfe
+ */
+
+.visuallyhidden {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+    white-space: nowrap;
+    /* 1 */
+}
+
+/*
+ * Extends the .visuallyhidden class to allow the element
+ * to be focusable when navigated to via the keyboard:
+ * https://www.drupal.org/node/897638
+ */
+
+.visuallyhidden.focusable:active,
+.visuallyhidden.focusable:focus {
+    clip: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    position: static;
+    width: auto;
+    white-space: inherit;
+}
+
+.blockquote {
+    text-align: center;
+    font-size: large;
+    font-style: italic;
+    padding-left: 2em;
+    padding-right: 2em;
+}
+
+#scprogresscontainer {
+    width: 100%;
+    max-width: 500px;
+    margin: 10px auto;
+}
+
+#subchapterprogress.ui-progressbar .ui-progressbar-value {
+    margin: 0;
+    border-radius: 0px;
+}
+
+#subchapterprogress > div {
+    background: green;
+}
+
+#subchapterprogress > div.loggedout {
+    background: lightgray;
+}
+
+.runestone_caption {
+    text-align: center;
+}
+
+.runestone_caption_divid {
+    opacity: 50%;
+}
+
+#questions .runestone_caption:before {
+    counter-increment: rscomponent;
+    content: "Problem: " counter(rscomponent) " -- ";
+}
+
+body {
+    color: var(--bodyFont);
+}
+
+.jupyter_container .output {
+    margin-top: 10px;
+}
+
+.jupyter_container .output td {
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.jupyter_container .output th {
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+/*Theme toggle*/
+.dropdown-menu > li > label.theme-switch {
+    display: flex;
+    align-items: center;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.theme-switch input {
+    display: none;
+}
+
+.theme-switch .slider {
+background-color: #ccc;
+height: 1.25em;
+width: 2em;
+transition: 0.4s;
+position: relative;
+margin-right: 3px;
+}
+
+.theme-switch .slider:before {
+    background-color: #fff;
+    bottom: 2px;
+    content: "";
+    height: calc(1.25em - 4px);
+    left: 2px;
+    position: absolute;
+    transition: 0.4s;
+    width: calc(1.25em - 4px);
+}
+
+.theme-switch input:checked + .slider {
+    background-color: #66bb6a;
+}
+
+.theme-switch input:checked + .slider:before {
+    transform: translateX( calc(0.75em - 1px) );
+}
+
+.theme-switch .slider.round {
+    border-radius: 1.25em;
+}
+
+.theme-switch .slider.round:before {
+    border-radius: 1.25em;
+}
+/*End theme toggle*/
+
+/* for ads */
+.adcopy {
+    width: 60%;
+    background-color: #f2e0c3;
+    padding: 10px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 10px;
+    border: solid black 2px;
+    border-radius: 10px;
+}
+
+.adcopy .donateb {
+
+  margin-left: 30%;
+}
+
+.isCorrect:before {
+  /*content: url(https://em-content.zobj.net/thumbs/240/apple/325/check-mark_2714-fe0f.png);*/
+  content: "✅ ";
+  float:right;
+  padding-left: 4px;
+}
+
+.isInCorrect:before {
+  /*content: url(https://em-content.zobj.net/thumbs/240/apple/325/check-mark_2714-fe0f.png);*/
+  content: "⚠️ ";
+  float:right;
+  padding-left: 4px;
+}

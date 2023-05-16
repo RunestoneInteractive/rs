@@ -1,0 +1,161 @@
+.modal-profile {
+    display: none;
+    min-height: 300px;
+    overflow: hidden;
+    width: 700px;
+    padding: 25px;
+    border: 1px solid #fff;
+    box-shadow: 0px 2px 7px #292929;
+    -moz-box-shadow: 0px 2px 7px #292929;
+    -webkit-box-shadow: 0px 2px 7px #292929;
+    border-radius: 10px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    background: #f2f2f2;
+    z-index: 50;
+}
+
+.modal-lightsout {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 25;
+    background: #000;
+}
+
+.modal-close-profile {
+    display: none;
+    position: absolute;
+    height: 43px;
+    width: 43px;
+    /*background-image: url('close.png'); */
+    top: 1px;
+    right: 0.5px;
+}
+
+.ac_actions {
+    text-align: center;
+}
+
+.ac_sep {
+    background: #000;
+    display: inline-block;
+    margin: -15px 10px;
+    width: 1px;
+    height: 35px;
+    padding: 0;
+    border: 0;
+}
+
+#main-content section .runestone.ac_section .ac_section {
+    position: relative;
+    margin-right: auto;
+    margin-left: auto;
+    max-width: 800px;
+    clear: both;
+}
+
+.unittest-results {
+    margin-left: 20px;
+}
+
+.ac_output {
+    margin-top: 10px;
+    margin-bottom: -10px;
+    display: none;
+    background-color: inherit;
+}
+.ac_output pre {
+    background-color: lightgray;
+}
+
+.python_check_results pre {
+    background-color: #f5f5f5;
+}
+
+.ac_caption {
+    text-align: center;
+    font-weight: bold;
+}
+
+.ac_caption_text {
+    font-weight: normal;
+}
+
+.ac_question {
+    background-color: var(--questionBgColor);
+    padding-left: 10px;
+    padding-top: 10px;
+    margin: 5px;
+}
+
+.active_out {
+    background-color: #dcdcdc;
+    border-radius: 6px;
+    min-width: 20em;
+    max-height: 300px;
+    overflow: auto;
+}
+
+.visible-ac-canvas {
+    border: 2px solid black;
+}
+
+.full_width ol {
+    max-width: 100% !important;
+}
+
+.ac-disabled {
+    pointer-events: none;
+}
+
+.ac-feedback {
+    border: 1px solid black;
+    padding: 3px;
+}
+
+.CodeMirror {
+    border: solid 2px;
+    margin-bottom: 10px;
+}
+
+.ac_sql_result {
+    background-color: lightgrey;
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.ac_sql_result_success {
+    background-color: transparent;
+    color: green;
+    border: 0px;
+    padding: 0px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    min-height: 0px !important;
+}
+
+.ac_sql_result_failure {
+    background-color: transparent;
+    color: red;
+    border: 0px;
+    padding: 0px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    min-height: 0px !important;
+}
+
+.codelens {
+    margin-bottom: 20px;
+}
+
+.codecoach {
+    margin-top: 20px;
+}
+
+.ac_section .alert h3:first-child {
+    margin-top: 0px;
+  }

@@ -6,7 +6,8 @@ authors = ['Brad Miller <bonelake@mac.com>']
 license = ""
 
 packages = [
-    {include = "rsptx/web2py_server", from = "../../bases"}
+    {include = "rsptx/web2py_server", from = "../../bases"},
+    {include = "rsptx/cl_utils",from = "../../components"},
 ]
 
 [tool.poetry.dependencies]
