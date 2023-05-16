@@ -17,7 +17,9 @@ very docker friendly set of servers and services. we will use a polylith
 software architecture to develop and maintain this set of services. The
 following diagram shows what we are aiming at.
 
-.. image:: ../images/RunestoneArch.svg
+.. image:: docs/images/RunestoneArch.svg
+   :alt: Runestone Architecture
+   :align: center
 
 Each of the servers in the diagram above will become a project in this
 repo.
