@@ -1632,8 +1632,19 @@ async def create_traceback(exc: Exception, request: Request, host: str):
     """
     async with async_session.begin() as session:
         tbtext = "".join(traceback.format_tb(exc.__traceback__))
+        # walk the stack trace and collect local variables into a dictionary
+        curr = exc.__traceback__
+        dl = []
+        while curr is not None:
+            frame = curr.tb_frame
+            name = frame.f_code.co_name
+            local_vars = frame.f_locals
+            dl.append(dict(name=name, local_vars=local_vars))
+            curr = curr.tb_next
+        rslogger.debug(f"{dl[-2:]=}")
+
         new_entry = TraceBack(
-            traceback=tbtext,
+            traceback=tbtext + str(dl[-2:]),
             timestamp=datetime.datetime.utcnow(),
             err_message=str(exc),
             path=request.url.path,
