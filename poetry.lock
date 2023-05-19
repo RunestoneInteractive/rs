@@ -774,7 +774,7 @@ six = "*"
 name = "codechat"
 version = "1.9.2"
 description = "The CodeChat System for software documentation"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 files = [
@@ -3406,29 +3406,6 @@ pygments = ">=2.13.0,<3.0.0"
 jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
-name = "runestone"
-version = "6.5.4"
-description = "Sphinx extensions for writing interactive documents."
-category = "main"
-optional = false
-python-versions = ">=3.7.0,<4.0.0"
-files = [
-    {file = "runestone-6.5.4-py3-none-any.whl", hash = "sha256:db51c981a24ac97e824943ac96829a65231edc3c0cfb2a2b23d090a9263ad177"},
-    {file = "runestone-6.5.4.tar.gz", hash = "sha256:74c1b4c4eda11fe909252b353faf03fd9705f6ffe8ad91c7ae53fa6d0492ecd7"},
-]
-
-[package.dependencies]
-click = ">=8,<9"
-CodeChat = ">=1.8.6"
-cogapp = ">=2.5"
-jinja2 = "<3.1.0"
-Paver = ">=1.2.4"
-six = ">1.12"
-Sphinx = ">=4.4.0,<6.0.0"
-sphinxcontrib-paverutils = ">=1.17"
-SQLAlchemy = ">=1.4.0"
-
-[[package]]
 name = "s3transfer"
 version = "0.6.0"
 description = "An Amazon S3 Transfer Manager"
@@ -4293,4 +4270,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "ec3937a9e4c1a52eaafc350e34b50ebc8f77981077cfd1a0eec6681cb06f3f01"
+content-hash = "6cd9d3bc82e0b48ac8419af1fde173fa0d57a8483360255954493100ac3f5487"
