@@ -10,8 +10,6 @@
 // -    The ``data-component`` attribute of each component must be kept in sync with the keys of the ``module_map`` below.
 // -    The values in the ``module_map`` must be kept in sync with the JavaScript files which implement each of the components.
 
-"use strict";
-
 // Static imports
 // ==============
 // These imports are (we assume) needed by all pages. However, it would be much better to load these in the modules that actually use them.
@@ -32,9 +30,12 @@ import "./runestone/common/js/jquery_i18n/jquery.i18n.language.js";
 
 // Bootstrap
 import "bootstrap/dist/js/bootstrap.js";
-import "bootstrap/dist/css/bootstrap.css";
+// comment out for overhaul
+//import "bootstrap/dist/css/bootstrap.css";
+import "./ptxrs-bootstrap.less";
 import "./runestone/common/project_template/_templates/plugin_layouts/sphinx_bootstrap/static/bootstrap-sphinx.js";
-import "./runestone/common/css/runestone-custom-sphinx-bootstrap.css";
+// comment out for overhaul
+//import "./runestone/common/css/runestone-custom-sphinx-bootstrap.css";
 
 // Misc
 import "./runestone/common/js/bookfuncs.js";
@@ -49,6 +50,7 @@ import "./runestone/webgldemo/css/webglinteractive.css";
 import { getSwitch, switchTheme } from "./runestone/common/js/theme.js";
 import "./runestone/common/js/presenter_mode.js";
 import "./runestone/common/css/presenter_mode.css";
+import { renderOneComponent } from "./runestone/common/js/renderComponent.js";
 
 // Dynamically loaded components
 // =============================
@@ -123,15 +125,17 @@ export function runestone_auto_import() {
     );
 
     // Send the Runestone login complete event when all JS is loaded and the pre-login is also complete.
-    Promise.all([pre_login_complete_promise, ...a]).then(() =>
-        $(document).trigger("runestone:login-complete")
-    );
+    Promise.all([pre_login_complete_promise, ...a]).then(function () {
+        if (!document.body.dataset.reactInUse) {
+            $(document).trigger("runestone:login-complete");
+        }
+    });
 }
 
 // Load component JS when the document is ready.
 $(document).ready(runestone_auto_import);
 
-// Provide a function to import one specific Runestone component.
+// Provide a function to import one specific `Runestone` component.
 // the import function inside module_map is async -- runestone_import
 // should be awaited when necessary to ensure the import completes
 export async function runestone_import(component_name) {
@@ -146,12 +150,12 @@ async function popupScratchAC() {
     if (!eBookConfig.scratchDiv) {
         window.ACFactory.createScratchActivecode();
         let divid = eBookConfig.scratchDiv;
-        window.edList[divid] = ACFactory.createActiveCode(
+        window.componentMap[divid] = ACFactory.createActiveCode(
             $(`#${divid}`)[0],
             eBookConfig.acDefaultLanguage
         );
         if (eBookConfig.isLoggedIn) {
-            window.edList[divid].enableSaveLoad();
+            window.componentMap[divid].enableSaveLoad();
         }
     }
     window.ACFactory.toggleScratchActivecode();
@@ -167,10 +171,13 @@ __webpack_public_path__ = script_src.substring(
 // Manual exports
 // ==============
 // Webpack's ``output.library`` setting doesn't seem to work with the split chunks plugin; do all exports manually through the ``window`` object instead.
+
 const rc = {};
 rc.runestone_import = runestone_import;
 rc.runestone_auto_import = runestone_auto_import;
 rc.getSwitch = getSwitch;
 rc.switchTheme = switchTheme;
 rc.popupScratchAC = popupScratchAC;
+rc.renderOneComponent = renderOneComponent;
+window.componentMap = {};
 window.runestoneComponents = rc;
