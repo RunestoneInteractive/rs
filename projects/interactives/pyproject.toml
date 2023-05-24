@@ -109,6 +109,8 @@ SQLAlchemy = ">=1.4.0"
 # ========================
 toml = "^0.10.2"
 json2xml = "^3.21.0"
+sphinx-reredirects = "^0.1.2"
+psycopg2-binary = "^2.9.6"
 [tool.poetry.dev-dependencies]
 selenium = ">=2.53.6, <4.0.0"
 pyvirtualdisplay = "~3"

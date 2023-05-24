@@ -23,10 +23,7 @@ from runestone.server.componentdb import (
     addHTMLToDB,
     maybeAddToAssignment,
 )
-from runestone.common.runestonedirective import (
-    RunestoneIdDirective,
-    RunestoneIdNode,
-)
+from runestone.common.runestonedirective import RunestoneIdDirective, RunestoneIdNode
 from runestone.common.xmlcommon import (
     write_substitute,
     substitute_visitor,
@@ -48,7 +45,7 @@ def setup(app):
 
 TEMPLATE = """
 <div class="runestone %(optclass)s">
-<div data-component="clickablearea" class="%(divclass)s" id="%(divid)s" data-question_label="%(question_label)s" %(optional)s %(table)s %(correct)s %(incorrect)s style="visibility: hidden;">
+<div data-component="clickablearea"  id="%(divid)s" data-question_label="%(question_label)s" %(optional)s %(table)s %(correct)s %(incorrect)s style="visibility: hidden;">
 <span data-question>%(qnumber)s: %(question)s</span>%(feedback)s%(clickcode)s
 """
 TEMPLATE_END = """
