@@ -13,15 +13,15 @@ import pathlib
 import re
 import subprocess
 from paver.easy import sh
-from pkg_resources import resource_string, resource_filename, require
-from .pretext.chapter_pop import manifest_data_to_db
+import importlib.metadata
+import importlib.resources
 import codecs
 from runestone.server import get_dburl
-from runestone.server.utils import update_library, populate_static
+from rsptx.build_tools.core import update_library, populate_static, manifest_data_to_db
 
 if len(sys.argv) == 2:
     if "--version" in sys.argv:
-        version = require("runestone")[0].version
+        version = importlib.metadata.version("runestone")
         print("Runestone version {}".format(version))
         sys.exit()
 
@@ -34,16 +34,20 @@ def cli(version):
 
     """
     if version:
-        version = require("runestone")[0].version
+        version = importlib.metadata.version("runestone")
         print("Runestone version {}".format(version))
         sys.exit()
 
 
 @cli.command()
 def init():
-    template_base_dir = resource_filename("runestone", "common/project_template")
-    config_stuff = resource_string("runestone", "common/project_template/conf.tmpl")
-    paver_stuff = resource_string("runestone", "common/project_template/pavement.tmpl")
+    template_base_dir = importlib.resources.path("runestone.common", "project_template")
+    config_stuff = importlib.resources.read_text(
+        "runestone.common.project_template", "conf.tmpl"
+    )
+    paver_stuff = importlib.resources.read_text(
+        "runestone.common.project_template", "pavement.tmpl"
+    )
     conf_dict = {}
     print("This will create a new Runestone project in your current directory.")
     click.confirm("Do you want to proceed? ", abort=True, default=True)
@@ -156,7 +160,7 @@ def build(all, wd):
         os.chdir(findProjectRoot())
     sys.path.insert(0, os.getcwd())
     if not pathlib.Path(
-        resource_filename("runestone", "dist/webpack_static_imports.json")
+        importlib.resources.path("runestone.dist", "webpack_static_imports.json")
     ).exists():
         click.echo(
             "Error -- you are missing webpack_static_imports.json.  Please make sure"
@@ -165,7 +169,7 @@ def build(all, wd):
         click.echo("In a development environment, execute npm run build.")
         sys.exit(-1)
 
-    version = require("runestone")[0].version
+    version = importlib.metadata.version("runestone")
     print("Building with Runestone {}".format(version))
 
     import pavement
@@ -414,7 +418,7 @@ def update():
     you can merge your changes (in _templates.bak) after you run this command.
     """
     os.chdir(findProjectRoot())
-    template_base_dir = resource_filename("runestone", "common/project_template")
+    template_base_dir = importlib.resources.path("runestone.common", "project_template")
     print("This will update all files in the _templates folder.")
     print(
         "The old _templates folder will be in _templates.bak so you can merge manually after you update"

@@ -57,7 +57,7 @@ from rsptx.db.crud import (
 from rsptx.db.models import CoursesValidator, AuthUserValidator
 from rsptx.db.async_session import init_models, term_models
 from rsptx.configuration import settings
-from runestone.server.utils import _build_runestone_book, _build_ptx_book
+from rsptx.build_tools.core import _build_runestone_book, _build_ptx_book
 
 import pdb
 

@@ -26,7 +26,7 @@ import pandas as pd
 
 # Local Application
 # -----------------
-from runestone.server.utils import _build_runestone_book, _build_ptx_book
+from rsptx.build_tools.core import _build_runestone_book, _build_ptx_book
 from rsptx.data_extract.anonymizeCourseData import Anonymizer
 
 # Set up logging
@@ -214,7 +214,9 @@ def build_ptx_book(self, book, generate=False):
     logger.debug(f"Before building myclick self = {self}")
     myclick = MyClick(self, "PTXBUILD")
     logger.debug("Starting build")
-    res = _build_ptx_book(config, generate, "runestone-manifest.xml", book, click=myclick)
+    res = _build_ptx_book(
+        config, generate, "runestone-manifest.xml", book, click=myclick
+    )
     if res:
         self.update_state(state="FINISHING", meta={"current": "updating permissions"})
     else:

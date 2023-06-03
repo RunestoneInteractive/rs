@@ -31,6 +31,7 @@ packages = [
     {include = "rsptx/lp_sim_builder",from = "components"},
     {include = "rsptx/configuration",from = "components"},
     {include = "rsptx/exceptions",from = "components"},
+    {include = "rsptx/build_tools",from = "components"},
 ]
 
 [tool.poetry.dependencies]

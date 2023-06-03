@@ -31,7 +31,9 @@ from .video import Youtube, Vimeo, Video
 from .webgldemo import WebglDemo
 
 
-import os, socket, pkg_resources
+import os, socket
+from importlib.metadata import version
+import importlib.resources
 import CodeChat.CodeToRest
 from sphinx.errors import ExtensionError
 from sphinx.builders.html import JavaScript
@@ -117,9 +119,7 @@ def setup(app):
     app.set_html_assets_policy("always")
     # Include JS and CSS produced by webpack. See `webpack static imports <webpack_static_imports>`_.
     with open(
-        pkg_resources.resource_filename(
-            "runestone", "dist/webpack_static_imports.json"
-        ),
+        importlib.resources.path("runestone.dist", "webpack_static_imports.json"),
         "r",
         encoding="utf-8",
     ) as f:
@@ -230,7 +230,12 @@ def build(options):
 
 # Module variables
 # ----------------
-runestone_version = version = pkg_resources.get_distribution("runestone").version
+try:
+    runestone_version = version("runestone")
+except:
+    print("Could not determine runestone version")
+    runestone_version = "unknown"
+
 
 css_files = [
     # Generated from a template, so it can't be directly included in the webpack.

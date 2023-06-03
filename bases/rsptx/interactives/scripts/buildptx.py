@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 import pathlib
-from runestone.server.utils import _build_ptx_book
+from rsptx.build_tools.core import _build_ptx_book
 
 p = pathlib.Path.cwd()
 

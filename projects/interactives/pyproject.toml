@@ -84,6 +84,7 @@ packages = [
       {include = "rsptx/configuration", from = "../../components"},
       {include = "rsptx/logging", from = "../../components"},
       {include = "rsptx/cl_utils", from = "../../components"},
+      {include = "rsptx/build_tools",from = "../../components"},
       # runestone is different because we want to expose runestone as a namespace, not
       # rsptx.interactives.runestone
       {include = "runestone", from = "../../bases/rsptx/interactives"},
@@ -103,21 +104,22 @@ Paver = ">=1.2.4"
 six = ">1.12"
 Sphinx = ">=4.4.0,<6.0.0"
 sphinxcontrib-paverutils = ">=1.17"
-SQLAlchemy = ">=1.4.0"
-
-# Development dependencies
-# ========================
+SQLAlchemy = "^1.4.0"
 toml = "^0.10.2"
 json2xml = "^3.21.0"
 sphinx-reredirects = "^0.1.2"
 psycopg2-binary = "^2.9.6"
+lxml = "^4.9.2"
+myst-parser = "^1.0.0"
+
+# Development dependencies
+# ========================
 [tool.poetry.dev-dependencies]
 selenium = ">=2.53.6, <4.0.0"
 pyvirtualdisplay = "~3"
 pytest = "~7"
 pylint = "~2"
 readme-renderer = ">24"
-myst-parser = "~0"
 json2xml = "~3"
 
 # Scripts

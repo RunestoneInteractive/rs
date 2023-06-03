@@ -15,7 +15,7 @@ packages = [
     {include = "rsptx/lp_sim_builder", from = "../../components"},
     {include = "rsptx/templates", from = "../../components"},
     {include = "rsptx/exceptions", from = "../../components"},
-    {include = "rsptx/book_server_api", from = "../../bases"}
+    {include = "rsptx/book_server_api", from = "../../bases"},
 ]
 
 
@@ -41,13 +41,13 @@ asyncpg = "^0.24.0"
 SQLAlchemy = "^1.0.0"
 aiosqlite = "^0.17.0"
 redis = "^4.0.0"
-runestone = "^6.0.0"
 pyhumps = "^3.0.0"
 bleach = "^4.0.0"
 boto3 = "^1.0.0"
 multi-await = "^1.0.0"
 botocore = "^1.29.87"
 pyflakes = "^3.0.1"
+runestone = "^6.0.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"
@@ -68,6 +68,7 @@ pytest-env = "^0.6.0"
 psycopg2-binary = "^2.0.0"
 # This is used by VSCode for Python refactoring
 rope = "^0.21.0"
+runestone = {path = "../interactives", develop=true}
 
 # Scripts
 # =======

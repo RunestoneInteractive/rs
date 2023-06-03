@@ -104,9 +104,10 @@ class PageProgressBar {
             this.activities = activities;
         }
         this.calculateProgress();
+        // Hide the progress bar on the index page.
         if (
             window.location.pathname.match(
-                /.*(index.html|toctree.html|Exercises.html|search.html)$/i
+                /.*\/(index.html|toctree.html|Exercises.html|search.html)$/i
             )
         ) {
             $("#scprogresscontainer").hide();
@@ -264,7 +265,7 @@ function placeAdCopy() {
         let rsElements = document.querySelectorAll(".runestone");
         if (rsElements.length > 0) {
             let randomIndex = Math.floor(Math.random() * rsElements.length);
-            rsElements[randomIndex].after(adBlock)
+            rsElements[randomIndex].after(adBlock);
             adBlock.style.display = "block";
         }
     }
@@ -313,11 +314,14 @@ window.addEventListener("load", function () {
         let queryString = "?mode=browsing";
         document.querySelectorAll("a").forEach((link) => {
             let anchorText = "";
-            if (link.href.includes("books/published") && ! link.href.includes("?mode=browsing")) {
+            if (
+                link.href.includes("books/published") &&
+                !link.href.includes("?mode=browsing")
+            ) {
                 if (link.href.includes("#")) {
                     let aPoint = link.href.indexOf("#");
                     anchorText = link.href.substring(aPoint);
-                    link.href = link.href.substring(0,aPoint);
+                    link.href = link.href.substring(0, aPoint);
                 }
                 link.href = link.href.includes("?")
                     ? link.href + queryString.replace("?", "&") + anchorText

@@ -3,7 +3,6 @@
 import RunestoneBase from "../../common/js/runestonebase";
 import "../css/video.css";
 
-var vidList = [];
 class RunestoneVideo extends RunestoneBase {
     constructor(opts) {
         super(opts);
@@ -81,7 +80,7 @@ $(document).on("runestone:login-complete", function () {
             orig: this,
             useRunestoneServices: eBookConfig.useRunestoneServices,
         };
-        vidList[this.id] = new RunestoneVideo(opts);
+        window.componentMap[this.id] = new RunestoneVideo(opts);
     });
 });
 

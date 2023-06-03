@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from pkg_resources import require
+import importlib.metadata
 
 # Third-party imports
 # -------------------
@@ -68,7 +68,7 @@ def run(
     is_win = sys.platform == "win32"
 
     if version:
-        vname = require("bookserver")[0].version
+        vname = importlib.metadata.version("bookserver")
         print("BookServer Version {}".format(vname))
         sys.exit()
 
