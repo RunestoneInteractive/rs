@@ -25,7 +25,7 @@ Each of the servers in the diagram above will become a project in this
 repo.
 
 -  Each project is runnable from the top level
--  Each project builds its own docker image
+-  Each project builds its own docker image or command line program (rsmanage and runestone)
 -  The entire suite of services is orchestrated by the
    ``docker-compose.yml`` file
 
@@ -58,9 +58,16 @@ documentation <https://polylith.gitbook.io/polylith>`__
 A Python implementation of the Polylith tool:
 `python-polylith <https://github.com/DavidVujic/python-polylith>`__
 
+Documentation for building and running each of the projects is in the respective project directory.
+
+Please make sure you keep your fork up to date with main.  We are actively working on this new organization of the Runestone code, and there are likely to be lots of changes, especially throughout the summer months.
 
 Our Community
 -------------
+
+The Runestone community has been actively developing and supporting this project since 2011.  However in the 2023 I decided to move to a mono repo.  Unfortunately this means that the history of the individual repositories is lost.  I am sorry for this, but I think the benefits of a mono repo will be worth it.  The original repositories are still available, but they are no longer being actively developed, if you need to point to your contributions to Runestone, please use the old repos as a reference.
+
+Our authoring language is PreTeXt.  We have a very active community of PreTeXt authors and developers.  If you are interested in contributing to the PreTeXt project, please visit the `PreTeXt project page <https://pretextbok.org>`_.
 
 .. raw:: html
 
