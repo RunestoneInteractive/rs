@@ -255,3 +255,123 @@ You will see a more detailed error message about what is missing.
 
 At a minimum you will need to start web2py long enough for you to login
 once.
+
+
+Adding a New Feature
+====================
+
+Most new features to Runestone take the form of a new API endpoint with or wthout a UX.  The UX is usually a new page in the web2py server.  The API endpoint is usually in the book_server_api or author_server_api.  A lot of the code for a new feature typically revolves around working with the database.  All servers in the monorepo share the same database.  The database is a postgresql database, and the model for the database resides in the ``rsptx.db.models`` module.  The elements of the module are defined using the ``sqlalchemy`` library.  In addition, most models have a corresponding validator provided by the Pydantic library.  In your code you should use these pydantic validators.  They ensure that your code is using the correct types.  They also provide a convenient way to convert the data from the database into a python dictionary.  The pydantic validators are defined in the ``rsptx.common.schemas`` module.
+
+Finally, to create, retrieve, update or delete (crud) elements from the database you should use the ``rsptx.db.crud`` module.  This module provides a convenient way to interact with the database.  Most database actions are already there, so you just need to call the appropriate function.  If you need a new function, or expand the model to add a new table, we encourage you to write functions for the most common operations.    the ``crud`` module also provides a way to validate the data that you are trying to store in the database.  The ``crud`` module is used by the API endpoints and UX controllers to interact with the database.  You should NOT write database queries directly in your API endpoints.  Instead you should use the ``rsptx.db.crud`` module.
+
+If your endpoint is going to be part of the book server, you should look at the routers in the ``rsptx.book_server_api.routers`` module.  If your endpoint is going to be part of the author server, you should look at the routers in the ``rsptx.author_server_api`` module.  
+
+
+.. note:: web2py is deprecated 
+   
+      The web2py server is deprecated.  It is still used for the instructor interface, login/logout, practice. The API endpoints for interaction in a book have moved to the book server, we are currently moving the endpoints for assignments, peer instruction and practice to the assignment server.  After that we will develop a new server dedicated to managing authentication.  The new server will be a FastAPI server that will be used by the book server, author server, assignment server, etc.  The web2py server will be removed from the monorepo in the future.
+
+
+
+
+Developing the Javascript for Runestone Components
+==================================================
+
+The following is what you need to do to work on the javascript for a component testing it against a local build of a book written in PreTeXt.
+
+1. Make a branch in your clone of ``https://github.com/RunestoneInteractive/rs``
+2. Work on the javascript for the component
+3. Start up a ``poetry shell`` in the root folder of your clone of ``rs``
+4. Run ``npm build`` → results in ``runestone/dist``
+5. Run ``python dist2xml.py test`` → creates webpack_static_imports.xml and sets up for the files to be in ``_static/test`` in the resulting local build of your PreTeXt book.
+6. Set:
+```
+<stringparam key="debug.rs.services.file" value="file:////your/home/rs/bases/interactives/runestone/dist/webpack_static_imports.xml" />
+```
+In the ``project.pxt`` file of the book
+7. Run ``pretext build`` in the root folder of the book
+8. ``mkdir -p build/html/_static/test``
+9. Copy the contents of ``.../rs/bases/rsptx/interactives/runestone/dist`` to ``build/html/_static/test``
+10. Run ``pretext view``
+
+If you are still working with old RST based books, you can simply use the ``runestone build`` command which automatically copies the files to the correct location.
+
+
+
+Adding a new Project
+====================
+
+To add a new project to the monorepo, you will need to add a new folder in the ``bases`` directory.  The folder should be named ``rsptx.<project_name>``. You can do this with ``poetry poly create base --name <yourname>``  You will also need to add a new folder under ``projects/<project_name>``  You can create this with ``poetry poly create project --name <yourname>`` The folder will contain a ``pyproject.toml`` file.  
+
+From the project folder you can do ``poetry add xxxx`` to add packages to your project.  To use any of the packages in your project you will need to add the following to the ``pyproject.toml`` file.  You will find the line ``packages = []`` To that list you will add the various ``rsptx.xxx`` modules from the various components, for example ``{include = "rsptx/db", from = "../../components"},``  You will also want to add your base module to the list of packages.  For example ``{include = "rsptx/<project_name>", from = "../../bases"},``  To build your new project you run ``poetry build-project`` from the project folder.  This will create a ``dist`` folder in the project folder.  The dist folder will contain a source distribution as well as a python wheel.
+
+If the new project is going to be a FastAPI web server then you will need to write a Dockerfile to build an image using the wheel, and any other components.  For example the Dockerfile for the assignment server looks like this:
+
+.. code-block:: Dockerfile
+
+   FROM python:3.10-bullseye
+
+   # This is the name of the wheel that we build using `poetry build-project`
+   ARG wheel=assignment_server-0.1.0-py3-none-any.whl
+
+   # set work directory
+   WORKDIR /usr/src/app
+
+   # set environment variables
+   ENV PYTHONDONTWRITEBYTECODE 1
+   ENV PYTHONUNBUFFERED 1
+   ENV RUNESTONE_PATH /usr/src/app
+   # When docker is run the books volume can/will be mounted
+   ENV BOOK_PATH /usr/books
+   ENV SERVER_CONFIG development
+   # Note: host.docker.internal refers back to the host so we can just use a local instance
+   # of postgresql
+   ENV DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+   ENV CELERY_BROKER_URL=redis://redis:6379/0
+   ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
+
+   # install dependencies
+   RUN pip install --upgrade pip
+   RUN apt update
+
+
+   # copy project
+   COPY ./dist/$wheel /usr/src/app/$wheel
+   # When you pip install a wheel it also installs all of the dependencies
+   # which are stored in the METADATA file inside the wheel
+   RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
+
+   CMD ["uvicorn", "rsptx.assignment_server_api.core:app", "--host", "0.0.0.0", "--port", "8000"]
+
+You can build the image on your own and run it locally, or you can use the ``docker-compose`` file in the root of the monorepo to build and run the image.  The ``docker-compose`` file will build the image and run it.  It will also start up a postgresql database and a redis server.  The ``docker-compose`` file will also mount the ``bases`` and ``projects`` folders in the monorepo into the image.  This means that you can make changes to the code in the monorepo and they will be reflected in the running image.  You can also run the image locally and mount a local folder containing a book.  This will allow you to test your new project against a local book.  For example, to run the assignment server locally you would do the following:
+
+.. code-block:: bash
+
+   docker run auth_server -v /your/home/books:/usr/books
+
+When doing development it is often much more convenient to just run the server outside of the container.  If you have the poetry shell activated you can do the following:
+
+.. code-block:: bash
+
+   cd projects/assignment_server
+   poetry run uvicorn rsptx.assignment_server_api.core:app --host
+
+All of the servers use an authentication token stored in a cookie.  You may need to start up the web2py server to get a cookie.  You can do this by running the following from the root of the monorepo:
+
+.. code-block:: bash
+
+   poetry run gunicorn --bind 0.0.0.0:8080 --workers 1 rsptx.web2py_server.wsgihandler:application
+
+
+
+This will start up the web2py server and create an admin user with the password you specify.  You can then login to the web2py server and create a cookie.  You can then use that cookie to access the other servers.  You can also use the web2py server to create a course and add users to the course.  This will allow you to test the other servers with a real course.
+
+
+A Full Example
+==============
+
+In this section we will walk through the entire process of adding a new server to the monorepo.  We will start with a new project and add a new base.  We will then build the project and run it in a docker container.  Finally we will run the project outside of the container.  We will create a library server that will allow us to display all of the books in the Runestone library.
+
+First we will create a new project.  We will call it ``library_server``.  We will create a new base as well.  We will call it ``rsptx.library``.  We will create a new folder in the ``bases`` directory called ``rsptx.library``.  We will create a new folder in the ``projects`` directory called ``library_server``.  
+
+More to come...

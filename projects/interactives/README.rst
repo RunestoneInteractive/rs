@@ -5,6 +5,20 @@ Runestone Version 7
 
 **Important** May 2023 moved RunestoneComponents repository to a new monorepo for the whole project.
 
+To build a release of runestone including the javascript for the interactive components, use the build.py script in this folder.
+
+.. code-block:: bash
+
+    python build.py
+
+To build a release and publish that release to PyPI use the ``--publish`` option
+
+.. code-block:: bash
+
+    python build.py --publish
+
+The publish option assumes you have the credentials to publish on pyPI, as well as credentials for the runestone load balancer.
+
 Documentation
 -------------
 

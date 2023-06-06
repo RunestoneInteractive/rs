@@ -24,3 +24,4 @@ httpserver.log
 httpserver.pid
 parameters_*.py
 build.log
+_build
