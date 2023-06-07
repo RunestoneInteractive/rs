@@ -374,7 +374,18 @@ In this section we will walk through the entire process of adding a new server t
 
 First we will create a new project.  We will call it ``library_server``.  We will create a new base as well.  We will call it ``rsptx.library``.  We will create a new folder in the ``bases`` directory called ``rsptx.library``.  We will create a new folder in the ``projects`` directory called ``library_server``.  
 
-0. Install postgresql on your machine and make a username for yourself
+Here is a quick overview of what we are going to work on:
+
+Prerequisites
+
+* Install postgresql on your machine and make a username for yourself
+* Clone the monorepo from github.com/RuneStoneInteractive/rs 
+* Install poetry
+* Install docker
+
+
+Things we will do in this example:
+
 1. Create a project
 2. Create a base
 3. Add the base to the project
@@ -450,9 +461,12 @@ Here is a minimal set of environment variables that you need to set:
 .. code-block:: bash
 
    RUNESTONE_PATH = ~/path/to/rs
+   RUNESTONE_HOST = localhost
    DEV_DBURL=postgresql://runestone:runestone@localhost/runestone_dev1
    SERVER_CONFIG=development
    JWT_SECRET=supersecret
+   BOOK_PATH=/path/to/books
+   WEB2PY_PRIVATE_KEY=sha512:24c4e0f1-df85-44cf-87b9-67fc714f5653
 
 
 You may also get an error because your database may not have been initialized.  The easiest way to initialize the database is to use the rsmanage command.  You can do this by running the following from the projects/rsmanage folder
