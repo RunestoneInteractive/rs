@@ -533,3 +533,127 @@ A good development tip is to use the ``--reload`` option when running the server
 ../../components`` will watch the components folder for changes.  You can also use the ``reload-dir`` option multiple times to give it more folders to watch.
 
 Can can find the fully working code for this example on the ``library_example`` branch of the runestone monorepo.
+
+Setting up Docker
+-----------------
+
+Now lets build a docker image for our library server.  First we need to create a Dockerfile.  Create a new file called ``Dockerfile`` in the projects/library_server folder.  Add the following to the file:
+
+.. code-block:: dockerfile
+
+   # pull official base image
+   FROM python:3.10-bullseye
+
+   # This is the name of the wheel that we build using `poetry build-project`
+   ARG wheel=library_server-0.1.0-py3-none-any.whl
+
+   # set work directory
+   WORKDIR /usr/src/app
+
+   # set environment variables
+   ENV PYTHONDONTWRITEBYTECODE 1
+   ENV PYTHONUNBUFFERED 1
+   ENV RUNESTONE_PATH /usr/src/app
+   # When docker is run the books volume can/will be mounted
+   ENV BOOK_PATH /usr/books
+   ENV SERVER_CONFIG development
+   # Note: host.docker.internal refers back to the host so we can just use a local instance
+   # of postgresql
+   ENV DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+   ENV CELERY_BROKER_URL=redis://redis:6379/0
+   ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
+
+   # install dependencies
+   RUN pip install --upgrade pip
+   RUN apt update
+
+
+   # copy project
+   COPY ./dist/$wheel /usr/src/app/$wheel
+   # When you pip install a wheel it also installs all of the dependencies
+   # which are stored in the METADATA file inside the wheel
+   RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
+
+
+
+   CMD ["uvicorn", "rsptx.library_server.core:app", "--host", "0.0.0.0", "--port", "8000"]
+
+To build the docker image you need to build the wheel for the library_server project.  You can do this by running the following from the library_server project folder:
+
+.. code-block:: bash
+
+   poetry build-project
+   docker build -t library .
+
+You can run the docker image by running the following:
+
+.. code-block:: bash
+
+   docker run -p 8000:8000 library
+
+When you run the docker image you will see the following output:
+
+.. code-block:: bash
+
+   File "/usr/local/lib/python3.10/site-packages/rsptx/db/__init__.py", line 4, in <module>
+      from rsptx.db import crud
+   File "/usr/local/lib/python3.10/site-packages/rsptx/db/crud.py", line 39, in <module>
+      from rsptx.response_helpers.core import http_422error_detail
+   ModuleNotFoundError: No module named 'rsptx.response_helpers'
+
+This is because the response_helpers package is not installed in the docker image.  We can fix this by updating the packates in our pyproject.toml file:
+
+.. code-block:: python
+
+   packages = [
+      { include = "rsptx/db", from="../../components"},
+      { include = "rsptx/library_server",  from="../../bases"},
+      { include = "rsptx/templates", from = "../../components" },
+      { include = "rsptx/configuration", from = "../../components"},
+      { include = "rsptx/logging", from = "../../components"},
+      { include = "rsptx/validation", from = "../../components"},
+      { include = "rsptx/response_helpers", from = "../../components"},
+   ]
+
+It would be nice if we could make all of the components completely independent, but there are naturally some dependencies between them.  In early development the structure of the monorepo makes it pretty easy to forget to add these dependencies to the pyproject.toml file.  Building the docker image will expose all of these. So you may just have rebuild a few times until you get it right.
+
+Finally lets look at our docker-compose.yml file.  We need to add a new service for the library_server.  Add the following to the docker-compose.yml file in the root of the monorepo.
+
+.. code-block:: yaml
+
+   library:
+      build:
+         context: ./projects/library_server
+         dockerfile: Dockerfile
+      image: library
+      extra_hosts:
+        - host.docker.internal:host-gateway
+      container_name: library
+      restart: unless-stopped
+      ports:
+         - "8000:8000"
+      volumes:
+        - ${BOOK_PATH}:/usr/books
+
+      environment:
+         - BOOK_PATH=/usr/books
+         - SERVER_CONFIG=${SERVER_CONFIG}
+         - RUNESTONE_PATH=/usr/src/app
+         - REDIS_URI=redis://redis:6379/0
+         # Note: host.docker.internal refers back to the host so we can just use a local instance
+         # of postgresql
+         - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+         - DOCKER_COMPOSE=1
+
+You can now run the library server along with everything else by running the following from the root of the monorepo:
+
+.. code-block:: bash
+
+   docker-compose up
+
+.. note:: 
+
+   * The ``extra_hosts`` section is needed to allow the docker container to connect to the host machine.  This is needed because the library server needs to connect to the postgresql database on the host machine.
+   * The ``volumes`` section is needed to mount the books folder on the host machine into the docker container.  This is needed because the library server needs to access the books folder on the host machine.
+
+To integrate the library server with everything else we would want to give it a prefix url of ``/library`` Then we would update the configuration for our nginx front end to proxy requests to the library server.  
