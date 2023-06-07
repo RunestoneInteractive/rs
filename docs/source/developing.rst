@@ -374,4 +374,162 @@ In this section we will walk through the entire process of adding a new server t
 
 First we will create a new project.  We will call it ``library_server``.  We will create a new base as well.  We will call it ``rsptx.library``.  We will create a new folder in the ``bases`` directory called ``rsptx.library``.  We will create a new folder in the ``projects`` directory called ``library_server``.  
 
-More to come...
+0. Install postgresql on your machine and make a username for yourself
+1. Create a project
+2. Create a base
+3. Add the base to the project
+4. Add fastapi and others to the project
+5. Add database stuff to the project
+6. in the bases folder create a simple fastapi app
+7. Create a view function that returns a list of books
+8. Create a template to render the list of books
+9. Test it from the project folder
+10. Build a docker image
+11. Add the docker image to the docker-compose file
+
+
+.. code-block:: bash
+
+   poetry poly create base --name library_server
+   poetry poly create project --name library_server
+   cd projects/library_server
+   poetry add fastapi
+   poetry add uvicorn
+   poetry add sqlalchemy
+   poetry add psycopg2
+   poetry add jinja2
+   poetry add asyncpg
+   poetry add greenlet
+   poetry add python-dateutil
+   poetry add pyhumps
+   poetry add pydal
+
+Also add look for ``packages = []`` in  ``pyproject.toml`` file and modify it to look like this:
+
+.. code-block:: python
+
+   packages = [
+      {include = "rsptx/db", from = "../../components"},
+      {include = "rsptx/library", from = "../../bases"},
+   ]
+
+Now we can edit bases/rsptx/library_server/core.py
+
+.. code-block:: python
+
+   from fastapi import FastAPI
+
+   app = FastAPI()
+
+   @app.get("/")
+   async def root():
+      return {"message": "Hello World"}
+
+
+Now we can run the server from the project folder:
+
+.. code-block:: bash
+
+   poetry run uvicorn rsptx.library_server.core:app --reload --host 0.0.0.0 --port 8120
+
+
+Now lets add some database work.  Lets get all of the books in the library and show them as a list. update core.py to look like this:
+
+.. code-block:: python
+
+   @app.get("/")
+   async def root():
+      res = await fetch_library_books()
+      return {"books": res}
+
+
+Now when you run the server you may get an error because you may not have all of your environment variables set up!  You can set them up in the ``.env`` file in the root of the monorepo.  You can also set them up in your shell.
+
+Here is a minimal set of environment variables that you need to set:
+
+.. code-block:: bash
+
+   RUNESTONE_PATH = ~/path/to/rs
+   DEV_DBURL=postgresql://runestone:runestone@localhost/runestone_dev1
+   SERVER_CONFIG=development
+   JWT_SECRET=supersecret
+
+
+You may also get an error because your database may not have been initialized.  The easiest way to initialize the database is to use the rsmanage command.  You can do this by running the following from the projects/rsmanage folder
+
+.. code-block:: bash
+
+   createdb runestone_dev1
+   poetry run rsmanage initdb
+
+
+OK, now change back to the library_server project and run the server again.  You may see some books or you may not.  If you created a new database you will not see any books.  You can add books to the database by running the following from the root of the monorepo:
+
+.. code-block:: bash
+
+   poetry run rsmanage addbookauthor
+   poetry run rsmanage build thinkcspy
+
+Now lets create a template to render the list of books.  Create a new folder in the components/rsptx/ templates folder called library.  Then add a file called ``library.html`` to that folder.  Add the following to the file:
+
+.. code-block:: html
+
+   <body>
+   <h1>Library</h1>
+      <ul>
+         {% for book in books %}
+         <li>{{book.title}}</li>
+         {% endfor %}
+      </ul>
+   </body>
+
+
+We also need to update our pyproject.toml file to include the templates folder.  Add the following to the ``pyproject.toml`` file:
+
+.. code-block:: python
+
+   packages = [
+      {include = "rsptx/db", from = "../../components"},
+      {include = "rsptx/library", from = "../../bases"},
+      {include = "rsptx/templates", from = "../../components"},
+   ]
+
+
+Next we have to tell Fastapi to use the template.  Add the following to the top of the core.py file:
+
+.. code-block:: python
+
+   from fastapi.templating import Jinja2Templates
+   from fastapi.responses import HTMLResponse
+   from rsptx.templates import template_folder
+
+   templates = Jinja2Templates(directory=template_folder)
+
+Now we can change the code in core.py to look like this:
+
+.. code-block:: python
+
+   from fastapi import FastAPI, Request
+   from fastapi.templating import Jinja2Templates
+   from fastapi.responses import HTMLResponse
+
+   from rsptx.db.crud import fetch_library_books
+   from rsptx.templates import template_folder
+
+   app = FastAPI()
+
+   templates = Jinja2Templates(directory=template_folder)
+
+   @app.get("/", response_class=HTMLResponse)
+   async def root(request: Request):
+      res = await fetch_library_books()
+      return templates.TemplateResponse(
+         "library/library.html", {"request": request, "books": res}
+      )
+
+At this point you should be able to run the server and see a list of books.  You can run the server from the project folder. If you use the --reload option you can make changes to the code and see them reflected in the browser.  However
+
+A good development tip is to use the ``--reload`` option when running the server.  This will allow you to make changes to the code and see them reflected in the browser.  However, if you are using the ``--reload`` option you will need to restart the server if you make changes to the ``pyproject.toml`` file.  By default uvicorn will only watch the folder you are running the server from.  You can change this by adding the ``--reload-dir`` option to the command line.  For example ``--reload --reload-dir=
+../../components`` will watch the components folder for changes.  You can also use the ``reload-dir`` option multiple times to give it more folders to watch.
+
+Can can find the fully working code for this example on the ``library_example`` branch of the runestone monorepo.
