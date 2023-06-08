@@ -6,11 +6,18 @@ from rsptx.cl_utils.core import pushd
 import toml
 
 project = toml.load("pyproject.toml")
-VERSION = project["tool"]["poetry"]["version"]
+
+if sys.argv[1:] == ["--test"]:
+    VERSION = "test"
+else:
+    VERSION = project["tool"]["poetry"]["version"]
 
 
 with pushd("../../bases/rsptx/interactives"):
-    subprocess.run(["npm", "run", "dist"], check=True)
+    if "--dev" in sys.argv:
+        subprocess.run(["npm", "run", "build"], check=True)
+    else:
+        subprocess.run(["npm", "run", "dist"], check=True)
     subprocess.run(["python", "./scripts/dist2xml.py", f"{VERSION}"], check=True)
 
 
@@ -38,7 +45,7 @@ if sys.argv[1:] == ["--publish"]:
         print("Installing release on CDN")
         subprocess.run(
             ["scp", f"dist-{VERSION}.tgz", "balance.runestoneacademy.org:~/"],
-            check=True, 
+            check=True,
         )
         subprocess.run(
             [
