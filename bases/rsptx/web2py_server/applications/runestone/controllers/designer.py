@@ -146,6 +146,13 @@ def build():
             (auth.user.id, cid),
         )
 
+        # Use mailgun api to send email to instructor
+        # check if this is the instructors first course
+        if db(db.course_instructor.instructor == auth.user.id).count() == 1:
+            pass
+            # send mailgun email to instructor
+            # add instructor to mailgun mailing list
+            #
         session.flash = "Course Created Successfully"
         # redirect(
         #     URL("books", "published", args=[request.vars.projectname, "index.html"])
