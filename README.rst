@@ -67,7 +67,7 @@ Our Community
 
 The Runestone community has been actively developing and supporting this project since 2011.  However in the 2023 I decided to move to a mono repo.  Unfortunately this means that the history of the individual repositories is lost.  I am sorry for this, but I think the benefits of a mono repo will be worth it.  The original repositories are still available, but they are no longer being actively developed, if you need to point to your contributions to Runestone, please use the old repos as a reference.
 
-Our authoring language is PreTeXt.  We have a very active community of PreTeXt authors and developers.  If you are interested in contributing to the PreTeXt project, please visit the `PreTeXt project page <https://pretextbok.org>`_.
+Our authoring language is PreTeXt.  We have a very active community of PreTeXt authors and developers.  If you are interested in contributing to the PreTeXt project, please visit the `PreTeXt project page <https://pretextbook.org>`_.
 
 .. raw:: html
 
