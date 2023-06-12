@@ -207,12 +207,13 @@ def setup(app):
     app.add_config_value("generate_component_labels", True, "env")
 
 
-# Roughly what an XML ID allows, per the spec for an `XML Name <https://www.w3.org/TR/REC-xml/#NT-Name>`_. However:
+# Roughly what an XML ID allows, per the spec for an `XML Name
+# <https://www.w3.org/TR/REC-xml/#NT-Name>`_. However this is a bit more restrictive:
 #
-# - This regex does allow identifiers which begin with a number, which isn't allowed by XML. I don't know of easy ways to implement an AND operation in a regex, so code which uses this regex checks this separately.
-# - This disallows characters that need escaping for CSS to avoid problems there, such as ``.`` and ``:``
-# - I'm not certain how closely Python's definition of a "word character (\w)" matches XML's definition.
-xml_id_regex = re.compile(r"\w[\w-]*", re.UNICODE)
+# - This disallows characters that need escaping for CSS to avoid problems there, such as ``.``.
+# - There are Unicode code points allowed in a NCName that are not matched by \w.
+xml_id_regex = re.compile(r'^(?!\d)[\w_][\w-]*$', re.UNICODE)
+
 
 
 # A base class for all Runestone directives.
@@ -279,11 +280,7 @@ class RunestoneDirective(Directive):
 
     # Check for a valid XML id. This is more restrictive then checking for a `valid HTML5 divid <https://html.spec.whatwg.org/multipage/dom.html#the-id-attribute>`_, so we don't bother with a separate HTML ID check.
     def validate_divid(self, divid):
-        if (
-            # Look for invalid XML IDs (they must not begin with a number, which the regex doesn't catch). Use ``fullmatch`` since the entire string must match the regex for an valid id.
-            (divid[0] >= "0" and (divid[0] <= "9"))
-            or not re.fullmatch(xml_id_regex, divid)
-        ):
+        if not xml_id_regex.match(divid):
             logger.error(
                 f"Invalid divid '{divid}'.",
                 location=self.state_machine.get_source_and_line(self.lineno),
