@@ -454,6 +454,7 @@ class ActiveCode(RunestoneIdDirective):
             suffix = "\n"
 
         course_name = env.config.html_context["course_id"]
+        self.options["divid"] = f"activecode-{self.options.get('divid')}"
         divid = self.options["divid"]
 
         engine, meta, sess = get_engine_meta()

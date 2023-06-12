@@ -79,7 +79,10 @@ PTX_TEMPLATE = """
 
 
 class CodeLensNode(nodes.General, nodes.Element, RunestoneIdNode):
-    pass
+
+    def run(self):
+        super(RunestoneIdNode, self).run()
+        self.options["divid"] = f"code-{self.options.get('divid')}"
 
 
 def visit_codelens_xml(self, node):

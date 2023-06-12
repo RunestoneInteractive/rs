@@ -248,7 +248,9 @@ class IframeVideo(RunestoneIdDirective):
         if not self.options.get("http"):
             self.options["http"] = "https"
         if not self.options.get("divid"):
-            self.options["divid"] = self.arguments[0]
+            self.options["divid"] = f"video-{self.arguments[0]}"
+        else:
+            self.options["divid"] = f"video-{self.options.get('divid')}"
 
         # res = self.html % self.options
         # addHTMLToDB(self.options["divid"], self.options["basecourse"], res)
