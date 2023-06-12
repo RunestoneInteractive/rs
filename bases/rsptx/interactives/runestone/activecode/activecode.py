@@ -112,16 +112,14 @@ class ActivecodeNode(nodes.General, nodes.Element, RunestoneIdNode):
 
 
 def visit_ac_xml(self, node):
+    node["runestone_options"]["initialcode"] = (
+        node["runestone_options"]["initialcode"]
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
     if node["runestone_options"]["has_problem_statement"]:
         res = XML_EX_START.format(**node["runestone_options"])
         self.output.append(res)
-    else:
-        node["runestone_options"]["initialcode"] = (
-            node["runestone_options"]["initialcode"]
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-        )
-
 
 def depart_ac_xml(self, node):
     if node["runestone_options"]["has_problem_statement"]:
