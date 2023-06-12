@@ -118,14 +118,11 @@ def setup(app):
     # This should save some configuration headaches as we transition from RST to PTX
     app.set_html_assets_policy("always")
     # Include JS and CSS produced by webpack. See `webpack static imports <webpack_static_imports>`_.
-    with open(
-        importlib.resources.path("runestone.dist", "webpack_static_imports.json"),
-        "r",
-        encoding="utf-8",
-    ) as f:
-        wb_imports = json.load(f)
-        script_files = wb_imports["js"]
-        _css_files = css_files + wb_imports["css"]
+    with importlib.resources.path("runestone.dist", "webpack_static_imports.json") as p:
+        with open(p) as f:
+            wb_imports = json.load(f)
+            script_files = wb_imports["js"]
+            _css_files = css_files + wb_imports["css"]
 
     for jsfile in script_files:
         try:
