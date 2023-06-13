@@ -126,6 +126,10 @@ export function createTimedComponent(componentSrc, moreOpts) {
 export async function renderOneComponent(rsDiv) {
     // Find the actual component inside the runestone component.
     let component = rsDiv.querySelector("[data-component]");
+    if (component == null) {
+        console.log("Render was called for a component, but now [data-component] attribute is present. This may mean the component has already been rendered.")
+        return;
+    }
     let componentKind = component.dataset.component;
     await runestone_import(componentKind);
     if ($(this).closest("[data-component=timedAssessment]").length == 0) {
