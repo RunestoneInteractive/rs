@@ -41,7 +41,7 @@ XML_START = """
         <statement>
 
 """
-# TODO: detect old versus new style to include the choices or not
+
 XML_START_END = """
         </statement>
 """
@@ -133,7 +133,8 @@ def visit_mc_xml(self, node):
 
 
 def depart_mc_xml(self, node):
-    self.output.append(XML_START_END)
+    if not node["runestone_options"]["is_new_style"]:
+        self.output.append(XML_START_END)
     res = depart_mc_common(self, node)
     res = res.replace("data-correct", "correct")
     self.output.append(res)
