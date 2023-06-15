@@ -25,7 +25,7 @@ subprocess.run(["poetry", "build-project"], check=True)
 
 
 if sys.argv[1:] == ["--publish"]:
-    # subprocess.run(["poetry", "publish"], check=True)
+    subprocess.run(["poetry", "publish"], check=True)
 
     with pushd("../../bases/rsptx/interactives/runestone"):
         subprocess.run(
