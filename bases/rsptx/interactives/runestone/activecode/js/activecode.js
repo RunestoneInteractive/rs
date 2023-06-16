@@ -938,6 +938,7 @@ export class ActiveCode extends RunestoneBase {
         for (let i = first; i <= last; i++) {
             this.editor.indentLine(i);
         }
+        this.reformatButton.blur();
     }
 
     toggleEditorVisibility() {}
