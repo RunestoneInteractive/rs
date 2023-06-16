@@ -36,9 +36,6 @@ import embed from "vega-embed";
 // Adapt for use outside webpack -- see https://github.com/vega/vega-embed.
 window.vegaEmbed = embed;
 
-//import { prettier } from "prettier";
-
-
 var isMouseDown = false;
 var stopExecution = false;
 
@@ -937,8 +934,80 @@ export class ActiveCode extends RunestoneBase {
 
     async reformat() {
         const current = this.editor.getValue();
-        //const reformatted = prettier.format(current, { semi: true, parser: "babel" });
-        const reformatted = current.replace(/\s+/g, ' ');
+        // We just do a quick and dirty reindentation based on braces since
+        // CodeMirror doesn't do anything smarter when you hit tab but insert
+        // four spaces. Walk through the string and each time we hit an open {
+        // increment the indent amount and each time we hit a } decrease it.
+        // Then after each newline, insert an appropriate number of spaces and
+        // skip any actual spaces in the text. The only tricky bit to be
+        // actually correct is we need to also keep track of when we're in
+        // string and character literals and comments so we ignore {}s in those
+        // contexts.
+
+        current.replace(/\r/g, '');
+
+        let indent = 0;
+        let reformatted = '';
+        let i = 0;
+        while (i < current.length) {
+            const c = current[i++];
+            if (c === '\n') {
+                // Emit the newline.
+                reformatted += '\n';
+
+                // Skip current indentation
+                while (i < current.length && current[i] === ' ') {
+                    i++;
+                }
+
+                if (i < current.length) {
+                    const next = current[i];
+                    if (next === '\n') {
+                        // Let it get handles the next time around
+                        continue;
+                    } else {
+                        if (next === '}') {
+                            // Gotta check this so we decrease the indentation
+                            // before we emit the close brace.
+                            indent--;
+                        }
+                        // Emit new indentation
+                        console.log(`Emitting ${indent} levels of indentation`);
+                        for (let j = 0; j < indent * 4; j++) {
+                            reformatted += ' ';
+                        }
+
+                        if (next === '{') {
+                            console.log(`Increasing indent to ${indent}`);
+                            indent++;
+                        }
+
+                        // Can emit all other characters here since they don't
+                        // require special handling.
+                        reformatted += next;
+                        i++;
+                    }
+                }
+            } else if (c === '{') {
+                console.log(`Increasing indent to ${indent}`);
+                indent++;
+                reformatted += c;
+            } else if (c === '}') {
+                // If we get here it means the } is not after a newline. In that
+                // case, we want to emit a newlne and the appropriate
+                // indentation (decreased because of the }) and then the }.
+                console.log(`Hit weirdly placed } at ${i}`);
+                indent--;
+                reformatted += '\n';
+                // Emit new indentation
+                for (let j = 0; j < indent * 4; j++) {
+                    reformatted += ' ';
+                }
+                reformatted += '}'
+            } else {
+                reformatted += c;
+            }
+        }
         this.editor.setValue(reformatted);
     }
 
