@@ -423,7 +423,7 @@ export class ActiveCode extends RunestoneBase {
     enableReformat(ctrlDiv) {
         let butt = document.createElement("button");
         $(butt).addClass("ac_opt btn btn-default");
-        $(butt).text("Reformat"); // FIXME add to i18n
+        $(butt).text($.i18n("msg_activecode_reformat"));
         $(butt).css("margin-left", "10px");
         this.reformatButton = butt;
         ctrlDiv.appendChild(butt);
