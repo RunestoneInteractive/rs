@@ -36,6 +36,9 @@ import embed from "vega-embed";
 // Adapt for use outside webpack -- see https://github.com/vega/vega-embed.
 window.vegaEmbed = embed;
 
+//import { prettier } from "prettier";
+
+
 var isMouseDown = false;
 var stopExecution = false;
 
@@ -247,6 +250,7 @@ export class ActiveCode extends RunestoneBase {
                 editor.acEditEvent = true;
             }.bind(this)
         ); // use bind to preserve *this* inside the on handler.
+
         //Solving Keyboard Trap of ActiveCode: If user use tab for navigation outside of ActiveCode, then change tab behavior in ActiveCode to enable tab user to tab out of the textarea
         $(window).keydown(function (e) {
             var code = e.keyCode ? e.keyCode : e.which;
@@ -929,6 +933,13 @@ export class ActiveCode extends RunestoneBase {
             act: "view",
             div_id: this.divid,
         });
+    }
+
+    async reformat() {
+        const current = this.editor.getValue();
+        //const reformatted = prettier.format(current, { semi: true, parser: "babel" });
+        const reformatted = current.replace(/\s+/g, ' ');
+        this.editor.setValue(reformatted);
     }
 
     toggleEditorVisibility() {}
