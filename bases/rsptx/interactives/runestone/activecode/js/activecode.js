@@ -324,7 +324,9 @@ export class ActiveCode extends RunestoneBase {
         }
 
         // Code reformatting
-        this.enableReformat(ctrlDiv)
+        if (reformatable.has(this.language)) {
+            this.enableReformat(ctrlDiv);
+        }
 
         // Audio Tour
         if ($(this.origElem).data("audio")) {
@@ -1471,6 +1473,15 @@ var languageExtensions = {
     sql: "sql",
     octave: "m",
 };
+
+// Languages that get a "Reformat" button. Probably works fine for any curly
+// brace language but better not to add them until someone actually checks a
+// book using that language. Definitely works badly for Python since it will
+// indent anything after an `if` to be part of the if.
+var reformatable = new Set([
+    "java",
+]);
+
 
 var errorText = {};
 
