@@ -932,7 +932,7 @@ export class ActiveCode extends RunestoneBase {
         });
     }
 
-    async reformat() {
+    reformat() {
         const first = this.editor.firstLine();
         const last = this.editor.lastLine();
         for (let i = first; i <= last; i++) {
