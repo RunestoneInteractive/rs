@@ -321,6 +321,10 @@ export class ActiveCode extends RunestoneBase {
         if ($(this.origElem).data("codelens") && !this.graderactive) {
             this.enableCodeLens(ctrlDiv);
         }
+
+        // Code reformatting
+        this.enableReformat(ctrlDiv)
+
         // Audio Tour
         if ($(this.origElem).data("audio")) {
             this.enableAudioTours(ctrlDiv);
@@ -413,6 +417,16 @@ export class ActiveCode extends RunestoneBase {
         this.clButton = butt;
         ctrlDiv.appendChild(butt);
         $(butt).click(this.showCodelens.bind(this));
+    }
+
+    enableReformat(ctrlDiv) {
+        let butt = document.createElement("button");
+        $(butt).addClass("ac_opt btn btn-default");
+        $(butt).text("Reformat"); // FIXME add to i18n
+        $(butt).css("margin-left", "10px");
+        this.reformatButton = butt;
+        ctrlDiv.appendChild(butt);
+        $(butt).click(this.reformat.bind(this));
     }
 
     enableAudioTours(ctrlDiv) {
