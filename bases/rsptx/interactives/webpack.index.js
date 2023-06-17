@@ -91,6 +91,52 @@ const module_map = {
     youtube: () => import("./runestone/video/js/runestonevideo.js"),
 };
 
+const module_map_cache = {};
+const QUEUE_FLUSH_TIME_MS = 10;
+const queue = []
+let queueLastFlush = 0;
+/**
+ * Queue imports that are requested within `QUEUE_FLUSH_TIME_MS` of each other.
+ * All such imports are imported at once, and then a promise is fired after all
+ * the imports in the queue window have completed.
+ */
+function queueImport(component_name) {
+    let resolve = null;
+    let reject = null;
+    const retPromise = new Promise((r, rej) => {resolve = r; reject = rej})
+    const item = {component_name, resolve, reject};
+    queue.push(item);
+    window.setTimeout(flushQueue, QUEUE_FLUSH_TIME_MS + 1);
+
+    return retPromise;
+}
+async function flushQueue() {
+    if (queue.length === 0) {
+        return
+    }
+    if (Date.now() - queueLastFlush < QUEUE_FLUSH_TIME_MS) {
+        window.setTimeout(flushQueue, QUEUE_FLUSH_TIME_MS + 1);
+        return;
+    }
+    // If we made it here, it has been at least QUEUE_FLUSH_TIME_MS since
+    // the last time we flushed the queue. Therefore, we should start flushing.
+    // We copy everything we flush and empty the array first.
+    queueLastFlush = Date.now();
+    const toFlush = [...queue];
+    queue.length = 0;
+    console.log("Webpack is starting the loading process for the following Runestone modules", toFlush.map(item => item.component_name));
+    const flushedPromise = toFlush.map(async (item) => {
+        try {
+            await module_map[item.component_name]();
+            return item;
+        } catch(e) {
+            item.reject(e);
+        }
+    })
+    const flushed = await Promise.all(flushedPromise);
+    flushed.forEach(item => item.resolve());
+}
+
 // .. _dynamic import machinery:
 //
 // Dynamic import machinery
@@ -139,7 +185,12 @@ $(document).ready(runestone_auto_import);
 // the import function inside module_map is async -- runestone_import
 // should be awaited when necessary to ensure the import completes
 export async function runestone_import(component_name) {
-    return module_map[component_name]();
+    if (module_map_cache[component_name]) {
+        return module_map_cache[component_name];
+    }
+    const promise = queueImport(component_name);
+    module_map_cache[component_name] = promise;
+    return promise;
 }
 
 async function popupScratchAC() {

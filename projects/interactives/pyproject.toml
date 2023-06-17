@@ -34,7 +34,7 @@ license = "GPL"
 name = "runestone"
 readme = "README.rst"
 repository = "https://github.com/RunestoneInteractive/RunestoneComponents"
-version = "7.0.0dev2"
+version = "7.0.0dev3"
 
 # See https://python-poetry.org/docs/pyproject/#include-and-exclude.
 include = [
@@ -151,7 +151,7 @@ minversion = "6.0"
 addopts = "--ignore=_build --tb=short"
 # The `pytest-env <https://github.com/MobileDynasty/pytest-env>`_ plugin sets these environment variables. Set them here, before imports, since bookserver imports read from the environment variables.
 env = [
-    "BOOK_SERVER_CONFIG=test",
+    "SERVER_CONFIG=test",
 ]
 # The _`default logging level` of INFO produces a LOT of output. Use a higher level of ``WARNING`` to reduce the noise.
 log_cli_level = 30

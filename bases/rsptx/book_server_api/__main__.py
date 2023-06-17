@@ -39,7 +39,7 @@ import click
 @click.option("--error_path", default=None, help="Path to folder to dump tracebacks")
 @click.option(
     "--bks_config",
-    default=os.environ.get("BOOK_SERVER_CONFIG", "development"),
+    default=os.environ.get("SERVER_CONFIG", "development"),
     help="bookserver mode (test, development, production)",
 )
 @click.option("--dburl", default=None, help="Database URL to use regardless of mode")

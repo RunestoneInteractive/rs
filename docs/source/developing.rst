@@ -193,6 +193,19 @@ If you install postgresql locally you will need to do  a few things to get it re
 6. Restart Postgresql.  On my mac this is done by running ``brew services restart postgresql``.  On linux it is probably ``sudo service postgresql restart``
 
 
+Getting a Server Started 
+========================
+
+This assumes that you have already followed the instructions for installing postgresql, poetry and the plugins as well as Docker.
+
+1. Run ``poetry install --with=dev`` from the top level directory.  This will install all of the dependencies for the project.  When that completes run ``poetry shell`` to start a poetry shell.  You can verify that this worked correctly by running ``rsmanage env``.  You should see a list of environment variables that are set.  If you do not see them then you may need to run ``poetry shell`` again.  If you get an error message that you cannot interpret you can ask for help in the ``#developer`` channel on the Runestone discord server.
+2.  Create a new database for your class or book.  You can do this by running ``createdb -O runestone <dbname>``.  You can also do this in the psql command line interface by running ``create database <dbname> owner runestone;``  You may have to become the postgres user in order to run that command.
+3.  From the ``bases/rsptx/interactives`` folder run ``npm install``.  This will install all of the javascript dependencies for the interactives.  Next run ``npm run build`` this will build the Runestone Interactive javascript files.  You will need to do this every time you make a change to the javascript files.  If you are NOT going to build a book, then you can skip this step.
+4.  Run the ``build.py`` script from the ``rs`` folder. The first step of this script will verify that you have all of your environment variables defined.
+5.  Make sure you are not already running a webserver on your computer.  You can check this by running ``lsof -i :80``.  If you see a line that says ``nginx`` then you are already running a webserver.  You can stop it by running ``sudo nginx -s stop``.  Alternatively you can edit the ``docker-compose.yml`` file and change the port that nginx is listening on to something other than 80.
+6.  Run ``docker-compose up`` from the ``rs`` folder.  This will start up all of the servers.  You can also run ``docker-compose up <server name>`` to start up just one server.  The server names are ``web2py``, ``book``, ``author``, ``admin``, ``analytics``, ``build``, ``nginx``.  You can also run ``docker-compose up -d`` to run the servers in the background.
+7.  Now you should be able to connect to ``http://localhost/`` from your computer and see the homepage.
+
 
 Authentication
 --------------
@@ -280,15 +293,16 @@ Developing the Javascript for Runestone Components
 The following is what you need to do to work on the javascript for a component testing it against a local build of a book written in PreTeXt.
 
 1. Make a branch in your clone of ``https://github.com/RunestoneInteractive/rs``
-2. Work on the javascript for the component
-3. Start up a ``poetry shell`` in the root folder of your clone of ``rs``
-4. Run ``npm build`` → results in ``runestone/dist``
-5. Run ``python dist2xml.py test`` → creates webpack_static_imports.xml and sets up for the files to be in ``_static/test`` in the resulting local build of your PreTeXt book.
-6. Set:``<stringparam key="debug.rs.services.file" value="file:////your/home/rs/bases/interactives/runestone/dist/webpack_static_imports.xml" />`` in the ``project.pxt`` file of the book.
-7. Run ``pretext build`` in the root folder of the book
-8. ``mkdir -p build/html/_static/test``
-9. Copy the contents of ``.../rs/bases/rsptx/interactives/runestone/dist`` to ``build/html/_static/test``
-10. Run ``pretext view``
+2. Work on the javascript for the component in ``bases/rsptx/interactives/runestone/...``
+3. Run ``poetry install`` in the root folder of your clone of ``rs``
+4. Start up a ``poetry shell`` in the root folder of your clone of ``rs``
+5. From ``bases/rsptx/interactives`` run ``npm run build`` → results in ``runestone/dist``
+6. From ``bases/rsptx/interactives`` run ``python ./scripts/dist2xml.py test`` → creates webpack_static_imports.xml and sets up for the files to be in ``_static/test`` in the resulting local build of your PreTeXt book.
+7. Set:``<stringparam key="debug.rs.services.file" value="file:////your/home/rs/bases/interactives/runestone/dist/webpack_static_imports.xml" />`` in the ``project.pxt`` file of the book.
+8. Run ``pretext build`` in the root folder of the book
+9. ``mkdir -p build/html/_static/test``
+10. Copy the contents of ``.../rs/bases/rsptx/interactives/runestone/dist`` to ``build/html/_static/test``
+11. Run ``pretext view``
 
 If you are still working with old RST based books, you can simply use the ``runestone build`` command which automatically copies the files to the correct location.
 
