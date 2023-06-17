@@ -19,6 +19,11 @@
 <!DOCTYPE html>
 {%- endblock %}
 
+<!-- Add an extra class to the root to help differentiate runestone classic from pretext+runestone -->
+{%- set html_tag -%}
+<html {% if not html5_doctype %} xmlns="http://www.w3.org/1999/xhtml"{% endif %}{% if language is not none %} lang="{{ language }}"{% endif %} class="runestone-sphinx">
+{%- endset %}
+
 {%- block scripts %}
 {# Override the scripts block from sphinx so we can force loading of jquery/underscore/doctools js files #}
 {{ js_defer(script_files) }}
@@ -227,8 +232,6 @@
 {% endmacro %}
 
 {%- block extrahead %}
-<!-- Add an extra class to the root to help differentiate runestone classic from pretext+runestone -->
-{%- block body_tag %}<body class="runestone-sphinx">{% endblock %}
 
   {% if not favicon %}
 <link rel="shortcut icon" href="/{{appname}}/static/favicon.ico" type="image/ico" />
