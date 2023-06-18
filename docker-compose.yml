@@ -62,7 +62,7 @@ services:
       - REDIS_URI=redis://redis:6379/0
       # Note: host.docker.internal refers back to the host so we can just use a local instance
       # of postgresql
-      - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      - DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
       - DOCKER_COMPOSE=1
     links:
       - redis
@@ -90,7 +90,7 @@ services:
         - REDIS_URI=redis://redis:6379/0
         # Note: host.docker.internal refers back to the host so we can just use a local instance
         # of postgresql
-        - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+        - DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
         - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
       links:
         - redis
@@ -115,7 +115,7 @@ services:
       - REDIS_URI=redis://redis:6379/0
       # Note: host.docker.internal refers back to the host so we can just use a local instance
       # of postgresql
-      - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      - DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
       - DOCKER_COMPOSE=1
     links:
       - redis

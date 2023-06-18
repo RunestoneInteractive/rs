@@ -820,7 +820,10 @@ def checkEnvironment():
     Check the list of required and optional environment variables to be sure they are defined.
     """
     stop = False
-    assert os.environ["WEB2PY_CONFIG"]
+    if "WEB2PY_CONFIG" not in os.environ:
+        click.echo("You must set your WEB2PY_CONFIG environment variable")
+        sys.exit()
+
     config = os.environ["WEB2PY_CONFIG"]
 
     if config == "production":
