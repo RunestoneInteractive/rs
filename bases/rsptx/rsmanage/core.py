@@ -19,6 +19,7 @@ import os
 import re
 import sys
 import subprocess
+from pathlib import Path
 
 # third party imports
 import redis
@@ -26,6 +27,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from pgcli.main import cli as clipg
 from psycopg2.errors import UniqueViolation
+from dotenv import load_dotenv
 
 # our own package imports
 
@@ -834,6 +836,15 @@ def checkEnvironment():
         click.echo("You must set your WEB2PY_CONFIG environment variable")
         sys.exit()
 
+    if Path(".env").exists():
+        load_dotenv()
+        click.echo("Loaded .env file")
+    elif "RUNESTONE_PATH" in os.environ:
+        env_path = Path(os.environ["RUNESTONE_PATH"]) / ".env"
+        if env_path.exists():
+            load_dotenv(env_path)
+            click.echo(f"Loaded .env file from {os.environ['RUNESTONE_PATH']}")
+
     config = os.environ["WEB2PY_CONFIG"]
 
     if config == "production":
@@ -853,6 +864,9 @@ def checkEnvironment():
     for var in OPT_ENV:
         if var not in os.environ:
             click.echo("You may want to define the {} environment variable".format(var))
+
+    if "DC_DBURL" in os.environ or "DC_DEV_DBURL" in os.environ:
+        click.echo("You have defined docker compose specific environment variables")
 
     if stop:
         sys.exit(1)

@@ -35,6 +35,7 @@ lxml = "^4.9.2"
 paver = "^1.3.4"
 sphinxcontrib-paverutils = "^1.17.0"
 runestone = "^6.6.0"
+python-dotenv = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 runestone = {path = "../interactives", develop=true}

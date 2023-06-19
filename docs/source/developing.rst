@@ -204,7 +204,7 @@ Environment variables are very important in a system like Runestone, The service
 * ``DC_DBURL`` - This is the URL that is used to connect to the database in docker-compose.
 * ``DC_DEV_DBURL`` - This is the URL that is used to connect to the database in docker-compose development.
 * ``BOOK_PATH`` - This is the path to the folder that contains all of the books you want to serve.  This value is the path on the HOST side of the docker container.  So if you are running docker on a mac and your books are in ``/Users/bob/Runestone/books`` then you would set this to ``/Users/bob/Runestone/books``.  
-* ``RUNESTONE_PATH`` - This is the path to the rs folder
+* ``RUNESTONE_PATH`` - This is the path to the ``rs`` repository folder
 * ``JWT_SECRET`` - this is the secret used to sign the JWT tokens.  It should be a long random string.  You can generate one by running ``openssl rand -base64 32``  You should set this to the same value in all of the services.
 * ``WEB2PY_PRIVATE_KEY`` - this is the secret that web2py uses when hashing passwords. It should be a long random string.  You can generate one by running ``openssl rand -base64 32``  You should set this to the same value in all of the services.
 * ``SERVER_CONFIG`` - this should be production, development, or test.  It is used to determine which database URL to use.
