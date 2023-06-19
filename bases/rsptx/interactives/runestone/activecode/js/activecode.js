@@ -247,6 +247,7 @@ export class ActiveCode extends RunestoneBase {
                 editor.acEditEvent = true;
             }.bind(this)
         ); // use bind to preserve *this* inside the on handler.
+
         //Solving Keyboard Trap of ActiveCode: If user use tab for navigation outside of ActiveCode, then change tab behavior in ActiveCode to enable tab user to tab out of the textarea
         $(window).keydown(function (e) {
             var code = e.keyCode ? e.keyCode : e.which;
@@ -321,6 +322,12 @@ export class ActiveCode extends RunestoneBase {
         if ($(this.origElem).data("codelens") && !this.graderactive) {
             this.enableCodeLens(ctrlDiv);
         }
+
+        // Code reformatting
+        if (reformatable.has(this.language)) {
+            this.enableReformat(ctrlDiv);
+        }
+
         // Audio Tour
         if ($(this.origElem).data("audio")) {
             this.enableAudioTours(ctrlDiv);
@@ -413,6 +420,16 @@ export class ActiveCode extends RunestoneBase {
         this.clButton = butt;
         ctrlDiv.appendChild(butt);
         $(butt).click(this.showCodelens.bind(this));
+    }
+
+    enableReformat(ctrlDiv) {
+        let butt = document.createElement("button");
+        $(butt).addClass("ac_opt btn btn-default");
+        $(butt).text($.i18n("msg_activecode_reformat"));
+        $(butt).css("margin-left", "10px");
+        this.reformatButton = butt;
+        ctrlDiv.appendChild(butt);
+        $(butt).click(this.reformat.bind(this));
     }
 
     enableAudioTours(ctrlDiv) {
@@ -915,6 +932,15 @@ export class ActiveCode extends RunestoneBase {
             act: "view",
             div_id: this.divid,
         });
+    }
+
+    reformat() {
+        const first = this.editor.firstLine();
+        const last = this.editor.lastLine();
+        for (let i = first; i <= last; i++) {
+            this.editor.indentLine(i);
+        }
+        this.reformatButton.blur();
     }
 
     toggleEditorVisibility() {}
@@ -1447,6 +1473,15 @@ var languageExtensions = {
     sql: "sql",
     octave: "m",
 };
+
+// Languages that get a "Reformat" button. Probably works fine for any curly
+// brace language but better not to add them until someone actually checks a
+// book using that language. Definitely works badly for Python since it will
+// indent anything after an `if` to be part of the if.
+var reformatable = new Set([
+    "java",
+]);
+
 
 var errorText = {};
 
