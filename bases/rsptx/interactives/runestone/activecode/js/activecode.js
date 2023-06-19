@@ -1479,7 +1479,7 @@ var languageExtensions = {
 // book using that language. Definitely works badly for Python since it will
 // indent anything after an `if` to be part of the if.
 var reformatable = new Set([
-    "java",
+    "java", "cpp", "c", "javascript"
 ]);
 
 
