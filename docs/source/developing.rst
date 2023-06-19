@@ -194,6 +194,28 @@ If you install postgresql locally you will need to do  a few things to get it re
 7. After you restart try the following command ``psql -h localhost -U runestone runestone_dev``  You should be prompted for a password.  Enter the password you created for the runestone user.  You should then be at a psql prompt.  You can exit by typing ``\q``  If you cannot connect then you have done something wrong.  You can ask for help in the ``developer-forum`` channel on the Runestone discord server.
 
 
+Environment variables
+=====================
+
+Environment variables are very important in a system like Runestone, The services need to know several values that need to be private.  They can also give you a certain level of control over how you customize your own deployment or development environment.  The following environment variables are used by the various services.
+
+* ``DBURL`` - This is the URL that is used to connect to the database in production.
+* ``DEV_DBURL`` - This is the URL that is used to connect to the database in development.
+* ``DC_DBURL`` - This is the URL that is used to connect to the database in docker-compose.
+* ``DC_DEV_DBURL`` - This is the URL that is used to connect to the database in docker-compose development.
+* ``BOOK_PATH`` - This is the path to the folder that contains all of the books you want to serve.  This value is the path on the HOST side of the docker container.  So if you are running docker on a mac and your books are in ``/Users/bob/Runestone/books`` then you would set this to ``/Users/bob/Runestone/books``.  
+* ``RUNESTONE_PATH`` - This is the path to the rs folder
+* ``JWT_SECRET`` - this is the secret used to sign the JWT tokens.  It should be a long random string.  You can generate one by running ``openssl rand -base64 32``  You should set this to the same value in all of the services.
+* ``WEB2PY_PRIVATE_KEY`` - this is the secret that web2py uses when hashing passwords. It should be a long random string.  You can generate one by running ``openssl rand -base64 32``  You should set this to the same value in all of the services.
+* ``SERVER_CONFIG`` - this should be production, development, or test.  It is used to determine which database URL to use.
+* ``WEB2PY_CONFIG`` - should be the same value as ``SERVER_CONFIG``.  It is used to determine which database URL to use.  This will go away when we have eliminated the web2py framework from the code base.
+* ``RUNESTONE_HOST`` - this is the canonical host name of the server.  It is used to generate links to the server.  It should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.
+* ``LOAD_BALANCER_HOST`` - this is the canonical host name of the server when you are running in production with several workers.  It is used to generate links to the server.  It should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.  You would typically only need to set this or RUNESTONE_HOST.
+
+When you are doing development you may want to set these in your login shell, But they can all be set in the ``.env`` file in the top level directory.  This file is read by docker-compose and the values are passed to the containers.  You can also set them in the ``docker-compose.yml`` file but that is not recommended.  The ``.env`` file is also used by the ``build.py`` script to set the environment variables for the docker-compose build.  As of this writing (June 2023) rsmanage does not know about the ``.env`` file so you will have to set them in your login shell if you want to use rsmanage.
+
+
+
 
 Getting a Server Started 
 ========================

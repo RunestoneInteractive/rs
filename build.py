@@ -32,8 +32,6 @@ for var in [
     "RUNESTONE_PATH",
     "RUNESTONE_HOST",
     "SERVER_CONFIG",
-    "DBURL",
-    "DEV_DBURL",
     "BOOK_PATH",
     "WEB2PY_CONFIG",
     "JWT_SECRET",
@@ -46,6 +44,25 @@ for var in [
         table.add_row(var, "[green]Yes[/green]")
 
 console.print(table)
+
+if "DC_DBURL" not in os.environ:
+    print("DC_DBURL not set.  It will default to DBURL, but you should set it in .env")
+    if "DBURL" not in os.environ:
+        print("DBURL not set.  Please set it in .env")
+        finish = True
+else:
+    print("DC_DBURL set.  Using it instead of DBURL")
+
+
+if "DC_DEV_DBURL" not in os.environ:
+    print(
+        "DC_DEV_DBURL not set.  It will default to DEV_DBURL, but you should set it in .env"
+    )
+    if "DEV_DBURL" not in os.environ:
+        print("DEV_DBURL not set.  Please set it in .env")
+        finish = True
+else:
+    print("DC_DEV_DBURL set.  Using it instead of DEV_DBURL")
 
 if not os.path.isfile("bases/rsptx/web2py_server/applications/runestone/models/1.py"):
     # copy 1.py.prototype to 1.py

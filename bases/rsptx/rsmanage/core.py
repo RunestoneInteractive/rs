@@ -70,8 +70,18 @@ class Config(object):
 pass_config = click.make_pass_decorator(Config, ensure=True)
 
 # configuration
-REQ_ENV = ["SERVER_CONFIG", "WEB2PY_CONFIG", "DBURL", "WEB2PY_PRIVATE_KEY"]
-OPT_ENV = ["JWT_SECRET"]
+REQ_ENV = [
+    "SERVER_CONFIG",
+    "WEB2PY_CONFIG",
+    "DBURL",
+    "WEB2PY_PRIVATE_KEY",
+    "JWT_SECRET",
+    "BOOK_PATH",
+]
+OPT_ENV = [
+    "DC_DEV_DBURL",
+    "DC_DBURL",
+]
 APP = "runestone"
 APP_PATH = "applications/{}".format(APP)
 DBSDIR = "{}/databases".format(APP_PATH)

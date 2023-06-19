@@ -14,7 +14,8 @@ services:
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+      - DBURL=${DC_DBURL:-$DBURL}
       - RUNESTONE_PATH=/usr/src/app
     depends_on:
       - redis
@@ -30,7 +31,8 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - RUNESTONE_PATH=/usr/src/app
-      - DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+      - DBURL=${DC_DBURL:-$DBURL}
       - WEB2PY_CONFIG=${SERVER_CONFIG}
     depends_on:
       - author
@@ -62,7 +64,8 @@ services:
       - REDIS_URI=redis://redis:6379/0
       # Note: host.docker.internal refers back to the host so we can just use a local instance
       # of postgresql
-      - DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+      - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
     links:
       - redis
@@ -90,7 +93,8 @@ services:
         - REDIS_URI=redis://redis:6379/0
         # Note: host.docker.internal refers back to the host so we can just use a local instance
         # of postgresql
-        - DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
+        - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+        - DBURL=${DC_DBURL:-$DBURL}
         - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
       links:
         - redis
@@ -115,7 +119,8 @@ services:
       - REDIS_URI=redis://redis:6379/0
       # Note: host.docker.internal refers back to the host so we can just use a local instance
       # of postgresql
-      - DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+      - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
     links:
       - redis
