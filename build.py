@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-
 import os
+import locale
+from shutil import copyfile
 import subprocess
 import sys
 
@@ -68,12 +69,9 @@ else:
 if not os.path.isfile("bases/rsptx/web2py_server/applications/runestone/models/1.py"):
     # copy 1.py.prototype to 1.py
     print("Copying 1.py.prototype to 1.py")
-    subprocess.run(
-        [
-            "cp",
-            "bases/rsptx/web2py_server/applications/runestone/models/1.py.prototype",
-            "bases/rsptx/web2py_server/applications/runestone/models/1.py",
-        ]
+    copyfile(
+        "bases/rsptx/web2py_server/applications/runestone/models/1.py.prototype",
+        "bases/rsptx/web2py_server/applications/runestone/models/1.py",
     )
 
 
@@ -82,6 +80,21 @@ if finish:
         "Your environment is not set up correctly.  Please define the environment variables listed above."
     )
     exit(1)
+
+# Attempt to determine the encoding of data returned from stdout/stderr of subprocesses. This is non-trivial. See the discussion at [Python's sys.stdout](https://docs.python.org/3/library/sys.html#sys.stdout). First, try `locale.getencoding()` (requires >= 3.11), with a fallback to `locale.getpreferredencoding()`.
+#
+# This is motivated by errors on Windows under Python 3.10:
+#
+#       Traceback (most recent call last):
+#       File "C:\Users\bjones\Documents\git\rs\build.py", line 94, in <module>
+#           f.write(res.stdout.decode("utf-8"))
+#       File "C:\Users\bjones\AppData\Local\Programs\Python\Python310\lib\encodings\cp1252.py", line 19, in encode
+#           return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+#       UnicodeEncodeError: 'charmap' codec can't encode characters in position 55319-55358: character maps to <undefined>
+try:
+    stdout_err_encoding = locale.getencoding()
+except AttributeError:
+    stdout_err_encoding = locale.getpreferredencoding()
 
 table = Table(title="Build Wheels")
 table.add_column("Project", justify="right", style="cyan", no_wrap=True)
@@ -99,10 +112,10 @@ with Live(table, refresh_per_second=4):
                     else:
                         table.add_row(proj, "[red]No[/red]")
                         if VERBOSE:
-                            print(res.stderr.decode("utf-8"))
+                            print(res.stderr.decode(stdout_err_encoding))
                         else:
                             with open("build.log", "a") as f:
-                                f.write(res.stderr.decode("utf-8"))
+                                f.write(res.stderr.decode(stdout_err_encoding))
 
 
 # When using subprocess there is no nice way to try (short of threads) to capture the output and send
@@ -128,12 +141,12 @@ try:
     res.wait()
     print("Docker images built successfully")
     with open("build.log", "a") as f:
-        f.write(res.stdout.decode("utf-8"))
+        f.write(res.stdout.decode(stdout_err_encoding))
 except sh.ErrorReturnCode:
     print(
         "Docker images failed to build, see build.log for details (or run with --verbose)"
     )
-    print(res.stderr.decode("utf-8"))
+    print(res.stderr.decode(stdout_err_encoding))
     with open("build.log", "a") as f:
-        f.write(res.stderr.decode("utf-8"))
+        f.write(res.stderr.decode(stdout_err_encoding))
     exit(1)
