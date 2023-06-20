@@ -114,6 +114,7 @@ myst-parser = "^1.0.0"
 
 # Development dependencies
 # ========================
+python-dotenv = "^1.0.0"
 [tool.poetry.dev-dependencies]
 selenium = ">=2.53.6, <4.0.0"
 pyvirtualdisplay = "~3"

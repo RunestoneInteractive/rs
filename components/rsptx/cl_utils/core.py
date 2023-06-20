@@ -14,7 +14,7 @@ from pathlib import Path
 import subprocess
 import sys
 from typing import Any
-
+from dotenv import load_dotenv
 
 # OS detection
 # ============
@@ -129,6 +129,19 @@ def chdir(path):
 def mkdir(path, *args, **kwargs):
     flush_print(f"mkdir {path}")
     Path(path).mkdir(*args, **kwargs)
+
+
+# load .env file
+# --------------
+def load_project_dotenv(dotenv_path=None):
+    if Path(".env").exists():
+        load_dotenv()
+        print("Loaded .env file")
+    elif "RUNESTONE_PATH" in os.environ:
+        env_path = Path(os.environ["RUNESTONE_PATH"]) / ".env"
+        if env_path.exists():
+            load_dotenv(env_path)
+            print(f"Loaded .env file from {os.environ['RUNESTONE_PATH']}")
 
 
 # flush_print

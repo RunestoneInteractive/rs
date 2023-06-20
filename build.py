@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.live import Live
 from rsptx.cl_utils.core import pushd
+import sh
 
 print("Checking your environment")
 if not os.path.exists(".env"):
@@ -104,15 +105,31 @@ with Live(table, refresh_per_second=4):
                                 f.write(res.stderr.decode("utf-8"))
 
 
-# console.print(table)
+# When using subprocess there is no nice way to try (short of threads) to capture the output and send
+# it to the console while also capturing it to a file.  So we use sh instead.
+# https://amoffat.github.io/sh/index.html
+# sh "knows" about all of the commands on your PATH
+
+# define a function that will take the output from the background process
+# if it matches a pattern we are looking for, print it to the console
+def process_output(line, stdin, process):
+    if "naming to docker.io" in line and "done" in line:
+        print(line[line.rindex("/") + 1 :].replace("done", "").strip())
+
 
 print("Building docker images...")
-res = subprocess.run(["docker", "compose", "build"], capture_output=True)
-if res.returncode == 0:
+# res = subprocess.run(["docker", "compose", "build"], capture_output=True)
+
+try:
+    # such a cool way to run "docker compose build" and capture the output
+    res = sh.docker.compose.build(
+        "--progress", "plain", _out=process_output, _bg=True, _tee=True
+    )
+    res.wait()
     print("Docker images built successfully")
     with open("build.log", "a") as f:
         f.write(res.stdout.decode("utf-8"))
-else:
+except sh.ErrorReturnCode:
     print(
         "Docker images failed to build, see build.log for details (or run with --verbose)"
     )

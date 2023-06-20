@@ -197,21 +197,28 @@ If you install postgresql locally you will need to do  a few things to get it re
 Environment variables
 =====================
 
-Environment variables are very important in a system like Runestone, The services need to know several values that need to be private.  They can also give you a certain level of control over how you customize your own deployment or development environment.  The following environment variables are used by the various services.
+Environment variables are very important in a system like Runestone, The services need to know several values that need to be private.  They can also give you a certain level of control over how you customize your own deployment or development environment.  The following environment variables are used by the various services.  Some environment variables are important on the host side (h), some are important on the docker side (d), and some are important on both sides (b).  
 
-* ``DBURL`` - This is the URL that is used to connect to the database in production.
-* ``DEV_DBURL`` - This is the URL that is used to connect to the database in development.
-* ``DC_DBURL`` - This is the URL that is used to connect to the database in docker-compose.
-* ``DC_DEV_DBURL`` - This is the URL that is used to connect to the database in docker-compose development.
-* ``BOOK_PATH`` - This is the path to the folder that contains all of the books you want to serve.  This value is the path on the HOST side of the docker container.  So if you are running docker on a mac and your books are in ``/Users/bob/Runestone/books`` then you would set this to ``/Users/bob/Runestone/books``.  
-* ``RUNESTONE_PATH`` - This is the path to the ``rs`` repository folder
-* ``JWT_SECRET`` - this is the secret used to sign the JWT tokens.  It should be a long random string.  You can generate one by running ``openssl rand -base64 32``  You should set this to the same value in all of the services.
-* ``WEB2PY_PRIVATE_KEY`` - this is the secret that web2py uses when hashing passwords. It should be a long random string.  You can generate one by running ``openssl rand -base64 32``  You should set this to the same value in all of the services.
-* ``SERVER_CONFIG`` - this should be production, development, or test.  It is used to determine which database URL to use.
-* ``WEB2PY_CONFIG`` - should be the same value as ``SERVER_CONFIG``.  It is used to determine which database URL to use.  This will go away when we have eliminated the web2py framework from the code base.
-* ``RUNESTONE_HOST`` - this is the canonical host name of the server.  It is used to generate links to the server.  It should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.
-* ``LOAD_BALANCER_HOST`` - this is the canonical host name of the server when you are running in production with several workers.  It is used to generate links to the server.  It should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.  You would typically only need to set this or RUNESTONE_HOST.
+* ``RUNESTONE_PATH`` *h* - This is the path to the ``rs`` repository folder, it is used to find the ``.env`` file by utilities like ``rsmanage``.  You must set this on the host side.  Setting this in the ``.env`` file is too late, as it is used to help programs find the ``.env`` file.
+* ``BOOK_PATH`` - *h* This is the path to the folder that contains all of the books you want to serve.  This value is the path on the HOST side of the docker container.  So if you are running docker on a mac and your books are in ``/Users/bob/Runestone/books`` then you would set this to ``/Users/bob/Runestone/books``.  
 
+
+* ``DBURL`` *b* - This is the URL that is used to connect to the database in production.
+* ``DEV_DBURL`` *b* - This is the URL that is used to connect to the database in development.
+* ``DC_DBURL`` *d* - This is the URL that is used to connect to the database in docker-compose.  If this is not set it will default to ``$DBURL``.  This is useful if you want to use a different database for docker-compose than you do for development.
+* ``DC_DEV_DBURL`` *d* - This is the URL that is used to connect to the database in docker-compose development.  If this is not set it will default to ``$DEV_DBURL``.  This is useful if you want to use a different database for docker-compose development than you do for development.
+
+These two sets of variables can be identical, but they are separate because it is often the case that you want to refer to a database running on the host using the host name ``localhost`` from the host but from docker you need to use the host name ``host.docker.internal``.  So you can set ``DBURL`` to ``postgresql://runestone:runestone@localhost/runestone_dev`` and ``DC_DBURL`` to ``postgresql://runestone:runestone@host.docker.internal/runestone_dev``
+
+
+* ``JWT_SECRET`` *d* - this is the secret used to sign the JWT tokens.  It should be a long random string.  You can generate one by running ``openssl rand -base64 32``  You should set this to the same value in all of the services.
+* ``WEB2PY_PRIVATE_KEY`` *d* - this is the secret that web2py uses when hashing passwords. It should be a long random string.  You can generate one by running ``openssl rand -base64 32``  You should set this to the same value in all of the services.
+* ``SERVER_CONFIG`` *d* - this should be production, development, or test.  It is used to determine which database URL to use.
+* ``WEB2PY_CONFIG`` *d* - should be the same value as ``SERVER_CONFIG``.  It is used to determine which database URL to use.  This will go away when we have eliminated the web2py framework from the code base.
+* ``RUNESTONE_HOST`` *d* - this is the canonical host name of the server.  It is used to generate links to the server.  It should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.
+* ``LOAD_BALANCER_HOST`` *d* - this is the canonical host name of the server when you are running in production with several workers.  It is used to generate links to the server.  It should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.  You would typically only need to set this or RUNESTONE_HOST.
+
+Variables that are important for the host side are probably best set in your login shell environment (such as a .bashrc file) But you can also set them in the .env file and as long as you have a RUNESTONE_PATH set commands like ``rsmanage`` and ``runestone`` will try to read and use those variables.  Variables that are important for the docker side are best set in the ``.env`` file.  The docker-compose file pulls
 When you are doing development you may want to set these in your login shell, But they can all be set in the ``.env`` file in the top level directory.  This file is read by docker-compose and the values are passed to the containers.  You can also set them in the ``docker-compose.yml`` file but that is not recommended.  The ``.env`` file is also used by the ``build.py`` script to set the environment variables for the docker-compose build.  As of this writing (June 2023) rsmanage does not know about the ``.env`` file so you will have to set them in your login shell if you want to use rsmanage.
 
 
@@ -221,14 +228,14 @@ Getting a Server Started
 ========================
 
 This assumes that you have already followed the instructions for installing postgresql, poetry and the plugins as well as Docker.
-
-1. Run ``poetry install --with=dev`` from the top level directory.  This will install all of the dependencies for the project.  When that completes run ``poetry shell`` to start a poetry shell.  You can verify that this worked correctly by running ``rsmanage env``.  You should see a list of environment variables that are set.  If you do not see them then you may need to run ``poetry shell`` again.  If you get an error message that you cannot interpret you can ask for help in the ``#developer`` channel on the Runestone discord server.
-2.  Create a new database for your class or book.  You can do this by running ``createdb -O runestone <dbname>``.  You can also do this in the psql command line interface by running ``create database <dbname> owner runestone;``  You may have to become the postgres user in order to run that command.
-3.  From the ``bases/rsptx/interactives`` folder run ``npm install``.  This will install all of the javascript dependencies for the interactives.  Next run ``npm run build`` this will build the Runestone Interactive javascript files.  You will need to do this every time you make a change to the javascript files.  If you are NOT going to build a book, then you can skip this step.
-4.  Run the ``build.py`` script from the ``rs`` folder. The first step of this script will verify that you have all of your environment variables defined.
-5.  Make sure you are not already running a webserver on your computer.  You can check this by running ``lsof -i :80``.  If you see a line that says ``nginx`` then you are already running a webserver.  You can stop it by running ``sudo nginx -s stop``.  Alternatively you can edit the ``docker-compose.yml`` file and change the port that nginx is listening on to something other than 80.
-6.  Run ``docker-compose up`` from the ``rs`` folder.  This will start up all of the servers.  You can also run ``docker-compose up <server name>`` to start up just one server.  The server names are ``web2py``, ``book``, ``author``, ``admin``, ``analytics``, ``build``, ``nginx``.  You can also run ``docker-compose up -d`` to run the servers in the background.
-7.  Now you should be able to connect to ``http://localhost/`` from your computer and see the homepage.
+1. copy ``sample.env`` to ``.env`` and edit the file.
+2. Run ``poetry install --with=dev`` from the top level directory.  This will install all of the dependencies for the project.  When that completes run ``poetry shell`` to start a poetry shell.  You can verify that this worked correctly by running ``rsmanage env``.  You should see a list of environment variables that are set.  If you do not see them then you may need to run ``poetry shell`` again.  If you get an error message that you cannot interpret you can ask for help in the ``#developer`` channel on the Runestone discord server.
+3.  Create a new database for your class or book.  You can do this by running ``createdb -O runestone <dbname>``.  You can also do this in the psql command line interface by running ``create database <dbname> owner runestone;``  You may have to become the postgres user in order to run that command.  If you have already created a database you can skip this one.
+4.  From the ``bases/rsptx/interactives`` folder run ``npm install``.  This will install all of the javascript dependencies for the interactives.  Next run ``npm run build`` this will build the Runestone Interactive javascript files.  You will need to do this every time you make a change to the javascript files.  If you are NOT going to build a book, then you can skip this step.
+5.  Run the ``build.py`` script from the ``rs`` folder. The first step of this script will verify that you have all of your environment variables defined.
+6.  Make sure you are not already running a webserver on your computer.  You can check this by running ``lsof -i :80``.  If you see a line that says ``nginx`` then you are already running a webserver.  You can stop it by running ``sudo nginx -s stop``.  Alternatively you can edit the ``docker-compose.yml`` file and change the port that nginx is listening on to something other than 80.
+7.  Run ``docker-compose up`` from the ``rs`` folder.  This will start up all of the servers.  You can also run ``docker-compose up <server name>`` to start up just one server.  The server names are ``web2py``, ``book``, ``author``, ``admin``, ``analytics``, ``build``, ``nginx``.  You can also run ``docker-compose up -d`` to run the servers in the background.
+8.  Now you should be able to connect to ``http://localhost/`` from your computer and see the homepage.
 
 
 Authentication

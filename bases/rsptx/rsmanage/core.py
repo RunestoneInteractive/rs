@@ -60,6 +60,7 @@ from rsptx.db.models import CoursesValidator, AuthUserValidator
 from rsptx.db.async_session import init_models, term_models
 from rsptx.configuration import settings
 from rsptx.build_tools.core import _build_runestone_book, _build_ptx_book
+from rsptx.cl_utils.core import load_project_dotenv
 
 import pdb
 
@@ -74,7 +75,6 @@ pass_config = click.make_pass_decorator(Config, ensure=True)
 # configuration
 REQ_ENV = [
     "SERVER_CONFIG",
-    "WEB2PY_CONFIG",
     "DBURL",
     "WEB2PY_PRIVATE_KEY",
     "JWT_SECRET",
@@ -832,20 +832,14 @@ def checkEnvironment():
     Check the list of required and optional environment variables to be sure they are defined.
     """
     stop = False
-    if "WEB2PY_CONFIG" not in os.environ:
-        click.echo("You must set your WEB2PY_CONFIG environment variable")
+
+    load_project_dotenv()
+
+    if "SERVER_CONFIG" not in os.environ:
+        click.echo("You must set your SERVER_CONFIG environment variable")
         sys.exit()
 
-    if Path(".env").exists():
-        load_dotenv()
-        click.echo("Loaded .env file")
-    elif "RUNESTONE_PATH" in os.environ:
-        env_path = Path(os.environ["RUNESTONE_PATH"]) / ".env"
-        if env_path.exists():
-            load_dotenv(env_path)
-            click.echo(f"Loaded .env file from {os.environ['RUNESTONE_PATH']}")
-
-    config = os.environ["WEB2PY_CONFIG"]
+    config = os.environ["SERVER_CONFIG"]
 
     if config == "production":
         for var in REQ_ENV:
@@ -873,10 +867,10 @@ def checkEnvironment():
 
 
 def echoEnviron(config):
-    click.echo("WEB2PY_CONFIG is {}".format(config.conf))
-    click.echo("SERVER_CONFIG is {}".format(settings.server_config))
     click.echo("RUNESTONE_PATH is {}".format(settings.runestone_path))
     click.echo("BOOK_PATH is {}".format(settings.book_path))
+    click.echo("SERVER_CONFIG is {}".format(settings.server_config))
+    click.echo("WEB2PY_CONFIG is {}".format(config.conf))
     click.echo("The database URL is configured as {}".format(config.dburl))
     click.echo("DBNAME is {}".format(config.dbname))
 
