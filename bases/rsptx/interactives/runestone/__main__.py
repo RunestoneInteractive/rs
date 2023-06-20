@@ -18,12 +18,15 @@ import importlib.resources
 import codecs
 from runestone.server import get_dburl
 from rsptx.build_tools.core import update_library, populate_static, manifest_data_to_db
+from rsptx.cl_utils.core import load_project_dotenv
 
 if len(sys.argv) == 2:
     if "--version" in sys.argv:
         version = importlib.metadata.version("runestone")
         print("Runestone version {}".format(version))
         sys.exit()
+
+load_project_dotenv()
 
 
 @click.group(chain=True)
