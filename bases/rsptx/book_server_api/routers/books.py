@@ -368,6 +368,8 @@ async def serve_page(
         serve_google_ad = False
     else:
         serve_google_ad = serve_ad
+
+    headers = {"Cache-Control": "no-cache, no-store, must-revalidate"}
     context = dict(
         request=request,
         course_name=course_name,
@@ -400,7 +402,7 @@ async def serve_page(
     )
     # See `templates <https://fastapi.tiangolo.com/advanced/templates/>`_.
     try:
-        return templates.TemplateResponse(pagepath, context)
+        return templates.TemplateResponse(pagepath, context, headers=headers)
     except TemplateNotFound:
         raise HTTPException(
             status_code=404,

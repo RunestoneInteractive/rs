@@ -24,7 +24,7 @@ python = "^3.10"
 aioredis = "^2.0.0"
 async-timeout = "^3.0.0"
 celery = {extras = ["redis"], version = "^5.0.0"}
-fastapi = "^0.87.0"
+fastapi = "0.95.2"
 # Per the `uvicorn docs <https://www.uvicorn.org/#quickstart>`_, install the standard (as opposed to minimal) uvicorn dependencies.
 uvicorn = {extras = ["standard"], version = "^0.17.0"}
 # See the `poetry docs <https://python-poetry.org/docs/dependency-specification/#using-environment-markers>`_.
