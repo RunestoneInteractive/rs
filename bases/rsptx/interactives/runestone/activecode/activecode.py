@@ -71,18 +71,22 @@ XML_EX_START = """
 XML_EX_END = """
     </statement>
     <program xml:id="{divid}_editor" interactive='activecode' language="{language}">
+{optional_prefix_code}
         <input>
-{initialcode}
+{xml_source_code}
         </input>
+{optional_suffix_code}
     </program>
 </exercise>
 """
 
 XML_LISTING_START = """
     <program xml:id="{divid}" interactive='activecode' language="{language}">
+{optional_prefix_code}    
         <input>
-{initialcode}
+{xml_source_code}
         </input>
+{optional_suffix_code}
     </program>
 """
 
@@ -112,8 +116,8 @@ class ActivecodeNode(nodes.General, nodes.Element, RunestoneIdNode):
 
 
 def visit_ac_xml(self, node):
-    node["runestone_options"]["initialcode"] = (
-        node["runestone_options"]["initialcode"]
+    node["runestone_options"]["xml_source_code"] = (
+        node["runestone_options"]["xml_source_code"]
         .replace("<", "&lt;")
         .replace(">", "&gt;")
     )
@@ -121,7 +125,28 @@ def visit_ac_xml(self, node):
         res = XML_EX_START.format(**node["runestone_options"])
         self.output.append(res)
 
+
 def depart_ac_xml(self, node):
+    if node["runestone_options"]["xml_prefix_code"]:
+        node["runestone_options"]["optional_prefix_code"] = (
+            "<prefix>\n"
+            + node["runestone_options"]["xml_prefix_code"]
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            + "\n</prefix>\n"
+        )
+    else:
+        node["runestone_options"]["optional_prefix_code"] = ""
+    if node["runestone_options"]["xml_suffix_code"]:
+        node["runestone_options"]["optional_suffix_code"] = (
+            "<tests>\n"
+            + node["runestone_options"]["xml_suffix_code"]
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            + "\n</tests>\n"
+        )
+    else:
+        node["runestone_options"]["optional_suffix_code"] = ""
     if node["runestone_options"]["has_problem_statement"]:
         res = XML_EX_END.format(**node["runestone_options"])
         self.output.append(res)
@@ -440,6 +465,8 @@ class ActiveCode(RunestoneIdDirective):
             if "^^^^" in self.content:
                 idx = self.content.index("^^^^")
                 prefix = "\n".join(self.content[:idx])
+            else:
+                prefix = ""
             if "====" in self.content:
                 idx = self.content.index("====")
                 source = "\n".join(self.content[:idx])
@@ -450,6 +477,10 @@ class ActiveCode(RunestoneIdDirective):
         else:
             source = "\n"
             suffix = "\n"
+
+        self.options["xml_prefix_code"] = prefix
+        self.options["xml_source_code"] = source
+        self.options["xml_suffix_code"] = suffix
 
         course_name = env.config.html_context["course_id"]
         divid = self.options["divid"]
