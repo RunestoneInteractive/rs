@@ -817,9 +817,7 @@ def db(config):
     """
     Connect to the database based on the current configuration
     """
-    # replace argv[1] which is 'db' with the url to connect to
-    sys.argv[1] = config.dburl
-    sys.exit(clipg())
+    sys.exit(subprocess.run(["pgcli", f"{config.dburl.replace('+asyncpg', '')}"]))
 
 
 #
@@ -952,12 +950,12 @@ async def addbookauthor(config, book, author, github):
         vals = dict(title=f"Temporary title for {book}")
         await create_library_book(book, vals)
     except Exception as e:
-        click.echo(f"Warning Book already exists in library {e}")
+        click.echo(f"Warning: Book already exists in library")
 
     try:
         await create_book_author(author, book)
     except Exception as e:
-        click.echo(f"Warning setting book,author pair failed {e}")
+        click.echo(f"Warning: It appears that {author} is already an author of {book}")
 
     # create an entry in auth_membership (group_id, user_id)
     auth_row = await fetch_group("author")
