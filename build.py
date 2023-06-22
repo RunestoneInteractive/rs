@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
-
-import os
+#
+# `build.py` - Build the wheels and Docker containers needed for this
+# application
+# ===================================================================
+#
+# Imports
+# -------
 import locale
-from shutil import copyfile
+import os
 import subprocess
 import sys
+from shutil import copyfile
 
 # use python-dotenv >= 0.21.0
 from dotenv import load_dotenv
 from rich.console import Console
-from rich.table import Table
 from rich.live import Live
-from rsptx.cl_utils.core import pushd
-import sh
+from rich.table import Table
+from rsptx.cl_utils.core import pushd, stream_command, subprocess_streamer
 
+# Check environment variables
+# ---------------------------
 print("Checking your environment")
 if not os.path.exists(".env"):
     print("No .env file found.  Please copy sample.env to .env and edit it.")
@@ -24,6 +31,8 @@ if "--verbose" in sys.argv:
 else:
     VERBOSE = False
 
+# Per the [docs](https://pypi.org/project/python-dotenv/), load `.env` into
+# environment variables.
 load_dotenv()
 console = Console()
 table = Table(title="Environment Variables")
@@ -67,13 +76,11 @@ else:
     print("DC_DEV_DBURL set.  Using it instead of DEV_DBURL")
 
 if not os.path.isfile("bases/rsptx/web2py_server/applications/runestone/models/1.py"):
-    # copy 1.py.prototype to 1.py
     print("Copying 1.py.prototype to 1.py")
     copyfile(
         "bases/rsptx/web2py_server/applications/runestone/models/1.py.prototype",
         "bases/rsptx/web2py_server/applications/runestone/models/1.py",
     )
-
 
 if finish:
     print(
@@ -81,7 +88,11 @@ if finish:
     )
     exit(1)
 
-# Attempt to determine the encoding of data returned from stdout/stderr of subprocesses. This is non-trivial. See the discussion at [Python's sys.stdout](https://docs.python.org/3/library/sys.html#sys.stdout). First, try `locale.getencoding()` (requires >= 3.11), with a fallback to `locale.getpreferredencoding()`.
+# Attempt to determine the encoding of data returned from stdout/stderr of
+# subprocesses. This is non-trivial. See the discussion at [Python's
+# sys.stdout](https://docs.python.org/3/library/sys.html#sys.stdout). First, try
+# `locale.getencoding()` (requires >= 3.11), with a fallback to
+# `locale.getpreferredencoding()`.
 #
 # This is motivated by errors on Windows under Python 3.10:
 #
@@ -92,10 +103,15 @@ if finish:
 #           return codecs.charmap_encode(input,self.errors,encoding_table)[0]
 #       UnicodeEncodeError: 'charmap' codec can't encode characters in position 55319-55358: character maps to <undefined>
 try:
-    stdout_err_encoding = locale.getencoding()
+    # Since this isn't defined on all Python versions, tell mypy to ignore the
+    # following error.
+    stdout_err_encoding = locale.getencoding()  # type: ignore[attr-defined]
 except AttributeError:
     stdout_err_encoding = locale.getpreferredencoding()
 
+
+# Build wheels
+# ------------
 table = Table(title="Build Wheels")
 table.add_column("Project", justify="right", style="cyan", no_wrap=True)
 table.add_column("Built", style="magenta")
@@ -118,35 +134,38 @@ with Live(table, refresh_per_second=4):
                                 f.write(res.stderr.decode(stdout_err_encoding))
 
 
-# When using subprocess there is no nice way to try (short of threads) to capture the output and send
-# it to the console while also capturing it to a file.  So we use sh instead.
-# https://amoffat.github.io/sh/index.html
-# sh "knows" about all of the commands on your PATH
-
-# define a function that will take the output from the background process
-# if it matches a pattern we are looking for, print it to the console
-def process_output(line, stdin, process):
-    if "naming to docker.io" in line and "done" in line:
-        print(line[line.rindex("/") + 1 :].replace("done", "").strip())
-
-
-print("Building docker images...")
-# res = subprocess.run(["docker", "compose", "build"], capture_output=True)
-
-try:
-    # such a cool way to run "docker compose build" and capture the output
-    res = sh.docker.compose.build(
-        "--progress", "plain", _out=process_output, _bg=True, _tee=True
+# Build Docker containers
+# -----------------------
+print("Building docker images (see build.log for detailed progress)...")
+with open("build.log", "ab") as f:
+    ret = stream_command(
+        "docker",
+        "compose",
+        "build",
+        # For stdout, stream only high points of the build to stdout; save
+        # *everything* to the log file.
+        stdout_streamer=subprocess_streamer(
+            sys.stdout.buffer,
+            f,
+            filter=lambda line: (
+                # Only show lines to stdout like `#18 naming to
+                # docker.io/library/rs-jobe 0.2s done`; just report the
+                # container name for brevity.
+                b"Finished "
+                + line[line.rindex(b"/") + 1 :].replace(b" done", b"").strip()
+                + b"\n"
+                if b"naming to docker.io" in line and b"done" in line
+                else b"",
+                # Save everything to the file.
+                line,
+            ),
+        ),
+        stderr_streamer=subprocess_streamer(sys.stderr.buffer, f),
     )
-    res.wait()
+if ret == 0:
     print("Docker images built successfully")
-    with open("build.log", "a") as f:
-        f.write(res.stdout.decode(stdout_err_encoding))
-except sh.ErrorReturnCode:
+else:
     print(
         "Docker images failed to build, see build.log for details (or run with --verbose)"
     )
-    print(res.stderr.decode(stdout_err_encoding))
-    with open("build.log", "a") as f:
-        f.write(res.stderr.decode(stdout_err_encoding))
     exit(1)

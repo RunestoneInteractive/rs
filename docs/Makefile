@@ -2,6 +2,7 @@
 #
 
 # To add more modules use sphinx-apidoc -o [output_dir] [package_dir] --separate
+# Then make sure to edit the modules.rst file to include the new modules
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.

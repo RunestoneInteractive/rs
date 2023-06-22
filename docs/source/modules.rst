@@ -18,6 +18,6 @@ Components are shared pieces of code that can be used by multiple bases.  They a
    :maxdepth: 4
 
    db
-
+   cl_utils
 
 More to come.  The API documentation is a work in progress.
