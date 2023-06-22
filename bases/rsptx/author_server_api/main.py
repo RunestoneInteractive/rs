@@ -23,6 +23,11 @@ import pdb
 # third party
 # -----------
 import aiofiles
+from components.rsptx.db.crud import (
+    create_instructor_course_entry,
+    fetch_base_course,
+    fetch_user,
+)
 from fastapi import Body, FastAPI, Request, Depends, status
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -98,9 +103,12 @@ async def create_book_entry(author: str, document_id: str, github: str):
         new_server="T",
     )
     await create_course(course)
-
+    c_from_db = fetch_base_course(document_id)
+    u_from_db = fetch_user(author)
     vals = {"authors": author, "basecourse": document_id, "github_url": github}
     await create_library_book(document_id, vals)
+    await create_instructor_course_entry(u_from_db.id, c_from_db.id)
+
     return True
 
 
