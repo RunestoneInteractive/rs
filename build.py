@@ -31,6 +31,11 @@ if "--verbose" in sys.argv:
 else:
     VERBOSE = False
 
+res = subprocess.run("docker info", shell=True, capture_output=True)
+if res.returncode != 0:
+    print("Docker is not running.  Please start it and try again.")
+    exit(1)
+
 # Per the [docs](https://pypi.org/project/python-dotenv/), load `.env` into
 # environment variables.
 load_dotenv()
