@@ -10,6 +10,7 @@ Welcome to Runestone Documentation
    :maxdepth: 2
 
    readme
+   contributing
    developing
 
 

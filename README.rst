@@ -44,6 +44,8 @@ Understanding the Code Structure
 A Roadmap
 ---------
 
+`Runestone Roadmap <https://github.com/orgs/RunestoneInteractive/projects/6/views/1>`_
+
 Docs
 ----
 
@@ -61,6 +63,18 @@ A Python implementation of the Polylith tool:
 Documentation for building and running each of the projects is in the respective project directory.
 
 Please make sure you keep your fork up to date with main.  We are actively working on this new organization of the Runestone code, and there are likely to be lots of changes, especially throughout the summer months.
+
+Contributing
+------------
+
+There is so much to do on this project, and we are happy to accept contributions.  Please see the `Contributing Guide <https://runestone-monorepo.readthedocs.io/en/latest/contributing.html>`_ for more information.   We are especially interested in contributions that help us to improve the documentation, and the test coverage of the code.
+
+If you want to know where we are going, and what things are in active development or in need of immediate help please take a look at our projects page on
+github: `Runestone Projects <https://github.com/orgs/RunestoneInteractive/projects>`_
+
+We are working on building out a longterm roadmap for Runestone.  You can see that here: `Runestone Roadmap <https://github.com/orgs/RunestoneInteractive/projects/6/views/1>`_
+
+
 
 Our Community
 -------------
