@@ -195,7 +195,7 @@ If you install postgresql locally you will need to do  a few things to get it re
 
 
 Environment variables
-=====================
+---------------------
 
 Environment variables are very important in a system like Runestone, The services need to know several values that need to be private.  They can also give you a certain level of control over how you customize your own deployment or development environment.  The following environment variables are used by the various services.  Some environment variables are important on the host side (h), some are important on the docker side (d), and some are important on both sides (b).  
 
@@ -225,7 +225,7 @@ When you are doing development you may want to set these in your login shell, Bu
 
 
 Getting a Server Started 
-========================
+------------------------
 
 This assumes that you have already followed the instructions for installing postgresql, poetry and the plugins as well as Docker.
 1. copy ``sample.env`` to ``.env`` and edit the file.
@@ -239,7 +239,7 @@ This assumes that you have already followed the instructions for installing post
 
 
 Authentication
---------------
+~~~~~~~~~~~~~~
 
 At the time of this writing (April 2023) authentication is a bit over complicated.  That is part of what this monorepo project is trying to straighten out.
 
@@ -251,7 +251,7 @@ We are using the FastAPI_Login extension for much of what we do.  But JWTs are e
 
 
 Running one or more servers
----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To run a project, for example the author server main web app:
 
@@ -269,7 +269,7 @@ container registry
 To build all of the docker containers and bring them up together.  You can run the ``build.py`` script in the top level directory. The dependencies for the build.py script are included in the top level ``pyproject.toml`` file.  ``poetry install --with=dev`` will install everything you need and then you may will want to start up a poetry shell. The ``build.py`` script will build all of the Python wheels and Docker images, when that completes run ``docker-compose up``.  You can also run ``docker-compose up`` directly if you have already built the images.  
 
 When developing and you need multiple servers running
-=====================================================
+-
 
 Install nginx and configure projects/nginx/runestone.dev for your
 system. You can run nginx in "non daemon mode" using
@@ -302,7 +302,7 @@ once.
 
 
 Adding a New Feature
-====================
+--------------------
 
 Most new features to Runestone take the form of a new API endpoint with or wthout a UX.  The UX is usually a new page in the web2py server.  The API endpoint is usually in the book_server_api or author_server_api.  A lot of the code for a new feature typically revolves around working with the database.  All servers in the monorepo share the same database.  The database is a postgresql database, and the model for the database resides in the ``rsptx.db.models`` module.  The elements of the module are defined using the ``sqlalchemy`` library.  In addition, most models have a corresponding validator provided by the Pydantic library.  In your code you should use these pydantic validators.  They ensure that your code is using the correct types.  They also provide a convenient way to convert the data from the database into a python dictionary.  The pydantic validators are defined in the ``rsptx.common.schemas`` module.
 
@@ -319,7 +319,7 @@ If your endpoint is going to be part of the book server, you should look at the 
 
 
 Developing the Javascript for Runestone Components
-==================================================
+--------------------------------------------------
 
 The following is what you need to do to work on the javascript for a component testing it against a local build of a book written in PreTeXt.
 
@@ -340,7 +340,7 @@ If you are still working with old RST based books, you can simply use the ``rune
 
 
 Adding a new Project
-====================
+--------------------
 
 To add a new project to the monorepo, you will need to add a new folder in the ``bases`` directory.  The folder should be named ``rsptx.<project_name>``. You can do this with ``poetry poly create base --name <yourname>``  You will also need to add a new folder under ``projects/<project_name>``  You can create this with ``poetry poly create project --name <yourname>`` The folder will contain a ``pyproject.toml`` file.  
 
@@ -408,8 +408,8 @@ All of the servers use an authentication token stored in a cookie.  You may need
 This will start up the web2py server and create an admin user with the password you specify.  You can then login to the web2py server and create a cookie.  You can then use that cookie to access the other servers.  You can also use the web2py server to create a course and add users to the course.  This will allow you to test the other servers with a real course.
 
 
-A Full Example
-==============
+A Tutorial to get you started
+-----------------------------
 
 In this section we will walk through the entire process of adding a new server to the monorepo.  We will start with a new project and add a new base.  We will then build the project and run it in a docker container.  Finally we will run the project outside of the container.  We will create a library server that will allow us to display all of the books in the Runestone library.
 
@@ -590,7 +590,7 @@ A good development tip is to use the ``--reload`` option when running the server
 Can can find the fully working code for this example on the ``library_example`` branch of the runestone monorepo.
 
 Setting up Docker
------------------
+~~~~~~~~~~~~~~~~~
 
 Now lets build a docker image for our library server.  First we need to create a Dockerfile.  Create a new file called ``Dockerfile`` in the projects/library_server folder.  Add the following to the file:
 

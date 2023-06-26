@@ -1,4 +1,4 @@
-# `core.py` - Utilities supporting continuous integration tests
+# ``core.py`` - Utilities supporting continuous integration tests
 # ===============================================================
 #
 # Imports
@@ -179,7 +179,7 @@ SubprocessStreamerType = Callable[
     # It takes one argument: an stream produced by the subprocess (either
     # `process.stdout` or `process.stderr`). See the [docs](https://docs.python.org/3/library/asyncio-stream.html#streamreader).
     [asyncio.StreamReader],
-    # It produces no output, but must be an `async`` function.
+    # It produces no output, but must be an ``async`` function.
     Awaitable[None],
 ]
 
