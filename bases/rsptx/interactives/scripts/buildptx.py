@@ -30,6 +30,9 @@ elif p.name != sys.argv[1] and "BOOK_PATH" in os.environ:
         print("Build Failed")
         exit(-1)
 
+else:
+    bookname = sys.argv[1]
+
 
 class Config:
     def __init__(self):

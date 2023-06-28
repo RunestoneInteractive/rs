@@ -11,6 +11,8 @@ import os
 import subprocess
 import sys
 from shutil import copyfile
+import yaml
+import toml
 
 # use python-dotenv >= 0.21.0
 from dotenv import load_dotenv
@@ -174,3 +176,44 @@ else:
         "Docker images failed to build, see build.log for details (or run with --verbose)"
     )
     exit(1)
+
+# read the version from pyproject.toml
+with open("pyproject.toml") as f:
+    pyproject = toml.load(f)
+    version = pyproject["tool"]["poetry"]["version"]
+
+# Now if the --push flag was given, push the images to Docker Hub
+# For this next part to work you need to be logged in to a docker hub account or the
+# runestone private registry on digital ocean.  The docker-compose.yml file has the
+# image names set up to push to the runestone registry on digital ocean.
+if "--push" in sys.argv:
+    print("Pushing docker images to Docker Hub...")
+    ym = yaml.safe_load(open("docker-compose.yml"))
+    # remove the redis service from the list since we don't customize it
+    del ym["services"]["redis"]
+    for service in ym["services"]:
+        if "image" in ym["services"][service]:
+            image = ym["services"][service]["image"]
+            print(f"Pushing {image}")
+            ret1 = subprocess.run(
+                ["docker", "tag", image, f"{image}:v{version}"], check=True
+            )
+            # we do 2 pushes because the version tag is not automatically pushed
+            # and we want to push both the latest and the version tagged images
+            # but it is low cost as we only push the layers that are not already
+            # on the server.
+            ret2 = subprocess.run(["docker", "push", image], check=True)
+            ret3 = subprocess.run(["docker", "push", f"{image}:v{version}"], check=True)
+
+            if ret1.returncode + ret2.returncode + ret3.returncode == 0:
+                print(f"{image} pushed successfully")
+                ret = 0
+            else:
+                print(f"{image} failed to push")
+                exit(1)
+
+    if ret.returncode == 0:
+        print("Docker images pushed successfully")
+    else:
+        print("Docker images failed to push")
+        exit(1)

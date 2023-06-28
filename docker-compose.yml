@@ -3,7 +3,9 @@ version: '3.8'
 services:
 
   author:
-    build: ./projects/author_server
+    build:
+      context: ./projects/author_server
+    image: registry.digitalocean.com/runestone-registry/rs-author
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
@@ -21,7 +23,9 @@ services:
       - redis
 
   worker:
-    build: ./projects/author_server
+    build: 
+      context: ./projects/author_server
+    image: registry.digitalocean.com/runestone-registry/rs-worker
     extra_hosts:
       - host.docker.internal:host-gateway
     command: celery -A rsptx.author_server_api.worker.celery worker
@@ -42,10 +46,14 @@ services:
     image: redis:6-alpine
 
   jobe:
-    build: ./projects/jobe
+    build: 
+      context: ./projects/jobe
+    image: registry.digitalocean.com/runestone-registry/rs-jobe
 
   book:
-    build: ./projects/book_server
+    build: 
+      context: ./projects/book_server
+    image: registry.digitalocean.com/runestone-registry/rs-book
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
@@ -72,7 +80,9 @@ services:
       - jobe
 
   runestone:
-      build: ./projects/w2p_login_assign_grade
+      build: 
+        context: ./projects/w2p_login_assign_grade
+      image: registry.digitalocean.com/runestone-registry/rs-runestone
       extra_hosts:
         - host.docker.internal:host-gateway
       ports:
@@ -101,7 +111,9 @@ services:
         - jobe
 
   assignment:
-    build: ./projects/assignment_server
+    build: 
+      context: ./projects/assignment_server
+    image: registry.digitalocean.com/runestone-registry/rs-assignment
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
@@ -133,6 +145,7 @@ services:
     build: 
       context: ./
       dockerfile: projects/nginx/Dockerfile
+    image: registry.digitalocean.com/runestone-registry/rs-nginx
     
     ports:
       - 80:80
