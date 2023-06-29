@@ -104,7 +104,7 @@ $.i18n().load({
         msg_activecode_were_compiling_err:
             "Houveram erros ao compilar seu código. Veja abaixo.",
         msg_activecode_time_limit_exc: "Limite de tempo excedido no seu programa",
-        msg_activecode_server_err: "Um erro de servidor ocorreu: $1 $2",
+        msg_activecode_server_err: "Um erro de servidor ocorreu",
         msg_activecode_compiling_running:
             "Compilando e executando seu código...",
         msg_activecode_server_comm_err: "Erro ao comunicar com o servidor.",
