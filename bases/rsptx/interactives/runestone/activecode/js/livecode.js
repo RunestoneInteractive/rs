@@ -115,7 +115,7 @@ export default class LiveCode extends ActiveCode {
                 import java.io.*;
                 ` + this.suffix;
             }
-            let classMatch = new RegExp(/public class\s+(\w+)[\s+{]/);
+            let classMatch = new RegExp(/public\s+class\s+(\w+)/);
             source = await this.buildProg(false);
             let m = source.match(classMatch);
             if (m) {
