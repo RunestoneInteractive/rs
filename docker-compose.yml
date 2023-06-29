@@ -19,6 +19,7 @@ services:
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
       - RUNESTONE_PATH=/usr/src/app
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - redis
 
@@ -38,6 +39,7 @@ services:
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
       - WEB2PY_CONFIG=${SERVER_CONFIG}
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - author
       - redis
@@ -75,6 +77,7 @@ services:
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
+      - JWT_SECRET=${JWT_SECRET}
     links:
       - redis
       - jobe
@@ -106,6 +109,13 @@ services:
         - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
         - DBURL=${DC_DBURL:-$DBURL}
         - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
+        - JWT_SECRET=${JWT_SECRET}
+        - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
+        - EMAIL_SENDER="smtp.gmail.com:587"
+        - EMAIL_SERVER=${EMAIL_SERVER}
+        - EMAIL_LOGIN=${EMAIL_LOGIN}
+        - SPACES_KEY=${SPACES_KEY}
+        - SPACES_SECRET=${SPACES_SECRET}
       links:
         - redis
         - jobe
@@ -134,6 +144,7 @@ services:
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
+      - JWT_SECRET=${JWT_SECRET}
     links:
       - redis
       - jobe
