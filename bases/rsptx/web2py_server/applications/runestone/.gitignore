@@ -26,7 +26,6 @@ cache/*
 .pythonhistory
 custom_courses/
 /source/index.rst
-models/1.py
 /runestone.sublime-project
 /runestone.sublime-workspace
 /chromedriver.log
