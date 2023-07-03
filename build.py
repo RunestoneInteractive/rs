@@ -33,6 +33,15 @@ if "--verbose" in sys.argv:
 else:
     VERBOSE = False
 
+if "--help" in sys.argv:
+    print(
+        """Usage: build.py [--verbose] [--help] [--all] [--push]
+        --all build all containers, including author and worker
+        --push push all containers to docker hub
+        """
+    )
+    exit(0)
+
 res = subprocess.run("docker info", shell=True, capture_output=True)
 if res.returncode != 0:
     print("Docker is not running.  Please start it and try again.")
@@ -140,42 +149,70 @@ with Live(table, refresh_per_second=4):
                             with open("build.log", "a") as f:
                                 f.write(res.stderr.decode(stdout_err_encoding))
 
+ym = yaml.safe_load(open("docker-compose.yml"))
+# remove the redis service from the list since we don't customize it
+del ym["services"]["redis"]
+
+
+# Generate a table for the Live object
+# see https://rich.readthedocs.io/en/stable/live.html?highlight=update#basic-usage
+def generate_table(status):
+    table = Table(title="Build Docker Images")
+    table.add_column("Service", justify="right", style="cyan", no_wrap=True)
+    table.add_column("Built", style="magenta")
+    for service in status:
+        table.add_row(service, status[service])
+    return table
+
 
 # Build Docker containers
 # -----------------------
 print("Building docker images (see build.log for detailed progress)...")
-with open("build.log", "ab") as f:
-    ret = stream_command(
-        "docker",
-        "compose",
-        "build",
-        # For stdout, stream only high points of the build to stdout; save
-        # *everything* to the log file.
-        stdout_streamer=subprocess_streamer(
-            sys.stdout.buffer,
-            f,
-            filter=lambda line: (
-                # Only show lines to stdout like `#18 naming to
-                # docker.io/library/rs-jobe 0.2s done`; just report the
-                # container name for brevity.
-                b"Finished "
-                + line[line.rindex(b"/") + 1 :].replace(b" done", b"").strip()
-                + b"\n"
-                if b"naming to docker.io" in line and b"done" in line
-                else b"",
-                # Save everything to the file.
-                line,
-            ),
-        ),
-        stderr_streamer=subprocess_streamer(sys.stderr.buffer, f),
-    )
-if ret == 0:
-    print("Docker images built successfully")
-else:
-    print(
-        "Docker images failed to build, see build.log for details (or run with --verbose)"
-    )
-    exit(1)
+with Live(table, refresh_per_second=4) as lt:
+    status = {}
+    for service in ym["services"]:
+        if service in ["author", "worker"] and "--all" not in sys.argv:
+            status[service] = "skipped"
+            continue
+        else:
+            status[service] = "building"
+        lt.update(generate_table(status))
+        with open("build.log", "ab") as f:
+            ret = stream_command(
+                "docker",
+                "compose",
+                "build",
+                service,
+                "--progress",
+                "plain",
+                # For stdout, stream only high points of the build to stdout; save
+                # *everything* to the log file.
+                stdout_streamer=subprocess_streamer(
+                    sys.stdout.buffer,
+                    f,
+                    filter=lambda line: (
+                        # Only show lines to stdout like `#18 naming to
+                        # docker.io/library/rs-jobe 0.2s done`; just report the
+                        # container name for brevity.
+                        b"Finished "
+                        + line[line.rindex(b"/") + 1 :].replace(b" done", b"").strip()
+                        + b"\n"
+                        if b"naming to docker.io" in line and b"done" in line
+                        else b"",
+                        # Save everything to the file.
+                        line,
+                    ),
+                ),
+                stderr_streamer=subprocess_streamer(sys.stderr.buffer, f),
+            )
+        if ret == 0:
+            status[service] = "built"
+            lt.update(generate_table(status))
+        else:
+            status[service] = "failed"
+            lt.update(generate_table(status))
+            print(f"There was an error building {service} see build.log for details")
+            exit(1)
 
 # read the version from pyproject.toml
 with open("pyproject.toml") as f:
@@ -188,9 +225,6 @@ with open("pyproject.toml") as f:
 # image names set up to push to the runestone registry on digital ocean.
 if "--push" in sys.argv:
     print("Pushing docker images to Docker Hub...")
-    ym = yaml.safe_load(open("docker-compose.yml"))
-    # remove the redis service from the list since we don't customize it
-    del ym["services"]["redis"]
     for service in ym["services"]:
         if "image" in ym["services"][service]:
             image = ym["services"][service]["image"]
@@ -212,8 +246,4 @@ if "--push" in sys.argv:
                 print(f"{image} failed to push")
                 exit(1)
 
-    if ret.returncode == 0:
-        print("Docker images pushed successfully")
-    else:
-        print("Docker images failed to push")
-        exit(1)
+    print("Docker images pushed successfully")
