@@ -218,10 +218,31 @@ These two sets of variables can be identical, but they are separate because it i
 * ``RUNESTONE_HOST`` *d* - this is the canonical host name of the server.  It is used to generate links to the server.  It should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.
 * ``LOAD_BALANCER_HOST`` *d* - this is the canonical host name of the server when you are running in production with several workers.  It is used to generate links to the server.  It should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.  You would typically only need to set this or RUNESTONE_HOST.
 
-Variables that are important for the host side are probably best set in your login shell environment (such as a .bashrc file) But you can also set them in the .env file and as long as you have a RUNESTONE_PATH set commands like ``rsmanage`` and ``runestone`` will try to read and use those variables.  Variables that are important for the docker side are best set in the ``.env`` file.  The docker-compose file pulls
-When you are doing development you may want to set these in your login shell, But they can all be set in the ``.env`` file in the top level directory.  This file is read by docker-compose and the values are passed to the containers.  You can also set them in the ``docker-compose.yml`` file but that is not recommended.  The ``.env`` file is also used by the ``build.py`` script to set the environment variables for the docker-compose build.  As of this writing (June 2023) rsmanage does not know about the ``.env`` file so you will have to set them in your login shell if you want to use rsmanage.
+Variables that are important for the host side are probably best set in your
+login shell environment (such as a .bashrc file) But you can also set them in
+the ``.env`` file and as long as you have a RUNESTONE_PATH set commands like
+``rsmanage`` and ``runestone`` will try to read and use those variables.
 
+When you are doing development you may want to set these in your login shell,
+But they can all be set in the ``.env`` file in the top level directory. This
+file is read by docker-compose and the values are passed to the containers. You
+can also set them in the ``docker-compose.yml`` file but that is not
+recommended. The ``.env`` file is also used by the ``build.py`` script to set
+the environment variables for the docker-compose build. As of this writing
+(June 2023) rsmanage does not know about the ``.env`` file so you will have to
+set them in your login shell if you want to use rsmanage.
 
+An alternative to setting ``RUNESTONE_PATH`` is add the ``poetry-dotenv-plugin``
+to your ``poetry`` installation. It will cause commands like ``poetry shell`` to
+also import variables from the ``.env`` file which means that you will have them
+when you run ``runestone`` and ``rsmanage`` from withen the shell you launched
+with ``poetry shell``. To install the plugin run:
+
+``poetry self add poetry-dotenv-plugin``
+
+Note, however, that plugins in ``poetry`` are global, not per-project, so if you
+have other ``poetry`` projects with ``.env`` files that you `don`t` want slurped
+into your ``poetry shell`` environment you may not want to install this plugin.
 
 
 Getting a Server Started 
