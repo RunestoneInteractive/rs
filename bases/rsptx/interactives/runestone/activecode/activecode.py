@@ -477,6 +477,7 @@ class ActiveCode(RunestoneIdDirective):
         else:
             source = "\n"
             suffix = "\n"
+            prefix = "\n"
 
         self.options["xml_prefix_code"] = prefix
         self.options["xml_source_code"] = source
