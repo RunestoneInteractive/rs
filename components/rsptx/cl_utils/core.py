@@ -111,16 +111,20 @@ class pushd:
         self,
         # The path to change to upon entering the context manager.
         path: str | Path,
+        verbose: bool = False,
     ):
         self.path = path
+        self.verbose = verbose
 
     def __enter__(self) -> None:
-        flush_print("pushd {}".format(self.path))
+        if self.verbose:
+            flush_print("pushd {}".format(self.path))
         self.cwd = os.getcwd()
         os.chdir(str(self.path))
 
     def __exit__(self, type_, value, traceback) -> Literal[False]:
-        flush_print("popd - returning to {}.".format(self.cwd))
+        if self.verbose:
+            flush_print("popd - returning to {}.".format(self.cwd))
         os.chdir(str(self.cwd))
         return False
 

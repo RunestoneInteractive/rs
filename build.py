@@ -47,6 +47,10 @@ if res.returncode != 0:
     print("Docker is not running.  Please start it and try again.")
     exit(1)
 
+# make a fresh build.log for this build
+with open("build.log", "w") as f:
+    f.write("")
+
 # Per the [docs](https://pypi.org/project/python-dotenv/), load `.env` into
 # environment variables.
 load_dotenv()
@@ -99,8 +103,9 @@ if not os.path.isfile("bases/rsptx/web2py_server/applications/runestone/models/1
     )
 
 if finish:
-    print(
-        "Your environment is not set up correctly.  Please define the environment variables listed above."
+    console.print(
+        "Your environment is not set up correctly.  Please define the environment variables listed above.",
+        style="bold red",
     )
     exit(1)
 
@@ -156,7 +161,7 @@ del ym["services"]["redis"]
 
 # Generate a table for the Live object
 # see https://rich.readthedocs.io/en/stable/live.html?highlight=update#basic-usage
-def generate_table(status):
+def generate_table(status: dict) -> Table:
     table = Table(title="Build Docker Images")
     table.add_column("Service", justify="right", style="cyan", no_wrap=True)
     table.add_column("Built", style="magenta")
@@ -178,40 +183,22 @@ with Live(table, refresh_per_second=4) as lt:
             status[service] = "building"
         lt.update(generate_table(status))
         with open("build.log", "ab") as f:
-            ret = stream_command(
-                "docker",
-                "compose",
-                "build",
-                service,
-                "--progress",
-                "plain",
-                # For stdout, stream only high points of the build to stdout; save
-                # *everything* to the log file.
-                stdout_streamer=subprocess_streamer(
-                    sys.stdout.buffer,
-                    f,
-                    filter=lambda line: (
-                        # Only show lines to stdout like `#18 naming to
-                        # docker.io/library/rs-jobe 0.2s done`; just report the
-                        # container name for brevity.
-                        b"Finished "
-                        + line[line.rindex(b"/") + 1 :].replace(b" done", b"").strip()
-                        + b"\n"
-                        if b"naming to docker.io" in line and b"done" in line
-                        else b"",
-                        # Save everything to the file.
-                        line,
-                    ),
-                ),
-                stderr_streamer=subprocess_streamer(sys.stderr.buffer, f),
+            ret = subprocess.run(
+                ["docker", "compose", "build", service, "--progress", "plain"],
+                capture_output=True,
             )
-        if ret == 0:
+            f.write(ret.stdout)
+            f.write(ret.stderr)
+        if ret.returncode == 0:
             status[service] = "built"
             lt.update(generate_table(status))
         else:
             status[service] = "failed"
             lt.update(generate_table(status))
-            print(f"There was an error building {service} see build.log for details")
+            console.print(
+                f"There was an error building {service} see build.log for details",
+                style="bold red",
+            )
             exit(1)
 
 # read the version from pyproject.toml
@@ -246,4 +233,4 @@ if "--push" in sys.argv:
                 print(f"{image} failed to push")
                 exit(1)
 
-    print("Docker images pushed successfully")
+    console.print("Docker images pushed successfully", style="green")
