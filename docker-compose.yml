@@ -78,6 +78,13 @@ services:
       - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
       - JWT_SECRET=${JWT_SECRET}
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-2}
+      - UVICORN_USER=www-data
+      - UVICORN_GROUP=www-data
+      - UVICORN_MAX_REQUESTS=5000
+      - UVICORN_MAX_REQUESTS_JITTER=30
+      - UVICORN_TIMEOUT=60
+
     links:
       - redis
       - jobe
@@ -90,7 +97,7 @@ services:
         - host.docker.internal:host-gateway
       ports:
         - 8112:8112
-      command: gunicorn --bind 0.0.0.0:8112 --workers 1 rsptx.web2py_server.wsgihandler:application
+      command: gunicorn --bind 0.0.0.0:8112 rsptx.web2py_server.wsgihandler:application
 
       #command: tail -f /var/log/lastlog
       restart: always
@@ -116,6 +123,7 @@ services:
         - EMAIL_LOGIN=${EMAIL_LOGIN}
         - SPACES_KEY=${SPACES_KEY}
         - SPACES_SECRET=${SPACES_SECRET}
+        - GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS}
       links:
         - redis
         - jobe
