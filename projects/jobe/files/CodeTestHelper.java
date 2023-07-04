@@ -32,9 +32,10 @@ import javax.tools.ToolProvider;
  * test classes easier. Methods should be tested even if they do not exist.
  *
  * @author Kate McDonnell
- * @version 2.0.1
- * @since 2022-07-08
+ * @version 2.0.2
+ * @since 2023-07-24
  * 
+ * @update 2.0.2 - Peter Seibel updated to allow for "throws exception" in main
  * @update 2.0.1 - added getMethodOutputChangedCode - can change the program to
  *         change values in static code, fixed for loop regex for .length
  * @update 2.0.0 - standard version since 2020
@@ -318,7 +319,7 @@ public class CodeTestHelper {
     public String getMethodOutput(String methodName)// throws IOException
     {
         if (methodName.equals("main")) {
-            return getMethodOutput(methodName, new String[1]);
+            return getMethodOutput(methodName, new Object[][] { new String[0] });
         }
         return getMethodOutput(methodName, null);
     }
@@ -988,39 +989,29 @@ public class CodeTestHelper {
 
     // https://stackoverflow.com/questions/10120709/difference-between-printstacktrace-and-tostring#:~:text=toString%20()%20gives%20name%20of,is%20raised%20in%20the%20application.&text=While%20e.,Jon%20wrote%20in%20his%20answer.
     private String stackToString(Throwable e) {
-        if (e == null)
+        if (e == null) {
             return "Exception: stack null";
+        }
 
         StringWriter sw = new StringWriter();
         e.printStackTrace(new PrintWriter(sw));
 
         String trace = sw.toString();
 
-        String returnString = "";
-
-        String location = "", except = "";
-
         String causedBy = "Caused by: ";
-        int expLen = causedBy.length();
         int expStart = trace.indexOf(causedBy);
 
-        returnString += "Start: " + expStart + "\n";
-
         if (expStart > -1) {
-            except = trace.substring(expStart + expLen);
-            // trace = trace.substring(0, expStart-1);
-
+            String except = trace.substring(expStart + causedBy.length());
             int expEnd = except.indexOf(className + ".java");
             expEnd = except.indexOf("\n", expEnd);
-
-            if (expEnd > -1)
+            if (expEnd > -1) {
                 except = except.substring(0, expEnd);
+            }
+            return except;
         } else {
-            return "Exception in method";
+            return "Exception in method:\n" + trace;
         }
-
-        return except;
-
     }
 
     /**
@@ -1120,6 +1111,10 @@ public class CodeTestHelper {
     private boolean checkParameters(Method m, Object[] arguments) {
         String header = m.toGenericString().replace(className + ".", "");
 
+        // ???: Is this still needed. As we discovered, it doesn't handle the
+        // case where the main method has a throws clause. I *think* that maybe
+        // with the other fix at line 321, this may not be needed anymore? I'm
+        // not sure. -Peter
         if (header.equals("public static void main(java.lang.String[])"))
             return true;
 
@@ -1349,7 +1344,9 @@ public class CodeTestHelper {
             endLine = code.indexOf("\n", startLine + 1);
             if (endLine >= 0)
                 code = code.substring(0, startLine) + code.substring(endLine);
-
+            else {
+                code = code.substring(0, startLine);
+            }
             startLine = code.indexOf("//");
         }
 
