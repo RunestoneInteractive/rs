@@ -182,6 +182,11 @@ def payment():
 @auth.requires_login()
 def index():
     #    print("REFERER = ", request.env.http_referer)
+    if not auth.user:
+        if os.environ.get("LOAD_BALANCER_HOST", False) == "runestone.academy":
+            redirect("https://landing.runestone.academy")
+        else:
+            redirect(URL("default", "user", args="login"))
 
     course = (
         db(db.courses.id == auth.user.course_id)
