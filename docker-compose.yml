@@ -71,7 +71,7 @@ services:
       - SERVER_CONFIG=${SERVER_CONFIG}
       - RUNESTONE_HOST=${RUNESTONE_HOST}
       - RUNESTONE_PATH=/usr/src/app
-      - REDIS_URI=redis://redis:6379/0
+      - REDIS_URI=redis://${REDIS_HOST}:6379/0
       # Note: host.docker.internal refers back to the host so we can just use a local instance
       # of postgresql
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
@@ -84,7 +84,9 @@ services:
       - UVICORN_MAX_REQUESTS=5000
       - UVICORN_MAX_REQUESTS_JITTER=30
       - UVICORN_TIMEOUT=60
-
+      - LOGIN_URL="/runestone/default/user"
+      - WORKER_NAME=${HOSTNAME}
+      
     links:
       - redis
       - jobe
@@ -110,7 +112,7 @@ services:
         - WEB2PY_CONFIG=${SERVER_CONFIG}
         - RUNESTONE_HOST=${RUNESTONE_HOST}
         - RUNESTONE_PATH=/usr/src/app
-        - REDIS_URI=redis://redis:6379/0
+        - REDIS_URI=redis://${REDIS_HOST}:6379/0
         # Note: host.docker.internal refers back to the host so we can just use a local instance
         # of postgresql
         - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
@@ -146,7 +148,7 @@ services:
       - BOOK_PATH=/usr/books
       - SERVER_CONFIG=${SERVER_CONFIG}
       - RUNESTONE_PATH=/usr/src/app
-      - REDIS_URI=redis://redis:6379/0
+      - REDIS_URI=redis://${REDIS_HOST}:6379/0
       # Note: host.docker.internal refers back to the host so we can just use a local instance
       # of postgresql
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
