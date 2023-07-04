@@ -29,7 +29,7 @@ COPY include/* /usr/include/
 RUN mkdir -p /usr/local/lib/java
 COPY files/* /usr/local/lib/java/
 RUN chmod a+w /usr/local/lib/java
-RUN chmod a+w /usr/local/lib/java/*.class
+
 
 # Set timezone
 # Install extra packages
