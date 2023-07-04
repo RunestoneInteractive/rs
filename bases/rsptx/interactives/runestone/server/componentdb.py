@@ -57,8 +57,8 @@ def get_dburl(outer={}):
     # nonlocal env, settings # Python 3 only
 
     dburl = None
-    if "WEB2PY_CONFIG" in environ:
-        w2py_config = environ["WEB2PY_CONFIG"]
+    if "SERVER_CONFIG" in environ:
+        w2py_config = environ["SERVER_CONFIG"]
         if w2py_config == "development":
             dburl = environ["DEV_DBURL"]
 
