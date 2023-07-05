@@ -11,18 +11,20 @@ We adopt the Dockerfile with just a few modifications
 
 0. The stock image is for amd64 and some of us need Apple silicon
 1. install extra python modules
-2. tweak parameters for timeouts and memory use to better accomadate unit tests
+2. tweak parameters for timeouts and memory use to better accommodate unit tests
 3. Allow for us to add additional languages.
 4. Tweak the timezone to UTC
 5. Allow for us to add unit test frameworks
 
+We use the https://github.com/RunestoneInteractive/jobe.git repo to populate /var/www/html/jobe
+in the container as we have made some specific changes to runguard.c that we need to incorporate.
 
 ## Building and running your own image locally (strongly recommended)
 
 There are several ways to build and run a JobeInABox container, for example:
 
-* [Podman](https://developers.redhat.com/blog/2019/02/21/podman-and-buildah-for-docker-users/)
-* [Docker](https://docs.docker.com/)
+-   [Podman](https://developers.redhat.com/blog/2019/02/21/podman-and-buildah-for-docker-users/)
+-   [Docker](https://docs.docker.com/)
 
 For production use you should build your own image using the local timezone. In this example we use Docker as follows:
 

@@ -36,32 +36,32 @@ RUN chmod a+w /usr/local/lib/java
 # Redirect apache logs to stdout
 # Configure apache
 # Configure php
-# Get and install jobe
+# Get and install jobe - from RunestoneInteractive/jobe - contains our changes.
 # Clean up
 RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     echo "$TZ" > /etc/timezone && \
     apt-get update && \
     apt-get --no-install-recommends install -yq \
-        acl \
-        apache2 \
-        build-essential \
-        fp-compiler \
-        git \
-        libapache2-mod-php \
-        nodejs \
-        octave \
-        openjdk-18-jdk \
-        php \
-        php-cli \
-        php-mbstring \
-        python3 \
-        python3-pip \
-        python3-setuptools \
-        sqlite3 \
-        sudo \
-        tzdata \
-        unzip \
-        vim && \
+    acl \
+    apache2 \
+    build-essential \
+    fp-compiler \
+    git \
+    libapache2-mod-php \
+    nodejs \
+    octave \
+    openjdk-18-jdk \
+    php \
+    php-cli \
+    php-mbstring \
+    python3 \
+    python3-pip \
+    python3-setuptools \
+    sqlite3 \
+    sudo \
+    tzdata \
+    unzip \
+    vim && \
     python3 -m pip install pylint beautifulsoup4 pandas requests altair && \
     pylint --reports=no --score=n --generate-rcfile > /etc/pylintrc && \
     ln -sf /proc/self/fd/1 /var/log/apache2/access.log && \
