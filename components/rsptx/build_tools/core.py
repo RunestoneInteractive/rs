@@ -36,6 +36,7 @@ from sqlalchemy.sql import text
 
 # todo: use our logger
 from rsptx.logging import rslogger
+from runestone.server import get_dburl
 
 rslogger.setLevel("WARNING")
 
@@ -422,18 +423,10 @@ def manifest_data_to_db(course_name, manifest_path):
     """
 
     try:
-        if os.environ["WEB2PY_CONFIG"] == "development":
-            DBURL = os.environ["DEV_DBURL"]
-        elif os.environ["WEB2PY_CONFIG"] == "production":
-            DBURL = os.environ["DBURL"]
-        elif os.environ["WEB2PY_CONFIG"] == "test":
-            DBURL = os.environ["TEST_DBURL"]
-        else:
-            rslogger.error("No WEB2PY_CONFIG found! Do not know which DB to use!")
-            exit(-1)
+        DBURL = get_dburl()
     except KeyError:
         rslogger.error("PreTeXt integration requires a valid WEB2PY Environment")
-        rslogger.error("make sure WEB2PY_CONFIG and DBURLs are set up")
+        rslogger.error("make sure SERVER_CONFIG and DBURLs are set up")
         exit(-1)
 
     engine = create_engine(DBURL)
@@ -564,6 +557,10 @@ def manifest_data_to_db(course_name, manifest_path):
                         idchild = "fix_me"
                     if "the-id-on-the-webwork" in el.attrib:
                         old_ww_id = el.attrib["the-id-on-the-webwork"]
+                    if "optional" in el.attrib:
+                        optional = "T"
+                    else:
+                        optional = "F"
                 else:
                     el = question.find("./div")
                     if el is None:
@@ -588,7 +585,11 @@ def manifest_data_to_db(course_name, manifest_path):
                     if el is not None:
                         qtype = "webwork"
                         dbtext = ET.tostring(el).decode("utf8")
-
+                practice = "F"
+                if qtype == "webwork":
+                    practice = "T"
+                if "practice" in el.attrib:
+                    practice = "T"
                 valudict = dict(
                     base_course=course_name,
                     name=idchild,
@@ -600,6 +601,8 @@ def manifest_data_to_db(course_name, manifest_path):
                     subchapter=subchapter.find("./id").text,
                     chapter=chapter.find("./id").text,
                     qnumber=qlabel,
+                    optional=optional,
+                    practice=practice,
                 )
                 if old_ww_id:
                     namekey = old_ww_id
