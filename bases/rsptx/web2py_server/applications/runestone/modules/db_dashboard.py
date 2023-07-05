@@ -46,6 +46,13 @@ class ProblemMetrics(object):
     def add_data_point(self, row):
         correct = row.correct
         choice = row.answer
+        # for webwork problems the answer is a dict that looks like this:
+        # {"answers": {"AnSwEr0002": "3", "AnSwEr0004": "", "AnSwEr0001": "2", "AnSwEr0003": ""}, }
+        if type(choice) == dict:
+            ct = ""
+            for answerKey, val in choice.get("answers", {}).items():
+                ct += " " + str(val) + " "
+        choice = ct
         if choice == "":
             choice = "(empty)"
 
@@ -140,6 +147,7 @@ class CourseProblemMetrics(object):
             "clickablearea_answers",
             "dragndrop_answers",
             "codelens_answers",
+            "webwork_answers",
         ]
         for tbl in tbl_list:
             res[tbl] = current.db(
