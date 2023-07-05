@@ -29,6 +29,11 @@ repo.
 -  The entire suite of services is orchestrated by the
    ``docker-compose.yml`` file
 
+Running your own server?
+------------------------
+
+If you run your own Runestone server we would love to hear from you.  Please make an issue in this repo and just tell us where you are at and how many students you serve.   As we seek grant funding, understanding the impact of Runestone is very important.  Thanks!
+
 Understanding the Code Structure
 --------------------------------
 
