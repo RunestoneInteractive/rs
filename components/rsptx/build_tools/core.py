@@ -547,6 +547,11 @@ def manifest_data_to_db(course_name, manifest_path):
                 rslogger.debug(f"found label= {qlabel}")
                 rslogger.debug("looking for data-component")
                 # pdb.set_trace()
+                if "optional" in question.attrib:
+                    optional = "T"
+                else:
+                    optional = "F"
+
                 el = question.find(".//*[@data-component]")
                 old_ww_id = None
                 # Unbelievably if find finds something it evals to False!!
@@ -557,10 +562,6 @@ def manifest_data_to_db(course_name, manifest_path):
                         idchild = "fix_me"
                     if "the-id-on-the-webwork" in el.attrib:
                         old_ww_id = el.attrib["the-id-on-the-webwork"]
-                    if "optional" in el.attrib:
-                        optional = "T"
-                    else:
-                        optional = "F"
                 else:
                     el = question.find("./div")
                     if el is None:
@@ -588,7 +589,7 @@ def manifest_data_to_db(course_name, manifest_path):
                 practice = "F"
                 if qtype == "webwork":
                     practice = "T"
-                if "practice" in el.attrib:
+                if el and "practice" in el.attrib:
                     practice = "T"
                 valudict = dict(
                     base_course=course_name,
