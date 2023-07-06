@@ -175,13 +175,19 @@ $(document).on("runestone:login-complete", function () {
             }
         }
     });
+    // The componentMap can have any component, not all of them have a disableSaveLoad
+    // method or an enableSaveLoad method.  So we need to check for that before calling it.
     if (loggedout) {
         for (let k in window.componentMap) {
-            window.componentMap[k].disableSaveLoad();
+            if (window.componentMap[k].disableSaveLoad) {
+                window.componentMap[k].disableSaveLoad();
+            }
         }
     } else {
         for (let k in window.componentMap) {
-            window.componentMap[k].enableSaveLoad();
+            if (window.componentMap[k].enableSaveLoad) {
+                window.componentMap[k].enableSaveLoad();
+            }
         }
     }
 });
