@@ -52,7 +52,7 @@ class ProblemMetrics(object):
             ct = ""
             for answerKey, val in choice.get("answers", {}).items():
                 ct += " " + str(val) + " "
-        choice = ct
+            choice = ct
         if choice == "":
             choice = "(empty)"
 
