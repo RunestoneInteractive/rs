@@ -57,4 +57,6 @@ if sys.argv[1:] == ["--publish"]:
             check=True,
         )
         print("Moving release to jsdist")
-        subprocess.run(["mv", f"dist-{VERSION}.tgz", "../jsdist"], check=True)
+        subprocess.run(
+            " ".join(["mv", f"dist-{VERSION}.tgz", "../jsdist"]), check=True, shell=True
+        )
