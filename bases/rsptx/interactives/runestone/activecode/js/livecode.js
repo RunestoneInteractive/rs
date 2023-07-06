@@ -105,11 +105,12 @@ export default class LiveCode extends ActiveCode {
             // import static org.junit.Assert.*;
             // import org.junit.*;
             // import java.io.*;
-            if (this.suffix.indexOf("import org.junit") <0 ) {
+            if (this.suffix.indexOf("import org.junit") < 0) {
                 console.log(`Missing imports in unit tests:
                     ${this.suffix}`);
                 // alert("The unit tests for this problem are incomplete, Please report this.");
-                this.suffix = `
+                this.suffix =
+                    `
                 import static org.junit.Assert.*;
                 import org.junit.*;
                 import java.io.*;
@@ -174,6 +175,11 @@ export default class LiveCode extends ActiveCode {
             for (var i = 0; i < ids.length; i++) {
                 let fileName = ids[i].trim();
                 let file = document.getElementById(fileName);
+                if (file === null || file === undefined) {
+                    file = document.querySelector(
+                        '[data-filename="' + fileName + '"]'
+                    );
+                }
                 let fileExtension = fileName.substring(
                     fileName.lastIndexOf(".") + 1
                 );
