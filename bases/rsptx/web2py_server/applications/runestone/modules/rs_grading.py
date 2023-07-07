@@ -31,7 +31,7 @@ def _profile(start, msg):
 D1 = Decimal("1")
 
 
-def _score_from_pct_correct(pct_correct, points, autograde):
+def _score_from_pct_correct(pct_correct: int, points, autograde):
     # ALL_AUTOGRADE_OPTIONS = ['all_or_nothing', 'pct_correct', 'interact']
     if points is None:
         points = 0
@@ -40,7 +40,9 @@ def _score_from_pct_correct(pct_correct, points, autograde):
     elif autograde == "pct_correct":
         # prorate credit based on percentage correct
         # 2.x result return int(((pct_correct * points)/100.0))
-        return int(Decimal((pct_correct * points) / 100.0).quantize(D1, ROUND_HALF_UP))
+        # formerly we forced this result to be an integer, but now we allow fractional points
+        # int(Decimal((pct_correct * points) / 100.0).quantize(D1, ROUND_HALF_UP))
+        return (pct_correct * points) / 100.0
     elif autograde == "all_or_nothing" or autograde == "unittest":
         # 'unittest' is legacy, now deprecated
         # have to get *all* tests to pass in order to get any credit
