@@ -116,7 +116,7 @@ export default class ACFactory {
             stdin = `data-stdin="text for stdin"`;
         }
         // generate the HTML
-        var html = `<div id="ac_modal_${divid}" class="modal fade">
+        var html = `<div class="ptx-runestone-container"><div id="ac_modal_${divid}" class="modal fade">
               <div class="modal-dialog scratch-ac-modal">
                 <div class="modal-content">
                   <div class="modal-header">
@@ -136,6 +136,7 @@ export default class ACFactory {
                   </div>
                 </div>
               </div>
+            </div>
             </div>`;
         var el = $(html);
         $("body").append(el);
