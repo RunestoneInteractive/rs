@@ -446,7 +446,16 @@ def manifest_data_to_db(course_name, manifest_path):
     rslogger.info("Cleaning up old chapters info for {}".format(course_name))
     # Delete the chapter rows before repopulating. Subchapter rows are taken
     # care of by postgres with the ON DELETE CASCADE clause
+
     sess.execute(chapters.delete().where(chapters.c.course_id == course_name))
+
+    # Mark existing questions as from_source = 'F' all questions in the manifest will be updated
+    # and marked as from_source = 'T' if they are in the manifest.
+    sess.execute(
+        questions.update()
+        .where(questions.c.base_course == course_name)
+        .values(from_source="F")
+    )
 
     rslogger.info("Populating the database with Chapter information")
 
