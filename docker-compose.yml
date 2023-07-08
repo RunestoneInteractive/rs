@@ -167,7 +167,7 @@ services:
       context: ./
       dockerfile: projects/nginx/Dockerfile
     image: registry.digitalocean.com/runestone-registry/rs-nginx
-    
+    restart: always
     ports:
       - 80:80
       #- 443:443
