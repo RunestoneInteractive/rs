@@ -179,7 +179,6 @@ def payment():
     return dict(html=html, payment_success=None)
 
 
-@auth.requires_login()
 def index():
     #    print("REFERER = ", request.env.http_referer)
     if not auth.user:
