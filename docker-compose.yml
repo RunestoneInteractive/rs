@@ -173,6 +173,11 @@ services:
       #- 443:443
     volumes:
       - ${BOOK_PATH}:/usr/books
+    depends_on:
+      - runestone
+      - book
+      - assignment
+      - author
     links:
       - runestone
       - book
