@@ -470,6 +470,39 @@ prompt-toolkit = "*"
 six = "*"
 
 [[package]]
+name = "codechat"
+version = "1.9.2"
+description = "The CodeChat System for software documentation"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "CodeChat-1.9.2-py3-none-any.whl", hash = "sha256:1813bd5dc1274f577324897ae2dd25eecb0400c3a65b924bd370bf3c759ab83c"},
+    {file = "CodeChat-1.9.2.tar.gz", hash = "sha256:16fd5fe09a1b3d103891a3f2f1f2faf9ee8be7b71b6f17c4520438a34f8f01b5"},
+]
+
+[package.dependencies]
+docutils = ">=0.13.1"
+lxml = "*"
+pygments = ">=2.1"
+
+[package.extras]
+sphinx = ["myst-parser", "sphinx (>=3)"]
+test = ["black", "flake8", "myst-parser", "pytest", "sphinx (>=3)"]
+
+[[package]]
+name = "cogapp"
+version = "3.3.0"
+description = "Cog: A content generator for executing Python snippets in source files."
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+files = [
+    {file = "cogapp-3.3.0-py2.py3-none-any.whl", hash = "sha256:8b5b5f6063d8ee231961c05da010cb27c30876b2279e23ad0eae5f8f09460d50"},
+    {file = "cogapp-3.3.0.tar.gz", hash = "sha256:1be95183f70282422d594fa42426be6923070a4bd8335621f6347f3aeee81db0"},
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -1172,6 +1205,21 @@ build-docs = ["cloud-sptheme (>=1.10.1)", "sphinx (>=1.6)", "sphinxcontrib-fullt
 totp = ["cryptography"]
 
 [[package]]
+name = "paver"
+version = "1.3.4"
+description = "Easy build, distribution and deployment scripting"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "Paver-1.3.4-py2.py3-none-any.whl", hash = "sha256:aeca608dc680abf58675e12b78d02817beb6d7ea5ae58ff2f917776d22d176fd"},
+    {file = "Paver-1.3.4.tar.gz", hash = "sha256:d3e6498881485ab750efe40c5278982a9343bc627e137b11adced627719308c7"},
+]
+
+[package.dependencies]
+six = "*"
+
+[[package]]
 name = "pdfcropmargins"
 version = "1.0.9"
 description = "A command-line program to crop the margins of PDF files, with many options."
@@ -1811,6 +1859,29 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
+name = "runestone"
+version = "6.6.2"
+description = "Sphinx extensions for writing interactive documents."
+category = "main"
+optional = false
+python-versions = ">=3.7.0,<4.0.0"
+files = [
+    {file = "runestone-6.6.2-py3-none-any.whl", hash = "sha256:43dea861da08623fab52114e3e59c48724a07d83d729b82987b8d789eb5e0e33"},
+    {file = "runestone-6.6.2.tar.gz", hash = "sha256:c3db77777304459b7e63bfcf949b1410f1c7a4641c2674c0f8a30d87ff0c08d4"},
+]
+
+[package.dependencies]
+click = ">=8,<9"
+CodeChat = ">=1.8.6"
+cogapp = ">=2.5"
+jinja2 = "<3.1.0"
+Paver = ">=1.2.4"
+six = ">1.12"
+Sphinx = ">=4.4.0,<6.0.0"
+sphinxcontrib-paverutils = ">=1.17"
+SQLAlchemy = ">=1.4.0"
+
+[[package]]
 name = "single-version"
 version = "1.5.1"
 description = "Small utility to define version string for Poetry-style Python project."
@@ -1982,6 +2053,22 @@ files = [
 
 [package.extras]
 test = ["flake8", "mypy", "pytest"]
+
+[[package]]
+name = "sphinxcontrib-paverutils"
+version = "1.17.0"
+description = "Sphinx/Paver integration"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "sphinxcontrib-paverutils-1.17.0.tar.gz", hash = "sha256:daafc4440018c34b0ab3fe55b72e6c1c484a23622fb3caf73f08f77fb458c149"},
+    {file = "sphinxcontrib_paverutils-1.17.0-py2.py3-none-any.whl", hash = "sha256:447c412d827bf4d899d56febde45db969c783d49efe9824fed4be5f2fccc4bfb"},
+]
+
+[package.dependencies]
+Paver = ">=1.02.0"
+Sphinx = ">=1.7.1"
 
 [[package]]
 name = "sphinxcontrib-qthelp"
@@ -2322,4 +2409,4 @@ email = ["email-validator"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "20e173fc3c78e6d40be19c2964cc12ea2a85c9960bbe96714c4d531ccd83ec5d"
+content-hash = "dd904bc1076e8d7a1f71254a2533afe342502ab2ae100ad0e77106df7e5dcb7f"
