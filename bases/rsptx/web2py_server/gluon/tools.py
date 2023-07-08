@@ -4291,7 +4291,7 @@ class Auth(AuthAPI):
             redirect(self.settings.login_url, client_side=self.settings.client_side)
         passfield = self.settings.password_field
         table_user[passfield].writable = False
-        table_user["email"].writable = False
+        table_user["email"].writable = True
         request = current.request
         session = current.session
         if next is DEFAULT:
