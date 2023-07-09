@@ -2141,7 +2141,7 @@ dev = ["build", "pytest", "pytest-timeout"]
 
 [[package]]
 name = "runestone"
-version = "7.0.0dev3"
+version = "7.0.1"
 description = "Sphinx extensions for writing interactive documents."
 category = "main"
 optional = false
@@ -2159,6 +2159,7 @@ lxml = "^4.9.2"
 myst-parser = "^1.0.0"
 Paver = ">=1.2.4"
 psycopg2-binary = "^2.9.6"
+python-dotenv = "^1.0.0"
 six = ">1.12"
 Sphinx = ">=4.4.0,<6.0.0"
 sphinx-reredirects = "^0.1.2"
@@ -2968,4 +2969,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "6c4b0c0bee458cffa518f9c7ebc0cc16f4af164489d439d3b7d377e40cad63a6"
+content-hash = "670ccad99da725afed7f566e45297975a2211725bcdef56e77a7ce500d2e1331"

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rsmanage"
-version = "0.1.0dev5"
+version = "2.0.0"
 description = ""
 authors = ['Brad Miller <bonelake@mac.com>']
 license = ""
@@ -35,7 +35,7 @@ sphinx-reredirects = "^0.1.2"
 lxml = "^4.9.2"
 paver = "^1.3.4"
 sphinxcontrib-paverutils = "^1.17.0"
-runestone = "^6.6.0"
+runestone = "^7.0.0"
 python-dotenv = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]

@@ -1175,7 +1175,7 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "runestone"
-version = "7.0.0dev1"
+version = "7.0.1"
 description = "Sphinx extensions for writing interactive documents."
 category = "main"
 optional = false
@@ -1193,6 +1193,7 @@ lxml = "^4.9.2"
 myst-parser = "^1.0.0"
 Paver = ">=1.2.4"
 psycopg2-binary = "^2.9.6"
+python-dotenv = "^1.0.0"
 six = ">1.12"
 Sphinx = ">=4.4.0,<6.0.0"
 sphinx-reredirects = "^0.1.2"
@@ -1677,4 +1678,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "c12cd9239a8de6e45f88543239800066c3316074956276748a423ab667ef2863"
+content-hash = "a7b527d9cf2e994427e059d3150cd274deed758f953539f6ca09f44e095579ed"
