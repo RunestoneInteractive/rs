@@ -23,8 +23,8 @@ function getCompletions() {
     }
     var data = {
         lastPageUrl: currentPathname,
-        isPtxBook: isPreTeXt()
-     };
+        isPtxBook: isPreTeXt(),
+    };
     jQuery
         .ajax({
             url: `${eBookConfig.new_server_prefix}/logger/getCompletionStatus`,
@@ -43,6 +43,9 @@ function getCompletions() {
                     completionClass = "buttonAskCompletion";
                     completionMsg = "Mark as Completed";
                 }
+                document
+                    .querySelector("#scprogresscontainer")
+                    .classList.add("ptx-runestone-container");
                 $("#scprogresscontainer").append(
                     '<div style="text-align:center"><button class="btn btn-lg ' +
                         completionClass +
@@ -297,7 +300,7 @@ function processPageState(completionFlag) {
         );
     }
     // Is this a ptx book?
-    let isPtxBook = isPreTeXt()
+    let isPtxBook = isPreTeXt();
     var data = {
         lastPageUrl: currentPathname,
         lastPageScrollLocation: $(window).scrollTop(),
