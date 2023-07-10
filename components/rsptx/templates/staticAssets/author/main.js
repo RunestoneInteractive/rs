@@ -242,7 +242,7 @@ async function getRepoStatus(bcname) {
 }
 
 function showLog(book) {
-    fetch(`/getlog/${book}`, {
+    fetch(`/author/getlog/${book}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -333,7 +333,7 @@ function getStatus(taskID) {
                         kind = "logfiles";
                     }
                     // Get the list of files for download and add to the list.
-                    fetch(`/dlsAvailable/${kind}`, {
+                    fetch(`/author/dlsAvailable/${kind}`, {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",
