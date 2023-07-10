@@ -2,7 +2,7 @@
 FROM python:3.10-bullseye
 
 # This is the name of the wheel that we build using `poetry build-project`
-ARG wheel=author_server-0.1.0-py3-none-any.whl
+ARG wheel=author_server-1.0.0-py3-none-any.whl
 
 # This demonstrates how to use a build argument to install texlive see https://stackoverflow.com/questions/34322631/how-to-pass-arguments-within-docker-compose for more info
 # The docker-compose file can also be updated to use a build object with args.  See https://docs.docker.com/compose/compose-file/#args
