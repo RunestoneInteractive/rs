@@ -14,6 +14,7 @@ services:
     volumes:
       - ${BOOK_PATH}:/books
     environment:
+      - SERVER_CONFIG=${SERVER_CONFIG}
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
@@ -34,6 +35,7 @@ services:
       - ${BOOK_PATH}:/books
       - $SSH_AUTH_SOCK:/ssh-agent # forward host ssh agent
     environment:
+      - SERVER_CONFIG=${SERVER_CONFIG}
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - RUNESTONE_PATH=/usr/src/app
