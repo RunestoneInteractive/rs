@@ -32,6 +32,7 @@ services:
     command: celery -A rsptx.author_server_api.worker.celery worker
     volumes:
       - ${BOOK_PATH}:/books
+      - $SSH_AUTH_SOCK:/ssh-agent # forward host ssh agent
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -40,6 +41,7 @@ services:
       - DBURL=${DC_DBURL:-$DBURL}
       - WEB2PY_CONFIG=${SERVER_CONFIG}
       - JWT_SECRET=${JWT_SECRET}
+      - SSH_AUTH_SOCK=/ssh-agent
     depends_on:
       - author
       - redis
