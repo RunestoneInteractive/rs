@@ -10,7 +10,7 @@ services:
       - host.docker.internal:host-gateway
     ports:
       - 8114:8114
-    command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8114 --reload
+    command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8114
     volumes:
       - ${BOOK_PATH}:/books
     environment:
@@ -173,6 +173,7 @@ services:
     image: registry.digitalocean.com/runestone-registry/rs-nginx
     restart: always
     ports:
+      # ports are specified host:container
       - 80:80
       #- 443:443
     volumes:
