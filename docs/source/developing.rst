@@ -8,10 +8,12 @@ newcomer to contribute to the project.
 
 To get started it will be very helpful to `install
 poetry <https://python-poetry.org/docs/>`__. with poetry installed you
-will need to add two very important plugins.
+will need to add two very important plugins, and a highly convenient 3rd.
 
 1. ``poetry self add poetry-polylith-plugin``
 2. ``poetry self add poetry-multiproject-plugin``
+3. ``poetry self add poetry-dotenv-plugin``
+
 
 With those installed go ahead and run ``poetry poly info``
 
@@ -125,12 +127,11 @@ Project File Structure
         ├── 📁development
         │  └──  core.py
         ├──  docker-compose.yml
+        ├──  author.compose.yml
         ├── 📁docs
         │  ├── 📁build
         │  │  ├── 📁doctrees
         │  │  └── 📁html
-        │  ├── 📁graffle
-        │  │  └──  Phased Approach to Polylith.graffle
         │  ├── 📁images
         │  │  └──  RunestoneArch.svg
         │  ├──  Makefile
@@ -256,7 +257,7 @@ This assumes that you have already followed the instructions for installing post
 4.  From the ``bases/rsptx/interactives`` folder run ``npm install``.  This will install all of the javascript dependencies for the interactives.  Next run ``npm run build`` this will build the Runestone Interactive javascript files.  You will need to do this every time you make a change to the javascript files.  If you are NOT going to build a book, then you can skip this step.
 5.  Run the ``build.py`` script from the ``rs`` folder. The first step of this script will verify that you have all of your environment variables defined.
 6.  Make sure you are not already running a webserver on your computer.  You can check this by running ``lsof -i :80``.  If you see a line that says ``nginx`` then you are already running a webserver.  You can stop it by running ``sudo nginx -s stop``.  Alternatively you can edit the ``docker-compose.yml`` file and change the port that nginx is listening on to something other than 80.
-7.  Run ``docker-compose up`` from the ``rs`` folder.  This will start up all of the servers.  You can also run ``docker-compose up <server name>`` to start up just one server.  The server names are ``web2py``, ``book``, ``author``, ``admin``, ``analytics``, ``build``, ``nginx``.  You can also run ``docker-compose up -d`` to run the servers in the background.
+7.  Run ``docker-compose up`` from the ``rs`` folder.  This will start up all of the except the author and worker. Those are only needed in a production environment where you want to give authors the ability to build and deploy their own books. If you want to start up **everything** you run ``docker compose -f docker-compose.yml -f author.compose.yml`` You can also run ``docker-compose up <server name>`` to start up just one server.  The server names are ``runestone``, ``book``, ``author``, ``dash``, ``assignment``, ``worker``, and ``nginx``.  You can also run ``docker-compose up -d`` to run the servers in the background.
 8.  Now you should be able to connect to ``http://localhost/`` from your computer and see the homepage.
 
 
@@ -735,3 +736,11 @@ You can now run the library server along with everything else by running the fol
    * The ``volumes`` section is needed to mount the books folder on the host machine into the docker container.  This is needed because the library server needs to access the books folder on the host machine.
 
 To integrate the library server with everything else we would want to give it a prefix url of ``/library`` Then we would update the configuration for our nginx front end to proxy requests to the library server.  
+
+
+Other References
+----------------
+
+* Docker Compose `documentation <https://docs.docker.com/compose/compose-file/compose-file-v3/>`_
+* Nginx `documentation <https://nginx.org/en/docs/>`_
+  

@@ -1,29 +1,43 @@
-# *******************************
+# **\*\***\*\***\*\***\*\*\***\*\***\*\***\*\***
+
 # |docname| - nginx configuration
-# *******************************
-# This sets up nginx to run both the old and new server together. It requires `processing by Python <Set up nginx based on env vars.>`_ before use.
+
+# **\*\***\*\***\*\***\*\*\***\*\***\*\***\*\***
+
+# This sets up nginx to run both the old and new server together. It requires `processing by Python <Set up nginx based on env vars.>`\_ before use.
+
 #
-# This file was partially taken from the `gunicorn deployment docs <https://docs.gunicorn.org/en/stable/deploy.html#nginx-configuration>`_.
+
+# This file was partially taken from the `gunicorn deployment docs <https://docs.gunicorn.org/en/stable/deploy.html#nginx-configuration>`\_.
+
 #
-# `gzip_static <http://nginx.org/en/docs/http/ngx_http_gzip_static_module.html>`_: Enables ("on") or disables ("off") checking the existence of precompressed files. Send compressed files in lieu of uncompressed files where they exist. This requires the optional ``ngx_http_gzip_static_module`` module.
+
+# `gzip_static <http://nginx.org/en/docs/http/ngx_http_gzip_static_module.html>`\_: Enables ("on") or disables ("off") checking the existence of precompressed files. Send compressed files in lieu of uncompressed files where they exist. This requires the optional `ngx_http_gzip_static_module` module.
+
 gzip_static on;
 
 # Specify a custom log format.
+
 #
+
 #`log_format <http://nginx.org/en/docs/http/ngx_http_log_module.html#log_format>_`: Specifies log format.
 log_format custom_log_format '$remote_addr - [$time_local] '
-    'Request: "$request" Status: $status Bytes: $body_bytes_sent '
+'Request: "$request" Status: $status Bytes: $body_bytes_sent '
     'RequestTime: $request_time '
     'Referrer: "$http_referer" Agent: "$http_user_agent"';
 
 # Use this format.
+
 #
-# `access_log <http://nginx.org/en/docs/http/ngx_http_log_module.html#access_log>`_: Sets the path, format, and configuration for a buffered log write.
+
+# `access_log <http://nginx.org/en/docs/http/ngx_http_log_module.html#access_log>`\_: Sets the path, format, and configuration for a buffered log write.
+
 access_log /var/log/nginx/access.log custom_log_format;
 
 # Define the web2py and FastAPI servers.
+
 server {
-    include /etc/nginx/default.d/*.conf;
+include /etc/nginx/default.d/\*.conf;
 
     # `server_name <http://nginx.org/en/docs/http/ngx_http_core_module.html#server_name>`_: Set name(s) of a virtual server.
     server_name RunestoneMobile.local;
@@ -100,14 +114,20 @@ server {
     }
 
     # route author requests
+    # This one looks a bit different due to the author server being optional in the compose setup
+    # We have to define the proxy endpoint inside the location
+    # This means the proxy_pass has to append the $request_uri in order for it to be passed on.
+    # which means that the author app is always going to get the /author/ part as part of the url
     location /author/ {
+       resolver 127.0.0.11 valid=30s; # use the docker dns resolver
+       set $aserver http://author:8114;
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
        proxy_set_header X-Forwarded-Proto $scheme;
        proxy_set_header Host $http_host;
        # we don't want nginx trying to do something clever with
        # redirects, we set the Host: header above already.
        proxy_redirect off;
-       proxy_pass http://author:8114/;
+       proxy_pass $aserver$request_uri;
 
     }
 
@@ -122,4 +142,5 @@ server {
       #proxy_pass http://unix:/run/web2py.sock:/;
       proxy_pass http://runestone:8112;
     }
+
 }
