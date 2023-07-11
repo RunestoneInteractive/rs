@@ -3612,7 +3612,7 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "rsmanage"
-version = "0.1.0dev5"
+version = "2.0.0"
 description = ""
 category = "dev"
 optional = false
@@ -3636,7 +3636,7 @@ pydantic = {version = "^1.10.7", extras = ["dotenv"]}
 pyhumps = "^3.8.0"
 python-dotenv = "^1.0.0"
 redis = "^4.5.4"
-runestone = "^6.6.0"
+runestone = "^7.0.0"
 sphinx-reredirects = "^0.1.2"
 sphinxcontrib-paverutils = "^1.17.0"
 sqlalchemy = "^1.4.0"
@@ -3647,7 +3647,7 @@ url = "projects/rsmanage"
 
 [[package]]
 name = "runestone"
-version = "7.0.0dev3"
+version = "7.0.2"
 description = "Sphinx extensions for writing interactive documents."
 category = "dev"
 optional = false
