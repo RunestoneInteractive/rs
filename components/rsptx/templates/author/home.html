@@ -32,10 +32,19 @@
                     </button>
                 </td>
                 <td>
+                    <a
+                        href="/ns/books/published/{{book.basecourse}}/{{book.main_page}}?mode=browsing"
+                        role="button"
+                        class="btn btn-success"
+                    >
+                        View
+                    </a>
+                </td>
+                <td>
                     <button
                         onclick="deployTask('{{book.basecourse}}')"
                         type="button"
-                        class="btn btn-success"
+                        class="btn btn-warning"
                     >
                         Deploy
                     </button>

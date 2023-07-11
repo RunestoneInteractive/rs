@@ -201,12 +201,12 @@ Environment variables are very important in a system like Runestone, The service
 
 * ``RUNESTONE_PATH`` *h* - This is the path to the ``rs`` repository folder, it is used to find the ``.env`` file by utilities like ``rsmanage``.  You must set this on the host side.  Setting this in the ``.env`` file is too late, as it is used to help programs find the ``.env`` file.
 * ``BOOK_PATH`` - *h* This is the path to the folder that contains all of the books you want to serve.  This value is the path on the HOST side of the docker container.  So if you are running docker on a mac and your books are in ``/Users/bob/Runestone/books`` then you would set this to ``/Users/bob/Runestone/books``.  
-
+* ``SSH_AUTH_SOCK`` *h* - This is the path to the ssh agent socket.  This is used to allow the docker container to use your ssh keys to use rsync to deploy books to the workers.  You must set this on the host side, typically by running ``eval $(ssh-agent)`` from  bash.  You will also want to run ``ssh-add`` to add a key to the agent.  Both of these can be done in your .bashrc file.  If you are using a different shell you will need to figure out how to do the equivalent.  This is only important if you are running in production mode behind a load balancer.
 
 * ``DBURL`` *b* - This is the URL that is used to connect to the database in production.
 * ``DEV_DBURL`` *b* - This is the URL that is used to connect to the database in development.
 * ``DC_DBURL`` *d* - This is the URL that is used to connect to the database in docker-compose.  If this is not set it will default to ``$DBURL``.  This is useful if you want to use a different database for docker-compose than you do for development.
-* ``DC_DEV_DBURL`` *d* - This is the URL that is used to connect to the database in docker-compose development.  If this is not set it will default to ``$DEV_DBURL``.  This is useful if you want to use a different database for docker-compose development than you do for development.
+* ``DC_DEV_DBURL`` *d* - This is the URL that is used to connect to the database in docker-compose development.  If this is not set it will default to ``$DEV_DBURL``.  This is useful if you want to use a different database for docker-compose development than you do for development.  
 
 These two sets of variables can be identical, but they are separate because it is often the case that you want to refer to a database running on the host using the host name ``localhost`` from the host but from docker you need to use the host name ``host.docker.internal``.  So you can set ``DBURL`` to ``postgresql://runestone:runestone@localhost/runestone_dev`` and ``DC_DBURL`` to ``postgresql://runestone:runestone@host.docker.internal/runestone_dev``
 
@@ -217,6 +217,7 @@ These two sets of variables can be identical, but they are separate because it i
 * ``WEB2PY_CONFIG`` *d* - should be the same value as ``SERVER_CONFIG``.  It is used to determine which database URL to use.  This will go away when we have eliminated the web2py framework from the code base.
 * ``RUNESTONE_HOST`` *d* - this is the canonical host name of the server.  It is used to generate links to the server.  It should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.
 * ``LOAD_BALANCER_HOST`` *d* - this is the canonical host name of the server when you are running in production with several workers.  It is used to generate links to the server.  It should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.  You would typically only need to set this or RUNESTONE_HOST.
+* ``NUM_SERVERS`` *d* - this is the number of workers you are running. It will default to 1 if not set.  This is only important if you are running in production mode, behind a load balancer.
 
 Variables that are important for the host side are probably best set in your
 login shell environment (such as a .bashrc file) But you can also set them in
