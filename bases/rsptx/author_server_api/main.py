@@ -323,6 +323,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
     # can dump directly.
     courses = await fetch_instructor_courses(user.id)
     class_list = [c.id for c in courses]
+    class_list = [str(x) for x in class_list]
 
     lf_path = pathlib.Path("datashop", user.username)
     logger.debug(f"WORKING DIR = {lf_path}")

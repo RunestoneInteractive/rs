@@ -44,6 +44,7 @@ services:
       - WEB2PY_CONFIG=${SERVER_CONFIG}
       - JWT_SECRET=${JWT_SECRET}
       - SSH_AUTH_SOCK=/ssh-agent
+      - NUM_SERVERS=${NUM_SERVERS}
     depends_on:
       - author
       - redis
