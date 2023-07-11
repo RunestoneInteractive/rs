@@ -247,7 +247,7 @@ async def impact(request: Request, book: str, user=Depends(auth_manager)):
             "enrollData": resGraph,
             "chapterData": chapterHM,
             "courseData": courseGraph,
-            "title": info[1],
+            "title": info.title,
         },
     )
 
@@ -267,7 +267,7 @@ async def subchapmap(
     chapterHM = get_subchap_heatmap(chapter, book)
     return templates.TemplateResponse(
         "author/subchapmap.html",
-        context={"request": request, "subchapData": chapterHM, "title": info[1]},
+        context={"request": request, "subchapData": chapterHM, "title": info.title},
     )
 
 
