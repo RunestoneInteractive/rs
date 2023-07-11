@@ -43,9 +43,10 @@ function getCompletions() {
                     completionClass = "buttonAskCompletion";
                     completionMsg = "Mark as Completed";
                 }
-                document
-                    .querySelector("#scprogresscontainer")
-                    .classList.add("ptx-runestone-container");
+                let scp = document.querySelector("#scprogresscontainer");
+                if (scp) {
+                    scp.classList.add("ptx-runestone-container");
+                }
                 $("#scprogresscontainer").append(
                     '<div style="text-align:center"><button class="btn btn-lg ' +
                         completionClass +
