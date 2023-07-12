@@ -65,12 +65,16 @@ settings.python_interpreter = "python3"
 # for https servers
 # settings.websocket_url = "wss://dev.runestoneinteractive.org/ns"
 
-if "LOAD_BALANCER_HOST" in os.environ and os.environ["LOAD_BALANCER_HOST"] == "":
-    settings.websocket_url = f"ws{'s' if os.environ['CERTBOT_EMAIL'] else ''}://{os.environ['RUNESTONE_HOST']}/ns"
-elif "LOAD_BALANCER_HOST" in os.environ and os.environ["LOAD_BALANCER_HOST"] != "":
+if (
+    "LOAD_BALANCER_HOST" in os.environ and os.environ["LOAD_BALANCER_HOST"] == ""
+):  # dev or single server
+    settings.websocket_url = f"ws{'s' if os.environ.get('CERTBOT_EMAIL', False) else ''}://{os.environ['RUNESTONE_HOST']}/ns"
+elif (
+    "LOAD_BALANCER_HOST" in os.environ and os.environ["LOAD_BALANCER_HOST"] != ""
+):  # production with load balancer
     settings.websocket_url = f"wss://{os.environ['LOAD_BALANCER_HOST']}/ns"
-else:
-    settings.websocket_url = f"ws://{os.environ['RUNESTONE_HOST']}/ns"
+else:  # single or no load balancer with adjusted docker-compose file
+    settings.websocket_url = f"ws{'s' if os.environ.get('CERTBOT_EMAIL', False) else ''}://{os.environ['RUNESTONE_HOST']}/ns"
 
 
 # Define the path used to route to the BookServer.
