@@ -394,7 +394,7 @@ div.container {
     margin: 0;
     padding: 0;
     background: transparent;
-    font-family: Monaco, Courier New, monospace;
+    font-family: Menlo, Monaco, Consolas,"Courier New", monospace;
     font-size: inherit;
     padding: 0;
     margin: 0;
