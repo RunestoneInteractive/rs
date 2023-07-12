@@ -57,9 +57,9 @@ services:
         - host.docker.internal:host-gateway
       ports:
         - 8112:8112
-      command: gunicorn --bind 0.0.0.0:8112 rsptx.web2py_server.wsgihandler:application
+      #command: gunicorn --bind 0.0.0.0:8112 rsptx.web2py_server.wsgihandler:application
+      # see projects/w2p_login_assign_grade/entrypoint.sh and the Dockerfile
 
-      #command: tail -f /var/log/lastlog
       restart: always
       volumes:
         - ${BOOK_PATH}:/usr/books

@@ -11,7 +11,7 @@ import os
 
 # for LTI to work properly in a modern multi server configuration we need to set the `lti_uri`
 settings.lti_interface = True
-if "LOAD_BALANCER_HOST" not in os.environ:
+if "LOAD_BALANCER_HOST" not in os.environ or os.environ["LOAD_BALANCER_HOST"] == "":
     settings.lti_uri = f"https://{os.environ.get('RUNESTONE_HOST')}/runestone/lti"
 else:
     settings.lti_uri = f"https://{os.environ['LOAD_BALANCER_HOST']}/runestone/lti"

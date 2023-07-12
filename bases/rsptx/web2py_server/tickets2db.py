@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# run with python web2py.py -S runestone -M -R applications/rsptx/tickets2db.py
 
 import datetime
 import hashlib
@@ -18,7 +19,7 @@ from sqlalchemy.orm.session import sessionmaker
 SLEEP_MINUTES = 5
 
 errors_path = os.path.join(request.folder, "errors")
-tickets_path = pathlib.Path(request.folder, "books", "tickets")
+tickets_path = pathlib.Path(os.environ["BOOK_PATH"], "tickets")
 tickets_path.mkdir(exist_ok=True)
 
 if os.environ["WEB2PY_CONFIG"] == "production":
@@ -43,6 +44,8 @@ hashes = {}
 while 1:
 
     for file in os.listdir(errors_path):
+        if file == ".keep":
+            continue
         filename = os.path.join(errors_path, file)
 
         modified_time = os.stat(filename)[stat.ST_MTIME]
@@ -79,6 +82,9 @@ while 1:
         )
         sess.execute(newtb)
         sess.commit()
-        shutil.move(filename, tickets_path)
+        try:
+            shutil.move(filename, tickets_path)
+        except:
+            print("could not move", filename, "to", tickets_path)
 
     time.sleep(SLEEP_MINUTES * 60)
