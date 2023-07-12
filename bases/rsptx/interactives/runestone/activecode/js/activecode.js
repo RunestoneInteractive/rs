@@ -21,7 +21,7 @@ import "codemirror/mode/javascript/javascript.js";
 import "codemirror/mode/sql/sql.js";
 import "codemirror/mode/clike/clike.js";
 import "codemirror/mode/octave/octave.js";
-import "./../css/activecode.css";
+import "./../css/activecode.less";
 import "codemirror/lib/codemirror.css";
 import "codemirror/addon/hint/show-hint.js";
 import "codemirror/addon/hint/show-hint.css";
@@ -1478,10 +1478,7 @@ var languageExtensions = {
 // brace language but better not to add them until someone actually checks a
 // book using that language. Definitely works badly for Python since it will
 // indent anything after an `if` to be part of the if.
-var reformatable = new Set([
-    "java", "cpp", "c", "javascript"
-]);
-
+var reformatable = new Set(["java", "cpp", "c", "javascript"]);
 
 var errorText = {};
 

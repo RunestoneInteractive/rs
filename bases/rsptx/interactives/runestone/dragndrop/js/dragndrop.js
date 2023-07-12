@@ -13,7 +13,7 @@
 "use strict";
 
 import RunestoneBase from "../../common/js/runestonebase.js";
-import "../css/dragndrop.css";
+import "../css/dragndrop.less";
 import "./dragndrop-i18n.en.js";
 import "./dragndrop-i18n.pt-br.js";
 import "./DragDropTouch.js";

@@ -1,12 +1,3 @@
-:root {
-    --draggableBgColor: #EFEFEF;
-    --dropableBgColor: #DDDDDD;
-}
-
-[data-theme="dark"] {
-    --draggableBgColor: #9d9191;
-    --dropableBgColor:  #783131;
-}
 
 .rsdraggable {
     margin-left: 2%;
