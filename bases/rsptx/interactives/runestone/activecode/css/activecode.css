@@ -37,6 +37,7 @@
 
 .ac_actions {
     display: flex;
+    flex-wrap: wrap;  /* wrap for smaller screens */
     justify-content: center;
 }
 
