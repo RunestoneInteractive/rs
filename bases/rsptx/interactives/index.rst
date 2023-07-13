@@ -1,7 +1,7 @@
 ********************
 Runestone Components
 ********************
-This site documents the working of the Runestone Components. See the `Runestone Interactive Overview <https://runestone.academy/runestone/books/published/overview/overview.html>`_ or the `Runestone instructor's guide <https://runestone.academy/runestone/static/instructorguide/index.html>`_.
+This site documents the working of the Runestone Components. See the `Runestone Interactive Overview <https://runestone.academy/runestone/books/published/overview/overview.html>`_ or the `Runestone instructor's guide <https://guide.runestone.academy>`_.
 
 Demo linking to the Runestone Server docs: :ref:`assignments/grades_report endpoint`.
 
