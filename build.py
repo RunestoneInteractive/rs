@@ -164,6 +164,10 @@ with Live(table, refresh_per_second=4):
                                 f.write(res.stderr.decode(stdout_err_encoding))
 
 ym = yaml.safe_load(open("docker-compose.yml"))
+if "--all" in sys.argv:
+    am = yaml.safe_load(open("author.compose.yml"))
+    ym["services"].update(am["services"])
+
 # remove the redis service from the list since we don't customize it
 del ym["services"]["redis"]
 
@@ -187,15 +191,34 @@ console.print(
 with Live(table, refresh_per_second=4) as lt:
     status = {}
     for service in ym["services"]:
-        if service in ["author", "worker"] and "--all" not in sys.argv:
-            status[service] = "skipped"
-            continue
-        else:
-            status[service] = "building"
+        status[service] = "building"
         lt.update(generate_table(status))
+        if "--all" in sys.argv:
+            command_list = [
+                "docker",
+                "compose",
+                "-f",
+                "docker-compose.yml",
+                "-f",
+                "author.compose.yml",
+                "build",
+                service,
+                "--progress",
+                "plain",
+            ]
+        else:
+            command_list = [
+                "docker",
+                "compose",
+                "build",
+                service,
+                "--progress",
+                "plain",
+            ]
+
         with open("build.log", "ab") as f:
             ret = subprocess.run(
-                ["docker", "compose", "build", service, "--progress", "plain"],
+                command_list,
                 capture_output=True,
             )
             f.write(ret.stdout)
