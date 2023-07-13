@@ -57,7 +57,8 @@
                     {% if book['authors'] %}
                     <p style="margin-bottom: 0"><b>By:</b> {{book['authors']}}</p>
                     {% endif %}
-                    <p>Used by {{students[book['basecourse']]}} students in {{courses[book['basecourse']]}} 
+                    <p>Used by {{ '{:,d}'.format(students.get(book['basecourse'],0)) }} students 
+                    in {{ '{:,d}'.format(courses.get(book['basecourse'],0)) }} 
                     {% if courses[book['basecourse']] > 1%}
                     courses
                     {% else %}
