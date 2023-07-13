@@ -35,7 +35,7 @@ def index():
         )
         # return dict(message=T('Welcome to CourseWare Manager'))
         course_list = db.executesql(
-            "select * from library where for_classes = 'T' and is_visible = 'T'",
+            "select * from library where for_classes = 'T'",
             as_dict=True,
         )
         sections = set()
