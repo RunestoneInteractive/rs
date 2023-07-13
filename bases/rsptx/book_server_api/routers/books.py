@@ -457,7 +457,7 @@ async def library(request: Request, response_class=HTMLResponse):
         {
             "request": request,
             "book_list": books,
-            "sections": sections,
+            "sections": sorted_sections,
             "course": course,
             "user": username,
             "is_instructor": instructor_status,
