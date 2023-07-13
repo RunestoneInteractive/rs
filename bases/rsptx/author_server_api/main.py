@@ -370,7 +370,7 @@ async def check_db(payload=Body(...)):
         return JSONResponse({"detail": "DBURL is not set"})
     else:
         res = await fetch_course(base_course)
-        detail = res["id"] if res else False
+        detail = res.id if res else False
         return JSONResponse({"detail": detail})
 
 
