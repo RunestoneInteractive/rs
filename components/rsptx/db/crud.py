@@ -1949,3 +1949,46 @@ async def is_author(userid: int) -> bool:
         return True
     else:
         return False
+
+
+# Used by the library page
+async def get_students_per_basecourse() -> dict:
+    """
+    Gets the number of students using a book for each course.
+
+    :return: A dictionary containing the course name and the number of students using it.
+    :rtype: Dict[str,int]
+    """
+    query = (
+        select(Courses.base_course, func.count(UserCourse.user_id))
+        .join(UserCourse, Courses.id == UserCourse.course_id)
+        .group_by(Courses.base_course)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        retval = {}
+        for row in res.all():
+            retval[row[0]] = row[1]
+
+        return retval
+
+
+async def get_courses_per_basecourse() -> dict:
+    """
+    Gets the number of courses using a basecourse.
+
+    :return: A dictionary containing the base course name and the number of courses using it.
+    :rtype: Dict[str,int]
+    """
+    query = select(Courses.base_course, func.count(Courses.id)).group_by(
+        Courses.base_course
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        retval = {}
+        for row in res.all():
+            retval[row[0]] = row[1]
+
+        return retval

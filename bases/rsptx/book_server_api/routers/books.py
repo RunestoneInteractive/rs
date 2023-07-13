@@ -50,6 +50,8 @@ from rsptx.db.crud import (
     fetch_page_activity_counts,
     fetch_all_course_attributes,
     fetch_subchapters,
+    get_courses_per_basecourse,
+    get_students_per_basecourse,
 )
 from rsptx.db.models import UseinfoValidation
 from rsptx.auth.session import is_instructor
@@ -434,7 +436,9 @@ async def library(request: Request, response_class=HTMLResponse):
     :rtype: HTMLResponse
     """
     books = await fetch_library_books()
-
+    students = await get_students_per_basecourse()
+    courses = await get_courses_per_basecourse()
+    books = sorted(books, key=lambda x: students.get(x.basecourse, 0), reverse=True)
     sections = set()
     for book in books:
         if book.shelf_section not in sections:
@@ -461,6 +465,8 @@ async def library(request: Request, response_class=HTMLResponse):
             "course": course,
             "user": username,
             "is_instructor": instructor_status,
+            "students": students,
+            "courses": courses,
         },
     )
 

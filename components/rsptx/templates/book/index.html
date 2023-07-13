@@ -1,7 +1,10 @@
-{% extends "_base.html" %} {% block css %}
+{% extends "_base.html" %} 
+{% block css %}
 
 <link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
-{% endblock %} {% block content %}
+{% endblock %} 
+
+{% block content %}
 <div class="col-md-12">
     <h2>Runestone Academy Library of Books</h2>
     <p>
@@ -54,6 +57,13 @@
                     {% if book['authors'] %}
                     <p style="margin-bottom: 0"><b>By:</b> {{book['authors']}}</p>
                     {% endif %}
+                    <p>Used by {{students[book['basecourse']]}} students in {{courses[book['basecourse']]}} 
+                    {% if courses[book['basecourse']] > 1%}
+                    courses
+                    {% else %}
+                    course
+                    {% endif %}
+                    </p>
                     <p><b>Description:</b> {{ book['description'] }}</p>
                     <a
                         href="/runestone/default/enroll?course_name={{book['basecourse']}}"
@@ -82,6 +92,8 @@
     </p>
 </div>
 
-{% endblock %} {% block js %}
+{% endblock %} 
+
+{% block js %}
 <script src="/staticAssets/book/book.js"></script>
 {% endblock %}
