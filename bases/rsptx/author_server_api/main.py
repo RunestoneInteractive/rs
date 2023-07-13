@@ -45,6 +45,7 @@ from rsptx.author_server_api.worker import (
 )
 from rsptx.auth.session import is_instructor
 from rsptx.db.crud import (
+    create_book_author,
     create_library_book,
     fetch_instructor_courses,
     fetch_books_by_author,
@@ -99,8 +100,9 @@ async def create_book_entry(author: str, document_id: str, github: str):
     )
     await create_course(course)
 
-    vals = {"authors": author, "basecourse": document_id, "github_url": github}
+    vals = {"authors": author, "title": document_id, "github_url": github}
     await create_library_book(document_id, vals)
+    await create_book_author(author, document_id)
     return True
 
 
@@ -378,6 +380,8 @@ async def check_db(payload=Body(...)):
 async def new_course(payload=Body(...), user=Depends(auth_manager)):
     base_course = payload["bcname"]
     github_url = payload["github"]
+    logger.debug(f"Got {base_course} and {github_url}")
+
     if "DEV_DBURL" not in os.environ:
         return JSONResponse({"detail": "DBURL is not set"})
     else:
