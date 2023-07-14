@@ -27,7 +27,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from pgcli.main import cli as clipg
 from psycopg2.errors import UniqueViolation
-from dotenv import load_dotenv
+
 
 # our own package imports
 
@@ -97,6 +97,7 @@ PRIVATEDIR = "{}/private".format(APP_PATH)
 @pass_config
 async def cli(config, verbose, if_clean):
     """Type subcommand --help for help on any subcommand"""
+
     checkEnvironment()
 
     conf = settings.server_config
@@ -618,7 +619,7 @@ async def addinstructor(config, username, course):
 
     # if needed insert a row into course_instructor
     res = await fetch_instructor_courses(userid, courseid)
-    pdb.set_trace()
+
     if not res:
         await create_instructor_course_entry(userid, courseid)
         print("made {} and instructor for {}".format(username, course))
