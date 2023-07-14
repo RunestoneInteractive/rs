@@ -4,7 +4,7 @@
 {% block content %}
 <div>
     <h2>Edit book metadata for {{book}}</h2>
-    <form method="POST" action="/editlibrary/{{book}}">
+    <form method="POST" action="/author/editlibrary/{{book}}">
         {% for field in form %}
             {{ with_errors(field)}}
         {% endfor %}
