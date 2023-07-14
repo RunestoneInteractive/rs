@@ -32,9 +32,10 @@ import javax.tools.ToolProvider;
  * test classes easier. Methods should be tested even if they do not exist.
  *
  * @author Kate McDonnell
- * @version 2.0.2
- * @since 2023-07-24
+ * @version 3.0.1
+ * @since 2023-07-12
  * 
+ * @update 3.0.1 - Kate added code so main method only runs once
  * @update 2.0.2 - Peter Seibel updated to allow for "throws exception" in main
  * @update 2.0.1 - added getMethodOutputChangedCode - can change the program to
  *         change values in static code, fixed for loop regex for .length
@@ -318,6 +319,10 @@ public class CodeTestHelper {
      */
     public String getMethodOutput(String methodName)// throws IOException
     {
+        if(methodName.equals("main") && !mainOutput.equals("")){
+            return mainOutput;
+        }
+        
         if (methodName.equals("main")) {
             return getMethodOutput(methodName, new Object[][] { new String[0] });
         }
