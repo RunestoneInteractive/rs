@@ -308,7 +308,7 @@ async def editlib(request: Request, book: str):
         print(f"Got {form.authors.data}")
         print(f"FORM data = {form.data}")
         await update_library_book(book_data.id, form.data)
-        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url="/author/", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
         "author/editlibrary.html", context=dict(request=request, form=form, book=book)
     )
