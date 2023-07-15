@@ -3,8 +3,8 @@ import "../css/hparsons.css";
 import "../css/hljs-xcode.css";
 import BlockFeedback from "./BlockFeedback.js";
 import SQLFeedback from "./SQLFeedback.js";
-import {InitMicroParsons} from 'micro-parsons/micro-parsons/micro-parsons.js';
-import 'micro-parsons/micro-parsons/micro-parsons.css';
+import { InitMicroParsons } from "micro-parsons/micro-parsons/micro-parsons.js";
+import "micro-parsons/micro-parsons/micro-parsons.css";
 // If you need to debug something in the micro-parsons library then
 // gh repo clone amy21206/micro-parsons-element
 // run npm install and npm build
@@ -15,7 +15,6 @@ import './micro-parsons.css';*/
 export var hpList;
 // Dictionary that contains all instances of horizontal Parsons problem objects
 if (hpList === undefined) hpList = {};
-
 
 export default class HParsons extends RunestoneBase {
     constructor(opts) {
@@ -46,7 +45,7 @@ export default class HParsons extends RunestoneBase {
         this.loadButton = null;
         this.outerDiv = null;
         this.controlDiv = null;
-        this.processContent(this.code)
+        this.processContent(this.code);
 
         // Change to factory when more execution based feedback is included
         if (this.isBlockGrading) {
@@ -71,15 +70,17 @@ export default class HParsons extends RunestoneBase {
 
         // initializing functionalities for different feedback
         this.feedbackController.init();
-        this.checkServer('hparsonsAnswer', true);
+        this.checkServer("hparsonsAnswer", true);
     }
 
     processContent(code) {
         // todo: add errors when blocks are nonexistent (maybe in python)?
-        this.hiddenPrefix = this.processSingleContent(code, '--hiddenprefix--');
-        this.originalBlocks = this.processSingleContent(code, '--blocks--').split('\n').slice(1,-1);
-        this.hiddenSuffix = this.processSingleContent(code, '--hiddensuffix--');
-        this.unittest = this.processSingleContent(code, '--unittest--');
+        this.hiddenPrefix = this.processSingleContent(code, "--hiddenprefix--");
+        this.originalBlocks = this.processSingleContent(code, "--blocks--")
+            .split("\n")
+            .slice(1, -1);
+        this.hiddenSuffix = this.processSingleContent(code, "--hiddensuffix--");
+        this.unittest = this.processSingleContent(code, "--unittest--");
     }
 
     processSingleContent(code, delimitier) {
@@ -88,9 +89,7 @@ export default class HParsons extends RunestoneBase {
             let content = code.substring(index + delimitier.length);
             let endIndex = content.indexOf("\n--");
             content =
-                endIndex > -1
-                    ? content.substring(0, endIndex + 1)
-                    : content;
+                endIndex > -1 ? content.substring(0, endIndex + 1) : content;
             return content;
         }
         return undefined;
@@ -102,7 +101,7 @@ export default class HParsons extends RunestoneBase {
         $(this.origElem).replaceWith(this.outerDiv);
         this.outerDiv.id = `${this.divid}-container`;
         this.outerDiv.addEventListener("micro-parsons", (ev) => {
-            const eventListRunestone = ['input', 'reset'];
+            const eventListRunestone = ["input", "reset"];
             if (eventListRunestone.includes(ev.detail.type)) {
                 // only log the events in the event list
                 this.logHorizontalParsonsEvent(ev.detail);
@@ -116,8 +115,8 @@ export default class HParsons extends RunestoneBase {
             reuse: this.reuse,
             randomize: this.randomize,
             parsonsBlocks: [...this.originalBlocks],
-            language: this.language
-        }
+            language: this.language,
+        };
         InitMicroParsons(props);
         this.hparsonsInput = $(this.outerDiv).find("micro-parsons")[0];
     }
@@ -185,7 +184,7 @@ export default class HParsons extends RunestoneBase {
                 count: ?number // number of previous attempts if block-based feedback
             }
         */
-        if (serverData.answer){
+        if (serverData.answer) {
             this.hparsonsInput.restoreAnswer(serverData.answer.blocks);
         }
         if (serverData.count) {
@@ -211,8 +210,8 @@ export default class HParsons extends RunestoneBase {
         let currentState = {};
         if (data == undefined) {
             currentState = {
-                answer: this.hparsonsInput.getParsonsTextArray()
-            }
+                answer: this.hparsonsInput.getParsonsTextArray(),
+            };
             if (this.isBlockGrading) {
                 // if this is block grading, add number of previous attempts too
                 currentState.count = this.feedbackController.checkCount;
@@ -232,7 +231,6 @@ export default class HParsons extends RunestoneBase {
         this.logBookEvent(ev);
     }
 }
-
 
 /*=================================
 == Find the custom HTML tags and ==
