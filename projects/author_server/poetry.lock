@@ -1894,14 +1894,14 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "runestone"
-version = "7.0.1"
+version = "7.0.4"
 description = "Sphinx extensions for writing interactive documents."
 category = "main"
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "runestone-7.0.1-py3-none-any.whl", hash = "sha256:b62efff2909124559461379630fbadc21715216de606823b52a3dcd86b5a343f"},
-    {file = "runestone-7.0.1.tar.gz", hash = "sha256:efc76db5ebbcf81d6ae1276587c8c967f67f9569901a662bebc131bab6a1399e"},
+    {file = "runestone-7.0.4-py3-none-any.whl", hash = "sha256:8325cf3cbc0e686e41be65651707dace155af2cb9095a119aaa54fadb9a279ed"},
+    {file = "runestone-7.0.4.tar.gz", hash = "sha256:3d50c0aaec657736e505ef00d4439cc696664c800b83549137c1dd3181763db4"},
 ]
 
 [package.dependencies]
