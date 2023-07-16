@@ -310,9 +310,12 @@ async def serve_page(
 
     reading_list = []
     if RS_info:
-        values = json.loads(RS_info)
-        if "readings" in values:
-            reading_list = values["readings"]
+        try:
+            values = json.loads(RS_info)
+            if "readings" in values:
+                reading_list = values["readings"]
+        except Exception as e:
+            rslogger.error(f"Error parsing RS_info: {e} Cookie: {RS_info}")
 
     #   TODO: provide the template google_ga as well as ad servings stuff
     #   settings.google_ga
