@@ -22,7 +22,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-fastapi = "^0.78.0"
+fastapi = "^0.95.2"
 celery = "^5.2.7"
 aiofiles = "^0.8.0"
 Jinja2 = "^3.0.0"
