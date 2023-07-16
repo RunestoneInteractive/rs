@@ -28,7 +28,10 @@ from rs_grading import _try_to_send_lti_grade
 # For some reason, URL query parameters are being processed twice by Canvas and returned as a list, like [23, 23]. So, just take the first element in the list.
 # Also remove the leading and trailing whitespace.
 def _param_converter(param):
-    return param[0].strip() if isinstance(param, list) else param.strip()
+    res = param[0] if isinstance(param, list) else param
+    if isinstance(res, str):
+        res = res.strip()
+    return res
 
 
 # Main LTI Launch Endpoint
