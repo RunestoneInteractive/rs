@@ -1698,10 +1698,6 @@ async def update_library_book(bookid, vals):
     :param bookid: int, the id of the book
     :param vals: dict, a dictionary of values to update
     """
-    if "for classes" in vals:
-        vals["for_classes"] = "T" if vals["for_classes"] else "F"
-    if "is_visible" in vals:
-        vals["is_visible"] = "T" if vals["is_visible"] else "F"
 
     stmt = update(Library).where(Library.id == bookid).values(**vals)
     async with async_session.begin() as session:
