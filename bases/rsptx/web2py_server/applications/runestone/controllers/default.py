@@ -183,6 +183,8 @@ def index():
     #    print("REFERER = ", request.env.http_referer)
     if not auth.user:
         if os.environ.get("LOAD_BALANCER_HOST", False) == "runestone.academy":
+            if request.env.http_host == "author.runestone.academy":
+                redirect("https://author.runestone.academy/author")
             redirect("https://landing.runestone.academy")
         else:
             redirect(URL("default", "user", args="login"))
