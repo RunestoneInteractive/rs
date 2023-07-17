@@ -488,11 +488,15 @@ def manifest_data_to_db(course_name, manifest_path):
         #  sub_chapter_num    | integer
         for subchapter in chapter.findall("./subchapter"):
             subchap += 1
-            rslogger.debug(
-                subchapter.find("./id").text + " " + subchapter.find("./title").text
-            )
+
+            chap_xmlid = subchapter.find("./id").text
+            rslogger.debug(f"subchapter {chap_xmlid}")
+            if not chap_xmlid:
+                rslogger.error(f"Missing id tag in subchapter {subchapter}")
+
             titletext = subchapter.find("./title").text
             if not titletext:
+                rslogger.debug(f"constructing title for subchapter {chap_xmlid}")
                 # ET.tostring  converts the tag and everything to text
                 # el.text gets the text inside the element
                 titletext = " ".join(
