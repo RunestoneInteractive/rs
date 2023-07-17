@@ -2526,8 +2526,13 @@ def _copy_one_assignment(course, oldid):
     old_course = db(db.courses.course_name == course).select().first()
     this_course = db(db.courses.course_name == auth.user.course_name).select().first()
     old_assignment = db(db.assignments.id == int(oldid)).select().first()
-    due_delta = old_assignment.duedate.date() - old_course.term_start_date
-    due_date = this_course.term_start_date + due_delta
+    due_delta = old_assignment.duedate - datetime.datetime.combine(
+        old_course.term_start_date, datetime.time()
+    )
+    due_date = (
+        datetime.datetime.combine(this_course.term_start_date, datetime.time())
+        + due_delta
+    )
     try:
         newassign_id = db.assignments.insert(
             course=auth.user.course_id,
