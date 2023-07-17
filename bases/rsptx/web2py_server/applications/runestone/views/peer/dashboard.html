@@ -179,5 +179,9 @@
     var startTime = new Date().toUTCString();
     var startTime2 = null;
     var mess_count = 0;
+    var done = {{=is_last }}
+    if (done) {
+        document.getElementById("nextq").disabled = true;
+    }
 </script>
 {{ end }}

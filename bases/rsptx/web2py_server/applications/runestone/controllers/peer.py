@@ -100,6 +100,7 @@ def dashboard():
         assignment_id=assignment_id,
         assignment_name=assignment.name,
         is_instructor=True,
+        is_last=done,
     )
 
 
@@ -136,10 +137,10 @@ def _get_numbered_question(assignment_id, qnum):
     a_qs = db(db.assignment_questions.assignment_id == assignment_id).select(
         orderby=[db.assignment_questions.sorting_priority, db.assignment_questions.id]
     )
-    done = False
-    if qnum > len(a_qs) - 1:
+    done = "false"
+    if qnum >= len(a_qs) - 1:
         qnum = len(a_qs) - 1
-        done = True
+        done = "true"
 
     current_question_id = a_qs[qnum].question_id
     current_question = db(db.questions.id == current_question_id).select().first()
