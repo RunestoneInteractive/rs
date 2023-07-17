@@ -588,8 +588,11 @@ def admin():
         & (db.courses.course_name != course.course_name)
     ).select(db.courses.course_name, db.courses.id)
     base_course_id = (
-        db(db.courses.course_name == course.base_course).select(db.courses.id).first()
+        db(db.courses.course_name == course.base_course)
+        .select(db.courses.course_name, db.courses.id)
+        .first()
     )
+    instructor_course_list.append(base_course_id)
     base_course_id = base_course_id.id
     curr_start_date = course.term_start_date.strftime("%m/%d/%Y")
     downloads_enabled = "true" if sidQuery.downloads_enabled else "false"
@@ -2484,7 +2487,19 @@ def copy_assignment():
     """
 
     res = None
-    if not verifyInstructorStatus(request.vars["course"], auth.user):
+    if (
+        db(
+            (db.courses.course_name == request.vars["course"])
+            & (db.courses.base_course == request.vars["course"])
+        ).count()
+        == 1
+    ):
+        copy_base_course = True
+
+    if (
+        not verifyInstructorStatus(request.vars["course"], auth.user)
+        and not copy_base_course
+    ):
         return "Error: Not Authorized"
     else:
         if request.vars.oldassignment == "-1":
