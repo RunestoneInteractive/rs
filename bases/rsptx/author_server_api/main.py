@@ -100,7 +100,7 @@ async def create_book_entry(author: str, document_id: str, github: str):
     )
     await create_course(course)
 
-    vals = {"authors": author, "title": document_id, "github_url": github}
+    vals = {"authors": author, "title": document_id, "github_url": github, "shelf_section": "Misc"}
     await create_library_book(document_id, vals)
     await create_book_author(author, document_id)
     return True
