@@ -2,6 +2,7 @@ import { ActiveCode } from "./activecode.js";
 import MD5 from "./md5.js";
 import JUnitTestParser from "./extractUnitResults.js";
 import "../../codelens/js/pytutor-embed.bundle.js";
+import { base64encode } from "byte-base64";
 
 export default class LiveCode extends ActiveCode {
     constructor(opts) {
@@ -451,7 +452,7 @@ export default class LiveCode extends ActiveCode {
         var extensions = ["jar", "zip", "png", "jpg", "jpeg"];
         var contentsb64;
         if (extensions.indexOf(extension) === -1) {
-            contentsb64 = btoa(contents);
+            contentsb64 = base64encode(contents);
         } else {
             contentsb64 = contents;
         }
