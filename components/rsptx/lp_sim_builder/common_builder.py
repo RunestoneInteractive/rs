@@ -50,9 +50,7 @@ def get_sim_str_sim30(
     # Spaces in file names break the simulator.
     if " " in elf_file:
         raise ValueError(
-            "sim30 does not support spaces in file names, which occurs in {}.".format(
-                elf_file
-            )
+            f"sim30 does not support spaces in file names, which occurs in {elf_file}."
         )
 
     return (

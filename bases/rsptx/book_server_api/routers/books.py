@@ -517,7 +517,7 @@ async def fetch_subchaptoc(course: str, chap: str):
     toclist = []
     for row in res:
         rslogger.debug(f"row = {row}")
-        sc_url = "{}.html".format(row[0])
+        sc_url = f"{row[0]}.html"
         title = row[1]
         toclist.append(dict(subchap_uri=sc_url, title=title))
 

@@ -78,7 +78,7 @@ async def check_not_null():
 
                             def shorten(s):
                                 s = str(s)
-                                return s if len(s) < 20 else s[0:20] + "..."
+                                return s if len(s) < 20 else f"{s[0:20]}..."
 
                             # The result isn't an ORM object, so use this to display it.
                             s = ", ".join(f"{k}={shorten(row[k])}" for k in row.keys())

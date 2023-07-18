@@ -119,7 +119,7 @@ class BuildFailed(Exception):
 # Transform the arguments to ``subprocess.run`` into a string showing what
 # command will be executed.
 def _subprocess_string(args, **kwargs):
-    return kwargs.get("cwd", "") + "% " + " ".join(args) + "\n"
+    return f"{kwargs.get('cwd', '')}% {' '.join(args)}\n"
 
 
 # Run a subprocess with the provided arguments, returning a string which contains the output. On failure, raise an exception. Returns True if the subprocess completed successfully.
@@ -180,7 +180,7 @@ def copy_test_file_to_tmp(
     if not ext:
         ext = os.path.splitext(file_path)[1]
     # The test file name takes file_name.old_ext and produces file_name-test.new_ext.
-    test_file_name = os.path.splitext(os.path.basename(file_path))[0] + f"-test{ext}"
+    test_file_name = f"{os.path.splitext(os.path.basename(file_path))[0]}-test{ext}"
     dest_test_path = os.path.join(cwd, test_file_name)
     try:
         shutil.copyfile(
@@ -267,7 +267,7 @@ def rust_builder(
 
     # Run. Experimentation shows that Rust uses two processes (perhaps one for the test harness?).
     return report_subprocess(
-        runguard(["./" + os.path.splitext(run_file_name)[0]], cwd, num_processes=2),
+        runguard([f"./{os.path.splitext(run_file_name)[0]}"], cwd, num_processes=2),
         "Run",
         cwd,
         out_list,
@@ -278,12 +278,12 @@ def xc16_builder(
     file_path, cwd, sphinx_base_path, sphinx_source_path, sphinx_out_path, source_path
 ):
     # Assemble or compile the source. We assume that the binaries are already in the path.
-    o_path = file_path + ".o"
+    o_path = f"{file_path}.o"
     extension = os.path.splitext(file_path)[1]
     try:
         is_extension_asm = {".s": True, ".c": False}[extension]
     except Exception:
-        raise RuntimeError("Unknown file extension in {}.".format(file_path))
+        raise RuntimeError(f"Unknown file extension in {file_path}.")
     if is_extension_asm:
         args = [
             "xc16-as",
@@ -291,7 +291,7 @@ def xc16_builder(
             "-g",
             "--processor=33EP128GP502",
             file_path,
-            "-o" + o_path,
+            f"-o{o_path}",
         ]
     else:
         args = [
@@ -304,20 +304,14 @@ def xc16_builder(
             "-Wall",
             "-Wextra",
             "-Wdeclaration-after-statement",
-            "-I" + os.path.join(sphinx_base_path, sphinx_source_path, "lib/include"),
-            "-I" + os.path.join(sphinx_base_path, sphinx_source_path, "tests"),
-            "-I"
-            + os.path.join(
-                sphinx_base_path, sphinx_source_path, "tests/platform/Microchip_PIC24"
-            ),
-            "-I"
-            + os.path.join(
-                sphinx_base_path, sphinx_source_path, os.path.dirname(source_path)
-            ),
+            f"-I{os.path.join(sphinx_base_path, sphinx_source_path, 'lib/include')}",
+            f"-I{os.path.join(sphinx_base_path, sphinx_source_path, 'tests')}",
+            f"-I{os.path.join(sphinx_base_path, sphinx_source_path, 'tests/platform/Microchip_PIC24')}",
+            f"-I{os.path.join(sphinx_base_path, sphinx_source_path, os.path.dirname(source_path))}",
             "-DSIM",
             file_path,
             "-c",
-            "-o" + o_path,
+            f"-o{o_path}",
         ]
     out_list = []
     report_subprocess(args, "Compile / Assemble", cwd, out_list)
@@ -332,9 +326,9 @@ def xc16_builder(
     test_file_path = os.path.join(
         sphinx_base_path,
         sphinx_source_path,
-        os.path.splitext(source_path)[0] + "-test.c",
+        f"{os.path.splitext(source_path)[0]}-test.c",
     )
-    test_object_path = file_path + ".test.o"
+    test_object_path = f"{file_path}.test.o"
     args = [
         "xc16-gcc",
         "-mcpu=33EP128GP502",
@@ -345,39 +339,30 @@ def xc16_builder(
         "-Wall",
         "-Wextra",
         "-Wdeclaration-after-statement",
-        "-I" + os.path.join(sphinx_base_path, sphinx_source_path, "lib/include"),
-        "-I" + os.path.join(sphinx_base_path, sphinx_source_path, "tests"),
-        "-I"
-        + os.path.join(
-            sphinx_base_path, sphinx_source_path, "tests/platform/Microchip_PIC24"
-        ),
-        "-I"
-        + os.path.join(
-            sphinx_base_path, sphinx_source_path, os.path.dirname(source_path)
-        ),
+        f"-I{os.path.join(sphinx_base_path, sphinx_source_path, 'lib/include')}",
+        f"-I{os.path.join(sphinx_base_path, sphinx_source_path, 'tests')}",
+        f"-I{os.path.join(sphinx_base_path, sphinx_source_path, 'tests/platform/Microchip_PIC24')}",
+        f"-I{os.path.join(sphinx_base_path, sphinx_source_path, os.path.dirname(source_path))}",
         test_file_path,
         "-DSIM",
-        "-DVERIFICATION_CODE=({}u)".format(verification_code),
+        f"-DVERIFICATION_CODE=({verification_code}u)",
         "-c",
-        "-o" + test_object_path,
+        f"-o{test_object_path}",
     ]
     report_subprocess(args, "Compile test code", cwd, out_list)
 
     # Link.
-    elf_path = file_path + ".elf"
+    elf_path = f"{file_path}.elf"
     args = [
         "xc16-gcc",
         "-omf=elf",
         "-Wl,--heap=100,--stack=16,--check-sections,--data-init,--pack-data,--handles,--isr,--no-gc-sections,--fill-upper=0,--stackguard=16,--no-force-link,--smart-io",
-        "-Wl,--script="
-        + os.path.join(
-            sphinx_base_path, sphinx_source_path, "lib/lkr/p33EP128GP502_bootldr.gld"
-        ),
+        f"-Wl,--script={os.path.join(sphinx_base_path, sphinx_source_path, 'lib/lkr/p33EP128GP502_bootldr.gld')}",
         test_object_path,
         o_path,
         "-lpic24_stdlib",
-        "-L" + os.path.join(waf_root, ".."),
-        "-o" + elf_path,
+        f"-L{os.path.join(waf_root, '..')}",
+        f"-o{elf_path}",
     ]
     report_subprocess(args, "Link", cwd, out_list)
 
@@ -386,7 +371,7 @@ def xc16_builder(
     if not is_extension_asm:
         out_list.append(sim_run_mdb("mdb", "dspic33EP128GP502", elf_path))
     else:
-        simout_path = file_path + ".simout"
+        simout_path = f"{file_path}.simout"
         timeout_str = ""
         ss = get_sim_str_sim30("dspic33epsuper", elf_path, simout_path)
         args = ["sim30"]
@@ -428,7 +413,7 @@ def armv7_builder(
     file_path, cwd, sphinx_base_path, sphinx_source_path, sphinx_out_path, source_path
 ):
     # Assemble or compile the source. We assume that the binaries are already in the path.
-    o_path = file_path + ".o"
+    o_path = f"{file_path}.o"
     # Compile and link the source file. The most helpful resource I've found on bare-metal ARM with newlib: https://jasonblog.github.io/note/arm_emulation/simplest_bare_metal_program_for_arm.html. However, I prefer this (simpler) approach.
     args = [
         "arm-none-eabi-gcc",
@@ -441,18 +426,12 @@ def armv7_builder(
         "-Wextra",
         "-Wdeclaration-after-statement",
         # Include paths for the book.
-        "-I" + os.path.join(sphinx_base_path, sphinx_source_path, "lib/include"),
-        "-I" + os.path.join(sphinx_base_path, sphinx_source_path, "tests"),
-        "-I"
-        + os.path.join(
-            sphinx_base_path, sphinx_source_path, "tests/platform/ARMv7-A_ARMv7-R"
-        ),
-        "-I"
-        + os.path.join(
-            sphinx_base_path, sphinx_source_path, os.path.dirname(source_path)
-        ),
+        f"-I{os.path.join(sphinx_base_path, sphinx_source_path, 'lib/include')}",
+        f"-I{os.path.join(sphinx_base_path, sphinx_source_path, 'tests')}",
+        f"-I{os.path.join(sphinx_base_path, sphinx_source_path, 'tests/platform/ARMv7-A_ARMv7-R')}",
+        f"-I{os.path.join(sphinx_base_path, sphinx_source_path, os.path.dirname(source_path))}",
         "-c",
-        "-o" + o_path,
+        f"-o{o_path}",
     ]
     out_list = []
     report_subprocess(args, "Compile / Assemble", cwd, out_list)
@@ -471,9 +450,9 @@ def armv7_builder(
     )
     test_file_path = os.path.join(
         lib_path,
-        os.path.splitext(source_path)[0] + "-test.c",
+        f"{os.path.splitext(source_path)[0]}-test.c",
     )
-    test_object_path = file_path + ".test.o"
+    test_object_path = f"{file_path}.test.o"
 
     # Build the test code with a random verification code.
     args = [
@@ -481,7 +460,7 @@ def armv7_builder(
         # The test code.
         test_file_path,
         # Pass the verification code. TODO: separate compiles, so user code doesn't have this value.
-        "-DVERIFICATION_CODE=({}u)".format(verification_code),
+        f"-DVERIFICATION_CODE=({verification_code}u)",
         # Provide picky warnings, etc.
         "-g",
         "-O0",
@@ -489,23 +468,17 @@ def armv7_builder(
         "-Wextra",
         "-Wdeclaration-after-statement",
         # Include paths for the book.
-        "-I" + os.path.join(sphinx_base_path, sphinx_source_path, "lib/include"),
-        "-I" + os.path.join(sphinx_base_path, sphinx_source_path, "tests"),
-        "-I"
-        + os.path.join(
-            sphinx_base_path, sphinx_source_path, "tests/platform/ARMv7-A_ARMv7-R"
-        ),
-        "-I"
-        + os.path.join(
-            sphinx_base_path, sphinx_source_path, os.path.dirname(source_path)
-        ),
+        f"-I{os.path.join(sphinx_base_path, sphinx_source_path, 'lib/include')}",
+        f"-I{os.path.join(sphinx_base_path, sphinx_source_path, 'tests')}",
+        f"-I{os.path.join(sphinx_base_path, sphinx_source_path, 'tests/platform/ARMv7-A_ARMv7-R')}",
+        f"-I{os.path.join(sphinx_base_path, sphinx_source_path, os.path.dirname(source_path))}",
         "-c",
-        "-o" + test_object_path,
+        f"-o{test_object_path}",
     ]
     report_subprocess(args, "Compile test code", cwd, out_list)
 
     # Link.
-    elf_path = file_path + ".elf"
+    elf_path = f"{file_path}.elf"
     args = [
         "arm-none-eabi-gcc",
         # Compiled sources.
@@ -522,7 +495,7 @@ def armv7_builder(
         ),
         # Include the ARM library.
         "-larmv7_stdlib",
-        "-L" + os.path.join(waf_root, ".."),
+        f"-L{os.path.join(waf_root, '..')}",
         # The custom linker file defines a section to correctly place these interrupt vectors.
         "-T",
         os.path.join(
@@ -538,7 +511,7 @@ def armv7_builder(
     report_subprocess(args, "Link", cwd, out_list)
 
     # Transform to a bin file.
-    bin_path = file_path + ".bin"
+    bin_path = f"{file_path}.bin"
     report_subprocess(
         ["arm-none-eabi-objcopy", "-O", "binary", elf_path, bin_path],
         "Transform to bin",
@@ -593,16 +566,16 @@ def verilog_builder(
     test_file_path = os.path.join(
         sphinx_base_path,
         sphinx_source_path,
-        os.path.splitext(source_path)[0] + "-test.v",
+        f"{os.path.splitext(source_path)[0]}-test.v",
     )
-    preproc_path = file_path + ".test.vp"
+    preproc_path = f"{file_path}.test.vp"
     report_subprocess(
         [
             "iverilog",
             # Only do preprocessing; don't compile the result.
             "-E",
             # Pass the verification code.
-            "-DVERIFICATION_CODE=({})".format(verification_code),
+            f"-DVERIFICATION_CODE=({verification_code})",
             "-o",
             preproc_path,
             test_file_path,
@@ -613,7 +586,7 @@ def verilog_builder(
     )
 
     # Compile the source and preprocessed test code.
-    exe_path = file_path + ".exe"
+    exe_path = f"{file_path}.exe"
     report_subprocess(
         [
             "iverilog",
