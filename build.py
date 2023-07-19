@@ -43,6 +43,8 @@ if "--help" in sys.argv:
         """Usage: build.py [--verbose] [--help] [--all] [--push]
         --all build all containers, including author and worker
         --push push all containers to docker hub
+        --one <container> build just one container, e.g. --one author
+        --restart restart the container(s) after building
         """
     )
     exit(0)
@@ -271,3 +273,65 @@ if "--push" in sys.argv:
                 exit(1)
 
     console.print("Docker images pushed successfully", style="green")
+
+
+if "--restart" in sys.argv:
+    if "--all" in sys.argv:
+        command_list = [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.yml",
+            "-f" "author.compose.yml",
+            "stop",
+        ]
+        console.print("Restarting all services...", style="bold")
+    elif "--one" in sys.argv:
+        command_list = [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.yml",
+            "-f" "author.compose.yml",
+            "stop",
+            svc_to_build,
+        ]
+        console.print(f"Restarting the {svc_to_build} service...", style="bold")
+    else:
+        command_list = ["docker", "compose", "stop"]
+        console.print("Restarting non-author services...", style="bold")
+    ret1 = subprocess.run(
+        command_list,
+        capture_output=True,
+    )
+    if "--all" in sys.argv:
+        command_list = [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.yml",
+            "-f" "author.compose.yml",
+            "up",
+            "-d",
+        ]
+    elif "--one" in sys.argv:
+        command_list = [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.yml",
+            "-f" "author.compose.yml",
+            "up",
+            "-d",
+            svc_to_build,
+        ]
+    else:
+        command_list = ["docker", "compose", "up", "-d"]
+    ret2 = subprocess.run(
+        command_list,
+        capture_output=True,
+    )
+    if ret1.returncode + ret2.returncode == 0:
+        console.print("Runestone service(s) restarted successfully", style="green")
+    else:
+        console.print("Runestone services failed to restart", style="bold red")
