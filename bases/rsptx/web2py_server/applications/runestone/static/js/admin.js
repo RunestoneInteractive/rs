@@ -42,13 +42,14 @@ function gradeIndividualItem() {
         <option value="filterto0">Show questions with a score of 0 or None</option>
         <option value="filterto1">Show questions with a non-zero score</option>
     </select>
-    `)
+    `);
     let rsd = document.querySelector("#filterSelect");
-    rsd.addEventListener('change',
-    function () {
+    rsd.addEventListener("change", function () {
         let gPanels = document.querySelectorAll(".loading");
         for (let panel of gPanels) {
-            let v = panel.querySelector("#gradingform").querySelector("#input-grade").value;
+            let v = panel
+                .querySelector("#gradingform")
+                .querySelector("#input-grade").value;
             if (rsd.value == "filterto0") {
                 if (v == 0 || v == "") {
                     panel.style.display = "block";
@@ -1236,7 +1237,7 @@ function createAssignment(form) {
 }
 
 // Triggered by the ``-`` button on the assignments tab.
-function remove_assignment() {
+async function remove_assignment() {
     var select = document.getElementById("assignlist");
     var assignmentid = select.options[select.selectedIndex].value;
     var assignmentname = select.options[select.selectedIndex].text;
@@ -1244,19 +1245,27 @@ function remove_assignment() {
     if (!confirm(`Are you sure you want to remove the assignment ${assignmentname}?`)) {
         return;
     }
-
-    var url = "/runestone/admin/removeassign";
+    let jsheaders = new Headers({
+        "Content-type": "application/json; charset=utf-8",
+        Accept: "application/json",
+    });
     var data = {
         assignid: assignmentid,
     };
-    jQuery.post(url, data, function (res, status, whatever) {
-        if (res != "Error") {
-            select.remove(select.selectedIndex);
-            assignmentInfo();
-        } else {
-            alert("Could not remove assignment " + assignmentname);
-        }
+    let request = new Request("/runestone/admin/removeassign", {
+        method: "POST",
+        headers: jsheaders,
+        body: JSON.stringify(data),
     });
+    let res = await fetch(request);
+    if (res.ok) {
+        let mess = await res.json();
+        console.log(mess);
+        select.remove(select.selectedIndex);
+        assignmentInfo();
+    } else {
+        alert("Could not remove assignment " + assignmentname);
+    }
 }
 
 // Update an assignment.
@@ -1405,9 +1414,9 @@ function update_assignment(form) {
         data.is_peer = "F";
     }
     if (form.peer_async_visible.checked) {
-        data.peer_async_visible = "T"
+        data.peer_async_visible = "T";
     } else {
-        data.peer_async_visible = "F"
+        data.peer_async_visible = "F";
     }
     data.timelimit = form.timelimit.value;
     data.description = form.description.value;
@@ -1837,7 +1846,7 @@ function preview_question_id(question_id, preview_div, sid, gradeit) {
     $.getJSON("/runestone/admin/htmlsrc", {
         acid: question_id,
     }).done(function (jsonData) {
-        html_src = jsonData.htmlsrc
+        html_src = jsonData.htmlsrc;
         // Render it.
         data = { acid: question_id };
         if (sid) {
@@ -1957,8 +1966,10 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
     let componentKind = $($(`#${whereDiv} [data-component]`)[0]).data("component");
     // webwork problems do not have a data-component attribute so we have to try to figure it out.
     //
-    if (! componentKind &&
-        (componentSrc.indexOf("handleWW") >= 0) || (componentSrc.indexOf("webwork") >= 0)) {
+    if (
+        (!componentKind && componentSrc.indexOf("handleWW") >= 0) ||
+        componentSrc.indexOf("webwork") >= 0
+    ) {
         componentKind = "webwork";
     }
     // Import all the js needed for this component before rendering
@@ -2011,7 +2022,7 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
             ); // save the original divid
             if (author) {
                 let authorInfo = document.createElement("p");
-                authorInfo.innerHTML = `Written by: ${author}`
+                authorInfo.innerHTML = `Written by: ${author}`;
                 $(`#${whereDiv}`).append(authorInfo);
             }
             let editButton = document.createElement("button");
@@ -2072,7 +2083,7 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
         }
         // $(`#${whereDiv}`).css("background-color", "white");
     }
-    MathJax.typeset([document.querySelector(`#${whereDiv}`)])
+    MathJax.typeset([document.querySelector(`#${whereDiv}`)]);
 }
 
 // Called by the "Search" button in the "Search question bank" panel.

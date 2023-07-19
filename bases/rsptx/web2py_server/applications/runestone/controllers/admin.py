@@ -1001,9 +1001,10 @@ def removeassign():
     ct = db(db.assignments.id == assignment_id).delete()
 
     if ct == 1:
-        return "Success"
+        re = json.dumps("Success")
     else:
-        return "Error"
+        re = json.dumps("Error")
+    return re
 
 
 #
