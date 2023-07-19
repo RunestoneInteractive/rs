@@ -325,6 +325,11 @@ You will see a more detailed error message about what is missing.
 At a minimum you will need to start web2py long enough for you to login
 once.
 
+logging
+~~~~~~~
+
+By default we have logging set to DEBUG for all of the servers.  This is probably not what you want in production.   You can change the logging level for the runestone server by modifying the ``GUNICORN_CMD_ARGS` environment variable and adding ``--log-level 'warning'`` to the end of the string. the other servers can be configured by setting the ``LOG_LEVEL`` environment variable to ``warning``.
+
 
 Adding a New Feature
 --------------------
