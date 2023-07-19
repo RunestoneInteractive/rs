@@ -118,6 +118,21 @@ if finish:
     )
     exit(1)
 
+ym = yaml.safe_load(open("docker-compose.yml"))
+if "--all" in sys.argv or "--one" in sys.argv:
+    am = yaml.safe_load(open("author.compose.yml"))
+    ym["services"].update(am["services"])
+
+# remove the redis service from the list since we don't customize it
+del ym["services"]["redis"]
+
+if "--one" in sys.argv:
+    svc_to_build = sys.argv[sys.argv.index("--one") + 1]
+    # remove all services except the one we want to build
+    for svc in list(ym["services"].keys()):
+        if svc != svc_to_build:
+            del ym["services"][svc]
+
 # Attempt to determine the encoding of data returned from stdout/stderr of
 # subprocesses. This is non-trivial. See the discussion at [Python's
 # sys.stdout](https://docs.python.org/3/library/sys.html#sys.stdout). First, try
@@ -146,9 +161,13 @@ table = Table(title="Build Wheels")
 table.add_column("Project", justify="right", style="cyan", no_wrap=True)
 table.add_column("Built", style="magenta")
 with Live(table, refresh_per_second=4):
-    for proj in os.listdir("projects"):
-        if os.path.isdir(f"projects/{proj}"):
-            with pushd(f"projects/{proj}"):
+    for proj in ym["services"].keys():
+        if "build" not in ym["services"][proj]:
+            table.add_row(proj, "[green]Skipped[/green]")
+            continue
+        projdir = ym["services"][proj]["build"]["context"]
+        if os.path.isdir(projdir):
+            with pushd(projdir):
                 if os.path.isfile("pyproject.toml"):
                     res = subprocess.run(
                         ["poetry", "build-project"], capture_output=True
@@ -162,14 +181,8 @@ with Live(table, refresh_per_second=4):
                         else:
                             with open("build.log", "a") as f:
                                 f.write(res.stderr.decode(stdout_err_encoding))
-
-ym = yaml.safe_load(open("docker-compose.yml"))
-if "--all" in sys.argv:
-    am = yaml.safe_load(open("author.compose.yml"))
-    ym["services"].update(am["services"])
-
-# remove the redis service from the list since we don't customize it
-del ym["services"]["redis"]
+                else:
+                    table.add_row(proj, "[green]Skipped[/green]")
 
 
 # Generate a table for the Live object
@@ -193,28 +206,18 @@ with Live(table, refresh_per_second=4) as lt:
     for service in ym["services"]:
         status[service] = "building"
         lt.update(generate_table(status))
-        if "--all" in sys.argv:
-            command_list = [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.yml",
-                "-f",
-                "author.compose.yml",
-                "build",
-                service,
-                "--progress",
-                "plain",
-            ]
-        else:
-            command_list = [
-                "docker",
-                "compose",
-                "build",
-                service,
-                "--progress",
-                "plain",
-            ]
+        command_list = [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.yml",
+            "-f",
+            "author.compose.yml",
+            "build",
+            service,
+            "--progress",
+            "plain",
+        ]
 
         with open("build.log", "ab") as f:
             ret = subprocess.run(
