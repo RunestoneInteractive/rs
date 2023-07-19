@@ -191,7 +191,7 @@ class Anonymizer:
             self.chosen_courses = self.COURSE_LIST
 
         self.in_course_list = (
-            f"""({','.join(["'"+x+"'" for x in self.chosen_courses ])})"""
+            f"""({','.join([f"'{x}'" for x in self.chosen_courses ])})"""
         )
         print(self.in_course_list)
         return self.chosen_courses

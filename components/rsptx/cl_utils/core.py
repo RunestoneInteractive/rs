@@ -118,13 +118,13 @@ class pushd:
 
     def __enter__(self) -> None:
         if self.verbose:
-            flush_print("pushd {}".format(self.path))
+            flush_print(f"pushd {self.path}")
         self.cwd = os.getcwd()
         os.chdir(str(self.path))
 
     def __exit__(self, type_, value, traceback) -> Literal[False]:
         if self.verbose:
-            flush_print("popd - returning to {}.".format(self.cwd))
+            flush_print(f"popd - returning to {self.cwd}.")
         os.chdir(str(self.cwd))
         return False
 

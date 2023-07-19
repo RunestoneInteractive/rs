@@ -234,7 +234,7 @@ async def getaggregateresults(request: Request, div_id: str, course_name: str):
                 if answer != "undefined" and answer != "":
                     rdata[answer] = pct
             except Exception as e:
-                rslogger.error("Bad data for %s data is %s -- %s" % (question, key, e))
+                rslogger.error(f"Bad data for {question} data is {key} -- {e}")
 
     miscdata["correct"] = correct
     miscdata["course"] = course

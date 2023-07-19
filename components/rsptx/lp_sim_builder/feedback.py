@@ -152,9 +152,7 @@ async def lp_feedback(lp_validator: Any, feedback: Dict[Any, Any]):
     if not sphinx_config:
         return {
             "errors": [
-                "Unable to load Sphinx configuration file from {}".format(
-                    sphinx_base_path
-                )
+                f"Unable to load Sphinx configuration file from {sphinx_base_path}"
             ]
         }
     sphinx_source_path = sphinx_config["SPHINX_SOURCE_PATH"]
@@ -172,7 +170,7 @@ async def lp_feedback(lp_validator: Any, feedback: Dict[Any, Any]):
             source_str = f.read()
     except Exception as e:
         return {
-            "errors": ["Cannot open source file {}: {}.".format(abs_source_path, e)]
+            "errors": [f"Cannot open source file {abs_source_path}: {e}."]
         }
 
     # Create a snippet-replaced version of the source, by looking for "put code
@@ -191,7 +189,7 @@ async def lp_feedback(lp_validator: Any, feedback: Dict[Any, Any]):
             feedback["builder"], code_snippets, source_path
         )
     except Exception as e:
-        return {"errors": ["An exception occurred: {}".format(e)]}
+        return {"errors": [f"An exception occurred: {e}"]}
     # Join them into a single string. Make sure newlines separate everything.
     source_str = "\n".join(interleaved_source)
 
@@ -212,7 +210,7 @@ async def lp_feedback(lp_validator: Any, feedback: Dict[Any, Any]):
             )
             output, correct = res.get(timeout=60)
         except Exception as e:
-            return {"errors": ["Error in build task: {}".format(e)]}
+            return {"errors": [f"Error in build task: {e}"]}
         else:
             # Strip whitespace and return only the last 4K or data or so.
             # There's no need for more -- it's probably just a crashed or
@@ -281,7 +279,7 @@ def _platform_edit(
         fmt = '`line 1 "box {}" 0\n'
     else:
         # This is an unsupported language. It would be nice to report this as an error instead of raising an exception.
-        raise RuntimeError("Unsupported extension {}".format(ext))
+        raise RuntimeError(f"Unsupported extension {ext}")
     return [
         fmt.format(index + 1) + code_snippets[index]
         for index in range(len(code_snippets))

@@ -69,7 +69,7 @@ def run(
 
     if version:
         vname = importlib.metadata.version("bookserver")
-        print("BookServer Version {}".format(vname))
+        print(f"BookServer Version {vname}")
         sys.exit()
 
     if runestone_path and not Path(runestone_path).exists():

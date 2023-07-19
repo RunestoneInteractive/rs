@@ -1876,7 +1876,7 @@ async def fetch_qualified_questions(
     query = select(Question).where(
         (Question.base_course == base_course)
         & (
-            (Question.topic == "{}/{}".format(chapter_label, sub_chapter_label))
+            (Question.topic == f"{chapter_label}/{sub_chapter_label}")
             | (
                 (Question.chapter == chapter_label)
                 & (Question.topic == None)  # noqa: E711
