@@ -85,10 +85,10 @@ OPT_ENV = [
     "DC_DBURL",
 ]
 APP = "runestone"
-APP_PATH = "applications/{}".format(APP)
-DBSDIR = "{}/databases".format(APP_PATH)
-BUILDDIR = "{}/build".format(APP_PATH)
-PRIVATEDIR = "{}/private".format(APP_PATH)
+APP_PATH = f"applications/{APP}"
+DBSDIR = f"{APP_PATH}/databases"
+BUILDDIR = f"{APP_PATH}/build"
+PRIVATEDIR = f"{APP_PATH}/private"
 
 
 @click.group(chain=True)
@@ -106,7 +106,7 @@ async def cli(config, verbose, if_clean):
     # DAL uses "postgres:", while SQLAlchemy (and the PostgreSQL spec) uses "postgresql:". Fix.
     remove_prefix = "postgres://"
     if config.dburl.startswith(remove_prefix):
-        config.dburl = "postgresql://" + config.dburl[len(remove_prefix) :]
+        config.dburl = f"postgresql://{config.dburl[len(remove_prefix):]}"
 
     config.conf = conf
     config.dbname = re.match(r"postgres.*//.*?@.*?/(.*)", config.dburl).group(1)
@@ -296,9 +296,7 @@ async def addcourse(
             done = True
         else:
             click.confirm(
-                "Course {} already exists continue with a different name?".format(
-                    course_name
-                ),
+                f"Course {course_name} already exists continue with a different name?",
                 default=True,
                 abort=True,
             )
@@ -341,9 +339,7 @@ async def build(config, clone, ptx, gen, manifest, course):
     res = await fetch_course(course)
     if not res:
         click.echo(
-            "Error:  The course {} must already exist in the database -- use rsmanage addcourse".format(
-                course
-            ),
+            f"Error:  The course {course} must already exist in the database -- use rsmanage addcourse",
             color="red",
         )
         exit(1)
@@ -354,7 +350,7 @@ async def build(config, clone, ptx, gen, manifest, course):
             click.echo("Book repo already cloned, skipping")
         else:
             # check to make sure repo name and course name match
-            res = subprocess.call("git clone {}".format(clone), shell=True)
+            res = subprocess.call(f"git clone {clone}", shell=True)
             if res != 0:
                 click.echo(
                     "Cloning the repository failed, please check the URL and try again"
@@ -362,7 +358,7 @@ async def build(config, clone, ptx, gen, manifest, course):
                 exit(1)
 
     # proj_dir = os.path.basename(repo).replace(".git", "")
-    click.echo("Switching to book dir {}".format(course))
+    click.echo(f"Switching to book dir {course}")
     os.chdir(course)
     if ptx:
         res = _build_ptx_book(config, gen, manifest, course)
@@ -452,7 +448,7 @@ async def adduser(
             res = await create_user(newUser)
             if not res:
                 click.echo(
-                    "Failed to create user {} error {}".format(line[0], mess[res])
+                    f"Failed to create user {line[0]} error {mess[res]}"
                 )
                 exit(1)
             else:
@@ -491,9 +487,7 @@ async def adduser(
         res = await create_user(new_user)
         if not res:
             click.echo(
-                "Failed to create user {} error {} fix your data and try again. Use --verbose for more detail".format(
-                    userinfo["username"], res
-                )
+                f"Failed to create user {userinfo['username']} error {res} fix your data and try again. Use --verbose for more detail"
             )
             exit(1)
         else:
@@ -512,7 +506,7 @@ async def resetpw(config, username, password):
 
     res = await fetch_user(username)
     if not res:
-        click.echo("ERROR - User: {} does not exist.".format(userinfo["username"]))
+        click.echo(f"ERROR - User: {userinfo['username']} does not exist.")
         exit(1)
     res = await update_user(res.id, userinfo)
 
@@ -561,7 +555,7 @@ def env(config, checkdb):
     if not checkdb or config.verbose:
         echoEnviron(config)
 
-    print("Exiting with result of {}".format(dbinit | dbdir))
+    print(f"Exiting with result of {dbinit | dbdir}")
 
     sys.exit(dbinit | dbdir)
 
@@ -605,26 +599,26 @@ async def addinstructor(config, username, course):
     res = await fetch_membership(role, userid)
     if not res:
         await create_membership(role, userid)
-        print("made {} an instructor".format(username))
+        print(f"made {username} an instructor")
     else:
-        print("{} is already an instructor".format(username))
+        print(f"{username} is already an instructor")
 
     # if needed insert a row into user_courses
     res = await fetch_courses_for_user(userid)
     if not res:
         await create_user_course_entry(userid, courseid)
-        print("enrolled {} in {}".format(username, course))
+        print(f"enrolled {username} in {course}")
     else:
-        print("{} is already enrolled in {}".format(username, course))
+        print(f"{username} is already enrolled in {course}")
 
     # if needed insert a row into course_instructor
     res = await fetch_instructor_courses(userid, courseid)
 
     if not res:
         await create_instructor_course_entry(userid, courseid)
-        print("made {} and instructor for {}".format(username, course))
+        print(f"made {username} and instructor for {course}")
     else:
-        print("{} is already an instructor for {}".format(username, course))
+        print(f"{username} is already an instructor for {course}")
 
 
 @cli.command()
@@ -661,9 +655,9 @@ async def addeditor(config, username, basecourse):
 
     if not is_editor(userid):
         await create_membership(role, userid)
-        click.echo("made {} an editor".format(username), color="green")
+        click.echo(f"made {username} an editor", color="green")
     else:
-        click.echo("{} is already an editor".format(username), color="red")
+        click.echo(f"{username} is already an editor", color="red")
 
     try:
         await create_editor_for_basecourse(userid, basecourse)
@@ -671,7 +665,7 @@ async def addeditor(config, username, basecourse):
         click.echo("could not add {username} as editor - They probably already are")
         sys.exit(-1)
 
-    click.echo("made {} an editor for {}".format(username, basecourse), color="green")
+    click.echo(f"made {username} an editor for {basecourse}", color="green")
 
 
 @cli.command()
@@ -696,11 +690,11 @@ async def courseinfo(config, name):
     s_count = len(student_list)
     res = await fetch_course_instructors(name)
 
-    print("Course Information for {} -- ({})".format(name, cid))
+    print(f"Course Information for {name} -- ({cid})")
     print(inst)
-    print("Base course: {}".format(bc))
-    print("Start date: {}".format(start_date))
-    print("Number of students: {}".format(s_count))
+    print(f"Base course: {bc}")
+    print(f"Start date: {start_date}")
+    print(f"Number of students: {s_count}")
     print("Instructors:")
     for row in res:
         print(" ", row.first_name, row.last_name, row.username, row.email)
@@ -844,7 +838,7 @@ def checkEnvironment():
         for var in REQ_ENV:
             if var not in os.environ:
                 stop = True
-                click.echo("Missing definition for {} environment variable".format(var))
+                click.echo(f"Missing definition for {var} environment variable")
     elif config == "test":
         if "TEST_DBURL" not in os.environ:
             stop = True
@@ -856,7 +850,7 @@ def checkEnvironment():
 
     for var in OPT_ENV:
         if var not in os.environ:
-            click.echo("You may want to define the {} environment variable".format(var))
+            click.echo(f"You may want to define the {var} environment variable")
 
     if "DC_DBURL" in os.environ or "DC_DEV_DBURL" in os.environ:
         click.echo("You have defined docker compose specific environment variables")
@@ -866,12 +860,12 @@ def checkEnvironment():
 
 
 def echoEnviron(config):
-    click.echo("RUNESTONE_PATH is {}".format(settings.runestone_path))
-    click.echo("BOOK_PATH is {}".format(settings.book_path))
-    click.echo("SERVER_CONFIG is {}".format(settings.server_config))
-    click.echo("WEB2PY_CONFIG is {}".format(config.conf))
-    click.echo("The database URL is configured as {}".format(config.dburl))
-    click.echo("DBNAME is {}".format(config.dbname))
+    click.echo(f"RUNESTONE_PATH is {settings.runestone_path}")
+    click.echo(f"BOOK_PATH is {settings.book_path}")
+    click.echo(f"SERVER_CONFIG is {settings.server_config}")
+    click.echo(f"WEB2PY_CONFIG is {config.conf}")
+    click.echo(f"The database URL is configured as {config.dburl}")
+    click.echo(f"DBNAME is {config.dbname}")
 
 
 def findProjectRoot():

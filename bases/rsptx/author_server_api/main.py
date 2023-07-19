@@ -188,9 +188,9 @@ async def verify_author(user):
         auth_row = await sess.execute(
             """select * from auth_group where role = 'author'"""
         )
-        logger.debug("HELLO" + str(auth_row))
+        logger.debug(f"HELLO{str(auth_row)}")
         auth_group_id = auth_row.scalars().first()
-        logger.debug("FOO " + str(auth_group_id))
+        logger.debug(f"FOO {str(auth_group_id)}")
         is_author = (
             (
                 await sess.execute(
