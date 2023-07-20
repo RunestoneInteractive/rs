@@ -143,8 +143,12 @@ def mkdir(path: str | Path, *args, **kwargs) -> None:
 
 # ### load .env file
 def load_project_dotenv(dotenv_path=None):
-    if Path(".env").exists():
-        load_dotenv()
+    if dotenv_path is None:
+        dotenv_path = Path(".env")
+    else:
+        dotenv_path = Path(dotenv_path)
+    if dotenv_path.exists():
+        load_dotenv(dotenv_path)
         print("Loaded .env file")
     elif "RUNESTONE_PATH" in os.environ:
         env_path = Path(os.environ["RUNESTONE_PATH"]) / ".env"
