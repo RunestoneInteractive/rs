@@ -219,7 +219,7 @@ def generate_table(status: dict) -> Table:
     table.add_column("Service", justify="right", style="grey62", no_wrap=True)
     table.add_column("Built", style="magenta")
     for service in status:
-        table.add_row(f"[black]service[/black]", status[service])
+        table.add_row(f"[black]{service}[/black]", status[service])
     return table
 
 
