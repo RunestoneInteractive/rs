@@ -179,5 +179,7 @@ class Settings(BaseSettings):
     region = "nyc3"  # this is the DO data center or AWS region
     bucket = "runestonefiles"
 
+    log_level: str = "DEBUG"
+
 
 settings = Settings()
