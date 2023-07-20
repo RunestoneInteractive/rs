@@ -316,6 +316,7 @@ def anonymize_data_dump(self, **kwargs):
     username = kwargs["user"]
     del kwargs["user"]
     a = Anonymizer(basecourse, config.dburl, **kwargs)
+    # if kwargs has a specific course then skip the course selection
     print("Choosing Courses")
     self.update_state(state="WORKING", meta={"current": "Choosing courses"})
     a.choose_courses()
