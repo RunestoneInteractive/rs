@@ -241,10 +241,10 @@ with Live(generate_table(status), refresh_per_second=4) as lt:
             "docker-compose.yml",
             "-f",
             "author.compose.yml",
-            "build",
-            service,
             "--progress",
             "plain",
+            "build",
+            service,
         ]
 
         with open("build.log", "ab") as f:
