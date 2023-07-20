@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from rich.console import Console
 from rich.live import Live
 from rich.table import Table
+import rich
 from rsptx.cl_utils.core import pushd, stream_command, subprocess_streamer
 
 console = Console()
@@ -64,7 +65,7 @@ with open("build.log", "w") as f:
 # environment variables.
 load_dotenv()
 table = Table(title="Environment Variables")
-table.add_column("Variable", justify="right", style="cyan", no_wrap=True)
+table.add_column("Variable", justify="right", style="grey62", no_wrap=True)
 table.add_column("Set", style="magenta")
 finish = False
 for var in [
@@ -157,44 +158,68 @@ except AttributeError:
     stdout_err_encoding = locale.getpreferredencoding()
 
 
+def progress_wheel():
+
+    chars = "x+"
+    progress_wheel.counter += 1
+    return chars[progress_wheel.counter % 2]
+
+
+progress_wheel.counter = 0
+
+
+def generate_wheel_table(status: dict) -> Table:
+    table = Table(title="Build Python Wheels")
+    table.add_column("Service", justify="right", style="grey62", no_wrap=True)
+    table.add_column("Built", style="magenta")
+    for service in status:
+        table.add_row(f"[black]{service}[/black]", status[service])
+    return table
+
+
 # Build wheels
 # ------------
-table = Table(title="Build Wheels")
-table.add_column("Project", justify="right", style="cyan", no_wrap=True)
-table.add_column("Built", style="magenta")
-with Live(table, refresh_per_second=4):
+status = {}
+with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
+    status = {}
     for proj in ym["services"].keys():
         if "build" not in ym["services"][proj]:
-            table.add_row(proj, "[green]Skipped[/green]")
+            status[proj] = "[blue]Skipped[/blue]"
+            lt.update(generate_wheel_table(status))
             continue
         projdir = ym["services"][proj]["build"]["context"]
         if os.path.isdir(projdir):
             with pushd(projdir):
+                status[proj] = "[grey62]building...[/grey62]"
+                lt.update(generate_wheel_table(status))
                 if os.path.isfile("pyproject.toml"):
                     res = subprocess.run(
                         ["poetry", "build-project"], capture_output=True
                     )
                     if res.returncode == 0:
-                        table.add_row(proj, "[green]Yes[/green]")
+                        status[proj] = "[green]Yes[/green]"
+                        lt.update(generate_wheel_table(status))
                     else:
-                        table.add_row(proj, "[red]No[/red]")
+                        status[proj] = "[red]No[/red]"
+                        lt.update(generate_wheel_table(status))
                         if VERBOSE:
                             console.print(res.stderr.decode(stdout_err_encoding))
                         else:
                             with open("build.log", "a") as f:
                                 f.write(res.stderr.decode(stdout_err_encoding))
                 else:
-                    table.add_row(proj, "[green]Skipped[/green]")
+                    status[proj] = "[blue]Skipped[/blue]"
+                    lt.update(generate_wheel_table(status))
 
 
 # Generate a table for the Live object
 # see https://rich.readthedocs.io/en/stable/live.html?highlight=update#basic-usage
 def generate_table(status: dict) -> Table:
     table = Table(title="Build Docker Images")
-    table.add_column("Service", justify="right", style="cyan", no_wrap=True)
+    table.add_column("Service", justify="right", style="grey62", no_wrap=True)
     table.add_column("Built", style="magenta")
     for service in status:
-        table.add_row(service, status[service])
+        table.add_row(f"[black]service[/black]", status[service])
     return table
 
 
@@ -203,10 +228,11 @@ def generate_table(status: dict) -> Table:
 console.print(
     "Building docker images (see build.log for detailed progress)...", style="bold"
 )
-with Live(table, refresh_per_second=4) as lt:
+status = {}
+with Live(generate_table(status), refresh_per_second=4) as lt:
     status = {}
     for service in ym["services"]:
-        status[service] = "building"
+        status[service] = "[grey62]building...[/grey62]"
         lt.update(generate_table(status))
         command_list = [
             "docker",
@@ -229,7 +255,7 @@ with Live(table, refresh_per_second=4) as lt:
             f.write(ret.stdout)
             f.write(ret.stderr)
         if ret.returncode == 0:
-            status[service] = "built"
+            status[service] = "[green]Yes[/green]"
             lt.update(generate_table(status))
         else:
             status[service] = "failed"
