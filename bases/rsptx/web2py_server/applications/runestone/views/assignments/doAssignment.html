@@ -88,7 +88,9 @@
                     style="display: none;"
                     >
                     {{for q in questioninfo:}}
+                        <div class="runestone-sphinx">
                         {{=XML(q['htmlsrc'])}}
+                        </div>
                     {{pass}}
                     </ul>
                 {{else:}}
@@ -104,7 +106,7 @@
                                 <h5 style='text-align:center;'>Not yet graded</h5>
                                 </div>
                             {{pass}}
-                            <div class='oneq full-width' id='{{=count}}'>
+                            <div class='oneq full-width runestone-sphinx' id='{{=count}}'>
                                 {{=XML(q['htmlsrc'])}}
                             </div>
                             <div class="oneq" style="width: 100%; text-align: center">
