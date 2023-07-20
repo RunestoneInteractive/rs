@@ -87,9 +87,9 @@
             course: eBookConfig.course,
         })
         setTimeout(function () {
-            $(window.mcList[currentQuestion].submitButton).click(function () {
+            $(window.componentMap[currentQuestion].submitButton).click(function () {
                 if (studentVoteCount == 1) {
-                    let currAnswer = window.mcList[currentQuestion].answer;
+                    let currAnswer = window.componentMap[currentQuestion].answer;
                     console.log(`current answer is ${currAnswer}`);
                     let sAnswer = answerToString(currAnswer);
                     console.log(sAnswer);

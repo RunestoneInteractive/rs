@@ -53,7 +53,7 @@ function connect(event) {
                             if (discPanel && getVoteNum() > 1) {
                                 discPanel.style.display = "none";
                             }
-                            let currAnswer = window.mcList[currentQuestion].answer;
+                            let currAnswer = window.componentMap[currentQuestion].answer;
                             if (typeof currAnswer === "undefined") {
                                 messarea.innerHTML = `<h3>You have not answered the question</h3><p>You will not be able to participate in any discussion unless you answer the question.</p>`;
                             } else {
@@ -64,10 +64,12 @@ function connect(event) {
                                 }
                             }
                             if (!eBookConfig.isInstructor) {
-                                window.mcList[
+                                window.componentMap[
                                     currentQuestion
                                 ].submitButton.disabled = true;
-                                window.mcList[currentQuestion].disableInteraction();
+                                window.componentMap[
+                                    currentQuestion
+                                ].disableInteraction();
                             }
                             clearInterval(itimerid);
                             // Get the current answer and insert it into the
@@ -92,9 +94,10 @@ function connect(event) {
                     break;
                 case "enableVote":
                     console.log("Got enableVote message");
-                    window.mcList[currentQuestion].submitButton.disabled = false;
-                    window.mcList[currentQuestion].submitButton.innerHTML = "Submit";
-                    window.mcList[currentQuestion].enableInteraction();
+                    window.componentMap[currentQuestion].submitButton.disabled = false;
+                    window.componentMap[currentQuestion].submitButton.innerHTML =
+                        "Submit";
+                    window.componentMap[currentQuestion].enableInteraction();
                     if (typeof studentVoteCount !== "undefined") {
                         studentVoteCount += 1;
                         if (studentVoteCount > 2) {
@@ -105,9 +108,11 @@ function connect(event) {
                         // give them a warning.
                         setTimeout(() => {
                             if (studentVoteCount > 1 && !vote2done) {
-                                alert("You must vote twice! Even if want to keep your answer the same.")
+                                alert(
+                                    "You must vote twice! Even if want to keep your answer the same."
+                                );
                             }
-                        }, 10000)
+                        }, 10000);
                     }
                     messarea = document.getElementById("imessage");
                     messarea.innerHTML = `<h3>Time to make your 2nd vote</h3>`;
