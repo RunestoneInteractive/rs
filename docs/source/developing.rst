@@ -1,12 +1,28 @@
 Developing
 ==========
 
+We welcome anyone who is willing to help us with this project.  But it is important to recognize that working on any system that is in production, on the web, for tens of thousands of users is a bit different than working on a project that is just for your own use.  In order to work on Runestone effectively you will need to know (or be willing to learn) a lot of different skills.  including:
+
+* Python
+* The Unix command line 
+* SQL and relational databases
+* Javascript
+* HTML
+* css
+* Docker
+
+We try to hide the really hard stuff in scripts, but sometimes you just have to know stuff.  We are happy to help you learn, but you will need to be willing to learn, and you will need to be patient and recognize that in an open source project there are sometimes things that are not documented well, or that documentation is out of date.  We are working on that, but it is a big job.  A friend of mine would always say "Use the source Luke."  Generally speaking the latest released version of the repository is "in production" which means that it is working for hundreds of thousands of people.  There could be a window where the HEAD is broken for a particular feature, but certainly not for the whole system.
+
 This repository uses a polylith structure in order to allow the several
 projects under the Runestone umbrella to share code, provide common ways
 of accomplishing similar tasks, and hopefully make it easier for a
-newcomer to contribute to the project.
+newcomer to contribute to the project.  If you don't know what a polylith is don't let that deter you.  It is just a fancy way of saying that we have a bunch of projects that share a lot of code.  
 
-To get started it will be very helpful to `install
+If you are going to be doing development on the Runestone system you will want to
+make a fork of our repository and clone it to your local machine.  You will find our 
+repository at https://github.com/RunestoneInteractive/rs
+
+To get started it is necessary to `install
 poetry <https://python-poetry.org/docs/>`__. with poetry installed you
 will need to add two very important plugins, and a highly convenient 3rd.
 
@@ -291,6 +307,21 @@ be push-able to our docker container registry and or the public docker
 container registry
 
 To build all of the docker containers and bring them up together.  You can run the ``build.py`` script in the top level directory. The dependencies for the build.py script are included in the top level ``pyproject.toml`` file.  ``poetry install --with=dev`` will install everything you need and then you may will want to start up a poetry shell. The ``build.py`` script will build all of the Python wheels and Docker images, when that completes run ``docker-compose up``.  You can also run ``docker-compose up`` directly if you have already built the images.  
+
+.. code-block:: bash
+
+   poetry run ./build.py --help
+   Checking your environment
+   Usage: build.py [--verbose] [--help] [--all] [--push] [--one <container>] [--restart]  
+         --all build all containers, including author and worker
+         --push push all containers to docker hub
+         --one <container> build just one container, e.g. --one author
+         --restart restart the container(s) after building
+         --help print this message
+         --verbose print more information about what is happening
+
+The ``build.py`` script will build one or all of the Python wheels and Docker images, when that completes it will stop and run ``docker-compose up -d``. to restart one or more images.  It will also do a minimal check of your environment variables to make sure you have the ones you need.  It will not check to see if they are correct.  If you are missing any that are required for the build.py script to run it will tell you which ones are missing and then stop.
+
 
 When developing and you need multiple servers running
 

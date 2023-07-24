@@ -16,6 +16,7 @@
 
 gzip_static on;
 
+rewrite_log on;
 # Specify a custom log format.
 
 #
@@ -43,6 +44,9 @@ include /etc/nginx/default.d/\*.conf;
     server_name RunestoneMobile.local;
 
     rewrite ^/ads.txt /runestone/static/ads.txt;
+    rewrite ^/runestone/static/JavaReview/(\w+)/(.*)$ /ns/books/published/apcsareview/$1/$2;
+    rewrite ^/runestone/static/csawesome/(\w+)/(.*)$ /ns/books/published/csawesome/$1/$2;
+
 
     # Rewrite the path to static files.
     #

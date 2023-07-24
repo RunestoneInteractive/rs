@@ -54,7 +54,7 @@ A Roadmap
 Docs
 ----
 
-See `Our Read the Docs page <https://runestone-monorepo.readthedocs.io/en/latest/developing.html>`_ for more complete documentation.
+See `Our Read the Docs page <https://runestone-monorepo.readthedocs.io/en/latest/index.html>`_ for more complete documentation.  The `developing <https://runestone-monorepo.readthedocs.io/en/latest/developing.html>`_ section is especially useful if you are interested in contributing to the project.
 
 This setup uses poetry and two important plugins, the multi-project
 plugin and the polylith plugin.
@@ -65,7 +65,18 @@ documentation <https://polylith.gitbook.io/polylith>`__
 A Python implementation of the Polylith tool:
 `python-polylith <https://github.com/DavidVujic/python-polylith>`__
 
-Documentation for building and running each of the projects is in the respective project directory.
+Documentation for building and running each of the projects is in the respective project directory. However much of what you will want to do can be accomplished with the `build.py` script in the root of the repository.
+
+.. code-block:: bash
+
+   poetry run ./build.py --help
+   Checking your environment
+   Usage: build.py [--verbose] [--help] [--all] [--push]
+         --all build all containers, including author and worker
+         --push push all containers to docker hub
+         --one <service> build just one container, e.g. --one author
+         --restart restart the container(s) after building
+
 
 Please make sure you keep your fork up to date with main.  We are actively working on this new organization of the Runestone code, and there are likely to be lots of changes, especially throughout the summer months.
 
