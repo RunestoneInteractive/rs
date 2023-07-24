@@ -1,3 +1,17 @@
+Welcome
+=======
+
+Runestone Academy is an open source project and *our mission is to equip the nation's STEM teachers with open-source content, tools and strategies they need to create engaging, accessible, and effective learning experiences for their students.* You might do this through our website, https://runestone.academy or by running your own server.  Or you may be an author or budding author that has a great idea for a book. Or you may be a technology coordinator that wants to run a private server.  Or you may be a researcher at a large university that is looking for a platform to test your ideas.  We are here for you.  This repository is the home of the Runestone Academy software.  We would welcome your help.  And we are happy to help you get started.
+
+
+* Using a Runestone Academy for my class - `Instructor guide <https://guide.runestone.academy>`_
+* Running a server for my own class?
+* Running a server for my school or larger group?
+* I want to author a book - `Author Guide <https://pretextbook.org/doc/guide/html/guide-toc.htm>`_
+* I want to customize a book for my class
+* I want to contribute to the Runestone Academy software - `Contributing Guide <https://runestone-monorepo.readthedocs.io/en/latest/contributing.html>`_
+* What is Runestone Academy? - `About Runestone <https://landing.runestone.academy>`_
+
 Runestone MonoRepo
 ==================
 
