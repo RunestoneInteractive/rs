@@ -12,7 +12,7 @@
 #
 # Standard library
 # ----------------
-
+import pdb
 import datetime
 import os
 import re
@@ -593,6 +593,9 @@ def manifest_data_to_db(course_name, manifest_path):
                     practice = "T"
                 if el and "practice" in el.attrib:
                     practice = "T"
+                # chapter and subchapter are elements
+                sbc = subchapter.find("./id").text
+                cpt = chapter.find("./id").text
                 valudict = dict(
                     base_course=course_name,
                     name=idchild,
@@ -601,8 +604,9 @@ def manifest_data_to_db(course_name, manifest_path):
                     question_type=qtype,
                     htmlsrc=dbtext,
                     from_source="T",
-                    subchapter=subchapter.find("./id").text,
-                    chapter=chapter.find("./id").text,
+                    chapter=cpt,
+                    subchapter=sbc,
+                    topic=f"{cpt}/{sbc}",
                     qnumber=qlabel,
                     optional=optional,
                     practice=practice,
