@@ -7,7 +7,7 @@ Runestone Academy is an open source project and *our mission is to equip the nat
 * Using a Runestone Academy for my class - `Instructor guide <https://guide.runestone.academy>`_
 * Running a server for my own class?
 * Running a server for my school or larger group?
-* I want to author a book - `Author Guide <https://pretextbook.org/doc/guide/html/guide-toc.htm>`_
+* I want to author a book - `Author Guide <https://pretextbook.org/doc/guide/html/guide-toc.html>`_
 * I want to customize a book for my class
 * I want to contribute to the Runestone Academy software - `Contributing Guide <https://runestone-monorepo.readthedocs.io/en/latest/contributing.html>`_
 * What is Runestone Academy? - `About Runestone <https://landing.runestone.academy>`_
