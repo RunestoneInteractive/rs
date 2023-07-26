@@ -141,3 +141,22 @@ services:
       - book
       - assignment
 
+  # create an image/container to run rsmanage inside the composed services 
+  # docker compose run rsmanage rsmanage --help
+  rsmanage:
+    build: 
+      context: ./projects/rsmanage
+    image: registry.digitalocean.com/runestone-registry/rs-rsmanage
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: never
+
+    environment:
+      - SERVER_CONFIG=${SERVER_CONFIG}
+      - RUNESTONE_HOST=${RUNESTONE_HOST}
+      - RUNESTONE_PATH=/usr/src/app
+      - REDIS_URI=redis://${REDIS_HOST}:6379/0
+      # Note: host.docker.internal refers back to the host so we can just use a local instance
+      # of postgresql
+      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+      - DBURL=${DC_DBURL:-$DBURL}
