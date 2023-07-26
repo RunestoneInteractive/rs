@@ -812,7 +812,7 @@ class TraceBack(Base, IdMixin):
     traceback = Column(Text, nullable=False)
     timestamp = Column(DateTime)
     err_message = Column(String(512))
-    path = Column(String(256))
+    path = Column(String(1024))
     query_string = Column(String(512))
     post_body = Column(String(1024))
     hash = Column(String(128))
