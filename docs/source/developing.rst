@@ -197,6 +197,9 @@ The database is a critical component as it is the glue that ties together the va
 2. Install Postgresql as part of the docker-compose setup
 3. Install Postgresql on your local host (either natively or in a container)
 
+Install Postgresql locally
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 My currently recommended option is number 3.  It is what you are probably going to want for production anyway, and I think it gives you the most flexibility for development.  I simply installed it on my mac using ``homebrew.`` Linux users can use ``apt`` or whatever.  You could even install it in its own `docker container <https://www.baeldung.com/ops/postgresql-docker-setup>`_ and access it as if it was installed natively.  It is easy for services running in docker to access the database service running on the host.  Using  a URL like ``postgresql://user:pass@host.docker.internal/runestone_dev``  The key there is the ``host.docker.internal`` tells the process running in the container to connect to the host.  Running it on the host also makes it far less surprising when you do a rebuild and suddenly your test data is gone because you dumped the image.
 
 You can connect to the database with one of 3 URLs depending on your server configuration (``SERVER_CONFIG``) environment variable - production, development, or test.  Test is really just for unit testing.  So you will most often want to use development.  The environment variables to set are ``DBURL``, ``DEV_DBURL`` or ``TEST_DBURL``.
@@ -211,6 +214,17 @@ If you install postgresql locally you will need to do  a few things to get it re
 6. Restart Postgresql.  On my mac this is done by running ``brew services restart postgresql``.  On linux it is probably ``sudo service postgresql restart``
 7. After you restart try the following command ``psql -h localhost -U runestone runestone_dev``  You should be prompted for a password.  Enter the password you created for the runestone user.  You should then be at a psql prompt.  You can exit by typing ``\q``  If you cannot connect then you have done something wrong.  You can ask for help in the ``developer-forum`` channel on the Runestone discord server.
 
+Install Postgresql with Docker
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you do not want to install postgresql on your host, or maybe you are just looking to run an installation of Runestone for a couple of courses at your school, here is how to proceed.
+
+1. Before you build the rest of the services run the command ``docker compose -f docker-compose.yml -f author.compose.yml -f db.compose.yml up -d db``  This will start just the database service in the set of composed services.   It will also use the default settings for ``POSTGRES_PASSWORD`` (runestone), ``POSTGRES_USER`` (runestone), and ``POSTGRES_DBNAME`` (runestone_dev).  You should change these if you are running a production server, but if you are just getting set up for development for the first time just leave them alone.
+2. Once the postgresql service has installed itself and started up you can initialize your database using the ``rsmanage`` command.  This assumes that you have already followed the instructions for installing poetry and the plugins.  You can run ``poetry install --with=dev`` from the top level directory to get a working virtual environment with the ``rsmanage`` command installed.  Run ``poetry shell`` to enable the newly created virtual environment.
+3. You will also need to have the minimal set of environment variables set up.  See the section below.  If you want to use the defaults you can set ``SERVER_CONFIG`` to ``development`` and ``DEV_DBURL`` to ``postgresql://runestone:runestone@localhost:2345/runestone_dev``  rsmanage will tell you if you are missing any environment variables.
+4. Run `` rsmanage initdb`` This will create the database and initialize it with the tables and data that you need.  Note that this sets the DEV_DBURL environment variable for the ``rsmanage`` command.  If you already have that set then you can omit that part of the command.
+
+At this point your database is ready
 
 Environment variables
 ---------------------
@@ -227,7 +241,13 @@ Environment variables are very important in a system like Runestone, The service
 * ``DC_DBURL`` *d* - This is the URL that is used to connect to the database in docker-compose.  If this is not set it will default to ``$DBURL``.  This is useful if you want to use a different database for docker-compose than you do for development.
 * ``DC_DEV_DBURL`` *d* - This is the URL that is used to connect to the database in docker-compose development.  If this is not set it will default to ``$DEV_DBURL``.  This is useful if you want to use a different database for docker-compose development than you do for development.  
 
-These two sets of variables can be identical, but they are separate because it is often the case that you want to refer to a database running on the host using the host name ``localhost`` from the host but from docker you need to use the host name ``host.docker.internal``.  So you can set ``DBURL`` to ``postgresql://runestone:runestone@localhost/runestone_dev`` and ``DC_DBURL`` to ``postgresql://runestone:runestone@host.docker.internal/runestone_dev``
+These two sets of variables can be identical, but they are separate because it is often the case that you want to refer to a database running on the host using the host name ``localhost`` from the host but from docker you need to use the host name ``host.docker.internal``. 
+
+If you are using a local installation of postgresql you should set the environment variables as follows:
+Set ``DEV_DBURL`` to ``postgresql://runestone:runestone@localhost/runestone_dev`` and ``DC_DEV_DBURL`` to ``postgresql://runestone:runestone@host.docker.internal/runestone_dev`` You can also set ``DBURL`` and ``DC__DBURL`` but omit the ``_dev`` on the end.
+
+If you are using a postgresql container you should set the environment variables as follows:
+Set ``DEV_DBURL`` to ``postgresql://runestone:runestone@localhost:2345/runestone_dev`` and ``DC_DEV_DBURL`` to ``postgresql://runestone:runestone@db/runestone_dev`` You can also set ``DBURL`` and ``DC__DBURL`` but omit the ``_dev`` on the end.
 
 
 * ``JWT_SECRET`` *d* - this is the secret used to sign the JWT tokens.  It should be a long random string.  You can generate one by running ``openssl rand -base64 32``  You should set this to the same value in all of the services.
