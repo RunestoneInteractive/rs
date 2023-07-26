@@ -179,6 +179,10 @@ class Settings(BaseSettings):
     region = "nyc3"  # this is the DO data center or AWS region
     bucket = "runestonefiles"
 
+    # This is used at places like Umich where they want to hide all of the social media links
+    # and other things that are not part of the book.
+    minimal_outside_links: str = "False"
+
     log_level: str = "DEBUG"
 
 

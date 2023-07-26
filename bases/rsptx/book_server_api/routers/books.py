@@ -404,6 +404,7 @@ async def serve_page(
         show_rs_banner=show_rs_banner,
         show_ethical_ad=serve_ad,
         worker_name=worker_name,
+        minimal_outside_links=settings.minimal_outside_links,
         **course_attrs,
     )
     # See `templates <https://fastapi.tiangolo.com/advanced/templates/>`_.
