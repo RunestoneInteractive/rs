@@ -44,3 +44,7 @@ services:
     assignment:
       links:
         - db
+    rsmanage:
+      links:
+        - db
+        
