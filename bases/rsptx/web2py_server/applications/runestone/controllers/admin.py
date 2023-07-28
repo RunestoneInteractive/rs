@@ -2507,6 +2507,7 @@ def copy_assignment():
             assignments = db(
                 (db.assignments.course == db.courses.id)
                 & (db.courses.course_name == request.vars["course"])
+                & (db.assignments.from_source == "F")
             ).select()
             for a in assignments:
                 print("A = {}".format(a))
@@ -2542,6 +2543,12 @@ def _copy_one_assignment(course, oldid):
             description=old_assignment.description,
             points=old_assignment.points,
             threshold_pct=old_assignment.threshold_pct,
+            is_timed=old_assignment.is_timed,
+            is_peer=old_assignment.is_peer,
+            time_limit=old_assignment.time_limit,
+            from_source=old_assignment.from_source,
+            nofeedback=old_assignment.nofeedback,
+            nopause=old_assignment.nopause,
         )
     except Exception as e:
         return f"failed: {str(e)}"
