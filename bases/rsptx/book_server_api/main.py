@@ -35,6 +35,7 @@ Detailed Module Description
 #
 # Standard library
 # ----------------
+from contextlib import asynccontextmanager
 import datetime
 import json
 import os
@@ -71,7 +72,23 @@ from rsptx.templates import template_folder
 kwargs = {}
 if root_path := os.environ.get("ROOT_PATH"):
     kwargs["root_path"] = root_path
-app = FastAPI(**kwargs)  # type: ignore
+
+# Here is the place to put startup and shutdown logic.
+# This is not for "one-time" things as this runs for every instance of worker at its
+# startup and shutdown time.  For example, we don't want to initialize the database here.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Load the ML model
+    rslogger.info("Book Server is Starting Up")
+    init_graders()
+    yield
+    # Clean up the ML models and release the resources
+    rslogger.info("Book Server is Shutting Down")
+    await term_models()
+
+
+app = FastAPI(lifespan=lifespan, **kwargs)  # type: ignore
+
 rslogger.info(f"Serving books from {settings.book_path}.\n")
 
 # Install the auth_manager as middleware This will make the user
@@ -104,34 +121,6 @@ base_dir = pathlib.Path(template_folder)
 app.mount(
     "/staticAssets", StaticFiles(directory=base_dir / "staticAssets"), name="static"
 )
-
-
-# Defined here
-# ^^^^^^^^^^^^
-@app.on_event("startup")
-async def startup():
-    """
-    This function is called every time the fastapi server is started.
-    It is used to initialize the database and the grader.
-    If you need to add other startup functionality this is a good place to do it.
-    """
-    # Check/create paths used by the server.
-    os.makedirs(settings.book_path, exist_ok=True)
-    os.makedirs(settings.error_path, exist_ok=True)
-    # assert (
-    #     settings.runestone_path.exists()
-    # ), f"Runestone appplication in web2py path {settings.runestone_path} does not exist."
-
-    await init_models()
-    init_graders()
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    """
-    This function is called every time the fastapi server is shutdown.
-    """
-    await term_models()
 
 
 add_exception_handlers(app)
