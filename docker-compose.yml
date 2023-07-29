@@ -44,7 +44,6 @@ services:
       - UVICORN_TIMEOUT=60
       - LOGIN_URL="/runestone/default/user"
       - WORKER_NAME=${HOSTNAME}
-      - MINIMAL_OUTSIDE_LINKS="yes"    
 
     links:
       - redis
