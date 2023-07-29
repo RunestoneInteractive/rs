@@ -9,7 +9,8 @@ services:
     build: 
       context: ./projects/jobe
     image: registry.digitalocean.com/runestone-registry/rs-jobe
-
+    restart: always
+    
   book:
     build: 
       context: ./projects/book_server
