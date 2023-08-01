@@ -21,7 +21,7 @@
 </div>
 
 <div class="row">
-    {{ if not all_done: }}
+    {{ if all_done == "false": }}
     <div class="oneq col-md-6 runestone-sphinx">
     {{=XML(current_question['htmlsrc'])}}</div>
     {{ else: }}
@@ -29,7 +29,7 @@
         <h3>Congratulations, you have completed this assignment!</h3>
     </div>
     {{ pass }}
-    {{ if not all_done: }}
+    {{ if all_done == "false": }}
     <div class="col-md-6">
         <p>
             Please provide an explanation for why you answered
@@ -47,7 +47,7 @@
     {{pass}}
 </div>
 
-{{ if not all_done: }}
+{{ if all_done == "false": }}
 <div>
     <form action="/peer/peer_async">
         <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
