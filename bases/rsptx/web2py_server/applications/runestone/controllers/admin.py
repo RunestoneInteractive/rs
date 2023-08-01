@@ -151,6 +151,7 @@ def assignments():
 
     # See `models/db_ebook.py` for course_attributes table
     set_latex_preamble(course.base_course)
+    course_attrs = getCourseAttributesDict(course.id)
 
     return dict(
         coursename=auth.user.course_name,
@@ -162,6 +163,8 @@ def assignments():
         toc=_get_toc_and_questions(),  # <-- This Gets the readings and questions
         course=course,
         is_instructor=True,
+        ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
+        webwork_js_version=course_attrs.get("webwork_js_version", "2.17"),
     )
 
 
@@ -771,6 +774,8 @@ def grading():
             q_list.append(chapter_q.name)
         chapter_labels[row.chapter_label] = q_list
 
+    course_attrs = getCourseAttributesDict(course.id)
+
     set_latex_preamble(base_course)
     return dict(
         assignmentinfo=json.dumps(assignments),
@@ -789,6 +794,8 @@ def grading():
         assignment_deadlines=json.dumps(assignment_deadlines),
         question_points=json.dumps(question_points),
         is_instructor=True,
+        ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
+        webwork_js_version=course_attrs.get("webwork_js_version", "2.17"),
         course=course,
     )
 

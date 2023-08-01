@@ -614,7 +614,7 @@ def doAssignment():
         logger.error("BAD ASSIGNMENT = %s assignment %s", course, assignment_id)
         session.flash = "Bad Assignment ID"
         return redirect(URL("assignments", "chooseAssignment"))
-
+    course_attrs = getCourseAttributesDict(course.id)
     logger.debug("COURSE = %s assignment %s", course, assignment_id)
     # Web2Py documentation for querying databases is really helpful here.
     assignment = (
@@ -908,6 +908,8 @@ def doAssignment():
         is_submit=grade.is_submit,
         is_graded=is_graded,
         enforce_pastdue=enforce_pastdue,
+        ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
+        webwork_js_version=course_attrs.get("webwork_js_version", "2.17"),
     )
 
 
