@@ -46,6 +46,10 @@ if "--help" in sys.argv:
         --push push all containers to a container registry
         --one <service> build just one container, e.g. --one author
         --restart restart the container(s) after building
+
+        If something in the build does not work or you have questions about setup or environment
+        variables or installation, please check out our developer documentation.  
+        https://runestone-monorepo.readthedocs.io/en/latest/developing.html
         """
     )
     exit(0)

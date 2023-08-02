@@ -9,7 +9,8 @@ services:
     build: 
       context: ./projects/jobe
     image: registry.digitalocean.com/runestone-registry/rs-jobe
-
+    restart: always
+    
   book:
     build: 
       context: ./projects/book_server
@@ -44,7 +45,6 @@ services:
       - UVICORN_TIMEOUT=60
       - LOGIN_URL="/runestone/default/user"
       - WORKER_NAME=${HOSTNAME}
-      - MINIMAL_OUTSIDE_LINKS="yes"    
 
     links:
       - redis
@@ -150,7 +150,6 @@ services:
     image: registry.digitalocean.com/runestone-registry/rs-rsmanage
     extra_hosts:
       - host.docker.internal:host-gateway
-    restart: never
     volumes:
       - ${BOOK_PATH}:/usr/books
 
