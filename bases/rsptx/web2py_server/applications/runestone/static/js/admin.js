@@ -1616,6 +1616,10 @@ async function updateReading(
         alert("No assignment selected");
         return;
     }
+    if (document.forms["assignment-form"].assign_is_peer.checked) {
+        alert("Peer assignments cannot have readings");
+        return;
+    }
     let res = await $.ajax({
         url: "add__or_update_assignment_question",
         data: {
@@ -1992,7 +1996,9 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
     }
 
     if (typeof component_factory === "undefined") {
-        alert("Error:  Missing the component factory!  Clear your browser cache.");
+        alert(
+            "Error:  Missing the component factory!  probably a webpack version mismatch"
+        );
     } else {
         if (!component_factory[componentKind] && !jQuery(`#${whereDiv}`).html()) {
             jQuery(`#${whereDiv}`).html(
