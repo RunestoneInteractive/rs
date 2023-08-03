@@ -31,7 +31,7 @@ from .video import Youtube, Vimeo, Video
 from .webgldemo import WebglDemo
 
 
-import os, socket
+import os, re, socket
 from importlib.metadata import version
 import importlib.resources
 import CodeChat.CodeToRest
@@ -84,6 +84,10 @@ def runestone_extensions():
 # Used to inspect js right before it is rendered to page so that
 # we can forcibly defer js files or prevent same
 def setup_js_defer(app, pagename, templatexname, context, doctree):
+
+    filename_pat = re.compile("_static/(.*?)(?:\?.*)?$")
+    custom_js_files = { js["file"] for js in setup.custom_js_files }
+
     def js_defer(script_files):
         for js in sorted(script_files):
             if app.config.html_defer_js:
@@ -96,9 +100,10 @@ def setup_js_defer(app, pagename, templatexname, context, doctree):
                 if isinstance(js, JavaScript) and js in to_defer:
                     js.attributes["defer"] = ""
             else:
-                # config flag not set, prevent all deferrals
+                # config flag not set, prevent all deferrals except those from custom js files.
                 if isinstance(js, JavaScript):
-                    js.attributes.pop("defer", None)
+                    if not ((m := filename_pat.match(js.filename)) and m.group(1) in custom_js_files):
+                        js.attributes.pop("defer", None)
         return ""
 
     context["js_defer"] = js_defer
@@ -148,8 +153,12 @@ def setup(app):
     try:
         for c in setup.custom_js_files:
             if isinstance(c, dict):
-                # peel off filename, pass rest of key/values on as kwargs
-                filename = c.pop("file")
+                filename = c["file"]
+                # Peel off filename, pass rest of key/values on as kwargs. Don't
+                # modify the original dict in custom_js_files though since we
+                # need to keep the file name in there to later check if we want
+                # to strip the defer tag.
+                c = { k:v for k, v in c.items() if k != 'file' }
                 app.add_autoversioned_javascript(filename, **c)
             else:
                 app.add_autoversioned_javascript(c)
