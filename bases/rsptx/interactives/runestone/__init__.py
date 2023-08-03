@@ -86,7 +86,10 @@ def runestone_extensions():
 def setup_js_defer(app, pagename, templatexname, context, doctree):
 
     filename_pat = re.compile("_static/(.*?)(?:\?.*)?$")
-    custom_js_files = { js["file"] if isinstance(js, dict) else js for js in setup.custom_js_files }
+    if hasattr(setup, 'custom_js_files'):
+        custom_js_files = { js["file"] if isinstance(js, dict) else js for js in setup.custom_js_files }
+    else:
+        custom_js_files = []
 
     def js_defer(script_files):
         for js in sorted(script_files):
