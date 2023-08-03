@@ -24,7 +24,7 @@ services:
             # this is a feature of the postgres docker image
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-runestone}
             POSTGRES_USER: ${POSTGRES_USER:-runestone}
-            POSTGRES_DBNAME: ${POSTGRES_DBNAME:-runestone_dev}
+            POSTGRES_DB: ${POSTGRES_DBNAME:-runestone_dev}
         # use a non-standard port to avoid conflicts with other postgres instances on the host
         ports: 
           - 2345:5432
