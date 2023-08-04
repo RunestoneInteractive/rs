@@ -78,7 +78,7 @@ development without having to know anything about database programming
 by simply using the functions defined there.
 
 With the structure we have in place, you can run and do development on
-any of the server projects with or without knowing anything about docker
+any of the server projects **with** or **without** knowing anything about docker
 or containers.
 
 Let's discuss discuss each of the projects at a high level to start
@@ -115,6 +115,13 @@ running C, C++, and Java programs.
 
 **nginx** The nginx project uses nginx as the traffic director to route
 requests across the various servers that comprise the Runestone system.
+
+The ``docker-compose.yml`` file defines a **composed application**  However docker compose allows you use several compose files together to include or exclude various services depending on your needs.
+You may or may not want all of these projects in your setup.  There are three scenarios that we try to support out of the box.
+
+1. A local installation of postgresql + runestone + bookserver + job + rsmanage + nginx.  This setup could be used for development work on many aspects of runestone or even as a small production environment to support a few classes.  This is supported by using just the ``docker-compose.yml`` file.
+2. A local installation of postgresql with everything mentioned above + the author server and worker server.  This is pretty close to how we run in production on Runestone Academy.  The author server nice if you have several authors contributing to a Runestone installation, and don't want to have to maintain and build all of the books. This is supported by using ``docker-compose.yml`` and ``author.compose.yml`` files.
+3. A composed app that includes all of the above where the postgresql database is part of the composed application.  This is supported by using ``docker-compose.yml`` and ``author.compose.yml`` and ``db.compose.yml`` files.
 
 Project File Structure
 ----------------------
@@ -188,45 +195,6 @@ Project File Structure
         └──  workspace.toml
 
 
-Database Setup
---------------
-
-The database is a critical component as it is the glue that ties together the various servers.  You have a few different options for database setup.
-
-1. Use SQLLite -- this may be ok for very casual use or even light development work, but really is  not ideal for any kind of production environment.
-2. Install Postgresql as part of the docker-compose setup
-3. Install Postgresql on your local host (either natively or in a container)
-
-Install Postgresql locally
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-My currently recommended option is number 3.  It is what you are probably going to want for production anyway, and I think it gives you the most flexibility for development.  I simply installed it on my mac using ``homebrew.`` Linux users can use ``apt`` or whatever.  You could even install it in its own `docker container <https://www.baeldung.com/ops/postgresql-docker-setup>`_ and access it as if it was installed natively.  It is easy for services running in docker to access the database service running on the host.  Using  a URL like ``postgresql://user:pass@host.docker.internal/runestone_dev``  The key there is the ``host.docker.internal`` tells the process running in the container to connect to the host.  Running it on the host also makes it far less surprising when you do a rebuild and suddenly your test data is gone because you dumped the image.
-
-You can connect to the database with one of 3 URLs depending on your server configuration (``SERVER_CONFIG``) environment variable - production, development, or test.  Test is really just for unit testing.  So you will most often want to use development.  The environment variables to set are ``DBURL``, ``DEV_DBURL`` or ``TEST_DBURL``.
-
-If you install postgresql locally you will need to do  a few things to get it ready to go.  
-
-1. Create a user called ``runestone`` with password ``runestone`` (or whatever you want to call it) This is done by running ``createuser -P runestone`` and entering the password when prompted.  You can also do this in the psql command line interface by running ``create user --superuser runestone with password 'runestone';``  You may have to become the postgres user in order to run that command.
-2. You will also find it convenient to create a user for yourself.  This is done by running ``createuser -P <your username>`` and entering the password when prompted.  You can also do this in the psql command line interface by running ``create user --superuser <your username> with password '<your password>';``  You may have to become the postgres user in order to run that command.
-3. Create a database called ``runestone_dev``  You do this by running ``createdb -O runestone runestone_dev``.  You can also do this in the psql command line interface by running ``create database runestone_dev owner runestone;``  You may have to become the postgres user in order to run that command.
-4. Configure postgresql to listen on all ip addresses.  This is done by editing the ``postgresql.conf`` file and changing the ``listen_addresses`` to ``*``.  You may find the directory for this file by running ``pg_config --sysconfdir``.  On my mac it is ``/usr/local/var/postgres``.  On many linux varieties it is something like ``/etc/postgresql/14/main/`` Your path may be slightly different 14 in that example is the version of postgresql I am running. You will need to restart postgresql for this to take effect.
-5. Configure the pg_hba.conf file to allow access from the docker network.  This is done by adding a line like this to the file ``host all all 0.0.0.0/0 md5``.  You can find this file by running ``pg_config --sysconfdir``.  On my mac it is ``/usr/local/var/postgres``. On many linux varieties it is something like ``/etc/postgresql/14/main/`` See above.   You will need to restart postgresql for this to take effect.
-6. Restart Postgresql.  On my mac this is done by running ``brew services restart postgresql``.  On linux it is probably ``sudo service postgresql restart``
-7. After you restart try the following command ``psql -h localhost -U runestone runestone_dev``  You should be prompted for a password.  Enter the password you created for the runestone user.  You should then be at a psql prompt.  You can exit by typing ``\q``  If you cannot connect then you have done something wrong.  You can ask for help in the ``developer-forum`` channel on the Runestone discord server.
-8. Use the `rsmanage initdb` command to create the database schemas and populate some initial data for common courses, as well as create `testuser1` with password "xxx" yes three x's super secure.  You can change this password later.  You can also create your own user with the ``rsmanage adduser`` command.  You can also use the ``rsmanage resetpw`` command to change the password for testuser1.
-
-Install Postgresql with Docker
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you do not want to install postgresql on your host, or maybe you are just looking to run an installation of Runestone for a couple of courses at your school, here is how to proceed.
-
-1. Before you build the rest of the services run the command ``docker compose -f docker-compose.yml -f author.compose.yml -f db.compose.yml up -d db``  This will start just the database service in the set of composed services.   It will also use the default settings for ``POSTGRES_PASSWORD`` (runestone), ``POSTGRES_USER`` (runestone), and ``POSTGRES_DBNAME`` (runestone_dev).  You should change these if you are running a production server, but if you are just getting set up for development for the first time just leave them alone.
-2. Once the postgresql service has installed itself and started up you can initialize your database using the ``rsmanage`` command.  This assumes that you have already followed the instructions for installing poetry and the plugins.  You can run ``poetry install --with=dev`` from the top level directory to get a working virtual environment with the ``rsmanage`` command installed.  Run ``poetry shell`` to enable the newly created virtual environment.
-3. You will also need to have the minimal set of environment variables set up.  See the section below.  If you want to use the defaults you can set ``SERVER_CONFIG`` to ``development`` and ``DEV_DBURL`` to ``postgresql://runestone:runestone@localhost:2345/runestone_dev``  rsmanage will tell you if you are missing any environment variables.
-4. Run ``docker compose run rsmanage rsmanage initdb`` This will build the image in docker for the rsmanage command and then run it to create the database and initialize it with the tables and data that you need.  You can use ``docker compose run rsmanage rsmanage ...`` to run any of the rsmanage commands in the composed app.   If you prefer you can install ``rsmanage`` on the host and run it there, but you will need to be mindful of your environment variables related to the database.
-
-At this point your database is ready
-
 Environment variables
 ---------------------
 
@@ -284,6 +252,51 @@ with ``poetry shell``. To install the plugin run:
 Note, however, that plugins in ``poetry`` are global, not per-project, so if you
 have other ``poetry`` projects with ``.env`` files that you `don`t` want slurped
 into your ``poetry shell`` environment you may not want to install this plugin.
+
+.. note:: Host Side Development Notes
+
+   When you are starting one or more servers on the host (not in docker) then you will also want to define most of the docker only variables in order for your servers.  This is another good reason to use the dot-env plugin for poetry.
+
+
+Database Setup
+--------------
+
+The database is a critical component as it is the glue that ties together the various servers.  You have a few different options for database setup.
+
+1. Use SQLLite -- this may be ok for very casual use or even light development work, but really is  not ideal for any kind of production environment.
+2. Install Postgresql as part of the docker-compose setup
+3. Install Postgresql on your local host (either natively or in a container)
+
+Install Postgresql locally
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+My currently recommended option is number 3.  It is what you are probably going to want for production anyway, and I think it gives you the most flexibility for development.  I simply installed it on my mac using ``homebrew.`` Linux users can use ``apt`` or whatever.  You could even install it in its own `docker container <https://www.baeldung.com/ops/postgresql-docker-setup>`_ and access it as if it was installed natively.  It is easy for services running in docker to access the database service running on the host.  Using  a URL like ``postgresql://user:pass@host.docker.internal/runestone_dev``  The key there is the ``host.docker.internal`` tells the process running in the container to connect to the host.  Running it on the host also makes it far less surprising when you do a rebuild and suddenly your test data is gone because you dumped the image.
+
+You can connect to the database with one of 3 URLs depending on your server configuration (``SERVER_CONFIG``) environment variable - production, development, or test.  Test is really just for unit testing.  So you will most often want to use development.  The environment variables to set are ``DBURL``, ``DEV_DBURL`` or ``TEST_DBURL``.
+
+If you install postgresql locally you will need to do  a few things to get it ready to go.  
+
+1. Create a user called ``runestone`` with password ``runestone`` (or whatever you want to call it) This is done by running ``createuser -P runestone`` and entering the password when prompted.  You can also do this in the psql command line interface by running ``create user --superuser runestone with password 'runestone';``  You may have to become the postgres user in order to run that command.
+2. You will also find it convenient to create a user for yourself.  This is done by running ``createuser -P <your username>`` and entering the password when prompted.  You can also do this in the psql command line interface by running ``create user --superuser <your username> with password '<your password>';``  You may have to become the postgres user in order to run that command.
+3. Create a database called ``runestone_dev``  You do this by running ``createdb -O runestone runestone_dev``.  You can also do this in the psql command line interface by running ``create database runestone_dev owner runestone;``  You may have to become the postgres user in order to run that command.
+4. Configure postgresql to listen on all ip addresses.  This is done by editing the ``postgresql.conf`` file and changing the ``listen_addresses`` to ``*``.  You may find the directory for this file by running ``pg_config --sysconfdir``.  On my mac it is ``/usr/local/var/postgres``.  On many linux varieties it is something like ``/etc/postgresql/14/main/`` Your path may be slightly different 14 in that example is the version of postgresql I am running. You will need to restart postgresql for this to take effect.
+5. Configure the pg_hba.conf file to allow access from the docker network.  This is done by adding a line like this to the file ``host all all 0.0.0.0/0 md5``.  You can find this file by running ``pg_config --sysconfdir``.  On my mac it is ``/usr/local/var/postgres``. On many linux varieties it is something like ``/etc/postgresql/14/main/`` See above.   You will need to restart postgresql for this to take effect.
+6. Restart Postgresql.  On my mac this is done by running ``brew services restart postgresql``.  On linux it is probably ``sudo service postgresql restart``
+7. After you restart try the following command ``psql -h localhost -U runestone runestone_dev``  You should be prompted for a password.  Enter the password you created for the runestone user.  You should then be at a psql prompt.  You can exit by typing ``\q``  If you cannot connect then you have done something wrong.  You can ask for help in the ``developer-forum`` channel on the Runestone discord server.
+8. Use the `rsmanage initdb` command to create the database schemas and populate some initial data for common courses, as well as create `testuser1` with password "xxx" yes three x's super secure.  You can change this password later.  You can also create your own user with the ``rsmanage adduser`` command.  You can also use the ``rsmanage resetpw`` command to change the password for testuser1.
+
+Install Postgresql with Docker
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you do not want to install postgresql on your host, or maybe you are just looking to run an installation of Runestone for a couple of courses at your school, here is how to proceed.
+
+1. Before you build the rest of the services run the command ``docker compose -f docker-compose.yml -f author.compose.yml -f db.compose.yml up -d db``  This will start just the database service in the set of composed services.   It will also use the default settings for ``POSTGRES_PASSWORD`` (runestone), ``POSTGRES_USER`` (runestone), and ``POSTGRES_DBNAME`` (runestone_dev).  You should change these if you are running a production server, but if you are just getting set up for development for the first time just leave them alone.
+2. Run ``docker compose run rsmanage rsmanage initdb`` This will build the image in docker for the rsmanage command and then run it to create the database and initialize it with the tables and data that you need.  You can use ``docker compose run rsmanage rsmanage ...`` to run any of the rsmanage commands in the composed app.   If you prefer you can install ``rsmanage`` on the host and run it there, but you will need to be mindful of your environment variables related to the database.
+3. You will also need to have the minimal set of environment variables set up.  See the section below.  If you want to use the defaults you can set ``SERVER_CONFIG`` to ``development`` and ``DEV_DBURL`` to ``postgresql://runestone:runestone@localhost:2345/runestone_dev``  rsmanage will tell you if you are missing any environment variables.
+4. You can run ``poetry install --with=dev`` from the top level directory to get a working virtual environment with the ``rsmanage`` command installed.  Run ``poetry shell`` to enable the newly created virtual environment.  Then try to run ``rsmanage`` You may get some errors about missing database libraries, this is normal, but you will have to read the error messages and install the dependencies if you want to run ``rsmanaage`` directly.
+
+At this point your database is ready
+
 
 
 Getting a Server Started 
