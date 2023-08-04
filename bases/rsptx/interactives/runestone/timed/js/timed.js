@@ -91,7 +91,7 @@ export default class Timed extends RunestoneBase {
 
     getNewChildren() {
         this.newChildren = [];
-        let runestoneChildren = this.origElem.querySelectorAll(".runestone")
+        let runestoneChildren = this.origElem.querySelectorAll(".runestone");
         for (var i = 0; i < runestoneChildren.length; i++) {
             this.newChildren.push(runestoneChildren[i]);
         }
@@ -167,6 +167,7 @@ export default class Timed extends RunestoneBase {
                 style: "max-width:none",
             });
         }
+        this.containerDiv.classList.add("runestone-sphinx");
         this.containerDiv.id = this.divid;
         this.timedDiv = document.createElement("div"); // div that will hold the questions for the timed assessment
         this.navDiv = document.createElement("div"); // For navigation control
@@ -1229,14 +1230,16 @@ export default class Timed extends RunestoneBase {
                 scoreString = `Num Correct: ${this.score}. Questions: ${this.correctStr}<br>Num Wrong: ${this.incorrect}. Questions: ${this.incorrectStr}<br>Num Skipped: ${this.skipped}. Questions: ${this.skippedStr}<br>`;
                 numQuestions = this.score + this.incorrect + this.skipped;
                 percentCorrect = (this.score / numQuestions) * 100;
-                scoreString += "Percent Correct: " + percentCorrect.toFixed(2) + "%";
+                scoreString +=
+                    "Percent Correct: " + percentCorrect.toFixed(2) + "%";
                 $(this.scoreDiv).html(scoreString);
                 this.scoreDiv.style.display = "block";
             } else {
                 scoreString = `Num Correct: ${this.score}<br>Num Wrong: ${this.incorrect}<br>Num Skipped: ${this.skipped}<br>`;
                 numQuestions = this.score + this.incorrect + this.skipped;
                 percentCorrect = (this.score / numQuestions) * 100;
-                scoreString += "Percent Correct: " + percentCorrect.toFixed(2) + "%";
+                scoreString +=
+                    "Percent Correct: " + percentCorrect.toFixed(2) + "%";
                 $(this.scoreDiv).html(scoreString);
                 this.scoreDiv.style.display = "block";
             }
