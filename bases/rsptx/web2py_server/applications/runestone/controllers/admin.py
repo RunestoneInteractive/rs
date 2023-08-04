@@ -114,7 +114,12 @@ def index():
 @auth.requires_login()
 def doc():
     response.title = "Documentation"
-    return dict(course_id=auth.user.course_name, course=get_course_row(db.courses.ALL))
+    is_instructor = verifyInstructorStatus(auth.user.course_name, auth.user)
+    return dict(
+        course_id=auth.user.course_name,
+        course=get_course_row(db.courses.ALL),
+        is_instructor=is_instructor,
+    )
 
 
 @auth.requires(
@@ -430,6 +435,7 @@ def practice():
             error_flashcard_creation_method=error_flashcard_creation_method,
             complete=no_error,
             course=course,
+            is_instructor=True,
         )
 
 
