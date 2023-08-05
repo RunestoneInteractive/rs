@@ -170,4 +170,5 @@ window.MathJax = {
   eBookConfig.gradeRecordingUrl = `${eBookConfig.app}/assignments/record_grade`;
   eBookConfig.new_server_prefix = "/{{=settings.bks}}";
   eBookConfig.websocketUrl = "{{=settings.websocket_url}}" // web2py should set this in 1.py
+  eBookConfig.enableDebug = true ? "{{=settings.debug}}" == "True" : false;
 </script>
