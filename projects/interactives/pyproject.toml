@@ -28,12 +28,12 @@ classifiers = [
     "Topic :: Text Processing :: Markup",
 ]
 description = "Sphinx extensions for writing interactive documents."
-documentation = "https://bookserver.readthedocs.io/en/latest/"
+documentation = "https://runestone-monorepo.readthedocs.io/en/latest/index.html"
 keywords = ["runestone", "sphinx", "ebook", "oer", "education"]
 license = "GPL"
 name = "runestone"
 readme = "README.rst"
-repository = "https://github.com/RunestoneInteractive/RunestoneComponents"
+repository = "https://github.com/RunestoneInteractive/rs"
 version = "7.0.8"
 
 # See https://python-poetry.org/docs/pyproject/#include-and-exclude.

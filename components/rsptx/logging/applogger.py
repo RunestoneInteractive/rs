@@ -1,6 +1,12 @@
-# ************************************************
-# |docname| - Configure logging for the BookServer
-# ************************************************
+"""
+Configure logging for the application
+=====================================
+
+We keep the logging configuration quite simple as we want everything to go to stdout
+so that the docker logs command will work.  We also want to be able to set the log level
+from the environment variable ``LOG_LEVEL```.  The default is ``INFO``.
+"""
+
 #
 # Imports
 # =======

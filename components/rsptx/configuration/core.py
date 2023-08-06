@@ -1,10 +1,12 @@
-# ********************************************
-# |docname| - Configuring Runestone BookServer
-# ********************************************
-# Many thing about Runestone BookServer are configurable. This is the place to change
-# the configuration for most things.  **Private** things should be configured in the
-# environment so they are not accidentally committed to Github.
-# Defaults provided here may be overridden by environment variables `Per <https://fastapi.tiangolo.com/advanced/settings/>`_.
+"""
+Configuring Runestone Servers
+=============================
+
+Many things about Runestone servers are configurable. This is the place to change
+the configuration for most things.  **Private** things should be configured in the
+environment so they are not accidentally committed to Github.
+Defaults provided here may be overridden by environment variables `Per <https://fastapi.tiangolo.com/advanced/settings/>`_.
+"""
 #
 #
 # Imports
@@ -44,13 +46,15 @@ class DatabaseType(Enum):
 
 
 class Settings(BaseSettings):
-    # Pydantic provides a wonderful utility to handle settings.  The beauty of it
-    # is that you can specify variables with or without default values, and Pydantic
-    # will check your environment variables in a case-insensitive way. So that
-    # if you have ``PROD_DBURL``` set in the environment it will be set as the value
-    # for ``prod_dburl``` in settings.
-    # This is a really nice way to keep from
-    # committing any data you want to keep private.
+    """
+    Pydantic provides a wonderful utility to handle settings.  The beauty of it
+    is that you can specify variables with or without default values, and Pydantic
+    will check your environment variables in a case-insensitive way. So that
+    if you have ``PROD_DBURL``` set in the environment it will be set as the value
+    for ``prod_dburl``` in settings.
+    This is a really nice way to keep from
+    committing any data you want to keep private.
+    """
 
     class Config:
         env_file = ".env"
@@ -148,6 +152,14 @@ class Settings(BaseSettings):
     # This is the private key web2py uses for hashing passwords.
     @property
     def web2py_private_key(self) -> str:
+        """Get the web2py private key.
+        Prefer to get it from the environment.  This allows us to avoid introducing a secret
+        into the codebase, and it also avoids the need to mount a volume to the container to
+        store the key in a file.
+
+        :return: The web2py private key.
+        :rtype: str
+        """
         # Put the cache here; above the def, it produces ``TypeError: unhashable type: 'Settings'``.
         @lru_cache
         def read_key():

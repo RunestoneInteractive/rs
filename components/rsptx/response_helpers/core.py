@@ -1,6 +1,8 @@
-# *****************************
-# |docname| - Utility functions
-# *****************************
+"""
+Response Helpers for FastAPI
+============================
+"""
+
 #
 # Imports
 # =======
@@ -48,6 +50,15 @@ def canonicalize_tz(tstring: str) -> str:
 def make_json_response(
     status: int = status.HTTP_200_OK, detail: Any = None
 ) -> JSONResponse:
+    """Format a proper JSON response for the API.
+
+    :param status: status code of the response, defaults to status.HTTP_200_OK
+    :type status: int, optional
+    :param detail: detailed values for the response.  Note that the contents of the detail are api independent, but the goal is for all API calls to use this format., defaults to None
+    :type detail: Any, optional
+    :return: Return the JSON response object that FastAPI expects.
+    :rtype: JSONResponse
+    """
     # content is a required parameter for a JSONResponse
     return JSONResponse(
         status_code=status, content=jsonable_encoder({"detail": detail})
@@ -62,4 +73,16 @@ def http_422error_detail(
     # this is the specific error that was raised. e.g. value_error, type_error, integrity_error.
     err_type: str,
 ) -> List[dict]:
+    """The 422 indicates that the request was not formatted correctly.  This function provides
+    the details on what was missing.  Based on information we get from Pydantic.
+
+    :param loc: the location of the error in the request
+    :type loc: List[str]
+    :param msg: A descriptive message about the error.
+    :type msg: str
+    :param err_type: the specific error that was raised. e.g. value_error, type_error, integrity_error.
+    :type err_type: str
+    :return: A list of dictionaries that can be used to construct the detail for the response.
+    :rtype: List[dict]
+    """
     return [{"loc": loc, "msg": msg, "type": err_type}]

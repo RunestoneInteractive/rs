@@ -17,7 +17,12 @@ Components are shared pieces of code that can be used by multiple bases.  They a
 .. toctree::
    :maxdepth: 4
 
-   db
    cl_utils
+   configuration
+   db
+   logging
+   response_helpers
+   templates
+   validation
 
 More to come.  The API documentation is a work in progress.
