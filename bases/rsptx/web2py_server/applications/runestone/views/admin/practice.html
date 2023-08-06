@@ -223,19 +223,26 @@
         <label for="flashcardsCreationTypeInput">Choose how topic flashcards should be generated for students:</label>
         <select class="form-control" id="flashcardsCreationTypeInput" name="flashcardsCreationType">
           <option value="2"
-          {{if flashcard_creation_method == 2:}}
-                 selected="selected"
-          {{ pass }}
-              >
-                  Manually by the instructor
-              </option>
+            {{if flashcard_creation_method == 2:}}
+                  selected="selected"
+            {{ pass }}
+          >
+            Manually by the instructor
+          </option>
           <option value="0"
-        {{if flashcard_creation_method == 0:}}
-               selected="selected"
-        {{ pass }}
-            >
-                Self-paced (when student marks a page complete)
-            </option>
+            {{if flashcard_creation_method == 0:}}
+                selected="selected"
+            {{ pass }}
+          >
+            Self-paced (when student marks a page complete)
+          </option>
+          <option value="3"
+            {{if flashcard_creation_method == 3:}}
+                selected="selected"
+            {{ pass }}
+          >
+            Self-paced (when student loads a page)
+          </option>
         </select>
         {{if error_flashcard_creation_method == 1:}}
         <div class="invalid-feedback">

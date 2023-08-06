@@ -182,6 +182,9 @@ class LastPageDataIncoming(BaseModelNone):
     last_page_url: str  # = Field(None, alias="lastPageUrl") is the manual way
     course_id: str = Field(alias="course")
     completion_flag: int
+    pageLoad: bool
+    markingComplete: bool
+    markingIncomplete: bool
     last_page_scroll_location: int
     is_ptx_book: bool
     # todo: this should really be an int

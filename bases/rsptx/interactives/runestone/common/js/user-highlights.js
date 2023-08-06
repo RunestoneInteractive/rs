@@ -130,8 +130,10 @@ function addNavigationAndCompletionButtons() {
     }
     // Make sure we mark this page as visited regardless of how flakey
     // the onunload handlers become.
-    processPageState(completionFlag);
+    processPageState(completionFlag, true, false, false);
     $("#completionButton").on("click", function () {
+        var markingComplete = false;
+        var markingIncomplete = false;
         if ($(this).hasClass("buttonAskCompletion")) {
             $(this)
                 .removeClass("buttonAskCompletion")
@@ -145,6 +147,7 @@ function addNavigationAndCompletionButtons() {
             });
             navLinkBgRightHalfOpen = 0;
             completionFlag = 1;
+            markingComplete = true;
         } else if ($(this).hasClass("buttonConfirmCompletion")) {
             $(this)
                 .removeClass("buttonConfirmCompletion")
@@ -156,13 +159,14 @@ function addNavigationAndCompletionButtons() {
                 right: relationsNextIconInitialPosition,
             });
             completionFlag = 0;
+            markingIncomplete = true;
         }
-        processPageState(completionFlag);
+        processPageState(completionFlag, false, markingComplete, markingIncomplete);
     });
 
     $(window).on("beforeunload", function (e) {
         if (completionFlag == 0) {
-            processPageState(completionFlag);
+            processPageState(completionFlag, false, false, false);
         }
     });
 }
@@ -291,7 +295,7 @@ function isPreTeXt() {
 }
 // _ processPageState
 // -------------------------
-function processPageState(completionFlag) {
+function processPageState(completionFlag, pageLoad, markingComplete, markingIncomplete) {
     /*Log last page visited*/
     var currentPathname = window.location.pathname;
     if (currentPathname.indexOf("?") !== -1) {
@@ -306,6 +310,9 @@ function processPageState(completionFlag) {
         lastPageUrl: currentPathname,
         lastPageScrollLocation: $(window).scrollTop(),
         completionFlag: completionFlag,
+        pageLoad: pageLoad,
+        markingComplete: markingComplete,
+        markingIncomplete: markingIncomplete,
         course: eBookConfig.course,
         isPtxBook: isPtxBook,
     };

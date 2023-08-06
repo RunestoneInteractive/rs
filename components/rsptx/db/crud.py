@@ -1774,16 +1774,15 @@ async def fetch_one_user_topic_practice(
     user: AuthUserValidator,
     last_page_chapter: str,
     last_page_subchapter: str,
-    qname: str,
 ) -> UserTopicPracticeValidator:
     """
-    The user_topic_practice table contains information about each question (flashcard)
+    The user_topic_practice table contains information about each topic (flashcard)
     that a student is eligible to see for a given topic in a course.
-    A particular question should ony be in the table once per student.  This row also contains
+    A particular topic should ony be in the table once per student.  This row also contains
     information about scheduling and correctness to help the practice algorithm select the
     best question to show a student.
 
-    Retrieve a single UserTopicPractice entry for the given user, chapter, subchapter, and question.
+    Retrieve a single UserTopicPractice entry for the given user, chapter, and subchapter (i.e., topic).
 
     :param user: AuthUserValidator, the AuthUserValidator object
     :param last_page_chapter: str, the label of the chapter
@@ -1796,7 +1795,6 @@ async def fetch_one_user_topic_practice(
         & (UserTopicPractice.course_name == user.course_name)
         & (UserTopicPractice.chapter_label == last_page_chapter)
         & (UserTopicPractice.sub_chapter_label == last_page_subchapter)
-        & (UserTopicPractice.question_name == qname)
     )
     async with async_session() as session:
         res = await session.execute(query)
@@ -1805,18 +1803,18 @@ async def fetch_one_user_topic_practice(
         return UserTopicPracticeValidator.from_orm(utp)
 
 
-async def delete_one_user_topic_practice(qid: int) -> None:
+async def delete_one_user_topic_practice(dbid: int) -> None:
     """
     Delete a single UserTopicPractice entry for the given id.
 
-    Used by ad hoc question selection.  If a student un-marks a page as completed then if there
-    is a question from the page it will be removed from the set of possible flashcards a student
+    Used by self-paced topic selection.  If a student un-marks a page as completed then if there
+    is a card from the page it will be removed from the set of possible flashcards a student
     can see.
 
     :param qid: int, the id of the UserTopicPractice entry
     :return: None
     """
-    query = delete(UserTopicPractice).where(UserTopicPractice.id == qid)
+    query = delete(UserTopicPractice).where(UserTopicPractice.id == dbid)
     async with async_session.begin() as session:
         await session.execute(query)
 
@@ -1836,7 +1834,7 @@ async def create_user_topic_practice(
     :param user: AuthUserValidator, the AuthUserValidator object
     :param last_page_chapter: str, the label of the chapter
     :param last_page_subchapter: str, the label of the subchapter
-    :param qname: str, the name of the question
+    :param qname: str, the name of the question to be assigned first when the topic is presented; will be rotated
     :param now_local: datetime.datetime, the current local datetime
     :param now: datetime.datetime, the current utc datetime
     :param tz_offset: float, the timezone offset
