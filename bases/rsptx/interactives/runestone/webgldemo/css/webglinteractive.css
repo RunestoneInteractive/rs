@@ -186,7 +186,8 @@ webgl_container  background-color    #fcf8e3
   background-color: #EEEEEE; /* very light grey */
 }
 
-/* To always show the scroll bar in a div */
+/* 
+Removed as these rules apply to entire browser window and not just webgl interactives
 ::-webkit-scrollbar {
     -webkit-appearance: none;
     width: 7px;
@@ -196,6 +197,7 @@ webgl_container  background-color    #fcf8e3
     background-color: rgba(0,0,0,.5);
     -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);
 }
+*/
 
 .webgl_btn {
   display: inline-block;
