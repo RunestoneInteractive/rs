@@ -76,7 +76,7 @@ def _get_practice_data(user, timezoneoffset, db):
                 & (db.user_topic_practice.user_id == user.id)
             )
             if flashcards.isempty():
-                 if flashcard_creation_method == 0:
+                if flashcard_creation_method == 0:
                     ## self-paced mode based on clicking button at bottom of page
                     practice_message1 = (
                         "Only pages that you mark as complete, at the bottom of the page, are the"
