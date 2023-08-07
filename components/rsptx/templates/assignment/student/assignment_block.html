@@ -1,0 +1,50 @@
+    <h2>Assignments</h2>
+    <table class="table">
+        <th>
+            <tr>
+                <td>Name</td>
+                <td>My Progress</td>
+                <td>Due</td>
+                <td>Score</td>
+                <td>Description</td>
+            </tr>
+        </th>
+        {% for assignment in assignment_list: %}
+        <tr>
+            <td>
+                <a href="/student/doAssignment?assignment_id={{assignment.id}}"
+                    >{{assignment.name}}</a
+                >
+            </td>
+            <td>
+                {% if assignment.id in stats %}
+                {% set current = stats[assignment.id].is_submit %} 
+                {% else %}
+                {% set current = "" %} 
+                {% endif %}
+                <select required onchange="updateAssignmentProgress(this.value, {{assignment.id}})">
+                    <option disabled selected value="">Track my Progress</option>
+                    {% for option in ["Not Started", "In Progress", "Finished"]:%}
+                        <option
+                        {% if current == option: %}
+                         selected
+                         {% endif %}
+                         value="{{option}}"
+                         >{{option}}
+                         </option>
+                    {% endfor %}
+                </select>
+            </td>
+
+            <td>{{assignment.duedate}}</td>
+            <td>
+                {% if assignment.id in stats %}
+                {{stats[assignment.id].score}}
+                {% else %} 
+                No Score 
+                {% endif %}
+            </td>
+            <td>{{assignment.description}}</td>
+        </tr>
+        {% endfor %}
+    </table>

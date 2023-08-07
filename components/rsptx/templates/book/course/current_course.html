@@ -1,0 +1,78 @@
+{% extends "_base.html" %} 
+{% block title %}
+My Course
+{% endblock %}
+{% block css %}
+
+<link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
+<link href="/staticAssets/course.css" rel="stylesheet" media="screen" />
+{% endblock %} 
+
+{% block navitems %}
+{{course_name}}
+{% endblock %}
+
+{% block content %}
+<div>
+    <h2>{{user.first_name}} {{user.last_name}} &mdash; {{course_name}}</h2>
+    <p>{{course_description}}</p>
+    <p>{{institution}}</p>
+    <h2>Instructors</h2>
+    <table class="table">
+        {% for instructor in instructor_list: %}
+        <tr>
+        <td>{{instructor.first_name}} {{instructor.last_name}}</td>
+        <td><a href="mailto:{{instructor.email}}">{{instructor.email}}</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+<div>
+<h2>Textbooks</h2>
+<table class="table">
+    {% for book in book_list: %}
+    <tr>
+    <td>{{book.title}}</td>
+    <td><a href="/ns/books/published/{{course_name}}/{{book.main_page}}">Table of Contents</a></td>
+    {% if lastPageUrl %}
+    <td><a href="{{lastPageUrl}}">Last Page</a></td>
+    {% endif %}
+    </tr>
+    {% endfor %}
+</table>
+
+</div>
+<div class="assignment_chooser">
+<div>
+
+{% include 'assignment/student/assignment_block.html'%}
+
+</div>
+</div>
+<script>
+async function change_course(course_name) {
+    let new_course = document.getElementById("course_chooser").value
+    let request = new Request(`/ns/course/changeCourse/${new_course}`, {
+        method: "GET",
+    });
+    await fetch(request);
+    window.location.href = "/ns/course/index"
+}
+</script>
+{% if course_list|length > 1 %}
+<div class="row">
+<select id="course_chooser" onchange="change_course()">
+    <option disabled selected value="">Change Course</option>
+    {% for course in course_list: %}
+    <option value="{{course.course_name}}"
+        >{{course.course_name}}</option
+    >
+    {% endfor %}
+</select>
+</div>
+{% endif %}
+{% endblock %} 
+
+{% block js %}
+<script src="/staticAssets/assignment/student.js"></script>
+{% endblock %}
