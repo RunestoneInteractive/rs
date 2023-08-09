@@ -52,31 +52,34 @@ Moodle
 #. In Moodle, create a new external tool called "LTI Login Link".
 
     :Name: Login to Runestone
-    :Tool URL: https://yourHost.blahblah.edu/runestone/lti
+    :Tool URL: https://runestone.academy/runestone/lti (this URL may be different for you; it is included at the bottom of the *Assignments* page inside the *Instructor's Page*)
     :Consumer key: Enter the key you copied for `consumer` from Phase 1
-    :Shared secret: Enter the key you copied for `secret` from Phase 1
-    :Icon URL: https://yourHost.blahblah.edu/runestone/static/images/logo_small.png
+    :Shared secret: Enter the secret you copied for `secret` from Phase 1
+    :Icon URL: https://runestone.academy/runestone/static/images/logo_small.png (this URL may be different; match the domain name to the URL used above in *Tool URL*)
     :Share Email: True
     :Share Name: True
+    :Launch container: New Window (Runestone may not let your students log in if embedded into Moodle) 
     :Custom params:
 
 #.  Login to your Runestone instance with the tool just created, and create your class as well as your assignments.
 
-#.  In Moodle, create a new enrollment external app directly to your course and assignment. You will need to repeat this for each assignment. You will also need the database values for your course ID, and assignment ID. Get these from step 2.2. Please note that in order to receive roles and grades, "Accept Grades" must be checked in Moodle. In other LMS's this may be referenced by a "Share IMS Names and Roles" or similar.
+#.  For each new assignment, in Moodle create a new *External Tool*. You will also need the database values for your course ID (found in the top left corner next to the Runestone logo), and assignment ID (found at the bottom of the "Assignments" page inside the *Instructor's Page*). Please note that in order to receive roles and grades, "Accept Grades" must be checked in Moodle. In other LMS's this may be referenced by a "Share IMS Names and Roles" or similar. You will need to repeat this step for each new assignment. 
 
     :Name: Assignment 1
-    :Tool URL: https://runestone.colorado.edu/runestone/lti?assignment_id=<ID>&custom_course_id=<ID>
+    :Tool URL: https://runestone.academy/runestone/lti?assignment_id=<assignment_id> (this URL is included at the bottom of the *Assignments* page inside the *Instructor's Page*)
     :Consumer key: Enter the key you copied for `consumer` from Phase 1
-    :Shared secret: Enter the key you copied for `secret` from Phase 1
-    :Icon URL: https://yourHost.blahblah.edu/runestone/static/images/logo_small.png
+    :Shared secret: Enter the secret you copied for `secret` from Phase 1
+    :Icon URL: https://runestone.academy/runestone/static/images/logo_small.png (this URL may be different; match the domain name to the URL used above in *Tool URL*)
     :Share Email: True
     :Share Name: True
-    :Custom params:
+    :Launch container: New Window (Runestone may not let your students log in if embedded into Moodle) 
     :Accept Grades: True
+    :Custom params:
+
 
 #.  Copy the tool as many times as you need within your Moodle Course, updating the Name and Tool URL each time.
 
-#.  Students can now click on these external tool assignments to be enrolled/logged directly into your Runestone course and assignment. The grades should appear in Moodle once they are released in Runestone through the Instructor interface.
+#.  Students can now click on the Moodle assignment to be enrolled/logged directly into your Runestone course and assignment. The grades should appear in Moodle once they are released in Runestone through the Instructor's interface.
 
 #.  The course instructor must also be an LTI sourced user, so use the "LTI Login Link" URL. This can be hidden for users.
 
