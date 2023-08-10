@@ -351,8 +351,7 @@ async def updatelastpage(
         rslogger.debug("Not Authorized for update last page")
         raise HTTPException(401)
 
-    # If practice is self paced then when a student marks a page as complete
-    # we need to add flashcards.
+    # If practice is self paced, we may need to add or delete a flashcard for the subchapter as topic.
 
     practice_settings = await fetch_course_practice(user.course_name)
     if RS_info:
@@ -361,50 +360,74 @@ async def updatelastpage(
         tz_offset = float(values.get("tz_offset", 0))
     else:
         tz_offset = 0
+        
+    if practice_settings:
+        if request_data.markingComplete:
+            if practice_settings.flashcard_creation_method == 0:
+                # self-paced flashcard creation based on marking a page as complete
+                rslogger.debug(f"self-paced flashcard creation based on marking a page as complete\n{request_data=}")
+                course = await fetch_course(user.course_name)
+                await potentially_change_flashcard(course.base_course, lpd["last_page_chapter"], lpd["last_page_subchapter"], user, tz_offset, add=True)
 
-    if practice_settings and practice_settings.flashcard_creation_method == 0:
-        await add_flashcard(request_data, lpd, user, tz_offset)
+        elif request_data.markingIncomplete:
+            if practice_settings.flashcard_creation_method == 0:
+                course = await fetch_course(user.course_name)
+                rslogger.debug(f"self-paced flashcard deletion based on marking a page as incomplete\n{request_data=}")          
+                await potentially_change_flashcard(course.base_course, lpd["last_page_chapter"], lpd["last_page_subchapter"], user, tz_offset, remove=True)
+        elif request_data.pageLoad and practice_settings.flashcard_creation_method == 3:
+            # self-paced flashcard creation based on loading a page
+            course = await fetch_course(user.course_name)
+            await potentially_change_flashcard(course.base_course, lpd["last_page_chapter"], lpd["last_page_subchapter"], user, tz_offset, add=True)
 
     return make_json_response(detail="Success")
 
 
-async def add_flashcard(
-    request_data: LastPageDataIncoming,
-    lpd: dict,
+async def potentially_change_flashcard(
+    base_course_name:str,
+    chapter,
+    subcchapter,
     user: AuthUserValidator,
     tz_offset: float,
+    add=False,
+    remove=False,
 ) -> None:
 
-    rslogger.debug("Updating Practice Questions")
-    # Since each authenticated user has only one active course, we retrieve the course this way.
-    course = await fetch_course(user.course_name)
-
-    # We only retrieve questions to be used in flashcards if they are marked for practice purpose.
-    questions = await fetch_qualified_questions(
-        course.base_course, lpd["last_page_chapter"], lpd["last_page_subchapter"]
+    # check if already have a card for this subchapter
+    existing_flashcard = await fetch_one_user_topic_practice(
+        user,
+        chapter,
+        subcchapter
     )
-    if len(questions) > 0:
-        now = datetime.utcnow()
-        now_local = now - timedelta(hours=tz_offset)
-        existing_flashcards = await fetch_one_user_topic_practice(
-            user,
-            lpd["last_page_chapter"],
-            lpd["last_page_subchapter"],
-            questions[0].name,
-        )
-        # There is at least one qualified question in this subchapter, so insert a flashcard for the subchapter.
-        if request_data.completion_flag == 1 and existing_flashcards is None:
-            await create_user_topic_practice(
-                user,
-                lpd["last_page_chapter"],
-                lpd["last_page_subchapter"],
-                questions[0].name,
-                now_local,
-                now,
-                tz_offset,
+    
+    if add:
+        if not existing_flashcard:
+            # See if this subchapter has any questions marked for use in the practice tool.
+            questions = await fetch_qualified_questions(
+                base_course_name, chapter, subcchapter
             )
-        if request_data.completion_flag == 0 and existing_flashcards is not None:
-            await delete_one_user_topic_practice(existing_flashcards.id)
+            if len(questions) > 0: # There is at least one qualified question in this subchapter
+                rslogger.debug(f"Adding flashcard for {chapter=}, {subcchapter=}, {questions[0].name=}")
+                now = datetime.utcnow()
+                now_local = now - timedelta(hours=tz_offset)
+                await create_user_topic_practice(
+                    user,
+                    chapter,
+                    subcchapter,
+                    questions[0].name,
+                    now_local,
+                    now,
+                    tz_offset,
+                )
+            else:
+                rslogger.debug("no questions found for this subchapter")
+        else:
+            rslogger.debug("already have a flashcard for this subchapter")
+    elif remove:
+        if existing_flashcard:
+            rslogger.debug(f"Removing flashcard for {chapter=}, {subcchapter=}, {existing_flashcard.question_name=}")
+            await delete_one_user_topic_practice(existing_flashcard.id)
+        else:
+            rslogger.debug("no flashcard found to delete for this subchapter")
 
 
 # _getCompletionStatus

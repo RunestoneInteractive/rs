@@ -27,9 +27,9 @@ settings.login_config = ""
 settings.course_id = "devcourse"
 settings.plugins = []
 settings.server_type = "http://"
-settings.academy_mode = True
-settings.lti_only_mode = False
-settings.coursera_mode = False
+settings.academy_mode = environ.get('ACADEMY_MODE', None)
+settings.lti_only_mode = environ.get('LTI_ONLY_MODE', None)
+settings.coursera_mode = environ.get('COURSERA_MODE', None)
 
 # Do not control this with hostnames
 config = environ.get("WEB2PY_CONFIG", "NOT SET")

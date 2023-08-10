@@ -77,6 +77,7 @@ def _get_practice_data(user, timezoneoffset, db):
             )
             if flashcards.isempty():
                 if flashcard_creation_method == 0:
+                    ## self-paced mode based on clicking button at bottom of page
                     practice_message1 = (
                         "Only pages that you mark as complete, at the bottom of the page, are the"
                         + " ones that are eligible for practice."
@@ -84,6 +85,14 @@ def _get_practice_data(user, timezoneoffset, db):
                     practice_message2 = (
                         "You've not marked any pages as complete yet. Please mark some pages first"
                         + " to practice them."
+                    )
+                elif flashcard_creation_method == 3:
+                    ## self-paced mode based on opening pages
+                    practice_message1 = (
+                        "The practice tool only shows you questions from the topics that you've read about in the textbook. Many textbook pages have practice questions associated with them."
+                    )
+                    practice_message2 = (
+                        "To see practice questions heree, please visit some (more) pages in the textbook."
                     )
                 else:
                     # new student; create flashcards
