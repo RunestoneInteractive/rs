@@ -34,8 +34,6 @@ import "bootstrap/dist/js/bootstrap.js";
 //import "bootstrap/dist/css/bootstrap.css";
 import "./ptxrs-bootstrap.less";
 import "./runestone/common/project_template/_templates/plugin_layouts/sphinx_bootstrap/static/bootstrap-sphinx.js";
-// comment out for overhaul
-//import "./runestone/common/css/runestone-custom-sphinx-bootstrap.css";
 
 // Misc
 import "./runestone/common/js/bookfuncs.js";
@@ -183,6 +181,10 @@ export function runestone_auto_import() {
         }
     });
 }
+
+pre_login_complete_promise.then(() => {
+    console.log("Runestone pre-login complete");
+});
 
 // Load component JS when the document is ready.
 $(document).ready(runestone_auto_import);

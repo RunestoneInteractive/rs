@@ -15,7 +15,7 @@
 #
 # Standard library
 # ----------------
-from typing import Awaitable, Callable, cast
+from typing import Awaitable, Callable, cast, Optional
 
 # Third-party imports
 # -------------------
@@ -49,8 +49,17 @@ async def _load_user(user_id: str) -> AuthUserValidator:
 load_user = cast(Callable[[str], Awaitable[AuthUserValidator]], _load_user)
 
 
-async def is_instructor(request: Request) -> bool:
-    user = request.state.user
+async def is_instructor(request: Request, user:Optional[AuthUserValidator]=None) -> bool:
+    """Check to see if the current user is an instructor for the current course
+
+    :param request: The request object
+    :type request: Request
+    :raises HTTPException: If the user is not present, raise an exception
+    :return: True if the user is an instructor, False otherwise
+    :rtype: bool
+    """
+    if user is None:
+        user = request.state.user
     if user is None:
         raise HTTPException(401)
     elif len(await fetch_instructor_courses(user.id, user.course_id)) > 0:

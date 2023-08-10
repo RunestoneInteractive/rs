@@ -114,6 +114,13 @@ services:
       - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
       - JWT_SECRET=${JWT_SECRET}
+      - UVICORN_WORKERS=4
+      - UVICORN_USER=www-data
+      - UVICORN_GROUP=www-data
+      - UVICORN_MAX_REQUESTS=5000
+      - UVICORN_MAX_REQUESTS_JITTER=30
+      - UVICORN_TIMEOUT=60
+
     links:
       - redis
       - jobe

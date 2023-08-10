@@ -327,6 +327,7 @@ async def updatelastpage(
         # if it is a PreTeXt book then the subchapter is a unique id with the whole book
         # we can look it up from the chapter and subchapter tables.
         if request_data.is_ptx_book:
+            rslogger.debug(f"PreTeXt book {request_data.last_page_url}")
             course_row = await fetch_course(user.course_name)
             chapter = await fetch_chapter_for_subchapter(
                 subchapter, course_row.base_course
@@ -334,7 +335,7 @@ async def updatelastpage(
             rslogger.debug(
                 f"Got Chapter {chapter} for {subchapter} in {course_row.base_course}"
             )
-            lpd["last_page_chapter"] = chapter
+            lpd["last_page_chapter"] = chapter or ""
         else:
             lpd["last_page_chapter"] = parts[-2]
 

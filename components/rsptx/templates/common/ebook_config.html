@@ -1,0 +1,29 @@
+
+<script type="text/javascript">
+  if(typeof eBookConfig === "undefined") {
+      eBookConfig = {};
+  }
+  eBookConfig.host = '';
+  eBookConfig.app = eBookConfig.host+'/runestone';
+  eBookConfig.ajaxURL = eBookConfig.app+'/ajax/';
+  eBookConfig.course = "{{course.course_name}}";
+  eBookConfig.logLevel = 10;
+  eBookConfig.loginRequired = true;
+  eBookConfig.python3 = true;
+  {% if user %}
+  eBookConfig.username = "{{user.username}}"
+  eBookConfig.email = "{{user.email}}"
+    {% if is_instructor: %}
+        eBookConfig.isInstructor = true;
+    {% endif %}
+  eBookConfig.isLoggedIn = true;
+  {% else %}
+  eBookConfig.isLoggedIn = false;
+  {% endif %}
+  eBookConfig.useRunestoneServices = true;
+  eBookConfig.basecourse = "{{course.base_course}}";
+  eBookConfig.gradeRecordingUrl = `${eBookConfig.app}/assignments/record_grade`;
+  eBookConfig.new_server_prefix = "/ns";
+  eBookConfig.websocketUrl = "{{settings.websocket_url}}"
+  eBookConfig.enableDebug = true ? "{{settings.debug}}" == "True" : false;
+</script>

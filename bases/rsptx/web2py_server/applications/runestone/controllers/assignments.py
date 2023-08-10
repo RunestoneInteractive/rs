@@ -607,7 +607,9 @@ def doAssignment():
         response.flash = (
             "Access Token Created - If this re-occurs check your cookie settings"
         )
-
+    redirect(
+        "/assignment/student/doAssignment?assignment_id=" + request.vars.assignment_id
+    )
     course = db(db.courses.id == auth.user.course_id).select(**SELECT_CACHE).first()
     assignment_id = request.vars.assignment_id
     if not assignment_id or assignment_id.isdigit() == False:  # noqa: E712
@@ -920,6 +922,7 @@ def chooseAssignment():
         logger.error(f"Missing Access Token: {auth.user.username} adding one Now")
         create_rs_token()
 
+    redirect("/assignment/student/chooseAssignment")
     timezoneoffset = session.timezoneoffset if "timezoneoffset" in session else None
     if not timezoneoffset and "RS_info" in request.cookies:
         parsed_js = json.loads(request.cookies["RS_info"].value)

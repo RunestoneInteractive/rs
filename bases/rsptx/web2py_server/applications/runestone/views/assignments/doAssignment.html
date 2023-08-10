@@ -162,7 +162,7 @@
 </div>
 {{ elif settings.coursera_mode: }}
 <div style="text-align:center">
-    <button class="btn btn-lg buttonAskCompletion" id="gradeMeButton">Score Me</button>
+    <button class="btn btn-lg btn-warning buttonAskCompletion" id="gradeMeButton">Score Me</button>
     {{if not is_graded and not enforce_pastdue:}}
     <button class="btn btn-lg buttonAskCompletion" id="submitMeButton">
         {{if is_submit == "Not Started":}}
@@ -220,5 +220,5 @@
     });
 
 </script>
-<script src="/runestone/static/js/selfgrade.js" type="text/javascript"></script>
-<script src="/runestone/static/js/markcomplete.js" type="text/javascript"></script>
+<script src="/staticAssets/assignment/selfgrade.js" type="text/javascript"></script>
+<script src="/staticAssets/assignment/markcomplete.js" type="text/javascript"></script>

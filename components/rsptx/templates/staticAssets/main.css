@@ -7,7 +7,9 @@ html {
 body {
   padding-top: 2rem;
   margin-bottom: 60px;
+  font-size: 12pt;
 }
+
 .footer {
   position: absolute;
   bottom: 0;
@@ -35,3 +37,4 @@ body {
 .has-error {
   color: red;
 }
+

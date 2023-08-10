@@ -5,58 +5,10 @@ Choose Assignment
 {% block css %}
 
 <link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
-{% endblock %} {% block content %}
-<div class="col-md-12">
-    <h2>Assignments</h2>
-    <table class="table">
-        <th>
-            <tr>
-                <td>Name</td>
-                <td>My Progress</td>
-                <td>Due</td>
-                <td>Score</td>
-                <td>Description</td>
-            </tr>
-        </th>
-        {% for assignment in assignment_list: %}
-        <tr>
-            <td>
-                <a href="/student/doAssignment?assignment_id={{assignment.id}}"
-                    >{{assignment.name}}</a
-                >
-            </td>
-            <td>
-                {% if assignment.id in stats %}
-                {% set current = stats[assignment.id].is_submit %} 
-                {% else %}
-                {% set current = "" %} 
-                {% endif %}
-                <select required onchange="updateAssignmentProgress(this.value, {{assignment.id}})">
-                    <option disabled selected value="">Track my Progress</option>
-                    {% for option in ["Not Started", "In Progress", "Finished"]:%}
-                        <option
-                        {% if current == option: %}
-                         selected
-                         {% endif %}
-                         value="{{option}}"
-                         >{{option}}
-                         </option>
-                    {% endfor %}
-                </select>
-            </td>
-
-            <td>{{assignment.duedate}}</td>
-            <td>
-                {% if assignment.id in stats %}
-                {{stats[assignment.id].score}}
-                {% else %} 
-                No Score 
-                {% endif %}
-            </td>
-            <td>{{assignment.description}}</td>
-        </tr>
-        {% endfor %}
-    </table>
+{% endblock %} 
+{% block content %}
+<div>
+    {% include 'assignment/student/assignment_block.html'%}
     <h3>Help</h3>
     <p><strong>Hint: </strong>You can help yourself stay organized by tracking your progress on an assignment.  Use the dropdown menu to quickly mark your assignment as Not Started, In Progress, or Complete.  When your instructor grades the assignment it will be graded regardless of the value in the dropdown menu.  You can also get a preliminary score by clicking on the "Compute Score for Assignment" button on the assignment page.</p>
 
