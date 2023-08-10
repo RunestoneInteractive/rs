@@ -13,28 +13,29 @@ readme = "README.rst"
 
 packages = [
     # These are the components for the author server
-    {include = "development"},
-    {include = "rsptx/data_extract", from = "components"},
-    {include = "rsptx/visualization", from = "components"},
-    {include = "rsptx/db", from = "components"},
-    {include = "rsptx/forms", from = "components"},
-    {include = "rsptx/auth", from = "components"},
-    {include = "rsptx/logging", from = "components"},
-    {include = "rsptx/response_helpers", from = "components"},
-    {include = "rsptx/validation", from = "components"},
-    {include = "rsptx/templates", from = "components"},
-    {include = "rsptx/cl_utils", from = "components"},
-    {include = "runestone", from = "bases/rsptx/interactives"},
-    {include = "rsptx/author_server_api", from = "bases"},
-    {include = "rsptx/book_server_api", from = "bases"},
-    {include = "rsptx/web2py_server", from = "bases"},
-    {include = "rsptx/rsmanage", from = "bases"},
-    {include = "rsptx/assignment_server_api",from = "bases"},
-    {include = "rsptx/dash_server_api",from = "bases"},
-    {include = "rsptx/lp_sim_builder",from = "components"},
-    {include = "rsptx/configuration",from = "components"},
-    {include = "rsptx/exceptions",from = "components"},
-    {include = "rsptx/build_tools",from = "components"},
+    { include = "development" },
+    { include = "rsptx/data_extract", from = "components" },
+    { include = "rsptx/visualization", from = "components" },
+    { include = "rsptx/db", from = "components" },
+    { include = "rsptx/forms", from = "components" },
+    { include = "rsptx/auth", from = "components" },
+    { include = "rsptx/logging", from = "components" },
+    { include = "rsptx/response_helpers", from = "components" },
+    { include = "rsptx/validation", from = "components" },
+    { include = "rsptx/templates", from = "components" },
+    { include = "rsptx/cl_utils", from = "components" },
+    { include = "runestone", from = "bases/rsptx/interactives" },
+    { include = "rsptx/author_server_api", from = "bases" },
+    { include = "rsptx/book_server_api", from = "bases" },
+    { include = "rsptx/web2py_server", from = "bases" },
+    { include = "rsptx/rsmanage", from = "bases" },
+    { include = "rsptx/assignment_server_api", from = "bases" },
+    { include = "rsptx/dash_server_api", from = "bases" },
+    { include = "rsptx/lp_sim_builder", from = "components" },
+    { include = "rsptx/configuration", from = "components" },
+    { include = "rsptx/exceptions", from = "components" },
+    { include = "rsptx/build_tools", from = "components" },
+    { include = "rsptx/practice", from = "components" },
 ]
 
 [tool.poetry.dependencies]
@@ -52,7 +53,7 @@ botocore = "^1.29.87"
 celery = "^5.2.7"
 cryptography = "^3.0.0"
 cssselect = ">= 1.0"
-dash = {extras = ["celery", "diskcache"], version = "^2.7.0"}
+dash = { extras = ["celery", "diskcache"], version = "^2.7.0" }
 dash-bootstrap-components = "^1.2.1"
 diff-match-patch = ">= 20110725.1"
 fastapi = "^0.95.0"
@@ -111,8 +112,8 @@ pytest = "^7.0.0"
 pyvirtualdisplay = "^3.0.0"
 pywin32 = { version = ">= 301", markers = "sys.platform == 'win32'" }
 selenium = "^3.0.0"
-runestone = {path = "./projects/interactives", develop=true}
-rsmanage = {path = "./projects/rsmanage", develop=true}
+runestone = { path = "./projects/interactives", develop = true }
+rsmanage = { path = "./projects/rsmanage", develop = true }
 sphinx-click = "^4.4.0"
 fawltydeps = "^0.9.0"
 json2xml = "^3.21.0"
