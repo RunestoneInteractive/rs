@@ -680,7 +680,7 @@ export default class Parsons extends RunestoneBase {
         // Start the interface
         if (this.needsReinitialization !== true) {
             this.initializeInteractivity();
-            this.resetView();
+            //this.resetView();
         }
     }
     // Return what is stored in local storage
@@ -2514,8 +2514,10 @@ export default class Parsons extends RunestoneBase {
         }
         delete this.blocks;
         this.blockIndex = 0;
-        for (let i = 0; i < this.pairedDivs.length; i++) {
-            $(this.pairedDivs[i]).detach();
+        if (this.pairedDivs) {
+            for (let i = 0; i < this.pairedDivs.length; i++) {
+                $(this.pairedDivs[i]).detach();
+            }
         }
         $(this.sourceArea).attr("style", "");
         $(this.answerArea).removeClass();
