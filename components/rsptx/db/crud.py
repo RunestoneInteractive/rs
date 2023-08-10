@@ -1243,6 +1243,24 @@ async def fetch_assignments(
         return [AssignmentValidator.from_orm(a) for a in res.scalars()]
 
 
+# write a function that fetches all Assignment objects given a course name
+async def fetch_one_assignment(assignment_id: int) -> AssignmentValidator:
+    """
+    Fetch one Assignment object
+
+    :param assignment_id: int, the assignment id
+
+    :return: AssignmentValidator
+    """
+
+    query = select(Assignment).where(Assignment.id == assignment_id)
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        return AssignmentValidator.from_orm(res.scalars().first())
+
+
 async def fetch_all_assignment_stats(
     course_name: str, userid: int
 ) -> list[GradeValidator]:
@@ -1433,6 +1451,34 @@ async def fetch_assignment_question(
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return AssignmentQuestionValidator.from_orm(res.scalars().first())
+
+
+import pdb
+
+
+async def fetch_assignment_questions(
+    assignment_id: int,
+) -> List[Tuple[Question, AssignmentQuestion]]:
+    """
+    Retrieve the AssignmentQuestion entry for the given assignment_name and question_name.
+
+    :param assignment_name: str, the name of the assignment
+    :param question_name: str, the name (div_id) of the question
+    :return: AssignmentQuestionValidator, the AssignmentQuestionValidator object
+    """
+    query = (
+        select(Question, AssignmentQuestion)
+        .join(Question, AssignmentQuestion.question_id == Question.id)
+        .where(AssignmentQuestion.assignment_id == assignment_id)
+        .order_by(AssignmentQuestion.sorting_priority)
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        # we cannot return res.scalars() because we want both objects in the row.
+        # and the scalars() method onnly returns the first object in the row.
+        return res
 
 
 async def fetch_question_grade(sid: str, course_name: str, qid: str):

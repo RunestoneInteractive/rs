@@ -23,7 +23,7 @@
         <!-- meta -->
         <meta name="description" content="Runestone Library listing of all books" />
         <meta name="author" content="Runestone Academy LTD" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <!-- provide search engines with canonical link -->
         <link rel="canonical" href="https://runestone.academy/ns/books/index" />
         <!-- styles -->
@@ -37,6 +37,8 @@
             media="screen"
         />
        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+       <!-- always include jquery -->
+       <script src="/staticAssets/js/jquery.js"></script>
         {% block css %}{% endblock %}
     </head>
 
@@ -52,7 +54,7 @@
             <ul class="navbar-nav mr-auto">
               {% if not student_page %}
               <li class="nav-item active">
-                <a class="nav-link" href="/ns/books/published/{{course}}/index.html">Back to {{course}} <span class="sr-only">(current)</span></a>
+                <a class="nav-link" href="/ns/books/published/{{course.course_name}}/index.html">Back to {{course.course_name}} <span class="sr-only">(current)</span></a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="/runestone/designer/index">Create Course</a>
@@ -109,7 +111,7 @@
                 </li>
             </div>
         </nav>
-        <div class="container">
+        <div class="container-fluid">
             <!-- child template -->
             {% block content %}
             {% endblock %}
@@ -119,7 +121,7 @@
 
         <!-- scripts -->
         
-        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js"></script>
         {% block js %}
         {% endblock %}

@@ -13,6 +13,7 @@ My Course
 {% endblock %}
 
 {% block content %}
+<div class="course_page">
 <div>
     <h2>{{user.first_name}} {{user.last_name}} &mdash; {{course_name}}</h2>
     <p>{{course_description}}</p>
@@ -71,6 +72,7 @@ async function change_course(course_name) {
 </select>
 </div>
 {% endif %}
+</div>
 {% endblock %} 
 
 {% block js %}

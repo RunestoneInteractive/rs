@@ -255,7 +255,8 @@ $(document).on("runestone:logout", setupNavbarLoggedOut);
 
 function notifyRunestoneComponents() {
     // Runestone components wait until login process is over to load components because of storage issues. This triggers the `dynamic import machinery`, which then sends the login complete signal when this and all dynamic imports are finished.
-    $(document).trigger("runestone:pre-login-complete");
+    console.log("triggering runestone:pre-login-complete");
+    document.dispatchEvent(new Event("runestone:pre-login-complete"));
 }
 
 function placeAdCopy() {
