@@ -3,6 +3,7 @@ import java.lang.reflect.*;
 
 import java.util.Arrays;
 import java.util.Formatter;
+import java.util.Objects;
 
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -14,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,6 +40,7 @@ import javax.tools.ToolProvider;
  * @version 3.0.2
  * @since 2023-07-12
  *
+ * @update 3.1.0 - Peter added a new set of `expect` methods.
  * @update 3.0.3 - Peter added a codeDigestChanged method.
  * @update 3.0.2 - Kate fixed the bug that main method only running once created
  * @update 3.0.1 - Kate added code so main method only runs once
@@ -242,8 +244,6 @@ public class CodeTestHelper {
     public boolean getResults(String expected, String actual, String msg, boolean pass) {
         String output = formatOutput(expected, actual, msg, pass);
         results += output + "\n";
-        // System.out.println(output);
-
         return pass;
     }
 
@@ -286,6 +286,40 @@ public class CodeTestHelper {
 
         return passed;
     }
+
+
+    // New style assertions. Because JUnit doesn't report any information when
+    // tests pass we need to always append to results and then call JUnit's
+    // assertTrue method because the Runestone test runner *does* use the count
+    // of passes and attempts that is recorded by JUnit based on calls to
+    // assertions methods. Thus if you call any other JUnit assertions it will
+    // mess up the count that Runestone prints under the table of results.
+
+    public void expect(String expected, String got, String label) {
+        recordResult(expected, got, label, Objects.equals(expected, got));
+    }
+
+    public void expectExact(double expected, double got, String label) {
+        recordResult(String.valueOf(expected), String.valueOf(got), label, expected == got);
+    }
+
+    public void expect(double expected, double got, String label) {
+        recordResult(String.valueOf(expected), String.valueOf(got), label, Math.abs(expected - got) < 0.005);
+    }
+
+    public void expect(int expected, int got, String label) {
+        recordResult(String.valueOf(expected), String.valueOf(got), label, expected == got);
+    }
+
+    public void expect(boolean expected, boolean got, String label) {
+        recordResult(String.valueOf(expected), String.valueOf(got), label, expected == got);
+    }
+
+    private void recordResult(String expected, String got, String label, boolean passed) {
+        results += formatOutput(expected, got, label, passed) + "\n";
+        assertTrue(passed);
+    }
+
 
     private String formatOutput(String expected, String actual, String msg, boolean passed) {
         String output = "";
