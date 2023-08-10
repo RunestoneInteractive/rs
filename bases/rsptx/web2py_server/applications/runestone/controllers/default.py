@@ -383,7 +383,8 @@ def coursechooser():
                 """,
                     (auth.user.id, auth.user.course_name),
                 )
-
+        if request.args[0] == res.base_course:
+            redirect(get_course_url("index.html"))
         redirect("/ns/course/index")
     else:
         redirect(

@@ -31,6 +31,7 @@ from rsptx.db.crud import (
 )
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import make_json_response
+from rsptx.auth.session import is_instructor
 
 
 # .. _APIRouter config:
@@ -69,7 +70,7 @@ async def index(request: Request, user=Depends(auth_manager)):
         last_page_url = None
 
     course_list = await fetch_courses_for_user(user.id)
-
+    user_is_instructor = await is_instructor(request)
     assignments = await fetch_assignments(course_name)
     assignments.sort(key=lambda x: x.duedate, reverse=True)
     stats_list = await fetch_all_assignment_stats(course_name, user.id)
@@ -93,6 +94,7 @@ async def index(request: Request, user=Depends(auth_manager)):
             "lastPageUrl": last_page_url,
             "student_page": True,
             "course_list": course_list,
+            "is_instructor": user_is_instructor,
         },
     )
 

@@ -78,7 +78,7 @@ async def get_assignments(
     course = await fetch_course(user.course_name)
 
     templates = Jinja2Templates(directory=template_folder)
-
+    user_is_instructor = await is_instructor(request, user=user)
     assignments = await fetch_assignments(course.course_name)
     stats_list = await fetch_all_assignment_stats(course.course_name, user.id)
     stats = {}
@@ -93,6 +93,7 @@ async def get_assignments(
             "course": course,
             "user": sid,
             "request": request,
+            "is_instructor": user_is_instructor,
         },
     )
 
@@ -346,7 +347,7 @@ async def doAssignment(
 
     # By not setting expire this remains/becomes a session cookie
 
-    user_is_instructor = is_instructor(request)
+    user_is_instructor = await is_instructor(request, user=user)
 
     c_origin = course_attrs.get("markup_system", "Runestone")
     print("ORIGIN", c_origin)
@@ -360,6 +361,7 @@ async def doAssignment(
                 auth_user=user.id,
                 assignment=assignment_id,
                 is_submit="",  # set is_submit variable to incomplete
+                manual_total=False,
             )
         )
 
