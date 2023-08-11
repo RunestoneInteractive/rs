@@ -440,6 +440,10 @@ async function showPeerEnableVote2() {
     let nextStep = document.getElementById("nextStep");
     nextStep.innerHTML =
         "Please Answer the question again.  Even if you do not wish to change your answer.  After answering click the button to go on to the next question.";
+    nextStep.style.color = "red";
+    let cq = document.getElementById(`${currentQuestion}_feedback`);
+    cq.style.display = "none";
+
     $(".runestone [type=radio]").prop("checked", false);
     $(".runestone [type=checkbox]").prop("checked", false);
     studentVoteCount += 1;
@@ -448,6 +452,7 @@ async function showPeerEnableVote2() {
     if (checkme.innerHTML === "Check Me") {
         checkme.addEventListener("click", function (event) {
             studentSubmittedVote2 = true;
+            cq.style.display = "block";
         });
     }
 }
