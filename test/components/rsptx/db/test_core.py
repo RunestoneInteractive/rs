@@ -1,4 +1,4 @@
-from runestone.db import core
+from rsptx.db import core
 
 
 def test_sample():

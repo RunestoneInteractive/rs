@@ -1,4 +1,4 @@
-from runestone.visualization import core
+from rsptx.visualization import core
 
 
 def test_sample():

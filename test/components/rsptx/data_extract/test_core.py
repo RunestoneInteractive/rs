@@ -1,4 +1,4 @@
-from runestone.data_extract import core
+from rsptx.data_extract import core
 
 
 def test_sample():

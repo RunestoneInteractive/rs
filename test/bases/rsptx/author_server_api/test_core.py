@@ -1,4 +1,4 @@
-from runestone.author_server_api import core
+from rsptx.author_server_api import core
 
 
 def test_sample():

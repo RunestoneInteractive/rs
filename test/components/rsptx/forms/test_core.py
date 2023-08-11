@@ -1,4 +1,4 @@
-from runestone.forms import core
+from rsptx.forms import core
 
 
 def test_sample():
