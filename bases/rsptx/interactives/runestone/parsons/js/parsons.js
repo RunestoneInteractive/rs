@@ -680,7 +680,13 @@ export default class Parsons extends RunestoneBase {
         // Start the interface
         if (this.needsReinitialization !== true) {
             this.initializeInteractivity();
-            //this.resetView();
+            // This is a bit of a hack to get the blocks to be in the right place
+            // when the page loads.  It is needed because the blocks are not
+            // visible when the page loads, so the size is off.  This forces
+            // a realignment.
+            if (this.isTimed && !this.assessmentTaken) {
+                this.resetView();
+            }
         }
     }
     // Return what is stored in local storage
