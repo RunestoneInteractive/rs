@@ -52,7 +52,7 @@
 
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
-              {% if not student_page %}
+              {% if not student_page or is_instructor %}
               <li class="nav-item active">
                 <a class="nav-link" href="/ns/books/published/{{course.course_name}}/index.html">Back to {{course.course_name}} <span class="sr-only">(current)</span></a>
               </li>

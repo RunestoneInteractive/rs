@@ -94,6 +94,7 @@ async def get_assignments(
             "user": sid,
             "request": request,
             "is_instructor": user_is_instructor,
+            "student_page": True,
         },
     )
 
@@ -397,6 +398,7 @@ async def doAssignment(
         # calcTotalsURL=URL('assignments', 'calculate_totals'),
         released=assignment.released,
         is_instructor=user_is_instructor,
+        student_page=True,
         origin=c_origin,
         is_submit=grade.is_submit,
         is_graded=is_graded,

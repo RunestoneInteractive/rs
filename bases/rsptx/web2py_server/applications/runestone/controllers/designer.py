@@ -112,7 +112,7 @@ def build():
             login_required=login_required,
             python3=python3,
             courselevel=courselevel,
-            new_server=True if settings.running_bookserver else False,
+            new_server=True,
         )
 
         origin = getCourseOrigin(base_course)
