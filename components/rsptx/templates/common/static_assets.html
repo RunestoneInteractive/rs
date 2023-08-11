@@ -10,10 +10,10 @@ I don't know if any of the following are needed anymore.
 <script data-url_root="../" id="documentation_options" src="/staticAssets/js/documentation_options.js"></script>
 
 {% for css_import in wp_imports["css"] %}
-    <link rel="stylesheet" type="text/css" href="http://localhost/ns/books/published/{{course_name}}/_static/{{css_import}}" />
+    <link rel="stylesheet" type="text/css" href="/ns/books/published/{{course_name}}/_static/{{css_import}}" />
 {% endfor %}
 {% for js_import in wp_imports["js"] %}
-    <script src='http://localhost/ns/books/published/{{course_name}}/_static/{{js_import}}'></script>
+    <script src='/ns/books/published/{{course_name}}/_static/{{js_import}}'></script>
 {% endfor %}
 
 {% if ptx_js_version and webwork_js_version  %}
