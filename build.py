@@ -13,6 +13,7 @@ import sys
 from shutil import copyfile
 import yaml
 import toml
+import pdb
 
 # use python-dotenv >= 0.21.0
 from dotenv import load_dotenv
@@ -125,9 +126,9 @@ if finish:
     )
     exit(1)
 
-ym = yaml.safe_load(open("docker-compose.yml"))
+ym = yaml.load(open("docker-compose.yml"), yaml.FullLoader)
 if "--all" in sys.argv or "--one" in sys.argv:
-    am = yaml.safe_load(open("author.compose.yml"))
+    am = yaml.load(open("author.compose.yml"), yaml.FullLoader)
     ym["services"].update(am["services"])
 
 # remove the redis service from the list since we don't customize it
