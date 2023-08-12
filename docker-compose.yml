@@ -79,6 +79,7 @@ services:
         - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
         - JWT_SECRET=${JWT_SECRET}
         - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
+        - ACADEMY_MODE=True
         - EMAIL_SENDER="smtp.gmail.com:587"
         - EMAIL_SERVER=${EMAIL_SERVER}
         - EMAIL_LOGIN=${EMAIL_LOGIN}
