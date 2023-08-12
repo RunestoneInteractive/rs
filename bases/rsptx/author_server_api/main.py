@@ -122,6 +122,7 @@ auth_manager.useRequest(app)
 async def home(request: Request, user=Depends(auth_manager)):
     print(f"{request.state.user} OR user = {user}")
 
+    course = await fetch_course(user.course_name)
     if user:
         if not await verify_author(user):
             return RedirectResponse(url="/notauthorized")
@@ -136,7 +137,12 @@ async def home(request: Request, user=Depends(auth_manager)):
 
     return templates.TemplateResponse(
         "author/home.html",
-        context={"request": request, "name": name, "book_list": book_list},
+        context={
+            "request": request,
+            "name": name,
+            "book_list": book_list,
+            "course": course,
+        },
     )
 
 
@@ -244,6 +250,7 @@ async def impact(request: Request, book: str, user=Depends(auth_manager)):
     else:
         return RedirectResponse(url="/notauthorized")
 
+    course = await fetch_course(user.course_name)
     info = await fetch_library_book(book)
     resGraph = get_enrollment_graph(book)
     courseGraph = get_course_graph(book)
@@ -257,6 +264,7 @@ async def impact(request: Request, book: str, user=Depends(auth_manager)):
             "chapterData": chapterHM,
             "courseData": courseGraph,
             "title": info.title,
+            "course": course,
         },
     )
 
@@ -302,9 +310,10 @@ def get_model_dict(model):
 
 @app.get("/author/editlibrary/{book}")
 @app.post("/author/editlibrary/{book}")
-async def editlib(request: Request, book: str):
+async def editlib(request: Request, book: str, user=Depends(auth_manager)):
     # Get the book and populate the form with current data
     book_data = await fetch_library_book(book)
+    course = await fetch_course(user.course_name)
 
     # this will either create the form with data from the submitted form or
     # from the kwargs passed if there is not form data.  So we can prepopulate
@@ -317,7 +326,8 @@ async def editlib(request: Request, book: str):
         await update_library_book(book_data.id, form.data)
         return RedirectResponse(url="/author/", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
-        "author/editlibrary.html", context=dict(request=request, form=form, book=book)
+        "author/editlibrary.html",
+        context=dict(request=request, form=form, book=book, course=course),
     )
 
 
@@ -330,6 +340,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
 
     # Create a list of courses taught by this user to validate courses they
     # can dump directly.
+    course = await fetch_course(user.course_name)
     courses = await fetch_instructor_courses(user.id)
     class_list = [c.id for c in courses]
     class_list = [str(x) for x in class_list]
@@ -360,6 +371,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
             book=book,
             ready_files=ready_files,
             kind="datashop",
+            course=course,
         ),
     )
 
