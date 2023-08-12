@@ -1218,22 +1218,31 @@ async def update_selected_question(sid: str, selector_id: str, selected_id: str)
 
 # write a function that fetches all Assignment objects given a course name
 async def fetch_assignments(
-    course_name: str, is_peer: Optional[bool] = False
+    course_name: str,
+    is_peer: Optional[bool] = False,
+    is_visible: Optional[bool] = False,
 ) -> List[AssignmentValidator]:
     """
     Fetch all Assignment objects for the given course name.
     If is_peer is True then only select asssigments for peer isntruction.
+    If is_visible is True then only fetch visible assignments.
 
     :param course_name: str, the course name
     :param is_peer: bool, whether or not the assignment is a peer assignment
     :return: List[AssignmentValidator], a list of AssignmentValidator objects
     """
 
+    if is_visible:
+        vclause = Assignment.visible == is_visible
+    else:
+        vclause = None
+
     query = select(Assignment).where(
         and_(
             Assignment.course == Courses.id,
             Courses.course_name == course_name,
             Assignment.is_peer == is_peer,
+            vclause,
         )
     )
 

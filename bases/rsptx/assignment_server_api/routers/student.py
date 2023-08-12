@@ -79,7 +79,7 @@ async def get_assignments(
 
     templates = Jinja2Templates(directory=template_folder)
     user_is_instructor = await is_instructor(request, user=user)
-    assignments = await fetch_assignments(course.course_name)
+    assignments = await fetch_assignments(course.course_name, is_visible=True)
     stats_list = await fetch_all_assignment_stats(course.course_name, user.id)
     stats = {}
     for s in stats_list:
@@ -288,7 +288,7 @@ async def doAssignment(
             # add to readings
             if chap_name not in readings:
                 # add chapter info
-                completion = fetch_user_chapter_progress(user, chap_name)
+                completion = await fetch_user_chapter_progress(user, chap_name)
                 if not completion:
                     status = "notstarted"
                 elif completion.status == 1:
@@ -301,7 +301,7 @@ async def doAssignment(
 
             # add subchapter info
             # add completion status to info
-            subch_completion = fetch_user_sub_chapter_progress(
+            subch_completion = await fetch_user_sub_chapter_progress(
                 user, chap_name, subchap_name
             )
 
