@@ -535,6 +535,12 @@ def check_for_donate_or_build(field_dict, id_of_insert):
 if "auth_user" in db:
     db.auth_user._after_insert.append(check_for_donate_or_build)
 
+# workaround for the dual authorization system.... The database should rule, 
+# but sometimes the auth object from the session is not in sync with the db
+user = db(db.auth_user.id == auth.user.id).select().first()
+if user and user.course_id != auth.user.course_id:
+    auth.user.update(course_name=user.course_name)
+    auth.user.update(course_id=user.course_id)
 
 def admin_logger(logger):
     if settings.academy_mode:
