@@ -52,9 +52,9 @@ Choose Assignment
                     <ul>
                     {% for r in readings[reading]['subchapters'] %}
                         {% if origin == "Runestone" %}
-                        <li class="{{ r['status']}}"><a href="{{ get_course_url(r['chapter'], r['subchapter'] + '.html')}}">{{ r['name']   }}</a>
+                        <li class="{{ r['status']}}"><a href="/ns/books/published/{{course.course_name}}/{{r['chapter']}}/{{r['subchapter']}}.html">{{ r['name']   }}</a>
                         {% else: %}
-                        <li class="{{ r['status']}}"><a href="{{ get_course_url('', r['subchapter'] + '.html')}}">{{ r['name']   }}</a>
+                        <li class="{{ r['status']}}"><a href="/ns/books/published/{{course.course_name}}/{{r['subchapter']}}.html">{{ r['name']   }}</a>
                         {% endif %}
                         {% if r['points'] > 0 %}
                             {% if r['comment'] != 'ungraded' %}
