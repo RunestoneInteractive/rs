@@ -84,10 +84,9 @@ async def index(request: Request, user=Depends(auth_manager)):
         {
             "assignment_list": assignments,
             "stats": stats,
-            "course": course_name,
+            "course": course,
             "user": user,
             "request": request,
-            "course_name": course.course_name,
             "institution": course.institution,
             "instructor_list": instructors,
             "base_course": course.base_course,
