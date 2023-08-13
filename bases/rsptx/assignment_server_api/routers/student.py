@@ -80,6 +80,7 @@ async def get_assignments(
     templates = Jinja2Templates(directory=template_folder)
     user_is_instructor = await is_instructor(request, user=user)
     assignments = await fetch_assignments(course.course_name, is_visible=True)
+    assignments.sort(key=lambda x: x.duedate, reverse=True)
     stats_list = await fetch_all_assignment_stats(course.course_name, user.id)
     stats = {}
     for s in stats_list:
