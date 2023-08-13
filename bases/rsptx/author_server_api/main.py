@@ -163,13 +163,14 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
             }
         else:
             ready_files = []
+        course = await fetch_course(user.course_name)
         logger.debug(f"{ready_files=}")
         return templates.TemplateResponse(
             "author/logfiles.html",
             context=dict(
                 request=request,
                 ready_files=ready_files,
-                course_name=user.course_name,
+                course=course,
                 username=user.username,
             ),
         )

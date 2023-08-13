@@ -32,7 +32,7 @@ textbook
 {% block content %}
 <div class="course_page">
 <div>
-    <h2>{{course_name}}</h2>
+    <h2>{{course.course_name}}</h2>
     <p>{{course_description}}</p>
     <p>{{institution}}</p>
     <h2>Instructors</h2>
@@ -48,7 +48,7 @@ textbook
 <h2>Textbooks</h2>
 <ul>
     {% for book in book_list: %}
-    <li><a href="/ns/books/published/{{course_name}}/{{book.main_page}}">{{book.title}}</a>
+    <li><a href="/ns/books/published/{{course.course_name}}/{{book.main_page}}">{{book.title}}</a>
     {% if lastPageUrl %}
      (<a href="{{lastPageUrl}}">Last Page</a>)
     {% endif %}

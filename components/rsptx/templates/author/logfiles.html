@@ -1,13 +1,13 @@
 {% extends "_base.html" %} {% block content %}
 
 <div class="starter-template">
-  <h1>Runestone Log Manager for {{ course_name }}</h1>
+  <h1>Runestone Log Manager for {{ course.course_name }}</h1>
   <hr />
   <br />
   <script>
-    var courseName = '{{course_name}}'
+    var courseName = '{{course.course_name}}'
   </script>
-  <p><strong>Important:</strong> These log files are not anonymized and are meant for the instructor's use only.  Access to this page is limited to the instructors of the course {{ course_name }}.  Username: <strong>{{username}}</strong> has been validated as an instructor for <strong>{{ course_name }}</strong>.  If this is not you leave this page immediately.</p>
+  <p><strong>Important:</strong> These log files are not anonymized and are meant for the instructor's use only.  Access to this page is limited to the instructors of the course {{ course.course_name }}.  Username: <strong>{{username}}</strong> has been validated as an instructor for <strong>{{ course.course_name }}</strong>.  If this is not you leave this page immediately.</p>
   <h2>Ready for Download</h2>
   <div>
       <ul id="csv_files_available">
@@ -25,9 +25,9 @@
   <h2>Create CSV File from Log</h2>
   <p>Creating a log file can take some time.  You can either wait here or come back to the page later.  When the file is ready it will be in the list above.</p>
   <div>
-      <p><button class="btn btn-info" onclick="useinfoTask('{{course_name}}')">Class Log Data</button> Click this for all student activities.</p>
-      <p><button class="btn btn-info" onclick="codeTask('{{course_name}}')">Class Code Data</button> Click this for all attempts at all coding problems.</p>
-      <p><button class="btn btn-info" onclick="assignmentData('{{course_name}}')">Class Assignment Data</button></p>
+      <p><button class="btn btn-info" onclick="useinfoTask('{{course.course_name}}')">Class Log Data</button> Click this for all student activities.</p>
+      <p><button class="btn btn-info" onclick="codeTask('{{course.course_name}}')">Class Code Data</button> Click this for all attempts at all coding problems.</p>
+      <p><button class="btn btn-info" onclick="assignmentData('{{course.course_name}}')">Class Assignment Data</button></p>
   </div>
 
   <div style="margin-top: 20px;">

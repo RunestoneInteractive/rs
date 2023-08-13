@@ -70,6 +70,7 @@ async def index(request: Request, user=Depends(auth_manager)):
         last_page_url = None
 
     course_list = await fetch_courses_for_user(user.id)
+    course_list.sort(key=lambda x: x.id, reverse=True)
     user_is_instructor = await is_instructor(request)
     assignments = await fetch_assignments(course_name, is_visible=True)
     assignments.sort(key=lambda x: x.duedate, reverse=True)

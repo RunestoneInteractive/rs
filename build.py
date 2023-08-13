@@ -192,7 +192,10 @@ status = {}
 with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
     status = {}
     for proj in ym["services"].keys():
-        if "build" not in ym["services"][proj]:
+        if (
+            "build" not in ym["services"][proj]
+            or ym["services"][proj]["build"]["context"] == "./"
+        ):
             status[proj] = "[blue]Skipped[/blue]"
             lt.update(generate_wheel_table(status))
             continue
