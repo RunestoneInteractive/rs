@@ -129,7 +129,11 @@ if finish:
 ym = yaml.load(open("docker-compose.yml"), yaml.FullLoader)
 if "--all" in sys.argv or "--one" in sys.argv:
     am = yaml.load(open("author.compose.yml"), yaml.FullLoader)
-    ym["services"].update(am["services"])
+    # .update replaces the key from the first dict with the key from the second dict
+    # since nginx is in both files we will lose most of the nginx stuff from the docker-compose.yml
+    # file unless we update the other way around.
+    am["services"].update(ym["services"])
+    ym = am
 
 # remove the redis service from the list since we don't customize it
 del ym["services"]["redis"]
@@ -293,8 +297,10 @@ if "--push" in sys.argv:
             # and we want to push both the latest and the version tagged images
             # but it is low cost as we only push the layers that are not already
             # on the server.
-            ret2 = subprocess.run(["docker", "push", image], check=True)
-            ret3 = subprocess.run(["docker", "push", f"{image}:v{version}"], check=True)
+            ret2 = subprocess.run(["docker", "push", "--quiet", image], check=True)
+            ret3 = subprocess.run(
+                ["docker", "push", "--quiet", f"{image}:v{version}"], check=True
+            )
 
             if ret1.returncode + ret2.returncode + ret3.returncode == 0:
                 console.print(f"{image} pushed successfully")
