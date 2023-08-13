@@ -16,7 +16,7 @@ async function updateAssignmentProgress(newState, assignmentId) {
         "Content-type": "application/json; charset=utf-8",
         Accept: "application/json",
     });
-    let request = new Request(`/student/update_submit`, {
+    let request = new Request(`/assignment/student/update_submit`, {
         method: "POST",
         headers: jsheaders,
         body: JSON.stringify(data),
