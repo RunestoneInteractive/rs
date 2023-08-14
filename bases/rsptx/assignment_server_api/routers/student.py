@@ -338,7 +338,7 @@ async def doAssignment(
             for d in readings[chapname]["subchapters"]
         ]
 
-    if "RS_info":
+    if RS_info:
         rslogger.debug(f"RS_info Cookie {RS_info}")
         # Note that to get to the value of the cookie you must use ``.value``
         parsed_js = json.loads(RS_info)
