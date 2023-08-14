@@ -25,3 +25,4 @@ httpserver.pid
 parameters_*.py
 build.log
 _build
+/.last_version
