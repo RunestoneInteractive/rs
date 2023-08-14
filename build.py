@@ -55,6 +55,32 @@ if "--help" in sys.argv:
     )
     exit(0)
 
+# read the version from pyproject.toml
+with open("pyproject.toml") as f:
+    pyproject = toml.load(f)
+    version = pyproject["tool"]["poetry"]["version"]
+
+if "--push" in sys.argv:
+    try:
+        with open(".last_version") as f:
+            last_version = f.read().strip()
+    except FileNotFoundError:
+        with open(".last_version", "w") as f:
+            f.write(version)
+            last_version = version
+
+    if last_version == version:
+        update_version = input(
+            f"Do you want to update the version number ({version}) in pyproject.toml?"
+        )
+        if update_version.lower() in ["y", "yes"]:
+            new_version = input("Enter the new version number: ")
+            subprocess.run(
+                ["poetry", "version", new_version], capture_output=True, check=True
+            )
+            console.out("Version updated, don't forget to commit the change.")
+            version = new_version
+
 res = subprocess.run("docker info", shell=True, capture_output=True)
 if res.returncode != 0:
     console.print(
@@ -246,6 +272,7 @@ with Live(generate_table(status), refresh_per_second=4) as lt:
     for service in ym["services"]:
         status[service] = "[grey62]building...[/grey62]"
         lt.update(generate_table(status))
+        # to use a different wheel without editing Dockerfile use --build-arg wheel="wheelname"
         command_list = [
             "docker",
             "compose",
@@ -278,10 +305,6 @@ with Live(generate_table(status), refresh_per_second=4) as lt:
             )
             exit(1)
 
-# read the version from pyproject.toml
-with open("pyproject.toml") as f:
-    pyproject = toml.load(f)
-    version = pyproject["tool"]["poetry"]["version"]
 
 # Now if the --push flag was given, push the images to Docker Hub
 # For this next part to work you need to be logged in to a docker hub account or the
@@ -313,6 +336,8 @@ if "--push" in sys.argv:
                 exit(1)
 
     console.print("Docker images pushed successfully", style="green")
+    with open(".last_version", "w") as f:
+        f.write(version)
 
 
 if "--restart" in sys.argv:
