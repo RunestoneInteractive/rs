@@ -1,9 +1,3 @@
-.assignment_chooser {
-    max-height: 400px;
-    overflow-y: scroll;
-    margin-bottom: 20px;
-}
-
 .course_page {
     width: 90%;
     margin-left: auto;
