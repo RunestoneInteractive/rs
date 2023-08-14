@@ -18,9 +18,9 @@ textbook
   <span class="nav-link">
     Change course:
     <select id="course_chooser" onchange="change_course()">
-      {% for course in course_list: %}
-      <option {% if course.course_name == course_name %}selected{% endif %} value="{{course.course_name}}">
-        {{course.course_name}}
+      {% for c in course_list: %}
+      <option {% if c.course_name == course.course_name %}selected{% endif %} value="{{c.course_name}}">
+        {{c.course_name}}
       </option>
       {% endfor %}
     </select>
@@ -31,10 +31,12 @@ textbook
 
 {% block content %}
 <div class="course_page">
-<div>
+  <div>
     <h2>{{course.course_name}}</h2>
+    {% if course_description %}
     <p>{{course_description}}</p>
-    <p><b>School:</b>{{institution}}</p>
+    {% endif %}
+    <p><b>School:</b> {{institution}}</p>
     <p><b>Student:</b> {{user.first_name}} {{user.last_name}} (<a href="/runestone/default/user/logout">Not you?</a>)</p>
     <h2>Instructors</h2>
     <ul>
