@@ -30,13 +30,14 @@ from sqlalchemy.exc import IntegrityError
 
 # import xml.etree.ElementTree as ET
 
-from sqlalchemy import create_engine, Table, MetaData, and_
+from sqlalchemy import create_engine, Table, MetaData, and_, update
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import text
 
 # todo: use our logger
 from rsptx.logging import rslogger
 from runestone.server import get_dburl
+from rsptx.db.models import Library, LibraryValidator
 
 rslogger.setLevel("WARNING")
 
@@ -306,22 +307,35 @@ def update_library(
 
     click.echo(f"{title} : {subtitle}")
 
+    Session = sessionmaker()
+    eng.connect()
+    Session.configure(bind=eng)
+    sess = Session()
+
     try:
         res = eng.execute(f"select * from library where basecourse = '{course}'")
     except:
         click.echo("Missing library table?  You may need to run an alembic migration.")
         return False
-
+    # using the Model rather than raw sql ensures that everything is properly escaped
     build_time = datetime.datetime.utcnow()
     click.echo(f"BUILD time is {build_time}")
     if res.rowcount == 0:
-        eng.execute(
-            f"""insert into library
-        (title, subtitle, description, shelf_section, basecourse,
-            build_system, main_page, last_build, for_classes, is_visible )
-        values('{title}', '{subtitle}', '{description}', '{shelf}', '{course}',
-        '{build_system}', '{main_page}', '{build_time}', 'F', 'T') """
+        l = LibraryValidator(
+            title=title,
+            subtitle=subtitle,
+            description=description,
+            shelf_section=shelf,
+            basecourse=course,
+            build_system=build_system,
+            main_page=main_page,
+            last_build=build_time,
+            for_classes="F",
+            is_visible="T",
         )
+        new_book = Library(**l.dict())
+        with Session.begin() as s:
+            s.add(new_book)
     else:
         # If any values are missing or null do not override them here.
         #
@@ -335,18 +349,21 @@ def update_library(
         if not shelf:
             shelf = res.shelf_section or "Misc"
         click.echo("Updating library")
-        eng.execute(
-            f"""update library set
-            title = '{title}',
-            subtitle = '{subtitle}',
-            description = '{description}',
-            shelf_section = '{shelf}',
-            build_system = '{build_system}',
-            main_page = '{main_page}',
-            last_build = '{build_time}'
-        where basecourse = '{course}'
-        """
+        stmt = (
+            update(Library)
+            .where(Library.basecourse == course)
+            .values(
+                title=title,
+                subtitle=subtitle,
+                description=description,
+                shelf_section=shelf,
+                build_system=build_system,
+                main_page=main_page,
+                last_build=build_time,
+            )
         )
+        with Session.begin() as session:
+            session.execute(stmt)
     return True
 
 
