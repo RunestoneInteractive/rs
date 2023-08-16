@@ -105,4 +105,4 @@ async def change_course(request: Request, course_name: str, user=Depends(auth_ma
     course = await fetch_course(course_name)
     d = {"course_name": course_name, "course_id": course.id}
     await update_user(user.id, d)
-    return make_json_response({"status": "success"})
+    return make_json_response(detail={"status": "success"})
