@@ -93,7 +93,7 @@ span.matrix_table span.matrix_column:after {
   height: 0px;
 }
 
-span input[type="text"] {
+span.matrix_table input[type="text"] {
   display: block;
   margin: 0;
   width: 50px;
