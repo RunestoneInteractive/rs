@@ -2,7 +2,7 @@ import datetime
 import json
 import socket
 import traceback
-
+import os
 
 from fastapi import Request, Response, status
 from fastapi.encoders import jsonable_encoder
@@ -104,7 +104,7 @@ def add_exception_handlers(app):
         with open(f"{settings.error_path}/{date}_traceback.txt", "w") as f:
             traceback.print_tb(exc.__traceback__, file=f)
             f.write(f"Error Message: \n{str(exc)}")
-
+        os.chmod(f"{settings.error_path}/{date}_traceback.txt", 0o766)
         # alternatively lets write the traceback info to the database!
         # TODO: get local variable information
         # find a way to get the request body without throwing an error on await request.json()

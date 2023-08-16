@@ -88,6 +88,8 @@ while 1:
         sess.commit()
         try:
             shutil.move(filename, tickets_path)
+            # change the permissions of filename to wxr-xr-x
+            os.chmod(os.path.join(tickets_path, filename), 0o766)
         except:
             print("could not move", filename, "to", tickets_path)
 
