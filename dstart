@@ -1,0 +1,49 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 service-name (book, assignment, author, runestone)"
+    echo "This script starts a single service in the rs folder in development mode"
+    echo "It will watch for changes to files and restart itself.  You can use pdb and set_trace()"
+    echo "to debug your code."
+    exit 1
+fi
+
+set -e
+SERVICE=$1
+cd $RUNESTONE_PATH
+
+# check to see if the rs virtual environment is active
+if [[ -z "$VIRTUAL_ENV" && $VIRTUAL_ENV == *"rs/.venv" ]]; then
+    echo "The rs virtual environment is not active. Please activate it first."
+    exit 1
+fi
+
+# check to see if the SERVICE is book
+if [ "$SERVICE" == "book" ]; then
+    echo "Starting the book service on port 8100"
+    uvicorn rsptx.book_server_api.main:app --host 0.0.0.0 --port 8100 --reload
+    exit 0
+fi
+
+if [ "$SERVICE" == "assignment" ]; then
+    echo "Starting the assignment service on port 8101"
+    uvicorn rsptx.assignment_server_api.core:app --host 0.0.0.0 --port 8101 --reload 
+    exit 0
+fi
+
+if [ "$SERVICE" == "author" ]; then
+    echo "Starting the author service on port 8102"
+    uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8102 --reload 
+    exit 0
+fi
+
+if [ "$SERVICE" == "runestone" ]; then
+    echo "Starting the web2py service on port 8103"
+    cd bases/rsptx/web2py_server
+    python web2py.py --no-gui --password "<recycle>" --ip 0.0.0.0 --port 8103
+    exit 0
+fi
+
+
+# todo: start up a local nginx server to serve the static files 
+# todo: with nginx running allow multiple servers to run
