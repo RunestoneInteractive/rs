@@ -284,7 +284,7 @@ def index():
         num_courses = db(db.user_courses.user_id == auth.user.id).count()
         # Don't redirect when there's only one course for testing. Since the static files don't exist, this produces a server error ``invalid file``.
         if num_courses == 1 and os.environ.get("WEB2PY_CONFIG") != "test":
-            redirect(get_course_url("index.html"))
+            redirect("/ns/course/index")
         elif course.course_name == course.base_course:
             redirect(get_course_url("index.html"))
         redirect("/ns/course/index")
