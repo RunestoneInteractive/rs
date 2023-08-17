@@ -454,7 +454,7 @@ def grades():
     assignments = db(db.assignments.course == course.id).select(
         db.assignments.ALL, orderby=(db.assignments.duedate, db.assignments.id)
     )
-
+    course_attrs = getCourseAttributesDict(course.id)
     # recalculate total points for each assignment in case the stored
     # total is out of sync.
     duedates = []
@@ -597,6 +597,7 @@ def grades():
         practice_average=practice_average,
         duedates=duedates,
         totalpoints=totalpoints,
+        **course_attrs,
     )
 
 

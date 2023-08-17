@@ -91,6 +91,39 @@
                 {{ pass }}
                 onchange="updateCourse(this,'enable_compare_me')">
                 </div>
+            <div class="settingsbox">
+                <label for="points">Show Points in Gradebook</label>
+                <input type="checkbox" id="points"
+                {{ if show_points: }}
+                  checked
+                {{ pass }}
+                onchange="updateCourse(this,'show_points')"> (default is percent)
+            </div>
+            <div class="settingsbox">
+                <label for="groupsize">Group Size for Peer Instruction</label>
+                <select id="points" onchange="updateCourse(this,'groupsize')">
+                <option value="2" 
+                {{ if groupsize == "2": }}
+                  selected
+                {{ pass }}
+                >2</option>
+                <option value="3" 
+                {{ if groupsize == "3": }}
+                  selected
+                {{ pass }}
+                >3</option>
+                <option value="4"
+                {{ if groupsize == "4": }}
+                  selected
+                {{ pass }}
+                >4</option>
+                <option value="5"
+                {{ if groupsize == "5": }}
+                  selected
+                {{ pass }}
+                >5</option>
+                </select> 
+            </div>
     
         </div>
     </div>

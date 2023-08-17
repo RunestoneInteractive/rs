@@ -639,6 +639,15 @@ def admin():
         motd = open("applications/runestone/static/motd.html").read()
     except Exception:
         motd = "You can cusomize this mesage by editing /static/motd.html"
+    logger.debug(course_attrs)
+    if "groupsize" not in course_attrs:
+        course_attrs["groupsize"] = "3"
+    if "show_points" not in course_attrs:
+        course_attrs["show_points"] = False
+    else:
+        course_attrs["show_points"] = (
+            True if course_attrs["show_points"] == "true" else False
+        )
     return dict(
         startDate=date,
         coursename=auth.user.course_name,
@@ -2663,6 +2672,22 @@ def update_course():
                 course_id=thecourse.id,
                 attr="enable_compare_me",
                 value=request.vars.enable_compare_me,
+            )
+        if "show_points" in request.vars:
+            db.course_attributes.update_or_insert(
+                (db.course_attributes.course_id == thecourse.id)
+                & (db.course_attributes.attr == "show_points"),
+                course_id=thecourse.id,
+                attr="show_points",
+                value=request.vars.show_points,
+            )
+        if "groupsize" in request.vars:
+            db.course_attributes.update_or_insert(
+                (db.course_attributes.course_id == thecourse.id)
+                & (db.course_attributes.attr == "groupsize"),
+                course_id=thecourse.id,
+                attr="groupsize",
+                value=request.vars.groupsize,
             )
         return json.dumps(dict(status="success"))
 

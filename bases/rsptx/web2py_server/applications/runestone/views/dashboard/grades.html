@@ -88,9 +88,16 @@
                 <tr class="search">
                     {{for item in range(len(gradetable[row])):}}
                     {{if item > 4 and gradetable[row][item] != 'n/a' and 'e' not in gradetable[row][item]:}}
+                    {{pts = float(gradetable[row][item])/100*int(totalpoints[item-5]) }}
                     <td class="{{=assignments[item-5]['name']}}"><a
                             href="questiongrades?sid={{=gradetable[row][2]}}&assignment_id={{=assignments[item-5]['id']}}"
-                            style="color:blue;">{{=gradetable[row][item]}}%</a></td>
+                            style="color:blue;">
+                            {{ if "show_points" in globals() and show_points == "true": }}
+                            {{=pts}}
+                            {{ else: }}
+                            {{=gradetable[row][item]}}%
+                            {{ pass }}
+                            </a></td>
                     {{elif item > 4 and gradetable[row][item] != 'n/a':}}
                     <td class="{{=assignments[item-5]['name']}}"> {{=gradetable[row][item]}} </td>
                     {{elif item <= 4:}} <td class="roguecol">{{= urllib.parse.unquote(gradetable[row][item])}}</td>
@@ -105,6 +112,7 @@
         </table>
     </div>
 </div>
+<p>Note: You can have the gradebook show either points or the percentage by changing the option in the course settings panel</p>
 <div class="row"></div>
 <div>
     <h2>Timed Exam Analysis</h2>

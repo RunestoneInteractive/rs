@@ -17,11 +17,26 @@
             <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
             Group Size
             <select id="groupsize" name="groupsize">
-                <option value="2">2</option>
-                <option value="3" selected>3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
+                <option value="2" 
+                {{ if groupsize == "2": }}
+                  selected
+                {{ pass }}
+                >2</option>
+                <option value="3" 
+                {{ if groupsize == "3": }}
+                  selected
+                {{ pass }}
+                >3</option>
+                <option value="4"
+                {{ if groupsize == "4": }}
+                  selected
+                {{ pass }}
+                >4</option>
+                <option value="5"
+                {{ if groupsize == "5": }}
+                  selected
+                {{ pass }}
+                >5</option>
             </select>
             <br />
             <button

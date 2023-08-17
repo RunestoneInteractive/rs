@@ -72,7 +72,8 @@ def dashboard():
         next = False
     current_question, done = _get_current_question(assignment_id, next)
     assignment = db(db.assignments.id == assignment_id).select().first()
-
+    course = db(db.courses.course_name == auth.user.course_name).select().first()
+    course_attrs = getCourseAttributesDict(course.id)
     db.useinfo.insert(
         course_id=auth.user.course_name,
         sid=auth.user.username,
@@ -92,6 +93,8 @@ def dashboard():
         "course_name": auth.user.course_name,
     }
     r.publish("peermessages", json.dumps(mess))
+    if "groupsize" not in course_attrs:
+        course_attrs["groupsize"] = "3"
 
     return dict(
         course_id=auth.user.course_name,
@@ -101,6 +104,7 @@ def dashboard():
         assignment_name=assignment.name,
         is_instructor=True,
         is_last=done,
+        **course_attrs,
     )
 
 
