@@ -63,6 +63,20 @@ textbook
 <div class="assignment_chooser">
   {% include 'assignment/student/assignment_block.html'%}
 </div>
+
+{% if is_instructor %}
+<div class="instructor_menu">
+<h2>Instructor Links</h2>
+<div class="nav flex-column" id="v-pills-tab"  aria-orientation="vertical">
+  <a class="nav-link" id="v-pills-home-tab"  href="/runestone/dashboard"  aria-controls="v-pills-home" aria-selected="true">Student Progress</a>
+  <a class="nav-link" id="v-pills-gradebook-tab"  href="/runestone/dashboard/grades"  aria-controls="v-pills-home" aria-selected="true">Gradebook</a>  
+  <a class="nav-link" id="v-pills-profile-tab"  href="/runestone/admin/admin"  aria-controls="v-pills-profile" aria-selected="false">Class Administration</a>  
+  <a class="nav-link" id="v-pills-grading-tab" href="/runestone/admin/grading"  aria-controls="v-pills-profile" aria-selected="false">Grading</a>
+  <a class="nav-link" id="v-pills-messages-tab"  href="/runestone/admin/assignments"  aria-controls="v-pills-messages" aria-selected="false">Manage Assignments</a>
+  <a class="nav-link" id="v-pills-settings-tab" href="/runestone/admin/practice" aria-controls="v-pills-settings" aria-selected="false">Manage Practice</a>
+</div>
+
+</div>
 <script>
 async function change_course(course_name) {
     let new_course = document.getElementById("course_chooser").value
@@ -74,6 +88,7 @@ async function change_course(course_name) {
 }
 </script>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block js %}
