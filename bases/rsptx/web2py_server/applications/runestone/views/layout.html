@@ -61,35 +61,6 @@
                 <div class="navbar-collapse collapse navbar-ex1-collapse">
                     <ul class="nav navbar-nav navbar-right">
                         <li class="divider-vertical"></li>
-                        <!-- social media dropdown -->
-                     {{ if settings.academy_mode: }}
-
-                        <li class="dropdown">
-                            <a class="dropdown-toggle" href="#" data-toggle="dropdown">
-                            <i class="glyphicon glyphicon-globe" style="opacity: 0.9"></i>
-                            </a>
-                            <ul class="dropdown-menu social-menu">
-                                <li>
-                                    <div>
-                                        <b>Runestone in social media:</b>
-                                    </div>
-                                    <a href="https://twitter.com/iRunestone" class="twitter-follow-button" data-show-count="true">Follow @iRunestone</a>
-
-                                    <a href="https://www.facebook.com/RunestoneInteractive"> Our Facebook page</a>
-                                </li>
-                                <li class="divider"></li>
-                                <li>
-                                    <div>
-                                        <b>Help support us:</b>
-                                    </div>
-                                    <div>
-                                        <a href="{{=URL("default", "donate")}}"> <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" alt="PayPal - The safer, easier way to pay online!"></a>
-                                    </div>
-                                </li>
-                            </ul>
-                        </li>
-                        {{ pass }}
-                        <!-- end social media dropdown -->
                         <!-- Search Menu -->
                         {{ if auth.user: }}
                         <li class="divider-vertical"></li>
