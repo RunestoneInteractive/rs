@@ -161,7 +161,12 @@ function addNavigationAndCompletionButtons() {
             completionFlag = 0;
             markingIncomplete = true;
         }
-        processPageState(completionFlag, false, markingComplete, markingIncomplete);
+        processPageState(
+            completionFlag,
+            false,
+            markingComplete,
+            markingIncomplete
+        );
     });
 
     $(window).on("beforeunload", function (e) {
@@ -304,7 +309,12 @@ function isPreTeXt() {
 }
 // _ processPageState
 // -------------------------
-function processPageState(completionFlag, pageLoad, markingComplete, markingIncomplete) {
+function processPageState(
+    completionFlag,
+    pageLoad,
+    markingComplete,
+    markingIncomplete
+) {
     /*Log last page visited*/
     var currentPathname = window.location.pathname;
     if (currentPathname.indexOf("?") !== -1) {

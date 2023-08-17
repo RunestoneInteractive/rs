@@ -423,6 +423,12 @@ async def getCompletionStatus(request: Request, lastPageUrl: str, isPtxBook: boo
             )
         else:
             last_page_chapter = lastPageUrl.split("/")[-2]
+        if last_page_chapter is None:
+            rslogger.error(f"Unparseable page: {lastPageUrl}")
+            return make_json_response(
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Unparseable page: {lastPageUrl}",
+            )
         result = await fetch_user_sub_chapter_progress(
             request.state.user, last_page_chapter, last_page_subchapter
         )
