@@ -29,7 +29,9 @@
 
             <!-- Jquery plugin uses the caption of a table to name the downloaded file -->
             <caption style="display:none;">{{=course.course_name}}_Gradebook</caption>
-
+            <!-- Note that each td gets the class that corresponds to the assignment name.  
+            This lets us filter out the tds when searching by assignment The search function is
+            then actually pretty simple in hiding and showing matching classes. -->
             <thead style="cursor: pointer;">
                 <tr id="head">
                     <td id="leaveAlone0" class="roguecol">FName</td>
@@ -50,8 +52,8 @@
                     <td class="roguecol"> </td>
                     <td class="roguecol"> </td>
                     <td class="roguecol"> </td>
-                    {{for date in duedates:}}
-                    <td class="roguecol">{{=date}}</td>
+                    {{for d in range(len(duedates)):}}
+                    <td class="{{=assignments[d]['name']}}">{{=duedates[d]}}</td>
                     {{pass}}
                 </tr>
                 <tr style="background-color: lightgray" id="tpointsid">
@@ -60,8 +62,8 @@
                     <td class="roguecol"> </td>
                     <td class="roguecol"> </td>
                     <td class="roguecol"> </td>
-                    {{for p in totalpoints:}}
-                    <td class="roguecol">{{=p}}</td>
+                    {{for p in range(len(totalpoints)):}}
+                    <td class="{{=assignments[p]['name']}}">{{=totalpoints[p]}}</td>
                     {{pass}}
                 </tr>
                 <tr style="background-color: lightgray" id="classaverage">
