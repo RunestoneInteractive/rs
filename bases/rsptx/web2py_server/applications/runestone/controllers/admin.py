@@ -105,6 +105,21 @@ WHICH_TO_GRADE_POSSIBLE_VALUES = dict(
     youtube=[],
 )
 
+ANSWER_TABLES = [
+    "mchoice_answers",
+    "clickablearea_answers",
+    "codelens_answers",
+    "dragndrop_answers",
+    "fitb_answers",
+    "parsons_answers",
+    "shortanswer_answers",
+    "microparsons_answers",
+    "lp_answers",
+    "shortanswer_answers",
+    "unittest_answers",
+    "webwork_answers",
+]
+
 
 @auth.requires_login()
 def index():
@@ -837,15 +852,6 @@ def removeStudents():
     baseCourseID = (
         db(db.courses.course_name == baseCourseName).select(db.courses.id)[0].id
     )
-    answer_tables = [
-        "mchoice_answers",
-        "clickablearea_answers",
-        "codelens_answers",
-        "dragndrop_answers",
-        "fitb_answers",
-        "parsons_answers",
-        "shortanswer_answers",
-    ]
 
     if not isinstance(request.vars["studentList"], str):
         # Multiple ids selected
@@ -899,7 +905,7 @@ def removeStudents():
                 (db.useinfo.sid == sid)
                 & (db.useinfo.course_id == auth.user.course_name)
             ).update(course_id=baseCourseName)
-            for tbl in answer_tables:
+            for tbl in ANSWER_TABLES:
                 db(
                     (db[tbl].sid == sid)
                     & (db[tbl].course_name == auth.user.course_name)
@@ -985,6 +991,10 @@ def deletecourse():
             # remove the rows from useinfo
             infoset = db(db.useinfo.course_id == course_name)
             infoset.delete()
+            # remove the rows from xxx_answers
+            for tbl in ANSWER_TABLES + ["timed_exam"]:
+                ansset = db(db[tbl].course_name == course_name)
+                ansset.delete()
             db(db.courses.id == courseid).delete()
             try:
                 session.clear()
