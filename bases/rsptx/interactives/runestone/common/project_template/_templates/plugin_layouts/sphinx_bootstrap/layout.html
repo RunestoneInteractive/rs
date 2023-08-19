@@ -118,7 +118,7 @@
           <ul class="dropdown-menu user-menu">
             <li><span class='loggedinuser'></span></li>
             <li class="divider"></li>
-            <li><a href='/ns/course/index'>Course Home</a></li>            
+            <li><a href='/ns/course/index'>Course Home</a></li>
             <li><a href='/assignment/student/chooseAssignment'>Assignments</a></li>
             <li><a href='/{{appname}}/assignments/practice'>Practice</a></li>
             <li id="inst_peer_link"><a href='/{{appname}}/peer/instructor.html'>Peer Instruction (Instructor)</a></li>
@@ -404,9 +404,9 @@
 <script>
   // Make the permalink icon do it's thing, copying the canonical href to the
   // clipboard.
-  document.getElementById('canonical_permalink').onclick = async () => {
-    const link = (document.querySelector('link[rel="canonical"]') || {}).href;
-    if (link) await navigator.clipboard.writeText(link);
+  document.getElementById('canonical_permalink').onclick = () => {
+    const link = document.querySelector('link[rel="canonical"]')?.href;
+    if (link) navigator.clipboard.writeText(link);
   };
 </script>
 
