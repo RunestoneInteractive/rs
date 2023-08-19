@@ -153,6 +153,8 @@
           <li id="scratch_ac_link" class="dropdown"><a href="javascript:runestoneComponents.popupScratchAC()">
               <i class="glyphicon glyphicon-pencil" style="opacity:0.9;"><span class="visuallyhidden" aria-label="Scratch Activecode" >Scratch Activecode</span></i></a></li>
         <!-- </li> -->
+          <li class="dropdown"><a id="canonical_permalink">
+              <i class="glyphicon glyphicon-link" style="opacity:0.9;"><span class="visuallyhidden" aria-label="Shareable link" >Shareable link</span></i></a></li>
 
         <li class="divider-vertical"></li>
 
@@ -203,7 +205,7 @@
 {% endif %}
 
 {% raw %}
-<link rel="canonical" href="https://{{canonical_host}}{{new_server_prefix}}/books/published/{{base_course}}/{{pagepath}}" />
+<link rel="canonical" href="//{{canonical_host}}{{new_server_prefix}}/books/published/{{base_course}}/{{pagepath}}" />
 {% endraw %}
 
 <script>
@@ -398,6 +400,15 @@
   window.addEventListener('load', (event) => {
     runestoneComponents.getSwitch();
   });
+</script>
+
+<script>
+  // Make the permalink icon do it's thing, copying the canonical href to the
+  // clipboard.
+  document.getElementById('canonical_permalink').onclick = async () => {
+    const link = (document.querySelector('link[rel="canonical"]') || {}).href;
+    if (link) await navigator.clipboard.writeText(link);
+  };
 </script>
 
 {% endblock %}

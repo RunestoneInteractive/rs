@@ -1178,3 +1178,12 @@ margin-right: 3px;
   float:right;
   padding-left: 4px;
 }
+
+/* Give some indication that the click is doing something. */
+#canonical_permalink:active {
+  transform: scale(0.85);
+}
+
+#canonical_permalink:active::after {
+  content: " Copied!";
+}
