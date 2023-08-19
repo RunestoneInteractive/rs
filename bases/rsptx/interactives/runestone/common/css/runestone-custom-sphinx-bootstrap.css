@@ -1178,28 +1178,3 @@ margin-right: 3px;
   float:right;
   padding-left: 4px;
 }
-
-/* Give some indication that the click is doing something. */
-
-#canonical_permalink {
-  text-decoration: none !important;
-}
-
-#canonical_permalink:active {
-  transform: scale(0.85);
-}
-
-#canonical_permalink::after {
-  content: " Copied!";
-  display: inline-block;
-  opacity: 0;
-  padding-left: 5px;
-  width: 0;
-  transition: opacity 1s, width 1s;
-}
-
-#canonical_permalink:active::after {
-  opacity: 1;
-  width: 30px;
-  transition: opacity 0s, width 0s;
-}
