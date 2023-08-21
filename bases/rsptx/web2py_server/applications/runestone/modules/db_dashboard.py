@@ -448,7 +448,13 @@ class SubChapterActivity(object):
         return "{0:.2f}%".format(float(self.started) / self.total_users * 100)
 
     def get_not_started_percent(self):
-        return "{0:.2f}%".format(float(self.not_started) / self.total_users * 100)
+        # We compute this one from the other two rather than pulling it directly
+        # from not_started in order to ensure the sum of the three doesn't go
+        # over 100.00 because when it does and these percentages are used as
+        # widths of sections of the bar, it overflows.
+        started = round(self.started / self.total_users * 100, 2)
+        completed = round(self.completed / self.total_users * 100, 2)
+        return "{0:.2f}%".format(100 - (started + completed))
 
     def get_completed_percent(self):
         return "{0:.2f}%".format(float(self.completed) / self.total_users * 100)
