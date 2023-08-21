@@ -57,10 +57,16 @@ def index():
         try:
             course_id = int(course_id)
         except ValueError:
+            cname = course_id
             course_id = (
                 db(db.courses.course_name == course_id).select(**SELECT_CACHE).first()
             )
-            course_id = course_id.id
+            if course_id:
+                course_id = course_id.id
+            else:
+                session.flash = f"Invalid course name: {cname} LTI not launched."
+                logger.error(f"Invalid course name: {cname}")
+                redirect(URL("default", "index"))
 
     if full_name and not last_name:
         names = full_name.strip().split()
