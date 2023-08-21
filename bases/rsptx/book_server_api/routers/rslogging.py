@@ -187,7 +187,11 @@ def set_tz_offset(
     :return: JSONResponse
     """
     if RS_info:
-        values = json.loads(RS_info)
+        try:
+            values = json.loads(RS_info)
+        except json.decoder.JSONDecodeError:
+            values = {}
+            rslogger.error(f"Error decoding RS_info cookie: {RS_info}")
     else:
         values = {}
     values["tz_offset"] = tzreq.timezoneoffset
