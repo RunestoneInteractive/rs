@@ -21,6 +21,8 @@ from docutils.parsers.rst import directives
 from .pg_logger import exec_script_str_local
 import json
 import six
+import time
+import random
 import requests
 from runestone.server.componentdb import addQuestionToDB, addHTMLToDB
 from runestone.common.runestonedirective import (
@@ -292,7 +294,7 @@ class Codelens(RunestoneIdDirective):
         url = f"{env.config.trace_url}/trace{lang}"
 
         tries = 0
-        while tries < 3:
+        while tries < 5:
             try:
                 r = requests.post(url, data=dict(src=src), timeout=30)
             except requests.ReadTimeout:
@@ -300,12 +302,15 @@ class Codelens(RunestoneIdDirective):
                     "The request to the trace server timed out, you will need to rerun the build"
                 )
                 tries += 1
-            except:
+                time.sleep(random.random() * tries)
+            except Exception as e:
                 self.error(
-                    "The request to the trace server failed, you will need to rerun the build"
+                    "The request to the trace server failed, you will need to rerun the build "
+                    + str(e)
                 )
                 tries += 1
-            
+                time.sleep(random.random() * tries)
+
             if r.status_code == 200:
                 if lang == "java":
                     return r.text
@@ -314,4 +319,9 @@ class Codelens(RunestoneIdDirective):
                     return res
             else:
                 tries += 1
+                self.error(f"Failed to get trace from server, status code: {r.status_code}")
+                time.sleep(random.random() * tries)
+        if tries == 5:
+            self.error("Failed to get trace from server after 5 tries")
+            return ""
         return ""
