@@ -485,7 +485,7 @@ Your username is: %(username)s </p>
 <p>If you have any trouble with this automated system you can also ask your instructor
 and they can help you retrieve your username or reset your password.  If you are
 an instructor, you can  (as a last resort) contact Runestone by creating an issue
-on  <a href="https://github.com/RunestoneInteractive/RunestoneServer/issues">Github</a>.</p>
+on  <a href="https://github.com/RunestoneInteractive/rs/issues">Github</a>.</p>
 
 <p>This message was generated automatically and comes from an unmonitored email address.  If you reply to this message a human will not see it.  Use the github link above if you need help from a real person.</p>
 
@@ -502,7 +502,7 @@ Hello, <br>
 <p>If you have any trouble with the link you can also ask your instructor
 and they can help you retrieve your username or reset your password.  If you are
 an instructor, you can  (as a last resort) contact Runestone by creating an issue
-on <a href="https://github.com/RunestoneInteractive/RunestoneServer/issues">Github</a>.</p>
+on <a href="https://github.com/RunestoneInteractive/rs/issues">Github</a>.</p>
 
 <p>This message was generated automatically and comes from an unmonitored email address.  If you reply to this message a human will not see it.  Use the github link above if you need help from a real person.</p>
 
