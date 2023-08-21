@@ -1,3 +1,5 @@
+import { get } from "jquery";
+
 /*
  * Javascript functions for Single Page App
  * Author: Brad Miller
@@ -180,19 +182,79 @@ function codeTask(classname) {
         });
 }
 
+function getWithAssess() {
+    let withAssess = document.getElementById("with_assess")
+    if (withAssess) {
+        return withAssess.checked;
+    } else {
+        return false;
+    }
+}
+
+function getStartDate() {
+    let startDate = document.getElementById("start_date")
+    if (startDate) {
+        return startDate.value;
+    } else {
+        return "";
+    }
+}
+
+function getEndDate() {
+    let endDate = document.getElementById("end_date")
+    if (endDate) {
+        return endDate.value;
+    } else {
+        return "";
+    }
+}
+
+function getSampleSize() {
+    let sampleSize = document.getElementById("sample_size")
+    if (sampleSize) {
+        return sampleSize.value;
+    } else {
+        return "";
+    }
+}
+
+function getIncludeBasecourse() {
+    let includeBasecourse = document.getElementById("include_basecourse")
+    if (includeBasecourse) {    
+        return includeBasecourse.checked;
+    } else {
+        return false;
+    }
+}
+
+function getPreserveUsernames() {
+    let preserveUsernames = document.getElementById("preserve_user_ids")
+    if (preserveUsernames) {
+        return preserveUsernames.checked;
+    } else {
+        return false;
+    }
+}
+
+
 // Gets data from the form in anonymize_data.html
 // This endpoint requires a valid login + author and/or researcher privileges
 function startExtract() {
     // Get / Validate Form fields
     let data = {};
     data.basecourse = document.getElementById("basecourse").value;
-    data.with_assess = document.getElementById("with_assess").checked;
-    data.start_date = document.getElementById("start_date").value;
-    data.end_date = document.getElementById("end_date").value;
-    data.sample_size = document.getElementById("sample_size").value;
-    data.include_basecourse =
-        document.getElementById("include_basecourse").checked;
+    data.with_assess = getWithAssess();
+    if (getStartDate*()) {
+        data.start_date = getStartDate();
+    }
+    if (getEndDate()) {
+        data.end_date = getEndDate();
+    }
+    data.sample_size = getSampleSize();
+    data.include_basecourse = getIncludeBasecourse();
+
     data.specific_course = document.getElementById("specific_course").value;
+    data.preserve_user_ids = getPreserveUsernames();
 
     if (!data.start_date || !data.end_date) {
         alert("You must set a start/end date");

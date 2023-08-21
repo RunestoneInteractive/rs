@@ -7,6 +7,7 @@ from wtforms import (
     DateTimeField,
     DateField,
     HiddenField,
+    SelectField,
     IntegerRangeField,
 )
 
@@ -46,4 +47,11 @@ class DatashopForm(StarletteForm):
     sample_size = IntegerRangeField("Number of courses to include")
     include_basecourse = BooleanField("Include data from the open course")
     specific_course = StringField("Create data shop file for this course")
+    clist = HiddenField()
+
+
+class DatashopInstForm(StarletteForm):
+    preserve_user_ids = BooleanField("Preserve User IDs")
+    specific_course = SelectField("Class Name")
+    basecourse = HiddenField()
     clist = HiddenField()

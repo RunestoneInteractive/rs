@@ -16,6 +16,7 @@
 
     <div>
         <h2>Set parameters for anonymous data from {{book}}</h2>
+        {% if is_author %}
         <form>
             <div>{{form.basecourse.label }}: {{ form.basecourse() }}</div>
             <div>{{form.with_assess.label }}: {{ form.with_assess() }}</div>
@@ -35,6 +36,16 @@
             <div>{{ form.clist() }}</div>
             <button type="button" onclick="startExtract()">Start</button>
         </form>
+        {% else %}
+        <form>
+            <div>{{form.specific_course.label }}: {{ form.specific_course() }}</div>
+            <div>{{form.preserve_user_ids.label}}: {{form.preserve_user_ids() }}</div>
+            <div>{{ form.clist() }}</div>
+            <div>{{form.basecourse}}</div>
+            <button type="button" onclick="startExtract()">Start</button>
+        </form>
+        {% endif %}
+
     </div>
     <p><strong>Note: </strong>To create a datashop file for a named course you must be the instructor of that course.</p>
 
@@ -54,4 +65,8 @@
         </table>
     </div>
 </div>
+{% endblock %}
+
+{% block js %}
+<script src="/staticAssets/author/main.js"></script>
 {% endblock %}

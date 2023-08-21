@@ -33,7 +33,7 @@ from sqlalchemy import create_engine
 
 # Local App
 # ---------
-from rsptx.forms import LibraryForm, DatashopForm
+from rsptx.forms import LibraryForm, DatashopForm, DatashopInstForm
 from rsptx.author_server_api.worker import (
     build_runestone_book,
     clone_runestone_book,
@@ -336,8 +336,11 @@ async def editlib(request: Request, book: str, user=Depends(auth_manager)):
 @app.post("/author/anonymize_data/{book}")
 async def anondata(request: Request, book: str, user=Depends(auth_manager)):
     # Get the book and populate the form with current data
-    if not await verify_author(user):
-        return RedirectResponse(url="/notauthorized")
+    is_author = await verify_author(user)
+    is_inst = await is_instructor(request)
+
+    if not (is_author or is_inst):
+        return RedirectResponse(url="/author/notauthorized")
 
     # Create a list of courses taught by this user to validate courses they
     # can dump directly.
@@ -356,13 +359,22 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
     # this will either create the form with data from the submitted form or
     # from the kwargs passed if there is not form data.  So we can prepopulate
     #
-    form = await DatashopForm.from_formdata(
-        request, basecourse=book, clist=",".join(class_list)
-    )
+    if is_author:
+        form = await DatashopForm.from_formdata(
+            request, basecourse=book, clist=",".join(class_list)
+        )
+
+    elif is_inst:
+        form = await DatashopInstForm.from_formdata(
+            request,
+            basecourse=book,
+            clist=",".join(class_list),
+            specific_course=course.course_name,
+        )
+        form.specific_course.choices = [(course.id, course.course_name)]
     if request.method == "POST" and await form.validate():
         print(f"Got {form.authors.data}")
         print(f"FORM data = {form.data}")
-
         # return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
         "author/anonymize_data.html",
@@ -373,6 +385,8 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
             ready_files=ready_files,
             kind="datashop",
             course=course,
+            is_author=is_author,
+            is_instructor=is_inst,
         ),
     )
 

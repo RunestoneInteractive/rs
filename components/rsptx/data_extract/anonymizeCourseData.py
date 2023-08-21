@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import os
+import datetime
 import random
 import re
 import pandas as pd
@@ -96,10 +97,11 @@ class Anonymizer:
         dburl,
         with_assess=False,
         start_date="2019-01-01",
-        end_date="2022-05-16",
+        end_date=datetime.date.today(),
         sample_size=10,
         include_basecourse=False,
         specific_course="",
+        preserve_username=False,
     ):
         self.eng = create_engine(dburl)
         self.BASECOURSE = basecourse
@@ -257,8 +259,11 @@ class Anonymizer:
             if id in self.inst_set:
                 self.user_map[id] = "REMOVEME"
             else:
-                self.user_map[id] = self.user_num
-                self.user_num += 1
+                if self.preserve_username:
+                    self.user_map[id] = id
+                else:
+                    self.user_map[id] = self.user_num
+                    self.user_num += 1
         return self.user_map[id]
 
     def anonymize_course(self, id):
