@@ -12,6 +12,7 @@ services:
         command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8114
         volumes:
             - ${BOOK_PATH}:/books
+            - $HOME/downloads:/usr/src/app/downloads
         environment:
             - SERVER_CONFIG=${SERVER_CONFIG}
             - CELERY_BROKER_URL=redis://redis:6379/0
@@ -33,6 +34,7 @@ services:
         volumes:
             - ${BOOK_PATH}:/books
             - ${SSH_AUTH_SOCK:-/tmp}:/ssh-agent # forward host ssh agent
+            - $HOME/downloads:/usr/src/app/downloads
         environment:
             - SERVER_CONFIG=${SERVER_CONFIG}
             - CELERY_BROKER_URL=redis://redis:6379/0

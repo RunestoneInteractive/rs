@@ -335,7 +335,7 @@ def anonymize_data_dump(self, **kwargs):
     )
     a.create_datashop_data()
     self.update_state(state="WORKING", meta={"current": "Writing datashop file"})
-    p = pathlib.Path("datashop", username)
+    p = pathlib.Path("downloads", "datashop", username)
     p.mkdir(parents=True, exist_ok=True)
     a.write_datashop(path=p)
     self.update_state(state="SUCCESS", meta={"current": "Ready for download"})

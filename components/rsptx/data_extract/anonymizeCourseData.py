@@ -7,6 +7,7 @@ import random
 import re
 import pandas as pd
 import pathlib
+import pdb
 from sqlalchemy import create_engine
 from tqdm import tqdm
 
@@ -101,16 +102,20 @@ class Anonymizer:
         sample_size=10,
         include_basecourse=False,
         specific_course="",
-        preserve_username=False,
+        preserve_user_ids=False,
     ):
         self.eng = create_engine(dburl)
         self.BASECOURSE = basecourse
         self.WITH_ASSESS = with_assess
         self.START_DATE = start_date
         self.END_DATE = end_date
-        self.SAMPLE_SIZE = int(sample_size)
+        if sample_size:
+            self.SAMPLE_SIZE = int(sample_size)
+        else:
+            self.SAMPLE_SIZE = 10
         print(f"include basecourse = {include_basecourse}")
         self.include_basecourse = include_basecourse
+        self.preserve_username = preserve_user_ids
         if specific_course:
             self.COURSE_LIST = [specific_course]
         else:
@@ -440,7 +445,12 @@ class Anonymizer:
         # The below is very expensive for long operations.  Maybe we could rewrite it with a rolling function
 
         self.useinfo["tdiff"] = self.useinfo.timestamp.diff()
-        self.useinfo["sdiff"] = self.useinfo.sid.diff()
+        if self.preserve_username:
+            self.useinfo["sdiff"] = (
+                self.useinfo.sid.ne(self.useinfo.sid.shift()).bfill().astype(int)
+            )
+        else:
+            self.useinfo["sdiff"] = self.useinfo.sid.diff()
         self.sess_count = 0
         self.useinfo["session"] = self.useinfo.progress_apply(self.sessionize, axis=1)
         self.student_problem_ct = {}
@@ -653,10 +663,11 @@ class Anonymizer:
 
 if __name__ == "__main__":
     a = Anonymizer(
-        "py4e-int",
+        "thinkcspy",
         os.environ["DBURL"],
         sample_size=3,
-        cl=["Win22-SI206", "Win21-SI206"],
+        specific_course="bl_thinkcspy_summer23",
+        preserve_user_ids=True,
     )
     print("Choosing Courses")
     a.choose_courses()

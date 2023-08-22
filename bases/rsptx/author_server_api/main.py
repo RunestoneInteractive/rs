@@ -50,6 +50,7 @@ from rsptx.db.crud import (
     fetch_instructor_courses,
     fetch_books_by_author,
     fetch_course,
+    fetch_course_by_id,
     fetch_library_book,
     update_library_book,
     create_course,
@@ -186,7 +187,7 @@ async def getfile(request: Request, fname: str, user=Depends(auth_manager)):
 
 @app.get("/author/getdatashop/{fname}")
 async def _getdshop(request: Request, fname: str, user=Depends(auth_manager)):
-    file_path = pathlib.Path("datashop", user.username, fname)
+    file_path = pathlib.Path("downloads", "datashop", user.username, fname)
     return FileResponse(file_path)
 
 
@@ -346,10 +347,12 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
     # can dump directly.
     course = await fetch_course(user.course_name)
     courses = await fetch_instructor_courses(user.id)
-    class_list = [c.id for c in courses]
-    class_list = [str(x) for x in class_list]
+    class_list = []
+    for c in courses:
+        the_course = await fetch_course_by_id(c.course)
+        class_list.append(the_course.course_name)
 
-    lf_path = pathlib.Path("datashop", user.username)
+    lf_path = pathlib.Path("downloads", "datashop", user.username)
     logger.debug(f"WORKING DIR = {lf_path}")
     if lf_path.exists():
         ready_files = [x for x in lf_path.iterdir()]
@@ -371,7 +374,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
             clist=",".join(class_list),
             specific_course=course.course_name,
         )
-        form.specific_course.choices = [(course.id, course.course_name)]
+        form.specific_course.choices = class_list
     if request.method == "POST" and await form.validate():
         print(f"Got {form.authors.data}")
         print(f"FORM data = {form.data}")
