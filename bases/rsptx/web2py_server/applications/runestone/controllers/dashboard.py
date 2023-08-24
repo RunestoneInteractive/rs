@@ -451,6 +451,14 @@ def grades():
         session.flash = "Your course does not exist"
         redirect(URL("dashboard", "index"))
 
+    iset = set()
+    instructors = db(db.course_instructor.course == course.id).select(
+        db.course_instructor.ALL
+    )
+    if instructors:
+        for i in instructors:
+            iset.add(i.instructor)
+
     assignments = db(db.assignments.course == course.id).select(
         db.assignments.ALL, orderby=(db.assignments.duedate, db.assignments.id)
     )
@@ -487,7 +495,7 @@ def grades():
     rows = []
     for row in trows:
         # remove instructor rows from trows
-        if not verifyInstructorStatus(auth.user.course_id, row[3]):
+        if row[3] not in iset:
             rows.append(row)
 
     studentinfo = {}
@@ -498,7 +506,7 @@ def grades():
     total_possible_points = 0
     students = []
     for s in allstudents:
-        if verifyInstructorStatus(auth.user.course_id, s.id):
+        if s.id in iset:
             # filter out instructors from the gradebook
             continue
         students.append(s)
