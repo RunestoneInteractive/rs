@@ -277,7 +277,7 @@ def useinfo_to_csv(self, classname, username):
         params=dict(cname=classname),
         con=eng,
     )
-    p = pathlib.Path("logfiles", username)
+    p = pathlib.Path("downloads","logfiles", username)
     p.mkdir(parents=True, exist_ok=True)
     p = p / f"{classname}_useinfo.csv.zip"
     self.update_state(state="WRITING", meta={"current": "creating csv.zip file"})
@@ -299,7 +299,7 @@ def code_to_csv(self, classname, username):
         params=dict(cname=classname),
         con=eng,
     )
-    p = pathlib.Path("logfiles", username)
+    p = pathlib.Path("downloads", "logfiles", username)
     p.mkdir(parents=True, exist_ok=True)
     p = p / f"{classname}_code.csv.zip"
     self.update_state(state="WRITING", meta={"current": "creating csv.zip file"})

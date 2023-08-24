@@ -151,7 +151,7 @@ async def home(request: Request, user=Depends(auth_manager)):
 async def logfiles(request: Request, user=Depends(auth_manager)):
     if await is_instructor(request):
 
-        lf_path = pathlib.Path("logfiles", user.username)
+        lf_path = pathlib.Path("downloads", "logfiles", user.username)
         logger.debug(f"WORKING DIR = {lf_path}")
         if lf_path.exists():
             ready_files = {
@@ -181,7 +181,7 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
 
 @app.get("/author/getfile/{fname}")
 async def getfile(request: Request, fname: str, user=Depends(auth_manager)):
-    file_path = pathlib.Path("logfiles", user.username, fname)
+    file_path = pathlib.Path("downloads", "logfiles", user.username, fname)
     return FileResponse(file_path)
 
 
@@ -238,7 +238,9 @@ async def dump_assignments(request: Request, course: str, user=Depends(auth_mana
     """,
         eng,
     )
-    all_aq_pairs.to_csv(f"{course}_assignments.csv", index=False)
+    all_aq_pairs.to_csv(
+        f"downloads/logfiles/{user.username}/{course}_assignments.csv", index=False
+    )
 
     return JSONResponse({"detail": "success"})
 
@@ -488,7 +490,7 @@ async def dump_code(payload=Body(...), user=Depends(auth_manager)):
 @app.get("/author/dlsAvailable/{kind}", status_code=201)
 async def check_downloads(request: Request, kind: str, user=Depends(auth_manager)):
     # kind will be either logfiles or datashop
-    lf_path = pathlib.Path("logfiles", user.username)
+    lf_path = pathlib.Path("downloads", "logfiles", user.username)
     logger.debug(f"WORKING DIR = {lf_path}")
     if lf_path.exists():
         ready_files = [x.name for x in lf_path.iterdir()]
