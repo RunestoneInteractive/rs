@@ -2,8 +2,14 @@
 
 {% block content %}
 <div>
-    <h1>Runestone Datashop Anonymizer</h1>
+    <h1>Runestone Datashop Creator</h1>
+    {% if is_author %}
     <p>This page will allow an <strong>author</strong> or <strong>researcher</strong> to create an anonymized data set with data from their book.  The dataset is created by randomly selecting a group of small, medium, and large courses created from the base course.  You must have author or researcher permissions and you are only allowed to create a dataset for the base course(s) associated with the author or researcher permission.  You must agree that you will not try to re-identify any of this data, and you must agree that you will not share the data with anyone else. Creating a dataset is a resource and database intensive task.  Please do this during off hours.  ie start it up at night and it will be ready for you to download the next morning.  It is not unusual for this process to run more than 1-2 hours.</p>
+    {% else %}
+    <p>
+        This page will allow an <strong>instructor</strong> to create a data set with data from their course.  You must have instructor permissions and you are only allowed to create a dataset for the course(s) for which you have the instructor credentials You must agree that you will not share the data with anyone else. Creating a dataset is a resource and database intensive task.  Please do this during off hours. Start it up at night and it will be ready for you to download the next morning.  It is not unusual for this process to run more than 1-2 hours for a large class. For a small class it will be much less.  The default behavior is to anonymize all data.  Instructors may choose to preserve user ids.  This will allow them to see the data for their own students. 
+    </p>
+    {% endif %}
     <p>The format of the datashop files produced is <a href="https://pslcdatashop.web.cmu.edu/help?page=importFormatTd">documented here</a> I strongly recommend you use the minimum number of courses for your first attempt.  This will be faster and give you something to start looking at.</p>
     <div>
         <h2>Files ready for download</h2>
