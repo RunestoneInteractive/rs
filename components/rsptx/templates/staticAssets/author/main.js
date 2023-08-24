@@ -180,6 +180,27 @@ function codeTask(classname) {
         });
 }
 
+function assignmentData(classname) {
+    fetch(`/author/dump/assignments/${classname}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            let kind = "logfiles";
+            fetch(`/author/dlsAvailable/${kind}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            })
+                .then((response) => response.json())
+                .then((res) => updateDlList(res, kind));
+        });
+}
+
 function getWithAssess() {
     let withAssess = document.getElementById("with_assess");
     if (withAssess) {

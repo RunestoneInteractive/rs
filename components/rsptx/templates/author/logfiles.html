@@ -13,7 +13,7 @@
       <ul id="csv_files_available">
       {% for lfile in ready_files %}
         <li>
-          <a href="/getfile/{{lfile.name}}">
+          <a href="/author/getfile/{{lfile.name}}">
             <span class="logfilename" id="{{lfile.name}}">{{lfile.name}}</span> -
             <span class="logfilemtime" id="{{lfile.name}}_mtime">{{ready_files[lfile]}}</span>
           </a>
@@ -48,4 +48,8 @@
 
 </div>
 
+{% endblock %}
+
+{% block js  %}
+<script src="/staticAssets/author/main.js"></script>
 {% endblock %}

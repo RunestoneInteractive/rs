@@ -517,7 +517,6 @@ class Anonymizer:
                 "anon_institution",
             ]
         ]
-
         useinfo_w_answers.columns = [
             "Time",
             "Anon Student Id",
