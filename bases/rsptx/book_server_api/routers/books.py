@@ -350,7 +350,7 @@ async def serve_page(
         and course_row.base_course != "mobilecsp"
         and course_row.courselevel != "high"
         and course_row.course_name != course_row.base_course
-        and "supporter" not in course_attrs
+        and not course_row.is_supporter
     ):
         show_rs_banner = True
     elif course_row.course_name == course_row.base_course and random.random() <= 0.3:

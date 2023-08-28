@@ -165,6 +165,7 @@ db.define_table(
     Field("downloads_enabled", type="boolean", default=False),
     Field("courselevel", type="string"),
     Field("new_server", type="boolean", default=False),
+    Field("is_supporter", type="boolean", default=False),
     migrate=bookserver_owned("courses"),
 )
 
