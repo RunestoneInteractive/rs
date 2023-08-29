@@ -730,7 +730,12 @@ def grading():
     assignmentids = {}
     assignment_deadlines = {}
     question_points = {}
+    instructors = db(db.course_instructor.course == auth.user.course_id).select()
+    iset = set()
+    for i in instructors:
+        iset.add(i.instructor)
 
+    
     for row in assignments_query:
         assignmentids[row.name] = int(row.id)
         # Retrieve relevant info for each question, ordering them based on their
@@ -772,7 +777,7 @@ def grading():
     # on the grading page load????
     searchdict = {}
     for row in cur_students:
-        isinstructor = verifyInstructorStatus(auth.user.course_id, row.user_id)
+        isinstructor = row.user_id in iset
         logger.debug(f"User {row.user_id} instructor status {isinstructor}")
         if not isinstructor:
             person = (
@@ -787,6 +792,10 @@ def grading():
             name = person.first_name + " " + person.last_name
             username = person.username
             searchdict[username] = name
+            sd_by_student = sorted(
+                searchdict.items(), key=lambda x: x[1].split()[-1].lower()
+            )
+            searchdict = OrderedDict(sd_by_student)
             logger.debug(f"Added {username} to searchdict")
 
     course = db(db.courses.id == auth.user.course_id).select().first()
