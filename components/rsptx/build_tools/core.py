@@ -652,6 +652,8 @@ def manifest_data_to_db(course_name, manifest_path):
                 if qtype == "datafile":
                     if "data-isimage" in el.attrib:
                         file_contents = el.attrib["src"]
+                        if file_contents.startswith("data:"):
+                            file_contents = file_contents.split("base64,")[1]
                     else:
                         file_contents = el.text
                     if "data-filename" in el.attrib:
