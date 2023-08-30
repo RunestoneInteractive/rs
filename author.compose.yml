@@ -28,7 +28,7 @@ services:
         build:
             context: ./projects/author_server
         #image: registry.digitalocean.com/runestone-registry/rs-worker
-
+        image: ghcr.io/runestoneinteractive/rs-worker
         extra_hosts:
             - host.docker.internal:host-gateway
         command: celery -A rsptx.author_server_api.worker.celery worker
