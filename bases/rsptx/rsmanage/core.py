@@ -616,7 +616,7 @@ async def addinstructor(config, username, course):
 
     if not res:
         await create_instructor_course_entry(userid, courseid)
-        print(f"made {username} and instructor for {course}")
+        print(f"made {username} an instructor for {course}")
     else:
         print(f"{username} is already an instructor for {course}")
 
