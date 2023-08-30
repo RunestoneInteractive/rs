@@ -4,7 +4,8 @@ services:
     author:
         build:
             context: ./projects/author_server
-        image: registry.digitalocean.com/runestone-registry/rs-author
+        #image: registry.digitalocean.com/runestone-registry/rs-author
+        image: ghcr.io/runestoneinteractive/rs-author
         extra_hosts:
             - host.docker.internal:host-gateway
         ports:
@@ -26,7 +27,8 @@ services:
     worker:
         build:
             context: ./projects/author_server
-        image: registry.digitalocean.com/runestone-registry/rs-worker
+        #image: registry.digitalocean.com/runestone-registry/rs-worker
+
         extra_hosts:
             - host.docker.internal:host-gateway
         command: celery -A rsptx.author_server_api.worker.celery worker

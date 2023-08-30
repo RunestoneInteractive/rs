@@ -8,13 +8,15 @@ services:
   jobe:
     build: 
       context: ./projects/jobe
-    image: registry.digitalocean.com/runestone-registry/rs-jobe
+    #image: registry.digitalocean.com/runestone-registry/rs-jobe
+    image: ghcr.io/runestoneinteractive/rs-jobe
     restart: always
     
   book:
     build: 
       context: ./projects/book_server
-    image: registry.digitalocean.com/runestone-registry/rs-book
+    #image: registry.digitalocean.com/runestone-registry/rs-book
+    image: ghcr.io/runestoneinteractive/rs-book
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
@@ -54,7 +56,8 @@ services:
   runestone:
       build: 
         context: ./projects/w2p_login_assign_grade
-      image: registry.digitalocean.com/runestone-registry/rs-runestone
+      #image: registry.digitalocean.com/runestone-registry/rs-runestone
+      image: ghcr.io/runestoneinteractive/rs-runestone
       extra_hosts:
         - host.docker.internal:host-gateway
       ports:
@@ -94,7 +97,8 @@ services:
   assignment:
     build: 
       context: ./projects/assignment_server
-    image: registry.digitalocean.com/runestone-registry/rs-assignment
+    #image: registry.digitalocean.com/runestone-registry/rs-assignment
+    image: ghcr.io/runestoneinteractive/rs-assignment
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
@@ -134,7 +138,8 @@ services:
     build: 
       context: ./
       dockerfile: projects/nginx/Dockerfile
-    image: registry.digitalocean.com/runestone-registry/rs-nginx
+    #image: registry.digitalocean.com/runestone-registry/rs-nginx
+
     restart: always
     ports:
       # ports are specified host:container
@@ -156,7 +161,8 @@ services:
   rsmanage:
     build: 
       context: ./projects/rsmanage
-    image: registry.digitalocean.com/runestone-registry/rs-rsmanage
+    #image: registry.digitalocean.com/runestone-registry/rs-rsmanage
+    
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
