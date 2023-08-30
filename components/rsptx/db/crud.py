@@ -397,6 +397,25 @@ async def fetch_course(course_name: str) -> CoursesValidator:
         return CoursesValidator.from_orm(course)
 
 
+async def fetch_course_by_id(course_id: int) -> CoursesValidator:
+    """
+    Fetches a course by its id.
+
+    :param course_name: The id of the course to be fetched.
+    :type course_name: int
+    :return: A CoursesValidator instance representing the fetched course.
+    :rtype: CoursesValidator
+    """
+    query = select(Courses).where(Courses.id == course_id)
+    async with async_session() as session:
+        res = await session.execute(query)
+        # When selecting ORM entries it is useful to use the ``scalars`` method
+        # This modifies the result so that you are getting the ORM object
+        # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
+        course = res.scalars().one_or_none()
+        return CoursesValidator.from_orm(course)
+
+
 async def fetch_base_course(base_course: str) -> CoursesValidator:
     """
     Fetches a base course by its name.

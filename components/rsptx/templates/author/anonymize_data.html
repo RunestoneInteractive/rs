@@ -2,19 +2,27 @@
 
 {% block content %}
 <div>
-    <h1>Runestone Datashop Anonymizer</h1>
+    <h1>Runestone Datashop Creator</h1>
+    {% if is_author %}
     <p>This page will allow an <strong>author</strong> or <strong>researcher</strong> to create an anonymized data set with data from their book.  The dataset is created by randomly selecting a group of small, medium, and large courses created from the base course.  You must have author or researcher permissions and you are only allowed to create a dataset for the base course(s) associated with the author or researcher permission.  You must agree that you will not try to re-identify any of this data, and you must agree that you will not share the data with anyone else. Creating a dataset is a resource and database intensive task.  Please do this during off hours.  ie start it up at night and it will be ready for you to download the next morning.  It is not unusual for this process to run more than 1-2 hours.</p>
+    <p>If you want the old raw data for a course you are teaching, you can download them from the <a href="/author/logfiles">logfile page</a></p>
+    {% else %}
+    <p>
+        This page will allow an <strong>instructor</strong> to create a data set with data from their course.  You must have instructor permissions and you are only allowed to create a dataset for the course(s) for which you have the instructor credentials You must agree that you will not share the data with anyone else. Creating a dataset is a resource and database intensive task.  Please do this during off hours. Start it up at night and it will be ready for you to download the next morning.  It is not unusual for this process to run more than 1-2 hours for a large class. For a small class it will be much less.  The default behavior is to anonymize all data.  Instructors may choose to preserve user ids.  This will allow them to see the data for their own students. If you want the raw log files you can download them from the <a href="/author/logfiles">logfile page</a>.
+    </p>
+    {% endif %}
     <p>The format of the datashop files produced is <a href="https://pslcdatashop.web.cmu.edu/help?page=importFormatTd">documented here</a> I strongly recommend you use the minimum number of courses for your first attempt.  This will be faster and give you something to start looking at.</p>
     <div>
         <h2>Files ready for download</h2>
         <ul id="csv_files_available">
             {% for lfile in ready_files %}
-            <li><a href="/getdatashop/{{lfile.name}}">{{lfile.name}}</a></li>
+            <li><a href="/author/getdatashop/{{lfile.name}}">{{lfile.name}}</a></li>
             {% endfor %}
         </ul>
     </div>
 
     <div>
+        {% if is_author %}
         <h2>Set parameters for anonymous data from {{book}}</h2>
         <form>
             <div>{{form.basecourse.label }}: {{ form.basecourse() }}</div>
@@ -35,6 +43,17 @@
             <div>{{ form.clist() }}</div>
             <button type="button" onclick="startExtract()">Start</button>
         </form>
+        {% else %}
+        <h2>Set parameters for data dump</h2>
+        <form>
+            <div>{{form.specific_course.label }}: {{ form.specific_course() }}</div>
+            <div>{{form.preserve_user_ids.label}}: {{form.preserve_user_ids() }}</div>
+            <div>{{ form.clist() }}</div>
+            <div>{{form.basecourse}}</div>
+            <button type="button" onclick="startExtract()">Start</button>
+        </form>
+        {% endif %}
+
     </div>
     <p><strong>Note: </strong>To create a datashop file for a named course you must be the instructor of that course.</p>
 
@@ -54,4 +73,8 @@
         </table>
     </div>
 </div>
+{% endblock %}
+
+{% block js %}
+<script src="/staticAssets/author/main.js"></script>
 {% endblock %}

@@ -180,24 +180,100 @@ function codeTask(classname) {
         });
 }
 
+function assignmentData(classname) {
+    fetch(`/author/dump/assignments/${classname}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            let kind = "logfiles";
+            fetch(`/author/dlsAvailable/${kind}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            })
+                .then((response) => response.json())
+                .then((res) => updateDlList(res, kind));
+        });
+}
+
+function getWithAssess() {
+    let withAssess = document.getElementById("with_assess");
+    if (withAssess) {
+        return withAssess.checked;
+    } else {
+        return false;
+    }
+}
+
+function getStartDate() {
+    let startDate = document.getElementById("start_date");
+    if (startDate) {
+        return startDate.value;
+    } else {
+        return "";
+    }
+}
+
+function getEndDate() {
+    let endDate = document.getElementById("end_date");
+    if (endDate) {
+        return endDate.value;
+    } else {
+        return "";
+    }
+}
+
+function getSampleSize() {
+    let sampleSize = document.getElementById("sample_size");
+    if (sampleSize) {
+        return sampleSize.value;
+    } else {
+        return "";
+    }
+}
+
+function getIncludeBasecourse() {
+    let includeBasecourse = document.getElementById("include_basecourse");
+    if (includeBasecourse) {
+        return includeBasecourse.checked;
+    } else {
+        return false;
+    }
+}
+
+function getPreserveUsernames() {
+    let preserveUsernames = document.getElementById("preserve_user_ids");
+    if (preserveUsernames) {
+        return preserveUsernames.checked;
+    } else {
+        return false;
+    }
+}
+
 // Gets data from the form in anonymize_data.html
 // This endpoint requires a valid login + author and/or researcher privileges
 function startExtract() {
     // Get / Validate Form fields
     let data = {};
     data.basecourse = document.getElementById("basecourse").value;
-    data.with_assess = document.getElementById("with_assess").checked;
-    data.start_date = document.getElementById("start_date").value;
-    data.end_date = document.getElementById("end_date").value;
-    data.sample_size = document.getElementById("sample_size").value;
-    data.include_basecourse =
-        document.getElementById("include_basecourse").checked;
-    data.specific_course = document.getElementById("specific_course").value;
-
-    if (!data.start_date || !data.end_date) {
-        alert("You must set a start/end date");
-        return;
+    let basecourse = data.basecourse;
+    data.with_assess = getWithAssess();
+    if (getStartDate()) {
+        data.start_date = getStartDate();
     }
+    if (getEndDate()) {
+        data.end_date = getEndDate();
+    }
+    data.sample_size = getSampleSize();
+    data.include_basecourse = getIncludeBasecourse();
+
+    data.specific_course = document.getElementById("specific_course").value;
+    data.preserve_user_ids = getPreserveUsernames();
 
     if (data.specific_course) {
         validCourses = document.getElementById("clist").value.split(",");
@@ -207,6 +283,7 @@ function startExtract() {
             );
             return;
         }
+        basecourse = data.specific_course;
     }
     fetch("/author/start_extract", {
         method: "POST",
@@ -217,9 +294,7 @@ function startExtract() {
     })
         .then((response) => response.json())
         .then((data) => {
-            taskId2Task[
-                data.task_id
-            ] = `Create Datashop for ${data.basecourse}`;
+            taskId2Task[data.task_id] = `Create Datashop for ${basecourse}`;
             getStatus(data.task_id);
         });
 }
@@ -267,8 +342,11 @@ function updateDlList(res, kind) {
     let dlList = document.getElementById("csv_files_available");
     let onPage = [];
     for (const y of dlList.children) {
-        var fname = y.querySelector(".logfilename").textContent;
-        onPage.push(fname);
+        var fname = y.querySelector(".logfilename");
+        if (fname) {
+            fname = fname.textContent;
+            onPage.push(fname);
+        }
     }
     for (f of res.ready_files) {
         if (onPage.indexOf(f) == -1) {
