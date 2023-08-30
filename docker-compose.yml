@@ -84,6 +84,7 @@ services:
         - JWT_SECRET=${JWT_SECRET}
         - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
         - ACADEMY_MODE=True
+        - USE_MASTER_AUTHOR=${USE_MASTER_AUTHOR:-False}
         - EMAIL_SENDER="smtp.gmail.com:587"
         - EMAIL_SERVER=${EMAIL_SERVER}
         - EMAIL_LOGIN=${EMAIL_LOGIN}

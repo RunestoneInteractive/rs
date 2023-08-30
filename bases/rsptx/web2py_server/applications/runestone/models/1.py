@@ -88,3 +88,5 @@ settings.bucket = "runestonefiles"
 settings.spaces_key = os.environ.get("SPACES_KEY", "")
 settings.spaces_secret = os.environ.get("SPACES_SECRET", "")
 settings.region = "nyc3"
+
+settings.use_master_author = os.environ.get("USE_MASTER_AUTHOR", False)
