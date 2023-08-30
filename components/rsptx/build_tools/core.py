@@ -692,9 +692,15 @@ def manifest_data_to_db(course_name, manifest_path):
     ).first()
     cid = res["id"]
 
-    # Right now these are the only two attributes we store in the table, if this
-    # changes we will need to be more careful about what we delete
-    sess.execute(course_attributes.delete().where(course_attributes.c.course_id == cid))
+    # Only delete latex_macros and markup_system if they are present. Leave other attributes alone.
+    sess.execute(
+        course_attributes.delete().where(
+            and_(
+                course_attributes.c.course_id == cid,
+                course_attributes.c.attr.in_(["latex_macros", "markup_system"]),
+            )
+        )
+    )
     ins = course_attributes.insert().values(
         course_id=cid, attr="latex_macros", value=latex.text
     )
