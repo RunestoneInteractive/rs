@@ -139,7 +139,7 @@ services:
       context: ./
       dockerfile: projects/nginx/Dockerfile
     #image: registry.digitalocean.com/runestone-registry/rs-nginx
-
+    image: ghcr.io/runestoneinteractive/rs-nginx
     restart: always
     ports:
       # ports are specified host:container
@@ -162,7 +162,7 @@ services:
     build: 
       context: ./projects/rsmanage
     #image: registry.digitalocean.com/runestone-registry/rs-rsmanage
-    
+    image: ghcr.io/runestoneinteractive/rs-rsmanage
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
