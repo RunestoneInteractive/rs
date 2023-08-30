@@ -261,6 +261,7 @@ function startExtract() {
     // Get / Validate Form fields
     let data = {};
     data.basecourse = document.getElementById("basecourse").value;
+    let basecourse = data.basecourse;
     data.with_assess = getWithAssess();
     if (getStartDate()) {
         data.start_date = getStartDate();
@@ -282,6 +283,7 @@ function startExtract() {
             );
             return;
         }
+        basecourse = data.specific_course;
     }
     fetch("/author/start_extract", {
         method: "POST",
@@ -292,9 +294,7 @@ function startExtract() {
     })
         .then((response) => response.json())
         .then((data) => {
-            taskId2Task[
-                data.task_id
-            ] = `Create Datashop for ${data.basecourse}`;
+            taskId2Task[data.task_id] = `Create Datashop for ${basecourse}`;
             getStatus(data.task_id);
         });
 }
@@ -342,8 +342,11 @@ function updateDlList(res, kind) {
     let dlList = document.getElementById("csv_files_available");
     let onPage = [];
     for (const y of dlList.children) {
-        var fname = y.querySelector(".logfilename").textContent;
-        onPage.push(fname);
+        var fname = y.querySelector(".logfilename");
+        if (fname) {
+            fname = fname.textContent;
+            onPage.push(fname);
+        }
     }
     for (f of res.ready_files) {
         if (onPage.indexOf(f) == -1) {
