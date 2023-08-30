@@ -708,9 +708,14 @@ def course_students():
         db.auth_user.id,
         orderby=db.auth_user.last_name | db.auth_user.first_name,
     )
+    instructors = db(db.course_instructor.course == auth.user.course_id).select()
+    iset = set()
+    for i in instructors:
+        iset.add(i.instructor)
+
     searchdict = OrderedDict()
     for row in cur_students:
-        if not verifyInstructorStatus(auth.user.course_id, row.id):
+        if not row.id not in iset:
             name = row.first_name + " " + row.last_name
             username = row.username
             searchdict[str(username)] = name
