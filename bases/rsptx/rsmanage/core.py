@@ -447,9 +447,7 @@ async def adduser(
             )
             res = await create_user(newUser)
             if not res:
-                click.echo(
-                    f"Failed to create user {line[0]} error {mess[res]}"
-                )
+                click.echo(f"Failed to create user {line[0]} error {mess[res]}")
                 exit(1)
             else:
                 exit(0)
@@ -605,11 +603,14 @@ async def addinstructor(config, username, course):
 
     # if needed insert a row into user_courses
     res = await fetch_courses_for_user(userid)
-    if not res:
+    needs_enrollment = True
+    for row in res:
+        if row.course_name == course:
+            print(f"{username} is already enrolled in {course}")
+            needs_enrollment = False
+    if needs_enrollment:
         await create_user_course_entry(userid, courseid)
         print(f"enrolled {username} in {course}")
-    else:
-        print(f"{username} is already enrolled in {course}")
 
     # if needed insert a row into course_instructor
     res = await fetch_instructor_courses(userid, courseid)
