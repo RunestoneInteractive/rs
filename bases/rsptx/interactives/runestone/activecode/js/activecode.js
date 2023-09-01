@@ -1385,7 +1385,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             killableFor: true,
             nonreadopen: true,
             //        python3: this.python3,
-            imageProxy: "http://image.runestone.academy:8080/320x",
+            imageProxy: "/ns/rsproxy/imageproxy",
             inputfunTakesPrompt: true,
             jsonpSites: ["https://itunes.apple.com"],
         });

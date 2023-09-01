@@ -49,6 +49,7 @@ multi-await = "^1.0.0"
 botocore = "^1.29.87"
 pyflakes = "^3.0.1"
 runestone = "^7.0.0"
+pillow = "^10.0.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"

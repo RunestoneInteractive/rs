@@ -62,6 +62,7 @@ from .routers import books
 from .routers import coach
 from .routers import course
 from .routers import rslogging
+from .routers import rsproxy
 from .routers import discuss
 from rsptx.auth.session import auth_manager
 from rsptx.exceptions.core import add_exception_handlers
@@ -110,6 +111,7 @@ app.include_router(auth.router)
 app.include_router(discuss.router)
 app.include_router(coach.router)
 app.include_router(course.router)
+app.include_router(rsproxy.router)
 
 # We can mount various "apps" with mount.  Anything that gets to this server with /staticAssets
 # will serve staticfiles - StaticFiles class implements the same interface as a FastAPI app.
