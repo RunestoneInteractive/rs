@@ -86,7 +86,7 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     rm -rf /var/lib/apt/lists/*
 
 # Fix catch.hpp (use the one from catch2)
-RUN rm -f /usr/include/catch.hpp && ln -s catch2/catch.hpp /usr/include/catch.hpp
+RUN rm -f /usr/include/catch.hpp && ln -s /usr/include/catch2/catch.hpp /usr/include/catch.hpp
 
 # Expose apache
 EXPOSE 80
