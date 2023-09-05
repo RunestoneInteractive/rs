@@ -48,6 +48,8 @@ boto3 = "^1.0.0"
 multi-await = "^1.0.0"
 botocore = "^1.29.87"
 pyflakes = "^3.0.1"
+pandas = "^2.1.0"
+psycopg2-binary = "^2.9.7"
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"

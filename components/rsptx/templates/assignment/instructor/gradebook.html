@@ -1,0 +1,38 @@
+{% extends "_base.html" %} 
+{% block title %}
+Choose Assignment
+{% endblock %}
+{% block css %}
+
+<link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
+<link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet">
+
+{% endblock %} 
+{% block content %}
+{{table_html|safe}}
+
+<button id="export" data-export="export">Download Gradebook</button>
+<script src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="/staticAssets/js/jquery.tabletoCSV.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#table').DataTable({
+            // paging: false,    
+            // scrollY: 400,
+        });
+    });
+
+    $(function () {
+        $("#export").click(function () {
+            $("#table").tableToCSV();
+        });
+    });
+
+</script>
+
+{% endblock %} 
+
+{% block js %}
+<script src="/staticAssets/assignment/student.js"></script>
+{% endblock %}
