@@ -74,7 +74,7 @@ def visit_parsons_xml(self, node):
     if node["runestone_options"]["adaptive"]:
         node["runestone_options"]["adaptive"] = "adaptive='yes'"
 
-    if not node["runestone_options"]["noindent"]:
+    if node["runestone_options"]["noindent"]:
         node["runestone_options"]["noindent"] = "indentation='show'"
     else:
         node["runestone_options"]["noindent"] = "indentation='hide'"
