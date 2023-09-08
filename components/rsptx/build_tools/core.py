@@ -686,6 +686,13 @@ def manifest_data_to_db(course_name, manifest_path):
 
     latex = root.find("./latex-macros")
     rslogger.info("Setting attributes for this base course")
+    ww_meta = root.find("./webwork-version")
+    if ww_meta is not None:
+        ww_major = ww_meta.attrib["major"]
+        ww_minor = ww_meta.attrib["minor"]
+    else:
+        ww_major = None
+        ww_minor = None
 
     res = sess.execute(
         f"select * from courses where course_name ='{course_name}'"
@@ -693,14 +700,26 @@ def manifest_data_to_db(course_name, manifest_path):
     cid = res["id"]
 
     # Only delete latex_macros and markup_system if they are present. Leave other attributes alone.
+    to_delete = ["latex_macros", "markup_system"]
+    if ww_major:
+        to_delete.append("webwork_js_version")
+        to_delete.append("ptx_js_version")
     sess.execute(
         course_attributes.delete().where(
             and_(
                 course_attributes.c.course_id == cid,
-                course_attributes.c.attr.in_(["latex_macros", "markup_system"]),
+                course_attributes.c.attr.in_(to_delete),
             )
         )
     )
+    if ww_major:
+        ins = course_attributes.insert().values(
+            course_id=cid, attr="webwork_js_version", value=f"{ww_major}.{ww_minor}"
+        )
+        ins = course_attributes.insert().values(
+            course_id=cid, attr="ptx_js_version", value="0.3"
+        )
+
     ins = course_attributes.insert().values(
         course_id=cid, attr="latex_macros", value=latex.text
     )
