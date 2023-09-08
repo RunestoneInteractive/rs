@@ -333,7 +333,7 @@ export default class LiveCode extends ActiveCode {
                     result.stdout,
                     this.divid
                 );
-                $(odiv).html(this.parsedOutput.stdout);
+                $(odiv).html(escapeHtml(this.parsedOutput.stdout));
                 if (this.suffix) {
                     if (this.parsedOutput.pct === undefined) {
                         this.parsedOutput.pct =
@@ -356,7 +356,7 @@ export default class LiveCode extends ActiveCode {
                 }
                 break;
             case 13: // time limit
-                $(odiv).html(result.stdout.replace(/\n/g, "<br>"));
+                $(odiv).html(escapeHtml(result.stdout.replace(/\n/g, "<br>")));
                 this.addJobeErrorMessage(
                     $.i18n("msg_activecode_time_limit_exc")
                 );
