@@ -45,6 +45,7 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     acl \
     apache2 \
     build-essential \
+    catch2 \
     fp-compiler \
     git \
     libapache2-mod-php \
@@ -83,6 +84,9 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     apt-get -y autoremove --purge && \
     apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Fix catch.hpp (use the one from catch2)
+RUN rm -f /usr/include/catch.hpp && ln -s /usr/include/catch2/catch.hpp /usr/include/catch.hpp
 
 # Expose apache
 EXPOSE 80
