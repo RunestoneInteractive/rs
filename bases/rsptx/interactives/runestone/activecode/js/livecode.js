@@ -333,7 +333,7 @@ export default class LiveCode extends ActiveCode {
                     result.stdout,
                     this.divid
                 );
-                $(odiv).html(this.parsedOutput.stdout);
+                $(odiv).html(escapeHtml(this.parsedOutput.stdout));
                 if (this.suffix) {
                     if (this.parsedOutput.pct === undefined) {
                         this.parsedOutput.pct =
@@ -356,7 +356,7 @@ export default class LiveCode extends ActiveCode {
                 }
                 break;
             case 13: // time limit
-                $(odiv).html(result.stdout.replace(/\n/g, "<br>"));
+                $(odiv).html(escapeHtml(result.stdout.replace(/\n/g, "<br>")));
                 this.addJobeErrorMessage(
                     $.i18n("msg_activecode_time_limit_exc")
                 );
@@ -397,7 +397,7 @@ export default class LiveCode extends ActiveCode {
         eContainer.id = this.divid + "_errinfo";
         eContainer.appendChild(errHead[0]);
         var errText = eContainer.appendChild(document.createElement("pre"));
-        errText.innerHTML = err;
+        errText.innerHTML = escapeHtml(err);
     }
     /**
      * Checks to see if file is on server
@@ -659,5 +659,15 @@ function unescapeHtml(safe) {
             .replace(/&gt;/g, ">")
             .replace(/&quot;/g, '"')
             .replace(/&#x27;/g, "'");
+    }
+}
+function escapeHtml(str) {
+    if (str) {
+	return str
+	    .replace(/&/g, '&amp;')
+	    .replace(/</g, '&lt;')
+	    .replace(/>/g, '&gt;')
+	    .replace(/'/g, '&#x27;')
+	    .replace(/"/g, '&quot;');
     }
 }
