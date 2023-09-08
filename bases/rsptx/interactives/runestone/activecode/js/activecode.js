@@ -1389,6 +1389,8 @@ Yet another is that there is an internal error.  The internal error message is: 
             inputfunTakesPrompt: true,
             jsonpSites: ["https://itunes.apple.com"],
         });
+        // Sk.JoBase = document.createElement("canvas");
+        // JoBase - currently broken - needs this canvas element
         Sk.divid = this.divid;
         Sk.logResults = logResults;
         if (this.graderactive && this.outerDiv.closest(".loading")) {
