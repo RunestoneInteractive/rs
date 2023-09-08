@@ -397,7 +397,7 @@ export default class LiveCode extends ActiveCode {
         eContainer.id = this.divid + "_errinfo";
         eContainer.appendChild(errHead[0]);
         var errText = eContainer.appendChild(document.createElement("pre"));
-        errText.innerHTML = err;
+        errText.innerHTML = escapeHtml(err);
     }
     /**
      * Checks to see if file is on server
@@ -659,5 +659,15 @@ function unescapeHtml(safe) {
             .replace(/&gt;/g, ">")
             .replace(/&quot;/g, '"')
             .replace(/&#x27;/g, "'");
+    }
+}
+function escapeHtml(str) {
+    if (str) {
+	return str
+	    .replace(/&/g, '&amp;')
+	    .replace(/</g, '&lt;')
+	    .replace(/>/g, '&gt;')
+	    .replace(/'/g, '&#x27;')
+	    .replace(/"/g, '&quot;');
     }
 }
