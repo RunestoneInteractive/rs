@@ -333,7 +333,7 @@ export default class LiveCode extends ActiveCode {
                     result.stdout,
                     this.divid
                 );
-                $(odiv).html(escapeHtml(this.parsedOutput.stdout));
+                $(odiv).html(this.parsedOutput.stdout);
                 if (this.suffix) {
                     if (this.parsedOutput.pct === undefined) {
                         this.parsedOutput.pct =
