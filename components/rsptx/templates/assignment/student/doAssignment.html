@@ -117,7 +117,11 @@ Do Assignment
                                 <h5 style='text-align:center;'>Not yet graded</h5>
                                 </div>
                             {% endif %}
+                            {% if q['question_type'] == 'webwork' %}
+                            <div class='oneq full-width runestone-sphinx ptx-content' id='{{ loop.index }}'>
+                            {% else %}
                             <div class='oneq full-width runestone-sphinx' id='{{ loop.index }}'>
+                            {% endif %}
                                 {{ q.htmlsrc|safe }}
                             </div>
                             <div class="oneq" style="width: 100%; text-align: center">

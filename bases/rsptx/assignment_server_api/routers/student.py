@@ -283,6 +283,7 @@ async def doAssignment(
             chapter_name=chap_name,
             subchapter_name=subchap_name,
             name=q.Question.name,
+            question_type=q.Question.question_type,
             activities_required=q.AssignmentQuestion.activities_required,
         )
         if q.AssignmentQuestion.reading_assignment:
