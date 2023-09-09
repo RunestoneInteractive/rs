@@ -70,8 +70,6 @@ export default class JUnitTestParser {
         }
         output = output.replace("Starting Tests", "");
         output = output.replace("Ending Tests", "");
-        output = output.replace(/&/g, "&amp;");
-        output = output.replace(/</g, "&lt;");
         output = output.replace(/\n/g, "<br>");
         output = output.replace(/(<br>)+/g, "<br>");
         output = output.replaceAll("&lt;img", "<img");
