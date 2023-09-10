@@ -44,7 +44,6 @@ def index():
     consumer = None
     masterapp = None
     userinfo = None
-
     user_id = request.vars.get("user_id", None)
     last_name = request.vars.get("lis_person_name_family", None)
     first_name = request.vars.get("lis_person_name_given", None)
@@ -283,6 +282,21 @@ def index():
 
     elif practice:
         _launch_practice(outcome_url, result_source_did, user, course_id)
+
+    redirect_url = request.vars.get("redirect", None)
+    if redirect_url:
+        #  This should be in a model, but web2py is going away, so we will do this for now.
+        if "LOAD_BALANCER_HOST" not in os.environ or os.environ["LOAD_BALANCER_HOST"] == "":
+            base_url = f"https://{os.environ.get('RUNESTONE_HOST')}"
+        else:
+            base_url = f"https://{os.environ['LOAD_BALANCER_HOST']}"
+        if type(redirect_url) == list:
+            redirect_url = redirect_url[0]  #web2py does strange things?
+        if redirect_url.startswith('/'):
+            raise ValueError('Redirect URL should not start with /')
+        if redirect_url.startswith('http'):
+            raise ValueError('Redirect URL should not start with http')
+        redirect(f'{base_url}/{redirect_url}')
 
     # else just redirect to the book index
     redirect(get_course_url("index.html"))
