@@ -72,6 +72,7 @@ export default class JUnitTestParser {
         output = output.replace("Ending Tests", "");
         output = output.replace(/\n/g, "<br>");
         output = output.replace(/(<br>)+/g, "<br>");
+        // do not mess up this next line, it is THE hack that makes turtle graphics and images work
         output = output.replaceAll("&lt;img", "<img");
         this.stdout = output;
     }
