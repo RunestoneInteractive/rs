@@ -1,6 +1,8 @@
 # pull official base image
 FROM python:3.10-bullseye
 
+LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
+
 # This is the name of the wheel that we build using `poetry build-project`
 ARG wheel=w2p_login_assign_grade-7.0.0-py3-none-any.whl
 

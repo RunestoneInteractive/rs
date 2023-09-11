@@ -1,6 +1,8 @@
 # pull official base image
 FROM python:3.10-bullseye
 
+LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
+
 # This is the name of the wheel that we build using `poetry build-project`
 ARG wheel=assignment_server-0.1.0-py3-none-any.whl
 

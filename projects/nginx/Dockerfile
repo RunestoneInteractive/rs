@@ -1,6 +1,7 @@
 FROM nginx
 
 # The context for this Dockerfile is the root of the runestone repo
+LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
 
 COPY projects/nginx/runestone /etc/nginx/conf.d/default.conf
 
