@@ -39,7 +39,7 @@ from datetime import datetime
 from typing import Dict, Optional, Any
 from multi_await import multi_await  # type: ignore
 
-import aioredis
+from redis import asyncio as aioredis
 
 # Local application imports
 # -------------------------

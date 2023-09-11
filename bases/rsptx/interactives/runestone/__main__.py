@@ -44,7 +44,9 @@ def cli(version):
 
 @cli.command()
 def init():
-    template_base_dir = importlib.resources.path("runestone.common", "project_template")
+    template_base_dir = pathlib.Path(
+        importlib.resources.files("runestone.common").joinpath("project_template")
+    ).absolute()
     config_stuff = importlib.resources.read_text(
         "runestone.common.project_template", "conf.tmpl"
     )
@@ -420,7 +422,9 @@ def update():
     you can merge your changes (in _templates.bak) after you run this command.
     """
     os.chdir(findProjectRoot())
-    template_base_dir = importlib.resources.path("runestone.common", "project_template")
+    template_base_dir = pathlib.Path(
+        importlib.resources.files("runestone.common").joinpath("project_template")
+    ).absolute()
     print("This will update all files in the _templates folder.")
     print(
         "The old _templates folder will be in _templates.bak so you can merge manually after you update"
