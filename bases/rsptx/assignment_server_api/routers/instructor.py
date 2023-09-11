@@ -65,7 +65,7 @@ async def get_assignments(
 
     students = pd.read_sql(
         """
-        select auth_user.id, username, first_name, last_name from auth_user join user_courses on auth_user.id = user_id 
+        select auth_user.id, username, first_name, last_name, email from auth_user join user_courses on auth_user.id = user_id 
         join courses on user_courses.course_id = courses.id 
         where courses.id = %s order by last_name, first_name
         """,
@@ -80,6 +80,7 @@ async def get_assignments(
     sname = students.full_name.to_dict()
     sfirst = students.first_name.to_dict()
     slast = students.last_name.to_dict()
+    semail = students.email.to_dict()
     pt = df.pivot(index="sid", columns="assignment", values="score").rename(
         columns=aname
     )
@@ -87,15 +88,24 @@ async def get_assignments(
     cols = pt.columns.to_list()
     pt["first_name"] = pt.index.map(sfirst)
     pt["last_name"] = pt.index.map(slast)
+    pt["email"] = pt.index.map(semail)
     pt = pt.sort_values(by=["last_name", "first_name"])
-    pt = pt[["first_name", "last_name"] + cols]
+    pt = pt[["first_name", "last_name", "email"] + cols]
+    pt = pt.reset_index()
+    pt = pt.drop(columns=["sid"], axis=1)
+    pt.columns.name = None
 
     templates = Jinja2Templates(directory=template_folder)
 
     return templates.TemplateResponse(
         "assignment/instructor/gradebook.html",
         {
-            "table_html": pt.to_html(table_id="table", index=False, na_rep=""),
+            "table_html": pt.to_html(
+                table_id="table",
+                columns=["first_name", "last_name", "email"] + cols,
+                index=False,
+                na_rep="",
+            ),
             "course": course,
             "user": user.username,
             "request": request,
