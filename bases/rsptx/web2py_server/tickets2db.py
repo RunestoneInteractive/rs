@@ -85,7 +85,11 @@ while 1:
         except Exception as e:
             print(f"Error processing {file}")
             print(f"could not insert traceback {e}")
-        sess.commit()
+        try:
+            sess.commit()
+        except:
+            print("could not commit traceback")
+            continue
         try:
             shutil.move(filename, tickets_path)
             # change the permissions of filename to wxr-xr-x
