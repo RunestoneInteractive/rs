@@ -97,6 +97,12 @@ async def get_assessment_results(
     if not row or row.id is None:  # type: ignore
         return make_json_response(detail="no data")
     ret = row.dict()
+    rslogger.debug(f"row is {ret}")
+    if "timestamp" in ret:
+        ret["timestamp"] = (
+            ret["timestamp"].replace(tzinfo=datetime.timezone.utc).isoformat()
+        )
+        rslogger.debug(f"timestamp is {ret['timestamp']}")
 
     # Do server-side grading if needed, which restores the answer and feedback.
     if feedback := await is_server_feedback(request_data.div_id, request_data.course):
