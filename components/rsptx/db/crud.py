@@ -1765,7 +1765,7 @@ async def fetch_library_book(book):
         return ret
 
 
-async def update_library_book(bookid, vals):
+async def update_library_book(bookid: int, vals: dict):
     """
     Update the Library entry with the given bookid and values.
 

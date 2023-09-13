@@ -46,6 +46,7 @@ from rsptx.db.crud import (
     fetch_course_instructors,
     fetch_group,
     fetch_instructor_courses,
+    fetch_library_book,
     fetch_users_for_course,
     fetch_membership,
     fetch_user,
@@ -55,6 +56,7 @@ from rsptx.db.crud import (
     is_author,
     is_editor,
     update_user,
+    update_library_book,
 )
 from rsptx.db.models import CoursesValidator, AuthUserValidator
 from rsptx.db.async_session import init_models, term_models
@@ -91,7 +93,7 @@ BUILDDIR = f"{APP_PATH}/build"
 PRIVATEDIR = f"{APP_PATH}/private"
 
 
-@click.group(chain=True)
+@click.group()
 @click.option("--verbose", is_flag=True, help="More verbose output")
 @click.option("--if_clean", is_flag=True, help="only run if database is uninitialized")
 @pass_config
@@ -911,6 +913,7 @@ def peergroups(course):
 @click.option("--github", help="url of book on github", default="")
 @pass_config
 async def addbookauthor(config, book, author, github):
+    """Add a user with author permissions for a book"""
     book = book or click.prompt("document-id or basecourse ")
     author = author or click.prompt("username of author ")
 
@@ -959,6 +962,59 @@ async def addbookauthor(config, book, author, github):
 
     if not await is_author(a_row.id):
         await create_membership(auth_group_id, a_row.id)
+
+
+# command group for mangaging the library table
+
+
+@cli.group()
+@click.pass_context
+def library(ctx):
+    """subcommands for managing the library table"""
+    pass
+
+
+@library.command("visible")
+@click.pass_context
+@click.argument("book")
+@click.option("--show/--hide", default=True, help="show the book in the library")
+async def library_visible(ctx, book, show):
+    """
+    Show or hide the book on the library page
+    """
+    print(f"Setting the is_visible flag to {show} for {book} in the library")
+    bookrec = await fetch_library_book(book)
+    await update_library_book(bookrec.id, dict(is_visible=show))
+
+
+@library.command("forclass")
+@click.pass_context
+@click.argument("book")
+@click.option(
+    "--show/--hide", default=True, help="show the book in the custom course page"
+)
+async def library_forclass(ctx, book, show):
+    """
+    Show or hide the book in the course creation page
+    """
+    print(f"Setting the for_classes flag to {show} for {book} in the library")
+    bookrec = await fetch_library_book(book)
+    await update_library_book(bookrec.id, dict(for_classes=show))
+
+
+@library.command("show")
+@click.pass_context
+@click.argument("book")
+async def library_show(ctx, book):
+    """Show all data for this book in the library"""
+    bookrec = await fetch_library_book(book)
+    click.echo(f"Title: {bookrec.title}")
+    click.echo(f"Authors: {bookrec.authors}")
+    click.echo(f"shelf sections: {bookrec.shelf_section}")
+    click.echo(f"description: {bookrec.description}")
+    click.echo("-----------------")
+    click.echo(f"for_classes: {bookrec.for_classes}")
+    click.echo(f"is_visible: {bookrec.is_visible}")
 
 
 if __name__ == "__main__":
