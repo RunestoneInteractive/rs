@@ -293,10 +293,70 @@ If you do not want to install postgresql on your host, or maybe you are just loo
 1. Before you build the rest of the services run the command ``docker compose -f docker-compose.yml -f author.compose.yml -f db.compose.yml up -d db``  This will start just the database service in the set of composed services.   It will also use the default settings for ``POSTGRES_PASSWORD`` (runestone), ``POSTGRES_USER`` (runestone), and ``POSTGRES_DB`` (runestone_dev).  You should change these if you are running a production server, but if you are just getting set up for development for the first time just leave them alone.
 2. Run ``docker compose run rsmanage rsmanage initdb`` This will build the image in docker for the rsmanage command and then run it to create the database and initialize it with the tables and data that you need.  You can use ``docker compose run rsmanage rsmanage ...`` to run any of the rsmanage commands in the composed app.   If you prefer you can install ``rsmanage`` on the host and run it there, but you will need to be mindful of your environment variables related to the database.
 3. You will also need to have the minimal set of environment variables set up.  See the section below.  If you want to use the defaults you can set ``SERVER_CONFIG`` to ``development`` and ``DEV_DBURL`` to ``postgresql://runestone:runestone@localhost:2345/runestone_dev``  rsmanage will tell you if you are missing any environment variables.
-4. You can run ``poetry install --with=dev`` from the top level directory to get a working virtual environment with the ``rsmanage`` command installed.  Run ``poetry shell`` to enable the newly created virtual environment.  Then try to run ``rsmanage`` You may get some errors about missing database libraries, this is normal, but you will have to read the error messages and install the dependencies if you want to run ``rsmanaage`` directly.
+4. You can run ``poetry install --with=dev`` from the top level directory to get a working virtual environment with the ``rsmanage`` command installed.  Run ``poetry shell`` to enable the newly created virtual environment.  Then try to run ``rsmanage`` You may get some errors about missing database libraries, this is normal, but you will have to read the error messages and install the dependencies if you want to run ``rsmanage`` directly.
 
 At this point your database is ready
 
+Adding a Book
+-------------
+
+Now that you have done all the work to get your servers configured, you are also going to want one or more books for testing.  Lets add a book to your setup.
+
+1. Go to your ``$BOOK_PATH`` folder and clone a book.  Lets take our simple overview book as an example. run the command ``git clone https://github.com/RunestoneInteractive.git``  You should see a new folder called ``overview``
+2. The over view book is already in the database, so the only thing we need to do is build it.  ``cd overview`` and then run ``runestone build --all deploy``  If the command fails, make sure you have your virtual environment activated.  You can do this by running ``poetry shell`` from the top level directory.  
+
+This builds the book and deploys it to ``overview/published/overview``  This is the location that the Runestone server will look for it.  Important:  The book name and the folder name must match.  So if you want to build a book called ``mybook`` then you need to clone it into a folder called ``mybook`` and then build it into ``mybook/published/mybook``.
+
+The overview book is an easy example because the database already contains a course called overview by default.  Lets look at a more complicated scenario.  Lets say you want to build the active calculus book, and that you are going to want to use your server to support your department's calculus courses.
+
+1. Clone the book into your ``$BOOK_PATH`` folder.  ``git clone https://github.com/active-calculus/active-calculus-single-mbx.git ac-single``
+2. We need to add ac-single to the database of known courses with the rsmanage command.
+
+.. code-block:: bash
+
+   $ rsmanage addcourse
+   Loaded .env file from /Users/bmiller/rs
+   You have defined docker compose specific environment variables
+   Using configuration: development
+   Using database: runestone_dev
+   Course Name: ac-single
+   Base Course: ac-single
+   Your institution: Runestone Academy
+   Require users to log in [Y/n]: n
+   Enable pair programming support [y/N]: n
+   Course added to DB successfully
+   $ 
+
+3. Now we can build the book using the rsmanage command.  ``rsmanage build --ptx ac-single`` This will build the book and deploy it to ``ac-single/published/ac-single``  The Active Calculus book should now be visible in the library.
+4. Notice that we used ``ac-single`` for the course name as well as the base course name.  You **should not** use this course for your own courses.  Instead you should use the runestone web interface to create a custom course from the ``ac-single`` base course.  But first you will need to make the book available to the web interface.  You do this but setting a flag in the library table of the database.  For now you need to do this by hand.  This really should be another rsmanage subcommand but instead run ``psql $DEV_DBURL``
+
+.. code-block:: sql
+   
+      runetone_dev=# update library set for_classes = 'T' where basecourse = 'ac-single';
+      UPDATE 1      
+
+While you have sql started you can list all of the predefined books with the command
+
+.. code-block:: sql
+
+   runestone_dev=# select course_name, term_start_date, base_course from courses order by;
+   course_name  | term_start_date | base_course
+   --------------+-----------------+--------------
+   boguscourse  | 2000-01-01      | boguscourse
+   ac1          | 2000-01-01      | ac1
+   cppds        | 2000-01-01      | cppds
+   cppforpython | 2000-01-01      | cppforpython
+   csawesome    | 2000-01-01      | csawesome
+   csjava       | 2000-01-01      | csjava
+   fopp         | 2000-01-01      | fopp
+   httlads      | 2000-01-01      | httlads
+   java4python  | 2000-01-01      | java4python
+   JS4Python    | 2000-01-01      | JS4Python
+   ...
+
+You can quit the psql command line interface by typing ``\q``.
+
+Now if you go to the create a course page Active Calculus will be a choice for you to use.
 
 
 Getting a Server Started 
