@@ -330,31 +330,27 @@ The overview book is an easy example because the database already contains a cou
 3. Now we can build the book using the rsmanage command.  ``rsmanage build --ptx ac-single`` This will build the book and deploy it to ``ac-single/published/ac-single``  The Active Calculus book should now be visible in the library.
 4. Notice that we used ``ac-single`` for the course name as well as the base course name.  You **should not** use this course for your own courses.  Instead you should use the runestone web interface to create a custom course from the ``ac-single`` base course.  But first you will need to make the book available to the web interface.  You do this but setting a flag in the library table of the database.  For now you need to do this by hand.  This really should be another rsmanage subcommand but instead run ``psql $DEV_DBURL``
 
-.. code-block:: sql
+.. code-block:: bash
    
-      runetone_dev=# update library set for_classes = 'T' where basecourse = 'ac-single';
-      UPDATE 1      
+      $ rsmanage library forclass --show
 
-While you have sql started you can list all of the predefined books with the command
+You can show the main library settings for any book with ``rsmanage library show document-id``  You can also hide/show books in the library with ``library visible --show/hide`` 
 
-.. code-block:: sql
+.. code-block:: bash
 
-   runestone_dev=# select course_name, term_start_date, base_course from courses order by;
-   course_name  | term_start_date | base_course
-   --------------+-----------------+--------------
-   boguscourse  | 2000-01-01      | boguscourse
-   ac1          | 2000-01-01      | ac1
-   cppds        | 2000-01-01      | cppds
-   cppforpython | 2000-01-01      | cppforpython
-   csawesome    | 2000-01-01      | csawesome
-   csjava       | 2000-01-01      | csjava
-   fopp         | 2000-01-01      | fopp
-   httlads      | 2000-01-01      | httlads
-   java4python  | 2000-01-01      | java4python
-   JS4Python    | 2000-01-01      | JS4Python
-   ...
-
-You can quit the psql command line interface by typing ``\q``.
+   rsmanage library show ac-single                                                                                       ─╯
+   INFO - 2023-09-13 14:10:52,417 - Settings - Error path is /Users/bmiller/Runestone/books/tickets
+   Loaded .env file
+   You have defined docker compose specific environment variables
+   Using configuration: development
+   Using database: runestone_dev
+   Title: Active Calculus
+   Authors: Matt Boelkins
+   shelf sections: Mathematics
+   description: Active Calculus Single Variable supports an active learning approach in the first two semesters of calculus. Every section of Active Calculus Single Variable offers engaging activities for students to complete before and during class; additional exercises that challenge students to connect and assimilate core concepts; interactive WeBWorK exercises; opportunities for students to develop conceptual understanding and improve their skills at communicating mathematical idea.  The text is free and open-source, available in HTML, PDF, and print formats.  Ancillary materials for instructors are also available.
+   -----------------
+   for_classes: True
+   is_visible: True
 
 Now if you go to the create a course page Active Calculus will be a choice for you to use.
 
