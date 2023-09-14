@@ -391,7 +391,7 @@ To run a project, for example the author server main web app:
    poetry shell
    uvicorn rsptx.author_server_api.main:app --reload
 
-The top level docker-compose.yml file combines all of the projects
+Better yet, I have added a simple script called ``dstart`` just give it the name of the service you want to run and it will start it up for you.  It is also a simple place to look if you want to see the command to start up a particular server.
 
 Each project has a Dockerfile for building an image. These images should
 be push-able to our docker container registry and or the public docker
