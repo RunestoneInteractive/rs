@@ -36,7 +36,7 @@ from fastapi import APIRouter, Cookie, Request, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from jinja2.exceptions import TemplateNotFound
-from pydantic import constr
+from pydantic import StringConstraints
 
 # Local application imports
 # -------------------------
@@ -57,6 +57,7 @@ from rsptx.db.models import UseinfoValidation
 from rsptx.auth.session import is_instructor
 from ..localconfig import local_settings
 from rsptx.templates import template_folder
+from typing_extensions import Annotated
 
 # .. _APIRouter config:
 #
@@ -183,8 +184,8 @@ async def get_jlite(course: str, filepath: str):
 )
 async def serve_page(
     request: Request,
-    course_name: constr(max_length=512),  # type: ignore
-    pagepath: constr(max_length=512),  # type: ignore
+    course_name: Annotated[str, StringConstraints(max_length=512)],  # type: ignore
+    pagepath: Annotated[str, StringConstraints(max_length=512)],  # type: ignore
     RS_info: Optional[str] = Cookie(None),
     mode: Optional[str] = None,
 ):

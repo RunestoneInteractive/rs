@@ -32,7 +32,7 @@ from typing import Dict, Type
 
 # Third-party imports
 # -------------------
-from pydantic import validator
+from pydantic import field_validator
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -412,7 +412,8 @@ BaseAuthUserValidator = sqlalchemy_to_pydantic(AuthUser)
 
 
 class AuthUserValidator(BaseAuthUserValidator):  # type: ignore
-    @validator("username")
+    @field_validator("username")
+    @classmethod
     def username_clear_of_css_characters(cls, v):
         if re.search(r"""[!"#$%&'()*+,./@:;<=>?[\]^`{|}~ ]""", v):
             pass

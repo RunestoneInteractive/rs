@@ -18,7 +18,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic.error_wrappers import ValidationError
+from pydantic import ValidationError
 
 # Local application imports
 # -------------------------

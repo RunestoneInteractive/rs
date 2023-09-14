@@ -6,14 +6,14 @@ authors = ['Brad Miller <bonelake@mac.com>']
 license = ""
 
 packages = [
-    {include = "rsptx/db", from = "../../components"},
-    {include = "rsptx/validation", from = "../../components"},
-    {include = "rsptx/response_helpers", from = "../../components"},
-    {include = "rsptx/configuration", from = "../../components"},
-    {include = "rsptx/build_tools", from = "../../components"},
-    {include = "rsptx/cl_utils", from = "../../components"},
-    {include = "rsptx/logging", from = "../../components"},
-    {include = "rsptx/rsmanage", from = "../../bases"},
+    { include = "rsptx/db", from = "../../components" },
+    { include = "rsptx/validation", from = "../../components" },
+    { include = "rsptx/response_helpers", from = "../../components" },
+    { include = "rsptx/configuration", from = "../../components" },
+    { include = "rsptx/build_tools", from = "../../components" },
+    { include = "rsptx/cl_utils", from = "../../components" },
+    { include = "rsptx/logging", from = "../../components" },
+    { include = "rsptx/rsmanage", from = "../../bases" },
 ]
 
 [tool.poetry.dependencies]
@@ -24,12 +24,12 @@ pgcli = "^3.5.0"
 sqlalchemy = "^1.4.0"
 psycopg2-binary = "^2.9.6"
 anyio = "^3.6.2"
-pydantic = {version = "^1.10.7", extras = ["dotenv"]}
-asyncpg = "^0.27.0"
+pydantic = { version = "^2.0.0", extras = ["dotenv"] }
+asyncpg = "^0.28.0"
 greenlet = "^2.0.2"
 pyhumps = "^3.8.0"
-fastapi = "^0.95.0"
-pydal = "^20221110.1"
+fastapi = "^0.103.0"
+pydal = "^20230521.1"
 myst-parser = "^1.0.0"
 sphinx-reredirects = "^0.1.2"
 lxml = "^4.9.2"
@@ -37,9 +37,10 @@ paver = "^1.3.4"
 sphinxcontrib-paverutils = "^1.17.0"
 runestone = "^7.0.0"
 python-dotenv = "^1.0.0"
+pydantic-settings = "^2.0.3"
 
 [tool.poetry.group.dev.dependencies]
-runestone = {path = "../interactives", develop=true}
+runestone = { path = "../interactives", develop = true }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
