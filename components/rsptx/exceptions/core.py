@@ -7,7 +7,7 @@ import os
 from fastapi import Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from pydantic.error_wrappers import ValidationError
+from pydantic import ValidationError
 
 
 from rsptx.auth.session import auth_manager

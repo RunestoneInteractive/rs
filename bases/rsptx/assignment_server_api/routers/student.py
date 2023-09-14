@@ -110,7 +110,7 @@ class UpdateStatusRequest(BaseModel):
     """
 
     assignment_id: int
-    new_state: Optional[str]
+    new_state: Optional[str] = None
 
 
 @router.post("/update_submit")

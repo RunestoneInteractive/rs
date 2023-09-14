@@ -116,13 +116,14 @@ myst-parser = "^1.0.0"
 # Development dependencies
 # ========================
 python-dotenv = "^1.0.0"
-pydantic = "<2.0"
-fastapi = "0.95.2"
+pydantic = "^2.0.0"
+fastapi = "^0.103.0"
 asyncpg = "^0.28.0"
 greenlet = "^2.0.2"
 dateutils = "^0.6.12"
 pyhumps = "^3.8.0"
 pydal = "^20230521.1"
+pydantic-settings = "^2.0.3"
 [tool.poetry.dev-dependencies]
 selenium = ">=2.53.6, <4.0.0"
 pyvirtualdisplay = "~3"

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import importlib.resources
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 #with importlib.resources.path("rsptx.book_server_api", "") as path:
 #    bs_path = Path(path)

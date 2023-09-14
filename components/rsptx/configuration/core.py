@@ -20,13 +20,10 @@ from functools import lru_cache
 import os
 from pathlib import Path
 
-# Third-party imports
-# -------------------
-from pydantic import BaseSettings
-
 # Local application imports
 # -------------------------
 from rsptx.logging import rslogger
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Settings
 # ========
@@ -56,9 +53,9 @@ class Settings(BaseSettings):
     committing any data you want to keep private.
     """
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="allow"
+    )
 
     google_ga: str = ""
 
@@ -127,10 +124,10 @@ class Settings(BaseSettings):
             raise RuntimeError(f"Unknown database type; URL is {dburl}.")
 
     # Setting db_echo to True makes for a LOT of sqlalchemy output - it gives you the SQL for every query!
-    db_echo = False
+    db_echo: bool = False
 
     # The docker-compose.yml file will set the REDIS_URI environment variable
-    redis_uri = "redis://localhost:6379/0"
+    redis_uri: str = "redis://localhost:6379/0"
 
     # Select normal mode or a high-stakes assessment mode (for administering a examination). In this mode, answers to supported question types are not shown.
     is_exam: bool = False
@@ -187,10 +184,10 @@ class Settings(BaseSettings):
 
     # needed for using Spaces / AWS S3 for file uploads
     # see
-    spaces_key = "key"
-    spaces_secret = "secret"
-    region = "nyc3"  # this is the DO data center or AWS region
-    bucket = "runestonefiles"
+    spaces_key: str = "key"
+    spaces_secret: str = "secret"
+    region: str = "nyc3"  # this is the DO data center or AWS region
+    bucket: str = "runestonefiles"
 
     log_level: str = "DEBUG"
 

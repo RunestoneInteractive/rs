@@ -16,8 +16,9 @@ from typing import Container, Optional, Type, Dict, Tuple, Any, Union
 
 # Third-party imports
 # -------------------
-from pydantic import BaseModel, BaseConfig, create_model, constr, validator, Field
+from pydantic import field_validator, StringConstraints, ConfigDict, BaseModel, BaseConfig, create_model, Field
 from humps import camelize  # type: ignore
+from typing_extensions import Annotated
 
 # Local application imports
 # -------------------------
@@ -31,10 +32,7 @@ class BaseModelNone(BaseModel):
     @classmethod
     def from_orm(cls, obj):
         return None if obj is None else super().from_orm(obj)
-
-    # Enable `ORM mode <https://pydantic-docs.helpmanual.io/usage/models/#orm-mode-aka-arbitrary-class-instances>`_.
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # This creates then returns a Pydantic schema from a SQLAlchemy Table or ORM class.
@@ -65,7 +63,7 @@ def sqlalchemy_to_pydantic(
         # Determine the Python type of the column.
         python_type = column.type.python_type
         if python_type == str and hasattr(column.type, "length"):
-            python_type = constr(max_length=column.type.length)
+            python_type = Annotated[str, StringConstraints(max_length=column.type.length)]
 
         # Determine if the column can be null, meaning it's optional from a Pydantic perspective. Make the id column optional, since it won't be present when inserting values to the database.
         if column.nullable or name == "id":
@@ -101,26 +99,26 @@ class LogItemIncoming(BaseModelNone):
     act: str
     div_id: str
     course_name: str
-    sid: Optional[str]
-    answer: Optional[str]
-    correct: Optional[Union[bool, int]]
-    percent: Optional[float]
-    clientLoginStatus: Optional[bool]
-    timezoneoffset: Optional[int]
-    timestamp: Optional[datetime]
-    chapter: Optional[str]
-    subchapter: Optional[str]
+    sid: Optional[str] = None
+    answer: Optional[str] = None
+    correct: Optional[Union[bool, int]] = None
+    percent: Optional[float] = None
+    clientLoginStatus: Optional[bool] = None
+    timezoneoffset: Optional[int] = None
+    timestamp: Optional[datetime] = None
+    chapter: Optional[str] = None
+    subchapter: Optional[str] = None
     # used by parsons
-    source: Optional[str]
+    source: Optional[str] = None
     # used by dnd
-    min_height: Optional[int]
+    min_height: Optional[int] = None
     # used by unittest
-    passed: Optional[int]
-    failed: Optional[int]
+    passed: Optional[int] = None
+    failed: Optional[int] = None
     # used by timed exam
-    incorrect: Optional[int]
-    skipped: Optional[int]
-    time_taken: Optional[int]
+    incorrect: Optional[int] = None
+    skipped: Optional[int] = None
+    time_taken: Optional[int] = None
 
 
 class AssessmentRequest(BaseModelNone):
@@ -130,13 +128,14 @@ class AssessmentRequest(BaseModelNone):
     sid: Optional[str] = None
     # See `Field with dynamic default value <https://pydantic-docs.helpmanual.io/usage/models/#required-optional-fields>`_.
     deadline: datetime = Field(default_factory=datetime.utcnow)
+    # TODO[pydantic]: The following keys were removed: `json_encoders`.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
+    model_config = ConfigDict(json_encoders={
+        datetime: lambda v: v.isoformat(),
+    })
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),
-        }
-
-    @validator("deadline", pre=True)
+    @field_validator("deadline", mode="before")
+    @classmethod
     def time_validate(cls, v):
         # return datetime.fromisoformat(v)
         return isoparse(v)
@@ -170,10 +169,10 @@ class LogRunIncoming(BaseModelNone):
     clientLoginStatus: bool
     timezoneoffset: int
     language: str
-    prefix: Optional[str]
-    suffix: Optional[str]
-    partner: Optional[str]
-    sid: Optional[str]
+    prefix: Optional[str] = None
+    suffix: Optional[str] = None
+    partner: Optional[str] = None
+    sid: Optional[str] = None
 
 
 # Schemas for Completion Data
@@ -187,11 +186,7 @@ class LastPageDataIncoming(BaseModelNone):
     markingIncomplete: bool
     last_page_scroll_location: int
     is_ptx_book: bool
-    # todo: this should really be an int
-
-    # We can automatically create the aliases!
-    class Config:
-        alias_generator = camelize
+    model_config = ConfigDict(alias_generator=camelize)
 
 
 class LastPageData(BaseModelNone):
@@ -207,18 +202,18 @@ class LastPageData(BaseModelNone):
 
 class SelectQRequest(BaseModel):
     selector_id: str
-    questions: Optional[str]
-    proficiency: Optional[str]
-    points: Optional[int]
-    min_difficulty: Optional[float]
-    max_difficulty: Optional[float]
-    not_seen_ever: Optional[bool]
-    autogradable: Optional[bool]
-    primary: Optional[bool]
-    AB: Optional[str]
-    toggleOptions: Optional[str]
-    timedWrapper: Optional[str]
-    limitBaseCourse: Optional[str]
+    questions: Optional[str] = None
+    proficiency: Optional[str] = None
+    points: Optional[int] = None
+    min_difficulty: Optional[float] = None
+    max_difficulty: Optional[float] = None
+    not_seen_ever: Optional[bool] = None
+    autogradable: Optional[bool] = None
+    primary: Optional[bool] = None
+    AB: Optional[str] = None
+    toggleOptions: Optional[str] = None
+    timedWrapper: Optional[str] = None
+    limitBaseCourse: Optional[str] = None
 
 
 class PeerMessage(BaseModel):
