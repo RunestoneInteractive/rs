@@ -212,6 +212,35 @@ def generate_wheel_table(status: dict) -> Table:
     return table
 
 
+if "--install" in sys.argv:
+    for proj in ym["services"].keys():
+        if (
+            "build" not in ym["services"][proj]
+            or ym["services"][proj]["build"]["context"] == "./"
+        ):
+            continue
+        projdir = ym["services"][proj]["build"]["context"]
+        if os.path.isdir(projdir):
+            with pushd(projdir):
+                if os.path.isfile("pyproject.toml"):
+                    console.print(f"Installing {proj}")
+                    res = subprocess.run(
+                        ["poetry", "install", "--with=dev"], capture_output=True
+                    )
+                    if res.returncode == 0:
+                        console.print(f"Installed {proj}")
+                    else:
+                        console.print(f"Failed to install {proj}")
+                        if VERBOSE:
+                            console.print(res.stderr.decode(stdout_err_encoding))
+                        else:
+                            with open("build.log", "a") as f:
+                                f.write(res.stderr.decode(stdout_err_encoding))
+                else:
+                    console.print(f"Skipping {proj} as it has no pyproject.toml")
+                    continue
+    sys.exit(0)
+
 # Build wheels
 # ------------
 status = {}
