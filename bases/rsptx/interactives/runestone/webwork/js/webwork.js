@@ -114,6 +114,11 @@ class WebWork extends RunestoneBase {
         } else {
             this.correct = false;
         }
+        let ls = {};
+        ls.answer = this.answerObj;
+        ls.correct = this.correct;
+        ls.percent = this.percent;
+        this.setLocalStorage(ls);
         this.decorateStatus();
     }
 
