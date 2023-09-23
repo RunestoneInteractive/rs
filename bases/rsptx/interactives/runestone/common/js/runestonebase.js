@@ -311,6 +311,7 @@ export default class RunestoneBase {
                         this.csresolver("local");
                     }
                 } catch (err) {
+                    console.log(`Error getting results: ${err}`)
                     try {
                         this.checkLocalStorage();
                     } catch (err) {
@@ -368,6 +369,7 @@ export default class RunestoneBase {
         // returns true if server data is more recent than local storage or if server storage is correct
         if (
             data.correct === "T" ||
+            data.correct === true ||
             localStorage.length === 0 ||
             this.graderactive === true ||
             this.isTimed
