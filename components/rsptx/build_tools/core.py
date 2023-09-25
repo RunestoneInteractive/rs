@@ -610,6 +610,14 @@ def manifest_data_to_db(course_name, manifest_path):
                     practice = "T"
                 if el and "practice" in el.attrib:
                     practice = "T"
+                autograde = ""
+                if "====" in dbtext:
+                    extraCode = dbtext.partition('====')[2] #text after ====
+                    #keywords for sql, py, cpp, java respectively
+                    for utKeyword in ['assert', 'unittest', 'TEST_CASE', 'junit']:
+                        if utKeyword in extraCode:
+                            autograde = "unittest"
+                            break
                 # chapter and subchapter are elements
                 sbc = subchapter.find("./id").text
                 cpt = chapter.find("./id").text
@@ -620,6 +628,7 @@ def manifest_data_to_db(course_name, manifest_path):
                     is_private="F",
                     question_type=qtype,
                     htmlsrc=dbtext,
+                    autograde=autograde,
                     from_source="T",
                     chapter=cpt,
                     subchapter=sbc,
