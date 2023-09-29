@@ -217,6 +217,8 @@ def index():
             db_check.append(row)
         if not db_check:
             # The user hasn't been enrolled in this course yet. Check the price for the course.
+            db.user_courses.insert(user_id=auth.user.id, course_id=auth.user.course_id)
+            db(db.auth_user.id == auth.user.id).update(active="T")
             price = _course_price(auth.user.course_id)
             # If the price is non-zero, then require a payment. Otherwise, ask for a donation.
             if price > 0:
@@ -226,8 +228,6 @@ def index():
                 redirect("/ns/course/index")
             else:
                 session.request_donation = True
-            db.user_courses.insert(user_id=auth.user.id, course_id=auth.user.course_id)
-            db(db.auth_user.id == auth.user.id).update(active="T")
         try:
             logger.debug(
                 f"INDEX - checking for progress table for {course.base_course}"

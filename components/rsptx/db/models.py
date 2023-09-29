@@ -381,7 +381,7 @@ class Courses(Base, IdMixin):
     # This is (hopefully) a temporary field to indicate that this book
     # should be served by the new bookserver
     new_server = Column(Web2PyBoolean, default=True)
-    is_supporter = Column(Web2PyBoolean, default=False)
+    is_supporter = Column(Web2PyBoolean)
 
 
 CoursesValidator = sqlalchemy_to_pydantic(Courses)
