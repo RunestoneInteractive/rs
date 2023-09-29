@@ -56,16 +56,29 @@ async def imageproxy(request: Request, image_url: str, response_class=HTMLRespon
         rslogger.debug(f"NEW Image URL: {image_url}")
     try:
         response = requests.get(image_url)
+    except:
+        rslogger.error(f"Error getting image: {image_url}")
+        return HTMLResponse(
+            content="Cannot Retrieve Image", status_code=404, media_type="text/html"
+        )
+    try:
         if response.status_code == 200:
+            if "Content-type" in response.headers:
+                image_type = response.headers["Content-Type"].split("/")[1]
+                mt = response.headers["Content-Type"]
+            else:
+                image_type = image_url.split(".")[-1]
+                if image_type == "jpg":
+                    image_type = "jpeg"
+                mt = f"image/{image_type}"
             img = Image.open(BytesIO(response.content))
-            # small_img = img.resize((320, 240))
             img.thumbnail((320, 240))
             fake_file = BytesIO()
-            img.save(fake_file, "jpeg")
+            img.save(fake_file, image_type)
             return HTMLResponse(
                 content=fake_file.getvalue(),
                 status_code=200,
-                media_type=response.headers["Content-Type"],
+                media_type=mt,
             )
         elif response.status_code == 404:
             return HTMLResponse(
