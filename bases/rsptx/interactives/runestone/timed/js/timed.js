@@ -19,7 +19,7 @@ import TimedClickableArea from "../../clickableArea/js/timedclickable";
 import TimedDragNDrop from "../../dragndrop/js/timeddnd.js";
 import TimedParsons from "../../parsons/js/timedparsons.js";
 import SelectOne from "../../selectquestion/js/selectone";
-import "../css/timed.css";
+import "../css/timed.less";
 
 // Timed constructor
 export default class Timed extends RunestoneBase {
