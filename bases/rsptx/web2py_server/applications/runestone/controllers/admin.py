@@ -2187,8 +2187,8 @@ def save_assignment():
         due = datetime.datetime.utcnow() + datetime.timedelta(7)
     try:
         total = _set_assignment_max_points(assignment_id)
+        # do not update the course in case the user switched courses in another tab
         db(db.assignments.id == assignment_id).update(
-            course=auth.user.course_id,
             description=request.vars["description"],
             points=total,
             duedate=due,
