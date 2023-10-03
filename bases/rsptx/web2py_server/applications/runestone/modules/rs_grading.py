@@ -30,6 +30,24 @@ def _profile(start, msg):
 
 D1 = Decimal("1")
 
+SELECT_CACHE = {}
+
+
+def getCourseOrigin(base_course, db):
+    res = (
+        db(
+            (db.course_attributes.course_id == db.courses.id)
+            & (db.courses.course_name == base_course)
+            & (db.course_attributes.attr == "markup_system")
+        )
+        .select(db.course_attributes.value, **SELECT_CACHE)
+        .first()
+    )
+    if res:
+        return res.value
+    else:
+        return "Runestone"
+
 
 def _score_from_pct_correct(pct_correct: int, points, autograde):
     # ALL_AUTOGRADE_OPTIONS = ['all_or_nothing', 'pct_correct', 'interact']
@@ -256,7 +274,7 @@ def _scorable_useinfos(
     # look in useinfo, to see if visited (before deadline)
     # sid matches auth_user.username, not auth_user.id
     # if question type is page we must do better with the div_id
-
+    logger.debug(f"scorable useinfo {div_id}")
     query = (db.useinfo.course_id == course_name) & (db.useinfo.sid == sid)
 
     if question_type == "page":
@@ -267,17 +285,34 @@ def _scorable_useinfos(
             .first()
             .base_course
         )
-        quest = (
-            db(
-                (db.questions.name == div_id)
-                & (db.questions.base_course == base_course)
+        # Get the base course course attributes
+        origin = getCourseOrigin(base_course, db)
+        if origin == "PreTeXt":
+            quest = (
+                db(
+                    (db.questions.subchapter == div_id.replace(".html", ""))
+                    & (db.questions.base_course == base_course)
+                )
+                .select()
+                .first()
             )
-            .select()
-            .first()
-        )
-        if quest:
-            div_id = "{}/{}.html".format(quest.chapter, quest.subchapter)
+        else:
+            quest = (
+                db(
+                    (db.questions.name == div_id)
+                    & (db.questions.base_course == base_course)
+                )
+                .select()
+                .first()
+            )
 
+        if quest:
+            if origin == "PreTeXt":
+                div_id += ".html"
+            else:
+                div_id = "{}/{}.html".format(quest.chapter, quest.subchapter)
+
+        logger.debug(f"Getting useinfo for {div_id}")
         query = query & (db.useinfo.div_id.endswith(div_id))
     else:
         query = query & (db.useinfo.div_id == div_id)
@@ -642,7 +677,7 @@ def _autograde_one_q(
         results = _scorable_useinfos(
             course_name,
             sid,
-            question_name,
+            question_name,  # subchapter for a ptx book
             points,
             deadline,
             question_type="page",
@@ -1142,6 +1177,9 @@ def do_calculate_totals(
     return results
 
 
+import pdb
+
+
 def do_autograde(
     assignment,
     course_id,
@@ -1207,6 +1245,9 @@ def do_autograde(
         .first()
         .base_course
     )
+    origin = getCourseOrigin(base_course, db)
+
+    logger.debug(f"Origin = {origin}")
     count = 0
     # _profile(start, "after readings fetched")
     for (name, chapter, subchapter, points, ar, ag, wtg) in readings:
@@ -1222,10 +1263,15 @@ def do_autograde(
             ).select()
             # _profile(start, "\t{}. rows fetched for {}/{}".format(count, chapter, subchapter))
             for row in rows:
+                if origin == "PreTeXt" and row.question_type == "page":
+                    div_id = row.subchapter
+                else:
+                    div_id = row.name
+                logger.debug(f"Grading {div_id}")
                 score += _autograde_one_q(
                     course_name,
                     s,
-                    row.name,
+                    div_id,
                     1,
                     row.question_type,
                     deadline=deadline,
