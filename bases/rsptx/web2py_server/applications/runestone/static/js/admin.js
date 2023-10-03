@@ -1963,8 +1963,8 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
     );
     jQuery(`#${whereDiv}`).html(componentSrc);
 
-    if (typeof edList === "undefined") {
-        edList = {};
+    if (typeof window.componentMap === "undefined") {
+        window.componentMap = {};
     }
 
     let componentKind = $($(`#${whereDiv} [data-component]`)[0]).data("component");
@@ -2009,9 +2009,9 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
                 let res = component_factory[componentKind](opt);
                 if (componentKind === "activecode") {
                     if (moreOpts.multiGrader) {
-                        edList[`${moreOpts.gradingContainer} ${res.divid}`] = res;
+                        window.componentMap[`${moreOpts.gradingContainer} ${res.divid}`] = res;
                     } else {
-                        edList[res.divid] = res;
+                        window.componentMap[res.divid] = res;
                     }
                 }
             } catch (e) {
