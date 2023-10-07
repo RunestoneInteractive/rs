@@ -74,6 +74,8 @@ def dashboard():
     assignment = db(db.assignments.id == assignment_id).select().first()
     course = db(db.courses.course_name == auth.user.course_name).select().first()
     course_attrs = getCourseAttributesDict(course.id)
+    if "latex_macros" not in course_attrs:
+        course_attrs["latex_macros"] = ""
     db.useinfo.insert(
         course_id=auth.user.course_name,
         sid=auth.user.username,
@@ -322,11 +324,16 @@ def student():
         & (db.assignments.course == auth.user.course_id)
         & (db.assignments.visible == True)
     ).select(orderby=~db.assignments.duedate)
+    course = db(db.courses.course_name == auth.user.course_name).select().first()
+    course_attrs = getCourseAttributesDict(course.id)
+    if "latext_macros" not in course_attrs:
+        course_attrs["latex_macros"] = ""
 
     return dict(
         course_id=auth.user.course_name,
         course=get_course_row(db.courses.ALL),
         assignments=assignments,
+        **course_attrs,
     )
 
 
@@ -341,6 +348,10 @@ def peer_question():
 
     current_question, done = _get_current_question(assignment_id, False)
     assignment = db(db.assignments.id == assignment_id).select().first()
+    course = db(db.courses.course_name == auth.user.course_name).select().first()
+    course_attrs = getCourseAttributesDict(course.id)
+    if "latex_macros" not in course_attrs:
+        course_attrs["latex_macros"] = ""
 
     return dict(
         course_id=auth.user.course_name,
@@ -348,6 +359,7 @@ def peer_question():
         current_question=current_question,
         assignment_name=assignment.name,
         assignment_id=assignment_id,
+        **course_attrs,
     )
 
 
@@ -508,6 +520,10 @@ def peer_async():
         qnum = int(request.vars.question_num)
 
     current_question, all_done = _get_numbered_question(assignment_id, qnum)
+    course = db(db.courses.course_name == auth.user.course_name).select().first()
+    course_attrs = getCourseAttributesDict(course.id)
+    if "latex_macros" not in course_attrs:
+        course_attrs["latex_macros"] = ""
 
     return dict(
         course_id=auth.user.course_name,
@@ -516,6 +532,7 @@ def peer_async():
         assignment_id=assignment_id,
         nextQnum=qnum + 1,
         all_done=all_done,
+        **course_attrs
     )
 
 
