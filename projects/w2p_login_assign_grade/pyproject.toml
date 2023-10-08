@@ -45,6 +45,7 @@ SQLAlchemy = ">= 1.0.14"
 stripe = "^2.0.0"
 pycrypto = "^2.6.1"
 jupyterlite-sphinx = "^0.8.0"
+urllib3-secure-extra = "^0.1.0"
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"
 CodeChat = "^1.0.0"
