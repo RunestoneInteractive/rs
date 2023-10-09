@@ -1,16 +1,20 @@
 Welcome
 =======
 
-Runestone Academy is an open source project and *our mission is to equip the nation's STEM teachers with open-source content, tools and strategies they need to create engaging, accessible, and effective learning experiences for their students.* You might do this through our website, https://runestone.academy or by running your own server.  Or you may be an author or budding author that has a great idea for a book. Or you may be a technology coordinator that wants to run a private server.  Or you may be a researcher at a large university that is looking for a platform to test your ideas.  We are here for you.  This repository is the home of the Runestone Academy software.  We would welcome your help.  And we are happy to help you get started.
+`Runestone Academy <https://landing.runestone.academy>`_ is an open-source project and *our mission is to equip the nation's STEM teachers with open-source content, tools and strategies they need to create engaging, accessible, and effective learning experiences for their students.* You might do this through our website, https://runestone.academy or by running your own server.  Or you may be an author or budding author that has a great idea for a book. Or you may be a technology coordinator that wants to run a private server.  Or you may be a researcher at a large university that is looking for a platform to test your ideas.  We are here for you.  This repository is the home of the Runestone Academy software.  We would welcome your help.  And we are happy to help you get started.
 
+If you want to use the Runestone Academy servers to run a class using an existing book or if you want to author a book, you likely do not need to run your own copy of Runestone:
 
-* Using a Runestone Academy for my class - `Instructor guide <https://guide.runestone.academy>`_
+* I want to run a class based on an existing book - `Instructor guide <https://guide.runestone.academy>`_
+* I want to author a book. This is now done using PreTeXt. PreTeXt is an authoring language that is designed to produce books that can be served on Runestone. `PreTeXt Author Guide <https://pretextbook.org/doc/guide/html/guide-toc.html>`_
+* I want to customize a book for my class - `Customizing a Textbook <https://runestone-monorepo.readthedocs.io/en/latest/custom_book.html>`_
+
+If you want to do development on Runestone, or run your own server, you will need to set up your own copy of the Runestone software:
+
+* I want to contribute to the Runestone Academy software - `Contributing Guide <https://runestone-monorepo.readthedocs.io/en/latest/contributing.html>`_
 * Running a server for my own class? - coming soon
 * Running a server for my school or larger group? - coming soon
-* I want to author a book - `Author Guide <https://pretextbook.org/doc/guide/html/guide-toc.html>`_
-* I want to customize a book for my class - `Customizing a Textbook <https://runestone-monorepo.readthedocs.io/en/latest/custom_book.html>`_
-* I want to contribute to the Runestone Academy software - `Contributing Guide <https://runestone-monorepo.readthedocs.io/en/latest/contributing.html>`_
-* What is Runestone Academy? - `About Runestone <https://landing.runestone.academy>`_
+
 
 Runestone MonoRepo
 ==================
@@ -20,14 +24,15 @@ the Runestone Academy software. The idea of combining several
 repositories into a single structure was motivated and inspired by the
 Python polylith tools and projects.
 
-As Runestone has grown over the years we have accreted a loads of new
+As Runestone has grown over the years we have accreted loads of new
 functionality without ever stopping to reconsider an architecture that
 would support easier implementation of new features while providing
 stability for fundamental parts of the project that need to scale.
 Docker was not invented at the time Runestone development started!
 
-The goal of this re-working of the Runestone code will provide us with a
-very docker friendly set of servers and services. we will use a polylith
+Finally, in 2023 we decided to move to a mono repo. The goal of this
+re-working of the Runestone code is to provide a
+very docker-friendly set of servers and services. we will use a polylith
 software architecture to develop and maintain this set of services. The
 following diagram shows what we are aiming at.
 
@@ -43,25 +48,24 @@ repo.
 -  The entire suite of services is orchestrated by the
    ``docker-compose.yml`` file
 
-Running your own server?
-------------------------
-
-If you run your own Runestone server we would love to hear from you.  Please make an issue in this repo and just tell us where you are at and how many students you serve.   As we seek grant funding, understanding the impact of Runestone is very important.  Thanks!
-
 Understanding the Code Structure
 --------------------------------
+
+The `Runestone Code <https://github.com/RunestoneInteractive/rs>`_ is organized into these folders:
 
 -  projects - define the artifacts - Docker images or applications could
    be a web application or a command line application or whatever.
 
--  bases - contains the public facing API for a project
+-  bases - contains the public-facing API for a project
 
--  components - contains code that supports one or more projects/bases
+-  components - code that supports one or more projects/bases
 
 -  development - experimental and early work.
 
-A Roadmap
----------
+-  tests - automated tests for various projects
+
+Development Roadmap
+---------------------
 
 `Runestone Roadmap <https://github.com/orgs/RunestoneInteractive/projects/6/views/1>`_
 
@@ -104,14 +108,17 @@ github: `Runestone Projects <https://github.com/orgs/RunestoneInteractive/projec
 
 We are working on building out a longterm roadmap for Runestone.  You can see that here: `Runestone Roadmap <https://github.com/orgs/RunestoneInteractive/projects/6/views/1>`_
 
+Note that the move to a mono repo means that the history of the individual repositories was lost.  I am sorry for this, but I think the benefits of a mono repo will be worth it.  The original repositories are still available, but they are no longer being actively developed. If you need to point to your contributions to Runestone, please use the old repos as a reference.
 
 
 Our Community
 -------------
 
-The Runestone community has been actively developing and supporting this project since 2011.  However in the 2023 I decided to move to a mono repo.  Unfortunately this means that the history of the individual repositories is lost.  I am sorry for this, but I think the benefits of a mono repo will be worth it.  The original repositories are still available, but they are no longer being actively developed, if you need to point to your contributions to Runestone, please use the old repos as a reference.
+The Runestone community has been actively developing and supporting this project since 2011. 
 
-Our authoring language is PreTeXt.  We have a very active community of PreTeXt authors and developers.  If you are interested in contributing to the PreTeXt project, please visit the `PreTeXt project page <https://pretextbook.org>`_.
+Join us on Discord
+
+The new book authoring language is PreTeXt.  We have a very active community of PreTeXt authors and developers.  If you are interested in contributing to the PreTeXt project, please visit the `PreTeXt project page <https://pretextbook.org>`_.
 
 .. raw:: html
 
