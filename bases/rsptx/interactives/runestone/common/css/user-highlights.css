@@ -60,8 +60,6 @@ list-style-image: url('active.png');
     border-radius: 5px 5px 5px 5px;
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
     display: none;
-    float: left;
-    left: 0;
     list-style: none outside none;
     margin: 1px 0 0;
     min-width: 160px;
