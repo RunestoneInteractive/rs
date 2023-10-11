@@ -916,7 +916,7 @@ I'm not getting a 502 gateway error, but something about a web page is not worki
 I'm having problems installing/configuring postgresql.  There is **extensive** documentation and help available to install postgresql on almost every operating system.  I'm not going to try to duplicate any of that in this document.  A simple google search will almost certainly lead you to high quality documenation and tutorial help in setting up postgresql.
 
 Reporting Problems
-^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~
 
 Before you come to Discord, or file an issue on Github please (re)read this section and try to solve the problem yourself.  If you are stumped then asking a question on discord is your best option.  But please follow these suggestions.
 
