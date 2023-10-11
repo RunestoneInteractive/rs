@@ -925,6 +925,7 @@ Before you come to Discord, or file an issue on Github please (re)read this sect
 3. I repeat, use the logs to seek out specific information.
 4. When describing the problem it is very important to describe exactly how you can reproduce the problem.  If you can't reproduce it then We will certainly not be able to reproduce the problem.  If we can't reproduce it then it is almost impossible for us to fix.  
 5. Make sure you use `docker compose ps` to verify that all of the services you think are running are actually running.
+6. Make sure you describe your configuration when reporting a problem.  What services are you starting?  How is your database configured?  Is postgresql installed on the host, in docker? as part of the composed application?
 
 Taking the time to carefully document how we can recreate a problem **is a valuable contribution to the project** When developers have to try to figure out how to reproduce something that is time that they could spend fixing a problem that someone else has described how to reproduce.
 
