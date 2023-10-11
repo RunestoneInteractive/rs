@@ -887,6 +887,8 @@ Make sure that you run `./build.py` or `./build.py --all` command from the root 
 
 Many problems can be traced back to bad or missing environment variables.  Make sure to review that section and check your `.env` file for errors or typos.
 
+Use `docker compose ps` to check the status of the running services.
+
 You are trying to run the `runestone build` command but it fails with a stack trace, or you get command not found, or...   If you get a "command not found" error the most likely cause of that is that you have not activated the virtual environment.  Make sure that you have activated the **rs** virtual environment with the command `poetry shell`  when you are in the `/path/to/rs` folder.
 
 If you get an error when you are running runestone the first thing to do is to make sure you are running the version of the command you think you are running.  Run the command `which runestone`, it should tell show you something like `/path/to/rs/.venv/bin/runestone`  If the error indicates that a package or module is missing, make sure you update the virtual environment as described above.
@@ -922,6 +924,7 @@ Before you come to Discord, or file an issue on Github please (re)read this sect
 2. If you have an error message or a stack trace.  Please **copy and paste** the entire message into your post.  You can use the "picket fence markup" -- three back quotes on a line to start and then three backquotes after the message.  Please **do not** make a screen shot of a few lines from the message.  They are hard to read, and likely omit important information.
 3. I repeat, use the logs to seek out specific information.
 4. When describing the problem it is very important to describe exactly how you can reproduce the problem.  If you can't reproduce it then We will certainly not be able to reproduce the problem.  If we can't reproduce it then it is almost impossible for us to fix.  
+5. Make sure you use `docker compose ps` to verify that all of the services you think are running are actually running.
 
 Taking the time to carefully document how we can recreate a problem **is a valuable contribution to the project** When developers have to try to figure out how to reproduce something that is time that they could spend fixing a problem that someone else has described how to reproduce.
 
