@@ -1,267 +1,31 @@
-Structure
-==========
-
-
-This repository uses a `polylith structure <https://polylith.gitbook.io/polylith/introduction/polylith-in-a-nutshell>`__ in order to allow the several
-projects under the Runestone umbrella to share code, provide common ways
-of accomplishing similar tasks, and hopefully make it easier for a
-newcomer to contribute to the project.  If you don't know what a polylith is don't let that deter you.  It is just a fancy way of saying that we have a bunch of projects that share a lot of code.  
-
-If you are going to be doing development on the Runestone system you will want to
-make a fork of our repository and clone it to your local machine.  You will find our 
-repository at https://github.com/RunestoneInteractive/rs
-
-To get started it is necessary to `install
-poetry <https://python-poetry.org/docs/>`__. with poetry installed you
-will need to add two very important plugins, and a highly convenient 3rd.
-
-1. ``poetry self add poetry-polylith-plugin``
-2. ``poetry self add poetry-multiproject-plugin``
-3. ``poetry self add poetry-dotenv-plugin``
-
-
-With those installed go ahead and run ``poetry poly info``
-
-.. code:: shell
-
-   projects: 7
-   components: 11
-   bases: 5
-   development: 1
-
-     brick                author_server  book_server  dash_server  jobe  nginx  rsmanage  w2p_login_assign_grade development
-    ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-
-     auth                      ✔             ✔            -            -            -            -            -         ✔
-     configuration             ✔             ✔            -            -            -            ✔            -         -
-     data_extract              ✔             -            -            -            -            -            -         ✔
-     db                        ✔             ✔            -            -            -            ✔            -         ✔
-     forms                     ✔             -            -            -            -            -            -         ✔
-     logging                   ✔             ✔            -            -            -            ✔            -         ✔
-     lp_sim_builder            -             ✔            -            -            -            -            -         -
-     response_helpers          ✔             ✔            -            -            -            ✔            -         ✔
-     validation                ✔             ✔            -            -            -            ✔            -         ✔
-     visualization             ✔             -            -            -            -            -            -         ✔
-     author_server_api         ✔             -            -            -            -            -            -         ✔
-     book_server_api           -             ✔            -            -            -            -            -         ✔
-     dash_server_api           -             -            ✔            -            -            -            -         -
-     rsmanage                  -             -            -            -            -            ✔            -         ✔
-     web2py_server             -             -            -            -            -            -            ✔         ✔
-
-This tells you we have 7 projects. There may be more if we haven't kept
-this up to date.
-
-The **projects** listed across the top of the table define the artifacts
-- Docker images or applications, they could be a web application or a
-command line application or whatever. The **bases** - contains the
-public facing API for a project. The **components** contain code that
-supports one or more projects/bases. You can see which projects use
-which base and which components by the check marks in the table.
-
-The goal is to put as much code as possible into the components in a way
-that is very reusable. For example our database code for doing Create,
-Retrieve, Update, and Delete operations in the database is ALL contained
-in the db component. You can probably do a lot of very useful
-development without having to know anything about database programming
-by simply using the functions defined there.
-
-With the structure we have in place, you can run and do development on
-any of the server projects **with** or **without** knowing anything about docker
-or containers.
-
-Let's discuss each of the projects at a high level to start
-with. Then you can find detailed documentation for each project in their
-project folder.
-
-**w2p_login_assign_grader** This is a legacy project that uses the
-web2py framework and currently supports - login, assignments, grading,
-and basic student analytics. We are actively working to migrate each of
-those pieces into its own project.
-
-**book_server** The book server is as FastAPI web application that
-serves the pages of each textbook to students and handles the API calls
-from the interactive components of the textbook. It also serves as the
-websocket server for peer instruction.
-
-**author_server** The author server allows the authors of the textbooks
-to build and deploy new versions of their books across the runestone
-system. It also contains functionality for authors and researchers to
-visualize how their textbooks are used, and to create anonymized data
-files for detailed analysis.
-
-**dash_server** This is a new, modern take on the original student
-dashboard, but it will scale up to support very large classes. You can
-work on this 100% in python without needing to know css or javascript as
-it uses the Dash / Plotly framework.
-
-**rsmanage** This is a command line program for managing courses, users,
-and many other aspects of the Runestone system. It is mostly useful for
-people running large scale servers.
-
-**jobe** The jobe server is a custom job runner for compiling and
-running C, C++, and Java programs.
-
-**nginx** The nginx project uses nginx as the traffic director to route
-requests across the various servers that comprise the Runestone system.
-
-The ``docker-compose.yml`` file defines a **composed application**  However docker compose allows you use several compose files together to include or exclude various services depending on your needs.
-You may or may not want all of these projects in your setup.  There are three scenarios that we try to support out of the box.
-
-1. Docker containers running runestone + bookserver + job + rsmanage + nginx + postgresql. This is the simplest setup for basic development or testing - none of the core projects will be running outside of docker. This is supported by using the ``docker-compose.yml`` and ``db.compose.yml`` files.
-
-2. A setup that also includes a container running the author server. The author server is only required if you want to do development on it, or are running a production server where you want authors to be able to update their books without admin access to the rest of the system. This is supported by using the ``docker-compose.yml``, ``db.compose.yml``, ``author.compose.yml`` files.
-
-3. A local installation of postgresql with the other services running in containers. This setup gives you more control over your database server architecture which may be desirable for production settings. It also allows you to rebuild all of the containers at will without wiping out your databases (possibly useful during development). This is pretty close to how we run in production on Runestone Academy.   This is supported by using ``docker-compose.yml``, ``author.compose.yml`` files, or just ``docker-compose.yml`` if you do not require the author server.
-
-
-Project File Structure
-----------------------
-
-.. code-block:: text
-
-      📁.
-        ├── 📁bases
-        │  └── 📁rsptx
-        │     ├── 📁author_server_api
-        │     ├── 📁book_server_api
-        │     ├── 📁dash_server_api
-        │     ├── 📁rsmanage
-        │     └── 📁web2py_server
-        ├── 📁components
-        │  └── 📁rsptx
-        │     ├── 📁auth
-        │     ├── 📁configuration
-        │     ├── 📁data_extract
-        │     ├── 📁db
-        │     ├── 📁forms
-        │     ├── 📁logging
-        │     ├── 📁lp_sim_builder
-        │     ├── 📁response_helpers
-        │     ├── 📁validation
-        │     └── 📁visualization
-        ├── 📁development
-        │  └──  core.py
-        ├──  docker-compose.yml
-        ├──  author.compose.yml
-        ├── 📁docs
-        │  ├── 📁build
-        │  │  ├── 📁doctrees
-        │  │  └── 📁html
-        │  ├── 📁images
-        │  │  └──  RunestoneArch.svg
-        │  ├──  Makefile
-        │  └── 📁source
-        ├── 📁projects
-        │  ├── 📁author_server
-        │  │  ├── 📁dist
-        │  │  ├──  Dockerfile
-        │  │  ├──  gitconfig
-        │  │  ├──  pyproject.toml
-        │  │  └──  README.md
-        │  ├── 📁book_server
-        │  │  ├── 📁dist
-        │  │  ├──  Dockerfile
-        │  │  ├──  pyproject.toml
-        │  │  └──  README.md
-        │  ├── 📁dash_server
-        │  │  ├── 📁cache
-        │  │  ├── 📁dist
-        │  │  ├──  Dockerfile
-        │  │  ├──  pyproject.toml
-        │  │  └──  README.md
-        │  ├── 📁jobe
-        │  ├── 📁nginx
-        │  │  ├──  Dockerfile
-        │  ├── 📁rsmanage
-        │  │  ├── 📁dist
-        │  │  ├──  poetry.lock
-        │  │  └──  pyproject.toml
-        │  └── 📁w2p_login_assign_grade
-        │     ├── 📁dist
-        │     ├──  Dockerfile
-        │     └──  pyproject.toml
-        ├──  pyproject.toml
-        ├──  README.rst
-        ├── 📁test
-        └──  workspace.toml
-
-
-Environment variables
----------------------
-
-Environment variables are very important in a system like Runestone, The services need to know several values that need to be private.  They can also give you a certain level of control over how you customize your own deployment or development environment.  The following environment variables are used by the various services.  Some environment variables are important on the host side (h), some are important on the docker side (d), and some are important on both sides (b).  It is a good idea to define the host only environment variables in your login profile (.bashrc, config.fish, .zshrc, etc).  The docker only variables need only be defined in the ``.env`` file.  The both variables need to be defined in both places.  The ``.env`` file is read by docker-compose and used to set environment variables in the docker containers.  The host side environment variables are used by utilities like ``rsmanage`` to find the ``.env`` file and to set up the ssh agent socket as well as the database connection variables as described below.
-
-
-* ``RUNESTONE_PATH`` *h* - This is the path to the ``rs`` repository folder, it is used to find the ``.env`` file by utilities like ``rsmanage``.  You must set this on the host side.  Setting this in the ``.env`` file is too late, as it is used to help programs find the ``.env`` file.
-* ``BOOK_PATH`` - *h* This is the path to the folder that contains all of the books you want to serve.  This value is the path on the HOST side of the docker container.  So if you are running docker on a mac and your books are in ``/Users/bob/Runestone/books`` then you would set this to ``/Users/bob/Runestone/books``.  
-* ``SSH_AUTH_SOCK`` *h* - This is the path to the ssh agent socket.  This is used to allow the docker container to use your ssh keys to use rsync to deploy books to the workers.  You must set this on the host side, typically by running ``eval $(ssh-agent)`` from  bash.  You will also want to run ``ssh-add`` to add a key to the agent.  Both of these can be done in your .bashrc file.  If you are using a different shell you will need to figure out how to do the equivalent.  This is only important if you are running in production mode behind a load balancer.
-
-* ``DBURL`` *b* - This is the URL that is used to connect to the database in production.
-* ``DEV_DBURL`` *b* - This is the URL that is used to connect to the database in development.
-* ``DC_DBURL`` *d* - This is the URL that is used to connect to the database in docker-compose.  If this is not set it will default to ``$DBURL``.  This is useful if you want to use a different database for docker-compose than you do for development.
-* ``DC_DEV_DBURL`` *d* - This is the URL that is used to connect to the database in docker-compose development.  If this is not set it will default to ``$DEV_DBURL``.  This is useful if you want to use a different database for docker-compose development than you do for development.  
-
-These two sets of variables can be identical, but they are separate because it is often the case that you want to refer to a database running on the host using the host name ``localhost`` from the host but from docker you need to use the host name ``host.docker.internal``. 
-
-If you are using a local installation of postgresql you should set the environment variables as follows:
-Set ``DEV_DBURL`` to ``postgresql://runestone:runestone@localhost/runestone_dev`` and ``DC_DEV_DBURL`` to ``postgresql://runestone:runestone@host.docker.internal/runestone_dev`` You can also set ``DBURL`` and ``DC__DBURL`` but omit the ``_dev`` on the end.
-
-If you are using a postgresql container you should set the environment variables as follows:
-Set ``DEV_DBURL`` to ``postgresql://runestone:runestone@localhost:2345/runestone_dev`` and ``DC_DEV_DBURL`` to ``postgresql://runestone:runestone@db/runestone_dev`` You can also set ``DBURL`` and ``DC__DBURL`` but omit the ``_dev`` on the end.
-
-
-* ``JWT_SECRET`` *d* - this is the secret used to sign the JWT tokens.  It should be a long random string.  You can generate one by running ``openssl rand -base64 32``  You should set this to the same value in all of the services.
-* ``WEB2PY_PRIVATE_KEY`` *d* - this is the secret that web2py uses when hashing passwords. It should be a long random string.  You can generate one by running ``openssl rand -base64 32``  You should set this to the same value in all of the services.
-* ``SERVER_CONFIG`` *d* - this should be production, development, or test.  It is used to determine which database URL to use.
-* ``WEB2PY_CONFIG`` *d* - should be the same value as ``SERVER_CONFIG``.  It is used to determine which database URL to use.  This will go away when we have eliminated the web2py framework from the code base.
-* ``RUNESTONE_HOST`` *d* - this is the canonical host name of the server.  It is used to generate links to the server.  It should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.
-* ``LOAD_BALANCER_HOST`` *d* - this is the canonical host name of the server when you are running in production with several workers.  It is used to generate links to the server.  It should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.  You would typically only need to set this or RUNESTONE_HOST.
-* ``NUM_SERVERS`` *d* - this is the number of workers you are running. It will default to 1 if not set.  This is only important if you are running in production mode, behind a load balancer.
-
-Variables that are important for the host side are probably best set in your
-login shell environment (such as a .bashrc file) But you can also set them in
-the ``.env`` file and as long as you have a RUNESTONE_PATH set commands like
-``rsmanage`` and ``runestone`` will try to read and use those variables.
-
-When you are doing development you may want to set these in your login shell,
-But they can all be set in the ``.env`` file in the top level directory. This
-file is read by docker-compose and the values are passed to the containers. You
-can also set them in the ``docker-compose.yml`` file but that is not
-recommended. The ``.env`` file is also used by the ``build.py`` script to set
-the environment variables for the docker-compose build. As of this writing
-(June 2023) rsmanage does not know about the ``.env`` file so you will have to
-set them in your login shell if you want to use rsmanage.
-
-An alternative to setting ``RUNESTONE_PATH`` is add the ``poetry-dotenv-plugin``
-to your ``poetry`` installation. It will cause commands like ``poetry shell`` to
-also import variables from the ``.env`` file which means that you will have them
-when you run ``runestone`` and ``rsmanage`` from withen the shell you launched
-with ``poetry shell``. To install the plugin run:
-
-``poetry self add poetry-dotenv-plugin``
-
-Note, however, that plugins in ``poetry`` are global, not per-project, so if you
-have other ``poetry`` projects with ``.env`` files that you `don`t` want slurped
-into your ``poetry shell`` environment you may not want to install this plugin.
-
-.. note:: Host Side Development Notes
-
-   When you are starting one or more servers on the host (not in docker) then you will also want to define most of the docker only variables on the host side in order for your servers to be configured properly.  This is another good reason to use the dot-env plugin for poetry.  You may want to review the section on database environment variables so that you can be set up properly for both development and docker.
-
+.. _database-options:
 
 Database Setup
---------------
+=======================================
 
 The database is a critical component as it is the glue that ties together the various servers.  You have a few different options for database setup.
 
-1. Use SQLLite -- this may be ok for very casual use or even light development work, but really is  not ideal for any kind of production environment.
-2. Install Postgresql as part of the docker-compose setup
-3. Install Postgresql on your local host (either natively or in a container)
+1. Install Postgresql as part of the docker-compose setup (default). This requires the least manual work and keeps the database tightly tied to the rest of the docker images.
+2. Install Postgresql on your local host (either natively or in a container). This allows you to use an existing database and to keep your database more insulated from the rest of the project (so that say test data persists through a rebuild of the other servers).
+
+
+Install Postgresql with Docker
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you do not want to install postgresql on your host, or maybe you are just looking to run an installation of Runestone for a couple of courses at your school, here is how to proceed.
+
+1. Before you build the rest of the services run the command ``docker compose -f docker-compose.yml -f author.compose.yml -f db.compose.yml up -d db``  This will start just the database service in the set of composed services.   It will also use the default settings for ``POSTGRES_PASSWORD`` (runestone), ``POSTGRES_USER`` (runestone), and ``POSTGRES_DB`` (runestone_dev).  You should change these if you are running a production server, but if you are just getting set up for development for the first time just leave them alone.
+2. Run ``docker compose run rsmanage rsmanage initdb`` This will build the image in docker for the rsmanage command and then run it to create the database and initialize it with the tables and data that you need.  You can use ``docker compose run rsmanage rsmanage ...`` to run any of the rsmanage commands in the composed app.   If you prefer you can install ``rsmanage`` on the host and run it there, but you will need to be mindful of your environment variables related to the database.
+3. You will also need to have the minimal set of environment variables set up.  See the section below.  If you want to use the defaults you can set ``SERVER_CONFIG`` to ``development`` and ``DEV_DBURL`` to ``postgresql://runestone:runestone@localhost:2345/runestone_dev``  rsmanage will tell you if you are missing any environment variables.
+4. You can run ``poetry install --with=dev`` from the top level directory to get a working virtual environment with the ``rsmanage`` command installed.  Run ``poetry shell`` to enable the newly created virtual environment.  Then try to run ``rsmanage`` You may get some errors about missing database libraries, this is normal, but you will have to read the error messages and install the dependencies if you want to run ``rsmanage`` directly.
+
+At this point your database is ready.
+
 
 Install Postgresql locally
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-My currently recommended option is number 3.  It is what you are probably going to want for production anyway, and I think it gives you the most flexibility for development.  I simply installed postgresql on my mac using ``homebrew.`` Linux users can use ``apt`` or whatever.  You could even install it in its own `docker container <https://www.baeldung.com/ops/postgresql-docker-setup>`_ separate from the composed app and access it as if it was installed natively.  It is easy for services running in docker to access the database service running on the host.  Using  a URL like ``postgresql://user:pass@host.docker.internal/runestone_dev``  The key there is the ``host.docker.internal`` tells the process running in the container to connect to the host.  Running it on the host also makes it far less surprising when you do a rebuild and suddenly your test data is gone because you dumped the image.
+This is the option you will want for production use cases, and it gives you the most flexibility for development.  I simply installed postgresql on my mac using ``homebrew.`` Linux users can use ``apt`` or whatever.  You could even install it in its own `docker container <https://www.baeldung.com/ops/postgresql-docker-setup>`_ separate from the composed app and access it as if it was installed natively.  It is easy for services running in docker to access the database service running on the host.  Using  a URL like ``postgresql://user:pass@host.docker.internal/runestone_dev``  The key there is the ``host.docker.internal`` tells the process running in the container to connect to the host.  Running it on the host also makes it far less surprising when you do a rebuild and suddenly your test data is gone because you dumped the image.
 
 You can connect to the database with one of 3 URLs depending on your server configuration (``SERVER_CONFIG``) environment variable - production, development, or test.  Test is really just for unit testing.  So you will most often want to use development.  The environment variables to set are ``DBURL``, ``DEV_DBURL`` or ``TEST_DBURL``.
 
@@ -276,17 +40,6 @@ If you install postgresql locally you will need to do  a few things to get it re
 7. After you restart try the following command ``psql -h localhost -U runestone runestone_dev``  You should be prompted for a password.  Enter the password you created for the runestone user.  You should then be at a psql prompt.  You can exit by typing ``\q``  If you cannot connect then you have done something wrong.  You can ask for help in the ``developer-forum`` channel on the Runestone discord server.
 8. Use the `rsmanage initdb` command to create the database schemas and populate some initial data for common courses, as well as create `testuser1` with password "xxx" yes three x's super secure.  You can change this password later.  You can also create your own user with the ``rsmanage adduser`` command.  You can also use the ``rsmanage resetpw`` command to change the password for testuser1.
 
-Install Postgresql with Docker
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you do not want to install postgresql on your host, or maybe you are just looking to run an installation of Runestone for a couple of courses at your school, here is how to proceed.
-
-1. Before you build the rest of the services run the command ``docker compose -f docker-compose.yml -f author.compose.yml -f db.compose.yml up -d db``  This will start just the database service in the set of composed services.   It will also use the default settings for ``POSTGRES_PASSWORD`` (runestone), ``POSTGRES_USER`` (runestone), and ``POSTGRES_DB`` (runestone_dev).  You should change these if you are running a production server, but if you are just getting set up for development for the first time just leave them alone.
-2. Run ``docker compose run rsmanage rsmanage initdb`` This will build the image in docker for the rsmanage command and then run it to create the database and initialize it with the tables and data that you need.  You can use ``docker compose run rsmanage rsmanage ...`` to run any of the rsmanage commands in the composed app.   If you prefer you can install ``rsmanage`` on the host and run it there, but you will need to be mindful of your environment variables related to the database.
-3. You will also need to have the minimal set of environment variables set up.  See the section below.  If you want to use the defaults you can set ``SERVER_CONFIG`` to ``development`` and ``DEV_DBURL`` to ``postgresql://runestone:runestone@localhost:2345/runestone_dev``  rsmanage will tell you if you are missing any environment variables.
-4. You can run ``poetry install --with=dev`` from the top level directory to get a working virtual environment with the ``rsmanage`` command installed.  Run ``poetry shell`` to enable the newly created virtual environment.  Then try to run ``rsmanage`` You may get some errors about missing database libraries, this is normal, but you will have to read the error messages and install the dependencies if you want to run ``rsmanage`` directly.
-
-At this point your database is ready
 
 Adding a Book
 -------------

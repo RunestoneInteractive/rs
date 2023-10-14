@@ -1,3 +1,5 @@
+.. _moving-to-production:
+
 Moving to Production
 ======================
 
