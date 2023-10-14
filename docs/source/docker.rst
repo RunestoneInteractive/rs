@@ -18,7 +18,7 @@ Docker files
 Docker uses `Compose files <https://docs.docker.com/get-started/08_using_compose/>`__ to specify
 how to create virtual machines.
 
-Runestone currently make use of three compose files that can be used in various combinations:
+Runestone currently makes use of three compose files that can be used in various combinations:
 
 1. ``docker-compose.yml`` - Controls all of the servers except for the author server and database server.
 2. ``db.compose.yml`` - Controls the database server.

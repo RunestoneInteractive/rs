@@ -14,9 +14,17 @@ Welcome to Runestone Documentation
    structure
    poetry
    docker
+   database
    environmental_vars
    building_servers
-   database
+   docroadmap
+
+
+
+TO STILL UPDATE
+=================
+
+   left_to_merge
    custom_book      
    contributing
    developing
