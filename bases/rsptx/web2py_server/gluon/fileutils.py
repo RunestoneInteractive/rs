@@ -270,7 +270,7 @@ def missing_app_folders(path):
 
 def create_welcome_w2p():
     is_newinstall = os.path.exists('NEWINSTALL')
-    if not os.path.exists('welcome.w2p') or is_newinstall:
+    if is_newinstall:
         logger = logging.getLogger("web2py")
         try:
             app_path = 'applications/welcome'
