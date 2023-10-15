@@ -6,9 +6,11 @@ authors = ['Brad Miller <bonelake@mac.com>']
 license = ""
 
 packages = [
-    {include = "rsptx/web2py_server", from = "../../bases"},
-    {include = "rsptx/cl_utils",from = "../../components"},
+    { include = "rsptx/web2py_server", from = "../../bases" },
+    { include = "rsptx/cl_utils", from = "../../components" },
 ]
+
+exclude = ["**/errors/*", "**/tests", "**/__pycache__"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -42,9 +44,13 @@ Sphinx = "> 4.1.0"
 sphinxcontrib-paverutils = ">= 1.17"
 SQLAlchemy = ">= 1.0.14"
 stripe = "^2.0.0"
-pycrypto = "^2.6.1"
+pycryptodome = "^3.18.0"
 jupyterlite-sphinx = "^0.8.0"
 urllib3-secure-extra = "^0.1.0"
+redis = "^4.3.0"
+gunicorn = "^21.0.0"
+
+# These are for testing and development.
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"
 CodeChat = "^1.0.0"
@@ -55,7 +61,6 @@ flake8 = "^4.0.0"
 html5validator = "^0.3.0"
 locust = "^1.0.0"
 mock = "^4.0.0"
-gunicorn = "^21.0.0"
 # For building the docs with Sphinx.
 myst-parser = "^1.0.0"
 # For the plugin.
@@ -64,6 +69,7 @@ pytest = "^7.0.0"
 pyvirtualdisplay = "^3.0.0"
 pywin32 = { version = ">= 301", markers = "sys.platform == 'win32'" }
 selenium = "^3.0.0"
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
