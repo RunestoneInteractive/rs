@@ -32,6 +32,9 @@ COPY entrypoint.sh /usr/src/app/entrypoint.sh
 # When you pip install a wheel it also installs all of the dependencies
 # which are stored in the METADATA file inside the wheel
 RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
+RUN pip install gunicorn
 RUN chown -R www-data:www-data /usr/local/lib/python3.10/site-packages/rsptx/web2py_server
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "rsptx.web2py_server.wsgihandler:application"]
+# The default entrypoint is essentially /bin/bash
+# The CMD is the default command which is passed as an argument to the entrypoint!
+#CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "rsptx.web2py_server.wsgihandler:application"]

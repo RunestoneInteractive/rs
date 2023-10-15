@@ -84,8 +84,8 @@ packages = [
     { include = "rsptx/configuration", from = "../../components" },
     { include = "rsptx/logging", from = "../../components" },
     { include = "rsptx/cl_utils", from = "../../components" },
-    { include = "rsptx/response_helpers", from = "../../components" },
     { include = "rsptx/build_tools", from = "../../components" },
+    { include = "rsptx/response_helpers", from = "../../components" },
     # runestone is different because we want to expose runestone as a namespace, not
     # rsptx.interactives.runestone
     { include = "runestone", from = "../../bases/rsptx/interactives" },
