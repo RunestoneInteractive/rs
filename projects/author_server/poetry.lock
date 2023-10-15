@@ -2058,18 +2058,19 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.1.6"
+version = "7.1.9"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "runestone-7.1.6-py3-none-any.whl", hash = "sha256:340b02b3b953467ab69a87592301895f3793599be49a7afb6aa5b83fbd59fb68"},
+    {file = "runestone-7.1.9-py3-none-any.whl", hash = "sha256:e46f39aee70d6f4660572ec4d718bb38818774f1053b4d0af7d17bfaf5668cdb"},
+    {file = "runestone-7.1.9.tar.gz", hash = "sha256:9ff2e76374d26efab7ed9a983882f8ee386d87e77c30c0b3a1fbc23223e7dfe2"},
 ]
 
 [package.dependencies]
 asyncpg = ">=0.28.0,<0.29.0"
 click = ">=8,<9"
-CodeChat = ">=1.8.6"
+CodeChat = "<1.9.4"
 cogapp = ">=2.5"
 dateutils = ">=0.6.12,<0.7.0"
 fastapi = "0.95.2"
