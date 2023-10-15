@@ -1314,7 +1314,10 @@ Yet another is that there is an internal error.  The internal error message is: 
                         .length == 0
                 ) {
                     let urResults = document.getElementById(urDivid);
-                    this.outerDiv.appendChild(urResults);
+                    // why do we do this?  This doesn't seem to matter for grading...
+                    if (urResults) {
+                        this.outerDiv.appendChild(urResults);
+                    }
                 }
             }
         }
