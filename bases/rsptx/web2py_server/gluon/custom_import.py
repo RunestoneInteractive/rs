@@ -15,9 +15,10 @@ import threading
 from gluon import current
 
 NATIVE_IMPORTER = builtin.__import__
-INVALID_MODULES = set(('', 'gluon', 'applications', 'custom_import'))
+INVALID_MODULES = set(("", "gluon", "applications", "custom_import"))
 
 # backward compatibility API
+
 
 def custom_import_install():
     if builtin.__import__ == NATIVE_IMPORTER:
@@ -38,6 +39,8 @@ def is_tracking_changes():
 # Changed in Python 3.3: Negative values for level are no longer supported,
 # which also changes the default value to 0 (was -1)
 _DEFAULT_LEVEL = 0 if sys.version_info[:2] >= (3, 3) else -1
+import pdb
+
 
 def custom_importer(name, globals={}, locals=None, fromlist=(), level=_DEFAULT_LEVEL):
     """
@@ -51,13 +54,21 @@ def custom_importer(name, globals={}, locals=None, fromlist=(), level=_DEFAULT_L
     if isinstance(name, unicodeT):
         name = to_native(name)
 
-    if hasattr(current, 'request') \
-            and level <= 0 \
-            and name.partition('.')[0] not in INVALID_MODULES:
+    if (
+        hasattr(current, "request")
+        and level <= 0
+        and name.partition(".")[0] not in INVALID_MODULES
+    ):
         # absolute import from application code
         try:
-            return NATIVE_IMPORTER(name, globals, locals, fromlist, level)
-        except (ImportError, KeyError):
+            # print(
+            #     f"trying Native Importer: {NATIVE_IMPORTER} for {name} {fromlist} {level}"
+            # )
+            nat_result = NATIVE_IMPORTER(name, globals, locals, fromlist, level)
+            # print(f"successfully imported {name} {fromlist}")
+            return nat_result
+        except (ImportError, KeyError) as e:
+            # print(f"Import or Key Error when trying Native: {e}")
             pass
         if current.request._custom_import_track_changes:
             base_importer = TRACK_IMPORTER
@@ -65,18 +76,20 @@ def custom_importer(name, globals={}, locals=None, fromlist=(), level=_DEFAULT_L
             base_importer = NATIVE_IMPORTER
         # rstrip for backward compatibility
         items = current.request.folder.rstrip(os.sep).split(os.sep)
-        modules_prefix = '.'.join(items[-2:]) + '.modules'
+        modules_prefix = ".".join(items[-2:]) + ".modules"
         if not fromlist:
             # "import x" or "import x.y"
             result = None
             for itemname in name.split("."):
                 new_mod = base_importer(
-                    modules_prefix, globals, locals, (itemname,), level)
+                    modules_prefix, globals, locals, (itemname,), level
+                )
                 modules_prefix += "." + itemname
                 if result is None:
                     try:
                         result = sys.modules[modules_prefix]
-                    except KeyError:
+                    except KeyError as ke:
+                        # print(f"Key error in custom import {ke}")
                         raise ImportError("No module named %s" % modules_prefix)
             return result
         else:
@@ -99,7 +112,9 @@ class TrackImporter(object):
     def __init__(self):
         self._import_dates = {}  # Import dates of the files of the modules
 
-    def __call__(self, name, globals={}, locals=None, fromlist=(), level=_DEFAULT_LEVEL):
+    def __call__(
+        self, name, globals={}, locals=None, fromlist=(), level=_DEFAULT_LEVEL
+    ):
         """
         The import method itself.
         """
@@ -142,8 +157,9 @@ class TrackImporter(object):
                 if file.endswith(".py"):
                     # Get path without file ext:
                     file = os.path.splitext(file)[0]
-                    reload_mod = os.path.isdir(file) \
-                        and os.path.isfile(file + self.PACKAGE_PATH_SUFFIX)
+                    reload_mod = os.path.isdir(file) and os.path.isfile(
+                        file + self.PACKAGE_PATH_SUFFIX
+                    )
                     mod_to_pack = reload_mod
                 else:  # Package turning into module?
                     file += ".py"
@@ -173,5 +189,6 @@ class TrackImporter(object):
             if file.endswith(self.PACKAGE_PATH_SUFFIX):
                 file = os.path.dirname(file)  # Track dir for packages
         return file
+
 
 TRACK_IMPORTER = TrackImporter()
