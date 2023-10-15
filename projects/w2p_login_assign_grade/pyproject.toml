@@ -55,7 +55,7 @@ flake8 = "^4.0.0"
 html5validator = "^0.3.0"
 locust = "^1.0.0"
 mock = "^4.0.0"
-gunicorn = "^20.1.0"
+gunicorn = "^21.0.0"
 # For building the docs with Sphinx.
 myst-parser = "^1.0.0"
 # For the plugin.
