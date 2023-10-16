@@ -1,4 +1,5 @@
 var ws = null;
+var alertSet = false;
 function connect(event) {
     ws = new WebSocket(`${eBookConfig.websocketUrl}/chat/${user}/ws`);
     messageTrail = {};
@@ -107,10 +108,11 @@ function connect(event) {
                         // set a timer to check if the student hasn't voted in 10 seconds
                         // give them a warning.
                         setTimeout(() => {
-                            if (studentVoteCount > 1 && !vote2done) {
+                            if (studentVoteCount > 1 && !vote2done && !alertSet) {
                                 alert(
                                     "You must vote twice! Even if want to keep your answer the same."
                                 );
+                                alertSet = true;
                             }
                         }, 10000);
                     }
