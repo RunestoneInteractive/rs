@@ -10,9 +10,25 @@ Welcome to Runestone Documentation
    :maxdepth: 2
 
    readme
+   developing
+   structure
+   poetry
+   docker
+   database
+   environmental_vars
+   building_servers
+   docroadmap
+
+
+
+TO STILL UPDATE
+=================
+
+   left_to_merge
    custom_book      
    contributing
    developing
+   production
 
 
 API Documentation

@@ -21,7 +21,7 @@ There are some good reasons to want to customize a book.
 
 
 Getting Started
-===============
+---------------
 
 1. Create a fork of the book you want to customize.  Most of the books on Runestone Academy have Forks from our RunestoneInteractive organization.  For some others the repositories are easy to find if you look at the book, or just do a github search
 2. Create an issue on `Github, here <https://github.com/RunestoneInteractive/rs>`_ to let me know you are working on a custom book.  Please include the name of the book and the document-id. This will allow me to be sure that the document-id is not already in use.
