@@ -99,7 +99,8 @@ packages = [
 python = "^3.10"
 cogapp = ">=2.5"
 click = "~8"
-CodeChat = "<1.9.4"
+# Newer CodeChat only supports Sphinx > 5, while Runestone requires Sphinx < 6.
+CodeChat = "==1.9.2"
 jinja2 = "<3.1.0"
 Paver = ">=1.2.4"
 six = ">1.12"

@@ -53,7 +53,8 @@ gunicorn = "^21.0.0"
 # These are for testing and development.
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"
-CodeChat = "^1.0.0"
+# Newer CodeChat only supports Sphinx > 5, while Runestone requires Sphinx < 6.
+CodeChat = "==1.9.2"
 contextlib2 = "^0.6.0"
 coverage = "^6.0.0"
 coveralls = "^3.0.0"
