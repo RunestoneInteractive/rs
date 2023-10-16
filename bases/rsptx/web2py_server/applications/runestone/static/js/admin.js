@@ -2007,6 +2007,7 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
         } else {
             try {
                 let res = component_factory[componentKind](opt);
+                res.multiGrader = moreOpts.multiGrader;
                 if (componentKind === "activecode") {
                     if (moreOpts.multiGrader) {
                         window.componentMap[`${moreOpts.gradingContainer} ${res.divid}`] = res;
