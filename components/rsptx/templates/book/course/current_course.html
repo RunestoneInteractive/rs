@@ -77,6 +77,8 @@ textbook
 </div>
 
 </div>
+{% endif %}
+
 <script>
 async function change_course(course_name) {
     let new_course = document.getElementById("course_chooser").value
@@ -88,7 +90,7 @@ async function change_course(course_name) {
 }
 </script>
 </div>
-{% endif %}
+
 {% endblock %}
 
 {% block js %}
