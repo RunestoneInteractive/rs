@@ -17,6 +17,8 @@ Welcome to Runestone Documentation
    database
    environmental_vars
    building_servers
+   tutorial
+   debugging
    docroadmap
 
 
