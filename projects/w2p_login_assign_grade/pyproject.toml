@@ -53,7 +53,7 @@ gunicorn = "^21.0.0"
 # These are for testing and development.
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"
-CodeChat = "^1.0.0"
+CodeChat = "<1.9.4"
 contextlib2 = "^0.6.0"
 coverage = "^6.0.0"
 coveralls = "^3.0.0"
