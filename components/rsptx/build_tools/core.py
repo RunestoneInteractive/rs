@@ -471,6 +471,8 @@ def manifest_data_to_db(course_name, manifest_path):
     )
 
     rslogger.info("Populating the database with Chapter information")
+    ext_img_patt = re.compile(r"""src="external""")
+    gen_img_patt = re.compile(r"""src="generated""")
 
     tree = ET.parse(manifest_path)
     root = tree.getroot()
@@ -612,13 +614,20 @@ def manifest_data_to_db(course_name, manifest_path):
                     practice = "T"
                 autograde = ""
                 if "====" in dbtext:
-                    extraCode = dbtext.partition('====')[2] #text after ====
-                    #keywords for sql, py, cpp, java respectively
-                    for utKeyword in ['assert', 'unittest', 'TEST_CASE', 'junit']:
+                    extraCode = dbtext.partition("====")[2]  # text after ====
+                    # keywords for sql, py, cpp, java respectively
+                    for utKeyword in ["assert", "unittest", "TEST_CASE", "junit"]:
                         if utKeyword in extraCode:
                             autograde = "unittest"
                             break
                 # chapter and subchapter are elements
+                # fix image urls in dbtext to be relative to the book
+                dbtext = ext_img_patt.sub(
+                    f"""src="/ns/books/published/{course_name}/external""", dbtext
+                )
+                dbtext = gen_img_patt.sub(
+                    f"""src="/ns/books/published/{course_name}/generated""", dbtext
+                )
                 sbc = subchapter.find("./id").text
                 cpt = chapter.find("./id").text
                 valudict = dict(
