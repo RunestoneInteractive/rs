@@ -10,6 +10,7 @@ Welcome to Runestone Documentation
    :maxdepth: 2
 
    readme
+   contributing
    developing
    structure
    poetry
@@ -17,20 +18,14 @@ Welcome to Runestone Documentation
    database
    environmental_vars
    building_servers
+   addbook
+   custom_book
+   server_feature
+   javascript_feature
    tutorial
    debugging
-   docroadmap
-
-
-
-TO STILL UPDATE
-=================
-
-   left_to_merge
-   custom_book      
-   contributing
-   developing
    production
+   docroadmap
 
 
 API Documentation
