@@ -30,7 +30,7 @@ Starting the Servers
 
 Before trying to run the servers, make sure you are not already running a webserver on your computer. Open a web browser and for the address type ``localhost``. If that fails to connect, you are good to go. If ``localhost`` does produce a web page, or some other error message, you should figure out what webserver is running and stop it. (Alternatively, you can edit the ``docker-compose.yml`` file and change the port that nginx is listening on to something other than 80. Port 80 is the default port for web sites to serve on.)
 
-If you are using the ``db.compose.yml`` file to install the database as part of the application you will want to start up and initialize the database first.  Run ``docker compose -f db.compose.yml up -d db``.  This will start up just the database server.  You can then initialize the database by running ``docker compose run rsmanage rsmanage initdb``.  Yes, I meant ``rsmanage rsmanage``.  This will create the database tables and add the initial data.
+If you are using the ``db.compose.yml`` file to install the database as part of the application you will want to start up and initialize the database first.  Run ``docker compose -f docker-compose.yml -f db.compose.yml up -d db``.  This will start up just the database server.  You can then initialize the database by running ``docker compose run rsmanage rsmanage initdb``.  Yes, I meant ``rsmanage rsmanage``.  This will create the database tables and add the initial data.
 
 #. ou can start up the servers. To do this, you will use this (assuming you are letting docker run the database, and that you do not want the author server):
 
