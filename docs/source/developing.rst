@@ -14,7 +14,7 @@ We welcome anyone who is willing to help us with this project.  But it is import
 
 We try to hide the really hard stuff in scripts, but sometimes you just have to know stuff.  We are happy to help you learn, but you will need to be willing to learn, and you will need to be patient and recognize that in an open source project there are sometimes things that are not documented well, or that documentation is out of date.  We are working on that, but it is a big job.  A friend of mine would always say "Use the source Luke."  Generally speaking the latest released version of the repository is "in production" which means that it is working for hundreds of thousands of people.  There could be a window where the HEAD is broken for a particular feature, but certainly not for the whole system.
 
-To get started, work through the following sections of the documents. You will need to:
+To get started, work through the following sections of the documents. Each step will be explained in further detail in their own respective page. Briefly, you will need to:
 
 * Get the Runestone code
 * Set up Poetry
@@ -23,3 +23,5 @@ To get started, work through the following sections of the documents. You will n
 * Build the various Runestone servers and run them
 
 If you are interested in deploying a production version of Runestone to serve books, begin by setting up a development environment. Once you are confident in that process, the :ref:`moving to production instructions<moving-to-production>` will help you set up a production ready server.
+
+To get started with getting the Runestone code go to the following page :ref:`<https://runestone-monorepo.readthedocs.io/en/latest/structure.html>`. 
