@@ -6,7 +6,7 @@ You should begin by following the instructions to `install
 poetry <https://python-poetry.org/docs/>`__.
 
 After installing Poetry, to support the `polylith structure <https://polylith.gitbook.io/polylith/introduction/polylith-in-a-nutshell>`__
-you should install thr following plugins to poetry. These will be installed globally in
+you should install the following plugins to poetry. These will be installed globally in
 your copy of poetry. Do the following from a command prompt:
 
 1. ``poetry self add poetry-polylith-plugin``
@@ -19,11 +19,11 @@ your copy of poetry. Do the following from a command prompt:
    This will make your Runestone installation much more self contained. That is a good thing.
    
    However, plugins in ``poetry`` are global, not per-project. So if you
-   have other ``poetry`` projects with ``.env`` files that you `don`t` want automatically
+   have other ``poetry`` projects with ``.env`` files that you don't want automatically
    used, you may want to not use ``poetry-dotenv-plugin``. In that case, you will need to
    manually set some environment variables on your machine (detailed later).
 
-With those installed go ahead and run ``poetry poly info``. You should see something like this:
+With those installed descend into the Runestone repository by doing ``cd rs`` and run ``poetry poly info``. You should see something like this:
 
 .. code:: shell
 
@@ -58,10 +58,11 @@ this up to date.
 
 The **projects** listed across the top of the table define the artifacts
 - Docker images or applications, they could be a web application or a
-command line application or whatever. The **bases** - contains the
-public facing API for a project. The **components** contain code that
-supports one or more projects/bases. You can see which projects use
-which base and which components by the check marks in the table.
+command line application or other software systems. 
+The **bases** - contains the public facing API for a project. 
+The **components** contain code that supports one or more 
+projects/bases. You can see which projects use which base and 
+which components by the check marks in the table.
 
 The goal is to put as much code as possible into the components in a way
 that is very reusable. For example our database code for doing Create,
