@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 # Local application imports
 # -------------------------
 from rsptx.logging import rslogger
-from rsptx.db.crud import fetch_course
+from rsptx.db.crud import CRUD
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
 from rsptx.response_helpers.core import make_json_response, get_webpack_static_imports
@@ -29,7 +29,8 @@ async def get_assignments(
     request: Request, user=Depends(auth_manager), response_class=HTMLResponse
 ):
     # get the course
-    course = await fetch_course(user.course_name)
+    crud = CRUD(request.app.state.db_session)
+    course = await crud.fetch_course(user.course_name)
 
     if settings.server_config == "development":
         dburl = settings.dev_dburl

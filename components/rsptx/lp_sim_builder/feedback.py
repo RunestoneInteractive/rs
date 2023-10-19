@@ -27,9 +27,10 @@ from runestone.lp.lp_common_lib import (
 # Local imports
 # -------------
 from rsptx.db.models import runestone_component_dict
+from rsptx.db.async_session import async_session
 from .scheduled_builder import _scheduled_builder
 from rsptx.configuration import settings
-from rsptx.db.crud import fetch_course
+from rsptx.db.crud import CRUD
 
 
 # Code
@@ -137,6 +138,7 @@ async def fitb_feedback(
 # ===========
 async def lp_feedback(lp_validator: Any, feedback: Dict[Any, Any]):
     # Begin by reformatting the answer for storage in the database. Do this now, so the code will be stored correctly even if the function returns early due to an error.
+    crud = CRUD(async_session)
     try:
         code_snippets = json.loads(lp_validator.answer)
     except Exception:
@@ -144,7 +146,7 @@ async def lp_feedback(lp_validator: Any, feedback: Dict[Any, Any]):
         return {"errors": [f"Unable to load answers from '{lp_validator.answer}'."]}
     lp_validator.answer = json.dumps(dict(code_snippets=code_snippets))
 
-    course = await fetch_course(lp_validator.course_name)
+    course = await crud.fetch_course(lp_validator.course_name)
     sphinx_base_path = os.path.join(settings.book_path, course.base_course)
     source_path = feedback["source_path"]
     # Read the Sphinx config file to find paths relative to this directory.

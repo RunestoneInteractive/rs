@@ -14,6 +14,7 @@ import pathlib
 
 # Third-party imports
 # -------------------
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -26,6 +27,7 @@ from .routers import student
 from .routers import instructor
 from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
+from rsptx.db.async_session import async_session
 from rsptx.db.async_session import init_models, term_models
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.logging import rslogger
@@ -34,11 +36,25 @@ from rsptx.templates import template_folder
 
 # FastAPI setup
 # =============
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Load the ML model
+    rslogger.info("Assignment Server is Starting Up")
+    # get database connection
+    app.state.db_session = async_session
+    yield
+    
+    # Clean up the ML models and release the resources
+    rslogger.info("Book Server is Shutting Down")
+    await term_models()
+
 # _`setting root_path`: see `root_path <root_path>`; this approach comes from `github <https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/issues/55#issuecomment-879903517>`_.
 kwargs = {}
 if root_path := os.environ.get("ROOT_PATH"):
     kwargs["root_path"] = root_path
-app = FastAPI(**kwargs)  # type: ignore
+app = FastAPI(lifespan=lifespan, **kwargs)  # type: ignore
 rslogger.info(f"Serving books from {settings.book_path}.\n")
 
 
@@ -54,6 +70,8 @@ base_dir = pathlib.Path(template_folder)
 app.mount(
     "/staticAssets", StaticFiles(directory=base_dir / "staticAssets"), name="static"
 )
+
+    
 
 
 app.include_router(student.router)

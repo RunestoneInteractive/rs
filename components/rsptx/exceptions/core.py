@@ -12,7 +12,7 @@ from pydantic import ValidationError
 
 from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
-from rsptx.db.crud import create_traceback
+from rsptx.db.crud import CRUD
 from rsptx.logging import rslogger
 
 
@@ -98,6 +98,7 @@ def add_exception_handlers(app):
         A generic handler for uncaught errors.  This will write the raw traceback info
         to a file as well as storing it in the database.
         """
+        crud = CRUD(request.app.state.db_session)
         rslogger.error("UNHANDLED ERROR")
         rslogger.error(exc)
         date = datetime.datetime.utcnow().strftime("%Y_%m_%d-%I.%M.%S_%p")
@@ -109,7 +110,7 @@ def add_exception_handlers(app):
         # TODO: get local variable information
         # find a way to get the request body without throwing an error on await request.json()
         #
-        await create_traceback(exc, request, socket.gethostname())
+        await crud.create_traceback(exc, request, socket.gethostname())
 
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

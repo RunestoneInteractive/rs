@@ -26,7 +26,8 @@ from fastapi_login import LoginManager
 # Local application imports
 # -------------------------
 from rsptx.configuration import settings
-from rsptx.db.crud import fetch_instructor_courses, fetch_user
+from rsptx.db.async_session import async_session
+from rsptx.db.crud import CRUD
 from rsptx.logging import rslogger
 from rsptx.db.models import AuthUserValidator
 
@@ -37,12 +38,13 @@ auth_manager.cookie_name = "access_token"
 
 @auth_manager.user_loader()  # type: ignore
 async def _load_user(user_id: str) -> AuthUserValidator:
+    crud = CRUD(async_session)
     """
     fetch a user object from the database. This is designed to work with the
     original web2py auth_user schema but make it easier to migrate to a new
     database by simply returning a user object.
     """
-    return await fetch_user(user_id)
+    return await crud.fetch_user(user_id)
 
 
 # The ``user_loader`` decorator doesn't propagate type hints. Fix this manually.
@@ -58,11 +60,12 @@ async def is_instructor(request: Request, user:Optional[AuthUserValidator]=None)
     :return: True if the user is an instructor, False otherwise
     :rtype: bool
     """
+    crud = CRUD(request.app.state.db_session)
     if user is None:
         user = request.state.user
     if user is None:
         raise HTTPException(401)
-    elif len(await fetch_instructor_courses(user.id, user.course_id)) > 0:
+    elif len(await crud.fetch_instructor_courses(user.id, user.course_id)) > 0:
         return True
     else:
         return False

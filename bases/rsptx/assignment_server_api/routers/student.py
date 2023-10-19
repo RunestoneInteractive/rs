@@ -27,20 +27,7 @@ from pydantic import BaseModel
 # Local application imports
 # -------------------------
 from rsptx.logging import rslogger
-from rsptx.db.crud import (
-    create_useinfo_entry,
-    fetch_assignments,
-    fetch_all_assignment_stats,
-    fetch_grade,
-    upsert_grade,
-    fetch_course,
-    fetch_all_course_attributes,
-    fetch_one_assignment,
-    fetch_assignment_questions,
-    fetch_question_grade,
-    fetch_user_chapter_progress,
-    fetch_user_sub_chapter_progress,
-)
+from rsptx.db.crud import CRUD
 
 from rsptx.db.models import GradeValidator, UseinfoValidation, CoursesValidator
 from rsptx.auth.session import auth_manager, is_instructor
@@ -73,15 +60,15 @@ async def get_assignments(
     :param response_class: _description_, defaults to HTMLResponse
     :type response_class: _type_, optional
     """
-
+    crud = CRUD(request.app.state.db_session)
     sid = user.username
-    course = await fetch_course(user.course_name)
+    course = await crud.fetch_course(user.course_name)
 
     templates = Jinja2Templates(directory=template_folder)
     user_is_instructor = await is_instructor(request, user=user)
-    assignments = await fetch_assignments(course.course_name, is_visible=True)
+    assignments = await crud.fetch_assignments(course.course_name, is_visible=True)
     assignments.sort(key=lambda x: x.duedate, reverse=True)
-    stats_list = await fetch_all_assignment_stats(course.course_name, user.id)
+    stats_list = await crud.fetch_all_assignment_stats(course.course_name, user.id)
     stats = {}
     for s in stats_list:
         stats[s.assignment] = s
@@ -132,11 +119,11 @@ async def update_submit(
     :param response_class: _description_, defaults to JSONResponse
     :type response_class: _type_, optional
     """
-
+    crud = CRUD(request.app.state.db_session)
     assignment_id = request_data.assignment_id
     is_submit = request_data.new_state
 
-    grade = await fetch_grade(user.id, assignment_id)
+    grade = await crud.fetch_grade(user.id, assignment_id)
     rslogger.debug(f"grade: {grade}")
     if grade:
         # toggles the is_submit variable from True to False
@@ -157,7 +144,7 @@ async def update_submit(
             is_submit=is_submit,
             manual_total=False,
         )
-    await upsert_grade(grade)
+    await crud.upsert_grade(grade)
 
     return make_json_response(detail=dict(success=True))
 
@@ -184,17 +171,18 @@ async def doAssignment(
     """
     This is the main entry point for a student to start an assignment.
     """
-    course = await fetch_course(user.course_name)
+    crud = CRUD(request.app.state.db_session)
+    course = await crud.fetch_course(user.course_name)
 
     if not assignment_id:  # noqa: E712
         rslogger.error("BAD ASSIGNMENT = %s assignment %s", course, assignment_id)
         return RedirectResponse("/assignment/student/chooseAssignment")
 
-    course_attrs = await fetch_all_course_attributes(course.id)
+    course_attrs = await crud.fetch_all_course_attributes(course.id)
 
     rslogger.debug(f"COURSE = {course} assignment {assignment_id}")
     # Web2Py documentation for querying databases is really helpful here.
-    assignment = await fetch_one_assignment(assignment_id)
+    assignment = await crud.fetch_one_assignment(assignment_id)
 
     if not assignment:
         rslogger.error(
@@ -224,9 +212,9 @@ async def doAssignment(
     # the exam should be linked to a toctree somewhere so that it gets added.
     #
 
-    questions = await fetch_assignment_questions(assignment_id)
+    questions = await crud.fetch_assignment_questions(assignment_id)
 
-    await create_useinfo_entry(
+    await crud.create_useinfo_entry(
         UseinfoValidation(
             sid=user.username,
             act="viewassignment",
@@ -259,7 +247,7 @@ async def doAssignment(
             htmlsrc = None
 
         # get score and comment
-        grade = await fetch_question_grade(
+        grade = await crud.fetch_question_grade(
             user.username, user.course_name, q.Question.name
         )
         if grade:
@@ -290,7 +278,7 @@ async def doAssignment(
             # add to readings
             if chap_name not in readings:
                 # add chapter info
-                completion = await fetch_user_chapter_progress(user, chap_name)
+                completion = await crud.fetch_user_chapter_progress(user, chap_name)
                 if not completion:
                     status = "notstarted"
                 elif completion.status == 1:
@@ -303,7 +291,7 @@ async def doAssignment(
 
             # add subchapter info
             # add completion status to info
-            subch_completion = await fetch_user_sub_chapter_progress(
+            subch_completion = await crud.fetch_user_sub_chapter_progress(
                 user, chap_name, subchap_name
             )
 
@@ -356,10 +344,10 @@ async def doAssignment(
     print("ORIGIN", c_origin)
 
     # grabs the row for the current user and and assignment in the grades table
-    grade = await fetch_grade(user.id, assignment_id)
+    grade = await crud.fetch_grade(user.id, assignment_id)
     # If cannot find the row in the grades folder, make one and set to not submitted
     if not grade:
-        grade = await upsert_grade(
+        grade = await crud.upsert_grade(
             GradeValidator(
                 auth_user=user.id,
                 assignment=assignment_id,
