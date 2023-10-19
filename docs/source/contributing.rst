@@ -7,8 +7,7 @@ We welcome contributions large and small to the Runestone Components. We welcome
 Getting started
 ---------------
 
-If you are wondering what needs to be done, please check out our `Projects page <https://github.com/orgs/RunestoneInteractive/projects>`_ on github.  We have a number of projects that are in various stages of completion.  If you are interested in working on some aspect of a project just chime in on the issue attached to the task and we will be happy to help you get started.
-
+If you are wondering what needs to be done, please check out our `issues queue <https://github.com/RunestoneInteractive/rs/labels/good%20first%20issue>`_ for a `good first issue`  or our `Projects page <https://github.com/orgs/RunestoneInteractive/projects>`_ on github. We have a number of projects that are in various stages of completion.  If you are interested in working on some aspect of a project just chime in on the issue attached to the task and we will be happy to help you get started.
 Our `developing <https://runestone-monorepo.readthedocs.io/en/latest/developing.html>`_ page can walk you through getting your development environment set up.  We are particularly interested in any roadblocks you encounter in getting set up.  We want to make it as easy as possible for you to contribute.  If you have any questions or problems please don't hesitate to ask on our `Discord <https://discord.gg/f3Qmbk9P3U>`_ or simply create a new issue.
 
 If you are interested in working on a project that is not listed on our projects page, please create an issue describing what you would like to do and we will be happy to discuss it with you.
