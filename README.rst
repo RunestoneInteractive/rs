@@ -60,7 +60,7 @@ are used to orchestrate the servers.
 Docs
 ----
 
-See `Our Read the Docs page <https://runestone-monorepo.readthedocs.io/en/latest/index.html>`_ for more complete documentation.  The `developing <https://runestone-monorepo.readthedocs.io/en/latest/developing.html>`_ section is especially useful if you are interested in contributing to the project.
+See `Our Read the Docs page <https://runestone-monorepo.readthedocs.io/en/latest/index.html>`_ for more complete documentation. After reading the whole page, please continue to the `Contributing Guide <https://runestone-monorepo.readthedocs.io/en/latest/contributing.html>`_.
  
 
 Development Roadmap
