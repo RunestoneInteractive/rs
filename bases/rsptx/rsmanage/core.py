@@ -19,52 +19,22 @@ import os
 import re
 import sys
 import subprocess
-from pathlib import Path
 
 # third party imports
 import redis
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
-from pgcli.main import cli as clipg
 from psycopg2.errors import UniqueViolation
 
 
 # our own package imports
 
-from rsptx.db.crud import (
-    create_initial_courses_users,
-    create_book_author,
-    create_course,
-    create_course_attribute,
-    create_editor_for_basecourse,
-    create_instructor_course_entry,
-    create_library_book,
-    create_user_course_entry,
-    delete_user,
-    fetch_course,
-    fetch_courses_for_user,
-    fetch_course_instructors,
-    fetch_group,
-    fetch_instructor_courses,
-    fetch_library_book,
-    fetch_users_for_course,
-    fetch_membership,
-    fetch_user,
-    create_user,
-    create_group,
-    create_membership,
-    is_author,
-    is_editor,
-    update_user,
-    update_library_book,
-)
+from rsptx.db.crud import CRUD
 from rsptx.db.models import CoursesValidator, AuthUserValidator
-from rsptx.db.async_session import init_models, term_models
+from rsptx.db.async_session import init_models, async_session, term_models
 from rsptx.configuration import settings
 from rsptx.build_tools.core import _build_runestone_book, _build_ptx_book
 from rsptx.cl_utils.core import load_project_dotenv
-
-import pdb
 
 
 class Config(object):
@@ -91,6 +61,8 @@ APP_PATH = f"applications/{APP}"
 DBSDIR = f"{APP_PATH}/databases"
 BUILDDIR = f"{APP_PATH}/build"
 PRIVATEDIR = f"{APP_PATH}/private"
+
+crud = CRUD(async_session)
 
 
 @click.group()
@@ -145,10 +117,10 @@ async def _initdb(config):
     # Since we successfully dropped the database we need to initialize it here.
 
     await init_models()
-    await create_initial_courses_users()
-    await create_group("instructor")
-    await create_group("editor")
-    await create_group("author")
+    await crud.create_initial_courses_users()
+    await crud.create_group("instructor")
+    await crud.create_group("editor")
+    await crud.create_group("author")
     await term_models()  # dispose of the engine
 
 
@@ -293,7 +265,7 @@ async def addcourse(
         else:
             allow_pairs = "T" if allow_pairs else "F"
 
-        res = await fetch_course(course_name)
+        res = await crud.fetch_course(course_name)
         if not res:
             done = True
         else:
@@ -315,7 +287,7 @@ async def addcourse(
         allow_pairs=allow_pairs,
         new_server="T",
     )
-    await create_course(newCourse)
+    await crud.create_course(newCourse)
     click.echo("Course added to DB successfully")
 
 
@@ -338,7 +310,7 @@ async def build(config, clone, ptx, gen, manifest, course):
     rsmanage build [options] COURSE
     Build the book for an existing course
     """
-    res = await fetch_course(course)
+    res = await crud.fetch_course(course)
     if not res:
         click.echo(
             f"Error:  The course {course} must already exist in the database -- use rsmanage addcourse",
@@ -447,7 +419,7 @@ async def adduser(
                 donated=False,
                 accept_tcp=True,
             )
-            res = await create_user(newUser)
+            res = await crud.create_user(newUser)
             if not res:
                 click.echo(f"Failed to create user {line[0]} error {mess[res]}")
                 exit(1)
@@ -471,7 +443,7 @@ async def adduser(
                 userinfo["instructor"] = click.confirm(
                     "Make this user an instructor", default=False
                 )
-        course = await fetch_course(userinfo["course_name"])
+        course = await crud.fetch_course(userinfo["course_name"])
         new_user = AuthUserValidator(
             **userinfo,
             created_on=datetime.datetime.utcnow(),
@@ -484,7 +456,7 @@ async def adduser(
             donated=False,
             accept_tcp=True,
         )
-        res = await create_user(new_user)
+        res = await crud.create_user(new_user)
         if not res:
             click.echo(
                 f"Failed to create user {userinfo['username']} error {res} fix your data and try again. Use --verbose for more detail"
@@ -504,11 +476,11 @@ async def resetpw(config, username, password):
     username = username or click.prompt("Username")
     userinfo["password"] = password or click.prompt("Password", hide_input=True)
 
-    res = await fetch_user(username)
+    res = await crud.fetch_user(username)
     if not res:
         click.echo(f"ERROR - User: {userinfo['username']} does not exist.")
         exit(1)
-    res = await update_user(res.id, userinfo)
+    res = await crud.update_user(res.id, userinfo)
 
     click.echo("Success")
 
@@ -520,7 +492,7 @@ async def rmuser(config, username):
     """Utility to remove a user from the system completely."""
 
     sid = username or click.prompt("Username")
-    await delete_user(sid)
+    await crud.delete_user(sid)
 
 
 @cli.command()
@@ -572,14 +544,14 @@ async def addinstructor(config, username, course):
     username = username or click.prompt("Username")
     course = course or click.prompt("Course name")
 
-    res = await fetch_user(username)
+    res = await crud.fetch_user(username)
     if res:
         userid = res.id
     else:
         print("Sorry, that user does not exist")
         sys.exit(-1)
 
-    res = await fetch_course(course)
+    res = await crud.fetch_course(course)
     if res:
         courseid = res.id
     else:
@@ -587,7 +559,7 @@ async def addinstructor(config, username, course):
         sys.exit(-1)
 
     # if needed insert a row into auth_membership
-    res = await fetch_group("instructor")
+    res = await crud.fetch_group("instructor")
     if res:
         role = res.id
     else:
@@ -596,29 +568,29 @@ async def addinstructor(config, username, course):
         )
         sys.exit(-1)
 
-    res = await fetch_membership(role, userid)
+    res = await crud.fetch_membership(role, userid)
     if not res:
-        await create_membership(role, userid)
+        await crud.create_membership(role, userid)
         print(f"made {username} an instructor")
     else:
         print(f"{username} is already an instructor")
 
     # if needed insert a row into user_courses
-    res = await fetch_courses_for_user(userid)
+    res = await crud.fetch_courses_for_user(userid)
     needs_enrollment = True
     for row in res:
         if row.course_name == course:
             print(f"{username} is already enrolled in {course}")
             needs_enrollment = False
     if needs_enrollment:
-        await create_user_course_entry(userid, courseid)
+        await crud.create_user_course_entry(userid, courseid)
         print(f"enrolled {username} in {course}")
 
     # if needed insert a row into course_instructor
-    res = await fetch_instructor_courses(userid, courseid)
+    res = await crud.fetch_instructor_courses(userid, courseid)
 
     if not res:
-        await create_instructor_course_entry(userid, courseid)
+        await crud.create_instructor_course_entry(userid, courseid)
         print(f"made {username} an instructor for {course}")
     else:
         print(f"{username} is already an instructor for {course}")
@@ -633,20 +605,20 @@ async def addeditor(config, username, basecourse):
     Add an existing user as an instructor for a course
     """
 
-    res = await fetch_user(username)
+    res = await crud.fetch_user(username)
     if res:
         userid = res.id
     else:
         click.echo("Sorry, that user does not exist", color="red")
         sys.exit(-1)
 
-    res = await fetch_course(basecourse)
+    res = await crud.fetch_course(basecourse)
     if not res:
         click.echo("Sorry, that base course does not exist", color="red")
         sys.exit(-1)
 
     # if needed insert a row into auth_membership
-    res = await fetch_group("editor")
+    res = await crud.fetch_group("editor")
     if res:
         role = res.id
     else:
@@ -656,14 +628,14 @@ async def addeditor(config, username, basecourse):
         )
         sys.exit(-1)
 
-    if not is_editor(userid):
-        await create_membership(role, userid)
+    if not crud.is_editor(userid):
+        await crud.create_membership(role, userid)
         click.echo(f"made {username} an editor", color="green")
     else:
         click.echo(f"{username} is already an editor", color="red")
 
     try:
-        await create_editor_for_basecourse(userid, basecourse)
+        await crud.create_editor_for_basecourse(userid, basecourse)
     except:
         click.echo("could not add {username} as editor - They probably already are")
         sys.exit(-1)
@@ -683,15 +655,15 @@ async def courseinfo(config, name):
     if not name:
         name = click.prompt("What course do you want info about?")
 
-    course = await fetch_course(name)
+    course = await crud.fetch_course(name)
     cid = course.id
     start_date = course.term_start_date
     inst = course.institution
     bc = course.base_course
 
-    student_list = await fetch_users_for_course(name)
+    student_list = await crud.fetch_users_for_course(name)
     s_count = len(student_list)
-    res = await fetch_course_instructors(name)
+    res = await crud.fetch_course_instructors(name)
 
     print(f"Course Information for {name} -- ({cid})")
     print(inst)
@@ -714,8 +686,8 @@ async def studentinfo(config, student):
     if not student:
         student = click.prompt("Student Id: ")
 
-    student = await fetch_user(student)
-    courses = await fetch_courses_for_user(student.id)
+    student = await crud.fetch_user(student)
+    courses = await crud.fetch_courses_for_user(student.id)
 
     print("id\tFirst\tLast\temail")
     print(f"{student.id}\t{student.first_name}\t{student.last_name}\t{student.email}")
@@ -742,14 +714,14 @@ async def addattribute(config, course, attr, value):
     attr = attr or click.prompt("Attribute to set: ")
     value = value or click.prompt(f"Value of {attr}: ")
 
-    res = await fetch_course(course)
+    res = await crud.fetch_course(course)
     if res:
         course_id = res.id
     else:
         print("Sorry, that course does not exist")
         sys.exit(-1)
     try:
-        res = await create_course_attribute(course_id, attr, value)
+        res = await crud.create_course_attribute(course_id, attr, value)
     except UniqueViolation:
         click.echo(f"Can only have one attribute {attr} per course")
     except IntegrityError:
@@ -770,10 +742,10 @@ async def instructors(config, course):
     """
     if course:
         print(f"Instructors for {course}")
-        res = await fetch_course_instructors(course)
+        res = await crud.fetch_course_instructors(course)
 
     else:
-        res = await fetch_course_instructors()
+        res = await crud.fetch_course_instructors()
 
     for row in res:
         print(row.id, row.username, row.first_name, row.last_name, row.email)
@@ -917,11 +889,11 @@ async def addbookauthor(config, book, author, github):
     book = book or click.prompt("document-id or basecourse ")
     author = author or click.prompt("username of author ")
 
-    a_row = await fetch_user(author)
+    a_row = await crud.fetch_user(author)
     if not a_row:
         click.echo(f"Error - author {author} does not exist")
         sys.exit(-1)
-    res = await fetch_course(book)  # verify this is a base course?
+    res = await crud.fetch_course(book)  # verify this is a base course?
     if res:
         click.echo(f"Warning - Book {book} already exists in courses table")
     # Create an entry in courses (course_name, term_start_date, institution, base_course, login_required, allow_pairs, student_price, downloads_enabled, courselevel, newserver)
@@ -938,7 +910,7 @@ async def addbookauthor(config, book, author, github):
             allow_pairs=False,
             new_server=True,
         )
-        await create_course(new_course)
+        await crud.create_course(new_course)
     else:
         # Try to deduce the github url from the working directory
         if not github:
@@ -947,21 +919,21 @@ async def addbookauthor(config, book, author, github):
     # create an entry in book_author (author, book)
     try:
         vals = dict(title=f"Temporary title for {book}")
-        await create_library_book(book, vals)
+        await crud.create_library_book(book, vals)
     except Exception as e:
-        click.echo(f"Warning: Book already exists in library")
+        click.echo(f"Warning: Book {book} already exists in library")
 
     try:
-        await create_book_author(author, book)
+        await crud.create_book_author(author, book)
     except Exception as e:
         click.echo(f"Warning: It appears that {author} is already an author of {book}")
 
     # create an entry in auth_membership (group_id, user_id)
-    auth_row = await fetch_group("author")
+    auth_row = await crud.fetch_group("author")
     auth_group_id = auth_row.id
 
-    if not await is_author(a_row.id):
-        await create_membership(auth_group_id, a_row.id)
+    if not await crud.is_author(a_row.id):
+        await crud.create_membership(auth_group_id, a_row.id)
 
 
 # command group for mangaging the library table
@@ -983,8 +955,8 @@ async def library_visible(ctx, book, show):
     Show or hide the book on the library page
     """
     print(f"Setting the is_visible flag to {show} for {book} in the library")
-    bookrec = await fetch_library_book(book)
-    await update_library_book(bookrec.id, dict(is_visible=show))
+    bookrec = await crud.fetch_library_book(book)
+    await crud.update_library_book(bookrec.id, dict(is_visible=show))
 
 
 @library.command("forclass")
@@ -998,8 +970,8 @@ async def library_forclass(ctx, book, show):
     Show or hide the book in the course creation page
     """
     print(f"Setting the for_classes flag to {show} for {book} in the library")
-    bookrec = await fetch_library_book(book)
-    await update_library_book(bookrec.id, dict(for_classes=show))
+    bookrec = await crud.fetch_library_book(book)
+    await crud.update_library_book(bookrec.id, dict(for_classes=show))
 
 
 @library.command("show")
@@ -1007,7 +979,7 @@ async def library_forclass(ctx, book, show):
 @click.argument("book")
 async def library_show(ctx, book):
     """Show all data for this book in the library"""
-    bookrec = await fetch_library_book(book)
+    bookrec = await crud.fetch_library_book(book)
     click.echo(f"Title: {bookrec.title}")
     click.echo(f"Authors: {bookrec.authors}")
     click.echo(f"shelf sections: {bookrec.shelf_section}")

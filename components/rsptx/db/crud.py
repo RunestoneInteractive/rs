@@ -103,13 +103,22 @@ EVENT2TABLE = {
     "hparsonsAnswer": "microparsons_answers",
 }
 
+
 class CRUD:
     """wrapper class for all of the CRUD functions
     Before creating an instance of CRUD you will need to set up a database session.
     See rsptx.db.async_session for details.
     """
     def __init__(self, async_session):
-        self.async_session = async_session    
+        self.async_session = async_session
+        self.auto_gradable_q = [
+            "clickablearea",
+            "mchoice",
+            "parsonsprob",
+            "dragndrop",
+            "fillintheblank",
+            "lp",
+        ]
 
     # useinfo
     # -------
@@ -130,8 +139,8 @@ class CRUD:
         rslogger.debug(new_entry)
         return UseinfoValidation.from_orm(new_entry)
 
-
-    async def count_useinfo_for(self, 
+    async def count_useinfo_for(
+        self,
         div_id: str, course_name: str, start_date: datetime.datetime
     ) -> List[tuple]:
         """return a list of tuples that include the [(act, count), (act, count)]
@@ -183,7 +192,8 @@ class CRUD:
             return chapter_label.scalars().first()
 
 
-    async def fetch_page_activity_counts(self, 
+    async def fetch_page_activity_counts(
+        self,
         chapter: str, subchapter: str, base_course: str, course_name: str, username: str
     ) -> Dict[str, int]:
         """
@@ -303,7 +313,8 @@ class CRUD:
 
     # xxx_answers
     # -----------
-    async def create_answer_table_entry(self, 
+    async def create_answer_table_entry(
+        self,
         # The correct type is one of the validators for an answer table; we use LogItemIncoming as a generalization of this.
         log_entry: schemas.LogItemIncoming,
         # The event type.
@@ -328,7 +339,8 @@ class CRUD:
         return rcd.validator.from_orm(new_entry)  # type: ignore
 
 
-    async def fetch_last_answer_table_entry(self, 
+    async def fetch_last_answer_table_entry(
+        self,
         query_data: schemas.AssessmentRequest,
     ) -> schemas.LogItemIncoming:
         """The xxx_answers table contains ALL of the answers a student has made for this question.  but most often all we want is the most recent answer
@@ -456,7 +468,8 @@ class CRUD:
             session.add(new_course)
 
 
-    async def fetch_courses_for_user(self, 
+    async def fetch_courses_for_user(
+        self,
         user_id: int, course_id: Optional[int] = None
     ) -> UserCourse:
         """
@@ -495,7 +508,7 @@ class CRUD:
         :param course_name: str, the name of the course
         :return: list[AuthUserValidator], a list of AuthUserValidator objects representing the users
         """
-        course = await fetch_course(course_name)
+        course = await self.fetch_course(course_name)
         query = select(AuthUser).where(
             and_(
                 UserCourse.user_id == AuthUser.id,
@@ -608,7 +621,7 @@ class CRUD:
         :param user: AuthUserValidator, the AuthUserValidator object representing the user to be created
         :return: Optional[AuthUserValidator], the newly created AuthUserValidator object if successful, None otherwise
         """
-        if await fetch_user(user.username):
+        if await self.fetch_user(user.username):
             raise HTTPException(
                 status_code=422,
                 detail=http_422error_detail(
@@ -734,7 +747,8 @@ class CRUD:
 
     # instructor_courses
     # ------------------
-    async def fetch_instructor_courses(self, 
+    async def fetch_instructor_courses(
+        self,
         instructor_id: int, course_id: Optional[int] = None
     ) -> List[CourseInstructorValidator]:
         """
@@ -765,7 +779,8 @@ class CRUD:
             return course_list
 
 
-    async def fetch_course_instructors(self, 
+    async def fetch_course_instructors(
+        self,
         course_name: Optional[str] = None,
     ) -> List[AuthUserValidator]:
         """
@@ -777,7 +792,7 @@ class CRUD:
         """
         query = select(AuthUser).join(CourseInstructor)
         if course_name:
-            course = await fetch_course(course_name)
+            course = await self.fetch_course(course_name)
             query = query.where(CourseInstructor.course == course.id)
         async with self.async_session() as session:
             res = await session.execute(query)
@@ -802,6 +817,7 @@ class CRUD:
 
     # Code
     # ----
+
     async def create_code_entry(self, data: CodeValidator) -> CodeValidator:
         """
         Create a new code entry with the given data (data)
@@ -840,6 +856,7 @@ class CRUD:
     # Server-side grading
     # -------------------
     # Return the feedback associated with this question if this question should be graded on the server instead of on the client; otherwise, return None.
+
     async def is_server_feedback(self, div_id: str, course: str) -> Optional[Dict[str, Any]]:
         """
         Check if server feedback is available for the given div id (div_id) and course name (course).
@@ -913,9 +930,9 @@ class CRUD:
                 institution="",
                 new_server=True,
             )
-            await create_course(new_course)
+            await self.create_course(new_course)
         # Make a user. TODO: should we not do this for production?
-        await create_user(
+        await self.create_user(
             AuthUserValidator(
                 username="testuser1",
                 first_name="test",
@@ -1021,7 +1038,7 @@ class CRUD:
         :param course_name: str, the name of the course
         :return: Tuple[str, str, str, str, str], a tuple representing the last page accessed
         """
-        course = await fetch_course(course_name)
+        course = await self.fetch_course(course_name)
 
         query = (
             select(
@@ -1058,7 +1075,8 @@ class CRUD:
                 return None
 
 
-    async def fetch_user_sub_chapter_progress(self, 
+    async def fetch_user_sub_chapter_progress(
+        self,
         user, last_page_chapter=None, last_page_subchapter=None
     ) -> List[UserSubChapterProgressValidator]:
         """
@@ -1091,7 +1109,8 @@ class CRUD:
             ]
 
 
-    async def create_user_sub_chapter_progress_entry(self, 
+    async def create_user_sub_chapter_progress_entry(
+        self,
         user, last_page_chapter, last_page_subchapter, status=-1
     ) -> UserSubChapterProgressValidator:
         """
@@ -1117,7 +1136,8 @@ class CRUD:
         return UserSubChapterProgressValidator.from_orm(new_uspe)
 
 
-    async def fetch_user_chapter_progress(self, 
+    async def fetch_user_chapter_progress(
+        self,
         user, last_page_chapter: str
     ) -> UserChapterProgressValidator:
         """
@@ -1140,7 +1160,8 @@ class CRUD:
             return UserChapterProgressValidator.from_orm(res.scalars().first())
 
 
-    async def create_user_chapter_progress_entry(self, 
+    async def create_user_chapter_progress_entry(
+        self,
         user, last_page_chapter, status
     ) -> UserChapterProgressValidator:
         """
@@ -1167,7 +1188,8 @@ class CRUD:
     # -----------------------
 
 
-    async def create_selected_question(self, 
+    async def create_selected_question(
+        self,
         sid: str,
         selector_id: str,
         selected_id: str,
@@ -1196,7 +1218,8 @@ class CRUD:
         return SelectedQuestionValidator.from_orm(new_sqv)
 
 
-    async def fetch_selected_question(self, 
+    async def fetch_selected_question(
+        self,
         sid: str, selector_id: str
     ) -> SelectedQuestionValidator:
         """
@@ -1242,7 +1265,8 @@ class CRUD:
 
 
     # write a function that fetches all Assignment objects given a course name
-    async def fetch_assignments(self, 
+    async def fetch_assignments(
+        self,
         course_name: str,
         is_peer: Optional[bool] = False,
         is_visible: Optional[bool] = False,
@@ -1278,6 +1302,7 @@ class CRUD:
 
 
     # write a function that fetches all Assignment objects given a course name
+
     async def fetch_one_assignment(self, assignment_id: int) -> AssignmentValidator:
         """
         Fetch one Assignment object
@@ -1295,7 +1320,8 @@ class CRUD:
             return AssignmentValidator.from_orm(res.scalars().first())
 
 
-    async def fetch_all_assignment_stats(self, 
+    async def fetch_all_assignment_stats(
+        self,
         course_name: str, userid: int
     ) -> list[GradeValidator]:
         """
@@ -1363,7 +1389,8 @@ class CRUD:
         return GradeValidator.from_orm(new_grade)
 
 
-    async def fetch_question(self, 
+    async def fetch_question(
+        self,
         name: str, basecourse: Optional[str] = None, assignment: Optional[str] = None
     ) -> QuestionValidator:
         """
@@ -1408,16 +1435,6 @@ class CRUD:
             return res.scalars().first()
 
 
-    auto_gradable_q = [
-        "clickablearea",
-        "mchoice",
-        "parsonsprob",
-        "dragndrop",
-        "fillintheblank",
-        "lp",
-    ]
-
-
     async def fetch_matching_questions(self, request_data: schemas.SelectQRequest) -> List[str]:
         """
         Return a list of question names (div_ids) that match the criteria
@@ -1446,7 +1463,7 @@ class CRUD:
             if request_data.autogradable:
                 where_clause = where_clause & (
                     (Question.autograde == "unittest")
-                    | Question.question_type.in_(auto_gradable_q)
+                    | Question.question_type.in_(self.auto_gradable_q)
                 )
             if request_data.limitBaseCourse:
                 where_clause = where_clause & (
@@ -1464,7 +1481,8 @@ class CRUD:
         return questionlist
 
 
-    async def fetch_assignment_question(self, 
+    async def fetch_assignment_question(
+        self,
         assignment_name: str, question_name: str
     ) -> AssignmentQuestionValidator:
         """
@@ -1490,7 +1508,8 @@ class CRUD:
     import pdb
 
 
-    async def fetch_assignment_questions(self, 
+    async def fetch_assignment_questions(
+        self,
         assignment_id: int,
     ) -> List[Tuple[Question, AssignmentQuestion]]:
         """
@@ -1565,7 +1584,8 @@ class CRUD:
             return r
 
 
-    async def create_user_experiment_entry(self, 
+    async def create_user_experiment_entry(
+        self,
         sid: str, ab: str, group: int
     ) -> UserExperimentValidator:
         """
@@ -1622,7 +1642,8 @@ class CRUD:
             return [row.selected_id for row in res.scalars().fetchall()]
 
 
-    async def fetch_timed_exam(self, 
+    async def fetch_timed_exam(
+        self,
         sid: str, exam_id: str, course_name: str
     ) -> TimedExamValidator:
         """
@@ -1648,7 +1669,8 @@ class CRUD:
             return TimedExamValidator.from_orm(res.scalars().first())
 
 
-    async def create_timed_exam_entry(self, 
+    async def create_timed_exam_entry(
+        self,
         sid: str, exam_id: str, course_name: str, start_time: datetime
     ) -> TimedExamValidator:
         """
@@ -1850,7 +1872,8 @@ class CRUD:
             return res.scalars().first()
 
 
-    async def fetch_one_user_topic_practice(self, 
+    async def fetch_one_user_topic_practice(
+        self,
         user: AuthUserValidator,
         last_page_chapter: str,
         last_page_subchapter: str,
@@ -1899,7 +1922,8 @@ class CRUD:
             await session.execute(query)
 
 
-    async def create_user_topic_practice(self, 
+    async def create_user_topic_practice(
+        self,
         user: AuthUserValidator,
         last_page_chapter: str,
         last_page_subchapter: str,
@@ -1940,7 +1964,8 @@ class CRUD:
             session.add(new_entry)
 
 
-    async def fetch_qualified_questions(self, 
+    async def fetch_qualified_questions(
+        self,
         base_course: str, chapter_label: str, sub_chapter_label: str
     ) -> list[QuestionValidator]:
         """
@@ -1998,8 +2023,8 @@ class CRUD:
         :return: True if the user is an editor, False otherwise.
         :rtype: bool
         """
-        ed = await fetch_group("editor")
-        row = await fetch_membership(ed.id, userid)
+        ed = await self.fetch_group("editor")
+        row = await self.fetch_membership(ed.id, userid)
 
         if row:
             return True
@@ -2016,8 +2041,8 @@ class CRUD:
         :return: True if the user is an author, False otherwise.
         :rtype: bool
         """
-        ed = await fetch_group("author")
-        row = await fetch_membership(ed.id, userid)
+        ed = await self.fetch_group("author")
+        row = await self.fetch_membership(ed.id, userid)
 
         if row:
             return True
