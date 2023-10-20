@@ -22,7 +22,7 @@ from typing import Optional, Dict, Any
 # Third-party imports
 # -------------------
 from bleach import clean
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
 
 # Local application imports
@@ -30,33 +30,11 @@ from pydantic import BaseModel
 from rsptx.logging import rslogger
 from rsptx.db.crud import (
     EVENT2TABLE,
-    count_matching_questions,
-    count_useinfo_for,
-    create_selected_question,
-    create_user_experiment_entry,
-    fetch_assignment_question,
-    fetch_code,
-    fetch_course,
-    fetch_last_answer_table_entry,
-    fetch_last_poll_response,
-    fetch_matching_questions,
-    fetch_poll_summary,
-    fetch_previous_selections,
-    fetch_question,
-    fetch_question_grade,
-    fetch_selected_question,
-    fetch_timed_exam,
-    fetch_top10_fitb,
-    fetch_user,
-    fetch_user_experiment,
-    fetch_viewed_questions,
-    is_server_feedback,
-    update_selected_question,
+    CRUD,
 )
 from rsptx.response_helpers.core import make_json_response
 from rsptx.db.models import runestone_component_dict
 from rsptx.validation.schemas import AssessmentRequest, SelectQRequest
-from rsptx.auth.session import is_instructor, auth_manager
 
 
 # Routing
@@ -74,14 +52,22 @@ router = APIRouter(
 async def get_assessment_results(
     request_data: AssessmentRequest,
     request: Request,
-    user=Depends(auth_manager),
 ):
     # if the user is not logged in an HTTP 401 will be returned.
     # Otherwise if the user is an instructor then use the provided
     # sid (it could be any student in the class). If none is provided then
     # use the user objects username
+    if not request.state.user:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED,
+            detail=dict(answerDict={}, misc={}, emess="You must be logged in"),
+        )
+    else:
+        user = request.state.user
+
+    crud = CRUD(request.app.state.db_session)
     sid = user.username
-    if await is_instructor(request):
+    if await crud.is_instructor(request):
         if request_data.sid:
             sid = request_data.sid
     else:
@@ -92,7 +78,7 @@ async def get_assessment_results(
             )
     request_data.sid = sid
 
-    row = await fetch_last_answer_table_entry(request_data)
+    row = await crud.fetch_last_answer_table_entry(request_data)
     # mypy complains that ``row.id`` doesn't exist (true, but the return type wasn't exact and this does exist).
     if not row or row.id is None:  # type: ignore
         return make_json_response(detail="no data")
@@ -105,7 +91,7 @@ async def get_assessment_results(
         rslogger.debug(f"timestamp is {ret['timestamp']}")
 
     # Do server-side grading if needed, which restores the answer and feedback.
-    if feedback := await is_server_feedback(request_data.div_id, request_data.course):
+    if feedback := await crud.is_server_feedback(request_data.div_id, request_data.course):
         rcd = runestone_component_dict[EVENT2TABLE[request_data.event]]
         # The grader should also be defined if there's feedback.
         assert rcd.grader
@@ -113,7 +99,7 @@ async def get_assessment_results(
         ret.update(await rcd.grader(row, feedback))
 
     # get grade and instructor feedback if Any
-    grades = await fetch_question_grade(sid, request_data.course, request_data.div_id)
+    grades = await crud.fetch_question_grade(sid, request_data.course, request_data.div_id)
     if grades:
         ret["comment"] = grades.comment
         ret["score"] = grades.score
@@ -133,7 +119,8 @@ class HistoryRequest(BaseModel):
 
 @router.post("/gethist")
 async def get_history(
-    request: Request, request_data: HistoryRequest, user=Depends(auth_manager)
+    request: Request,
+    request_data: HistoryRequest
 ):
     """
     return the history of saved code by this user for a particular
@@ -154,13 +141,21 @@ async def get_history(
               "timestamps": [ts, ts, ts]
             }
     """
+    if not request.state.user:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED,
+            detail=dict(answerDict={}, misc={}, emess="You must be logged in"),
+        )
+    else:
+        user = request.state.user
+    crud = CRUD(request.app.state.db_session)
     acid = request_data.acid
     sid = request_data.sid
     # if request_data.sid then we know this is being called from the grading interface
     # so verify that the actual user is an instructor.
     if sid:
         if user.username != sid:
-            if await is_instructor(request):
+            if await crud.is_instructor(request):
                 course_id = user.course_id
             else:
                 raise HTTPException(401)
@@ -176,7 +171,7 @@ async def get_history(
     res["acid"] = acid
     res["sid"] = sid
     # get the code they saved in chronological order; id order gets that for us
-    r = await fetch_code(sid, acid, course_id)  # type: ignore
+    r = await crud.fetch_code(sid, acid, course_id)  # type: ignore
     res["history"] = [row.code for row in r]
     res["timestamps"] = [
         row.timestamp.replace(tzinfo=datetime.timezone.utc).isoformat() for row in r
@@ -193,6 +188,7 @@ async def getaggregateresults(request: Request, div_id: str, course_name: str):
     What percent of students chose each answer.  This is used when the compare me
     button is pressed by the student.
     """
+    crud = CRUD(request.app.state.db_session)
     question = div_id
 
     if not request.state.user:
@@ -203,13 +199,13 @@ async def getaggregateresults(request: Request, div_id: str, course_name: str):
 
     # Since open base courses may have many years of data we limit the
     # results there to the last 90 days.
-    course = await fetch_course(course_name)
+    course = await crud.fetch_course(course_name)
     if course.course_name == course.base_course:
         start_date = datetime.datetime.utcnow() - datetime.timedelta(days=90)
     else:
         start_date = course.term_start_date
 
-    result = await count_useinfo_for(question, course_name, start_date)
+    result = await crud.count_useinfo_for(question, course_name, start_date)
     # result rows will look like act, count
     # the act field may look like
     # ``answer:1:correct`` or
@@ -258,9 +254,20 @@ async def getaggregateresults(request: Request, div_id: str, course_name: str):
 
 @router.get("/getpollresults")
 async def getpollresults(request: Request, course: str, div_id: str):
+    """fetch the results of a poll question
 
+    :param request: the request object
+    :type request: Request
+    :param course: the course name
+    :type course: str
+    :param div_id: the identifier of the question
+    :type div_id: str
+    :return: response summary as a json dict
+    :rtype: json
+    """
+    crud = CRUD(request.app.state.db_session)
     # fetch summary of poll answers
-    result = await fetch_poll_summary(div_id, course)
+    result = await crud.fetch_poll_summary(div_id, course)
 
     opt_counts = {}
 
@@ -286,7 +293,7 @@ async def getpollresults(request: Request, course: str, div_id: str):
     total = sum(opt_counts.values())
     user_res = None
     if request.state.user:
-        user_res = await fetch_last_poll_response(
+        user_res = await crud.fetch_last_poll_response(
             request.state.user.username, course, div_id
         )
     my_comment = ""
@@ -315,14 +322,18 @@ async def getpollresults(request: Request, course: str, div_id: str):
 #
 @router.get("/gettop10Answers")
 async def gettop10Answers(request: Request, course: str, div_id: str):
+    """
+    fetch the results of a fill in the blank question
+    """
+    crud = CRUD(request.app.state.db_session)
     rows = []
 
-    dbcourse = await fetch_course(course)
+    dbcourse = await crud.fetch_course(course)
     # returns a list that looks like this:
     # [(["12"], 2), (["22"], 1), (["11"], 1), (["10"], 1)]
     # the first element of each tuple is a list of the responses to 1 or more blanks
     # the second element of each tuple is the count
-    rows = await fetch_top10_fitb(dbcourse, div_id)
+    rows = await crud.fetch_top10_fitb(dbcourse, div_id)
     rslogger.debug(f"{rows=}")
     res = [{"answer": clean(row[0]), "count": row[1]} for row in rows]
 
@@ -345,6 +356,7 @@ async def set_selected_question(request: Request, metaid: str, selected: str):
     * ``metaid`` -- the id of the selectquestion
     * ``selected`` -- the id of the real question chosen by the student
     """
+    crud = CRUD(request.app.state.db_session)
     if not request.state.user:
         return make_json_response(
             status=status.HTTP_401_UNAUTHORIZED, detail="not logged in"
@@ -353,11 +365,11 @@ async def set_selected_question(request: Request, metaid: str, selected: str):
     selector_id = metaid
     selected_id = selected
     rslogger.debug(f"USQ - {selector_id} --> {selected_id} for {sid}")
-    qrecord = await fetch_selected_question(sid, selector_id)
+    qrecord = await crud.fetch_selected_question(sid, selector_id)
     if qrecord:
-        await update_selected_question(sid, selector_id, selected_id)
+        await crud.update_selected_question(sid, selector_id, selected_id)
     else:
-        await create_selected_question(sid, selector_id, selected_id)
+        await crud.create_selected_question(sid, selector_id, selected_id)
 
 
 @router.post("/get_question_source")
@@ -376,6 +388,7 @@ async def get_question_source(request: Request, request_data: SelectQRequest):
     Returns:
         json: html source for this question
     """
+    crud = CRUD(request.app.state.db_session)
     prof = False
     points = request_data.points
     rslogger.debug(f"POINTS = {points}")
@@ -393,7 +406,7 @@ async def get_question_source(request: Request, request_data: SelectQRequest):
     # or exam that is totally written in RST then  the points in the UI will match
     # the points from the assignment anyway.
     if assignment_name:
-        aq = await fetch_assignment_question(assignment_name, selector_id)
+        aq = await crud.fetch_assignment_question(assignment_name, selector_id)
         ui_points = aq.points
         rslogger.debug(
             f"Assignment Points for {assignment_name}, {selector_id} = {ui_points}"
@@ -401,7 +414,7 @@ async def get_question_source(request: Request, request_data: SelectQRequest):
         if ui_points:
             points = ui_points
 
-    questionlist = await fetch_matching_questions(request_data)
+    questionlist = await crud.fetch_matching_questions(request_data)
 
     if not questionlist:
         rslogger.error(f"No questions found for proficiency {prof}")
@@ -414,7 +427,7 @@ async def get_question_source(request: Request, request_data: SelectQRequest):
     else:
         if questionlist:
             q = random.choice(questionlist)
-            qres = await fetch_question(q)
+            qres = await crud.fetch_question(q)
             if qres:
                 return make_json_response(detail=qres.htmlsrc)
             else:
@@ -427,17 +440,17 @@ async def get_question_source(request: Request, request_data: SelectQRequest):
     rslogger.debug(f"is_ab is {is_ab}")
     if is_ab:
 
-        res = await fetch_user_experiment(sid, is_ab)  # returns an int or None
+        res = await crud.fetch_user_experiment(sid, is_ab)  # returns an int or None
         if res is None:
             exp_group = random.randrange(2)
-            await create_user_experiment_entry(sid, is_ab, exp_group)
+            await crud.create_user_experiment_entry(sid, is_ab, exp_group)
             rslogger.debug(f"added {sid} to {is_ab} group {exp_group}")
         else:
             exp_group = res
 
         rslogger.debug(f"experimental group is {exp_group}")
 
-        prev_selection = await fetch_selected_question(sid, selector_id)
+        prev_selection = await crud.fetch_selected_question(sid, selector_id)
 
         if prev_selection:
             questionid = prev_selection.selected_id
@@ -447,7 +460,7 @@ async def get_question_source(request: Request, request_data: SelectQRequest):
     if not is_ab:
         poss = set()
         if not_seen_ever:
-            seenq = await fetch_viewed_questions(sid, questionlist)
+            seenq = await crud.fetch_viewed_questions(sid, questionlist)
             seen = set(seenq)
             poss = set(questionlist)
             questionlist = list(poss - seen)
@@ -457,13 +470,13 @@ async def get_question_source(request: Request, request_data: SelectQRequest):
 
         htmlsrc = ""
 
-        prev_selection = await fetch_selected_question(sid, selector_id)
+        prev_selection = await crud.fetch_selected_question(sid, selector_id)
 
         if prev_selection:
             questionid = prev_selection.selected_id
         else:
             # Eliminate any previous exam questions for this student
-            prev_questions_l = await fetch_previous_selections(sid)
+            prev_questions_l = await crud.fetch_previous_selections(sid)
 
             prev_questions = set(prev_questions_l)
             possible = set(questionlist)
@@ -476,7 +489,7 @@ async def get_question_source(request: Request, request_data: SelectQRequest):
 
     rslogger.debug(f"toggle is {toggle}")
     if toggle:
-        prev_selection = await fetch_selected_question(sid, selector_id)
+        prev_selection = await crud.fetch_selected_question(sid, selector_id)
         if prev_selection:
             questionid = prev_selection.selected_id
         else:
@@ -489,9 +502,9 @@ async def get_question_source(request: Request, request_data: SelectQRequest):
                     detail="Toggle questions must use the fromid option",
                 )
 
-    qres = await fetch_question(questionid)
+    qres = await crud.fetch_question(questionid)
     if qres and not prev_selection:
-        await create_selected_question(sid, selector_id, questionid, points=points)
+        await crud.create_selected_question(sid, selector_id, questionid, points=points)
     else:
         rslogger.debug(
             f"Did not insert a record for {selector_id}, {questionid} Conditions are {qres} QL: {questionlist} PREV: {prev_selection}"
@@ -519,10 +532,10 @@ async def tookTimedAssessment(request: Request, request_data: ExamRequest):
     else:
         # todo: Is this what we really want? Seems like a 401??
         return make_json_response(detail={"tookAssessment": False})
-
+    crud = CRUD(request.app.state.db_session)
     exam_id = request_data.div_id
     course = request_data.course_name
-    rows = await fetch_timed_exam(sid, exam_id, course)
+    rows = await crud.fetch_timed_exam(sid, exam_id, course)
 
     rslogger.debug(f"checking {exam_id} {sid} {course} {rows}")
     if rows:
@@ -545,6 +558,7 @@ async def htmlsrc(
     then that question could come from any base course and so make sure it is part of the
     current assignment_questions set.
     """
+    crud = CRUD(request.app.state.db_session)
     assignment_id = assignmentId
     if sid:
         studentId = sid
@@ -553,24 +567,24 @@ async def htmlsrc(
     else:
         studentId = None
     htmlsrc = ""
-    count = await count_matching_questions(acid)
+    count = await crud.count_matching_questions(acid)
     rslogger.debug(f"we have an sid of {studentId} and {count=}")
     if count > 1 and assignment_id:
         rslogger.debug(f"assignment_id = {assignment_id}")
         # todo fix up for assignment
-        res = await fetch_question(acid)
+        res = await crud.fetch_question(acid)
     elif count > 1 and studentId:
         rslogger.debug("Fetching by base course")
-        student = await fetch_user(studentId)
-        bc = await fetch_course(student.course_name)
-        res = await fetch_question(acid, basecourse=bc.base_course)
+        student = await crud.fetch_user(studentId)
+        bc = await crud.fetch_course(student.course_name)
+        res = await crud.fetch_question(acid, basecourse=bc.base_course)
     else:
-        res = await fetch_question(acid)
+        res = await crud.fetch_question(acid)
     if res and (res.htmlsrc or res.question_type == "selectquestion"):
         if res.question_type == "selectquestion" and studentId:
             # Check the selected_questions table to see which actual question was chosen
             # then get that question.
-            realq = await fetch_selected_question(studentId, acid)
+            realq = await crud.fetch_selected_question(studentId, acid)
             if realq:
                 htmlsrc = realq.htmlsrc
         else:

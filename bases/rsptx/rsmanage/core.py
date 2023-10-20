@@ -636,7 +636,7 @@ async def addeditor(config, username, basecourse):
 
     try:
         await crud.create_editor_for_basecourse(userid, basecourse)
-    except:
+    except Exception:
         click.echo("could not add {username} as editor - They probably already are")
         sys.exit(-1)
 
@@ -920,12 +920,12 @@ async def addbookauthor(config, book, author, github):
     try:
         vals = dict(title=f"Temporary title for {book}")
         await crud.create_library_book(book, vals)
-    except Exception as e:
+    except Exception:
         click.echo(f"Warning: Book {book} already exists in library")
 
     try:
         await crud.create_book_author(author, book)
-    except Exception as e:
+    except Exception:
         click.echo(f"Warning: It appears that {author} is already an author of {book}")
 
     # create an entry in auth_membership (group_id, user_id)

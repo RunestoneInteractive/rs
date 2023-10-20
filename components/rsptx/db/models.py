@@ -650,6 +650,7 @@ class Grade(Base, IdMixin):
 
 GradeValidator = sqlalchemy_to_pydantic(Grade)
 
+
 # Book Structure Tables
 # ---------------------
 class Chapter(Base, IdMixin):

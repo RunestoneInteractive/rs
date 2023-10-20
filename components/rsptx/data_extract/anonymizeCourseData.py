@@ -7,7 +7,7 @@ import random
 import re
 import pandas as pd
 import pathlib
-import pdb
+
 from sqlalchemy import create_engine
 from tqdm import tqdm
 
@@ -62,7 +62,7 @@ def find_closest(sid, acid, time, poss):
         candidates = poss.loc[(sid, acid)]
         idx = candidates.index.get_loc(time, method="nearest")
         return candidates.iloc[idx].name
-    except:
+    except Exception:
         return pd.NaT
 
 

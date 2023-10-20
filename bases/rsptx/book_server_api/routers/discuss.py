@@ -54,7 +54,8 @@ from fastapi.templating import Jinja2Templates
 
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
-from rsptx.db.crud import create_useinfo_entry
+from rsptx.db.async_session import async_session
+from rsptx.db.crud import CRUD
 from rsptx.db.models import UseinfoValidation
 from rsptx.validation.schemas import PeerMessage
 from ..localconfig import local_settings
@@ -149,6 +150,7 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
     Using a non async library like plain redis-py will not work as the subscriber
     will block
     """
+    crud = CRUD(async_session)
     rslogger.debug(f"{os.getpid()}: IN WEBSOCKET {uname=}")
     username = uname
     # local_users is a global/module variable shared by all  requests served
@@ -246,7 +248,7 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
                         # todo - we should not log messages that are 'control' messages
                         # These individual control messages update partner and answer
                         if data["type"] != "control":
-                            await create_useinfo_entry(
+                            await crud.create_useinfo_entry(
                                 UseinfoValidation(
                                     event="sendmessage",
                                     act=f"to:{username}:{data['message']}",

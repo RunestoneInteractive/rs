@@ -42,20 +42,8 @@ from pydantic import StringConstraints
 # -------------------------
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
-from rsptx.db.crud import (
-    create_useinfo_entry,
-    fetch_chapter_for_subchapter,
-    fetch_course,
-    fetch_library_books,
-    fetch_page_activity_counts,
-    fetch_all_course_attributes,
-    fetch_subchapters,
-    get_courses_per_basecourse,
-    get_students_per_basecourse,
-)
+from rsptx.db.crud import CRUD
 from rsptx.db.models import UseinfoValidation
-from rsptx.auth.session import is_instructor
-from ..localconfig import local_settings
 from rsptx.templates import template_folder
 from typing_extensions import Annotated
 
@@ -86,7 +74,7 @@ router = APIRouter(
 #
 
 # TODO: make published/draft configurable
-async def return_static_asset(course: str, kind: str, filepath: str):
+async def return_static_asset(request: Request, course: str, kind: str, filepath: str):
     """Return a static asset from a book.  These are typically images, css, or js files. they do not require any special processing or use of templates.
 
     :param course: The name of the course
@@ -101,7 +89,8 @@ async def return_static_asset(course: str, kind: str, filepath: str):
     # Get the course row so we can use the base_course
     # We would like to serve book pages with the actual course name in the URL
     # instead of the base course.  This is a necessary step.
-    course_row = await fetch_course(course)
+    crud = CRUD(request.app.state.db_session)
+    course_row = await crud.fetch_course(course)
     if not course_row:
         raise HTTPException(404)
 
@@ -128,47 +117,47 @@ async def return_static_asset(course: str, kind: str, filepath: str):
 
 
 @router.get("/published/{course:str}/_images/{filepath:path}")
-async def get_image(course: str, filepath: str):
-    return await return_static_asset(course, "_images", filepath)
+async def get_image(request: Request, course: str, filepath: str):
+    return await return_static_asset(request, course, "_images", filepath)
 
 
 @router.get("/published/{course:str}/_static/{filepath:path}")
-async def get_static(course: str, filepath: str):
-    return await return_static_asset(course, "_static", filepath)
+async def get_static(request: Request, course: str, filepath: str):
+    return await return_static_asset(request, course, "_static", filepath)
 
 
 # PreTeXt books put images in images not _images -- oh for regexes in routes!
 @router.get("/published/{course:str}/images/{filepath:path}")
-async def get_ptximages(course: str, filepath: str):
-    return await return_static_asset(course, "images", filepath)
+async def get_ptximages(request: Request, course: str, filepath: str):
+    return await return_static_asset(request, course, "images", filepath)
 
 
 # Umich book uses the _downloads folder and ``:download:`` role
 @router.get("/published/{course:str}/_downloads/{filepath:path}")
-async def get_downloads(course: str, filepath: str):
-    return await return_static_asset(course, "_downloads", filepath)
+async def get_downloads(request: Request, course: str, filepath: str):
+    return await return_static_asset(request, course, "_downloads", filepath)
 
 
 # PreTeXt
 @router.get("/published/{course:str}/generated/{filepath:path}")
-async def get_generated(course: str, filepath: str):
-    return await return_static_asset(course, "generated", filepath)
+async def get_generated(request: Request, course: str, filepath: str):
+    return await return_static_asset(request, course, "generated", filepath)
 
 
 # PreTeXt
 @router.get("/published/{course:str}/external/{filepath:path}")
-async def get_external(course: str, filepath: str):
-    return await return_static_asset(course, "external", filepath)
+async def get_external(request: Request, course: str, filepath: str):
+    return await return_static_asset(request, course, "external", filepath)
 
 
 # Jupyterlite
 @router.get("/published/{course:str}/lite/{filepath:path}")
-async def get_jlite(course: str, filepath: str):
+async def get_jlite(request: Request, course: str, filepath: str):
 
     rslogger.debug(f"Getting {filepath} but adding index.html")
     if filepath[-1] == "/":
         filepath += "index.html"
-    return await return_static_asset(course, "lite", filepath)
+    return await return_static_asset(request, course, "lite", filepath)
 
 
 # Basic page renderer
@@ -217,7 +206,7 @@ async def serve_page(
     :return: response object
     :rtype: Response
     """
-
+    crud = CRUD(request.app.state.db_session)
     if mode and mode == "browsing":
         use_services = False
         user = None
@@ -230,7 +219,7 @@ async def serve_page(
     # need to use lowercase true and false.
     if user:
         logged_in = "true"
-        user_is_instructor = await is_instructor(request)
+        user_is_instructor = await crud.is_instructor(request)
         serve_ad = False
     else:
         logged_in = "false"
@@ -238,7 +227,7 @@ async def serve_page(
         user_is_instructor = False
         serve_ad = True
 
-    course_row = await fetch_course(course_name)
+    course_row = await crud.fetch_course(course_name)
     # check for some error conditions
     if not course_row:
         raise HTTPException(status_code=404, detail=f"Course {course_name} not found")
@@ -251,7 +240,7 @@ async def serve_page(
         # The user is logged in, but their "current course" is not this one.
         # Send them to the courses page so they can properly switch courses.
         if user and user.course_name != course_name:
-            user_course_row = await fetch_course(user.course_name)
+            user_course_row = await crud.fetch_course(user.course_name)
             rslogger.debug(
                 f"Course mismatch: course name: {user.course_name} does not match requested course: {course_name} redirecting"
             )
@@ -273,7 +262,7 @@ async def serve_page(
             course_row.base_course,
         ),
     )
-    course_attrs = await fetch_all_course_attributes(course_row.id)
+    course_attrs = await crud.fetch_all_course_attributes(course_row.id)
     # course_attrs will always return a dictionary, even if an empty one.
     rslogger.debug(f"HEY COURSE ATTRS: {course_attrs}")
     # TODO set custom delimiters for PreTeXt books (https://stackoverflow.com/questions/33775085/is-it-possible-to-change-the-default-double-curly-braces-delimiter-in-polymer)
@@ -300,13 +289,13 @@ async def serve_page(
     subchapter = os.path.basename(os.path.splitext(pagepath)[0])
     rslogger.debug(f"SUBCHAPTER IS {subchapter}")
     if course_attrs.get("markup_system", "RST") == "PreTeXt":
-        chapter = await fetch_chapter_for_subchapter(subchapter, course_row.base_course)
+        chapter = await crud.fetch_chapter_for_subchapter(subchapter, course_row.base_course)
     else:
         chapter = os.path.split(os.path.split(pagepath)[0])[1]
 
     rslogger.debug(f"CHAPTER IS {chapter} / {subchapter}")
     if user:
-        activity_info = await fetch_page_activity_counts(
+        activity_info = await crud.fetch_page_activity_counts(
             chapter, subchapter, course_row.base_course, course_name, user.username
         )
 
@@ -321,7 +310,7 @@ async def serve_page(
 
     #   TODO: provide the template google_ga as well as ad servings stuff
     #   settings.google_ga
-    await create_useinfo_entry(
+    await crud.create_useinfo_entry(
         UseinfoValidation(
             event="page",
             act="view",
@@ -336,7 +325,7 @@ async def serve_page(
     else:
         canonical_host = os.environ.get("RUNESTONE_HOST", "localhost")
 
-    subchapter_list = await fetch_subchaptoc(course_row.base_course, chapter)
+    subchapter_list = await build_subchaptoc(crud, course_row.base_course, chapter)
     # TODO: restore the contributed questions list ``questions`` for books (only fopp) that
     # show the contributed questions list on an Exercises page.
 
@@ -441,9 +430,10 @@ async def library(request: Request, response_class=HTMLResponse):
     :return: HTMLResponse
     :rtype: HTMLResponse
     """
-    books = await fetch_library_books()
-    students = await get_students_per_basecourse()
-    courses = await get_courses_per_basecourse()
+    crud = CRUD(request.app.state.db_session)
+    books = await crud.fetch_library_books()
+    students = await crud.get_students_per_basecourse()
+    courses = await crud.get_courses_per_basecourse()
     books = sorted(books, key=lambda x: students.get(x.basecourse, 0), reverse=True)
     sections = set()
     for book in books:
@@ -456,7 +446,7 @@ async def library(request: Request, response_class=HTMLResponse):
     if user:
         course = user.course_name
         username = user.username
-        instructor_status = await is_instructor(request)
+        instructor_status = await crud.is_instructor(request)
     else:
         course = ""
         username = ""
@@ -520,8 +510,8 @@ def safe_join(directory, *pathnames):
     return posixpath.join(*parts)
 
 
-async def fetch_subchaptoc(course: str, chap: str):
-    res = await fetch_subchapters(course, chap)
+async def build_subchaptoc(crud, course: str, chap: str):
+    res = await crud.fetch_subchapters(course, chap)
     toclist = []
     for row in res:
         rslogger.debug(f"row = {row}")

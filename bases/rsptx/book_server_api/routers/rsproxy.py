@@ -56,7 +56,7 @@ async def imageproxy(request: Request, image_url: str, response_class=HTMLRespon
         rslogger.debug(f"NEW Image URL: {image_url}")
     try:
         response = requests.get(image_url)
-    except:
+    except Exception:
         rslogger.error(f"Error getting image: {image_url}")
         return HTMLResponse(
             content="Cannot Retrieve Image", status_code=404, media_type="text/html"

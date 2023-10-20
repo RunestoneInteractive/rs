@@ -15,11 +15,11 @@
 import datetime
 from typing import Optional
 import json
-import pdb
+
 
 # Third-party imports
 # -------------------
-from fastapi import APIRouter, Depends, Request, Cookie
+from fastapi import APIRouter, Request, Cookie, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -30,7 +30,6 @@ from rsptx.logging import rslogger
 from rsptx.db.crud import CRUD
 
 from rsptx.db.models import GradeValidator, UseinfoValidation, CoursesValidator
-from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
 from rsptx.response_helpers.core import make_json_response, get_webpack_static_imports
 from rsptx.configuration import settings
@@ -49,23 +48,32 @@ router = APIRouter(
 # ----------------
 @router.get("/chooseAssignment")
 async def get_assignments(
-    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+    request: Request, response_class=HTMLResponse
 ):
     """Create the chooseAssignment page for the user.
 
     :param request: _description_
     :type request: Request
-    :param user: _description_, defaults to Depends(auth_manager
+    :param user: _description_, defaults
     :type user: _type_, optional
     :param response_class: _description_, defaults to HTMLResponse
     :type response_class: _type_, optional
     """
+    if not request.state.user:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED,
+            detail=dict(answerDict={}, misc={}, emess="You must be logged in"),
+        )
+    else:
+        user = request.state.user
+    crud = CRUD(request.app.state.db_session)
+
     crud = CRUD(request.app.state.db_session)
     sid = user.username
     course = await crud.fetch_course(user.course_name)
 
     templates = Jinja2Templates(directory=template_folder)
-    user_is_instructor = await is_instructor(request, user=user)
+    user_is_instructor = await crud.is_instructor(request, user=user)
     assignments = await crud.fetch_assignments(course.course_name, is_visible=True)
     assignments.sort(key=lambda x: x.duedate, reverse=True)
     stats_list = await crud.fetch_all_assignment_stats(course.course_name, user.id)
@@ -87,8 +95,6 @@ async def get_assignments(
     )
 
 
-import pdb
-
 
 class UpdateStatusRequest(BaseModel):
     """
@@ -104,7 +110,6 @@ class UpdateStatusRequest(BaseModel):
 async def update_submit(
     request: Request,
     request_data: UpdateStatusRequest,
-    user=Depends(auth_manager),
     response_class=JSONResponse,
 ):
     """Update the submit date for an assignment.
@@ -119,6 +124,14 @@ async def update_submit(
     :param response_class: _description_, defaults to JSONResponse
     :type response_class: _type_, optional
     """
+    if not request.state.user:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED,
+            detail=dict(answerDict={}, misc={}, emess="You must be logged in"),
+        )
+    else:
+        user = request.state.user
+
     crud = CRUD(request.app.state.db_session)
     assignment_id = request_data.assignment_id
     is_submit = request_data.new_state
@@ -165,13 +178,20 @@ def get_course_url(course: CoursesValidator, *args) -> str:
 async def doAssignment(
     request: Request,
     assignment_id: int | None = None,
-    user=Depends(auth_manager),
     RS_info: Optional[str] = Cookie(None),
 ):
     """
     This is the main entry point for a student to start an assignment.
     """
+    if not request.state.user:
+        return make_json_response(
+            status=401,
+            detail=dict(answerDict={}, misc={}, emess="You must be logged in"),
+        )
+    else:
+        user = request.state.user
     crud = CRUD(request.app.state.db_session)
+
     course = await crud.fetch_course(user.course_name)
 
     if not assignment_id:  # noqa: E712
@@ -195,7 +215,7 @@ async def doAssignment(
         return RedirectResponse("/assignment/student/chooseAssignment")
 
     if assignment.visible == "F" or assignment.visible is None:
-        if await is_instructor(request) is False:
+        if await crud.is_instructor(request) is False:
             return RedirectResponse("/assignment/student/chooseAssignment")
 
     if assignment.points is None:
@@ -338,7 +358,7 @@ async def doAssignment(
 
     # By not setting expire this remains/becomes a session cookie
 
-    user_is_instructor = await is_instructor(request, user=user)
+    user_is_instructor = await crud.is_instructor(request, user=user)
 
     c_origin = course_attrs.get("markup_system", "Runestone")
     print("ORIGIN", c_origin)

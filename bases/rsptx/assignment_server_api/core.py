@@ -15,23 +15,18 @@ import pathlib
 # Third-party imports
 # -------------------
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, status
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from pydantic import ValidationError
 
 # Local application imports
 # -------------------------
 from .routers import student
 from .routers import instructor
-from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
 from rsptx.db.async_session import async_session
-from rsptx.db.async_session import init_models, term_models
+from rsptx.db.async_session import term_models
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.logging import rslogger
-from rsptx.lp_sim_builder.feedback import init_graders
 from rsptx.templates import template_folder
 
 # FastAPI setup
@@ -45,7 +40,7 @@ async def lifespan(app: FastAPI):
     # get database connection
     app.state.db_session = async_session
     yield
-    
+
     # Clean up the ML models and release the resources
     rslogger.info("Book Server is Shutting Down")
     await term_models()
@@ -71,7 +66,7 @@ app.mount(
     "/staticAssets", StaticFiles(directory=base_dir / "staticAssets"), name="static"
 )
 
-    
+
 
 
 app.include_router(student.router)

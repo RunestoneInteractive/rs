@@ -32,7 +32,7 @@ from pydal.validators import CRYPT
 from rsptx.auth.session import load_user, auth_manager
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
-from rsptx.db.crud import create_user
+from rsptx.db.crud import CRUD
 from rsptx.db.models import AuthUserValidator
 from ..localconfig import local_settings
 
@@ -60,6 +60,7 @@ def login_form(request: Request):
 
 @router.post("/validate")
 async def login(
+    request: Request,
     data: OAuth2PasswordRequestForm = Depends(),
 ):  # , response_class=RedirectResponse
     # ideally we would put back the response_class parameter but its
@@ -124,6 +125,7 @@ async def logout(response_class: RedirectResponse):
 
 
 @router.post("/newuser")
-async def register(user: AuthUserValidator) -> Optional[AuthUserValidator]:
-    res = await create_user(user)
+async def register(request: Request, user: AuthUserValidator) -> Optional[AuthUserValidator]:
+    crud = CRUD(request.app.state.db_session)
+    res = await crud.create_user(user)
     return res

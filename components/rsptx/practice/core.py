@@ -1,16 +1,11 @@
-from rsptx.db.crud import (
-    fetch_one_user_topic_practice,
-    create_user_topic_practice,
-    fetch_qualified_questions,
-    delete_one_user_topic_practice,
-)
-
+from rsptx.db.crud import CRUD
 from rsptx.db.models import AuthUserValidator
 from rsptx.logging import rslogger
 from datetime import datetime, timedelta
 
 
 async def potentially_change_flashcard(
+    crud: CRUD,
     base_course_name: str,
     chapter,
     subcchapter,
@@ -21,12 +16,14 @@ async def potentially_change_flashcard(
 ) -> None:
 
     # check if already have a card for this subchapter
-    existing_flashcard = await fetch_one_user_topic_practice(user, chapter, subcchapter)
+    existing_flashcard = await crud.fetch_one_user_topic_practice(
+        user, chapter, subcchapter
+    )
 
     if add:
         if not existing_flashcard:
             # See if this subchapter has any questions marked for use in the practice tool.
-            questions = await fetch_qualified_questions(
+            questions = await crud.fetch_qualified_questions(
                 base_course_name, chapter, subcchapter
             )
             if (
@@ -37,7 +34,7 @@ async def potentially_change_flashcard(
                 )
                 now = datetime.utcnow()
                 now_local = now - timedelta(hours=tz_offset)
-                await create_user_topic_practice(
+                await crud.create_user_topic_practice(
                     user,
                     chapter,
                     subcchapter,
@@ -55,6 +52,6 @@ async def potentially_change_flashcard(
             rslogger.debug(
                 f"Removing flashcard for {chapter=}, {subcchapter=}, {existing_flashcard.question_name=}"
             )
-            await delete_one_user_topic_practice(existing_flashcard.id)
+            await crud.delete_one_user_topic_practice(existing_flashcard.id)
         else:
             rslogger.debug("no flashcard found to delete for this subchapter")

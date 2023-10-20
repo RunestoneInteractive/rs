@@ -12,12 +12,10 @@
 #
 # Standard library
 # ----------------
-import pdb
 import datetime
 import os
 import re
 import subprocess
-import sys
 from pathlib import Path
 
 # Third Party
@@ -26,7 +24,6 @@ import click
 import lxml.etree as ET
 from lxml import ElementInclude
 
-from sqlalchemy.exc import IntegrityError
 
 # import xml.etree.ElementTree as ET
 
@@ -79,7 +76,7 @@ def _build_runestone_book(config, course, click=click):
     # process and **know** we are making a build for a runestone server. In that
     # case we need to make sure that the dynamic_pages flag is set to True in
     # pavement.py
-    if hasattr(click, "worker") and paver_vars["dynamic_pages"] != True:
+    if hasattr(click, "worker") and paver_vars["dynamic_pages"] != True:  # noqa: E712
         click.echo("dynamic_pages must be set to True in pavement.py")
         return False
     if paver_vars["project_name"] != course:
@@ -296,9 +293,6 @@ def update_library(
             description = config_vars["course_description"]
         else:
             description = ""
-        # update course key_words if found in book's conf.py
-        if "key_words" in config_vars:
-            key_words = config_vars["key_words"]
 
         if "shelf_section" in config_vars:
             shelf = config_vars["shelf_section"]
@@ -310,18 +304,17 @@ def update_library(
     Session = sessionmaker()
     eng.connect()
     Session.configure(bind=eng)
-    sess = Session()
 
     try:
         res = eng.execute(f"select * from library where basecourse = '{course}'")
-    except:
+    except Exception:
         click.echo("Missing library table?  You may need to run an alembic migration.")
         return False
     # using the Model rather than raw sql ensures that everything is properly escaped
     build_time = datetime.datetime.utcnow()
     click.echo(f"BUILD time is {build_time}")
     if res.rowcount == 0:
-        l = LibraryValidator(
+        new_lib = LibraryValidator(
             title=title,
             subtitle=subtitle,
             description=description,
@@ -333,7 +326,7 @@ def update_library(
             for_classes="F",
             is_visible="T",
         )
-        new_book = Library(**l.dict())
+        new_book = Library(**new_lib.dict())
         with Session.begin() as s:
             s.add(new_book)
     else:
@@ -408,7 +401,7 @@ def populate_static(config, mpath: Path, course: str, click=click):
             try:
                 if "lunr-pretext" not in f:
                     os.remove(sdir / f)
-            except:
+            except Exception:
                 click.echo(f"ERROR - could not delete {f}")
         # call wget non-verbose, recursive, no parents, no hostname, no directoy copy files to sdir
         # trailing slash is important or otherwise you will end up with everything below runestone
@@ -603,7 +596,7 @@ def manifest_data_to_db(course_name, manifest_path):
                         idchild = id_el.attrib["id"]
                     # translate qtype to question_type
                     qtype = QT_MAP.get(qtype, qtype)
-                except:
+                except Exception:
                     if el is not None:
                         qtype = "webwork"
                         dbtext = ET.tostring(el).decode("utf8")

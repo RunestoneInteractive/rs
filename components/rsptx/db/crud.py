@@ -109,6 +109,7 @@ class CRUD:
     Before creating an instance of CRUD you will need to set up a database session.
     See rsptx.db.async_session for details.
     """
+
     def __init__(self, async_session):
         self.async_session = async_session
         self.auto_gradable_q = [
@@ -122,7 +123,9 @@ class CRUD:
 
     # useinfo
     # -------
-    async def create_useinfo_entry(self, log_entry: UseinfoValidation) -> UseinfoValidation:
+    async def create_useinfo_entry(
+        self, log_entry: UseinfoValidation
+    ) -> UseinfoValidation:
         """Add a row to the ``useinfo`` table.
 
         :param log_entry: Log entries contain a timestamp, an event, details about the event, a student id, and the identifier of the book element that was interacted with.
@@ -140,8 +143,7 @@ class CRUD:
         return UseinfoValidation.from_orm(new_entry)
 
     async def count_useinfo_for(
-        self,
-        div_id: str, course_name: str, start_date: datetime.datetime
+        self, div_id: str, course_name: str, start_date: datetime.datetime
     ) -> List[tuple]:
         """return a list of tuples that include the [(act, count), (act, count)]
         act is a freeform field in the useinfo table that varies from event
@@ -170,8 +172,9 @@ class CRUD:
             rslogger.debug(f"res = {res}")
             return res.all()
 
-
-    async def fetch_chapter_for_subchapter(self, subchapter: str, base_course: str) -> str:
+    async def fetch_chapter_for_subchapter(
+        self, subchapter: str, base_course: str
+    ) -> str:
         """
         Used for pretext books where the subchapter is unique across the book
         due to the flat structure produced by pretext build.  In this case the
@@ -191,10 +194,13 @@ class CRUD:
             chapter_label = await session.execute(query)
             return chapter_label.scalars().first()
 
-
     async def fetch_page_activity_counts(
         self,
-        chapter: str, subchapter: str, base_course: str, course_name: str, username: str
+        chapter: str,
+        subchapter: str,
+        base_course: str,
+        course_name: str,
+        username: str,
     ) -> Dict[str, int]:
         """
         Used for the progress bar at the bottom of each page.  This function
@@ -237,7 +243,6 @@ class CRUD:
 
         return div_counts
 
-
     # write a function that takes a QuestionValidator as a parameter and inserts a new Question into the database
     async def create_question(self, question: QuestionValidator) -> QuestionValidator:
         """Add a row to the ``question`` table.
@@ -251,7 +256,6 @@ class CRUD:
             new_question = Question(**question.dict())
             session.add(new_question)
         return QuestionValidator.from_orm(new_question)
-
 
     async def fetch_poll_summary(self, div_id: str, course_name: str) -> List[tuple]:
         """
@@ -280,8 +284,9 @@ class CRUD:
             )
             return rows.all()
 
-
-    async def fetch_top10_fitb(self, dbcourse: CoursesValidator, div_id: str) -> List[tuple]:
+    async def fetch_top10_fitb(
+        self, dbcourse: CoursesValidator, div_id: str
+    ) -> List[tuple]:
         """
         Return the top 10 answers to a fill in the blank question.
 
@@ -310,7 +315,6 @@ class CRUD:
             rows = await session.execute(query)
             return rows.all()
 
-
     # xxx_answers
     # -----------
     async def create_answer_table_entry(
@@ -337,7 +341,6 @@ class CRUD:
 
         rslogger.debug(f"returning {new_entry}")
         return rcd.validator.from_orm(new_entry)  # type: ignore
-
 
     async def fetch_last_answer_table_entry(
         self,
@@ -370,8 +373,9 @@ class CRUD:
             rslogger.debug(f"res = {res}")
             return rcd.validator.from_orm(res.scalars().first())  # type: ignore
 
-
-    async def fetch_last_poll_response(self, sid: str, course_name: str, poll_id: str) -> str:
+    async def fetch_last_poll_response(
+        self, sid: str, course_name: str, poll_id: str
+    ) -> str:
         """
         Return a student's (sid) last response to a given poll (poll_id)
 
@@ -393,7 +397,6 @@ class CRUD:
             res = await session.execute(query)
             return res.scalars().first()
 
-
     # Courses
     # -------
     async def fetch_course(self, course_name: str) -> CoursesValidator:
@@ -414,7 +417,6 @@ class CRUD:
             course = res.scalars().one_or_none()
             return CoursesValidator.from_orm(course)
 
-
     async def fetch_course_by_id(self, course_id: int) -> CoursesValidator:
         """
         Fetches a course by its id.
@@ -432,7 +434,6 @@ class CRUD:
             # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
             course = res.scalars().one_or_none()
             return CoursesValidator.from_orm(course)
-
 
     async def fetch_base_course(self, base_course: str) -> CoursesValidator:
         """
@@ -454,7 +455,6 @@ class CRUD:
             base_course = res.scalars().one_or_none()
             return CoursesValidator.from_orm(base_course)
 
-
     async def create_course(self, course_info: CoursesValidator) -> None:
         """
         Creates a new course in the database.
@@ -467,10 +467,8 @@ class CRUD:
         async with self.async_session.begin() as session:
             session.add(new_course)
 
-
     async def fetch_courses_for_user(
-        self,
-        user_id: int, course_id: Optional[int] = None
+        self, user_id: int, course_id: Optional[int] = None
     ) -> UserCourse:
         """
         Retrieve a list of courses for a given user (user_id)
@@ -496,9 +494,10 @@ class CRUD:
             # When selecting ORM entries it is useful to use the ``scalars`` method
             # This modifies the result so that you are getting the ORM object
             # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
-            course_list = [CoursesValidator.from_orm(x) for x in res.scalars().fetchall()]
+            course_list = [
+                CoursesValidator.from_orm(x) for x in res.scalars().fetchall()
+            ]
             return course_list
-
 
     #
     async def fetch_users_for_course(self, course_name: str) -> list[AuthUserValidator]:
@@ -520,11 +519,14 @@ class CRUD:
             # When selecting ORM entries it is useful to use the ``scalars`` method
             # This modifies the result so that you are getting the ORM object
             # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
-            user_list = [AuthUserValidator.from_orm(x) for x in res.scalars().fetchall()]
+            user_list = [
+                AuthUserValidator.from_orm(x) for x in res.scalars().fetchall()
+            ]
             return user_list
 
-
-    async def create_user_course_entry(self, user_id: int, course_id: int) -> UserCourse:
+    async def create_user_course_entry(
+        self, user_id: int, course_id: int
+    ) -> UserCourse:
         """
         Create a new user course entry for a given user (user_id) and course (course_id)
 
@@ -538,10 +540,8 @@ class CRUD:
 
         return new_uc
 
-
     # course_attributes
     # -----------------
-
 
     async def fetch_all_course_attributes(self, course_id: int) -> dict:
         """
@@ -556,15 +556,15 @@ class CRUD:
             res = await session.execute(query)
             return {row.attr: row.value for row in res.scalars().fetchall()}
 
-
-    async def fetch_one_course_attribute(self, ):
+    async def fetch_one_course_attribute(
+        self,
+    ):
         """
         Fetch a single course attribute (not implemented)
 
         :raises: NotImplementedError
         """
         raise NotImplementedError()
-
 
     async def create_course_attribute(self, course_id: int, attr: str, value: str):
         """
@@ -577,7 +577,6 @@ class CRUD:
         new_attr = CourseAttribute(course_id=course_id, attr=attr, value=value)
         async with self.async_session.begin() as session:
             session.add(new_attr)
-
 
     async def get_course_origin(self, base_course):
         """
@@ -596,7 +595,6 @@ class CRUD:
             ca = res.scalars().first()
             return ca.value
 
-
     # auth_user
     # ---------
     async def fetch_user(self, user_name: str) -> AuthUserValidator:
@@ -611,7 +609,6 @@ class CRUD:
             res = await session.execute(query)
             user = res.scalars().one_or_none()
         return AuthUserValidator.from_orm(user)
-
 
     async def create_user(self, user: AuthUserValidator) -> Optional[AuthUserValidator]:
         """
@@ -636,7 +633,6 @@ class CRUD:
             session.add(new_user)
         return AuthUserValidator.from_orm(new_user)
 
-
     async def update_user(self, user_id: int, new_vals: dict):
         """
         Update a user's information by their id (user_id)
@@ -651,7 +647,6 @@ class CRUD:
         async with self.async_session.begin() as session:
             await session.execute(stmt)
         rslogger.debug("SUCCESS")
-
 
     async def delete_user(self, username):
         """
@@ -678,7 +673,6 @@ class CRUD:
             # This will delete many other things as well based on the CASECADING
             # foreign keys
 
-
     async def fetch_group(self, group_name):
         """
         Retrieve a group by its name (group_name)
@@ -696,7 +690,6 @@ class CRUD:
 
             return ret
 
-
     async def create_group(self, group_name):
         """
         Create a new group with the given name (group_name)
@@ -708,7 +701,6 @@ class CRUD:
         async with self.async_session.begin() as session:
             session.add(new_group)
         return new_group
-
 
     async def fetch_membership(self, group_id, user_id):
         """
@@ -730,7 +722,6 @@ class CRUD:
 
             return ret
 
-
     async def create_membership(self, group_id, user_id):
         """
         Create a new membership record with the given group id (group_id) and user id (user_id)
@@ -744,12 +735,10 @@ class CRUD:
             session.add(new_mem)
         return new_mem
 
-
     # instructor_courses
     # ------------------
     async def fetch_instructor_courses(
-        self,
-        instructor_id: int, course_id: Optional[int] = None
+        self, instructor_id: int, course_id: Optional[int] = None
     ) -> List[CourseInstructorValidator]:
         """
         Retrieve a list of courses for which the given instructor id (instructor_id) is an instructor.
@@ -778,7 +767,6 @@ class CRUD:
             ]
             return course_list
 
-
     async def fetch_course_instructors(
         self,
         course_name: Optional[str] = None,
@@ -797,11 +785,14 @@ class CRUD:
         async with self.async_session() as session:
             res = await session.execute(query)
 
-        instructor_list = [AuthUserValidator.from_orm(x) for x in res.scalars().fetchall()]
+        instructor_list = [
+            AuthUserValidator.from_orm(x) for x in res.scalars().fetchall()
+        ]
         return instructor_list
 
-
-    async def create_instructor_course_entry(self, iid: int, cid: int) -> CourseInstructor:
+    async def create_instructor_course_entry(
+        self, iid: int, cid: int
+    ) -> CourseInstructor:
         """
         Create a new CourseInstructor entry with the given instructor id (iid) and course id (cid)
 
@@ -813,7 +804,6 @@ class CRUD:
         async with self.async_session.begin() as session:
             session.add(nci)
         return nci
-
 
     # Code
     # ----
@@ -831,8 +821,9 @@ class CRUD:
 
         return CodeValidator.from_orm(new_code)
 
-
-    async def fetch_code(self, sid: str, acid: str, course_id: int) -> List[CodeValidator]:
+    async def fetch_code(
+        self, sid: str, acid: str, course_id: int
+    ) -> List[CodeValidator]:
         """
         Retrieve a list of code entries for the given student id (sid), assignment id (acid), and course id (course_id).
 
@@ -843,7 +834,9 @@ class CRUD:
         """
         query = (
             select(Code)
-            .where((Code.sid == sid) & (Code.acid == acid) & (Code.course_id == course_id))
+            .where(
+                (Code.sid == sid) & (Code.acid == acid) & (Code.course_id == course_id)
+            )
             .order_by(Code.id)
         )
         async with self.async_session() as session:
@@ -852,12 +845,13 @@ class CRUD:
             code_list = [CodeValidator.from_orm(x) for x in res.scalars().fetchall()]
             return code_list
 
-
     # Server-side grading
     # -------------------
     # Return the feedback associated with this question if this question should be graded on the server instead of on the client; otherwise, return None.
 
-    async def is_server_feedback(self, div_id: str, course: str) -> Optional[Dict[str, Any]]:
+    async def is_server_feedback(
+        self, div_id: str, course: str
+    ) -> Optional[Dict[str, Any]]:
         """
         Check if server feedback is available for the given div id (div_id) and course name (course).
         If server feedback is available and login is required, return the decoded feedback.
@@ -884,12 +878,12 @@ class CRUD:
             # Otherwise, grade on the client.
             return None
 
-
     # Development and Testing Utils
     # -----------------------------
 
-
-    async def create_initial_courses_users(self, ):
+    async def create_initial_courses_users(
+        self,
+    ):
         """
         This function populates the database with the common base courses and creates a test user.
         """
@@ -952,12 +946,12 @@ class CRUD:
             )
         )
 
-
     # User Progress
     # -------------
 
-
-    async def create_user_state_entry(self, user_id: int, course_name: str) -> UserStateValidator:
+    async def create_user_state_entry(
+        self, user_id: int, course_name: str
+    ) -> UserStateValidator:
         """
         Create a new UserState entry with the given user id (user_id) and course name (course_name)
 
@@ -969,7 +963,6 @@ class CRUD:
         async with self.async_session.begin() as session:
             session.add(new_us)
         return UserStateValidator.from_orm(new_us)
-
 
     async def update_user_state(self, user_data: schemas.LastPageData):
         """
@@ -994,7 +987,6 @@ class CRUD:
             await session.execute(stmt)
         rslogger.debug("SUCCESS")
 
-
     async def update_sub_chapter_progress(self, user_data: schemas.LastPageData):
         """
         Update the UserSubChapterProgress entry with the given user data (user_data)
@@ -1016,7 +1008,10 @@ class CRUD:
             .where(
                 (UserSubChapterProgress.user_id == user_data.user_id)
                 & (UserSubChapterProgress.chapter_id == user_data.last_page_chapter)
-                & (UserSubChapterProgress.sub_chapter_id == user_data.last_page_subchapter)
+                & (
+                    UserSubChapterProgress.sub_chapter_id
+                    == user_data.last_page_subchapter
+                )
                 & (
                     (UserSubChapterProgress.course_name == user_data.course_name)
                     | (
@@ -1028,7 +1023,6 @@ class CRUD:
         )
         async with self.async_session.begin() as session:
             await session.execute(stmt)
-
 
     async def fetch_last_page(self, user: AuthUserValidator, course_name: str):
         """
@@ -1074,10 +1068,8 @@ class CRUD:
             else:
                 return None
 
-
     async def fetch_user_sub_chapter_progress(
-        self,
-        user, last_page_chapter=None, last_page_subchapter=None
+        self, user, last_page_chapter=None, last_page_subchapter=None
     ) -> List[UserSubChapterProgressValidator]:
         """
         Retrieve the UserSubChapterProgress entries for the given user (user) and optional chapter and subchapter.
@@ -1108,10 +1100,8 @@ class CRUD:
                 for x in res.scalars().fetchall()
             ]
 
-
     async def create_user_sub_chapter_progress_entry(
-        self,
-        user, last_page_chapter, last_page_subchapter, status=-1
+        self, user, last_page_chapter, last_page_subchapter, status=-1
     ) -> UserSubChapterProgressValidator:
         """
         Create a new UserSubChapterProgress entry with the given user (user), chapter label (last_page_chapter),
@@ -1135,10 +1125,8 @@ class CRUD:
             session.add(new_uspe)
         return UserSubChapterProgressValidator.from_orm(new_uspe)
 
-
     async def fetch_user_chapter_progress(
-        self,
-        user, last_page_chapter: str
+        self, user, last_page_chapter: str
     ) -> UserChapterProgressValidator:
         """
         Retrieve the UserChapterProgress entry for the given user (user) and chapter label (last_page_chapter).
@@ -1159,10 +1147,8 @@ class CRUD:
             rslogger.debug(f"{res=}")
             return UserChapterProgressValidator.from_orm(res.scalars().first())
 
-
     async def create_user_chapter_progress_entry(
-        self,
-        user, last_page_chapter, status
+        self, user, last_page_chapter, status
     ) -> UserChapterProgressValidator:
         """
         Create a new UserChapterProgress entry with the given user (user), chapter label (last_page_chapter), and status (status)
@@ -1182,11 +1168,9 @@ class CRUD:
             session.add(new_ucp)
         return UserChapterProgressValidator.from_orm(new_ucp)
 
-
     #
     # Select Question Support
     # -----------------------
-
 
     async def create_selected_question(
         self,
@@ -1217,10 +1201,8 @@ class CRUD:
             session.add(new_sqv)
         return SelectedQuestionValidator.from_orm(new_sqv)
 
-
     async def fetch_selected_question(
-        self,
-        sid: str, selector_id: str
+        self, sid: str, selector_id: str
     ) -> SelectedQuestionValidator:
         """
         Retrieve the SelectedQuestion entry for the given sid and selector_id.
@@ -1230,7 +1212,8 @@ class CRUD:
         :return: SelectedQuestionValidator, the SelectedQuestionValidator object
         """
         query = select(SelectedQuestion).where(
-            (SelectedQuestion.sid == sid) & (SelectedQuestion.selector_id == selector_id)
+            (SelectedQuestion.sid == sid)
+            & (SelectedQuestion.selector_id == selector_id)
         )
 
         async with self.async_session() as session:
@@ -1238,8 +1221,9 @@ class CRUD:
             rslogger.debug(f"{res=}")
             return SelectedQuestionValidator.from_orm(res.scalars().first())
 
-
-    async def update_selected_question(self, sid: str, selector_id: str, selected_id: str):
+    async def update_selected_question(
+        self, sid: str, selector_id: str, selected_id: str
+    ):
         """
         Update the selected_id of the SelectedQuestion entry for the given sid and selector_id.
 
@@ -1259,10 +1243,8 @@ class CRUD:
             await session.execute(stmt)
         rslogger.debug("SUCCESS")
 
-
     # Questions and Assignments
     # -------------------------
-
 
     # write a function that fetches all Assignment objects given a course name
     async def fetch_assignments(
@@ -1300,7 +1282,6 @@ class CRUD:
             rslogger.debug(f"{res=}")
             return [AssignmentValidator.from_orm(a) for a in res.scalars()]
 
-
     # write a function that fetches all Assignment objects given a course name
 
     async def fetch_one_assignment(self, assignment_id: int) -> AssignmentValidator:
@@ -1319,10 +1300,8 @@ class CRUD:
             rslogger.debug(f"{res=}")
             return AssignmentValidator.from_orm(res.scalars().first())
 
-
     async def fetch_all_assignment_stats(
-        self,
-        course_name: str, userid: int
+        self, course_name: str, userid: int
     ) -> list[GradeValidator]:
         """
         Fetch the Grade information for all assignments for a given student in a given course.
@@ -1347,9 +1326,10 @@ class CRUD:
             rslogger.debug(f"{res=}")
             return [GradeValidator.from_orm(a) for a in res.scalars()]
 
-
     # write a function that given a userid and a courseid fetches a Grade object from the database
-    async def fetch_grade(self, userid: int, assignmentid: int) -> Optional[GradeValidator]:
+    async def fetch_grade(
+        self, userid: int, assignmentid: int
+    ) -> Optional[GradeValidator]:
         """
         Fetch the Grade object for the given user and assignment.
 
@@ -1369,7 +1349,6 @@ class CRUD:
             rslogger.debug(f"{res=}")
             return GradeValidator.from_orm(res.scalars().first())
 
-
     # write a function that given a GradeValidator object inserts a new Grade object into the database
     # or updates an existing one
     #
@@ -1388,10 +1367,11 @@ class CRUD:
             await session.merge(new_grade)
         return GradeValidator.from_orm(new_grade)
 
-
     async def fetch_question(
         self,
-        name: str, basecourse: Optional[str] = None, assignment: Optional[str] = None
+        name: str,
+        basecourse: Optional[str] = None,
+        assignment: Optional[str] = None,
     ) -> QuestionValidator:
         """
         Fetch a single matching question row from the database that matches
@@ -1420,7 +1400,6 @@ class CRUD:
             rslogger.debug(f"{res=}")
             return QuestionValidator.from_orm(res.scalars().first())
 
-
     async def count_matching_questions(self, name: str) -> int:
         """
         Count the number of Question entries that match the given name.
@@ -1434,8 +1413,9 @@ class CRUD:
             res = await session.execute(query)
             return res.scalars().first()
 
-
-    async def fetch_matching_questions(self, request_data: schemas.SelectQRequest) -> List[str]:
+    async def fetch_matching_questions(
+        self, request_data: schemas.SelectQRequest
+    ) -> List[str]:
         """
         Return a list of question names (div_ids) that match the criteria
         for a particular question. This is used by select questions and in
@@ -1451,7 +1431,9 @@ class CRUD:
                 Competency.question == Question.id
             )
             if request_data.primary:
-                where_clause = where_clause & (Competency.is_primary == True)  # noqa E712
+                where_clause = where_clause & (
+                    Competency.is_primary == True  # noqa: E712
+                )
             if request_data.min_difficulty:
                 where_clause = where_clause & (
                     Question.difficulty >= float(request_data.min_difficulty)
@@ -1480,10 +1462,8 @@ class CRUD:
 
         return questionlist
 
-
     async def fetch_assignment_question(
-        self,
-        assignment_name: str, question_name: str
+        self, assignment_name: str, question_name: str
     ) -> AssignmentQuestionValidator:
         """
         Retrieve the AssignmentQuestion entry for the given assignment_name and question_name.
@@ -1504,9 +1484,7 @@ class CRUD:
             rslogger.debug(f"{res=}")
             return AssignmentQuestionValidator.from_orm(res.scalars().first())
 
-
     import pdb
-
 
     async def fetch_assignment_questions(
         self,
@@ -1533,7 +1511,6 @@ class CRUD:
             # and the scalars() method onnly returns the first object in the row.
             return res
 
-
     async def fetch_question_grade(self, sid: str, course_name: str, qid: str):
         """
         Retrieve the QuestionGrade entry for the given sid, course_name, and qid.
@@ -1558,7 +1535,6 @@ class CRUD:
             res = await session.execute(query)
             return QuestionGradeValidator.from_orm(res.scalars().one_or_none())
 
-
     async def fetch_user_experiment(self, sid: str, ab_name: str) -> int:
         """
         When a question is part of an AB experiement (ab_name) get the experiment
@@ -1574,7 +1550,9 @@ class CRUD:
         """
         query = (
             select(UserExperiment.exp_group)
-            .where((UserExperiment.sid == sid) & (UserExperiment.experiment_id == ab_name))
+            .where(
+                (UserExperiment.sid == sid) & (UserExperiment.experiment_id == ab_name)
+            )
             .order_by(UserExperiment.id)
         )
         async with self.async_session() as session:
@@ -1583,10 +1561,8 @@ class CRUD:
             rslogger.debug(f"{r=}")
             return r
 
-
     async def create_user_experiment_entry(
-        self,
-        sid: str, ab: str, group: int
+        self, sid: str, ab: str, group: int
     ) -> UserExperimentValidator:
         """
         Create a new UserExperiment entry with the given sid, ab, and group.
@@ -1601,8 +1577,9 @@ class CRUD:
             session.add(new_ue)
         return UserExperimentValidator.from_orm(new_ue)
 
-
-    async def fetch_viewed_questions(self, sid: str, questionlist: List[str]) -> List[str]:
+    async def fetch_viewed_questions(
+        self, sid: str, questionlist: List[str]
+    ) -> List[str]:
         """
         Retrieve a list of questions from the given questionlist that a student (sid)
         has viewed before. Used for the selectquestion `get_question_source` to filter
@@ -1627,7 +1604,6 @@ class CRUD:
             rlist = [row.div_id for row in res]
         return rlist
 
-
     async def fetch_previous_selections(self, sid) -> List[str]:
         """
         Retrieve a list of selected question ids for the given student id (sid).
@@ -1641,10 +1617,8 @@ class CRUD:
             rslogger.debug(f"{res=}")
             return [row.selected_id for row in res.scalars().fetchall()]
 
-
     async def fetch_timed_exam(
-        self,
-        sid: str, exam_id: str, course_name: str
+        self, sid: str, exam_id: str, course_name: str
     ) -> TimedExamValidator:
         """
         Retrieve the TimedExam entry for the given sid, exam_id, and course_name.
@@ -1668,10 +1642,8 @@ class CRUD:
             rslogger.debug(f"{res=}")
             return TimedExamValidator.from_orm(res.scalars().first())
 
-
     async def create_timed_exam_entry(
-        self,
-        sid: str, exam_id: str, course_name: str, start_time: datetime
+        self, sid: str, exam_id: str, course_name: str, start_time: datetime
     ) -> TimedExamValidator:
         """
         Create a new TimedExam entry with the given sid, exam_id, course_name, and start_time.
@@ -1694,7 +1666,6 @@ class CRUD:
         async with self.async_session.begin() as session:
             session.add(new_te)
         return TimedExamValidator.from_orm(new_te)
-
 
     async def fetch_subchapters(self, course, chap):
         """
@@ -1722,7 +1693,6 @@ class CRUD:
             rslogger.debug(f"{res=}")
             # **Note** with this kind of query you do NOT want to call ``.scalars()`` on the result
             return res
-
 
     async def create_traceback(self, exc: Exception, request: Request, host: str):
         """
@@ -1756,8 +1726,9 @@ class CRUD:
             )
             session.add(new_entry)
 
-
-    async def fetch_library_books(self, ):
+    async def fetch_library_books(
+        self,
+    ):
         """
         Retrieve a list of visible library books ordered by shelf section and title.
 
@@ -1773,7 +1744,6 @@ class CRUD:
             rslogger.debug(f"{res=}")
             book_list = [LibraryValidator.from_orm(x) for x in res.scalars().fetchall()]
             return book_list
-
 
     async def fetch_library_book(self, book):
         """
@@ -1792,7 +1762,6 @@ class CRUD:
 
             return ret
 
-
     async def update_library_book(self, bookid: int, vals: dict):
         """
         Update the Library entry with the given bookid and values.
@@ -1804,7 +1773,6 @@ class CRUD:
         stmt = update(Library).where(Library.id == bookid).values(**vals)
         async with self.async_session.begin() as session:
             await session.execute(stmt)
-
 
     # TODO finish this use bookid as title temporarily
     async def create_library_book(self, bookid: str, vals: Dict[str, Any]) -> None:
@@ -1819,7 +1787,6 @@ class CRUD:
         async with self.async_session.begin() as session:
             session.add(new_book)
 
-
     async def create_book_author(self, author: str, document_id: str) -> None:
         """
         Creates a new BookAuthor object using the provided parameters and saves it in the database.
@@ -1832,8 +1799,9 @@ class CRUD:
         async with self.async_session.begin() as session:
             session.add(new_ba)
 
-
-    async def fetch_books_by_author(self, author: str) -> List[Tuple[Library, BookAuthor]]:
+    async def fetch_books_by_author(
+        self, author: str
+    ) -> List[Tuple[Library, BookAuthor]]:
         """
         Fetches all books written by a given author.
 
@@ -1852,7 +1820,6 @@ class CRUD:
             res = await sess.execute(query)
             return res.scalars().fetchall()
 
-
     async def fetch_course_practice(self, course_name: str) -> Optional[CoursePractice]:
         """
         Fetches the course practice row for a given course.
@@ -1870,7 +1837,6 @@ class CRUD:
         async with self.async_session() as session:
             res = await session.execute(query)
             return res.scalars().first()
-
 
     async def fetch_one_user_topic_practice(
         self,
@@ -1905,7 +1871,6 @@ class CRUD:
             utp = res.scalars().first()
             return UserTopicPracticeValidator.from_orm(utp)
 
-
     async def delete_one_user_topic_practice(self, dbid: int) -> None:
         """
         Delete a single UserTopicPractice entry for the given id.
@@ -1920,7 +1885,6 @@ class CRUD:
         query = delete(UserTopicPractice).where(UserTopicPractice.id == dbid)
         async with self.async_session.begin() as session:
             await session.execute(query)
-
 
     async def create_user_topic_practice(
         self,
@@ -1963,10 +1927,8 @@ class CRUD:
             )
             session.add(new_entry)
 
-
     async def fetch_qualified_questions(
-        self,
-        base_course: str, chapter_label: str, sub_chapter_label: str
+        self, base_course: str, chapter_label: str, sub_chapter_label: str
     ) -> list[QuestionValidator]:
         """
         Retrieve a list of qualified questions for a given chapter and subchapter.
@@ -1992,12 +1954,15 @@ class CRUD:
         async with self.async_session() as session:
             res = await session.execute(query)
             rslogger.debug(f"{res=}")
-            questionlist = [QuestionValidator.from_orm(x) for x in res.scalars().fetchall()]
+            questionlist = [
+                QuestionValidator.from_orm(x) for x in res.scalars().fetchall()
+            ]
 
         return questionlist
 
-
-    async def create_editor_for_basecourse(self, user_id: int, bc_name: str) -> EditorBasecourse:
+    async def create_editor_for_basecourse(
+        self, user_id: int, bc_name: str
+    ) -> EditorBasecourse:
         """
         Creates a new editor for a given basecourse.
 
@@ -2012,7 +1977,6 @@ class CRUD:
         async with self.async_session.begin() as session:
             session.add(new_ed)
         return new_ed
-
 
     async def is_editor(self, userid: int) -> bool:
         """
@@ -2031,7 +1995,6 @@ class CRUD:
         else:
             return False
 
-
     async def is_author(self, userid: int) -> bool:
         """
         Checks if a user is an author.
@@ -2049,9 +2012,31 @@ class CRUD:
         else:
             return False
 
+    async def is_instructor(
+        self, request: Request, user: Optional[AuthUserValidator] = None
+    ) -> bool:
+        """Check to see if the current user is an instructor for the current course
+
+        :param request: The request object
+        :type request: Request
+        :raises HTTPException: If the user is not present, raise an exception
+        :return: True if the user is an instructor, False otherwise
+        :rtype: bool
+        """
+        crud = CRUD(request.app.state.db_session)
+        if user is None:
+            user = request.state.user
+        if user is None:
+            raise HTTPException(401)
+        elif len(await crud.fetch_instructor_courses(user.id, user.course_id)) > 0:
+            return True
+        else:
+            return False
 
     # Used by the library page
-    async def get_students_per_basecourse(self, ) -> dict:
+    async def get_students_per_basecourse(
+        self,
+    ) -> dict:
         """
         Gets the number of students using a book for each course.
 
@@ -2072,8 +2057,9 @@ class CRUD:
 
             return retval
 
-
-    async def get_courses_per_basecourse(self, ) -> dict:
+    async def get_courses_per_basecourse(
+        self,
+    ) -> dict:
         """
         Gets the number of courses using a basecourse.
 

@@ -11,7 +11,7 @@
 # Standard library
 # ----------------
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 import re
 from typing import Optional
 
@@ -25,7 +25,6 @@ from fastapi import (
     Request,
     Response,
     status,
-    Depends,
     UploadFile,
 )
 import boto3
@@ -36,29 +35,7 @@ from fastapi.responses import JSONResponse
 # -------------------------
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
-from rsptx.db.crud import (
-    create_answer_table_entry,
-    create_code_entry,
-    create_useinfo_entry,
-    create_user_chapter_progress_entry,
-    create_user_state_entry,
-    create_user_sub_chapter_progress_entry,
-    create_user_topic_practice,
-    EVENT2TABLE,
-    delete_one_user_topic_practice,
-    fetch_last_page,
-    fetch_chapter_for_subchapter,
-    fetch_course,
-    fetch_course_practice,
-    fetch_one_user_topic_practice,
-    fetch_user_chapter_progress,
-    fetch_user_sub_chapter_progress,
-    fetch_user,
-    fetch_qualified_questions,
-    is_server_feedback,
-    update_sub_chapter_progress,
-    update_user_state,
-)
+from rsptx.db.crud import CRUD, EVENT2TABLE
 from rsptx.response_helpers.core import make_json_response
 from rsptx.db.models import (
     AuthUserValidator,
@@ -73,7 +50,6 @@ from rsptx.validation.schemas import (
     LogRunIncoming,
     TimezoneRequest,
 )
-from rsptx.auth.session import auth_manager
 from rsptx.practice.core import potentially_change_flashcard
 
 # Routing
@@ -101,7 +77,7 @@ COMMENT_MAP = {
 # See :ref:`logBookEvent`.
 @router.post("/bookevent")
 async def log_book_event(
-    entry: LogItemIncoming, request: Request, user=Depends(auth_manager)
+    entry: LogItemIncoming, request: Request
 ):
     """
     This endpoint is called to log information for nearly every click that happens in the textbook.
@@ -111,6 +87,14 @@ async def log_book_event(
     :param request: The request object.
     :param user: The user object.
     """
+    if not request.state.user:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED,
+            detail=dict(answerDict={}, misc={}, emess="You must be logged in"),
+        )
+    else:
+        user = request.state.user
+    crud = CRUD(request.app.state.db_session)
     # if entry.sid is there use that (likely for partner or group work)
     if not entry.sid:
         entry.sid = user.username
@@ -131,7 +115,7 @@ async def log_book_event(
     useinfo_dict["act"] = useinfo_dict["act"][:512]
     useinfo_entry = UseinfoValidation(**useinfo_dict)
     rslogger.debug(useinfo_entry)
-    idx = await create_useinfo_entry(useinfo_entry)
+    idx = await crud.create_useinfo_entry(useinfo_entry)
     response_dict = dict(timestamp=entry.timestamp)
     if entry.event in EVENT2TABLE:
         create_answer_table = True
@@ -159,12 +143,12 @@ async def log_book_event(
         if create_answer_table:
             valid_table = rcd.validator.from_orm(entry)  # type: ignore
             # Do server-side grading if needed.
-            if feedback := await is_server_feedback(entry.div_id, user.course_name):
+            if feedback := await crud.is_server_feedback(entry.div_id, user.course_name):
                 # The grader should also be defined if there's feedback.
                 assert rcd.grader
                 response_dict.update(await rcd.grader(valid_table, feedback))
 
-            ans_idx = await create_answer_table_entry(valid_table, entry.event)
+            ans_idx = await crud.create_answer_table_entry(valid_table, entry.event)
             rslogger.debug(ans_idx)
 
     if idx:
@@ -236,7 +220,7 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
             )
         else:
             return make_json_response(status=status.HTTP_401_UNAUTHORIZED)
-
+    crud = CRUD(request.app.state.db_session)
     # everything after this assumes that the user is logged in
 
     useinfo_dict = data.dict()
@@ -251,7 +235,7 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
         if "event" not in useinfo_dict:
             useinfo_dict["event"] = "activecode"
 
-    await create_useinfo_entry(UseinfoValidation(**useinfo_dict))
+    await crud.create_useinfo_entry(UseinfoValidation(**useinfo_dict))
 
     # Now add an entry to the code table - in the code table we use the name
     # acid (activecode id) instead of div_id -- just to be difficult
@@ -259,15 +243,15 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
     if data.to_save:
         useinfo_dict["course_id"] = request.state.user.course_id
         entry = CodeValidator(**useinfo_dict)
-        await create_code_entry(entry)
+        await crud.create_code_entry(entry)
 
         if data.partner:
-            if await same_class(request.state.user, data.partner):
+            if await same_class(crud, request.state.user, data.partner):
                 comchar = COMMENT_MAP.get(data.language, "#")
                 newcode = f"{comchar} This code was shared by {data.sid}\n\n{data.code}"
                 entry.code = newcode
                 entry.sid = data.partner
-                await create_code_entry(entry)
+                await crud.create_code_entry(entry)
             else:
                 return make_json_response(
                     status=status.HTTP_207_MULTI_STATUS,
@@ -283,9 +267,9 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
     return make_json_response(status=status.HTTP_201_CREATED)
 
 
-async def same_class(user1: AuthUserValidator, user2: str) -> bool:
+async def same_class(crud: CRUD, user1: AuthUserValidator, user2: str) -> bool:
     if user1:
-        u2 = await fetch_user(user2)
+        u2 = await crud.fetch_user(user2)
         if u2:
             return user1.course_id == u2.course_id
     return False
@@ -310,7 +294,7 @@ async def updatelastpage(
         # This really should never be the case, but...
         rslogger.error(f"No data for last page url {request_data}")
         return make_json_response(detail="No Data")
-
+    crud = CRUD(request.app.state.db_session)
     if request.state.user:
         lpd = request_data.dict()
         rslogger.debug(f"{lpd=}")
@@ -332,8 +316,8 @@ async def updatelastpage(
         # we can look it up from the chapter and subchapter tables.
         if request_data.is_ptx_book:
             rslogger.debug(f"PreTeXt book {request_data.last_page_url}")
-            course_row = await fetch_course(user.course_name)
-            chapter = await fetch_chapter_for_subchapter(
+            course_row = await crud.fetch_course(user.course_name)
+            chapter = await crud.fetch_chapter_for_subchapter(
                 subchapter, course_row.base_course
             )
             rslogger.debug(
@@ -348,8 +332,8 @@ async def updatelastpage(
         lpd["user_id"] = request.state.user.id
 
         lpdo: LastPageData = LastPageData(**lpd)
-        await update_user_state(lpdo)
-        await update_sub_chapter_progress(lpdo)
+        await crud.update_user_state(lpdo)
+        await crud.update_sub_chapter_progress(lpdo)
         # The components don't ever look at a result from this
         # endpoint, but it seems like we should return some
         # indication of success. See below.
@@ -359,7 +343,7 @@ async def updatelastpage(
 
     # If practice is self paced, we may need to add or delete a flashcard for the subchapter as topic.
 
-    practice_settings = await fetch_course_practice(user.course_name)
+    practice_settings = await crud.fetch_course_practice(user.course_name)
     if RS_info:
         values = json.loads(RS_info)
 
@@ -374,8 +358,9 @@ async def updatelastpage(
                 rslogger.debug(
                     f"self-paced flashcard creation based on marking a page as complete\n{request_data=}"
                 )
-                course = await fetch_course(user.course_name)
+                course = await crud.fetch_course(user.course_name)
                 await potentially_change_flashcard(
+                    crud,
                     course.base_course,
                     lpd["last_page_chapter"],
                     lpd["last_page_subchapter"],
@@ -386,11 +371,12 @@ async def updatelastpage(
 
         elif request_data.markingIncomplete:
             if practice_settings.flashcard_creation_method == 0:
-                course = await fetch_course(user.course_name)
+                course = await crud.fetch_course(user.course_name)
                 rslogger.debug(
                     f"self-paced flashcard deletion based on marking a page as incomplete\n{request_data=}"
                 )
                 await potentially_change_flashcard(
+                    crud,
                     course.base_course,
                     lpd["last_page_chapter"],
                     lpd["last_page_subchapter"],
@@ -400,8 +386,9 @@ async def updatelastpage(
                 )
         elif request_data.pageLoad and practice_settings.flashcard_creation_method == 3:
             # self-paced flashcard creation based on loading a page
-            course = await fetch_course(user.course_name)
+            course = await crud.fetch_course(user.course_name)
             await potentially_change_flashcard(
+                crud,
                 course.base_course,
                 lpd["last_page_chapter"],
                 lpd["last_page_subchapter"],
@@ -417,12 +404,13 @@ async def updatelastpage(
 # --------------------
 @router.get("/getCompletionStatus")
 async def getCompletionStatus(request: Request, lastPageUrl: str, isPtxBook: bool):
+    crud = CRUD(request.app.state.db_session)
     if request.state.user:
         last_page_subchapter = ".".join(lastPageUrl.split("/")[-1].split(".")[:-1])
         if isPtxBook:
             rslogger.debug(f"completion status for PTX book {lastPageUrl}")
-            course_row = await fetch_course(request.state.user.course_name)
-            last_page_chapter = await fetch_chapter_for_subchapter(
+            course_row = await crud.fetch_course(request.state.user.course_name)
+            last_page_chapter = await crud.fetch_chapter_for_subchapter(
                 last_page_subchapter, course_row.base_course
             )
         else:
@@ -433,7 +421,7 @@ async def getCompletionStatus(request: Request, lastPageUrl: str, isPtxBook: boo
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Unparseable page: {lastPageUrl}",
             )
-        result = await fetch_user_sub_chapter_progress(
+        result = await crud.fetch_user_sub_chapter_progress(
             request.state.user, last_page_chapter, last_page_subchapter
         )
         rowarray_list = []
@@ -449,15 +437,15 @@ async def getCompletionStatus(request: Request, lastPageUrl: str, isPtxBook: boo
             # haven't seen this Chapter/Subchapter before
             # make the insertions into the DB as necessary
             # we know the subchapter doesn't exist
-            await create_user_sub_chapter_progress_entry(
+            await crud.create_user_sub_chapter_progress_entry(
                 request.state.user, last_page_chapter, last_page_subchapter, status=0
             )
             # the chapter might exist without the subchapter
-            result = await fetch_user_chapter_progress(
+            result = await crud.fetch_user_chapter_progress(
                 request.state.user, last_page_chapter
             )
             if not result:
-                await create_user_chapter_progress_entry(
+                await crud.create_user_chapter_progress_entry(
                     request.state.user, last_page_chapter, -1
                 )
             return make_json_response(detail=[{"completionStatus": -1}])
@@ -472,8 +460,9 @@ async def getCompletionStatus(request: Request, lastPageUrl: str, isPtxBook: boo
 #
 @router.get("/getAllCompletionStatus")
 async def getAllCompletionStatus(request: Request):
+    crud = CRUD(request.app.state.db_session)
     if request.state.user:
-        result = await fetch_user_sub_chapter_progress(request.state.user)
+        result = await crud.fetch_user_sub_chapter_progress(request.state.user)
 
         rowarray_list = []
         if result:
@@ -503,8 +492,8 @@ async def getAllCompletionStatus(request: Request):
 async def getlastpage(request: Request, course: str):
     if not request.state.user:
         raise HTTPException(401)
-
-    row = await fetch_last_page(request.state.user, course)
+    crud = CRUD(request.app.state.db_session)
+    row = await crud.fetch_last_page(request.state.user, course)
     rslogger.debug(f"ROW = {row}")
     if row:
         res = {
@@ -517,7 +506,7 @@ async def getlastpage(request: Request, course: str):
         return make_json_response(detail=res)
     else:
         rslogger.debug("Creating user state entry")
-        res = await create_user_state_entry(request.state.user.id, course)
+        res = await crud.create_user_state_entry(request.state.user.id, course)
         return make_json_response(detail=res)
 
 

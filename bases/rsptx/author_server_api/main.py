@@ -18,7 +18,6 @@ import pathlib
 import logging
 import sys
 import time
-import pdb
 
 # third party
 # -----------
@@ -43,21 +42,9 @@ from rsptx.author_server_api.worker import (
     code_to_csv,
     anonymize_data_dump,
 )
-from rsptx.auth.session import is_instructor
-from rsptx.db.crud import (
-    create_book_author,
-    create_library_book,
-    fetch_instructor_courses,
-    fetch_books_by_author,
-    fetch_course,
-    fetch_course_by_id,
-    fetch_library_book,
-    update_library_book,
-    create_course,
-    CoursesValidator,
-)
+from rsptx.db.crud import CRUD
 
-
+from rsptx.db.models import CoursesValidator
 from rsptx.visualization.authorImpact import (
     get_enrollment_graph,
     get_pv_heatmap,
@@ -77,11 +64,13 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 app = FastAPI()
+app.state.db_session = async_session
 # The static and templates folders are siblings with this file.
 # We need to create a path that will work inside and outside of docker.
 base_dir = pathlib.Path(template_folder)
 app.mount("/static", StaticFiles(directory=base_dir / "staticAssets"), name="static")
 templates = Jinja2Templates(directory=template_folder)
+crud = CRUD(async_session)
 
 
 async def create_book_entry(author: str, document_id: str, github: str):
@@ -99,7 +88,7 @@ async def create_book_entry(author: str, document_id: str, github: str):
         allow_pairs="F",
         new_server="T",
     )
-    await create_course(course)
+    await crud.create_course(course)
 
     vals = {
         "authors": author,
@@ -109,28 +98,27 @@ async def create_book_entry(author: str, document_id: str, github: str):
         "is_visible": False,
         "for_classes": False,
     }
-    await create_library_book(document_id, vals)
-    await create_book_author(author, document_id)
+    await crud.create_library_book(document_id, vals)
+    await crud.create_book_author(author, document_id)
     return True
 
 
 # Install the auth_manager as middleware This will make the user
 # part of the request ``request.state.user`` `See FastAPI_Login Advanced <https://fastapi-login.readthedocs.io/advanced_usage/>`_
-auth_manager.useRequest(app)
+# auth_manager.useRequest(app)
 
 
 @app.get("/author/")
 async def home(request: Request, user=Depends(auth_manager)):
-    print(f"{request.state.user} OR user = {user}")
 
-    course = await fetch_course(user.course_name)
+    course = await crud.fetch_course(user.course_name)
     if user:
         if not await verify_author(user):
             return RedirectResponse(url="/notauthorized")
 
     if user:
         name = user.first_name
-        book_list = await fetch_books_by_author(user.username)
+        book_list = await crud.fetch_books_by_author(user.username)
     else:
         name = "unknown person"
         book_list = []
@@ -149,7 +137,7 @@ async def home(request: Request, user=Depends(auth_manager)):
 
 @app.get("/author/logfiles")
 async def logfiles(request: Request, user=Depends(auth_manager)):
-    if await is_instructor(request):
+    if await crud.is_instructor(request):
 
         lf_path = pathlib.Path("downloads", "logfiles", user.username)
         logger.debug(f"WORKING DIR = {lf_path}")
@@ -164,7 +152,7 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
             }
         else:
             ready_files = []
-        course = await fetch_course(user.course_name)
+        course = await crud.fetch_course(user.course_name)
         logger.debug(f"{ready_files=}")
         return templates.TemplateResponse(
             "author/logfiles.html",
@@ -218,7 +206,7 @@ async def verify_author(user):
 @app.get("/author/dump/assignments/{course}")
 async def dump_assignments(request: Request, course: str, user=Depends(auth_manager)):
 
-    if not (await is_instructor(request) and user.course_name == course):
+    if not (await crud.is_instructor(request) and user.course_name == course):
         return RedirectResponse(url="/notauthorized")
 
     eng = create_engine(os.environ["DEV_DBURL"])
@@ -254,8 +242,8 @@ async def impact(request: Request, book: str, user=Depends(auth_manager)):
     else:
         return RedirectResponse(url="/notauthorized")
 
-    course = await fetch_course(user.course_name)
-    info = await fetch_library_book(book)
+    course = await crud.fetch_course(user.course_name)
+    info = await crud.fetch_library_book(book)
     resGraph = get_enrollment_graph(book)
     courseGraph = get_course_graph(book)
     chapterHM = get_pv_heatmap(book)
@@ -284,7 +272,7 @@ async def subchapmap(
     else:
         return RedirectResponse(url="/notauthorized")
 
-    info = await fetch_library_book(book)
+    info = await crud.fetch_library_book(book)
     chapterHM = get_subchap_heatmap(chapter, book)
     return templates.TemplateResponse(
         "author/subchapmap.html",
@@ -316,8 +304,8 @@ def get_model_dict(model):
 @app.post("/author/editlibrary/{book}")
 async def editlib(request: Request, book: str, user=Depends(auth_manager)):
     # Get the book and populate the form with current data
-    book_data = await fetch_library_book(book)
-    course = await fetch_course(user.course_name)
+    book_data = await crud.fetch_library_book(book)
+    course = await crud.fetch_course(user.course_name)
 
     # this will either create the form with data from the submitted form or
     # from the kwargs passed if there is not form data.  So we can prepopulate
@@ -327,7 +315,7 @@ async def editlib(request: Request, book: str, user=Depends(auth_manager)):
     if request.method == "POST" and await form.validate():
         print(f"Got {form.authors.data}")
         print(f"FORM data = {form.data}")
-        await update_library_book(book_data.id, form.data)
+        await crud.update_library_book(book_data.id, form.data)
         return RedirectResponse(url="/author/", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
         "author/editlibrary.html",
@@ -339,19 +327,20 @@ async def editlib(request: Request, book: str, user=Depends(auth_manager)):
 @app.post("/author/anonymize_data/{book}")
 async def anondata(request: Request, book: str, user=Depends(auth_manager)):
     # Get the book and populate the form with current data
+    request.state.user = user
     is_author = await verify_author(user)
-    is_inst = await is_instructor(request)
+    is_inst = await crud.is_instructor(request)
 
     if not (is_author or is_inst):
         return RedirectResponse(url="/author/notauthorized")
 
     # Create a list of courses taught by this user to validate courses they
     # can dump directly.
-    course = await fetch_course(user.course_name)
-    courses = await fetch_instructor_courses(user.id)
+    course = await crud.fetch_course(user.course_name)
+    courses = await crud.fetch_instructor_courses(user.id)
     class_list = []
     for c in courses:
-        the_course = await fetch_course_by_id(c.course)
+        the_course = await crud.fetch_course_by_id(c.course)
         class_list.append(the_course.course_name)
 
     lf_path = pathlib.Path("downloads", "datashop", user.username)
@@ -410,7 +399,7 @@ async def check_db(payload=Body(...)):
     if "DEV_DBURL" not in os.environ:
         return JSONResponse({"detail": "DBURL is not set"})
     else:
-        res = await fetch_course(base_course)
+        res = await crud.fetch_course(base_course)
         detail = res.id if res else False
         return JSONResponse({"detail": detail})
 
@@ -521,7 +510,7 @@ async def get_status(task_id):
         print("TASK RESULT", task_result.__dict__)
         if task_result.status == "FAILURE":
             result["task_result"] = {"current": str(task_result.result)}
-    except:
+    except Exception:
         result = {
             "task_id": task_id,
             "task_status": "FAILURE",
