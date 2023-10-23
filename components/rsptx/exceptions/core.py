@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 
-from rsptx.auth.session import auth_manager
+from rsptx.validation.schemas import NotAuthenticatedException
 from rsptx.configuration import settings
 from rsptx.db.crud import CRUD
 from rsptx.logging import rslogger
@@ -52,10 +52,6 @@ def add_exception_handlers(app):
         response = await call_next(request)
         return response
 
-    class NotAuthenticatedException(Exception):
-        pass
-
-    auth_manager.not_authenticated_exception = NotAuthenticatedException
 
     # Fast API makes it very easy to handle different error types in an
     # elegant way through the use of middleware to catch particular

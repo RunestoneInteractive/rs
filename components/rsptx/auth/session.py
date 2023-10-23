@@ -27,10 +27,11 @@ from rsptx.configuration import settings
 from rsptx.db.async_session import async_session
 from rsptx.db.crud import CRUD
 from rsptx.db.models import AuthUserValidator
-
+from rsptx.validation.schemas import NotAuthenticatedException
 
 auth_manager = LoginManager(settings.jwt_secret, "/auth/validate", use_cookie=True)
 auth_manager.cookie_name = "access_token"
+auth_manager.not_authenticated_exception = NotAuthenticatedException
 
 
 @auth_manager.user_loader()  # type: ignore

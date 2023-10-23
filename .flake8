@@ -16,6 +16,8 @@ ignore=
   E266,
   # Line too long (82 > 79 characters). Flake8 complains about comment lines being too long, while Black allows tihs. Disable flake8's long line detection to avoid these spurious warnings.
   E501,
+  E303
+  E301
 
 exclude =
   _build/

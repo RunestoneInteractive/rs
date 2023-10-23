@@ -234,3 +234,7 @@ class PeerMessage(BaseModel):
     sender: str
     message: str
     broadcast: bool
+
+
+class NotAuthenticatedException(Exception):
+    pass

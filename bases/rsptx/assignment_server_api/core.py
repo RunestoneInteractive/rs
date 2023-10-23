@@ -1,6 +1,6 @@
-# *********************************
-# |docname| - Define the BookServer
-# *********************************
+# ******************************************
+# |docname| - Main for the assignment server
+# ******************************************
 # :index:`docs to write`: notes on this design. :index:`question`: Why is there an empty module named ``dependencies.py``?
 #
 # Imports
@@ -23,8 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from .routers import student
 from .routers import instructor
 from rsptx.configuration import settings
-from rsptx.db.async_session import async_session
-from rsptx.db.async_session import term_models
+from rsptx.db.async_session import async_session, term_models
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.logging import rslogger
 from rsptx.templates import template_folder
