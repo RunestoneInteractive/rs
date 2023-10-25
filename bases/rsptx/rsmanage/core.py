@@ -149,8 +149,11 @@ def check_db_connection(config):
         click.echo(config.dburl)
         engine.connect()
         engine.dispose()
+        click.echo("Database connection successful")
     except Exception:
         click.echo(f"Failed to connect to the database {config.dbname}")
+        if config.dbname not in ["runestone", "runestone_dev", "runestone_test"]:
+            click.echo("Normally the database name should be runestone or runestone_dev")
         click.echo(f"    You are trying to connect to host: {config.dbhost}")
         if os.environ.get("DOCKER_COMPOSE", False):
             if config.dbhost == "localhost":
