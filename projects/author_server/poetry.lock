@@ -1386,13 +1386,13 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "pretext"
-version = "2.1.0"
+version = "2.2.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = ">=3.8.5,<4.0.0"
 files = [
-    {file = "pretext-2.1.0-py3-none-any.whl", hash = "sha256:f47c61b44f5b0a277c1b23b22717653b9de9910602ed702cac3c0ed5836d333b"},
-    {file = "pretext-2.1.0.tar.gz", hash = "sha256:b094cb43f53dda99566729e0afd7ebea053052ce080fde9ff11da02fe0d8eb13"},
+    {file = "pretext-2.2.0-py3-none-any.whl", hash = "sha256:60ae234a024f3fbcfeaac92addd94f3cf91c6fc99cc41ab38d3dad4fc8a6e6ad"},
+    {file = "pretext-2.2.0.tar.gz", hash = "sha256:137b6f5eddcd0ea9dbabfeeb562d5d6b15af9e617c4cd9592ed1d4a15eb448d9"},
 ]
 
 [package.dependencies]
