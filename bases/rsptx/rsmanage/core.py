@@ -130,6 +130,7 @@ async def cli(config, verbose, if_clean):
     if verbose:
         echoEnviron(config)
 
+    check_db_connection(config)
     if if_clean:
         count = check_db_for_useinfo(config)
         if count != 0:
@@ -137,6 +138,37 @@ async def cli(config, verbose, if_clean):
             sys.exit()
 
     config.verbose = verbose
+
+
+def check_db_connection(config):
+    # check to see if we can connect to the database
+    # if not then we need to exit
+    click.echo("Checking database connection")
+    try:
+        engine = create_engine(config.dburl.replace('+asyncpg', ''))
+        click.echo(config.dburl)
+        engine.connect()
+        engine.dispose()
+    except Exception:
+        click.echo(f"Failed to connect to the database {config.dbname}")
+        click.echo(f"    You are trying to connect to host: {config.dbhost}")
+        if os.environ.get("DOCKER_COMPOSE", False):
+            if config.dbhost == "localhost":
+                click.echo("you almost certainly don't want localhost as the host in docker")
+                click.echo("The most common host names in docker are db, pgbouncer, or host.docker.internal")
+            else:
+                click.echo("The most common host names in docker are db, pgbouncer, or host.docker.internal")
+            click.echo("    Are you sure you have the right host name?")
+        click.echo(f"    with user: {config.dbuser}")
+        if config.dbuser != "runestone":
+            click.echo("Normally the username should be runestone")
+        if config.conf == "development":
+            click.echo(f"    and password: {config.dbpass}")
+            click.echo("Check your .env file for DEV_DBURL and DC_DEV_DBURL")
+        else:
+            click.echo("Check your .env file for DBURL and DC_DBURL")
+
+        sys.exit(1)
 
 
 async def _initdb(config):
