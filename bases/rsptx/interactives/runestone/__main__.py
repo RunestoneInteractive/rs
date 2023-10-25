@@ -164,14 +164,30 @@ def build(all, wd):
     else:
         os.chdir(findProjectRoot())
     sys.path.insert(0, os.getcwd())
-    with importlib.resources.path("runestone.dist", "webpack_static_imports.json") as p:
-        if not pathlib.Path(p).exists():
-            click.echo(
-                "Error -- you are missing webpack_static_imports.json.  Please make sure"
-            )
-            click.echo("you have Runestone installed correctly.")
-            click.echo("In a development environment, execute npm run build.")
-            sys.exit(-1)
+    try:
+        with importlib.resources.path(
+            "runestone.dist", "webpack_static_imports.json"
+        ) as p:
+            if not pathlib.Path(p).exists():
+                click.echo(
+                    "Error -- you are missing webpack_static_imports.json.  Please make sure"
+                )
+                click.echo(
+                    "you have Runestone and node dependencies installed correctly."
+                )
+                click.echo(
+                    "In a development environment, execute npm run build in bases/rsptx/interactives."
+                )
+                sys.exit(-1)
+    except ModuleNotFoundError:
+        click.echo(
+            "Error -- you are missing webpack_static_imports.json.  Please make sure"
+        )
+        click.echo("you have runestone and the node dependencies installed correctly.")
+        click.echo(
+            "In a development environment, execute npm run build in bases/rsptx/interactives"
+        )
+        sys.exit(-1)
 
     version = importlib.metadata.version("runestone")
     print("Building with Runestone {}".format(version))
