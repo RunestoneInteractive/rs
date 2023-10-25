@@ -173,10 +173,7 @@ def build(all, wd):
                     "Error -- you are missing webpack_static_imports.json.  Please make sure"
                 )
                 click.echo(
-                    "you have Runestone and node dependencies installed correctly."
-                )
-                click.echo(
-                    "In a development environment, execute npm run build in bases/rsptx/interactives."
+                    "you have run projects/interactives/build.py to generate this file"
                 )
                 sys.exit(-1)
     except ModuleNotFoundError:
