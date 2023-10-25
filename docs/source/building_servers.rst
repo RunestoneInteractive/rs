@@ -1,5 +1,5 @@
 
-Building and Running the Servers 
+Building and Running the Servers
 ===================================
 
 You should have already:
@@ -12,7 +12,7 @@ You should have already:
 
 Now you are ready to install the required dependencies and build the servers:
 
-4. Run ``poetry install --with=dev`` from the top level directory.  This will install all of the dependencies for the project.  
+4. Run ``poetry install --with=dev`` from the top level directory.  This will install all of the dependencies for the project.
 
 #. When that completes run ``poetry shell`` to start a poetry shell.  You can verify that this worked correctly by running ``rsmanage env``.  You should see a list of environment variables that are set.  If you do not see them then you may need to run ``poetry shell`` again.  If you get an error message that you cannot interpret you can ask for help in the ``#developer`` channel on the Runestone discord server.
 
@@ -28,11 +28,20 @@ Now you are ready to install the required dependencies and build the servers:
 Starting the Servers
 ---------------------------------------
 
+Check for local webserver
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Before trying to run the servers, make sure you are not already running a webserver on your computer. Open a web browser and for the address type ``localhost``. If that fails to connect, you are good to go. If ``localhost`` does produce a web page, or some other error message, you should figure out what webserver is running and stop it. (Alternatively, you can edit the ``docker-compose.yml`` file and change the port that nginx is listening on to something other than 80. Port 80 is the default port for web sites to serve on.)
 
-If you are using the ``db.compose.yml`` file to install the database as part of the application you will want to start up and initialize the database first.  Run ``docker compose -f db.compose.yml up -d db``.  This will start up just the database server.  You can then initialize the database by running ``docker compose run rsmanage rsmanage initdb``.  Yes, I meant ``rsmanage rsmanage``.  This will create the database tables and add the initial data.
+Test DB Connection and initialize
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#. ou can start up the servers. To do this, you will use this (assuming you are letting docker run the database, and that you do not want the author server):
+If you are using the ``db.compose.yml`` file to install the database as part of the application you will want to start up and initialize the database first.  Run ``docker compose -f db.compose.yml up -d db``.  This will start up just the database server.  You can then initialize the database by running ``docker compose run rsmanage rsmanage initdb``.  Yes, I meant ``rsmanage rsmanage``.  This will create the database tables and add the initial data.  It will first check to see that it can connect to the database.  If not it will give you some information about your database connection url to help you diagnose the problem.
+
+Start the Servers
+~~~~~~~~~~~~~~~~~~
+
+#. Now, you can start up the servers. To do this, you will use this (assuming you are letting docker run the database, and that you do not want the author server):
 
    ``docker compose -f docker-compose.yml -f db.compose.yml up``
 
@@ -45,7 +54,7 @@ If you are using the ``db.compose.yml`` file to install the database as part of 
    .. note::
       In the rest of these instructions you will see something like ``docker compose ... up``. ``...`` is a placeholder to indicate whatever list of compose files you are using (e.g. ``-f docker-compose.yml -f db.compose.yml``). Make sure to actually list the compose files instead of typing ``...``.
 
-   This will take over the current shell to run the docker containers. The advantage of letting docker take over the shell is that you will get logging messages printed to that window. You can stop the servers by doing ``Ctrl-C``. To run new commands while the containers are running, simply start up an additional shell. 
+   This will take over the current shell to run the docker containers. The advantage of letting docker take over the shell is that you will get logging messages printed to that window. You can stop the servers by doing ``Ctrl-C``. To run new commands while the containers are running, simply start up an additional shell.
 
    If you add ``-d`` at the end of the ``docker compose ... up`` command, the containers will run in the background. If you do so, you will have to stop the containers using ``docker compose ... stop``. See below.
 
@@ -66,17 +75,9 @@ To start them back up after using ``docker compose ...stop``, you will have to u
 .. note::
    If you are running your database in a docker container and ever need to reset it, ``docker compose ... stop`` followed by ``docker compose ... up`` will do so. After resetting the database, you will need to reinitialize it (see below) and re-add any books and users you have created.
 
-.. Initializing the DB
-.. ---------------------------------------
-
-.. 9. You need to make a database on the database server to hold data.
-
-..    * If you are using the docker container-based database, simply do ``poetry run rsmanage initdb`` (While the container is running!). 
-..      If you ever do ``docker compose ... stop`` you will need to redo this step after bringing the database back up.
-..    * If you are using your own local database, create a database called ``runestone_dev``.  You do this by running ``createdb -O runestone runestone_dev``.  You can also do this in the psql command line interface by running ``create database runestone_dev owner runestone;``  You may have to become the postgres user in order to run that command.
 
 Connecting to the Server
 ---------------------------------------
 
 Now you should be able to connect to ``http://localhost/`` from your computer and see the homepage.
-If you get 
+If you get an error check the :ref:`Troubleshooting <debugging>` section.

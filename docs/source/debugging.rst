@@ -1,6 +1,8 @@
 When Things are not Working - Debugging Tips
 =============================================
 
+.. _debugging:
+
 The Runestone Server is a complex system, but it runs in production and serves millions of requests every day.  But, there are plenty of things that can go wrong, especially when you are first starting out.  This section will cover some common problems that you might run into and suggest some ways to figure out how to get past that problem.  First a couple of general notes and then I'll try to address some frequently asked questions.
 
 The rs repository is under continuous development so make sure that you keep it up to date by doing `git pull` frequently.  Like any system developed by humans sometimes bugs do creep into the main branch but we do our best to make sure that whatever gets pushed to main will start up and run.  If it doesn't those issues are normally fixed and corrected quickly, so it pays to keep current.
