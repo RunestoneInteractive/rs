@@ -73,11 +73,10 @@ export default class RunestoneBase {
             }
             this.is_toggle = true ? opts.is_toggle : false;
             this.is_select = true ? opts.is_select : false;
-
         }
         this.mjelements = [];
         let self = this;
-        this.mjReady = new Promise(function(resolve, reject) {
+        this.mjReady = new Promise(function (resolve, reject) {
             self.mjresolver = resolve;
         });
         this.aQueue = new AutoQueue();
@@ -98,7 +97,7 @@ export default class RunestoneBase {
         eventInfo.course_name = eBookConfig.course;
         eventInfo.clientLoginStatus = eBookConfig.isLoggedIn;
         eventInfo.timezoneoffset = new Date().getTimezoneOffset() / 60;
-        if (typeof(this.percent) === "number") {
+        if (typeof this.percent === "number") {
             eventInfo.percent = this.percent;
         }
         if (
@@ -139,7 +138,8 @@ export default class RunestoneBase {
     async postLogMessage(eventInfo) {
         var post_return;
         let request = new Request(
-            `${eBookConfig.new_server_prefix}/logger/bookevent`, {
+            `${eBookConfig.new_server_prefix}/logger/bookevent`,
+            {
                 method: "POST",
                 headers: this.jsonHeaders,
                 body: JSON.stringify(eventInfo),
@@ -151,7 +151,7 @@ export default class RunestoneBase {
                 if (response.status === 422) {
                     // Get details about why this is unprocesable.
                     post_return = await response.json();
-                    console.log(post_return.detail);
+                    console.log(JSON.stringify(post_return.detail, null, 4));
                     throw new Error("Unprocessable Request");
                 } else if (response.status == 401) {
                     post_return = await response.json();
@@ -169,15 +169,17 @@ export default class RunestoneBase {
             if (post_return && post_return.detail) {
                 detail = post_return.detail;
             }
-            if (eBookConfig.loginRequired) {
+            if (eBookConfig.useRunestoneServices) {
                 alert(`Error: Your action was not saved!
                     The error was ${e}
                     Status Code: ${response.status}
-                    Detail: ${detail}.
+                    Detail: ${JSON.stringify(detail, null, 4)}.
                     Please report this error!`);
             }
             // send a request to save this error
-            console.log(`Error: ${e} Detail: ${detail} Status Code: ${response.status}`);
+            console.log(
+                `Error: ${e} Detail: ${detail} Status Code: ${response.status}`
+            );
         }
         return post_return;
     }
@@ -197,13 +199,17 @@ export default class RunestoneBase {
         if (this.forceSave || "to_save" in eventInfo === false) {
             eventInfo.save_code = "True";
         }
+        if (typeof eventInfo.errinfo !== "undefined") {
+            eventInfo.errinfo = eventInfo.errinfo.toString();
+        }
         if (
             eBookConfig.isLoggedIn &&
             eBookConfig.useRunestoneServices &&
             eBookConfig.logLevel > 0
         ) {
             let request = new Request(
-                `${eBookConfig.new_server_prefix}/logger/runlog`, {
+                `${eBookConfig.new_server_prefix}/logger/runlog`,
+                {
                     method: "POST",
                     headers: this.jsonHeaders,
                     body: JSON.stringify(eventInfo),
@@ -212,13 +218,23 @@ export default class RunestoneBase {
             let response = await fetch(request);
             if (!response.ok) {
                 post_promise = await response.json();
-                if (eBookConfig.loginRequired) {
+                if (eBookConfig.useRunestoneServices) {
                     alert(`Failed to save your code
                         Status is ${response.status}
-                        Detail: ${post_promise.detail}`);
+                        Detail: ${JSON.stringify(
+                            post_promise.detail,
+                            null,
+                            4
+                        )}`);
                 } else {
                     console.log(
-                        `Did not save the code. Status: ${response.status}`
+                        `Did not save the code.
+                         Status: ${response.status}
+                         Detail: ${JSON.stringify(
+                             post_promise.detail,
+                             null,
+                             4
+                         )}`
                     );
                 }
             } else {
@@ -252,7 +268,7 @@ export default class RunestoneBase {
     ) {
         // Check if the server has stored answer
         let self = this;
-        this.checkServerComplete = new Promise(function(resolve, reject) {
+        this.checkServerComplete = new Promise(function (resolve, reject) {
             self.csresolver = resolve;
         });
         if (
@@ -284,7 +300,8 @@ export default class RunestoneBase {
                 this.assessmentTaken
             ) {
                 let request = new Request(
-                    `${eBookConfig.new_server_prefix}/assessment/results`, {
+                    `${eBookConfig.new_server_prefix}/assessment/results`,
+                    {
                         method: "POST",
                         body: JSON.stringify(data),
                         headers: this.jsonHeaders,
@@ -297,7 +314,7 @@ export default class RunestoneBase {
                         data = data.detail;
                         this.repopulateFromStorage(data);
                         this.attempted = true;
-                        if (typeof(data.correct) !== "undefined") {
+                        if (typeof data.correct !== "undefined") {
                             this.correct = data.correct;
                         } else {
                             this.correct = null;
@@ -311,7 +328,7 @@ export default class RunestoneBase {
                         this.csresolver("local");
                     }
                 } catch (err) {
-                    console.log(`Error getting results: ${err}`)
+                    console.log(`Error getting results: ${err}`);
                     try {
                         this.checkLocalStorage();
                     } catch (err) {
@@ -456,8 +473,8 @@ export default class RunestoneBase {
     }
 
     queueMathJax(component) {
-        if (typeof(MathJax) === "undefined") {
-            console.log("Error -- MathJax is not loaded")
+        if (typeof MathJax === "undefined") {
+            console.log("Error -- MathJax is not loaded");
             return Promise.resolve(null);
         } else {
             // See - https://docs.mathjax.org/en/latest/advanced/typeset.html
@@ -470,17 +487,17 @@ export default class RunestoneBase {
             // the window.runestoneMathReady promise will be fulfilled when the
             // initial typesetting is complete.
             if (MathJax.typesetPromise) {
-                if (typeof(window.runestoneMathReady) !== "undefined") {
-                    return window.runestoneMathReady.then(
-                        () => this.mjresolver(this.aQueue.enqueue(component))
-                    )
+                if (typeof window.runestoneMathReady !== "undefined") {
+                    return window.runestoneMathReady.then(() =>
+                        this.mjresolver(this.aQueue.enqueue(component))
+                    );
                 } else {
-                    return this.mjresolver(this.aQueue.enqueue(component))
+                    return this.mjresolver(this.aQueue.enqueue(component));
                 }
             } else {
                 console.log(`Waiting on MathJax!! ${MathJax.typesetPromise}`);
                 setTimeout(() => this.queueMathJax(component), 200);
-                console.log(`Returning mjready promise: ${this.mjReady}`)
+                console.log(`Returning mjready promise: ${this.mjReady}`);
                 return this.mjReady;
             }
         }
@@ -498,9 +515,7 @@ export default class RunestoneBase {
             }
         }
     }
-
 }
-
 
 // Inspiration and lots of code for this solution come from
 // https://stackoverflow.com/questions/53540348/js-async-await-tasks-queue
@@ -508,10 +523,18 @@ export default class RunestoneBase {
 // once mathjax becomes ready then we can drain the queue and continue as usual.
 
 class Queue {
-    constructor() { this._items = []; }
-    enqueue(item) { this._items.push(item); }
-    dequeue() { return this._items.shift(); }
-    get size() { return this._items.length; }
+    constructor() {
+        this._items = [];
+    }
+    enqueue(item) {
+        this._items.push(item);
+    }
+    dequeue() {
+        return this._items.shift();
+    }
+    get size() {
+        return this._items.length;
+    }
 }
 
 class AutoQueue extends Queue {
@@ -537,25 +560,26 @@ class AutoQueue extends Queue {
         try {
             this._pendingPromise = true;
 
-            let payload = await MathJax.startup.defaultPageReady().then(
-                async function() {
-                    console.log(`MathJax Ready -- dequeing a typesetting run for ${item.component.id}`)
-                    return await MathJax.typesetPromise([item.component])
-                }
-            );
+            let payload = await MathJax.startup
+                .defaultPageReady()
+                .then(async function () {
+                    console.log(
+                        `MathJax Ready -- dequeing a typesetting run for ${item.component.id}`
+                    );
+                    return await MathJax.typesetPromise([item.component]);
+                });
 
-                this._pendingPromise = false; item.resolve(payload);
-            }
-            catch (e) {
-                this._pendingPromise = false;
-                item.reject(e);
-            } finally {
-                this.dequeue();
-            }
-
-            return true;
+            this._pendingPromise = false;
+            item.resolve(payload);
+        } catch (e) {
+            this._pendingPromise = false;
+            item.reject(e);
+        } finally {
+            this.dequeue();
         }
+
+        return true;
     }
+}
 
-
-    window.RunestoneBase = RunestoneBase;
+window.RunestoneBase = RunestoneBase;
