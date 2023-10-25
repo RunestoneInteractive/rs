@@ -2093,6 +2093,7 @@ def get_assignment():
     for row in a_q_rows:
         if row.questions.question_type == "page":
             # get the count of 'things to do' in this chap/subchap
+            logger.debug(f"chapter = {row.questions.chapter} subchapter = {row.questions.subchapter}")
             activity_count = db(
                 (db.questions.chapter == row.questions.chapter)
                 & (db.questions.subchapter == row.questions.subchapter)
@@ -2102,7 +2103,7 @@ def get_assignment():
                 )  # noqa #711
                 & (db.questions.base_course == base_course)
             ).count()
-
+            logger.debug(f"activity_count = {activity_count}")
         pages_data.append(
             dict(
                 name=row.questions.name,
@@ -2290,6 +2291,9 @@ def add__or_update_assignment_question():
             (db.questions.chapter == chapter)
             & (db.questions.subchapter == subchapter)
             & (db.questions.from_source == "T")
+            & (
+                (db.questions.optional == False) | (db.questions.optional == None)  # noqa: E711
+            )
             & (db.questions.base_course == base_course)
         ).count()
         try:
