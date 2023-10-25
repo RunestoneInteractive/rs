@@ -5,15 +5,29 @@ services:
   redis:
     image: redis:6-alpine
 
+  pgbouncer:
+    image: bitnami/pgbouncer:latest
+    restart: always
+    ports:
+      - 6432:6432
+    environment:
+      - POSTGRESQL_HOST=host.docker.internal
+      - POSTGRESQL_DATABASE=runestone_dev
+      - PGBOUNCER_DATABASE=runestone_dev
+      - POSTGRESQL_USERNAME=runestone
+      - POSTGRESQL_PASSWORD=runestone
+      - PGBOUNCER_AUTH_TYPE=trust #md5 or scram-sha-256
+
+
   jobe:
-    build: 
+    build:
       context: ./projects/jobe
     #image: registry.digitalocean.com/runestone-registry/rs-jobe
     image: ghcr.io/runestoneinteractive/rs-jobe
     restart: always
-    
+
   book:
-    build: 
+    build:
       context: ./projects/book_server
     #image: registry.digitalocean.com/runestone-registry/rs-book
     image: ghcr.io/runestoneinteractive/rs-book
@@ -52,9 +66,10 @@ services:
     links:
       - redis
       - jobe
+      - pgbouncer
 
   runestone:
-      build: 
+      build:
         context: ./projects/w2p_login_assign_grade
       #image: registry.digitalocean.com/runestone-registry/rs-runestone
       image: ghcr.io/runestoneinteractive/rs-runestone
@@ -94,9 +109,10 @@ services:
       links:
         - redis
         - jobe
+        - pgbouncer
 
   assignment:
-    build: 
+    build:
       context: ./projects/assignment_server
     #image: registry.digitalocean.com/runestone-registry/rs-assignment
     image: ghcr.io/runestoneinteractive/rs-assignment
@@ -131,12 +147,13 @@ services:
     links:
       - redis
       - jobe
+      - pgbouncer
 
 
   nginx:
-    
+
     # Note we use context: ./ here so that the Dockerfile can copy from the components folder
-    build: 
+    build:
       context: ./
       dockerfile: projects/nginx/Dockerfile
     #image: registry.digitalocean.com/runestone-registry/rs-nginx
@@ -157,10 +174,10 @@ services:
       - book
       - assignment
 
-  # create an image/container to run rsmanage inside the composed services 
+  # create an image/container to run rsmanage inside the composed services
   # docker compose run rsmanage rsmanage --help
   rsmanage:
-    build: 
+    build:
       context: ./projects/rsmanage
     #image: registry.digitalocean.com/runestone-registry/rs-rsmanage
     image: ghcr.io/runestoneinteractive/rs-rsmanage
