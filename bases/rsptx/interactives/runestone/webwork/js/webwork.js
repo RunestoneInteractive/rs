@@ -96,12 +96,16 @@ class WebWork extends RunestoneBase {
             if (data.rh_result.answers[k].score == 1) {
                 correctCount += 1;
             }
+            // mostly grab original_student_ans, but grab student_value for MC exercises
+            let student_ans = ['Value (parserRadioButtons)', 'Value (PopUp)', 'Value (CheckboxList)'].includes(data.rh_result.answers[k].type)
+                ? data.rh_result.answers[k].student_value
+                : data.rh_result.answers[k].original_student_ans;
             this.answerObj.answers[
                 k
-            ] = `${data.rh_result.answers[k].original_student_ans}`;
+            ] = `${student_ans}`;
             let mqKey = `MaThQuIlL_${k}`;
             this.answerObj.mqAnswers[mqKey] = data.inputs_ref[mqKey];
-            actString += `actual:${data.rh_result.answers[k].original_student_ans}:expected:${data.rh_result.answers[k].correct_value}:`;
+            actString += `actual:${student_ans}:expected:${data.rh_result.answers[k].correct_value}:`;
         }
         let pct = correctCount / qCount;
         // If this.percent is set, then runestonebase will transmit it as part of
