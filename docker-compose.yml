@@ -6,14 +6,14 @@ services:
     image: redis:6-alpine
 
   jobe:
-    build: 
+    build:
       context: ./projects/jobe
     #image: registry.digitalocean.com/runestone-registry/rs-jobe
     image: ghcr.io/runestoneinteractive/rs-jobe
     restart: always
-    
+
   book:
-    build: 
+    build:
       context: ./projects/book_server
     #image: registry.digitalocean.com/runestone-registry/rs-book
     image: ghcr.io/runestoneinteractive/rs-book
@@ -54,7 +54,7 @@ services:
       - jobe
 
   runestone:
-      build: 
+      build:
         context: ./projects/w2p_login_assign_grade
       #image: registry.digitalocean.com/runestone-registry/rs-runestone
       image: ghcr.io/runestoneinteractive/rs-runestone
@@ -96,7 +96,7 @@ services:
         - jobe
 
   assignment:
-    build: 
+    build:
       context: ./projects/assignment_server
     #image: registry.digitalocean.com/runestone-registry/rs-assignment
     image: ghcr.io/runestoneinteractive/rs-assignment
@@ -134,9 +134,9 @@ services:
 
 
   nginx:
-    
+
     # Note we use context: ./ here so that the Dockerfile can copy from the components folder
-    build: 
+    build:
       context: ./
       dockerfile: projects/nginx/Dockerfile
     #image: registry.digitalocean.com/runestone-registry/rs-nginx
@@ -157,10 +157,10 @@ services:
       - book
       - assignment
 
-  # create an image/container to run rsmanage inside the composed services 
+  # create an image/container to run rsmanage inside the composed services
   # docker compose run rsmanage rsmanage --help
   rsmanage:
-    build: 
+    build:
       context: ./projects/rsmanage
     #image: registry.digitalocean.com/runestone-registry/rs-rsmanage
     image: ghcr.io/runestoneinteractive/rs-rsmanage
@@ -177,3 +177,4 @@ services:
       - REDIS_URI=redis://${REDIS_HOST}:6379/0
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
+      - DOCKER_COMPOSE=1
