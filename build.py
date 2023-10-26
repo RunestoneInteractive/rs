@@ -49,7 +49,7 @@ if "--help" in sys.argv:
         --restart restart the container(s) after building
 
         If something in the build does not work or you have questions about setup or environment
-        variables or installation, please check out our developer documentation.  
+        variables or installation, please check out our developer documentation.
         https://runestone-monorepo.readthedocs.io/en/latest/developing.html
         """
     )
@@ -267,7 +267,7 @@ with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
                         status[proj] = "[green]Yes[/green]"
                         lt.update(generate_wheel_table(status))
                     else:
-                        status[proj] = "[red]No[/red]"
+                        status[proj] = "[red]Fail[/red]"
                         lt.update(generate_wheel_table(status))
                         if VERBOSE:
                             console.print(res.stderr.decode(stdout_err_encoding))
@@ -283,10 +283,10 @@ with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
 # see https://rich.readthedocs.io/en/stable/live.html?highlight=update#basic-usage
 def generate_table(status: dict) -> Table:
     table = Table(title="Build Docker Images")
-    table.add_column("Service", justify="right", style="grey62", no_wrap=True)
+    table.add_column("Service", justify="right", style="white", no_wrap=True)
     table.add_column("Built", style="magenta")
     for service in status:
-        table.add_row(f"[black]{service}[/black]", status[service])
+        table.add_row(f"{service}", status[service])
     return table
 
 
@@ -326,7 +326,7 @@ with Live(generate_table(status), refresh_per_second=4) as lt:
             status[service] = "[green]Yes[/green]"
             lt.update(generate_table(status))
         else:
-            status[service] = "failed"
+            status[service] = "Failed"
             lt.update(generate_table(status))
             console.print(
                 f"There was an error building {service} see build.log for details",
