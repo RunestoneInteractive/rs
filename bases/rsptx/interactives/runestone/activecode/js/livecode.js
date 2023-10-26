@@ -348,6 +348,7 @@ export default class LiveCode extends ActiveCode {
             case 11: // compiler error
                 $(odiv).html($.i18n("msg_activecode_were_compiling_err"));
                 this.addJobeErrorMessage(result.cmpinfo);
+                this.errinfo = result.cmpinfo;
                 break;
             case 12: // run time error
                 $(odiv).html(result.stdout.replace(/\n/g, "<br>"));
