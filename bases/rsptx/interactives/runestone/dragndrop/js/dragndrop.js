@@ -408,7 +408,7 @@ export default class DragNDrop extends RunestoneBase {
             event: "dragNdrop",
             act: answer,
             answer: answer,
-            min_height: this.minheight,
+            min_height: Math.round(this.minheight),
             div_id: this.divid,
             correct: this.correct,
             correctNum: this.correctNum,
@@ -497,7 +497,7 @@ export default class DragNDrop extends RunestoneBase {
                         event: "dragNdrop",
                         act: answer,
                         answer: answer,
-                        min_height: this.minheight,
+                        min_height: Math.round(this.minheight),
                         div_id: this.divid,
                         correct: storedObj.correct,
                     });

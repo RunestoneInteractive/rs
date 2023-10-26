@@ -137,23 +137,9 @@ class AssessmentRequest(BaseModelNone):
     @field_validator("deadline", mode="before")
     @classmethod
     def time_validate(cls, v):
-        # return datetime.fromisoformat(v)
-        return isoparse(v)
-
-    # @validator("deadline")
-    # def str_to_datetime(cls, value: str) -> datetime:
-    #     # TODO: this code probably doesn't work.
-    #     try:
-    #         deadline = parse(canonicalize_tz(value))
-    #         # TODO: session isn't defined. Here's a temporary fix
-    #         # tzoff = session.timezoneoffset if session.timezoneoffset else 0
-    #         tzoff = 0
-    #         deadline = deadline + timedelta(hours=float(tzoff))
-    #         deadline = deadline.replace(tzinfo=None)
-    #     except Exception:
-    #         # TODO: can this enclose just the parse code? Or can an error be raised in other cases?
-    #         raise ValueError(f"Bad Timezone - {value}")
-    #     return deadline
+        if v:
+            return isoparse(v)
+        return isoparse(datetime.isoformat(datetime.utcnow()))
 
 
 class TimezoneRequest(BaseModelNone):

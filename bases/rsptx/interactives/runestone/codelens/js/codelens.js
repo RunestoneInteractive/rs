@@ -97,12 +97,18 @@ $(document).on("runestone:login-complete", function () {
             let cl = document.getElementById(divid);
             let lang = $(cl).data("params").lang;
             try {
-                let vis = addVisualizerToPage(allTraceData[divid], divid, {
-                    startingInstruction: 0,
-                    editCodeBaseURL: null,
-                    hideCode: false,
-                    lang: lang,
-                });
+                if (divid in window.allTraceData) {
+                    var vis = addVisualizerToPage(allTraceData[divid], divid, {
+                        startingInstruction: 0,
+                        editCodeBaseURL: null,
+                        hideCode: false,
+                        lang: lang,
+                    });
+                } else {
+                    alert(
+                        `${divid} is missing trace data.  This is probably a build error. Please report it on github.`
+                    );
+                }
                 attachLoggers(vis, divid);
                 styleButtons(divid);
                 window.allVisualizers.push(vis);
