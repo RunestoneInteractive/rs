@@ -719,6 +719,9 @@ async def courseinfo(config, name):
         name = click.prompt("What course do you want info about?")
 
     course = await fetch_course(name)
+    if not course:
+        click.echo(f"Sorry, the course {name} does not exist")
+        sys.exit(-1)
     cid = course.id
     start_date = course.term_start_date
     inst = course.institution
