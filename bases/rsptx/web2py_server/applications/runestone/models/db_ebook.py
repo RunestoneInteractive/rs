@@ -154,7 +154,7 @@ db.define_table(
     Field("course_name", "string"),
     Field("answer", "string"),
     Field("correct", "boolean"),
-    Field("min_height", "string"),
+    Field("min_height", "integer"),
     Field("percent", "double"),
     migrate=bookserver_owned("dragndrop_answers"),
 )
