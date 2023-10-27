@@ -24,4 +24,4 @@ To get started, work through the following sections of the documents. Each step 
 
 If you are interested in deploying a production version of Runestone to serve books, begin by setting up a development environment. Once you are confident in that process, the :ref:`moving to production instructions<moving-to-production>` will help you set up a production ready server.
 
-To get started with getting the Runestone code go to the following page :ref:`<get-the-code:>`. 
+To get started with getting the Runestone code go to the following page :ref:`<get-the-code>`. 
