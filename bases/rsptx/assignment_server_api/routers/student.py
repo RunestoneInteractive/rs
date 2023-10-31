@@ -252,9 +252,9 @@ async def doAssignment(
                 'src="../_static/', 'src="' + get_course_url(course, "_static/")
             )
             htmlsrc = htmlsrc.replace("../_images", get_course_url(course, "_images"))
-            htmlsrc = htmlsrc.replace(
-                "generated/webwork", get_course_url(course, "generated/webwork")
-            )
+            # htmlsrc = htmlsrc.replace(
+            #     "generated/webwork", get_course_url(course, "generated/webwork")
+            # )
         else:
             htmlsrc = None
 
