@@ -104,7 +104,7 @@ class LogItemIncoming(BaseModelNone):
     correct: Optional[Union[bool, int]] = None
     percent: Optional[float] = None
     clientLoginStatus: Optional[bool] = None
-    timezoneoffset: Optional[int] = None
+    timezoneoffset: Optional[float] = None
     timestamp: Optional[datetime] = None
     chapter: Optional[str] = None
     subchapter: Optional[str] = None
@@ -143,7 +143,7 @@ class AssessmentRequest(BaseModelNone):
 
 
 class TimezoneRequest(BaseModelNone):
-    timezoneoffset: int
+    timezoneoffset: float
 
 
 class LogRunIncoming(BaseModelNone):
@@ -153,7 +153,7 @@ class LogRunIncoming(BaseModelNone):
     to_save: bool
     course: str
     clientLoginStatus: bool
-    timezoneoffset: int
+    timezoneoffset: float
     language: str
     prefix: Optional[str] = None
     suffix: Optional[str] = None
