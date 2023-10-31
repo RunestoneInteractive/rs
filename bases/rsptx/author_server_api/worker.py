@@ -137,6 +137,42 @@ def build_runestone_book(self, book):
     logger.debug(f"Building {book}")
     self.update_state(state="CHECKING", meta={"current": "pull latest"})
     res = subprocess.run(
+        ["git", "reset", "--hard", "HEAD"], capture_output=True, cwd=f"/books/{book}"
+    )
+    if res.returncode != 0:
+        outputlog = pathlib.Path("/books", book, "cli.log")
+        with open(outputlog, "w") as olfile:
+            olfile.write(res.stdout.decode("utf8"))
+            olfile.write("\n====\n")
+            olfile.write(res.stderr.decode("utf8"))
+        self.update_state(
+            state="FAILURE",
+            meta={
+                "exc_type": "RuntimeError",
+                "exc_message": "Reset failed",
+                "current": "git reset failed",
+            },
+        )
+        raise Ignore()
+    res = subprocess.run(
+        ["git", "clean", "--force", "-d"], capture_output=True, cwd=f"/books/{book}"
+    )
+    if res.returncode != 0:
+        outputlog = pathlib.Path("/books", book, "cli.log")
+        with open(outputlog, "w") as olfile:
+            olfile.write(res.stdout.decode("utf8"))
+            olfile.write("\n====\n")
+            olfile.write(res.stderr.decode("utf8"))
+        self.update_state(
+            state="FAILURE",
+            meta={
+                "exc_type": "RuntimeError",
+                "exc_message": "Clean failed",
+                "current": "git clean failed",
+            },
+        )
+        raise Ignore()
+    res = subprocess.run(
         ["git", "pull", "--no-edit"], capture_output=True, cwd=f"/books/{book}"
     )
     if res.returncode != 0:
