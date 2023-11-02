@@ -327,7 +327,7 @@ function processPageState(
     let isPtxBook = isPreTeXt();
     var data = {
         lastPageUrl: currentPathname,
-        lastPageScrollLocation: $(window).scrollTop(),
+        lastPageScrollLocation: Math.round($(window).scrollTop()),
         completionFlag: completionFlag,
         pageLoad: pageLoad,
         markingComplete: markingComplete,
