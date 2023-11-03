@@ -675,6 +675,12 @@ export default class Timed extends RunestoneBase {
         }
 
         if (currentQuestion.containerDiv) {
+            if (
+                currentQuestion.containerDiv.classList.contains("runestone") ==
+                false
+            ) {
+                currentQuestion.containerDiv.classList.add("runestone");
+            }
             $(this.switchDiv).replaceWith(currentQuestion.containerDiv);
             this.switchDiv = currentQuestion.containerDiv;
         }
