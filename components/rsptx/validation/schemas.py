@@ -16,7 +16,15 @@ from typing import Container, Optional, Type, Dict, Tuple, Any, Union
 
 # Third-party imports
 # -------------------
-from pydantic import field_validator, StringConstraints, ConfigDict, BaseModel, BaseConfig, create_model, Field
+from pydantic import (
+    field_validator,
+    StringConstraints,
+    ConfigDict,
+    BaseModel,
+    BaseConfig,
+    create_model,
+    Field,
+)
 from humps import camelize  # type: ignore
 from typing_extensions import Annotated
 
@@ -32,6 +40,7 @@ class BaseModelNone(BaseModel):
     @classmethod
     def from_orm(cls, obj):
         return None if obj is None else super().from_orm(obj)
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -49,7 +58,6 @@ def sqlalchemy_to_pydantic(
     # SQLAlchemy fields to exclude from the resulting schema, provided as a sequence of field names. Ignore the id field by default.
     exclude: Container[str] = tuple(),
 ):
-
     # If provided an ORM model, get the underlying Table object.
     db_model = getattr(db_model, "__table__", db_model)
 
@@ -63,7 +71,9 @@ def sqlalchemy_to_pydantic(
         # Determine the Python type of the column.
         python_type = column.type.python_type
         if python_type == str and hasattr(column.type, "length"):
-            python_type = Annotated[str, StringConstraints(max_length=column.type.length)]
+            python_type = Annotated[
+                str, StringConstraints(max_length=column.type.length)
+            ]
 
         # Determine if the column can be null, meaning it's optional from a Pydantic perspective. Make the id column optional, since it won't be present when inserting values to the database.
         if column.nullable or name == "id":
@@ -130,9 +140,11 @@ class AssessmentRequest(BaseModelNone):
     deadline: datetime = Field(default_factory=datetime.utcnow)
     # TODO[pydantic]: The following keys were removed: `json_encoders`.
     # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
-    model_config = ConfigDict(json_encoders={
-        datetime: lambda v: v.isoformat(),
-    })
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.isoformat(),
+        }
+    )
 
     @field_validator("deadline", mode="before")
     @classmethod

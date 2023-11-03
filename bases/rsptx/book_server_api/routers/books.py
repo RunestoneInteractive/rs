@@ -55,7 +55,6 @@ from rsptx.db.crud import (
 )
 from rsptx.db.models import UseinfoValidation
 from rsptx.auth.session import is_instructor
-from ..localconfig import local_settings
 from rsptx.templates import template_folder
 from typing_extensions import Annotated
 
@@ -84,6 +83,7 @@ router = APIRouter(
 # Note the use of the ``path``` type for filepath in the decoration.  If you don't use path it
 # seems to only get you the ``next`` part of the path ``/pre/vious/next/the/rest``.
 #
+
 
 # TODO: make published/draft configurable
 async def return_static_asset(course: str, kind: str, filepath: str):
@@ -164,7 +164,6 @@ async def get_external(course: str, filepath: str):
 # Jupyterlite
 @router.get("/published/{course:str}/lite/{filepath:path}")
 async def get_jlite(course: str, filepath: str):
-
     rslogger.debug(f"Getting {filepath} but adding index.html")
     if filepath[-1] == "/":
         filepath += "index.html"

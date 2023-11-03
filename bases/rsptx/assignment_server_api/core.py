@@ -14,22 +14,16 @@ import pathlib
 
 # Third-party imports
 # -------------------
-from fastapi import FastAPI, Request, status
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from pydantic import ValidationError
 
 # Local application imports
 # -------------------------
 from .routers import student
 from .routers import instructor
-from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
-from rsptx.db.async_session import init_models, term_models
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.logging import rslogger
-from rsptx.lp_sim_builder.feedback import init_graders
 from rsptx.templates import template_folder
 
 # FastAPI setup

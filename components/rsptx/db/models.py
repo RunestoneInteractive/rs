@@ -94,6 +94,7 @@ class Web2PyBoolean(types.TypeDecorator):
 # Schema Definition
 # =================
 
+
 # Provide a container to store information about each type of Runestone Component. While a namedtuple would be better, this can't be used since the fields aren't modifiable after creation; see the comment on `init_graders <init_graders>`.
 class RunestoneComponentDict:
     def __init__(self, model: Type[Base], validator: Type[BaseModelNone]):
@@ -649,6 +650,7 @@ class Grade(Base, IdMixin):
 
 
 GradeValidator = sqlalchemy_to_pydantic(Grade)
+
 
 # Book Structure Tables
 # ---------------------

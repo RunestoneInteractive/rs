@@ -1481,9 +1481,6 @@ async def fetch_assignment_question(
         return AssignmentQuestionValidator.from_orm(res.scalars().first())
 
 
-import pdb
-
-
 async def fetch_assignment_questions(
     assignment_id: int,
 ) -> List[Tuple[Question, AssignmentQuestion]]:

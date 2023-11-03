@@ -258,7 +258,6 @@ async def getaggregateresults(request: Request, div_id: str, course_name: str):
 
 @router.get("/getpollresults")
 async def getpollresults(request: Request, course: str, div_id: str):
-
     # fetch summary of poll answers
     result = await fetch_poll_summary(div_id, course)
 
@@ -426,7 +425,6 @@ async def get_question_source(request: Request, request_data: SelectQRequest):
 
     rslogger.debug(f"is_ab is {is_ab}")
     if is_ab:
-
         res = await fetch_user_experiment(sid, is_ab)  # returns an int or None
         if res is None:
             exp_group = random.randrange(2)

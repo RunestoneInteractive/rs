@@ -7,7 +7,6 @@ import random
 import re
 import pandas as pd
 import pathlib
-import pdb
 from sqlalchemy import create_engine
 from tqdm import tqdm
 
@@ -62,7 +61,7 @@ def find_closest(sid, acid, time, poss):
         candidates = poss.loc[(sid, acid)]
         idx = candidates.index.get_loc(time, method="nearest")
         return candidates.iloc[idx].name
-    except:
+    except Exception:
         return pd.NaT
 
 
@@ -204,7 +203,6 @@ class Anonymizer:
         return self.chosen_courses
 
     def get_users(self):
-
         self.user_df = pd.read_sql_query(
             f"""
         select username, first_name, last_name, courses.course_name, base_course, institution, courselevel, term_start_date
@@ -431,7 +429,6 @@ class Anonymizer:
     # The best approximation of a session is to group everything together that is close in time.
     # For example, a 30 minute gap likely means the student has gone away and come back but we could make that an hour.  Some experimenting is needed and google analytics show that the average time on page for some pages is 30 minutes!
     def sessionize_data(self):
-
         self.useinfo = self.useinfo.sort_values(["sid", "timestamp"])
         self.useinfo["session"] = 0
         self.useinfo["problem_view"] = 0
@@ -475,7 +472,6 @@ class Anonymizer:
     # In[61]:
 
     def create_datashop_data(self):
-
         useinfo_w_answers = self.useinfo.merge(
             self.all_answers,
             left_on=["sid", "div_id", "course_id", "timestamp"],

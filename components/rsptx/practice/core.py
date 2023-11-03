@@ -19,7 +19,6 @@ async def potentially_change_flashcard(
     add=False,
     remove=False,
 ) -> None:
-
     # check if already have a card for this subchapter
     existing_flashcard = await fetch_one_user_topic_practice(user, chapter, subcchapter)
 

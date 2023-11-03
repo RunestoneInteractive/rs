@@ -11,7 +11,7 @@
 # Standard library
 # ----------------
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 import re
 from typing import Optional
 
@@ -43,18 +43,14 @@ from rsptx.db.crud import (
     create_user_chapter_progress_entry,
     create_user_state_entry,
     create_user_sub_chapter_progress_entry,
-    create_user_topic_practice,
     EVENT2TABLE,
-    delete_one_user_topic_practice,
     fetch_last_page,
     fetch_chapter_for_subchapter,
     fetch_course,
     fetch_course_practice,
-    fetch_one_user_topic_practice,
     fetch_user_chapter_progress,
     fetch_user_sub_chapter_progress,
     fetch_user,
-    fetch_qualified_questions,
     is_server_feedback,
     update_sub_chapter_progress,
     update_user_state,
@@ -528,7 +524,6 @@ async def getlastpage(request: Request, course: str):
 # this will allow for easy recovery.
 @router.post("/upload/{div_id:str}")
 async def create_upload_file(request: Request, file: UploadFile, div_id: str):
-
     if not request.state.user:
         raise HTTPException(401)
 

@@ -8,11 +8,11 @@ Overview
 
 This module contains the main FastAPI app and the routers for the book server.
 
-routers are used to organize the code for the book server.  
+routers are used to organize the code for the book server.
 They are a way to group related routes together.  See `FastAPI Routers <https://fastapi.tiangolo.com/tutorial/bigger-applications/#routers>`_.
 We define routers for the following:
 
-* Retrieve results of questions - :mod:`rsptx.book_server_api.routers.assessment` 
+* Retrieve results of questions - :mod:`rsptx.book_server_api.routers.assessment`
 * Serve book files - :mod:`rsptx.book_server_api.routers.books`
 * Save activities from book interactions - :mod:`rsptx.book_server_api.routers.rslogging`
 * Authentication :mod:`rsptx.book_server_api.routers.auth`
@@ -36,25 +36,19 @@ Detailed Module Description
 # Standard library
 # ----------------
 from contextlib import asynccontextmanager
-import datetime
-import json
 import os
 import pathlib
-import traceback
-import socket
 
 # Third-party imports
 # -------------------
-from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse, Response
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from pydantic import ValidationError
 
 # Local application imports
 # -------------------------
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
-from rsptx.db.async_session import init_models, term_models
+from rsptx.db.async_session import term_models
 from rsptx.lp_sim_builder.feedback import init_graders
 from .routers import assessment
 from .routers import auth
@@ -74,6 +68,7 @@ from rsptx.templates import template_folder
 kwargs = {}
 if root_path := os.environ.get("ROOT_PATH"):
     kwargs["root_path"] = root_path
+
 
 # Here is the place to put startup and shutdown logic.
 # This is not for "one-time" things as this runs for every instance of worker at its

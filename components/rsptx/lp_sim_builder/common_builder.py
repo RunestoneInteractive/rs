@@ -46,7 +46,6 @@ def get_sim_str_sim30(
     # Additional, optional commands.
     optional_commands="",
 ):
-
     # Spaces in file names break the simulator.
     if " " in elf_file:
         raise ValueError(
@@ -96,7 +95,6 @@ def get_sim_str_mdb(
     # Additional, optional commands.
     optional_commands="",
 ):
-
     return get_sim_setup_str_mdb(sim_mcu) + get_sim_run_str_mdb(
         elf_file, uart_out_file, optional_commands
     )
@@ -107,7 +105,6 @@ def get_sim_setup_str_mdb(
     # A string giving the MCU to simulate.
     sim_mcu,
 ):
-
     return (
         # See :alink:`the MDB manual <http://ww1.microchip.com/downloads/en/DeviceDoc/50002102D.pdf>` for more information.
         #
@@ -130,7 +127,6 @@ def get_sim_run_str_mdb(
     # Additional, optional commands.
     optional_commands="",
 ):
-
     return (
         # Specify the path to the output file.
         "set uart1io.outputfile {}\n"
@@ -202,7 +198,6 @@ def sim_run_mdb(
         # ... or it died, (re)create it.
         or (po and po.poll() is not None)
     ):
-
         # Create a temp file for the simulation results. Since the simulator doesn't close the file after the simulation finishes, it can't be deleted. Instead, we need a single file to be used for a simulation, read, then truncated.
         _tls.tempdir = tempdir = TemporaryDirectory()
         _tls.simout_path = Path(_tls.tempdir.name) / "mdb_simout.txt"

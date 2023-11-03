@@ -93,13 +93,16 @@ def http_422error_detail(
 
 def get_webpack_static_imports(course):
     # Import webpack CSS and JS.
-    with open(Path(
-        os.environ["BOOK_PATH"],
-        course.base_course,
-        "published",
-        course.base_course,
-        "_static/webpack_static_imports.json"
-    ), encoding="utf-8") as f:
+    with open(
+        Path(
+            os.environ["BOOK_PATH"],
+            course.base_course,
+            "published",
+            course.base_course,
+            "_static/webpack_static_imports.json",
+        ),
+        encoding="utf-8",
+    ) as f:
         wp_imports = json.load(f)
 
     return wp_imports

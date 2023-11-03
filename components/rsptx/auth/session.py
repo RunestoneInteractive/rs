@@ -27,7 +27,6 @@ from fastapi_login import LoginManager
 # -------------------------
 from rsptx.configuration import settings
 from rsptx.db.crud import fetch_instructor_courses, fetch_user
-from rsptx.logging import rslogger
 from rsptx.db.models import AuthUserValidator
 
 
@@ -49,7 +48,9 @@ async def _load_user(user_id: str) -> AuthUserValidator:
 load_user = cast(Callable[[str], Awaitable[AuthUserValidator]], _load_user)
 
 
-async def is_instructor(request: Request, user:Optional[AuthUserValidator]=None) -> bool:
+async def is_instructor(
+    request: Request, user: Optional[AuthUserValidator] = None
+) -> bool:
     """Check to see if the current user is an instructor for the current course
 
     :param request: The request object

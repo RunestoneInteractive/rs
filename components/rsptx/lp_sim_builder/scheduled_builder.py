@@ -79,7 +79,6 @@ def _scheduled_builder(
     # A relative path to the source file from the ``sphinx_source_path``, based on the submitting web page.
     source_path,
 ):
-
     # Translate the provided builder into a Python function.
     builder_func = {
         "python": python_builder,

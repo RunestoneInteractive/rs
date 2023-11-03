@@ -55,7 +55,6 @@ async def index(request: Request, user=Depends(auth_manager)):
     :param request: _description_
     :type request: Request
     """
-    sid = user.username
     course_name = user.course_name
     course = await fetch_course(course_name)
     instructors = await fetch_course_instructors(course_name)

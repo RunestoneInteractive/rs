@@ -169,9 +169,7 @@ async def lp_feedback(lp_validator: Any, feedback: Dict[Any, Any]):
         with open(abs_source_path, encoding="utf-8") as f:
             source_str = f.read()
     except Exception as e:
-        return {
-            "errors": [f"Cannot open source file {abs_source_path}: {e}."]
-        }
+        return {"errors": [f"Cannot open source file {abs_source_path}: {e}."]}
 
     # Create a snippet-replaced version of the source, by looking for "put code
     # here" comments and replacing them with the provided code. To do so,
@@ -241,7 +239,6 @@ def _platform_edit(
     # The name of the source file into which these snippets will be inserted.
     source_path,
 ):
-
     # Prepend a line number directive to each snippet.
     #
     # Select what to prepend based on the language.

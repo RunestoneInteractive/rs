@@ -1,10 +1,9 @@
 import pandas as pd
 from sqlalchemy import create_engine
 import altair as alt
-from altair import Chart, X, Y, Scale
+from altair import Chart
 import os
 import datetime
-import re
 
 # from altair_saver import save
 alt.data_transformers.disable_max_rows()
@@ -20,20 +19,20 @@ def get_enrollment_graph(BASECOURSE):
     LY = TF - datetime.timedelta(days=365)
 
     readers = pd.read_sql_query(
-        f"""select * from auth_user 
-      join user_courses on auth_user.id = user_courses.user_id 
-      join courses on user_courses.course_id = courses.id 
+        f"""select * from auth_user
+      join user_courses on auth_user.id = user_courses.user_id
+      join courses on user_courses.course_id = courses.id
       where courses.base_course = '{BASECOURSE}' and courses.term_start_date >= %(start)s
       """,
         params={"start": TF},
         con=eng,
     )
     readers_ly = pd.read_sql_query(
-        f"""select * from auth_user 
-      join user_courses on auth_user.id = user_courses.user_id 
-      join courses on user_courses.course_id = courses.id 
-      where courses.base_course = '{BASECOURSE}' and 
-          courses.term_start_date >= %(last_year)s and 
+        f"""select * from auth_user
+      join user_courses on auth_user.id = user_courses.user_id
+      join courses on user_courses.course_id = courses.id
+      where courses.base_course = '{BASECOURSE}' and
+          courses.term_start_date >= %(last_year)s and
           term_start_date <= now() - interval '1 year'
       """,
         params=dict(last_year=LY),
@@ -79,8 +78,8 @@ def get_course_graph(BASECOURSE):
 
     courses = pd.read_sql_query(
         """select courselevel, count(*) as num_courses
-        from courses 
-        where term_start_date >= %(start)s and base_course = %(base)s 
+        from courses
+        where term_start_date >= %(start)s and base_course = %(base)s
         group by courselevel """,
         params=dict(start=TF, base=BASECOURSE),
         con=eng,
@@ -88,9 +87,9 @@ def get_course_graph(BASECOURSE):
 
     ly_courses = pd.read_sql_query(
         """select courselevel, count(*) as num_courses
-        from courses 
-        where term_start_date >= %(start)s and term_start_date < now() - interval '365 days' 
-        and base_course = %(base)s 
+        from courses
+        where term_start_date >= %(start)s and term_start_date < now() - interval '365 days'
+        and base_course = %(base)s
         group by courselevel """,
         params=dict(start=LY, base=BASECOURSE),
         con=eng,

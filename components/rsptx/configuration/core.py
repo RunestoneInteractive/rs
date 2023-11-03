@@ -158,6 +158,7 @@ class Settings(BaseSettings):
         :return: The web2py private key.
         :rtype: str
         """
+
         # Put the cache here; above the def, it produces ``TypeError: unhashable type: 'Settings'``.
         @lru_cache
         def read_key():
