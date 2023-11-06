@@ -115,8 +115,12 @@ class Anonymizer:
         print(f"include basecourse = {include_basecourse}")
         self.include_basecourse = include_basecourse
         self.preserve_username = preserve_user_ids
+
         if specific_course:
-            self.COURSE_LIST = [specific_course]
+            if isinstance(specific_course, list):
+                self.COURSE_LIST = specific_course
+            else:
+                self.COURSE_LIST = [specific_course]
         else:
             self.COURSE_LIST = []
 
