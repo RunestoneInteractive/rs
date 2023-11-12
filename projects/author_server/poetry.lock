@@ -2015,13 +2015,13 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "pretext"
-version = "2.3.1"
+version = "2.3.2"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = ">=3.8.5,<4.0.0"
 files = [
-    {file = "pretext-2.3.1-py3-none-any.whl", hash = "sha256:9f487dac8261ec2888741bfee13de1eb47b27cc4072164bcfd8e45660693bcf1"},
-    {file = "pretext-2.3.1.tar.gz", hash = "sha256:1d89afbab75ab98b962750acdb478c2bc2ca3bf12f0e176ddcfd17ac33b20c26"},
+    {file = "pretext-2.3.2-py3-none-any.whl", hash = "sha256:3b2234323a1cb9062f92b3b40446361d17f508dd7ef8c6c76e8b1dba074949b8"},
+    {file = "pretext-2.3.2.tar.gz", hash = "sha256:5e2036316d2a422ab58c134c9d0b2cd3a80547fe49fb3ce995c3ebb04f43b1b4"},
 ]
 
 [package.dependencies]
@@ -3016,13 +3016,13 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.2.5"
+version = "7.2.6"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "runestone-7.2.5-py3-none-any.whl", hash = "sha256:b5e358b61b2aedb3141e93030a9c51218850ba00387cb0142feb4278ccf98843"},
-    {file = "runestone-7.2.5.tar.gz", hash = "sha256:26a96f6b413ad22cfacf3d7dfda34d80622efb77e4453004ef7743bcb1713be4"},
+    {file = "runestone-7.2.6-py3-none-any.whl", hash = "sha256:f5f50553171edb57e00f75a2fb3a7153efe9987593e6e35445366f0fa9a95ba4"},
+    {file = "runestone-7.2.6.tar.gz", hash = "sha256:5750baa0901f2646663852ca51f5bf8ca41a8b348e4261691b383ba0c5c83161"},
 ]
 
 [package.dependencies]
