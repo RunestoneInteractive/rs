@@ -5,6 +5,20 @@ services:
   redis:
     image: redis:6-alpine
 
+  pgbouncer:
+    image: bitnami/pgbouncer:latest
+    restart: always
+    ports:
+      - 6432:6432
+    environment:
+      - POSTGRESQL_HOST=host.docker.internal
+      - POSTGRESQL_DATABASE=runestone_dev
+      - PGBOUNCER_DATABASE=runestone_dev
+      - POSTGRESQL_USERNAME=runestone
+      - POSTGRESQL_PASSWORD=runestone
+      - PGBOUNCER_AUTH_TYPE=trust #md5 or scram-sha-256
+
+
   jobe:
     build:
       context: ./projects/jobe
@@ -52,6 +66,7 @@ services:
     links:
       - redis
       - jobe
+      - pgbouncer
 
   runestone:
       build:
@@ -94,6 +109,7 @@ services:
       links:
         - redis
         - jobe
+        - pgbouncer
 
   assignment:
     build:
@@ -131,6 +147,7 @@ services:
     links:
       - redis
       - jobe
+      - pgbouncer
 
 
   nginx:
