@@ -3078,7 +3078,7 @@ def reset_exam():
         (db.timed_exam.div_id == assignment_name) & (db.timed_exam.sid == username)
     ).delete()
     if num_del == 0:
-        return json.dumps({"status": "Failed", "mess": "Nothing saved"})
+        return json.dumps({"status": "Failed", "mess": "Resetting is unnecessary as the exam has not started yet."})
 
     exam_qs = db(
         (db.assignments.name == assignment_name)
