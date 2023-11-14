@@ -5,18 +5,23 @@ services:
   redis:
     image: redis:6-alpine
 
+  # pgbouncer is for production only, when in a load balancer configuration.
+  # This will effectively limit the total number of connections to the database
+  # for the composed application to 30.  If you need more than that you will need
+  # to set the PGBOUNCER_DEFAULT_POOL_SIZE environment variable to a larger number.
   pgbouncer:
     image: bitnami/pgbouncer:latest
     restart: always
     ports:
       - 6432:6432
     environment:
-      - POSTGRESQL_HOST=host.docker.internal
-      - POSTGRESQL_DATABASE=runestone_dev
-      - PGBOUNCER_DATABASE=runestone_dev
-      - POSTGRESQL_USERNAME=runestone
-      - POSTGRESQL_PASSWORD=runestone
+      - POSTGRESQL_HOST=${POSTGRESQL_HOST}
+      - POSTGRESQL_DATABASE=${POSTGRESQL_DATABASE}
+      - PGBOUNCER_DATABASE=${POSTGRESQL_DATABASE}
+      - POSTGRESQL_USERNAME=${POSTGRESQL_USERNAME}
+      - POSTGRESQL_PASSWORD=${POSTGRESQL_PASSWORD}
       - PGBOUNCER_AUTH_TYPE=trust #md5 or scram-sha-256
+      - PGBOUNCER_DEFAULT_POOL_SIZE=30
 
 
   jobe:
