@@ -3,6 +3,11 @@ Adding a Book
 
 Now that you have done all the work to get your servers configured, you are also going to want one or more books for testing.  Lets add a book to your setup.
 
+.. note:: Keep Docker Running
+
+   In everything that follows we assume that docker and all of the services are running.  If you have stopped docker then you will need to start it again.  ``docker compose up -d``  If you are not sure if docker is running then you can check with ``docker ps``
+
+
 Prerequisites
 ~~~~~~~~~~~~~
 
