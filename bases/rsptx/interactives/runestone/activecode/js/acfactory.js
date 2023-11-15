@@ -112,25 +112,29 @@ export default class ACFactory {
         var lang = eBookConfig.acDefaultLanguage
             ? eBookConfig.acDefaultLanguage
             : "python";
-        if (lang === "java" || lang === "cpp" || lang === "python3") {
+
+        const languageNames = {
+            'cpp': 'C++',
+            'java': 'Java',
+            'python3': 'Python 3',
+            'python': 'Python'
+        };
+        if (Object.keys(languageNames).includes(lang)) {
             stdin = `data-stdin="text for stdin"`;
         }
+
         // generate the HTML
         var html = `<div class="ptx-runestone-container"><div id="ac_modal_${divid}" class="modal fade">
               <div class="modal-dialog scratch-ac-modal">
                 <div class="modal-content">
                   <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                    <h4 class="modal-title">Scratch ActiveCode</h4>
+                    <h4 class="modal-title">Scratch ActiveCode (${languageNames[lang.toLowerCase()]})</h4>
                   </div>
                   <div class="modal-body">
                   <div data-component="activecode" id=${divid}>
                   <div id=${divid}_question class="ac_question"><p>Use this area for writing code or taking notes.</p></div>
                   <textarea data-codelens="true" data-lang="${lang}" ${stdin}>
-
-
-
-
                   </textarea>
                   </div>
                   </div>
