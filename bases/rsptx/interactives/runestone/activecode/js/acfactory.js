@@ -118,6 +118,7 @@ export default class ACFactory {
         const languageNames = {
             'cpp': 'C++',
             'c': 'C',
+            'html':'HTML',
             'htmlmixed': 'HTML',
             'java': 'Java',
             'javascript': 'JavaScript',
