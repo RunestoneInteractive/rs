@@ -112,16 +112,27 @@ export default class ACFactory {
         var lang = eBookConfig.acDefaultLanguage
             ? eBookConfig.acDefaultLanguage
             : "python";
-
-        const languageNames = {
-            'cpp': 'C++',
-            'java': 'Java',
-            'python3': 'Python 3',
-            'python': 'Python'
-        };
-        if (Object.keys(languageNames).includes(lang)) {
+        if (lang === "java" || lang === "cpp" || lang === "python3") {
             stdin = `data-stdin="text for stdin"`;
         }
+        const languageNames = {
+            'cpp': 'C++',
+            'c': 'C',
+            'htmlmixed': 'HTML',
+            'java': 'Java',
+            'javascript': 'JavaScript',
+            'js':'JavaScript',
+            'octave': 'Octave',
+            'python': 'Python',
+            'py2':'Python 2',
+            'python2': 'Python 2',
+            'py3':'Python 3',
+            'py3anaconda': 'Python 3 with Anaconda',
+            'python3': 'Python 3',
+            'ruby': 'Ruby',
+            'sql': 'SQL',
+            'ts': 'TypeScript'
+        };
 
         // generate the HTML
         var html = `<div class="ptx-runestone-container"><div id="ac_modal_${divid}" class="modal fade">
