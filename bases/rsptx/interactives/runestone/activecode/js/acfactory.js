@@ -118,7 +118,7 @@ export default class ACFactory {
         const languageNames = {
             'cpp': 'C++',
             'c': 'C',
-            'html':'HTML',
+            'html': 'HTML',
             'htmlmixed': 'HTML',
             'java': 'Java',
             'javascript': 'JavaScript',
@@ -141,7 +141,7 @@ export default class ACFactory {
                 <div class="modal-content">
                   <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                    <h4 class="modal-title">Scratch ActiveCode (${languageNames[lang.toLowerCase()]})</h4>
+                    <h4 class="modal-title">Scratch ActiveCode (${languageNames[lang.toLowerCase()] || lang})</h4>
                   </div>
                   <div class="modal-body">
                   <div data-component="activecode" id=${divid}>
@@ -156,6 +156,12 @@ export default class ACFactory {
             </div>`;
         var el = $(html);
         $("body").append(el);
+        el.on("shown.bs.modal", function(){
+            // default lang isn't in dictionary of known programming languages
+            if (!languageNames[lang.toLowerCase()]) {
+                alert(`${lang} is a known language. Please report this`)
+            }
+        });
         el.on("shown.bs.modal show.bs.modal", function () {
             el.find(".CodeMirror").each(function (i, e) {
                 e.CodeMirror.refresh();
