@@ -22,7 +22,8 @@ It can be time consuming to rebuild a docker container every time you want to te
       The ``dstart`` script is not for production.  It is only for development.  It is not secure, and it is designed to let you interact with one service at a time.  It does not redirect you to other services.   So for example if you ``dstart runestone`` and try to go to a course it will fail.  But if you ``dstart runestone`` and want to work on the course page by just reloading, it will work great and will be much faster than rebuilding the container.
 
 
-You will need to make sure that you have some of your host side environment variables defined correctly.  Mainly the ``RUNESTONE_PATH`` which should point to your ``rs`` folder.  And ``DEV_DBURL`` which should point to your local database. If you configured the database to run inside docker then it should be something like ``postgresql://runestone:runestone@localhost:2345/runestone_dev``. Whereas your ``DC_DEV_DBURL`` will reference the ``db`` service rather than localhost.  Note that internally postgresql runs on port 5432.  We expose it on 2345 so that if you also have postgresql running on your host it won't conflict.
+You will need to make sure that you have some of your host side environment variables defined correctly.  Mainly the ``RUNESTONE_PATH`` which should point to your ``rs`` folder.  And ``DEV_DBURL`` which should point to your local database. If you configured the database to run inside docker then it should be something like ``postgresql://runestone:r
+unestone@localhost:2345/runestone_dev``. Whereas your ``DC_DEV_DBURL`` will reference the ``db`` service rather than localhost.  Note that internally postgresql runs on port 5432.  We expose it on 2345 so that if you also have postgresql running on your host it won't conflict.
 
 
 .. note:: web2py does not see changes in modules
@@ -30,5 +31,9 @@ You will need to make sure that you have some of your host side environment vari
       The web2py server will notice changes made in the controllers, models, and views folders.  But does not see changes in the modules folder.  You will simply need to restart ``dstart`` to see changes in the modules folder.
 
 
+Static Assets
+-------------
+
+One important note about static assets.  That is things found in ``components/rsptx/templates/staticAssets`` for performance reasons when docker is running we serve those files **directly** from the nginx server.  So if you are working on those files you will need to rebuild/restart nginx to see the changes.  That is quite fast.  ``./build --one nginx --restart``
 
 
