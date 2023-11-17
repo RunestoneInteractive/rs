@@ -18,12 +18,11 @@ import pathlib
 import logging
 import sys
 import time
-import pdb
 
 # third party
 # -----------
 import aiofiles
-from components.rsptx.db.crud import (
+from rsptx.db.crud import (
     create_instructor_course_entry,
     fetch_base_course,
     fetch_user,
@@ -116,8 +115,8 @@ async def create_book_entry(author: str, document_id: str, github: str):
     }
     await create_library_book(document_id, vals)
     await create_book_author(author, document_id)
-    c_from_db = fetch_base_course(document_id)
-    u_from_db = fetch_user(author)
+    c_from_db = await fetch_base_course(document_id)
+    u_from_db = await fetch_user(author)
     await create_instructor_course_entry(u_from_db.id, c_from_db.id)
 
     return True
