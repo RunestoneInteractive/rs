@@ -208,7 +208,11 @@ export default class DragNDrop extends RunestoneBase {
                 );
             }
         }
-        this.randomizeIndexArray();
+        if (this.random) {
+            this.randomizeIndexArray(); // shuffle index again
+        } else {
+            this.createIndexArray(); // reset default index
+        }
         for (let i = 0; i < this.dragPairArray.length; i++) {
             if (this.hasStoredDropzones) {
                 if (this.pregnantIndexArray[this.indexArray[i]] !== "-1") {
