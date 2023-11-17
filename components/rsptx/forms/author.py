@@ -30,6 +30,7 @@ class LibraryForm(StarletteForm):
     is_visible = BooleanField("Visible to Everyone in Library")
     github_url = StringField("Github URL")
     main_page = StringField("Main page")
+    social_url = StringField("Social URL")
     # last_build = DateTimeField("Last Build") - no reason to update this manually
 
 
