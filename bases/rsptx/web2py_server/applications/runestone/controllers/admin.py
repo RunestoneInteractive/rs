@@ -1706,7 +1706,6 @@ def htmlsrc():
     requires_login=True,
 )
 def getGradeComments():
-
     acid = request.vars["acid"]
     sid = request.vars["sid"]
 
@@ -1962,7 +1961,11 @@ def _get_toc_and_questions():
                 & (db.questions.question_type != "page")
                 & (db.questions.subchapter == sub_ch.sub_chapter_label)
                 & ((db.questions.author == author) | (db.questions.is_private == "F"))
-            ).select(orderby=db.questions.id)
+                & (
+                    (db.questions.review_flag == "F")
+                    | (db.questions.review_flag == None)  # noqa: E711
+                )
+            ).select(orderby=~db.questions.from_source | db.questions.id)
             for question in questions_query:
                 if question.questions.qnumber:
                     qlabel = question.questions.qnumber
@@ -2093,7 +2096,9 @@ def get_assignment():
     for row in a_q_rows:
         if row.questions.question_type == "page":
             # get the count of 'things to do' in this chap/subchap
-            logger.debug(f"chapter = {row.questions.chapter} subchapter = {row.questions.subchapter}")
+            logger.debug(
+                f"chapter = {row.questions.chapter} subchapter = {row.questions.subchapter}"
+            )
             activity_count = db(
                 (db.questions.chapter == row.questions.chapter)
                 & (db.questions.subchapter == row.questions.subchapter)
@@ -2292,7 +2297,8 @@ def add__or_update_assignment_question():
             & (db.questions.subchapter == subchapter)
             & (db.questions.from_source == "T")
             & (
-                (db.questions.optional == False) | (db.questions.optional == None)  # noqa: E711
+                (db.questions.optional == False)
+                | (db.questions.optional == None)  # noqa: E711
             )
             & (db.questions.base_course == base_course)
         ).count()
@@ -3078,7 +3084,12 @@ def reset_exam():
         (db.timed_exam.div_id == assignment_name) & (db.timed_exam.sid == username)
     ).delete()
     if num_del == 0:
-        return json.dumps({"status": "Failed", "mess": "Resetting is unnecessary as the exam has not started yet."})
+        return json.dumps(
+            {
+                "status": "Failed",
+                "mess": "Resetting is unnecessary as the exam has not started yet.",
+            }
+        )
 
     exam_qs = db(
         (db.assignments.name == assignment_name)
