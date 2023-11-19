@@ -22,6 +22,7 @@ services:
       - POSTGRESQL_PASSWORD=${POSTGRESQL_PASSWORD}
       - PGBOUNCER_AUTH_TYPE=trust #md5 or scram-sha-256
       - PGBOUNCER_DEFAULT_POOL_SIZE=30
+      - PGBOUNCER_POOL_MODE=transaction
 
 
   jobe:
