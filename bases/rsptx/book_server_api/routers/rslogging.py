@@ -357,7 +357,10 @@ async def updatelastpage(
 
     practice_settings = await fetch_course_practice(user.course_name)
     if RS_info:
-        values = json.loads(RS_info)
+        try:
+            values = json.loads(RS_info)
+        except:
+            values = {}
 
         tz_offset = float(values.get("tz_offset", 0))
     else:
