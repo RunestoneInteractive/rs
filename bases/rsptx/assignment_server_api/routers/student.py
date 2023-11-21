@@ -342,7 +342,10 @@ async def doAssignment(
     if RS_info:
         rslogger.debug(f"RS_info Cookie {RS_info}")
         # Note that to get to the value of the cookie you must use ``.value``
-        parsed_js = json.loads(RS_info)
+        try:
+            parsed_js = json.loads(RS_info)
+        except Exception as e:
+            parsed_js = {}
     else:
         parsed_js = {}
     parsed_js["readings"] = readings_names
