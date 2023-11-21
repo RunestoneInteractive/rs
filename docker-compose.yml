@@ -14,6 +14,8 @@ services:
     restart: always
     ports:
       - 6432:6432
+    extra_hosts:
+      - host.docker.internal:host-gateway
     environment:
       - POSTGRESQL_HOST=${POSTGRESQL_HOST}
       - POSTGRESQL_DATABASE=${POSTGRESQL_DATABASE}
