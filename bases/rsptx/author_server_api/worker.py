@@ -132,10 +132,7 @@ def clone_runestone_book(self, repo, bcname):
     return True
 
 
-@celery.task(bind=True, name="build_runestone_book")
-def build_runestone_book(self, book):
-    logger.debug(f"Building {book}")
-    self.update_state(state="CHECKING", meta={"current": "pull latest"})
+def git_pull(self, book):
     res = subprocess.run(
         ["git", "reset", "--hard", "HEAD"], capture_output=True, cwd=f"/books/{book}"
     )
@@ -191,6 +188,12 @@ def build_runestone_book(self, book):
         )
         raise Ignore()
 
+
+@celery.task(bind=True, name="build_runestone_book")
+def build_runestone_book(self, book):
+    logger.debug(f"Building {book}")
+    self.update_state(state="CHECKING", meta={"current": "pull latest"})
+    git_pull(self, book)
     myclick = MyClick(self, "BUILDING")
     self.update_state(state="BUILDING", meta={"current": "running build"})
     os.chdir(f"/books/{book}")
@@ -227,25 +230,7 @@ def build_ptx_book(self, book, generate=False):
     """
     logger.debug(f"Building {book}")
     self.update_state(state="CHECKING", meta={"current": "pull latest"})
-    res = subprocess.run(
-        "git pull --no-edit", shell=True, capture_output=True, cwd=f"/books/{book}"
-    )
-    logger.debug(f"Checking results of pull for {book}")
-    if res.returncode != 0:
-        outputlog = pathlib.Path("/books", book, "cli.log")
-        with open(outputlog, "w") as olfile:
-            olfile.write(res.stdout.decode("utf8"))
-            olfile.write("\n====\n")
-            olfile.write(res.stderr.decode("utf8"))
-        self.update_state(
-            state="FAILURE",
-            meta={
-                "exc_type": "RuntimeError",
-                "exc_message": "Pull failed",
-                "current": "git pull failed",
-            },
-        )
-        raise Ignore()
+    git_pull(self, book)
 
     os.chdir(f"/books/{book}")
     logger.debug(f"Before building myclick self = {self}")
@@ -313,7 +298,7 @@ def useinfo_to_csv(self, classname, username):
         params=dict(cname=classname),
         con=eng,
     )
-    p = pathlib.Path("downloads","logfiles", username)
+    p = pathlib.Path("downloads", "logfiles", username)
     p.mkdir(parents=True, exist_ok=True)
     p = p / f"{classname}_useinfo.csv.zip"
     self.update_state(state="WRITING", meta={"current": "creating csv.zip file"})

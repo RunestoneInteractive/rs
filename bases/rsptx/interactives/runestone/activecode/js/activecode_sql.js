@@ -17,7 +17,7 @@ export default class SQLActiveCode extends ActiveCode {
             eBookConfig.useRunestoneServices ||
             window.location.search.includes("mode=browsing")
         ) {
-            bookprefix = `/books/published/${eBookConfig.basecourse}`;
+            bookprefix = `/ns/books/published/${eBookConfig.basecourse}`;
             fnprefix = bookprefix + "/_static";
         } else {
             // The else clause handles the case where you are building for a static web browser

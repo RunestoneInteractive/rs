@@ -3,6 +3,11 @@ Adding a Book
 
 Now that you have done all the work to get your servers configured, you are also going to want one or more books for testing.  Lets add a book to your setup.
 
+.. note:: Keep Docker Running
+
+   In everything that follows we assume that docker and all of the services are running.  If you have stopped docker then you will need to start it again.  ``docker compose up -d``  If you are not sure if docker is running then you can check with ``docker ps``
+
+
 Prerequisites
 ~~~~~~~~~~~~~
 
@@ -42,8 +47,10 @@ The overview book is an easy example because the database already contains a cou
    Course added to DB successfully
    $
 
+
 3. Now we can build the book using the ``rsmanage`` command.  ``rsmanage build --ptx ac-single`` This will build the book and deploy it to ``ac-single/published/ac-single``  The Active Calculus book should now be visible in the library.
 4. Notice that we used ``ac-single`` for the course name as well as the base course name.  You **should not** use this course for your own courses.  Instead you should use the runestone web interface to create a custom course from the ``ac-single`` base course.  But first you will need to make the book available to the web interface.  You do this by setting a flag in the library table of the database.  For now you need to do this by hand.  This really should be another rsmanage subcommand but instead run ``psql $DEV_DBURL``
+
 
 .. code-block:: bash
 

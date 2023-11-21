@@ -44,7 +44,6 @@ class ChapterGet:
     #    subchapnum_map={}
     #    subchapNum_map={}
     def __init__(self, chapters):
-
         self.Cmap = {}
         self.Smap = {}  # dictionary organized by chapter and section labels
         self.SAmap = {}  # organized just by section label
@@ -777,13 +776,29 @@ def subchapoverview():
         return redirect(URL("default", "user"))
 
     dburl = _get_dburl()
+    chapters = pd.read_sql_query(
+        f"""
+    select chapter_name, chapter_label from chapters
+        where course_id = '{thecourse.base_course}'
+        order by chapter_num""",
+        dburl,
+    )
+    chap_labs = chapters.chapter_label.to_list()
+
+    if request.vars.chapter:
+        if request.vars.chapter == "all":
+            chapter_clause = ""
+        else:
+            chapter_clause = "and chapter = '{}'".format(request.vars.chapter)
+    else:
+        chapter_clause = f" and chapter = '{chap_labs[0]}'"
+
     data = pd.read_sql_query(
-        """
+        f"""
     select sid, first_name, last_name, useinfo.timestamp, div_id, chapter, subchapter from useinfo
-    join questions on div_id = name and base_course = '{}' join auth_user on username = useinfo.sid
-    where useinfo.course_id = '{}' and active='T' and useinfo.timestamp >= '{}'""".format(
-            thecourse.base_course, course, thecourse.term_start_date
-        ),
+    join questions on div_id = name and base_course = '{thecourse.base_course}' {chapter_clause}
+    join auth_user on username = useinfo.sid
+    where useinfo.course_id = '{course}' and active='T'""",
         dburl,
         parse_dates=["timestamp"],
     )
@@ -830,14 +845,22 @@ def subchapoverview():
                     x[k][j] = format_cell(k, j[0], j[1], x[k][j])
         pt = pd.DataFrame(x)
 
+    if request.vars.chapter:
+        if request.vars.chapter == "all":
+            chapter_clause = ""
+        else:
+            chapter_clause = "and chapters.chapter_label = '{}'".format(
+                request.vars.chapter
+            )
+    else:
+        chapter_clause = f" and chapters.chapter_label = '{chap_labs[0]}'"
+
     cmap = pd.read_sql_query(
-        """select chapter_num, sub_chapter_num, chapter_label, sub_chapter_label
+        f"""select chapter_num, sub_chapter_num, chapter_label, sub_chapter_label
         from sub_chapters join chapters on chapters.id = sub_chapters.chapter_id
-        where chapters.course_id = '{}'
+        where chapters.course_id = '{thecourse.base_course}' {chapter_clause}
         order by chapter_num, sub_chapter_num;
-        """.format(
-            thecourse.base_course
-        ),
+        """,
         dburl,
     )
 
@@ -903,7 +926,7 @@ def subchapoverview():
     neworder = mtbl.columns.to_list()
     neworder = neworder[-5:-4] + neworder[2:-5]
     mtbl = mtbl[neworder]
-
+    logger.debug(f"{chapters=} type {type(chapters)}")
     if request.vars.action == "tocsv":
         response.headers["Content-Type"] = "application/vnd.ms-excel"
         response.headers[
@@ -915,6 +938,7 @@ def subchapoverview():
             course_name=auth.user.course_name,
             course_id=auth.user.course_name,
             course=thecourse,
+            chapter_frame=chapters,
             summary=mtbl.to_json(orient="records", date_format="iso"),
         )
 

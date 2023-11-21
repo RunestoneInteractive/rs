@@ -69,11 +69,23 @@ textbook
 <h2>Instructor Links</h2>
 <div class="nav flex-column" id="v-pills-tab"  aria-orientation="vertical">
   <a class="nav-link" id="v-pills-home-tab"  href="/runestone/dashboard"  aria-controls="v-pills-home" aria-selected="true">Student Progress</a>
-  <a class="nav-link" id="v-pills-gradebook-tab"  href="/runestone/dashboard/grades"  aria-controls="v-pills-home" aria-selected="true">Gradebook</a>  
-  <a class="nav-link" id="v-pills-profile-tab"  href="/runestone/admin/admin"  aria-controls="v-pills-profile" aria-selected="false">Class Administration</a>  
+  <a class="nav-link" id="v-pills-gradebook-tab"  href="/runestone/dashboard/grades"  aria-controls="v-pills-home" aria-selected="true">Gradebook</a>
+  <a class="nav-link" id="v-pills-profile-tab"  href="/runestone/admin/admin"  aria-controls="v-pills-profile" aria-selected="false">Class Administration</a>
   <a class="nav-link" id="v-pills-grading-tab" href="/runestone/admin/grading"  aria-controls="v-pills-profile" aria-selected="false">Grading</a>
   <a class="nav-link" id="v-pills-messages-tab"  href="/runestone/admin/assignments"  aria-controls="v-pills-messages" aria-selected="false">Manage Assignments</a>
   <a class="nav-link" id="v-pills-settings-tab" href="/runestone/admin/practice" aria-controls="v-pills-settings" aria-selected="false">Manage Practice</a>
+  {% if has_discussion_group: %}
+  <h3>Get help, learn about updates, share resources!</h3>
+  <ul>
+  {% for book in book_list: %}
+  {% if book.social_url: %}
+  <li>
+  <a class="nav-link" href="{{book.social_url}}" aria-controls="v-pills-settings" aria-selected="false">Instructors Group for {{book.title}}</a>
+  </li>
+  {% endif %}
+  {% endfor %}
+  </ul>
+  {% endif %}
 </div>
 
 </div>

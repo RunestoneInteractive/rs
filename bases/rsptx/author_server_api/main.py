@@ -18,11 +18,15 @@ import pathlib
 import logging
 import sys
 import time
-import pdb
 
 # third party
 # -----------
 import aiofiles
+from rsptx.db.crud import (
+    create_instructor_course_entry,
+    fetch_base_course,
+    fetch_user,
+)
 from fastapi import Body, FastAPI, Request, Depends, status
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -111,6 +115,10 @@ async def create_book_entry(author: str, document_id: str, github: str):
     }
     await create_library_book(document_id, vals)
     await create_book_author(author, document_id)
+    c_from_db = await fetch_base_course(document_id)
+    u_from_db = await fetch_user(author)
+    await create_instructor_course_entry(u_from_db.id, c_from_db.id)
+
     return True
 
 
@@ -150,7 +158,6 @@ async def home(request: Request, user=Depends(auth_manager)):
 @app.get("/author/logfiles")
 async def logfiles(request: Request, user=Depends(auth_manager)):
     if await is_instructor(request):
-
         lf_path = pathlib.Path("downloads", "logfiles", user.username)
         logger.debug(f"WORKING DIR = {lf_path}")
         if lf_path.exists():
@@ -217,7 +224,6 @@ async def verify_author(user):
 
 @app.get("/author/dump/assignments/{course}")
 async def dump_assignments(request: Request, course: str, user=Depends(auth_manager)):
-
     if not (await is_instructor(request) and user.course_name == course):
         return RedirectResponse(url="/notauthorized")
 
