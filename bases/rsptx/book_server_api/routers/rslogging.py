@@ -359,7 +359,7 @@ async def updatelastpage(
     if RS_info:
         try:
             values = json.loads(RS_info)
-        except:
+        except Exception:
             values = {}
 
         tz_offset = float(values.get("tz_offset", 0))

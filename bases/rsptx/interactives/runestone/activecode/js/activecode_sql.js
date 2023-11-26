@@ -34,6 +34,8 @@ export default class SQLActiveCode extends ActiveCode {
             if (self.dburl) {
                 if (self.dburl.startsWith("/_static")) {
                     self.dburl = `${bookprefix}${self.dburl}`;
+                } else if (self.dburl.startsWith("external")) {
+                    self.dburl = `${bookprefix}/${self.dburl}`;
                 }
                 $(self.runButton).attr("disabled", "disabled");
                 let buttonText = $(self.runButton).text();

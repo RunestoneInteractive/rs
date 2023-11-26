@@ -170,6 +170,8 @@ class Settings(BaseSettings):
                 rslogger.error(
                     "No Key file is found will default to settings.jwt_secret"
                 )
+                if type(self.jwt_secret) is bytes:
+                    return self.jwt_secret.decode("utf-8")
                 return self.jwt_secret
 
         key = os.environ.get("WEB2PY_PRIVATE_KEY", None)
