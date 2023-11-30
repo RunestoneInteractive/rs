@@ -73,6 +73,8 @@ services:
       - LOGIN_URL="/runestone/default/user"
       - WORKER_NAME=${HOSTNAME}
       - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
+      - SPACES_KEY=${SPACES_KEY}
+      - SPACES_SECRET=${SPACES_SECRET}
 
     links:
       - redis
