@@ -2722,6 +2722,10 @@ def update_course():
                 attr="groupsize",
                 value=request.vars.groupsize,
             )
+        if "registration_locked" in request.vars:
+            db(db.courses.id == thecourse.id).update(
+                registration_locked=(request.vars["registration_locked"] == "true")
+            )
         return json.dumps(dict(status="success"))
 
     return json.dumps(dict(status="failed"))

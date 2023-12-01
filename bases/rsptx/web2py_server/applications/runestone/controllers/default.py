@@ -623,6 +623,11 @@ def enroll():
         session.flash = f"You are already registered for {request.vars.course_name}"
         redirect(URL("default", "courses"))
 
+    # Check if registration is locked
+    if course and course.registration_locked:
+        session.flash = "Registration is locked for this course."
+        redirect(URL("default", "courses"))
+
     db.user_courses.insert(user_id=auth.user.id, course_id=course.id)
     db(db.auth_user.id == auth.user.id).update(course_id=course.id, active="T")
     db(db.auth_user.id == auth.user.id).update(course_name=request.vars.course_name)
