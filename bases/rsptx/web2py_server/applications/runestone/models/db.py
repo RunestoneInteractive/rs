@@ -160,6 +160,7 @@ db.define_table(
     Field("login_required", type="boolean", default=True),
     Field("allow_pairs", type="boolean", default=False),
     Field("student_price", type="integer"),
+    Field("registration_locked", type="boolean", default=False),
     Field("downloads_enabled", type="boolean", default=False),
     Field("courselevel", type="string"),
     Field("new_server", type="boolean", default=False),
