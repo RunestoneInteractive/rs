@@ -100,6 +100,7 @@ async def create_book_entry(author: str, document_id: str, github: str):
         institution="Runestone",
         courselevel="",
         downloads_enabled="F",
+        registration_locked="F",
         allow_pairs="F",
         new_server="T",
     )
