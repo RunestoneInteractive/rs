@@ -26,6 +26,10 @@ import "codemirror/lib/codemirror.css";
 import "codemirror/addon/hint/show-hint.js";
 import "codemirror/addon/hint/show-hint.css";
 import "codemirror/addon/hint/sql-hint.js";
+import "codemirror/addon/hint/css-hint.js";
+import "codemirror/addon/hint/html-hint.js";
+import "codemirror/addon/hint/javascript-hint.js";
+import "codemirror/addon/hint/xml-hint.js";
 import "codemirror/addon/hint/anyword-hint.js";
 import "codemirror/addon/edit/matchbrackets.js";
 import "./skulpt.min.js";
@@ -52,7 +56,18 @@ var socket, connection, doc;
 var chatcodesServer = "chat.codes";
 
 CodeMirror.commands.autocomplete = function (cm) {
-    cm.showHint({ hint: CodeMirror.hint.anyword });
+    var doc = cm.getDoc();
+    var POS = doc.getCursor();
+    var mode = CodeMirror.innerMode(cm.getMode(), cm.getTokenAt(POS).state).mode.name;
+    if (mode == 'xml') { //html depends on xml
+        cm.showHint(cm, CodeMirror.hint.html);
+    } else if (mode == 'javascript') {
+        cm.showHint(cm, CodeMirror.hint.javascript);
+    } else if (mode == 'css') {
+        cm.showHint(cm, CodeMirror.hint.css);
+    }else {
+        cm.showHint({ hint: CodeMirror.hint.anyword }); 
+    }
 };
 
 // separate into constructor and init
