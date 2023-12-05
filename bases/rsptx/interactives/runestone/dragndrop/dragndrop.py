@@ -44,7 +44,7 @@ def setup(app):
 
 TEMPLATE_START = """
 <div class="%(divclass)s  %(optclass)s">
-<ul data-component="dragndrop" data-question_label="%(question_label)s" id="%(divid)s" %(optional)s style="visibility: hidden;">
+<ul data-component="dragndrop" data-question_label="%(question_label)s" id="%(divid)s" %(randomize)s %(optional)s style="visibility: hidden;">
     <span data-subcomponent="question">%(qnumber)s: %(question)s</span>
 	%(feedback)s
 """
@@ -135,6 +135,13 @@ def visit_dnd_common(self, node):
     else:
         node["runestone_options"]["feedback"] = ""
 
+    # Add runestone_options : random : data-random to node
+    if "randomize" in node["runestone_options"]:
+        node["runestone_options"]["randomize"] = "data-random"
+    else:
+        node["runestone_options"]["randomize"] = ""
+    
+
     res = res % node["runestone_options"]
     return res
 
@@ -174,7 +181,7 @@ class DragNDrop(RunestoneIdDirective):
     """
 
     required_arguments = 1
-    optional_arguments = 0
+    optional_arguments = 1
     has_content = True
     option_spec = RunestoneIdDirective.option_spec.copy()
     option_spec.update(
@@ -200,6 +207,7 @@ class DragNDrop(RunestoneIdDirective):
             "match_18": directives.unchanged,
             "match_19": directives.unchanged,
             "match_20": directives.unchanged,
+            "randomize": directives.flag,
         }
     )
 

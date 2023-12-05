@@ -14,7 +14,7 @@ Now you are ready to install the required dependencies and build the servers:
 
 4. Run ``poetry install --with=dev`` from the top level directory.  This will install all of the dependencies for the project.
 
-#. When that completes run ``poetry shell`` to start a poetry shell.  You can verify that this worked correctly by running ``rsmanage env``.  You should see a list of environment variables that are set.  If you do not see them then you may need to run ``poetry shell`` again.  If you get an error message that you cannot interpret you can ask for help in the ``#developer`` channel on the Runestone discord server.
+#. When that completes run ``poetry shell`` to start a poetry shell.  You can verify that this worked correctly by running ``which rsmanage``.  You should see a path something like `/path/to/rs/.venv/bin/rsmanage`.  If you do not see this then you may need to run ``poetry shell`` again.
 
 #. To leave the ``poetry`` shell, type ``exit``.
 
@@ -36,7 +36,9 @@ Before trying to run the servers, make sure you are not already running a webser
 Test DB Connection and initialize
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you are using the ``db.compose.yml`` file to install the database as part of the application you will want to start up and initialize the database first.  Run ``docker compose -f db.compose.yml up -d db``.  This will start up just the database server.  You can then initialize the database by running ``docker compose run rsmanage rsmanage initdb``.  Yes, I meant ``rsmanage rsmanage``.  This will create the database tables and add the initial data.  It will first check to see that it can connect to the database.  If not it will give you some information about your database connection url to help you diagnose the problem.
+If you are using the ``db.compose.yml`` file to install the database as part of the application you will want to start up and initialize the database first.  Run ``docker compose -f docker-compose.yml -f db.compose.yml up -d db``.  This will start up just the database server.  You can then initialize the database by running ``docker compose run rsmanage rsmanage initdb``.  Yes, I meant ``rsmanage rsmanage``.  This will create the database tables and add the initial data.  It will first check to see that it can connect to the database.  If not it will give you some information about your database connection url to help you diagnose the problem.
+
+At this point you can also check your environment variables by running `rsmanage env` and/or `docker compose run rsmanage rsmanage env`.  If you have set up separate `DEV_DBURL` and `DC_DEV_DBURL` environment variables both should work.
 
 Start the Servers
 ~~~~~~~~~~~~~~~~~~

@@ -17,7 +17,7 @@ export default class SQLActiveCode extends ActiveCode {
             eBookConfig.useRunestoneServices ||
             window.location.search.includes("mode=browsing")
         ) {
-            bookprefix = `/books/published/${eBookConfig.basecourse}`;
+            bookprefix = `/ns/books/published/${eBookConfig.basecourse}`;
             fnprefix = bookprefix + "/_static";
         } else {
             // The else clause handles the case where you are building for a static web browser
@@ -34,6 +34,8 @@ export default class SQLActiveCode extends ActiveCode {
             if (self.dburl) {
                 if (self.dburl.startsWith("/_static")) {
                     self.dburl = `${bookprefix}${self.dburl}`;
+                } else if (self.dburl.startsWith("external")) {
+                    self.dburl = `${bookprefix}/${self.dburl}`;
                 }
                 $(self.runButton).attr("disabled", "disabled");
                 let buttonText = $(self.runButton).text();

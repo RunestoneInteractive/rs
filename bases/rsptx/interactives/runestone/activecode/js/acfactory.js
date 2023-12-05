@@ -115,22 +115,38 @@ export default class ACFactory {
         if (lang === "java" || lang === "cpp" || lang === "python3") {
             stdin = `data-stdin="text for stdin"`;
         }
+        const languageNames = {
+            'cpp': 'C++',
+            'c': 'C',
+            'html': 'HTML',
+            'htmlmixed': 'HTML',
+            'java': 'Java',
+            'javascript': 'JavaScript',
+            'js':'JavaScript',
+            'octave': 'Octave',
+            'python': 'Python',
+            'py2':'Python 2',
+            'python2': 'Python 2',
+            'py3':'Python 3',
+            'py3anaconda': 'Python 3 with Anaconda',
+            'python3': 'Python 3',
+            'ruby': 'Ruby',
+            'sql': 'SQL',
+            'ts': 'TypeScript'
+        };
+
         // generate the HTML
         var html = `<div class="ptx-runestone-container"><div id="ac_modal_${divid}" class="modal fade">
               <div class="modal-dialog scratch-ac-modal">
                 <div class="modal-content">
                   <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                    <h4 class="modal-title">Scratch ActiveCode</h4>
+                    <h4 class="modal-title">Scratch ActiveCode (${languageNames[lang.toLowerCase()] || lang})</h4>
                   </div>
                   <div class="modal-body">
                   <div data-component="activecode" id=${divid}>
                   <div id=${divid}_question class="ac_question"><p>Use this area for writing code or taking notes.</p></div>
                   <textarea data-codelens="true" data-lang="${lang}" ${stdin}>
-
-
-
-
                   </textarea>
                   </div>
                   </div>
@@ -140,6 +156,12 @@ export default class ACFactory {
             </div>`;
         var el = $(html);
         $("body").append(el);
+        el.on("shown.bs.modal", function(){
+            // default lang isn't in dictionary of known programming languages
+            if (!languageNames[lang.toLowerCase()]) {
+                alert(`${lang} is a known language. Please report this`)
+            }
+        });
         el.on("shown.bs.modal show.bs.modal", function () {
             el.find(".CodeMirror").each(function (i, e) {
                 e.CodeMirror.refresh();

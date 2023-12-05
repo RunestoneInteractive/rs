@@ -15,7 +15,6 @@
 import datetime
 from typing import Optional
 import json
-import pdb
 
 # Third-party imports
 # -------------------
@@ -98,9 +97,6 @@ async def get_assignments(
             "student_page": True,
         },
     )
-
-
-import pdb
 
 
 class UpdateStatusRequest(BaseModel):
@@ -342,7 +338,10 @@ async def doAssignment(
     if RS_info:
         rslogger.debug(f"RS_info Cookie {RS_info}")
         # Note that to get to the value of the cookie you must use ``.value``
-        parsed_js = json.loads(RS_info)
+        try:
+            parsed_js = json.loads(RS_info)
+        except Exception:
+            parsed_js = {}
     else:
         parsed_js = {}
     parsed_js["readings"] = readings_names

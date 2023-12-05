@@ -94,6 +94,7 @@ async def index(request: Request, user=Depends(auth_manager)):
             "student_page": True,
             "course_list": course_list,
             "is_instructor": user_is_instructor,
+            "has_discussion_group": any([book.social_url for book in books]),
         },
     )
 

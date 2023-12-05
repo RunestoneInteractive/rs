@@ -169,11 +169,13 @@ function addNavigationAndCompletionButtons() {
         );
     });
 
-    $(window).on("beforeunload", function (e) {
-        if (completionFlag == 0) {
-            processPageState(completionFlag, false, false, false);
-        }
-    });
+    // we cannot afford to do this at both load and unload especially as users
+    // go from page to page. This just doubles the load.  So, try without this one.
+    // $(window).on("beforeunload", function (e) {
+    //     if (completionFlag == 0) {
+    //         processPageState(completionFlag, false, false, false);
+    //     }
+    // });
 }
 
 // _ decorateTableOfContents
