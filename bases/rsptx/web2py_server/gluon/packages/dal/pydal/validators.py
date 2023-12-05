@@ -166,7 +166,6 @@ class IS_NOT_EMOJI(Validator):
         self.expression = expression
         self.error_message = error_message
     def validate(self, value, record_id=None):
-        print("----------------------Inside Validation Function---------------------------")
         emoji_pattern = re.compile(r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F700-\U0001F77F\U0001F780-\U0001F7FF\U0001F800-\U0001F8FF\U0001F900-\U0001F9FF\U0001FA00-\U0001FA6F\U0001FA70-\U0001FAFF]')
 
         if emoji_pattern.search(value):
@@ -217,8 +216,6 @@ class IS_MATCH(Validator):
         extract=False,
         is_unicode=False,
     ):
-        print("----------------------Init Match function---------------------")
-
         if strict or not search:
             if not expression.startswith("^"):
                 expression = "^(%s)" % expression
@@ -769,7 +766,6 @@ class IS_NOT_IN_DB(Validator):
         allowed_override=[],
         ignore_common_filters=False,
     ):
-        print("----------------------Inside Init Function---------------------------")
         if isinstance(field, Table):
             field = field._id
 
