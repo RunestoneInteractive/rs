@@ -216,6 +216,7 @@ class IS_MATCH(Validator):
         extract=False,
         is_unicode=False,
     ):
+    
         if strict or not search:
             if not expression.startswith("^"):
                 expression = "^(%s)" % expression
@@ -766,6 +767,7 @@ class IS_NOT_IN_DB(Validator):
         allowed_override=[],
         ignore_common_filters=False,
     ):
+
         if isinstance(field, Table):
             field = field._id
 
