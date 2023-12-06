@@ -35,6 +35,7 @@ function cloneTask() {
     })
         .then((response) => response.json())
         .then((data) => {
+            taskId2Task[data.task_id] = `clone ${bcname.value}`;
             getStatus(data.task_id);
         });
 }
@@ -384,6 +385,18 @@ function getStatus(taskID) {
         .then((res) => {
             let d = new Date();
             let taskName = taskId2Task[taskID];
+            if (!res.task_result) {
+                res.task_result = {};
+                if (
+                    res.task_status == "SUCCESS" ||
+                    res.task_status == "FAILURE"
+                ) {
+                    res.task_result.current = res.task_status;
+                } else {
+                    res.task_result.current = "Awaiting result status";
+                }
+            }
+
             const html = `
       <tr>
         <td>${taskName}</td>

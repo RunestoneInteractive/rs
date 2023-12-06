@@ -220,6 +220,9 @@ def check_project_ptx(click=click):
         return False
     else:
         dest = targ.find("./output-dir")
+        if dest is None:
+            click.echo("No output-dir specified in runestone target")
+            return False
         if "published" not in dest.text:
             click.echo("destination for build must be in published/<document-id>")
             return False
