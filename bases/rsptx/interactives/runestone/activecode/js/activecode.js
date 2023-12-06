@@ -55,18 +55,22 @@ window.componentMap = {};
 var socket, connection, doc;
 var chatcodesServer = "chat.codes";
 
-CodeMirror.commands.autocomplete = function (cm) {
+CodeMirror.commands.autocomplete = function(cm) {
     var doc = cm.getDoc();
     var POS = doc.getCursor();
     var mode = CodeMirror.innerMode(cm.getMode(), cm.getTokenAt(POS).state).mode.name;
+    // CodeMirror presently supports JavaScript, XML, CSS, and SQL modes.
+    // If the mode is not one of the supported types, fall back to the anyword hint.
     if (mode == 'xml') { //html depends on xml
         cm.showHint(cm, CodeMirror.hint.html);
     } else if (mode == 'javascript') {
         cm.showHint(cm, CodeMirror.hint.javascript);
     } else if (mode == 'css') {
         cm.showHint(cm, CodeMirror.hint.css);
-    }else {
-        cm.showHint({ hint: CodeMirror.hint.anyword }); 
+    } else if (mode == 'sql') {
+        cm.showHint(cm, CodeMirror.hint.sql);
+    } else {
+        cm.showHint({hint:CodeMirror.hint.anyword})
     }
 };
 
