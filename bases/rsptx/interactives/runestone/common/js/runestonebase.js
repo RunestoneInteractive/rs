@@ -428,11 +428,19 @@ export default class RunestoneBase {
         if (!this.isTimed) {
             var capDiv = document.createElement("p");
             if (this.question_label) {
-                this.caption = `Activity: ${this.question_label} ${this.caption}  <span class="runestone_caption_divid">(${this.divid})</span>`;
+                // Display caption based on whether Runestone services have been detected
+                this.caption = eBookConfig.useRunestoneServices
+                    ? `Activity: ${this.question_label} ${this.caption}  <span class="runestone_caption_divid">(${this.divid})</span>`
+                    : `Activity: ${this.question_label} ${this.caption}`; // Without runestone
                 $(capDiv).html(this.caption);
                 $(capDiv).addClass(`${elType}_caption`);
             } else {
-                $(capDiv).html(this.caption + " (" + this.divid + ")");
+                // Display caption based on whether Runestone services have been detected
+                $(capDiv).html(
+                    eBookConfig.useRunestoneServices
+                        ? this.caption + " (" + this.divid + ")"
+                        : this.caption
+                ); // Without runestone
                 $(capDiv).addClass(`${elType}_caption`);
                 $(capDiv).addClass(`${elType}_caption_text`);
             }

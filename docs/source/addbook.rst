@@ -48,7 +48,7 @@ The overview book is an easy example because the database already contains a cou
    $
 
 3. Now we can build the book using the ``rsmanage`` command.  ``rsmanage build --ptx ac-single`` If you are running the database in docker then you should use ``docker compose run rsmanage rsmanage build --ptx ac-single`` This will build the book and deploy it to ``ac-single/published/ac-single``  The Active Calculus book should now be visible in the library.
-4. Notice that we used ``ac-single`` for the course name as well as the base course name.  You **should not** use this course for your own courses.  Instead you should use the runestone web interface to create a custom course from the ``ac-single`` base course.  But first you will need to make the book available to the web interface.  You do this but setting a flag in the library table of the database.  For now you need to do this by hand.  This really should be another rsmanage subcommand but instead run ``psql $DEV_DBURL``
+4. Notice that we used ``ac-single`` for the course name as well as the base course name.  You **should not** use this course for your own courses.  Instead you should use the runestone web interface to create a custom course from the ``ac-single`` base course.  But first you will need to make the book available to the web interface.  You do this by setting a flag in the library table of the database.  For now you need to do this by hand.  This really should be another rsmanage subcommand but instead run ``psql $DEV_DBURL``
 
 .. code-block:: bash
 

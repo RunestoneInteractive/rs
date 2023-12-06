@@ -137,7 +137,9 @@ def index():
         selected_chapter = chapter
     if selected_chapter is None:
         selected_chapter = chapters.first()
-
+    if request.vars.chapter is None:
+        request.vars.chapter = selected_chapter.chapter_label
+    
     logger.debug("making an analyzer")
     data_analyzer = DashboardDataAnalyzer(auth.user.course_id, selected_chapter)
     logger.debug("loading chapter metrics for course {}".format(auth.user.course_name))
