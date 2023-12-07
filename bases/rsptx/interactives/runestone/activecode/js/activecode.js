@@ -343,7 +343,7 @@ export class ActiveCode extends RunestoneBase {
         }
         // Info button
         this.addInfoButton(ctrlDiv);
-        
+
         $(this.outerDiv).prepend(ctrlDiv);
         if (this.question) {
             if ($(this.question).html().match(/^\s+$/)) {
@@ -395,6 +395,16 @@ export class ActiveCode extends RunestoneBase {
         this.gradeButton = butt;
         ctrlDiv.appendChild(butt);
         $(butt).click(this.createGradeSummary.bind(this));
+    }
+
+    addDownloadButton(ctrlDiv) {
+        let butt = document.createElement("button");
+        $(butt).text("Download");
+        $(butt).addClass("btn save-button");
+        ctrlDiv.appendChild(butt);
+        this.downloadButton = butt;
+        $(butt).click(this.downloadFile.bind(this, this.language));
+        $(butt).attr("type", "button");
     }
 
     enableHideShow(ctrlDiv) {
