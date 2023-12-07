@@ -1,6 +1,8 @@
 Poetry and Polylith
 =======================================
 
+Make sure you have Python installed.  We use 3.10 in production and 3.11 in development.  We have not tested with 3.12 yet.  Earlier versions of python are not supported or recommended.
+
 Runestone uses `Poetry <https://python-poetry.org/docs/>`__ to manage Python dependencies.
 You should begin by following the instructions to `install
 poetry <https://python-poetry.org/docs/>`__.

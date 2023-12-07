@@ -14,6 +14,12 @@
     {{ pass }}
 
     <form action="/runestone/dashboard/subchapoverview" style="display: inline-block">
+        <select name="chapter" id="chapselect" onchange="this.form.submit()">
+            {{for ix, chap in chapter_frame.iterrows():}}
+                <option value="{{=chap.chapter_label}}" {{if request.vars.chapter == chap.chapter_label:}}selected{{pass}} >{{=chap.chapter_name}}</option>
+            {{pass}}
+            <option value="all" {{if request.vars.chapter == 'all':}}selected{{pass}}>All Chapters</option>
+        </select>
         <select name="tablekind" id="tabselect" onchange="this.form.submit()">
             <option value="sccount" {{if request.vars.tablekind == 'sccount':}}selected{{pass}}>Count of Subchapter Activities</option>
             <option value="dividmin" {{if request.vars.tablekind == 'dividmin':}}selected{{pass}}>First Interaction with all Activities</option>

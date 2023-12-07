@@ -101,9 +101,11 @@ export default class DragNDrop extends RunestoneBase {
         this.dragDropWrapDiv.appendChild(this.dropZoneDiv);
         this.createButtons();
         this.checkServer("dragNdrop", true);
+        if (eBookConfig.practice_mode) {
+            this.finishSettingUp();
+        }
         self = this;
         self.queueMathJax(self.containerDiv);
-
     }
     finishSettingUp() {
         this.appendReplacementSpans();
@@ -208,7 +210,11 @@ export default class DragNDrop extends RunestoneBase {
                 );
             }
         }
-        this.randomizeIndexArray();
+        if (this.random) {
+            this.randomizeIndexArray(); // shuffle index again
+        } else {
+            this.createIndexArray(); // reset default index
+        }
         for (let i = 0; i < this.dragPairArray.length; i++) {
             if (this.hasStoredDropzones) {
                 if (this.pregnantIndexArray[this.indexArray[i]] !== "-1") {
