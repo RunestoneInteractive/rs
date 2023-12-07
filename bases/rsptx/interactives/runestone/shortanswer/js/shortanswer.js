@@ -98,6 +98,7 @@ export default class ShortAnswer extends RunestoneBase {
         }
         this.buttonDiv = document.createElement("div");
         this.fieldSet.appendChild(this.buttonDiv);
+        // Create a button to save the answer
         this.submitButton = document.createElement("button");
         $(this.submitButton).addClass("btn btn-success");
         this.submitButton.type = "button";
@@ -108,23 +109,6 @@ export default class ShortAnswer extends RunestoneBase {
             this.renderFeedback();
         }.bind(this);
         this.buttonDiv.appendChild(this.submitButton);
-        this.randomSpan = document.createElement("span");
-        this.randomSpan.innerHTML = "Instructor's Feedback";
-        this.fieldSet.appendChild(this.randomSpan);
-        this.otherOptionsDiv = document.createElement("div");
-        $(this.otherOptionsDiv).css("padding-left:20px");
-        $(this.otherOptionsDiv).addClass("journal-options");
-        this.fieldSet.appendChild(this.otherOptionsDiv);
-
-        // add a feedback div to give user feedback
-        this.feedbackDiv = document.createElement("div");
-        //$(this.feedbackDiv).addClass("bg-info form-control");
-        //$(this.feedbackDiv).css("width:530px, background-color:#eee, font-style:italic");
-        $(this.feedbackDiv).css({
-            "width": "530px",
-            "font-style": "italic",
-        });
-                
         // Create a button to toggle feedback
         this.toggleFeedbackButton = document.createElement("button");
         $(this.feedbackDiv).css("display", "none");
@@ -135,15 +119,21 @@ export default class ShortAnswer extends RunestoneBase {
             $(this.feedbackDiv).toggle(); // Toggle the visibility of the feedback div
         }.bind(this);
         this.buttonDiv.appendChild(this.toggleFeedbackButton);
-        // // If there is feedback, hide the feedback div
-        // if (data.comment) {
-
-        // }
-
-        this.feedbackDiv.id = this.divid + "_feedback";
-        this.feedbackDiv.innerHTML = "You have not answered this question yet.";
-        $(this.feedbackDiv).addClass("alert alert-danger");
-
+        this.randomSpan = document.createElement("span");
+        this.randomSpan.innerHTML = "Instructor's Feedback";
+        this.fieldSet.appendChild(this.randomSpan);
+        this.otherOptionsDiv = document.createElement("div");
+        $(this.otherOptionsDiv).css("padding-left:20px");
+        $(this.otherOptionsDiv).addClass("journal-options");
+        this.fieldSet.appendChild(this.otherOptionsDiv);
+        // add a feedback div to give user feedback
+        this.feedbackDiv = document.createElement("div");
+        //$(this.feedbackDiv).addClass("bg-info form-control");
+        //$(this.feedbackDiv).css("width:530px, background-color:#eee, font-style:italic");
+        $(this.feedbackDiv).css({
+            "width": "530px",
+            "font-style": "italic",
+        }); 
         this.feedbackDiv.id = this.divid + "_feedback";
         this.feedbackDiv.innerHTML = "You have not answered this question yet.";
         $(this.feedbackDiv).addClass("alert alert-danger");
