@@ -115,11 +115,35 @@ export default class ShortAnswer extends RunestoneBase {
         $(this.otherOptionsDiv).css("padding-left:20px");
         $(this.otherOptionsDiv).addClass("journal-options");
         this.fieldSet.appendChild(this.otherOptionsDiv);
+
         // add a feedback div to give user feedback
         this.feedbackDiv = document.createElement("div");
         //$(this.feedbackDiv).addClass("bg-info form-control");
         //$(this.feedbackDiv).css("width:530px, background-color:#eee, font-style:italic");
-        $(this.feedbackDiv).css("width:530px, font-style:italic");
+        $(this.feedbackDiv).css({
+            "width": "530px",
+            "font-style": "italic",
+        });
+                
+        // Create a button to toggle feedback
+        this.toggleFeedbackButton = document.createElement("button");
+        $(this.feedbackDiv).css("display", "none");
+        $(this.toggleFeedbackButton).addClass("btn btn-primary");
+        this.toggleFeedbackButton.type = "button";
+        this.toggleFeedbackButton.textContent = "Toggle Feedback";
+        this.toggleFeedbackButton.onclick = function() {
+            $(this.feedbackDiv).toggle(); // Toggle the visibility of the feedback div
+        }.bind(this);
+        this.buttonDiv.appendChild(this.toggleFeedbackButton);
+        // // If there is feedback, hide the feedback div
+        // if (data.comment) {
+
+        // }
+
+        this.feedbackDiv.id = this.divid + "_feedback";
+        this.feedbackDiv.innerHTML = "You have not answered this question yet.";
+        $(this.feedbackDiv).addClass("alert alert-danger");
+
         this.feedbackDiv.id = this.divid + "_feedback";
         this.feedbackDiv.innerHTML = "You have not answered this question yet.";
         $(this.feedbackDiv).addClass("alert alert-danger");
