@@ -3079,7 +3079,8 @@ def reset_exam():
     ).delete()
     if num_del == 0:
         return json.dumps(
-            {   "status": "Failed", 
+            {   
+                "status": "Failed", 
                 "mess": "Resetting is unnecessary as the exam has not started yet."})
 
     exam_qs = db(
