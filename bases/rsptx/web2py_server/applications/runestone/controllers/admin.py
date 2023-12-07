@@ -3081,7 +3081,9 @@ def reset_exam():
         return json.dumps(
             {   
                 "status": "Failed", 
-                "mess": "Resetting is unnecessary as the exam has not started yet."})
+                "mess": "Resetting is unnecessary as the exam has not started yet."
+            }
+        )
 
     exam_qs = db(
         (db.assignments.name == assignment_name)
