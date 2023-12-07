@@ -229,7 +229,7 @@ html_static_path = ["_sources/_static"] + runestone_static_dirs()
 #   in which case file should have the file name and other key/value pairs are used as attrs
 #   on the script tag. The sample below will set sample2.js's script tag to have the defer attr
 # Files must be on a path contained in html_static_path
-#setup.custom_js_files = ["sample.css", {"file": "sample2.js", "defer": ""}]
+#setup.custom_js_files = ["sample.js", {"file": "sample2.js", "defer": ""}]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
