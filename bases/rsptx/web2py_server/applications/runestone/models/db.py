@@ -595,7 +595,6 @@ def createUser(username, password, fname, lname, email, course_name, instructor=
 
 def _validateUser(username, password, fname, lname, email, course_name, line):
     errors = []
-    print(course.registration_locked)
     if course.registration_locked:
         errors.append(f"This course's registration is locked.")
     if auth.user.course_name != course_name:
