@@ -96,23 +96,6 @@ export default class ShortAnswer extends RunestoneBase {
             $(this.renderedAnswer).addClass("latexoutput");
             this.fieldSet.appendChild(this.renderedAnswer);
         }
-
-        // Create a new div for user feedback
-        this.feedbackDiv = document.createElement("div");
-        $(this.feedbackDiv).css({
-            "width": "400px",
-            "padding-left": "20px",
-            "font-style": "italic",
-            "background-color": "transparent",
-            "border": "none"
-        });
-        this.feedbackDiv.id = this.divid + "_feedback";
-        this.feedbackDiv.innerHTML = "You have not answered this question yet.";
-        $(this.feedbackDiv).addClass("alert alert-danger");
-        //this.otherOptionsDiv.appendChild(this.feedbackDiv);
-        this.buttonDiv.appendChild(this.feedbackDiv);
-
-        // Create a button to submit the answer
         this.buttonDiv = document.createElement("div");
         this.fieldSet.appendChild(this.buttonDiv);
         this.submitButton = document.createElement("button");
@@ -125,20 +108,17 @@ export default class ShortAnswer extends RunestoneBase {
             this.renderFeedback();
         }.bind(this);
         this.buttonDiv.appendChild(this.submitButton);
-        
+
         // Create a button to toggle instructor's feedback
-        this.toggleButtonDiv = document.createElement("div");
-        this.fieldSet.appendChild(this.toggleButtonDiv);
         this.toggleButton = document.createElement("button");
         $(this.toggleButton).addClass("btn btn-primary");
         this.toggleButton.type = "button";
         this.toggleButton.textContent = "Toggle Feedback";
         this.toggleButton.onclick = function() {
-            $(this.InstructorFeedbackDiv).toggle(); // Toggle the visibility of the feedback div
+            $(this.feedbackDiv).toggle(); // Toggle the visibility of the feedback div
         }.bind(this);
-        this.toggleButtonDiv.appendChild(this.toggleButton);
+        this.buttonDiv.appendChild(this.toggleButton);
 
-        // Create a span for the Instructor Title
         this.randomSpan = document.createElement("span");
         this.randomSpan.innerHTML = "Instructor's Feedback";
         this.fieldSet.appendChild(this.randomSpan);
@@ -146,19 +126,17 @@ export default class ShortAnswer extends RunestoneBase {
         $(this.otherOptionsDiv).css("padding-left:20px");
         $(this.otherOptionsDiv).addClass("journal-options");
         this.fieldSet.appendChild(this.otherOptionsDiv);
-
-        // add a feedback div to give Instructor feedback
-        this.InstructorFeedbackDiv = document.createElement("div");
-        $(this.InstructorFeedbackDiv).css({ 
-            "width": "530px",
-            "font-style": "italic",
-            "display": "none",
-        });
-        this.InstructorFeedbackDiv.id = this.divid + "_feedback";
-        $(this.InstructorFeedbackDiv).addClass("alert alert-danger");
-        this.otherOptionsDiv.appendChild(this.InstructorFeedbackDiv);
-
-
+        // add a feedback div to give user feedback
+        this.feedbackDiv = document.createElement("div");
+        this.feedbackDiv.style.display = "none";
+        //$(this.feedbackDiv).addClass("bg-info form-control");
+        //$(this.feedbackDiv).css("width:530px, background-color:#eee, font-style:italic");
+        $(this.feedbackDiv).css("width:530px, font-style:italic");
+        this.feedbackDiv.id = this.divid + "_feedback";
+        this.feedbackDiv.innerHTML = "You have not answered this question yet.";
+        $(this.feedbackDiv).addClass("alert alert-danger");
+        //this.otherOptionsDiv.appendChild(this.feedbackDiv);
+        this.fieldSet.appendChild(this.feedbackDiv);
         if (this.attachment) {
             let attachDiv = document.createElement("div")
             if (this.graderactive ) {
@@ -187,7 +165,6 @@ export default class ShortAnswer extends RunestoneBase {
             this.queueMathJax(this.containerDiv);
         }
     }
-
 
     renderMath(value) {
         if (this.mathjax) {
@@ -256,7 +233,8 @@ export default class ShortAnswer extends RunestoneBase {
                 let solution = $("#" + this.divid + "_solution");
                 solution.text(answer);
                 this.renderMath(answer);
-                this.feedbackDiv.innerHTML = "Your current saved answer is shown above.";
+                this.feedbackDiv.innerHTML =
+                    "Your current saved answer is shown above.";
                 $(this.feedbackDiv).removeClass("alert-danger");
                 $(this.feedbackDiv).addClass("alert alert-success");
             }
@@ -273,7 +251,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.renderMath(this.answer);
 
         let p = document.createElement("p");
-        this.jInputDiv.appendChild(p);  
+        this.jInputDiv.appendChild(p);
         var tsString = "";
         if (data.timestamp) {
             tsString = new Date(data.timestamp).toLocaleString();
@@ -315,18 +293,21 @@ export default class ShortAnswer extends RunestoneBase {
 
             this.buttonDiv.appendChild(toggle_answer_button);
         }
-        let feedbackStr = "There are no comments for this question.";
-        this.feedbackDiv.innerHTML = "Your current saved answer is shown above.";
+        let feedbackStr = "Your current saved answer is shown above.";
         if (typeof data.score !== "undefined") {
             feedbackStr = `Score: ${data.score}`;
         }
         if (data.comment) {
             feedbackStr += ` -- ${data.comment}`;
         }
-        this.InstructorFeedbackDiv.innerHTML = feedbackStr;
+        if (!data.comment) {
+            this.feedbackDiv.style.display = "block";
+            this.toggleButton.style.display = "none";
+        }
+        this.feedbackDiv.innerHTML = feedbackStr;
 
-        $(this.InstructorFeedbackDiv).removeClass("alert-danger");
-        $(this.InstructorFeedbackDiv).addClass("alert alert-success");
+        $(this.feedbackDiv).removeClass("alert-danger");
+        $(this.feedbackDiv).addClass("alert alert-success");
     }
 
     disableInteraction() {
