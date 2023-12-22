@@ -23,8 +23,9 @@ class WebsiteTasks(HttpUser):
             {"username": user, "password": pw, "_formkey": token, "_formname": "login"},
         )
         # Switch to fopp
-        res = self.client.post("/runestone/default/coursechooser/fopp",
-                               data={"course": "fopp"})
+        res = self.client.post(
+            "/runestone/default/coursechooser/fopp", data={"course": "fopp"}
+        )
 
         # Get the index and make a list of all chapters/subchapters
         res = self.client.get("/ns/books/published/fopp/index.html")
@@ -62,8 +63,9 @@ class WebsiteTasks(HttpUser):
                         base + s["src"].replace("../", ""), name="scripts"
                     )
         for s in pq.select("link"):
-            if s.has_attr("href"):
+            if s.has_attr("href") and s["href"].endswith(".css"):
                 if s["href"].startswith(("http", "//")) == False:
+                    print(f"""getting {base + s["href"].replace("../", "")}""")
                     css = self.client.get(
                         base + s["href"].replace("../", ""), name="css"
                     )
