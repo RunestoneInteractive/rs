@@ -1364,7 +1364,7 @@ def edit_question():
 
     if (
         old_qname == new_qname
-        and old_question.author != author
+        and old_question.author.lower() != author.lower()
         and not is_editor(auth.user.id)
     ):
         return json.dumps(
@@ -1373,7 +1373,7 @@ def edit_question():
 
     if old_qname != new_qname:
         newq = db(db.questions.name == new_qname).select().first()
-        if newq and newq.author != author:
+        if newq and newq.author.lower() != author.lower():
             return json.dumps(
                 "Name taken, you cannot replace a question you did not author"
             )
@@ -2875,9 +2875,6 @@ def manage_exercises():
         questions = db(
             (db.questions.review_flag == "T")
             & (db.questions.base_course == book.base_course)
-            & (
-                (db.questions.from_source == "F") | (db.questions.from_source == None)
-            )  # noqa: E711
         ).select(
             db.questions.htmlsrc,
             db.questions.difficulty,

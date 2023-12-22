@@ -529,7 +529,6 @@ async def getlastpage(request: Request, course: str):
 async def create_upload_file(request: Request, file: UploadFile, div_id: str):
     if not request.state.user:
         raise HTTPException(401)
-
     session = boto3.session.Session()
     client = session.client(
         "s3",
@@ -544,7 +543,7 @@ async def create_upload_file(request: Request, file: UploadFile, div_id: str):
 
     # create the file Key
     fkey = f"{request.state.user.course_name}/{div_id}/{request.state.user.username}/{file.filename}"
-    rslogger.debug("file key = {fkey} {settings.spaces_key} {settings.spaces_secret}")
+    rslogger.debug(f"file key = {fkey} bucket = {settings.bucket}")
     client.put_object(
         Bucket=settings.bucket,
         Key=fkey,
