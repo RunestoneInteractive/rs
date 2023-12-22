@@ -341,6 +341,8 @@ export class ActiveCode extends RunestoneBase {
         if (this.chatcodes && eBookConfig.enable_chatcodes) {
             this.enableChatCodes(ctrlDiv);
         }
+        // Info button
+        this.addInfoButton(ctrlDiv);
 
         $(this.outerDiv).prepend(ctrlDiv);
         if (this.question) {
@@ -353,6 +355,37 @@ export class ActiveCode extends RunestoneBase {
         this.controlDiv = ctrlDiv;
     }
 
+    addInfoButton(ctrlDiv) {
+        this.info = document.createElement("span");
+        this.info.className = "glyphicon glyphicon-info-sign";
+        $(this.info).css({
+            "margin-left": "5px",
+            "margin-top": "8px"
+        });
+    
+        $(this.info).attr({
+            "data-toggle": "popover",
+            "data-placement": "top",
+            "data-content": 'Press <strong>Ctrl + Space</strong> for autocomplete suggestions',
+            "data-html": true,
+            "data-trigger": "manual" 
+        });
+    
+        ctrlDiv.appendChild(this.info);
+        $(this.info).popover();
+        
+        $(this.info).on("click", (event) => {
+            event.stopPropagation();
+            $(this.info).popover("toggle");
+        });
+    
+        $(document.body).on("click", (event) => {
+            if (!$(event.target).closest(this.info).length) {
+                $(this.info).popover("hide");
+            }
+        });
+    }
+    
     addFeedbackButton(ctrlDiv) {
         let butt = document.createElement("button");
         $(butt).addClass("ac_opt btn btn-default");
