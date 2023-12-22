@@ -1364,7 +1364,7 @@ def edit_question():
 
     if (
         old_qname == new_qname
-        and old_question.author != author
+        and old_question.author.lower() != author.lower()
         and not is_editor(auth.user.id)
     ):
         return json.dumps(
@@ -1373,7 +1373,7 @@ def edit_question():
 
     if old_qname != new_qname:
         newq = db(db.questions.name == new_qname).select().first()
-        if newq and newq.author != author:
+        if newq and newq.author.lower() != author.lower():
             return json.dumps(
                 "Name taken, you cannot replace a question you did not author"
             )
