@@ -23,6 +23,7 @@ from pathlib import Path
 import click
 import lxml.etree as ET
 from lxml import ElementInclude
+from pretext.project import Project
 
 # import xml.etree.ElementTree as ET
 
@@ -134,25 +135,23 @@ def _build_ptx_book(config, gen, manifest, course, click=click):
         return False
     else:
         click.echo("Checking files")
-        main_file = check_project_ptx()
-        if not main_file:
+        rs = check_project_ptx()
+        main_file = None
+        if rs:
+            main_file = rs.source_abspath()
+        else:
             return False
         # parse the main file, but this does not resolve any xi:includes
+        if main_file is None:
+            click.echo("Error: missing main file")
+            return False
         tree = ET.parse(main_file)
         # The next two lines are needed to parse the entire tree
         root = tree.getroot()
-        ElementInclude.include(root, base_url=main_file)  # include all xi:include parts
-        if gen:
-            res = subprocess.call("pretext generate -t runestone", shell=True)
-            if res != 0:
-                click.echo("Failed to build")
-            # build the book
-        click.echo("Building for Runestone Academy")
-        res = subprocess.call("pretext build runestone", shell=True)
-        if res != 0:
-            click.echo("Building failed")
-            return False
-            # process the manifest
+        ElementInclude.include(
+            root, base_url=str(main_file)
+        )  # include all xi:include parts
+
         el = root.find("./docinfo/document-id")
         if el is not None:
             cname = el.text
@@ -165,8 +164,9 @@ def _build_ptx_book(config, gen, manifest, course, click=click):
             click.echo("Missing document-id please add to <docinfo>")
             return False
 
+        rs.build()  # build the book, generating assets as needed
+
         mpath = Path(os.getcwd(), "published", cname, manifest)
-        click.echo("Processing Manifest")
         process_manifest(cname, mpath)
         # Fetch and copy the runestone components release as advertised by the manifest
         # - Use wget to get all the js files and put them in _static
@@ -213,25 +213,27 @@ def check_project_ptx(click=click):
     4. TODO: Is the publisher file set (and present)
 
     """
-    tree = ET.parse("project.ptx")
-    targ = tree.find(".//target[@name='runestone']")
-    if not targ:
-        click.echo("No runestone target in project.ptx - please add one")
+    proj = Project.parse("project.ptx")
+    if proj.has_target("runestone") is False:
+        click.echo("No runestone target in project.ptx")
         return False
+
+    rs = proj.get_target("runestone")
+    dest = None
+    if hasattr(rs, "output_dir"):
+        dest = rs.output_dir
     else:
-        dest = targ.find("./output-dir")
-        if dest is None:
-            click.echo("No output-dir specified in runestone target")
-            return False
-        if "published" not in dest.text:
+        click.echo("No output_dir specified in runestone target")
+        return False
+    if dest is not None:
+        if "published" not in str(dest):
             click.echo("destination for build must be in published/<document-id>")
             return False
-        main = targ.find("./source")
-        if main is not None:
-            return main.text
-        else:
-            click.echo("No main source file specified")
-            return False
+    if hasattr(rs, "source") is False:
+        click.echo("No source file specified in runestone target")
+        return False
+
+    return rs
 
 
 def extract_docinfo(tree, string, attr=None, click=click):
