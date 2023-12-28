@@ -1380,6 +1380,7 @@ def practice():
         interleaving=interleaving,
         flashcard_creation_method=flashcard_creation_method,
         feedback_saved=feedback_saved,
+        day_points=day_points
     )
 
 
