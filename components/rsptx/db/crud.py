@@ -902,6 +902,7 @@ async def create_initial_courses_users():
             term_start_date=datetime.date(2000, 1, 1),
             login_required=False,
             allow_pairs=False,
+            registration_locked=False,
             downloads_enabled=False,
             courselevel="",
             institution="",

@@ -2404,7 +2404,8 @@ function updateCourse(widget, attr) {
         attr == "downloads_enabled" ||
         attr == "allow_pairs" ||
         attr == "enable_compare_me" ||
-        attr == "show_points"
+        attr == "show_points" ||
+        attr == "registration_locked"
     ) {
         data[attr] = widget.checked;
     }

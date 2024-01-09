@@ -375,6 +375,7 @@ class Courses(Base, IdMixin):
     python3 = Column(Web2PyBoolean, default=True)
     login_required = Column(Web2PyBoolean, nullable=False)
     allow_pairs = Column(Web2PyBoolean, nullable=False)
+    registration_locked = Column(Web2PyBoolean, nullable=False)
     student_price = Column(Integer)
     downloads_enabled = Column(Web2PyBoolean, nullable=False)
     courselevel = Column(String, nullable=False)
