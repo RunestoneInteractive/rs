@@ -152,6 +152,17 @@ def _score_one_microparsons(row, points, autograde):
             pct_correct = 0
     return _score_from_pct_correct(pct_correct, points, autograde)
 
+def _score_one_doenet(row, points, autograde):
+    # row is from doenet_answers
+    if autograde == "pct_correct" and "percent" in row and row.percent is not None:
+        pct_correct = int(round(row.percent * 100))
+    else:
+        if row.correct:
+            pct_correct = 100
+        else:
+            pct_correct = 0
+    return _score_from_pct_correct(pct_correct, points, autograde)
+
 
 def _score_one_fitb(row, points, autograde):
     # row is from fitb_answers
@@ -401,6 +412,29 @@ def _scorable_microparsons_answers(
             query = query & (db.microparsons_answers.timestamp <= now)
     return db(query).select(orderby=db.microparsons_answers.timestamp)
 
+def _scorable_doenet_answers(
+    course_name,
+    sid,
+    question_name,
+    points,
+    deadline,
+    practice_start_time=None,
+    db=None,
+    now=None,
+):
+    query = (
+        (db.doenet_answers.course_name == course_name)
+        & (db.doenet_answers.sid == sid)
+        & (db.doenet_answers.div_id == question_name)
+    )
+    if deadline:
+        query = query & (db.doenet_answers.timestamp < deadline)
+    if practice_start_time:
+        query = query & (db.doenet_answers.timestamp >= practice_start_time)
+        if now:
+            query = query & (db.doenet_answers.timestamp <= now)
+    ret = db(query).select(orderby=db.doenet_answers.timestamp) 
+    return ret
 
 def _scorable_fitb_answers(
     course_name,
@@ -780,6 +814,21 @@ def _autograde_one_q(
         )
         scoring_fn = _score_one_webwork
         logger.debug("AGDB - done with webwork")
+
+    elif question_type == "doenet":
+        logger.debug("grading a doenet!!")
+        results = _scorable_doenet_answers(
+            course_name,
+            sid,
+            question_name,
+            points,
+            deadline,
+            practice_start_time,
+            db=db,
+            now=now,
+        )
+        scoring_fn = _score_one_doenet
+        logger.debug("AGDB - done with doenet")
 
     elif question_type == "hparsons":
         logger.debug("grading a microparsons!!")

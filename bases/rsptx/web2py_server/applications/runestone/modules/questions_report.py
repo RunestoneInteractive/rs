@@ -179,6 +179,12 @@ def questions_to_grades(
                 & (db.useinfo.div_id == db.mchoice_answers.div_id)
                 & (db.mchoice_answers.course_name == course_name)
             ),
+            db.doenet_answers.on(
+                (db.useinfo.timestamp == db.doenet_answers.timestamp)
+                & (db.useinfo.sid == db.doenet_answers.sid)
+                & (db.useinfo.div_id == db.doenet_answers.div_id)
+                & (db.doenet_answers.course_name == course_name)
+            ),
             db.parsons_answers.on(
                 (db.useinfo.timestamp == db.parsons_answers.timestamp)
                 & (db.useinfo.sid == db.parsons_answers.sid)
@@ -399,6 +405,12 @@ def _row_decode(row, question_type):
             row.parsons_answers.correct,
             ts_get(row.parsons_answers),
         )
+    elif question_type == "doenet":
+        return (
+            row.doenet_answers.answer,
+            row.doenet_answers.correct,
+            ts_get(row.doenet_answers),
+        )
     elif question_type == "shortanswer":
         # Prefer data from the shortanswer table if we have it; otherwise, we can use useinfo's act.
         answer, ts = (
@@ -517,6 +529,9 @@ def query_assignment(
         db.parsons_answers.answer,
         db.parsons_answers.correct,
         db.parsons_answers.timestamp,
+        db.doenet_answers.answer,
+        db.doenet_answers.correct,
+        db.doenet_answers.timestamp,
         ##db.shortanswer_answers.answer,
         ##db.shortanswer_answers.timestamp,
         db.useinfo.timestamp,
@@ -551,6 +566,10 @@ def query_assignment(
             db.mchoice_answers.on(
                 (db.questions.question_type == "mchoice")
                 & (db.question_grades.answer_id == db.mchoice_answers.id)
+            ),
+            db.doenet_answers.on(
+                (db.questions.question_type == "doenet")
+                & (db.question_grades.answer_id == db.doenet_answers.id)
             ),
             db.parsons_answers.on(
                 (db.questions.question_type == "parsonsprob")

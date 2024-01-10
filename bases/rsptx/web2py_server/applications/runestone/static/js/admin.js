@@ -1743,6 +1743,16 @@ function display_write() {
 
     var hiddenwrite = document.getElementById("hiddenwrite");
     hiddenwrite.style.visibility = "visible";
+
+    var hiddenDoenetEditor = document.getElementById("doenet-question-editor");
+    var hiddenRunestoneEditor = document.getElementById("runestone-question-editor");
+    if (questiontype === "doenet") {
+        hiddenDoenetEditor.style.display = "block";
+        hiddenRunestoneEditor.style.display = "none";
+    } else {
+        hiddenRunestoneEditor.style.display = "block";
+        hiddenDoenetEditor.style.display = "none";
+    }
 }
 
 function find_name(lines) {
@@ -1759,13 +1769,36 @@ function find_name(lines) {
 }
 
 // Called when the "Done" button of the "Write" dialog is clicked.
-function create_question(formdata) {
+async function create_question(formdata) {
     if (formdata.qchapter.value == "Chapter") {
         alert("Please select a chapter for this question");
         return;
     }
     if (formdata.createpoints.value == "") {
         formdata.createpoints.value = "1";
+    }
+    var question;
+    if (formdata.template.value == "doenet") {
+        question = (await returnAllStateVariables1())['/_codeeditor1'].stateValues.text;
+        var questionId = "doenet-" + Math.floor(Math.random() * 10000000);
+        question = "<!-- .. doenet:: " + questionId + "\n-->" + question;
+
+        formdata.qrawhtml.value =
+            `<div class=\".runestone\" data-component=\"doenet\" id=\"${questionId}\">
+                <div class="doenetml-applet">
+                    <script type="text/doenetml">
+                        ${question}
+                    </script>
+                </div>
+            </div>`
+    } else {
+        question = formdata.qcode.value;
+    }
+
+    var lines = question.split("\n");
+    var name = find_name(lines);
+
+    if (formdata.template.value == "doenet") {
     }
     if (!formdata.qrawhtml.value) {
         alert("No HTML for this question, please generate it.");
@@ -1777,11 +1810,7 @@ function create_question(formdata) {
     var assignmentid = select.options[select.selectedIndex].value;
     var assignmentname = select.options[select.selectedIndex].text;
     var template = formdata.template.value;
-    var qcode = formdata.qcode.value;
-    var lines = qcode.split("\n");
     var htmlsrc = formdata.qrawhtml.value;
-    var name = find_name(lines);
-    var question = formdata.qcode.value;
     var difficulty = formdata.difficulty;
     for (var i = 0; i < difficulty.length; i++) {
         if (difficulty[i].checked == true) {
@@ -1976,6 +2005,10 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
     ) {
         componentKind = "webwork";
     }
+
+    if (componentSrc.indexOf("doenet") >= 0) {
+        componentKind = "doenet";
+    }
     // Import all the js needed for this component before rendering
     await runestoneComponents.runestone_import(componentKind);
     let opt = {};
@@ -1995,12 +2028,15 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
         }
     }
 
-    if (typeof component_factory === "undefined") {
+    if (typeof component_factory === "undefined" && componentKind != "doenet") {
         alert(
             "Error:  Missing the component factory!  probably a webpack version mismatch"
         );
     } else {
-        if (!component_factory[componentKind] && !jQuery(`#${whereDiv}`).html()) {
+        if (false && componentKind == "doenet") {
+            console.log("wonder if I need to do something here");
+
+        } else if (!component_factory[componentKind] && !jQuery(`#${whereDiv}`).html()) {
             jQuery(`#${whereDiv}`).html(
                 `<p>Preview not available for ${componentKind}</p>`
             );
@@ -2008,7 +2044,8 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
             try {
                 let res = component_factory[componentKind](opt);
                 res.multiGrader = moreOpts.multiGrader;
-                if (componentKind === "activecode") {
+                if (componentKind === "activecode"
+                    || componentKind == "doenet") {
                     if (moreOpts.multiGrader) {
                         window.componentMap[`${moreOpts.gradingContainer} ${res.divid}`] = res;
                     } else {
@@ -2090,7 +2127,13 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
         }
         // $(`#${whereDiv}`).css("background-color", "white");
     }
-    MathJax.typeset([document.querySelector(`#${whereDiv}`)]);
+
+
+    if (componentKind == "doenet") {
+        //window.renderDoenetToContainer(document.querySelector(".doenetml-applet"));
+    } else {
+        MathJax.typeset([document.querySelector(`#${whereDiv}`)]);
+    }
 }
 
 // Called by the "Search" button in the "Search question bank" panel.

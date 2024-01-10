@@ -1977,7 +1977,7 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
         componentKind = "webwork";
     }
     // Import all the js needed for this component before rendering
-    await runestoneComponents.runestone_import(componentKind);
+    await window.runestoneComponents.runestone_import(componentKind);
     let opt = {};
     opt.orig = jQuery(`#${whereDiv} [data-component]`)[0];
     if (opt.orig) {

@@ -64,6 +64,7 @@ const module_map = {
         import("./runestone/clickableArea/js/timedclickable.js"),
     codelens: () => import("./runestone/codelens/js/codelens.js"),
     datafile: () => import("./runestone/datafile/js/datafile.js"),
+    doenet: () => import("./runestone/doenet/js/doenet.js"),
     dragndrop: () => import("./runestone/dragndrop/js/timeddnd.js"),
     fillintheblank: () => import("./runestone/fitb/js/timedfitb.js"),
     groupsub: () => import("./runestone/groupsub/js/groupsub.js"),
@@ -87,6 +88,7 @@ const module_map = {
     // TODO: since this isn't in a ``data-component``, need to trigger an import of this code manually.
     webwork: () => import("./runestone/webwork/js/webwork.js"),
     youtube: () => import("./runestone/video/js/runestonevideo.js"),
+    doenet: () => import("./runestone/doenet/js/doenet.js"),
 };
 
 const module_map_cache = {};

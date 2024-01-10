@@ -306,6 +306,9 @@
 										<div class="col-md-12">
 											<label for="template">Template:</label>
 											<select id="template" name="template">
+												<option value="doenet">
+													Doenet	
+												</option>
 												<option value="activecode">
 													Activecode
 												</option>
@@ -348,8 +351,28 @@
 											</select>
 											<input class="btn" onclick="display_write();" type="button" value="Go" />
 										</div>
+										<!-- TODO find a better place for this-->
+										<script>
+											function onPageLoad() {
+												window.renderDoenetToContainer(document.querySelector(".doenetml-applet"));
+											}
+										</script>
+								</div>
+										</div>
 										<div id="hiddenwrite" style="visibility: hidden">
-											<div class="col-md-12">
+											<!-- <div id="hiddendoeneteditor" style="visibility: hidden"> -->
+											<div id="doenet-question-editor" style="display: none" onload="onPageLoad()">
+												<!-- TODO likely remove this runestone wrapper thing-->
+												<div class=".runestone" data-component="doenet" id="" >
+													<div class="doenetml-applet" style="width:850px">
+														<script type="text/doenetml">
+															<codeEditor showResults resultsLocation="left" height="600px">  
+															</codeEditor>
+														</script>
+													</div>
+												</div>
+											</div>
+											<div id="runestone-question-editor" style="display: none" class="col-md-12">
 												<label for="qcode"></label>
 												<textarea cols="65" form="newqform" id="qcode" name="editRST" rows="12"></textarea>
 												<p>You are writing in <a href="https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html" target="_blank">restructuredText</a>, indentation matters.</p>

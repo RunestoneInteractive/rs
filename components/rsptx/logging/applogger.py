@@ -34,7 +34,7 @@ rslogger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(sys.stdout)
 handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter(
-    "%(levelname)s - %(asctime)s - %(funcName)s - %(message)s"
+    "%(levelname)s - %(asctime)s - %(filename)s - %(funcName)s:%(lineno)d - %(message)s"
 )
 handler.setFormatter(formatter)
 rslogger.addHandler(handler)

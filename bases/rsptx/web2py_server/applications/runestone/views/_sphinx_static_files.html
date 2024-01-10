@@ -10,6 +10,9 @@ These files are copied from a Sphinx build.
 <link rel="stylesheet" type="text/css" href="{{=URL('static', 'css/accessibility.css')}}" />
 <script src="{{=URL('static', 'js/jquery.js')}}"></script>
 <script src="{{=URL('static', 'js/jquery-fix.js')}}"></script>
+<script type="module" src="https://jaltekruse.github.io/ImportsDoenetML/cdn/doenet-standalone.js"></script>
+<link rel="stylesheet" href="https://jaltekruse.github.io/ImportsDoenetML/cdn/style.css" />
+
 
 {{ if 'ptx_js_version' in globals() and 'webwork_js_version' in globals(): }}
     <script src="https://pretextbook.org/js/{{=ptx_js_version}}/pretext-webwork/{{=webwork_js_version}}/pretext-webwork.js"></script>

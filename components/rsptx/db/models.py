@@ -290,6 +290,13 @@ class UnittestAnswers(Base, CorrectAnswerMixin):
 
 UnittestAnswersValidation = sqlalchemy_to_pydantic(UnittestAnswers)
 
+# An answer to a fill-in-the-blank question.
+@register_answer_table
+class DoenetAnswers(Base, CorrectAnswerMixin):
+    __tablename__ = "doenet_answers"
+    # See answer_. TODO: what is the format?
+    answer = Column(JSON, nullable=False)
+    __table_args__ = (Index("idx_div_sid_course_doenet", "sid", "div_id", "course_name"),)
 
 # An answer to a fill-in-the-blank question.
 @register_answer_table

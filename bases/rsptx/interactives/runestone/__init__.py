@@ -11,6 +11,7 @@ from .clickableArea import ClickableArea
 from .datafile import DataFile
 from .disqus import DisqusDirective
 from .dragndrop import DragNDrop
+from .doenet import DoenetDirective 
 from .fitb import FillInTheBlank
 from .groupsub import GroupSubmission
 from .hparsons import HParsonsDirective
@@ -40,6 +41,7 @@ from sphinx.builders.html import JavaScript
 
 
 # TODO: clean up - many of the folders are not needed as the files are imported by webpack
+# TODO - Jason second's this TODO, I've been confused by duplicates copies of static assets
 #
 # runestone_static_dirs()
 # -----------------------
@@ -251,6 +253,7 @@ cmap = {
     "datafile": DataFile,
     "disqus": DisqusDirective,
     "dragndrop": DragNDrop,
+    "doenet": DoenetDirective,
     "groupsub": GroupSubmission,
     "hparsons": HParsonsDirective,
     "parsonsprob": ParsonsProblem,
