@@ -59,101 +59,37 @@
         link to your faculty page or use your faculty email.
     </p>
     <dl class="simple">
-        <dt>Join the conversation on Slack</dt>
+        <dt>Join the conversation on Discord</dt>
         <dd>
             <p>
                 <a
                     class="reference external"
-                    href="https://join.slack.com/t/runestoneteam/shared_invite/enQtODUwNDIwMzg5NDQxLTZlMjAzOTNlNzNlYTVjZDEyODI4ZTY1YjFjNTg3YTBiOWY2ODNlZTA4NWFiMjAxNzlkZGE1MmY0ZTQyY2E5Y2Q"
+                    href="https://discord.gg/f3Qmbk9P3U"
                     >The quickest way to get help from a human</a
                 >
             </p>
         </dd>
-        <dt>Runestone Google Groups for Books</dt>
+        {{if social_url:}}
+        <dt>Join the Message Board for Your Book</dt>
         <dd>
-            <ul class="simple">
-                <li>
-                    <p>
-                        I am Teaching with
-                        <a
-                            class="reference external"
-                            href="https://groups.google.com/forum/#!forum/runestone-fopp"
-                            >Foundations of Python Programming</a
-                        >
-                    </p>
-                </li>
-                <li>
-                    <p>
-                        I am Teaching with
-                        <a
-                            class="reference external"
-                            href="https://groups.google.com/forum/#!forum/runestone-thinkcspy"
-                            >How to Think Like a Computer Scientist</a
-                        >
-                    </p>
-                </li>
-                <li>
-                    <p>
-                        I am Teaching with
-                        <a
-                            class="reference external"
-                            href="https://groups.google.com/forum/#!forum/runestone-httlads"
-                            >How to Think Like a Data Scientist</a
-                        >
-                    </p>
-                </li>
-                <li>
-                    <p>
-                        I am Teaching
-                        <a
-                            class="reference external"
-                            href="https://groups.google.com/forum/#!forum/teaching-csawesome"
-                            >CSAwesome</a
-                        >
-                    </p>
-                </li>
-                <li>
-                    <p>
-                        I am Teaching
-                        <a
-                            class="reference external"
-                            href="https://groups.google.com/g/teaching-mobile-csp"
-                            >Mobile CSP</a
-                        >
-                    </p>
-                </li>
-                <li>
-                    <p>
-                        This
-                        <a
-                            class="reference external"
-                            href="https://groups.google.com/forum/#!forum/runestone_instructors"
-                            >Runestone Instructors</a
-                        >
-                        is very low volume – legacy group.
-                    </p>
-                </li>
-            </ul>
-        </dd>
-        <dt>On Facebook</dt>
-        <dd>
-            <p>
+            <p>We encourage you to join the google group for your book.  This is a great place to hear from the author, and to interact with other people using the book.  You can ask questions, share ideas, assignments, exams and get help.  Click here to access the group for:
                 <a
                     class="reference external"
-                    href="https://www.facebook.com/RunestoneInteractive"
-                    >Facebook Page</a
+                    href="{{=social_url}}"
+                    >{{=coursename}}</a
                 >
             </p>
         </dd>
-        <dt>On Twitter</dt>
+        {{pass}}
+        <dt>On Mastodon</dt>
         <dd>
             <p>
-                Send a message to
+                Follow
                 <a
                     class="reference external"
-                    href="http://twitter.com/iRunestone"
-                    >iRunestone</a
-                >
+                    href="https://fosstodon.org/@bnmnetp"
+                    >Brad Miller</a
+                > to get updates about Runestone Academy.
             </p>
         </dd>
     </dl>

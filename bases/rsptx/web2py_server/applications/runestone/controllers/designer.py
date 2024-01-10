@@ -146,9 +146,19 @@ def build():
             (auth.user.id, cid),
         )
 
+        # library_row = db(db.library.base_course == base_course).select().first()
+        # We do not have library defined as a model so just do it raw sql
+        res = db.executesql(
+            "select social_url from library where basecourse = %s", (base_course,)
+        )
+        social_url = res[0][0] if res else None
         session.flash = "Course Created Successfully"
         # redirect(
         #     URL("books", "published", args=[request.vars.projectname, "index.html"])
         # )
 
-        return dict(coursename=request.vars.projectname, basecourse=base_course)
+        return dict(
+            coursename=request.vars.projectname,
+            basecourse=base_course,
+            social_url=social_url,
+        )
