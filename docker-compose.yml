@@ -162,7 +162,6 @@ services:
       - jobe
       - pgbouncer
 
-
   nginx:
 
     # Note we use context: ./ here so that the Dockerfile can copy from the components folder
@@ -186,6 +185,25 @@ services:
       - runestone
       - book
       - assignment
+
+  # this second nginx is designed to sit in front of python servers running on a host machine for a more convineient dev environment
+  # it exposes the Runestone application on port 8080
+  nginx_dstart_dev:
+
+    # Note we use context: ./ here so that the Dockerfile can copy from the components folder
+    build:
+      context: ./
+      dockerfile: projects/nginx_dstart_dev/Dockerfile
+    #image: registry.digitalocean.com/runestone-registry/rs-nginx
+    image: ghcr.io/runestoneinteractive/rs-nginx-dstart-dev
+    restart: always
+    ports:
+      # ports are specified host:container
+      - 8080:80
+      #- 443:443
+    volumes:
+      - ${BOOK_PATH}:/usr/books
+
 
   # create an image/container to run rsmanage inside the composed services
   # docker compose run rsmanage rsmanage --help
