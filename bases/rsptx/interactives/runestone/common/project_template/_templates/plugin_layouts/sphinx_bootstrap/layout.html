@@ -54,7 +54,7 @@
         {% else %}
           <div class="brand-logo"><img src="{{pathto(logo, 1)}}" alt=""></div>
         {% endif %}
-        <a class="navbar-brand" href="/runestone" aria-label="index-page">
+        <a class="navbar-brand" id="rs-book-toc-link" href="{{ pathto(master_doc) }}" aria-label="index-page">
           {% if dynamic_pages == 'True' %}
             {% raw %}
             {{ course_name }}
@@ -118,7 +118,7 @@
           <ul class="dropdown-menu user-menu">
             <li><span class='loggedinuser'></span></li>
             <li class="divider"></li>
-            <li><a href='/ns/course/index'>Course Home</a></li>            
+            <li><a href='/ns/course/index'>Course Home</a></li>
             <li><a href='/assignment/student/chooseAssignment'>Assignments</a></li>
             <li><a href='/{{appname}}/assignments/practice'>Practice</a></li>
             <li id="inst_peer_link"><a href='/{{appname}}/peer/instructor.html'>Peer Instruction (Instructor)</a></li>
