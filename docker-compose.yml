@@ -28,7 +28,7 @@ services:
       - PGBOUNCER_MAX_PREPARED_STATEMENTS=100
       - PGBOUNCER_MAX_CLIENT_CONN=250
       - PGBOUNCER_STATS_USERS=runestone
-
+      - PGBOUNCER_SERVER_FAST_CLOSE=0 # this is the default value but broke in a recent update
 
   jobe:
     build:
