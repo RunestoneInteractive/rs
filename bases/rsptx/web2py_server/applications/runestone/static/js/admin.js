@@ -153,22 +153,31 @@ function autoGrade() {
     var question = getSelectedItem("question");
     var studentID = getSelectedItem("student");
     // todo -- check the number of selected
-    let qs = $("#questionselector").select2("val");
-    if (qs && qs.length > 1) {
-        alert(
-            "Autograding does not work with multiple selections.  Leave blank to grade all questions.  You may select 1 question."
-        );
-        $("#autogradesubmit").prop("disabled", false);
-        return;
+    let allq = document.getElementById("allquestioncb").checked;
+    let alls = document.getElementById("allstudentcb").checked;
+    if (!(allq && alls)) {
+        let qs = $("#questionselector").select2("val");
+        if (qs && qs.length > 1) {
+            alert(
+                "Autograding does not work with multiple selections.  Leave blank to grade all questions.  You may select 1 question."
+            );
+            $("#autogradesubmit").prop("disabled", false);
+            return;
+        }
+        let ss = $("#studentselector").select2("val");
+        if (ss && ss.length > 1) {
+            alert(
+                "Autograding does not work with multiple selections.  Leave blank to grade all students. You may select 1 student."
+            );
+            $("#autogradesubmit").prop("disabled", false);
+            return;
+        }
     }
-    let ss = $("#studentselector").select2("val");
-    if (ss && ss.length > 1) {
-        alert(
-            "Autograding does not work with multiple selections.  Leave blank to grade all students. You may select 1 student."
-        );
-        $("#autogradesubmit").prop("disabled", false);
-        return;
+    if (allq && alls) {
+        studentID = null;
+        question = null;
     }
+
     var enforceDeadline = $("#enforceDeadline").is(":checked");
     var params = {
         url: eBookConfig.autogradingURL,
@@ -2010,7 +2019,9 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
                 res.multiGrader = moreOpts.multiGrader;
                 if (componentKind === "activecode") {
                     if (moreOpts.multiGrader) {
-                        window.componentMap[`${moreOpts.gradingContainer} ${res.divid}`] = res;
+                        window.componentMap[
+                            `${moreOpts.gradingContainer} ${res.divid}`
+                        ] = res;
                     } else {
                         window.componentMap[res.divid] = res;
                     }
