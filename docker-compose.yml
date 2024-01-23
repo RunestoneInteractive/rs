@@ -1,5 +1,9 @@
 version: '3.8'
 
+# This docker compose file needs docker compose version 2.20.2 or higher.
+# See https://docs.docker.com/compose/profiles/ for documentation on using profiles
+# and / or setting COMPOSE_PROFILES in your environment.
+
 services:
 
   redis:
@@ -10,6 +14,7 @@ services:
   # for the composed application to 30.  If you need more than that you will need
   # to set the PGBOUNCER_DEFAULT_POOL_SIZE environment variable to a larger number.
   pgbouncer:
+    profiles: ["production"]
     image: bitnami/pgbouncer:latest
     restart: always
     ports:
@@ -76,10 +81,17 @@ services:
       - SPACES_KEY=${SPACES_KEY}
       - SPACES_SECRET=${SPACES_SECRET}
 
-    links:
-      - redis
-      - jobe
-      - pgbouncer
+    depends_on:
+      redis:
+        condition: service_started
+        required: true
+      jobe:
+        condition: service_started
+        required: true
+      pgbouncer:
+        condition: service_started
+        required: false
+
 
   runestone:
       build:
@@ -119,10 +131,16 @@ services:
         - SPACES_KEY=${SPACES_KEY}
         - SPACES_SECRET=${SPACES_SECRET}
         - GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS}
-      links:
-        - redis
-        - jobe
-        - pgbouncer
+      depends_on:
+        redis:
+          condition: service_started
+          required: true
+        jobe:
+          condition: service_started
+          required: true
+        pgbouncer:
+          condition: service_started
+          required: false
 
   assignment:
     build:
@@ -157,10 +175,16 @@ services:
       - UVICORN_MAX_REQUESTS_JITTER=30
       - UVICORN_TIMEOUT=60
 
-    links:
-      - redis
-      - jobe
-      - pgbouncer
+    depends_on:
+      redis:
+        condition: service_started
+        required: true
+      jobe:
+        condition: service_started
+        required: true
+      pgbouncer:
+        condition: service_started
+        required: false
 
 
   nginx:
@@ -179,13 +203,15 @@ services:
     volumes:
       - ${BOOK_PATH}:/usr/books
     depends_on:
-      - runestone
-      - book
-      - assignment
-    links:
-      - runestone
-      - book
-      - assignment
+      runestone:
+        condition: service_started
+        required: true
+      book:
+        condition: service_started
+        required: true
+      assignment:
+        condition: service_started
+        required: true
 
   # create an image/container to run rsmanage inside the composed services
   # docker compose run rsmanage rsmanage --help
