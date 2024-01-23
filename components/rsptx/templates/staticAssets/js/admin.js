@@ -335,11 +335,25 @@ function sendLTI_Grade() {
 
 function showDeadline() {
     var dl = new Date(assignment_deadlines[getSelectedItem("assignment")]);
-    // Need to update deadline by timezone
     var now = new Date();
-    tzoff = now.getTimezoneOffset();
+    var tzoff = now.getTimezoneOffset();
     dl.setHours(dl.getHours() + tzoff / 60);
-    $("#dl_disp").text(dl);
+
+    var year = dl.getFullYear();
+    var month = dl.getMonth() + 1;
+    var day = dl.getDate();
+    var hours = dl.getHours();
+    var minutes = dl.getMinutes();
+    var seconds = dl.getSeconds();
+
+    month = month < 10 ? '0' + month : month;
+    day = day < 10 ? '0' + day : day;
+    hours = hours < 10 ? '0' + hours : hours;
+    minutes = minutes < 10 ? '0' + minutes : minutes;
+    seconds = seconds < 10 ? '0' + seconds : seconds;
+
+    var formattedDate = year + '/' + month + '/' + day + ' ' + hours + ':' + minutes + ':' + seconds;
+    $("#dl_disp").text(formattedDate);
 
     return dl;
 }
