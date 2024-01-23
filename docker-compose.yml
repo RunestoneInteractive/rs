@@ -203,6 +203,7 @@ services:
       #- 443:443
     volumes:
       - ${BOOK_PATH}:/usr/books
+      - ./components/rsptx/templates/staticAssets:/usr/share/nginx/html/staticAssets
 
 
   # create an image/container to run rsmanage inside the composed services

@@ -5,8 +5,7 @@ LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
 
 COPY projects/nginx_dstart_dev/runestone /etc/nginx/conf.d/default.conf
 
-# Copy the shared staticAssets so they can be served by nginx
-COPY components/rsptx/templates/staticAssets /usr/share/nginx/html/staticAssets
+# NOTE: unlike the prod container for nginx, this one mounts in a local directory for static assets, see the docker-compose file
 
 # This image is meant to be used as the main tenant on a virtual machine.   It does not play well
 # with other tenants on the same machine. 
