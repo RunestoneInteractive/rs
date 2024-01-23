@@ -9,6 +9,25 @@ services:
   redis:
     image: redis:6-alpine
 
+  # The db service provides an easy way for new developers to get up and running quickly.
+  # it could also be used for a production system for a single department.  For production
+  # setting up a separate database server is recommended.  Advanced developers probably
+  # want to run their own postgresql server and set the environment variables to point to it.
+  db:
+      profiles: ["basic"]
+      image:
+          postgres:13
+      restart: always
+      environment:
+          # setting these will create a user with this password and a database with this name
+          # this is a feature of the postgres docker image
+          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-runestone}
+          POSTGRES_USER: ${POSTGRES_USER:-runestone}
+          POSTGRES_DB: ${POSTGRES_DBNAME:-runestone_dev}
+      # use a non-standard port to avoid conflicts with other postgres instances on the host
+      ports:
+        - 2345:5432
+
   # pgbouncer is for production only, when in a load balancer configuration.
   # This will effectively limit the total number of connections to the database
   # for the composed application to 30.  If you need more than that you will need
@@ -34,18 +53,20 @@ services:
       - PGBOUNCER_MAX_CLIENT_CONN=250
       - PGBOUNCER_STATS_USERS=runestone
       - PGBOUNCER_SERVER_FAST_CLOSE=0 # this is the default value but broke in a recent update
+    depends_on:
+      db:
+        condition: service_started
+        required: false
 
   jobe:
     build:
       context: ./projects/jobe
-    #image: registry.digitalocean.com/runestone-registry/rs-jobe
     image: ghcr.io/runestoneinteractive/rs-jobe
     restart: always
 
   book:
     build:
       context: ./projects/book_server
-    #image: registry.digitalocean.com/runestone-registry/rs-book
     image: ghcr.io/runestoneinteractive/rs-book
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -91,12 +112,14 @@ services:
       pgbouncer:
         condition: service_started
         required: false
+      db:
+        condition: service_started
+        required: false
 
 
   runestone:
       build:
         context: ./projects/w2p_login_assign_grade
-      #image: registry.digitalocean.com/runestone-registry/rs-runestone
       image: ghcr.io/runestoneinteractive/rs-runestone
       extra_hosts:
         - host.docker.internal:host-gateway
@@ -141,11 +164,13 @@ services:
         pgbouncer:
           condition: service_started
           required: false
+        db:
+          condition: service_started
+          required: false
 
   assignment:
     build:
       context: ./projects/assignment_server
-    #image: registry.digitalocean.com/runestone-registry/rs-assignment
     image: ghcr.io/runestoneinteractive/rs-assignment
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -185,6 +210,9 @@ services:
       pgbouncer:
         condition: service_started
         required: false
+      db:
+        condition: service_started
+        required: false
 
 
   nginx:
@@ -193,7 +221,6 @@ services:
     build:
       context: ./
       dockerfile: projects/nginx/Dockerfile
-    #image: registry.digitalocean.com/runestone-registry/rs-nginx
     image: ghcr.io/runestoneinteractive/rs-nginx
     restart: always
     ports:
@@ -218,7 +245,6 @@ services:
   rsmanage:
     build:
       context: ./projects/rsmanage
-    #image: registry.digitalocean.com/runestone-registry/rs-rsmanage
     image: ghcr.io/runestoneinteractive/rs-rsmanage
     extra_hosts:
       - host.docker.internal:host-gateway
