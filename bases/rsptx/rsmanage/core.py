@@ -19,13 +19,11 @@ import os
 import re
 import sys
 import subprocess
-from pathlib import Path
 
 # third party imports
 import redis
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
-from pgcli.main import cli as clipg
 from psycopg2.errors import UniqueViolation
 
 
@@ -63,8 +61,6 @@ from rsptx.db.async_session import init_models, term_models
 from rsptx.configuration import settings
 from rsptx.build_tools.core import _build_runestone_book, _build_ptx_book
 from rsptx.cl_utils.core import load_project_dotenv
-
-import pdb
 
 
 class Config(object):
@@ -145,7 +141,7 @@ def check_db_connection(config):
     # if not then we need to exit
     click.echo("Checking database connection")
     try:
-        engine = create_engine(config.dburl.replace('+asyncpg', ''))
+        engine = create_engine(config.dburl.replace("+asyncpg", ""))
         click.echo(config.dburl)
         engine.connect()
         engine.dispose()
@@ -153,14 +149,22 @@ def check_db_connection(config):
     except Exception:
         click.echo(f"Failed to connect to the database {config.dbname}")
         if config.dbname not in ["runestone", "runestone_dev", "runestone_test"]:
-            click.echo("Normally the database name should be runestone or runestone_dev")
+            click.echo(
+                "Normally the database name should be runestone or runestone_dev"
+            )
         click.echo(f"    You are trying to connect to host: {config.dbhost}")
         if os.environ.get("DOCKER_COMPOSE", False):
             if config.dbhost == "localhost":
-                click.echo("you almost certainly don't want localhost as the host in docker")
-                click.echo("The most common host names in docker are db, pgbouncer, or host.docker.internal")
+                click.echo(
+                    "you almost certainly don't want localhost as the host in docker"
+                )
+                click.echo(
+                    "The most common host names in docker are db, pgbouncer, or host.docker.internal"
+                )
             else:
-                click.echo("The most common host names in docker are db, pgbouncer, or host.docker.internal")
+                click.echo(
+                    "The most common host names in docker are db, pgbouncer, or host.docker.internal"
+                )
             click.echo("    Are you sure you have the right host name?")
         click.echo(f"    with user: {config.dbuser}")
         if config.dbuser != "runestone":
@@ -699,7 +703,7 @@ async def addeditor(config, username, basecourse):
 
     try:
         await create_editor_for_basecourse(userid, basecourse)
-    except:
+    except Exception:
         click.echo("could not add {username} as editor - They probably already are")
         sys.exit(-1)
 
@@ -986,12 +990,12 @@ async def addbookauthor(config, book, author, github):
     try:
         vals = dict(title=f"Temporary title for {book}")
         await create_library_book(book, vals)
-    except Exception as e:
-        click.echo(f"Warning: Book already exists in library")
+    except Exception:
+        click.echo(f"Warning: Book: {book} already exists in library")
 
     try:
         await create_book_author(author, book)
-    except Exception as e:
+    except Exception:
         click.echo(f"Warning: It appears that {author} is already an author of {book}")
 
     # create an entry in auth_membership (group_id, user_id)

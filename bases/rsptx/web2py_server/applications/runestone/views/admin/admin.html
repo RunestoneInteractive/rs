@@ -109,12 +109,12 @@
             <div class="settingsbox">
                 <label for="groupsize">Group Size for Peer Instruction</label>
                 <select id="points" onchange="updateCourse(this,'groupsize')">
-                <option value="2" 
+                <option value="2"
                 {{ if groupsize == "2": }}
                   selected
                 {{ pass }}
                 >2</option>
-                <option value="3" 
+                <option value="3"
                 {{ if groupsize == "3": }}
                   selected
                 {{ pass }}
@@ -129,9 +129,9 @@
                   selected
                 {{ pass }}
                 >5</option>
-                </select> 
+                </select>
             </div>
-    
+
         </div>
     </div>
 
@@ -168,7 +168,7 @@
         </form>
         <br />
         <p>You can make the file in your favorite Spreadsheet app and then export it to a CSV file to upload here.  Please export without headers.</p>
-            <p><strong>Notes -- Please Read</strong></p> 
+            <p><strong>Notes -- Please Read</strong></p>
             <ol>
                 <li>If anything fails then none of the students will be added. Fix your errors and try again.</li>
                 <li>If you need to <strong>add new students,</strong> put them in a new CSV file and upload. Your existing students will not be impacted.</li>
@@ -319,10 +319,10 @@
         <div class="col-md-8">
             <h2 style="text-align: center">LTI Configuration</h2>
             <p>LTI is <strong>Community Supported!</strong> It works but you need to know how to configure things on your own LMS.
-               There is strong evidence that LTI works on Canvas, Sakai, Moodle, and Desire2Learn.  
-               Please <a href="https://runestoneserver.readthedocs.io/en/latest/docs/lti.html" rel="noopener noreferrer" target="_blank">Read the docs <span class="glyphicon glyphicon-link"></span></a>  first,
-            then feel free to ask for help on the <code>#lti_community_support</code> channel on Slack. If you have it working on another
-            LMS please helps us out and contribute to the docs so that others can benefit.</p> 
+               There is strong evidence that LTI works on Canvas, Sakai, Moodle, and Desire2Learn.
+               Please <a href="https://guide.runestone.academy/chapter-4.html#lti_integration" rel="noopener noreferrer" target="_blank">Read the docs <span class="glyphicon glyphicon-link"></span></a>  first,
+            then feel free to ask for help on the <code>#lti_community_support</code> channel on Discord. If you have it working on another
+            LMS please helps us out and contribute to the docs so that others can benefit.</p>
             <p>To launch lti on Runestone use <code>https://runestone.academy/runestone/lti</code></p>
             <div class="col-sm-8 col-md-8">
                 <button onclick="generateLTIKeys();" class="btn btn-primary">Create LTI Key and Secret</button>

@@ -118,9 +118,9 @@
                     {{ if practice_today_left > 0: }}
                         <p>{{=practice_today_left}} question{{='' if practice_today_left == 1 else 's'}} left
                             {{ if practice_graded == 1: }}
-                                to get today's point.
+                                to get today's point{{='' if day_points==1 else 's'}}.
                             {{ else: }}
-                                out of our recommended {{=total_today_count}} questions to practice today.
+                                to reach today's practice goal.
                             {{ pass }}
                         </p>
                     {{ else: }}
@@ -128,16 +128,15 @@
                             {{ if practice_graded == 1: }}
                                 got today's point.
                             {{ else: }}
-                                answered our recommended {{=total_today_count}} questions to practice today.
+                                completed today's practice goal.
                             {{ pass }}
                         </p>
                     {{ pass }}
                 {{ pass }}
-                <p>{{=flashcard_count}} more question{{='' if flashcard_count == 1 else 's'}} available to practice today.
-                </p>
             {{ elif flashcard_count == 1: }}
                 <p>Hang in there. Last question for today.</p>
             {{ pass }}
+
             {{ if spacing == 1: }}
                 <p>So far, you've
                     {{ if practice_graded == 1: }}
@@ -145,14 +144,11 @@
                         {{=total_possible_points}} possible point{{='' if total_possible_points == 1 else 's'}} for completing
                         {{=practice_completion_count}} day{{='' if practice_completion_count == 1 else 's'}} out
                         of {{=max_days}} days of your review practice.
+                    {{ elif settings.coursera_mode: }}
+                        completed the recommended practice on {{=practice_completion_count}} day{{='' if practice_completion_count == 1 else 's'}}.
                     {{ else: }}
-                        answered the recommended {{=questions_to_complete_day}} questions correctly on
-                        {{=practice_completion_count}} day{{='' if practice_completion_count == 1 else 's'}}
-                        {{ if not settings.coursera_mode: }}
-                            out of {{=max_days}} days of your review practice.
-                        {{ else: }}
-                            .
-                        {{ pass }}
+                        completed the recommended practice on {{=practice_completion_count}} day{{='' if practice_completion_count == 1 else 's'}}      
+                            out of the target of {{=max_days}} days of review practice.
                     {{ pass }}
                 </p>
             {{ else: }}
@@ -171,6 +167,7 @@
                     {{ pass }}
                     </p>
             {{ pass }}
+
             {{if not settings.coursera_mode:}}
                 {{ if remaining_days > 0: }}
                     <p>{{=remaining_days}} days are remaining to the end of the practicing period this semester.</p>
@@ -184,7 +181,12 @@
                     </p>
                 {{ pass }}
             {{ pass }}
+
+            {{ if practice_today_left == 0: }}
+                <p>{{=flashcard_count}} more topic{{=' is' if flashcard_count == 1 else 's are'}} available to practice today.</p>
+            {{ pass }}
         </div>
+        
         {{ if flashcard_count > 0: }}
             {{ if practice_today_left == 0 and not q: }}
                 <div id="CongratulationsContinueDIV">
@@ -192,10 +194,9 @@
                         <p>Congratulations! You have answered {{=practiced_today_count}} questions correctly and received
                             today's point.</p>
                     {{ else: }}
-                        <p>Congratulations! Today, you have answered our recommended {{=practiced_today_count}} questions
-                            correctly.</p>
+                        <p>Congratulations! You have completed today's daily practice goal.</p>
                     {{ pass }}
-                    <p>Click on the fireworks to create more of them.</p>
+                    <p>Click anywhere to create more fireworks!</p>
                     <!--<p>The designers of the practice tool are a group of researchers with the goal of making computer
                         science education as effective aspossible. In order to improve the design of the practice tool and
                         personalize the questions for you, we need to learn more about you.</p>
@@ -208,39 +209,9 @@
                     <div id="WillingToContinueDIV">
                         <a href="/{{=request.application}}/assignments/practice/?willing_to_continue=1" type="button"
                         class="btn btn-success NextQuestionAnchor">
-                            I'd like to continue practicing.
+                            I'd like to continue practicing with the remaining {{=flashcard_count}} topic{{'' if flashcard_count==1 else 's'}} scheduled for today.
                         </a>
                     </div>
-                    <div id="LikeDislikeDIV">
-                        Do you like the practice feature?
-                        <button type="button" class="btn btn-info" id="Like"><i class="LikeDislikeIcon fa fa-thumbs-up"></i>
-                            Like
-                            <!--Like <input class="qty1" name="qty1" readonly="readonly" type="text" value="0" />-->
-                        </button>
-                        <button type="button" class="btn btn-info" id="Dislike">
-                            <i class="LikeDislikeIcon fa fa-thumbs-down"></i>
-                            Dislike
-                            <!--Dislike <input class="qty2"  name="qty2" readonly="readonly" type="text" value="0" />-->
-                        </button>
-                    </div>
-                    {{ if feedback_saved == "1": }}
-                        <div id="FeedbackRequestDIV">
-                            <p style="color: green;">Thank you. We've successfully received your feedback.</p>
-                        </div>
-                    {{ else: }}
-                        <form id="PracticeFeedbackForm" class="needs-validation"
-                            action="/{{=request.application}}/assignments/practice_feedback" method="post">
-                            <div class="form-group">
-                                <label for="FeedInput">Please tell us how you feel about the practice tool and let us know your
-                                    suggestions on how to improve it.</label>
-                                <textarea class="form-control" id="FeedInput" name="Feed" rows="3" required></textarea>
-                            </div>
-                            <input style="margin-bottom: 25px;" class="btn btn-success mb-2" type="submit"
-                                    value="Submit my feedback">
-                        </form>
-                    {{ pass }}
-                    <!--<div class="fb-comments" data-href="https://106w18.learningpython.today/assignments/practice"
-                        data-numposts="5"></div>-->
                 </div>
             {{ else: }}
                 <span>
@@ -272,21 +243,30 @@
                     <p><a id="PostponeBtn" href="/{{=request.application}}/assignments/checkanswer/?QID={{=q[2]}}&q=-1"
                         type="button" class="btn btn-danger NextQuestionAnchor">I want to postpone this to tomorrow! Ask
                             me another question.</a></p>
-                    {{ if flashcard_creation_method == 0: }}
-                    <p>Note: Pages that you marked as complete are eligible for practice. If you mistakenly marked a page as
-                        complete, you can remove it from practice by visiting that page and unmarking it as complete.</p>
-                    {{ pass }}
                 {{ pass }}
-                <h3>
+                
                 {{ if interleaving == 1: }}
-                    Questions from the following topics will be asked again in the specified number of days:
+                    <h3>Schedule of Topics</h3>
                 {{ else: }}
-                    The following diagram demonstrates how well you've learned each of the topics:
+                    <h3>Completion Status</h3>
                 {{ pass }}
-                </h3>
+
                 {{ if flashcard_creation_method == 0: }}
-                    <p>Note: Only the pages you've marked as complete, at the bottom of the page, are the ones that are
-                        eligible for practice.</p>
+                    To add a topic to the practice tool, click on the "Mark as Completed" button at the bottom of any textbook page. 
+                        To remove a topic, revisit the page and unmark it as complete.
+                {{ elif flashcard_creation_method == 1: }}
+                    Your instructor will add topics to the practice tool as they are covered in the course.
+                {{ elif flashcard_creation_method == 3: }}
+                    After you visit a page in the textbok, that topic is added to the practice tool. 
+                {{ pass }}
+
+                {{ if interleaving == 1: }}
+                    <p> Each time you answer a question correctly, that topic is scheduled for review on a later date,
+                with increasing intervals.</p>
+                    <p>Bars below show how many days until each topic will be reviewed (0 means available today):</p>
+                {{ else: }}
+                    <p>The practice tool keeps track of how many times you've correctly answered a question on each topic.</p>
+                    <p>Bars below show well you've learned each of the topics:</p>
                 {{ pass }}
                 <ul>
                 <!-- TODO check if all_flashcards is not None -->
@@ -331,7 +311,7 @@
             {{ pass }}
         {{ else: }}
             <div id="CongratulationsDIV">
-                <p>Congratulations! You have answered all the questions for today. Please continue your practice tomorrow.
+                <p>Congratulations! You are all caught up. You have reviewed all the topics that were scheduled for today. Please continue your practice tomorrow.
                 </p>
             </div>
             <div class="demo"></div>

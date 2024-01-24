@@ -527,7 +527,7 @@ async def get_status(task_id):
         print("TASK RESULT", task_result.__dict__)
         if task_result.status == "FAILURE":
             result["task_result"] = {"current": str(task_result.result)}
-    except:
+    except Exception:
         result = {
             "task_id": task_id,
             "task_status": "FAILURE",
