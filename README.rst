@@ -37,7 +37,7 @@ stability for fundamental parts of the project that need to scale.
 This repository uses a `polylith structure <https://polylith.gitbook.io/polylith/introduction/polylith-in-a-nutshell>`__ in order to allow the several
 projects under the Runestone umbrella to share code, provide common ways
 of accomplishing similar tasks, and hopefully make it easier for a
-newcomer to contribute to the project.  If you don't know what a polylith is don't let that deter you.  It is just a fancy way of saying that we have a bunch of projects that share a lot of code.  
+newcomer to contribute to the project.  If you don't know what a polylith is don't let that deter you.  It is just a fancy way of saying that we have a bunch of projects that share a lot of code.
 
 
 Finally, in 2023 we decided to move to a mono repo. The goal of this
@@ -53,15 +53,19 @@ following diagram shows what we are aiming at.
 Each of the servers in the diagram above has or will become a project in this
 repo. Each individual server is described by a docker file and can be run either
 as a docker container or on a physical server set up for the purpose. A collection of
-docker compose files (``docker-compose.yml``, ``db.compose.yml``, and ``author.compose.yml``)
-are used to orchestrate the servers.
+docker compose profiles are used to control which servers are started for which purposes.
+
+* ``basic`` - this will start up the default servers plus a database server in the composed app.
+* ``dev`` - this will start up the default servers plus development nginx server in the composed app.
+*  ``production`` - this will start up the default servers plus the ``pgbouncer`` server in the composed app.
+*  ``author`` - this will start up the default servers plus the ``author`` server in the composed app.
 
 
 Docs
 ----
 
 See `Our Read the Docs page <https://runestone-monorepo.readthedocs.io/en/latest/index.html>`_ for more complete documentation. After reading the whole page, please continue to the `Contributing Guide <https://runestone-monorepo.readthedocs.io/en/latest/contributing.html>`_.
- 
+
 
 Development Roadmap
 ---------------------
@@ -73,7 +77,7 @@ Contributing
 
 There is so much to do on this project, and we are happy to accept contributions.  Please see the `Contributing Guide <https://runestone-monorepo.readthedocs.io/en/latest/contributing.html>`_ for more information.  We are especially interested in contributions that help us to improve the documentation, and the test coverage of the code.
 
-If you want to know where we are going, and what things are in active development or in need of immediate help please take a look at our projects page on github: `Runestone Projects <https://github.com/orgs/RunestoneInteractive/projects>`_ 
+If you want to know where we are going, and what things are in active development or in need of immediate help please take a look at our projects page on github: `Runestone Projects <https://github.com/orgs/RunestoneInteractive/projects>`_
 
 Longer term development goals are described in the `Runestone Roadmap <https://github.com/orgs/RunestoneInteractive/projects/6/views/1>`_.
 
@@ -83,7 +87,7 @@ Note that the move to a mono repo means that the history of the individual repos
 Our Community
 -------------
 
-The Runestone community has been actively developing and supporting this project since 2011. 
+The Runestone community has been actively developing and supporting this project since 2011.
 
 Join us on Discord
 
@@ -92,4 +96,4 @@ The new book authoring language is PreTeXt.  We have a very active community of 
 .. raw:: html
 
     <blockquote class="badgr-badge" style="font-family: Helvetica, Roboto, &quot;Segoe UI&quot;, Calibri, sans-serif;"><a href="https://api.badgr.io/public/assertions/bhQ1jKReQj27qAt-jqqoPQ?identity__email=brad%40runestone.academy"><img width="120px" height="120px" src="https://media.badgr.com/uploads/badges/assertion-bhQ1jKReQj27qAt-jqqoPQ.png"></a><p class="badgr-badge-name" style="hyphens: auto; overflow-wrap: break-word; word-wrap: break-word; margin: 0; font-size: 16px; font-weight: 600; font-style: normal; font-stretch: normal; line-height: 1.25; letter-spacing: normal; text-align: left; color: #05012c;">POSE Training Program - Spring 2023 Pilot</p><p class="badgr-badge-date" style="margin: 0; font-size: 12px; font-style: normal; font-stretch: normal; line-height: 1.67; letter-spacing: normal; text-align: left; color: #555555;"><strong style="font-size: 12px; font-weight: bold; font-style: normal; font-stretch: normal; line-height: 1.67; letter-spacing: normal; text-align: left; color: #000;">Awarded: </strong>May 18, 2023</p><p style="margin: 16px 0; padding: 0;"><a class="badgr-badge-verify" target="_blank" href="https://badgecheck.io?url=https%3A%2F%2Fapi.badgr.io%2Fpublic%2Fassertions%2FbhQ1jKReQj27qAt-jqqoPQ%3Fidentity__email%3Dbrad%2540runestone.academy&amp;identity__email=brad%40runestone.academy" style="box-sizing: content-box; display: flex; align-items: center; justify-content: center; margin: 0; font-size:14px; font-weight: bold; width: 48px; height: 16px; border-radius: 4px; border: solid 1px black; text-decoration: none; padding: 6px 16px; margin: 16px 0; color: black;">VERIFY</a></p><script async="async" src="https://badgr.com/assets/widgets.bundle.js"></script></blockquote>
-    
+
