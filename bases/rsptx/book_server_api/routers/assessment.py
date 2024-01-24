@@ -72,68 +72,37 @@ router = APIRouter(
 @router.get("/getDoenetState")
 async def getdoenetstate(request: Request, div_id: str, 
                          course_name: str, event: str,
-                         # sid: Optional[str],
                          user=Depends(auth_manager)
 ):
     request_data = AssessmentRequest(course=course_name, div_id=div_id, event=event)
-    # if the user is not logged in an HTTP 401 will be returned.
-    # Otherwise if the user is an instructor then use the provided
-    # sid (it could be any student in the class). If none is provided then
-    # use the user objects username
-    sid = user.username
-    if await is_instructor(request):
-        if request_data.sid:
-            sid = request_data.sid
+    assessment_results = await get_assessment_results_internal(request_data, request, user)
+
+    if assessment_results is not None:
+        doenet_state = assessment_results["answer"]["state"]
+        doenet_state["success"] = True
+        doenet_state["loadedState"] = True
+        return JSONResponse( status_code=200, content=jsonable_encoder(doenet_state) )
     else:
-        if request_data.sid:
-            # someone is attempting to spoof the api
-            return make_json_response(
-                status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
-            )
-    request_data.sid = sid
-
-
-    row = await fetch_last_answer_table_entry(request_data)
-    # mypy complains that ``row.id`` doesn't exist (true, but the return type wasn't exact and this does exist).
-    if not row or row.id is None:  # type: ignore
         return JSONResponse(
             status_code=200, content=jsonable_encoder({"loadedState": False, "success": True})
         )
-    ret = row.dict()
-    rslogger.debug(f"row is {ret}")
-    if "timestamp" in ret:
-        ret["timestamp"] = (
-            ret["timestamp"].replace(tzinfo=datetime.timezone.utc).isoformat()
-        )
-        rslogger.debug(f"timestamp is {ret['timestamp']}")
-
-    # Do server-side grading if needed, which restores the answer and feedback.
-    if feedback := await is_server_feedback(request_data.div_id, request_data.course):
-        rcd = runestone_component_dict[EVENT2TABLE[request_data.event]]
-        # The grader should also be defined if there's feedback.
-        assert rcd.grader
-        # Use the grader to add server-side feedback to the returned dict.
-        ret.update(await rcd.grader(row, feedback))
-
-    # get grade and instructor feedback if Any
-    grades = await fetch_question_grade(sid, request_data.course, request_data.div_id)
-    if grades:
-        ret["comment"] = grades.comment
-        ret["score"] = grades.score
-
-    real_ret = ret["answer"]["state"]
-    real_ret["success"] = True
-    real_ret["loadedState"] = True
-    rslogger.debug(f"Returning {ret}")
-    # return make_json_response(detail=ret)
-    return JSONResponse(
-        status_code=200, content=jsonable_encoder(real_ret)
-    )
 
 # getAssessResults
 # ----------------
 @router.post("/results")
 async def get_assessment_results(
+    request_data: AssessmentRequest,
+    request: Request,
+    user=Depends(auth_manager),
+):
+    assessment_results = await get_assessment_results_internal(request_data, request, user)
+    if assessment_results is not None:
+        return make_json_response(detail=assessment_results)
+    else:
+        return make_json_response(detail="no data")
+
+
+async def get_assessment_results_internal(
     request_data: AssessmentRequest,
     request: Request,
     user=Depends(auth_manager),
@@ -157,7 +126,7 @@ async def get_assessment_results(
     row = await fetch_last_answer_table_entry(request_data)
     # mypy complains that ``row.id`` doesn't exist (true, but the return type wasn't exact and this does exist).
     if not row or row.id is None:  # type: ignore
-        return make_json_response(detail="no data")
+        return None
     ret = row.dict()
     rslogger.debug(f"row is {ret}")
     if "timestamp" in ret:
@@ -180,7 +149,7 @@ async def get_assessment_results(
         ret["comment"] = grades.comment
         ret["score"] = grades.score
     rslogger.debug(f"Returning {ret}")
-    return make_json_response(detail=ret)
+    return ret
 
 
 # Define a simple model for the gethist request.
