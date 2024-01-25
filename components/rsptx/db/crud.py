@@ -1289,6 +1289,36 @@ async def fetch_one_assignment(assignment_id: int) -> AssignmentValidator:
         return AssignmentValidator.from_orm(res.scalars().first())
 
 
+async def create_assignment(assignment: AssignmentValidator) -> AssignmentValidator:
+    """
+    Create a new Assignment object with the given data (assignment)
+
+    :param assignment: AssignmentValidator, the AssignmentValidator object representing the assignment data
+    :return: AssignmentValidator, the newly created AssignmentValidator object
+    """
+    new_assignment = Assignment(**assignment.dict())
+    async with async_session.begin() as session:
+        session.add(new_assignment)
+
+    return AssignmentValidator.from_orm(new_assignment)
+
+
+async def create_assignment_question(
+    assignmentQuestion: AssignmentQuestionValidator,
+) -> AssignmentQuestionValidator:
+    """
+    Create a new AssignmentQuestion object with the given data (assignmentQuestion)
+
+    :param assignmentQuestion: AssignmentQuestionValidator, the AssignmentQuestionValidator object representing the assignment question data
+    :return: AssignmentQuestionValidator, the newly created AssignmentQuestionValidator object
+    """
+    new_assignment_question = AssignmentQuestion(**assignmentQuestion.dict())
+    async with async_session.begin() as session:
+        session.add(new_assignment_question)
+
+    return AssignmentQuestionValidator.from_orm(new_assignment_question)
+
+
 async def fetch_all_assignment_stats(
     course_name: str, userid: int
 ) -> list[GradeValidator]:
