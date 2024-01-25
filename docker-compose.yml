@@ -242,7 +242,7 @@ services:
   # this second nginx is designed to sit in front of python servers running on a host machine for a more convineient dev environment
   # it exposes the Runestone application on port 8080
   nginx_dstart_dev:
-
+    profiles: ["dev"]
     # Note we use context: ./ here so that the Dockerfile can copy from the components folder
     build:
       context: ./
