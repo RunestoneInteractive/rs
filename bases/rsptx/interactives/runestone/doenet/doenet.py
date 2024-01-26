@@ -35,30 +35,19 @@ from runestone.common.runestonedirective import (
 
 def setup(app):
     app.add_directive("doenet", DoenetDirective)
-    app.add_node(DoenetNode, html=(visit_hp_html, depart_hp_html))
+    app.add_node(DoenetNode, html=(visit_doenet_html, depart_doenet_html))
 
 
 TEMPLATE_START = """
-<div class="runestone">
-<div data-component="hparsons" id=%(divid)s data-question_label="%(question_label)s" class="alert alert-warning hparsons_section">
-<div class="hp_question">
+            <div class=\"runestone\" data-component=\"doenet\" id=\"${questionId}\">
+                <div class="doenetml-applet">
+                    <script type="text/doenetml">
 """
 
 TEMPLATE_END = """
-</div>
-<div class='hparsons'></div>
-<textarea
-    %(language)s
-    %(optional)s
-    %(dburl)s
-    %(reuse)s
-    %(randomize)s
-    %(blockanswer)s
-    style="visibility: hidden;">
-%(initialsetting)s
-</textarea>
-</div>
-</div>
+                    </script>
+                </div>
+            </div>
 """
 
 
@@ -69,7 +58,7 @@ class DoenetNode(nodes.General, nodes.Element, RunestoneIdNode):
 # self for these functions is an instance of the writer class.  For example
 # in html, self is sphinx.writers.html.SmartyPantsHTMLTranslator
 # The node that is passed as a parameter is an instance of our node class.
-def visit_hp_html(self, node):
+def visit_doenet_html(self, node):
 
     node["delimiter"] = "_start__{}_".format(node["runestone_options"]["divid"])
 
@@ -79,7 +68,7 @@ def visit_hp_html(self, node):
     self.body.append(res)
 
 
-def depart_hp_html(self, node):
+def depart_doenet_html(self, node):
     res = TEMPLATE_END % node["runestone_options"]
     self.body.append(res)
 
@@ -103,79 +92,15 @@ class DoenetDirective(RunestoneIdDirective):
     optional_arguments = 1
     has_content = True
     option_spec = RunestoneIdDirective.option_spec.copy()
-    option_spec.update(
-        {
-            "dburl": directives.unchanged,
-            "language": directives.unchanged,
-            "reuse": directives.flag,
-            "randomize": directives.flag,
-            "blockanswer": directives.unchanged,
-        }
-    )
 
     def run(self):
         super(DoenetDirective, self).run()
         addQuestionToDB(self)
 
-        env = self.state.document.settings.env
-
-        if "language" in self.options:
-            self.options["language"] = "data-language='{}'".format(
-                self.options["language"]
-            )
-        else:
-            self.options["language"] = ""
-
-        if "reuse" in self.options:
-            self.options["reuse"] = ' data-reuse="true"'
-        else:
-            self.options["reuse"] = ""
-
-        if "randomize" in self.options:
-            self.options["randomize"] = ' data-randomize="true"'
-        else:
-            self.options["randomize"] = ""
-
-        if "blockanswer" in self.options:
-            self.options["blockanswer"] = "data-blockanswer='{}'".format(
-                self.options["blockanswer"]
-            )
-        else:
-            self.options["blockanswer"] = ""
-
-        explain_text = None
-        if self.content:
-            if "~~~~" in self.content:
-                idx = self.content.index("~~~~")
-                explain_text = self.content[:idx]
-                self.content = self.content[idx + 1 :]
-            source = "\n".join(self.content)
-        else:
-            source = "\n"
-
-        self.explain_text = explain_text or ["Not an Exercise"]
-
-        self.options["initialsetting"] = source
-
-        # SQL Options
-        if "dburl" in self.options:
-            self.options["dburl"] = "data-dburl='{}'".format(self.options["dburl"])
-        else:
-            self.options["dburl"] = ""
-
-        course_name = env.config.html_context["course_id"]
-        divid = self.options["divid"]
-
-        hpnode = DoenetNode()
-        hpnode["runestone_options"] = self.options
-        hpnode["source"], hpnode["line"] = self.state_machine.get_source_and_line(
-            self.lineno
-        )
-        self.add_name(hpnode)  # make this divid available as a target for :ref:
+        doenet_node = DoenetNode()
+        doenet_node["runestone_options"] = self.options
+        self.add_name(doenet_node)  # make this divid available as a target for :ref:
 
         maybeAddToAssignment(self)
-        if explain_text:
-            self.updateContent()
-            self.state.nested_parse(explain_text, self.content_offset, hpnode)
 
-        return [hpnode]
+        return [doenet_node]
