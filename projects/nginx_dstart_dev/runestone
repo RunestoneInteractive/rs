@@ -1,0 +1,150 @@
+# **\*\***\*\***\*\***\*\*\***\*\***\*\***\*\***
+
+# |docname| - nginx configuration
+
+# **\*\***\*\***\*\***\*\*\***\*\***\*\***\*\***
+
+# This sets up nginx to run both the old and new server together. It requires `processing by Python <Set up nginx based on env vars.>`\_ before use.
+
+#
+
+# This file was partially taken from the `gunicorn deployment docs <https://docs.gunicorn.org/en/stable/deploy.html#nginx-configuration>`\_.
+
+#
+
+# `gzip_static <http://nginx.org/en/docs/http/ngx_http_gzip_static_module.html>`\_: Enables ("on") or disables ("off") checking the existence of precompressed files. Send compressed files in lieu of uncompressed files where they exist. This requires the optional `ngx_http_gzip_static_module` module.
+
+gzip_static on;
+
+rewrite_log on;
+# Specify a custom log format.
+
+#
+
+#`log_format <http://nginx.org/en/docs/http/ngx_http_log_module.html#log_format>_`: Specifies log format.
+log_format custom_log_format '$remote_addr - [$time_local] '
+'Request: "$request" Status: $status Bytes: $body_bytes_sent '
+    'RequestTime: $request_time '
+    'Referrer: "$http_referer" Agent: "$http_user_agent"';
+
+# Use this format.
+
+#
+
+# `access_log <http://nginx.org/en/docs/http/ngx_http_log_module.html#access_log>`\_: Sets the path, format, and configuration for a buffered log write.
+
+access_log /var/log/nginx/access.log custom_log_format;
+
+# Define the web2py and FastAPI servers.
+
+server {
+include /etc/nginx/default.d/\*.conf;
+
+    # `server_name <http://nginx.org/en/docs/http/ngx_http_core_module.html#server_name>`_: Set name(s) of a virtual server.
+    server_name RunestoneMobile.local;
+
+    rewrite ^/ads.txt /runestone/static/ads.txt;
+    rewrite ^/runestone/static/JavaReview/(\w+)/(.*)$ /ns/books/published/apcsareview/$1/$2;
+    rewrite ^/runestone/static/csawesome/(\w+)/(.*)$ /ns/books/published/csawesome/$1/$2;
+
+
+    # Rewrite the path to static files.
+    #
+    # `location <https://nginx.org/en/docs/http/ngx_http_core_module.html#location>`_: set configuration depending on a request URI. The ``~*`` indicates the following parameter is a case-insensitive regex. Look for web2py static files.
+    #
+    # Match web2py static paths with the application specified, such as ``/runestone/static/``. Avoid matching ``admin/`` so the admin interface works -- it uses the `web2py's static asset management <http://www.web2py.com/books/default/chapter/29/04/the-core#Static-asset-management>`_ which breaks the simple redirect below.
+    #
+    # root supplies the uptree path the match gets appended to the path specified
+    # by the root directive
+    #location ~* /(?!admin/)(\w+)/static/ {
+    #    root /srv/web2py/applications/;
+    #}
+
+    # Match web2py static paths with no application specified; assume the default application is ``runestone``.
+    #location /static/ {
+    #    root /srv/web2py/applications/runestone;
+    #}
+
+    location ~* ^/staticAssets/(.*)$ {
+        alias /usr/share/nginx/html/staticAssets/$1;
+    }
+
+    # Route static book files from web2py with an application specified. Regex fun: ``(?!ns/)`` prevents a match with a prefix of ``ns/`` (since this should be routed to the new server instead).
+    ##              $1                 $2        $3              $4             $5
+    location ~* ^/(?!ns/)(\w+)/books/(published|draft)/(\w+)/(_static|_images|images)/(.*)$ {
+        alias /usr/books/$3/$2/$3/$4/$5;
+    }
+
+    # Route static book files from web2py with no application specified; assume the default application is ``runestone``.
+    ##                         $1           $2               $3           $4
+    location ~* ^/books/(published|draft)/(\w+)/(_static|_images|images)/(.*)$ {
+        alias /usr/books/$2/$1/$2/$3/$4;
+    }
+
+    # Route the ``/ns`` (new server) path to gunicorn.
+    location /ns/ {
+        # rewrite to remove /ns as bookserver does not expect it.
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $http_host;
+        # we don't want nginx trying to do something clever with
+        # redirects, we set the Host: header above already.
+        proxy_redirect off;
+        # Allow web sockets.
+        proxy_buffering off;
+        # `WebSocket proxying <https://nginx.org/en/docs/http/websocket.html?_ga=2.58949805.1641238518.1630518248-2075569494.1630518248>`_:
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        # `proxy_pass <https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass>`_: set the protocol and address of a proxied server and an optional URI to which a location should be mapped. **Tricky**: Specifying the ``location`` above with a trailing slash and including a trailing slash at the end of ``proxy_pass`` causes nginx to strip of the ``/ns`` prefix when sending it to gunicorn. Quoting the docs: "If the ``proxy_pass`` directive is specified with a URI, then when a request is passed to the server, the part of a normalized request URI matching the location is replaced by a URI specified in the directive."
+        #
+        # _`gunicorn socket`: This matches the ``--bind`` parameter when `gunicorn is run <run_bookserver>`.
+        #proxy_pass http://unix:/run/fastapi.sock:/;
+        proxy_pass http://host.docker.internal:8100/;
+        # For file uploads we need a larger limit than 1M for whiteboard pictures and pdf uploads
+        client_max_body_size 25M;
+    }
+
+    # route assignment requests
+    location /assignment/ {
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header Host $http_host;
+       # we don't want nginx trying to do something clever with
+       # redirects, we set the Host: header above already.
+       proxy_redirect off;
+       proxy_pass http://host.docker.internal:8101/;
+
+    }
+
+    # route author requests
+    # This one looks a bit different due to the author server being optional in the compose setup
+    # We have to define the proxy endpoint inside the location
+    # This means the proxy_pass has to append the $request_uri in order for it to be passed on.
+    # which means that the author app is always going to get the /author/ part as part of the url
+    location /author/ {
+       resolver 127.0.0.11 valid=30s; # use the docker dns resolver
+       set $aserver http://host.docker.internal:8102;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header Host $http_host;
+       # we don't want nginx trying to do something clever with
+       # redirects, we set the Host: header above already.
+       proxy_redirect off;
+       proxy_pass $aserver$request_uri;
+
+    }
+
+    location / {
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header Host $http_host;
+      # we don't want nginx trying to do something clever with
+      # redirects, we set the Host: header above already.
+      proxy_redirect off;
+      # See `../../gunicorn/web2py.conf.py` for the corresponding socket bind.
+      #proxy_pass http://unix:/run/web2py.sock:/;
+      proxy_pass http://host.docker.internal:8103;
+    }
+
+}

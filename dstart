@@ -10,6 +10,13 @@ fi
 
 set -e
 SERVICE=$1
+
+# these environment variables need to be set differentlty for running the servers on the host machine
+# instead of in the docker container, so fix them up here
+
+export RUNESTONE_PATH=.
+export BOOK_PATH=~/Runestone/books
+
 cd $RUNESTONE_PATH
 
 # check to see if the rs virtual environment is active
@@ -17,6 +24,24 @@ if [[ -z "$VIRTUAL_ENV" && $VIRTUAL_ENV == *"rs/.venv" ]]; then
     echo "The rs virtual environment is not active. Please activate it first."
     exit 1
 fi
+
+# kill previously running servers if present
+if [[ "$SERVICE" == "all" || "$SERVICE" == "stopall" ]]; then
+    lsof -t -i tcp:8100 | xargs kill
+    lsof -t -i tcp:8101 | xargs kill
+    lsof -t -i tcp:8102 | xargs kill
+    lsof -t -i tcp:8103 | xargs kill
+    # wait for the servers to stop
+    sleep 5
+fi
+
+if [ "$SERVICE" == "all" ]; then
+    uvicorn rsptx.book_server_api.main:app --host 0.0.0.0 --port 8100 --reload &
+    uvicorn rsptx.assignment_server_api.core:app --host 0.0.0.0 --port 8101 --reload &
+    uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8102 --reload &
+    python bases/rsptx/web2py_server/web2py.py --no-gui --password "<recycle>" --ip 0.0.0.0 --port 8103 &
+fi
+
 
 # check to see if the SERVICE is book
 if [ "$SERVICE" == "book" ]; then
@@ -43,7 +68,6 @@ if [ "$SERVICE" == "runestone" ]; then
     python web2py.py --no-gui --password "<recycle>" --ip 0.0.0.0 --port 8103
     exit 0
 fi
-
 
 # todo: start up a local nginx server to serve the static files 
 # todo: with nginx running allow multiple servers to run

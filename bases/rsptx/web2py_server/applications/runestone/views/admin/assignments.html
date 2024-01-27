@@ -30,7 +30,11 @@
 		<h4 style="text-align: center;">Assignment</h4>
 		<select class="form-control" id="assignlist" onfocus="assignListAlpha(this);" onchange="assignmentInfo();">
 			{{ for assignmentid in assignments: }}
-			<option value="{{=assignmentid}}">{{=assignments[assignmentid]}}</option>
+			<option value="{{=assignmentid}}"
+			{{ if assignmentid == int(selected_assignment): }}
+			 selected="selected"
+			{{ pass }}
+			>{{=assignments[assignmentid]}}</option>
 			{{ pass }}
 		</select>
 		<button class="btn" data-target="#addAssignment" data-toggle="modal" style="margin-top: 12px;">Add</button>
