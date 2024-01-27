@@ -36,6 +36,7 @@ if [[ "$SERVICE" == "all" || "$SERVICE" == "stopall" ]]; then
 fi
 
 if [ "$SERVICE" == "all" ]; then
+    docker compose --profile dev up -d nginx_dstart_dev
     uvicorn rsptx.book_server_api.main:app --host 0.0.0.0 --port 8100 --reload &
     uvicorn rsptx.assignment_server_api.core:app --host 0.0.0.0 --port 8101 --reload &
     uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8102 --reload &
@@ -52,13 +53,13 @@ fi
 
 if [ "$SERVICE" == "assignment" ]; then
     echo "Starting the assignment service on port 8101"
-    uvicorn rsptx.assignment_server_api.core:app --host 0.0.0.0 --port 8101 --reload 
+    uvicorn rsptx.assignment_server_api.core:app --host 0.0.0.0 --port 8101 --reload
     exit 0
 fi
 
 if [ "$SERVICE" == "author" ]; then
     echo "Starting the author service on port 8102"
-    uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8102 --reload 
+    uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8102 --reload
     exit 0
 fi
 
@@ -69,5 +70,5 @@ if [ "$SERVICE" == "runestone" ]; then
     exit 0
 fi
 
-# todo: start up a local nginx server to serve the static files 
+# todo: start up a local nginx server to serve the static files
 # todo: with nginx running allow multiple servers to run

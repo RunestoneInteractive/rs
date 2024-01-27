@@ -21,7 +21,7 @@ Project File Structure
 The code is organized into folders that correspond to concepts from the `polylith
 software architecture <https://polylith.gitbook.io/polylith/architecture>`_.
 If you don't know what a polylith is don't let that deter you.  It is just a fancy
-way of saying that we have a bunch of projects that share a lot of code.  
+way of saying that we have a bunch of projects that share a lot of code.
 
 The top level folders are:
 
@@ -63,7 +63,6 @@ The top level folders are:
         ├── 📁development
         │  └──  core.py
         ├──  docker-compose.yml
-        ├──  author.compose.yml
         ├── 📁docs
         │  ├── 📁build
         │  │  ├── 📁doctrees
