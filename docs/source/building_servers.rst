@@ -36,7 +36,7 @@ Before trying to run the servers, make sure you are not already running a webser
 Test DB Connection and initialize
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you are using the ``db.compose.yml`` file to install the database as part of the application you will want to start up and initialize the database first.  Run ``docker compose -f docker-compose.yml -f db.compose.yml up -d db``.  This will start up just the database server.  You can then initialize the database by running ``docker compose run rsmanage rsmanage initdb``.  Yes, I meant ``rsmanage rsmanage``.  This will create the database tables and add the initial data.  It will first check to see that it can connect to the database.  If not it will give you some information about your database connection url to help you diagnose the problem.
+If you are using the ``basic`` profile to install the database as part of the application you will want to start up and initialize the database first.  Run ``docker compose --profile basic up -d db``.  This will start up just the database server.  You can then initialize the database by running ``docker compose run rsmanage rsmanage initdb``.  Yes, I meant ``rsmanage rsmanage``.  This will create the database tables and add the initial data.  It will first check to see that it can connect to the database.  If not it will give you some information about your database connection url to help you diagnose the problem.
 
 At this point you can also check your environment variables by running `rsmanage env` and/or `docker compose run rsmanage rsmanage env`.  If you have set up separate `DEV_DBURL` and `DC_DEV_DBURL` environment variables both should work.
 
@@ -45,16 +45,17 @@ Start the Servers
 
 #. Now, you can start up the servers. To do this, you will use this (assuming you are letting docker run the database, and that you do not want the author server):
 
-   ``docker compose -f docker-compose.yml -f db.compose.yml up``
+   ``docker compose --profile basic up``
 
    If you want the author server, it would be:
 
-   ``docker compose -f docker-compose.yml -f author.compose.yml -f db.compose.yml up``
+   ``docker compose --profile author --profile basic up`` or
+   ``COMPOSE_PROFILES=author,basic docker compose up``
 
-   If you are using your own database, leave out ``-f db.compose.yml``
+   If you are using your own database, leave out ``--profile basic`` and/or edit the ``COMPOSE_PROFILES`` variable in your ``.env`` file to remove ``basic``.
 
    .. note::
-      In the rest of these instructions you will see something like ``docker compose ... up``. ``...`` is a placeholder to indicate whatever list of compose files you are using (e.g. ``-f docker-compose.yml -f db.compose.yml``). Make sure to actually list the compose files instead of typing ``...``.
+      In the rest of these instructions you will see something like ``docker compose ... up``. ``...`` is a placeholder to indicate whatever list of compose files you are using (e.g. ``-f docker-compose.yml``). Make sure to actually list the compose files instead of typing ``...``.
 
    This will take over the current shell to run the docker containers. The advantage of letting docker take over the shell is that you will get logging messages printed to that window. You can stop the servers by doing ``Ctrl-C``. To run new commands while the containers are running, simply start up an additional shell.
 

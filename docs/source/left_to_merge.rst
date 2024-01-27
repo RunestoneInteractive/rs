@@ -5,7 +5,7 @@ MERGE ME
 
 
 
-Getting a Server Started 
+Getting a Server Started
 ------------------------
 
 This assumes that you have already followed the instructions for installing postgresql, poetry and the plugins as well as Docker.
@@ -16,7 +16,7 @@ This assumes that you have already followed the instructions for installing post
 4.  From the ``bases/rsptx/interactives`` folder run ``npm install``.  This will install all of the javascript dependencies for the interactives.  Next run ``npm run build`` this will build the Runestone Interactive javascript files.  You will need to do this every time you make a change to the javascript files.  If you are NOT going to build a book, then you can skip this step.
 5.  Run the ``build.py`` script from the ``rs`` folder. The first step of this script will verify that you have all of your environment variables defined.
 6.  Make sure you are not already running a webserver on your computer.  You can check this by running ``lsof -i :80``.  If you see a line that says ``nginx`` then you are already running a webserver.  You can stop it by running ``sudo nginx -s stop``.  Alternatively you can edit the ``docker-compose.yml`` file and change the port that nginx is listening on to something other than 80.
-7.  Run ``docker-compose up`` from the ``rs`` folder.  This will start up all of the except the author and worker. Those are only needed in a production environment where you want to give authors the ability to build and deploy their own books. If you want to start up **everything** you run ``docker compose -f docker-compose.yml -f author.compose.yml`` You can also run ``docker-compose up <server name>`` to start up just one server.  The server names are ``runestone``, ``book``, ``author``, ``dash``, ``assignment``, ``worker``, and ``nginx``.  You can also run ``docker-compose up -d`` to run the servers in the background.
+7.  Run ``docker-compose up`` from the ``rs`` folder.  This will start up all of the except the author and worker. Those are only needed in a production environment where you want to give authors the ability to build and deploy their own books. If you want to start up **everything** you run ``COMPOSE_PROFILES=basic,author docker compose up ` You can also run ``docker-compose up <server name>`` to start up just one server.  The server names are ``runestone``, ``book``, ``author``, ``dash``, ``assignment``, ``worker``, and ``nginx``.  You can also run ``docker-compose up -d`` to run the servers in the background.
 8.  Now you should be able to connect to ``http://localhost/`` from your computer and see the homepage.
 
 
@@ -48,13 +48,13 @@ Each project has a Dockerfile for building an image. These images should
 be push-able to our docker container registry and or the public docker
 container registry
 
-To build all of the docker containers and bring them up together.  You can run the ``build.py`` script in the top level directory. The dependencies for the build.py script are included in the top level ``pyproject.toml`` file.  ``poetry install --with=dev`` will install everything you need and then you may will want to start up a poetry shell. The ``build.py`` script will build all of the Python wheels and Docker images, when that completes run ``docker-compose up``.  You can also run ``docker-compose up`` directly if you have already built the images.  
+To build all of the docker containers and bring them up together.  You can run the ``build.py`` script in the top level directory. The dependencies for the build.py script are included in the top level ``pyproject.toml`` file.  ``poetry install --with=dev`` will install everything you need and then you may will want to start up a poetry shell. The ``build.py`` script will build all of the Python wheels and Docker images, when that completes run ``docker-compose up``.  You can also run ``docker-compose up`` directly if you have already built the images.
 
 .. code-block:: bash
 
    poetry run ./build.py --help
    Checking your environment
-   Usage: build.py [--verbose] [--help] [--all] [--push] [--one <container>] [--restart]  
+   Usage: build.py [--verbose] [--help] [--all] [--push] [--one <container>] [--restart]
          --all build all containers, including author and worker
          --push push all containers to docker hub
          --one <container> build just one container, e.g. --one author
@@ -73,9 +73,9 @@ system. You can run nginx in "non daemon mode" using
 ``nginx -g 'daemon off;'``
 
 * Set ``RUNESTONE_PATH`` -- to be the root of the rs repo - this is used for some utilities to read the ``.env`` file.
-* set ``WEB2PY_CONFIG`` development 
-* set ``DEV_DBURL`` postgresql://bmiller:@localhost/runestone_dev 
-* set ``BOOK_PATH`` /path/to/books 
+* set ``WEB2PY_CONFIG`` development
+* set ``DEV_DBURL`` postgresql://bmiller:@localhost/runestone_dev
+* set ``BOOK_PATH`` /path/to/books
 * set ``WEB2PY_PRIVATE_KEY`` for logging in
 
 .. code:: bash
@@ -113,7 +113,7 @@ By default we have logging set to DEBUG for all of the servers.  This is probabl
 Adding a new Project
 --------------------
 
-To add a new project to the monorepo, you will need to add a new folder in the ``bases`` directory.  The folder should be named ``rsptx.<project_name>``. You can do this with ``poetry poly create base --name <yourname>``  You will also need to add a new folder under ``projects/<project_name>``  You can create this with ``poetry poly create project --name <yourname>`` The folder will contain a ``pyproject.toml`` file.  
+To add a new project to the monorepo, you will need to add a new folder in the ``bases`` directory.  The folder should be named ``rsptx.<project_name>``. You can do this with ``poetry poly create base --name <yourname>``  You will also need to add a new folder under ``projects/<project_name>``  You can create this with ``poetry poly create project --name <yourname>`` The folder will contain a ``pyproject.toml`` file.
 
 From the project folder you can do ``poetry add xxxx`` to add packages to your project.  To use any of the packages in your project you will need to add the following to the ``pyproject.toml`` file.  You will find the line ``packages = []`` To that list you will add the various ``rsptx.xxx`` modules from the various components, for example ``{include = "rsptx/db", from = "../../components"},``  You will also want to add your base module to the list of packages.  For example ``{include = "rsptx/<project_name>", from = "../../bases"},``  To build your new project you run ``poetry build-project`` from the project folder.  This will create a ``dist`` folder in the project folder.  The dist folder will contain a source distribution as well as a python wheel.
 

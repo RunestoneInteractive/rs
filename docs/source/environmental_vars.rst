@@ -1,18 +1,18 @@
 Environment Variables Setup
 =======================================
 
-Environment variables are very important in a system like Runestone - they are a way to provide values for secrets that need to be kept private (and thus can't live in the code itself which is publicly accessible).  They are also used to provide startup time flexibility to define how various components will work.  Some environment variables are important on the host side (h), some are important on the docker side (d), and some are important on both sides (b).  
+Environment variables are very important in a system like Runestone - they are a way to provide values for secrets that need to be kept private (and thus can't live in the code itself which is publicly accessible).  They are also used to provide startup time flexibility to define how various components will work.  Some environment variables are important on the host side (h), some are important on the docker side (d), and some are important on both sides (b).
 
 Make a .env File
 ---------------------
 
-You need to make a ``.env`` folder in the root level of your repository to define environmental variables. 
+You need to make a ``.env`` folder in the root level of your repository to define environmental variables.
 There is already a ``sample.env`` file in the repository root, you should copy that sample into a file named ``.env``.
 
 The ``.env`` file is read by docker-compose and used to set environment variables in the docker containers. If you installed ``poetry-dotenv-plugin``, poetry will also automatically read it on the host side.
 
 .. note::
-   If you chose not to install ``poetry-dotenv-plugin``, you will need to manually define the host (h) environment variables listed below in your login profile (.bashrc, config.fish, .zshrc, etc).  
+   If you chose not to install ``poetry-dotenv-plugin``, you will need to manually define the host (h) environment variables listed below in your login profile (.bashrc, config.fish, .zshrc, etc).
 
 The ``.gitignore`` file is set to ignore ``.env``, so your local configuration will not be checked into git.
 
@@ -26,6 +26,7 @@ likely going to want to change are ``BOOK_PATH``, ``DEV_DBURL``, and ``DC_DEV_DB
 Core variables:
 
 * ``BOOK_PATH`` - *(h)* This is the path to the folder (on the HOST) that contains all of the books you want to serve. So if you are running docker on a mac and your books are in ``/Users/bob/Runestone/books`` then you would set this to ``/Users/bob/Runestone/books``. It is recommended you make a folder for this purpose that is outside of the Runestone repository itself. Set this variable to point at that folder.
+* ``COMPOSE_PROFILES`` *(h)* - This is a list of profiles that you want to use when running docker-compose.  The default is ``basic`` which starts the database in docker.  If you want to run the production profile you would set this to ``production`` which will start pgbouncer. If you want to run the servers in dev mode (not in docker) you would set this to ``dev``.  If you want to run the author server you would set this to ``author`` You can also combine profiles by separating them with a comma.  For example ``basic,dev`` would start the database in docker and the servers on the host.
 * ``DEV_DBURL`` *(b)* - This is the URL that is used to connect to the database in development. You need to set it based on whether you are going to run the database through docker (default, simpler) or manually on your local machine (more flexible). See :ref:`Database Options<database-options>` for more information on the choices.
 
    * If you are running a postgresql container with the other servers through docker, you should set this to: ``postgresql://runestone:runestone@localhost:2345/runestone_dev``
@@ -53,3 +54,76 @@ There are a number of other variables - none of them are important unless you ar
 .. note:: Host Side Development Notes
 
    When you are starting one or more servers directly on the host (not in docker) then you will also want to define most of the docker only variables on the host side in order for your servers to be configured properly.  This is another good reason to use the dot-env plugin for poetry.
+
+Here is a summary of the profiles and services available and which should be set to start the various services.  Again, remember that you can combine profiles by separating them with a comma.  For example ``basic,dev`` would start the database in docker and the servers on the host.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Profile
+     - db
+     - pgbouncer
+     - jobe
+     - book
+     - runestone
+     - nginx
+     - assignment
+     - worker
+     - author
+     - nginx_dstart_dev
+   * - default
+     - no
+     - no
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - no
+     - no
+     - no
+   * - basic
+     - yes
+     - no
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - no
+     - no
+     - no
+
+   * - production
+     - no
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - no
+     - no
+     - no
+   * - dev
+     - no
+     - no
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - no
+     - no
+     - yes
+   * - author
+     - no
+     - no
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - no
