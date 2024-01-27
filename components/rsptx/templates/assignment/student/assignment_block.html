@@ -4,7 +4,11 @@
   <thead>
     <tr>
       <th>Name</th>
+      {% if is_instructor %}
+      <th>Action</th>
+      {% else %}
       <th>My Progress</th>
+      {% endif %}
       <th>Due</th>
       <th>Score</th>
       <th>Description</th>
@@ -39,7 +43,7 @@
       <td>{{assignment.duedate}}</td>
       <td>
         {% if assignment.id in stats %}
-        {{stats[assignment.id].score}}
+        {{stats[assignment.id].score}} / {{assignment.points}}
         {% else %}
         No Score
         {% endif %}
