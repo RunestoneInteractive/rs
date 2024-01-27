@@ -49,7 +49,8 @@ Start the Servers
 
    If you want the author server, it would be:
 
-   ``docker compose -f docker-compose.yml -f author.compose.yml up``
+   ``docker compose --profile author --profile basic up`` or
+   ``COMPOSE_PROFILES=author,basic docker compose up``
 
    If you are using your own database, leave out ``--profile basic`` and/or edit the ``COMPOSE_PROFILES`` variable in your ``.env`` file to remove ``basic``.
 

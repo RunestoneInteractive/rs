@@ -107,6 +107,7 @@ for var in [
     "WEB2PY_CONFIG",
     "JWT_SECRET",
     "WEB2PY_PRIVATE_KEY",
+    "COMPOSE_PROFILES",
 ]:
     if var not in os.environ:
         table.add_row(var, "[red]No[/red]")
@@ -138,6 +139,17 @@ if "DC_DEV_DBURL" not in os.environ:
 else:
     console.print("DC_DEV_DBURL set.  Using it instead of DEV_DBURL")
 
+if "COMPOSE_PROFILES" not in os.environ:
+    console.print(
+        "COMPOSE_PROFILES not set.  Options include: basic, author, dev, production",
+        style="bold red",
+    )
+    console.print(
+        "the following services will not be started unless you use the --profile switch: db, author, worker pgbouncer, nginx_dstart_dev",
+        style="bold red",
+    )
+    finish = False
+
 if not os.path.isfile("bases/rsptx/web2py_server/applications/runestone/models/1.py"):
     console.print("Copying 1.py.prototype to 1.py")
     copyfile(
@@ -153,16 +165,14 @@ if finish:
     exit(1)
 
 ym = yaml.load(open("docker-compose.yml"), yaml.FullLoader)
-if "--all" in sys.argv or "--one" in sys.argv:
-    am = yaml.load(open("author.compose.yml"), yaml.FullLoader)
-    # .update replaces the key from the first dict with the key from the second dict
-    # since nginx is in both files we will lose most of the nginx stuff from the docker-compose.yml
-    # file unless we update the other way around.
-    am["services"].update(ym["services"])
-    ym = am
 
 # remove the redis service from the list since we don't customize it
 del ym["services"]["redis"]
+
+if "--all" not in sys.argv:
+    # remove the author and worker services from the list since we don't customize them
+    del ym["services"]["author"]
+    del ym["services"]["worker"]
 
 if "--one" in sys.argv:
     svc_to_build = sys.argv[sys.argv.index("--one") + 1]
@@ -194,7 +204,6 @@ except AttributeError:
 
 
 def progress_wheel():
-
     chars = "x+"
     progress_wheel.counter += 1
     return chars[progress_wheel.counter % 2]
@@ -307,8 +316,6 @@ with Live(generate_table(status), refresh_per_second=4) as lt:
             "compose",
             "-f",
             "docker-compose.yml",
-            "-f",
-            "author.compose.yml",
             "--progress",
             "plain",
             "build",
@@ -374,9 +381,10 @@ if "--restart" in sys.argv:
         command_list = [
             "docker",
             "compose",
+            "--profile",
+            "author",
             "-f",
             "docker-compose.yml",
-            "-f" "author.compose.yml",
             "stop",
         ]
         console.print("Restarting all services...", style="bold")
@@ -386,7 +394,6 @@ if "--restart" in sys.argv:
             "compose",
             "-f",
             "docker-compose.yml",
-            "-f" "author.compose.yml",
             "stop",
             svc_to_build,
         ]
@@ -402,9 +409,10 @@ if "--restart" in sys.argv:
         command_list = [
             "docker",
             "compose",
+            "--profile",
+            "author",
             "-f",
             "docker-compose.yml",
-            "-f" "author.compose.yml",
             "up",
             "-d",
         ]
@@ -412,9 +420,16 @@ if "--restart" in sys.argv:
         command_list = [
             "docker",
             "compose",
+            "--profile",
+            "author",
+            "--profile",
+            "basic",
+            "--profile",
+            "dev",
+            "--profile",
+            "production",
             "-f",
             "docker-compose.yml",
-            "-f" "author.compose.yml",
             "up",
             "-d",
             svc_to_build,
