@@ -155,6 +155,12 @@ def assignments():
     for row in cur_assignments:
         assigndict[row.id] = row.name
 
+    try:
+        selected_assignment = int(request.vars.selected_assignment)
+    except Exception:
+        selected_assignment = -1
+
+    logger.debug("selected_assignment XYZ = {}".format(selected_assignment))
     tags = []
     # tag_query = db(db.tags).select()
     # for tag in tag_query:
@@ -183,8 +189,9 @@ def assignments():
         toc=_get_toc_and_questions(),  # <-- This Gets the readings and questions
         course=course,
         is_instructor=True,
-        ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
-        webwork_js_version=course_attrs.get("webwork_js_version", "2.17"),
+        ptx_js_version=course_attrs.get("ptx_js_version", "0.33"),
+        webwork_js_version=course_attrs.get("webwork_js_version", "2.18"),
+        selected_assignment=selected_assignment,
     )
 
 
@@ -1799,7 +1806,10 @@ def _get_toc_and_questions(practice=False):
             & (db.chapters.course_id == base_course)
             & (db.chapters.chapter_label == db.sub_chapter_taught.chapter_label)
             & (db.sub_chapters.chapter_id == db.chapters.id)
-            & (db.sub_chapters.sub_chapter_label == db.sub_chapter_taught.sub_chapter_label)
+            & (
+                db.sub_chapters.sub_chapter_label
+                == db.sub_chapter_taught.sub_chapter_label
+            )
         ).select(db.chapters.chapter_name, db.sub_chapters.sub_chapter_name)
         chapters_and_subchapters_taught = [
             (row.chapters.chapter_name, row.sub_chapters.sub_chapter_name)
@@ -1872,7 +1882,9 @@ def _get_toc_and_questions(practice=False):
                     )
                 except Exception:
                     # topic's chapter and subchapter are not in the book; ignore this topic
-                    logger.info("Missing Chapter {} or Subchapter {}".format(chap, subch))
+                    logger.info(
+                        "Missing Chapter {} or Subchapter {}".format(chap, subch)
+                    )
                     topic_not_found = True
 
             if not topic_not_found:
@@ -2039,8 +2051,9 @@ def _add_q_meta_info(qrow):
 )
 def get_assignment():
     """
-    Called when ann assignment is chosed on the assignmentn builder page
+    Called when an assignment is chosen on the assignment builder page
     """
+    logger.debug(f"in get_assignment {request.vars.assignmentid}")
     try:
         assignment_id = int(request.vars.assignmentid)
     except (TypeError, ValueError):
