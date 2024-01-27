@@ -54,3 +54,76 @@ There are a number of other variables - none of them are important unless you ar
 .. note:: Host Side Development Notes
 
    When you are starting one or more servers directly on the host (not in docker) then you will also want to define most of the docker only variables on the host side in order for your servers to be configured properly.  This is another good reason to use the dot-env plugin for poetry.
+
+Here is a summary of the profiles and services available and which should be set to start the various services.  Again, remember that you can combine profiles by separating them with a comma.  For example ``basic,dev`` would start the database in docker and the servers on the host.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Profile
+     - db
+     - pgbouncer
+     - jobe
+     - book
+     - runestone
+     - nginx
+     - assignment
+     - worker
+     - author
+     - nginx_dstart_dev
+   * - default
+     - no
+     - no
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - no
+     - no
+     - no
+   * - basic
+     - yes
+     - no
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - no
+     - no
+     - no
+
+   * - production
+     - no
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - no
+     - no
+     - no
+   * - dev
+     - no
+     - no
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - no
+     - no
+     - yes
+   * - author
+     - no
+     - no
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - yes
+     - no
