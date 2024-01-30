@@ -25,10 +25,19 @@ function App() {
         console.log(assignData);
         // todo: send data to server
         // handle a preview button
+        if (e.target.value === "preview") {
         document.getElementById("preview_div").innerHTML = preview_src;
         renderRunestoneComponent(preview_src, "preview_div", {});
+        }
     };
+    const handleSave = (e) => {
+        e.preventDefault();
+    };
+
+    // This is the html template for an activecode component.  It is the same as what is generated
+    // by the RST or the PreTeXt.
     var preview_src = `
+<div class="ptx-runestone-container">
 <div class="runestone explainer ac_section ">
 <div data-component="activecode" id=code4_2_4 data-question_label="4.2.2.2">
 <div id=code4_2_4_question class="ac_question">
@@ -49,12 +58,13 @@ ${assignData.suffix_code}
 </textarea>
 </div>
 </div>
+</div>
     `;
     return (
         <div className="App">
             <h1>ActiveCode Builder</h1>
             <div className="ac_details">
-                <form onSubmit={handleSubmit}>
+                <form>
                     <label htmlFor="name">Assignment Name</label>
                     <input
                         id="name"
@@ -146,10 +156,10 @@ ${assignData.suffix_code}
                         onChange={handleChange}
                     ></textarea>
                     <br />
-                    <button type="submit" value="save">
+                    <button type="button" value="save" onClick={handleSave}>
                         Save
                     </button>
-                    <button type="submit" value="preview" id="preview">
+                    <button type="button" value="preview" id="preview" onClick={handleSubmit}>
                         Preview
                     </button>
                 </form>
