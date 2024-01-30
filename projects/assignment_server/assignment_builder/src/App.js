@@ -1,5 +1,6 @@
 import "./App.css";
 import { useState } from "react";
+import { renderRunestoneComponent } from "./componentFuncs.js";
 
 function App() {
     const [assignData, setAsignData] = useState({
@@ -24,16 +25,40 @@ function App() {
         console.log(assignData);
         // todo: send data to server
         // handle a preview button
+        document.getElementById("preview_div").innerHTML = preview_src;
+        renderRunestoneComponent(preview_src, "preview_div", {});
     };
+    var preview_src = `
+<div class="runestone explainer ac_section ">
+<div data-component="activecode" id=code4_2_4 data-question_label="4.2.2.2">
+<div id=code4_2_4_question class="ac_question">
+<p>${assignData.instructions}</p>
+
+</div>
+<textarea data-lang="${assignData.language}" id="${assignData.name}"
+    data-timelimit=25000  data-codelens="true"
+    data-audio=''
+    data-wasm=/_static
+    >
+${assignData.prefix_code}
+^^^^
+${assignData.starter_code}
+====
+${assignData.suffix_code}
+
+</textarea>
+</div>
+</div>
+    `;
     return (
         <div className="App">
-            <h1>Assignment Builder</h1>
+            <h1>ActiveCode Builder</h1>
             <div className="ac_details">
                 <form onSubmit={handleSubmit}>
                     <label htmlFor="name">Assignment Name</label>
                     <input
                         id="name"
-                        class="rsform"
+                        className="rsform"
                         type="text"
                         placeholder="Enter Assignment Name"
                         value={assignData.name}
@@ -44,7 +69,7 @@ function App() {
                     <input
                         size="50"
                         id="desc"
-                        class="rsform"
+                        className="rsform"
                         type="text"
                         placeholder="Enter Assignment Description"
                         value={assignData.desc}
@@ -54,7 +79,7 @@ function App() {
                     <label htmlFor="due">Assignment Due Date</label>
                     <input
                         id="due"
-                        class="rsform"
+                        className="rsform"
                         type="datetime-local"
                         placeholder="Enter Assignment Due Date"
                         value={assignData.due}
@@ -64,7 +89,7 @@ function App() {
                     <label htmlFor="points">Assignment Points</label>
                     <input
                         id="points"
-                        class="rsform"
+                        className="rsform"
                         type="number"
                         placeholder="Enter Points"
                         value={assignData.points}
@@ -72,7 +97,7 @@ function App() {
                     />
                     <br />
                     <label htmlFor="language">Assignment Language</label>
-                    <select id="language" class="rsform">
+                    <select id="language" className="rsform">
                         <option value="python">Python (in browser)</option>
                         <option value="java">Java</option>
                         <option value="cpp">C++</option>
@@ -80,11 +105,12 @@ function App() {
                         <option value="javascript">Javascript</option>
                         <option value="html">HTML</option>
                     </select>
+                    <br />
                     <textarea
                         rows="4"
                         cols="60"
                         id="instructions"
-                        class="rsform"
+                        className="rsform"
                         placeholder="Enter Assignment Instructions"
                         value={assignData.instructions}
                         onChange={handleChange}
@@ -94,7 +120,7 @@ function App() {
                         rows="4"
                         cols="60"
                         id="prefix_code"
-                        class="rsform"
+                        className="rsform"
                         placeholder="Enter Assignment Prefix Code"
                         value={assignData.prefix_code}
                         onChange={handleChange}
@@ -104,7 +130,7 @@ function App() {
                         rows="4"
                         cols="60"
                         id="starter_code"
-                        class="rsform"
+                        className="rsform"
                         placeholder="Enter Assignment Starter Code"
                         value={assignData.starter_code}
                         onChange={handleChange}
@@ -114,7 +140,7 @@ function App() {
                         rows="4"
                         cols="60"
                         id="suffix_code"
-                        class="rsform"
+                        className="rsform"
                         placeholder="Enter Assignment Suffix Code"
                         value={assignData.suffix_code}
                         onChange={handleChange}
@@ -128,7 +154,7 @@ function App() {
                     </button>
                 </form>
             </div>
-            <div id="preview"></div>
+            <div id="preview_div"></div>
         </div>
     );
 }
