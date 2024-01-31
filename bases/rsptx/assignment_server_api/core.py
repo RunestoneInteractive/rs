@@ -48,7 +48,9 @@ base_dir = pathlib.Path(template_folder)
 app.mount(
     "/staticAssets", StaticFiles(directory=base_dir / "staticAssets"), name="static"
 )
-
+reactdir = pathlib.Path(__file__).parent / "react"
+app.mount("/react", StaticFiles(directory=reactdir), name="react")
+rslogger.info(f"React dir: {reactdir}")
 
 app.include_router(student.router)
 app.include_router(instructor.router)
