@@ -1,15 +1,39 @@
 version: '3.8'
 
+# This docker compose file needs docker compose version 2.20.2 or higher.
+# See https://docs.docker.com/compose/profiles/ for documentation on using profiles
+# and / or setting COMPOSE_PROFILES in your environment.
+
 services:
 
   redis:
     image: redis:6-alpine
+
+  # The db service provides an easy way for new developers to get up and running quickly.
+  # it could also be used for a production system for a single department.  For production
+  # setting up a separate database server is recommended.  Advanced developers probably
+  # want to run their own postgresql server and set the environment variables to point to it.
+  db:
+      profiles: ["basic"]
+      image:
+          postgres:13
+      restart: always
+      environment:
+          # setting these will create a user with this password and a database with this name
+          # this is a feature of the postgres docker image
+          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-runestone}
+          POSTGRES_USER: ${POSTGRES_USER:-runestone}
+          POSTGRES_DB: ${POSTGRES_DBNAME:-runestone_dev}
+      # use a non-standard port to avoid conflicts with other postgres instances on the host
+      ports:
+        - 2345:5432
 
   # pgbouncer is for production only, when in a load balancer configuration.
   # This will effectively limit the total number of connections to the database
   # for the composed application to 30.  If you need more than that you will need
   # to set the PGBOUNCER_DEFAULT_POOL_SIZE environment variable to a larger number.
   pgbouncer:
+    profiles: ["production"]
     image: bitnami/pgbouncer:latest
     restart: always
     ports:
@@ -28,19 +52,21 @@ services:
       - PGBOUNCER_MAX_PREPARED_STATEMENTS=100
       - PGBOUNCER_MAX_CLIENT_CONN=250
       - PGBOUNCER_STATS_USERS=runestone
-
+      - PGBOUNCER_SERVER_FAST_CLOSE=0 # this is the default value but broke in a recent update
+    depends_on:
+      db:
+        condition: service_started
+        required: false
 
   jobe:
     build:
       context: ./projects/jobe
-    #image: registry.digitalocean.com/runestone-registry/rs-jobe
     image: ghcr.io/runestoneinteractive/rs-jobe
     restart: always
 
   book:
     build:
       context: ./projects/book_server
-    #image: registry.digitalocean.com/runestone-registry/rs-book
     image: ghcr.io/runestoneinteractive/rs-book
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -76,15 +102,24 @@ services:
       - SPACES_KEY=${SPACES_KEY}
       - SPACES_SECRET=${SPACES_SECRET}
 
-    links:
-      - redis
-      - jobe
-      - pgbouncer
+    depends_on:
+      redis:
+        condition: service_started
+        required: true
+      jobe:
+        condition: service_started
+        required: true
+      pgbouncer:
+        condition: service_started
+        required: false
+      db:
+        condition: service_started
+        required: false
+
 
   runestone:
       build:
         context: ./projects/w2p_login_assign_grade
-      #image: registry.digitalocean.com/runestone-registry/rs-runestone
       image: ghcr.io/runestoneinteractive/rs-runestone
       extra_hosts:
         - host.docker.internal:host-gateway
@@ -119,15 +154,23 @@ services:
         - SPACES_KEY=${SPACES_KEY}
         - SPACES_SECRET=${SPACES_SECRET}
         - GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS}
-      links:
-        - redis
-        - jobe
-        - pgbouncer
+      depends_on:
+        redis:
+          condition: service_started
+          required: true
+        jobe:
+          condition: service_started
+          required: true
+        pgbouncer:
+          condition: service_started
+          required: false
+        db:
+          condition: service_started
+          required: false
 
   assignment:
     build:
       context: ./projects/assignment_server
-    #image: registry.digitalocean.com/runestone-registry/rs-assignment
     image: ghcr.io/runestoneinteractive/rs-assignment
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -157,10 +200,19 @@ services:
       - UVICORN_MAX_REQUESTS_JITTER=30
       - UVICORN_TIMEOUT=60
 
-    links:
-      - redis
-      - jobe
-      - pgbouncer
+    depends_on:
+      redis:
+        condition: service_started
+        required: true
+      jobe:
+        condition: service_started
+        required: true
+      pgbouncer:
+        condition: service_started
+        required: false
+      db:
+        condition: service_started
+        required: false
 
   nginx:
 
@@ -168,7 +220,6 @@ services:
     build:
       context: ./
       dockerfile: projects/nginx/Dockerfile
-    #image: registry.digitalocean.com/runestone-registry/rs-nginx
     image: ghcr.io/runestoneinteractive/rs-nginx
     restart: always
     ports:
@@ -178,18 +229,23 @@ services:
     volumes:
       - ${BOOK_PATH}:/usr/books
     depends_on:
-      - runestone
-      - book
-      - assignment
-    links:
-      - runestone
-      - book
-      - assignment
+      runestone:
+        condition: service_started
+        required: true
+      book:
+        condition: service_started
+        required: true
+      assignment:
+        condition: service_started
+        required: true
+      author:
+        condition: service_started
+        required: false
 
   # this second nginx is designed to sit in front of python servers running on a host machine for a more convineient dev environment
   # it exposes the Runestone application on port 8080
   nginx_dstart_dev:
-
+    profiles: ["dev"]
     # Note we use context: ./ here so that the Dockerfile can copy from the components folder
     build:
       context: ./
@@ -211,7 +267,6 @@ services:
   rsmanage:
     build:
       context: ./projects/rsmanage
-    #image: registry.digitalocean.com/runestone-registry/rs-rsmanage
     image: ghcr.io/runestoneinteractive/rs-rsmanage
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -227,3 +282,69 @@ services:
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
+
+
+  author:
+      profiles: ["author"]
+      build:
+          context: ./projects/author_server
+      #image: registry.digitalocean.com/runestone-registry/rs-author
+      image: ghcr.io/runestoneinteractive/rs-author
+      extra_hosts:
+          - host.docker.internal:host-gateway
+      ports:
+          - 8114:8114
+      command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8114
+      volumes:
+          - ${BOOK_PATH}:/books
+          - $HOME/downloads:/usr/src/app/downloads
+      environment:
+          - SERVER_CONFIG=${SERVER_CONFIG}
+          - CELERY_BROKER_URL=redis://redis:6379/0
+          - CELERY_RESULT_BACKEND=redis://redis:6379/0
+          - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+          - DBURL=${DC_DBURL:-$DBURL}
+          - RUNESTONE_PATH=/usr/src/app
+          - JWT_SECRET=${JWT_SECRET}
+      depends_on:
+          redis:
+              condition: service_started
+              required: true
+          db:
+              condition: service_started
+              required: false
+
+  worker:
+      profiles: ["author"]
+      build:
+          context: ./projects/author_server
+      #image: registry.digitalocean.com/runestone-registry/rs-worker
+      image: ghcr.io/runestoneinteractive/rs-worker
+      extra_hosts:
+          - host.docker.internal:host-gateway
+      command: celery -A rsptx.author_server_api.worker.celery worker
+      volumes:
+          - ${BOOK_PATH}:/books
+          - ${SSH_AUTH_SOCK:-/tmp}:/ssh-agent # forward host ssh agent
+          - $HOME/downloads:/usr/src/app/downloads
+      environment:
+          - SERVER_CONFIG=${SERVER_CONFIG}
+          - CELERY_BROKER_URL=redis://redis:6379/0
+          - CELERY_RESULT_BACKEND=redis://redis:6379/0
+          - RUNESTONE_PATH=/usr/src/app
+          - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+          - DBURL=${DC_DBURL:-$DBURL}
+          - WEB2PY_CONFIG=${SERVER_CONFIG}
+          - JWT_SECRET=${JWT_SECRET}
+          - SSH_AUTH_SOCK=/ssh-agent
+          - NUM_SERVERS=${NUM_SERVERS:-1}
+      depends_on:
+          author:
+              condition: service_started
+              required: true
+          redis:
+              condition: service_started
+              required: true
+          db:
+              condition: service_started
+              required: false

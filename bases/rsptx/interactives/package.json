@@ -1,8 +1,7 @@
 {
     "name": "WebComponents",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "",
-    "main": "dist/runestone.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "check-env": "node -e 'console.log(process.env)' | grep npm",

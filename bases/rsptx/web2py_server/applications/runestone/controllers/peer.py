@@ -124,7 +124,6 @@ def extra():
 
 
 def _get_current_question(assignment_id, get_next):
-
     assignment = db(db.assignments.id == assignment_id).select().first()
 
     if get_next == "Reset":
@@ -144,7 +143,7 @@ def _get_numbered_question(assignment_id, qnum):
         orderby=[db.assignment_questions.sorting_priority, db.assignment_questions.id]
     )
     done = "false"
-    if qnum >= len(a_qs) - 1:
+    if qnum > len(a_qs) - 1:
         qnum = len(a_qs) - 1
         done = "true"
 
@@ -312,7 +311,6 @@ def percent_correct():
 #
 @auth.requires_login()
 def student():
-
     if "access_token" not in request.cookies:
         # this means the user is logged in to web2py but not fastapi - this is not good
         # as the javascript in the questions assumes the new server and a token.
@@ -532,7 +530,7 @@ def peer_async():
         assignment_id=assignment_id,
         nextQnum=qnum + 1,
         all_done=all_done,
-        **course_attrs
+        **course_attrs,
     )
 
 

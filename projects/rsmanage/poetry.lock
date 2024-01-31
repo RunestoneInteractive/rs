@@ -2714,7 +2714,7 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.2.9"
+version = "7.2.10"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10"
@@ -3454,4 +3454,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "2e4181a26275657a760aa7d83069d2b85b09900c644a4ff76d1bdb66897abd87"
+content-hash = "d595dedd9625cea3dbba89234afc49e72283ea233ad5898e026f3f1c957494d2"

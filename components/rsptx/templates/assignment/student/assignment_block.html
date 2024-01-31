@@ -4,7 +4,11 @@
   <thead>
     <tr>
       <th>Name</th>
+      {% if is_instructor %}
+      <th>Action</th>
+      {% else %}
       <th>My Progress</th>
+      {% endif %}
       <th>Due</th>
       <th>Score</th>
       <th>Description</th>
@@ -17,6 +21,9 @@
         <a href="/assignment/student/doAssignment?assignment_id={{assignment.id}}">{{assignment.name}}</a>
       </td>
       <td>
+        {% if is_instructor %}
+          <button onclick="window.location.href='/runestone/admin/assignments?selected_assignment={{assignment.id}}'">Edit</button>
+        {% else %}
         {% if assignment.id in stats %}
         {% set current = stats[assignment.id].is_submit %}
         {% else %}
@@ -30,12 +37,13 @@
           </option>
           {% endfor %}
         </select>
+        {% endif %}
       </td>
 
       <td>{{assignment.duedate}}</td>
       <td>
         {% if assignment.id in stats %}
-        {{stats[assignment.id].score}}
+        {{stats[assignment.id].score}} / {{assignment.points}}
         {% else %}
         No Score
         {% endif %}
