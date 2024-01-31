@@ -669,7 +669,7 @@ async def addinstructor(config, username, course):
 @pass_config
 async def addeditor(config, username, basecourse):
     """
-    Add an existing user as an instructor for a course
+    Add an existing user as an editor for a given base course
     """
 
     res = await fetch_user(username)
