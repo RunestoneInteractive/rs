@@ -165,6 +165,7 @@ ${assignData.suffix_code}
                 </form>
             </div>
             <div id="preview_div"></div>
+            <div id="editRST">  </div>
         </div>
     );
 }

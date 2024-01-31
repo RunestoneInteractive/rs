@@ -1,5 +1,6 @@
 // Render a question in the provided div.
 
+
 // TODO: remove document.querySelector dependency
 export async function renderRunestoneComponent(
     componentSrc,
@@ -118,7 +119,7 @@ export async function renderRunestoneComponent(
             editButton.classList.add("btn", "btn-normal");
             editButton.dataset.dataTarget = "#editModal";
             editButton.dataset.dataToggle = "modal";
-            editButton.addEventListener("click", function (event) {
+            editButton.addEventListener("click", async function (event) {
                 let jsheaders = new Headers({
                     "Content-type": "application/json; charset=utf-8",
                     Accept: "application/json",
@@ -131,13 +132,13 @@ export async function renderRunestoneComponent(
                     headers: jsheaders,
                 };
 
-                fetch("/runestone/admin/question_text", data).then(function (
-                    obj
-                ) {
-                    let rst = document.querySelector("#editRST");
-                    rst.textContent = obj.json();
-                });
-            });
+                let res = await fetch("/runestone/admin/question_text", data)
+                let rst = document.querySelector("#editRST");
+                if (res.ok) {
+                    let js = await res.json();
+                    rst.textContent = js;
+                };
+            })
             document.querySelector(`#${whereDiv}`).appendChild(editButton);
             let closeButton = document.createElement("button");
             closeButton.textContent = "Close Preview";
