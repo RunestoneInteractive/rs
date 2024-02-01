@@ -13,6 +13,7 @@ function App() {
         desc: "",
         due: "",
         points: "",
+        language: "python",
         instructions: "",
         prefix_code: "",
         starter_code: "",
@@ -30,9 +31,10 @@ function App() {
         console.log(assignData);
         // todo: send data to server
         // handle a preview button
+        console.log(assignData)
         if (e.target.value === "preview") {
-        document.getElementById("preview_div").innerHTML = preview_src;
-        renderRunestoneComponent(preview_src, "preview_div", {});
+            document.getElementById("preview_div").innerHTML = preview_src;
+            renderRunestoneComponent(preview_src, "preview_div", {});
         }
     };
     const handleSave = (e) => {
@@ -49,8 +51,8 @@ function App() {
 <p>${assignData.instructions}</p>
 
 </div>
-<Form.Control data-lang="${assignData.language}" id="${assignData.name}"
-    data-timelimit=25000  data-codelens="true"
+<textarea data-lang="${assignData.language}" id="${assignData.name}"
+    data-timelimit=25000  data-codelens="true"  style="visibility: hidden;"
     data-audio=''
     data-wasm=/_static
     >
@@ -60,7 +62,7 @@ ${assignData.starter_code}
 ====
 ${assignData.suffix_code}
 
-</Form.Control>
+</textarea>
 </div>
 </div>
 </div>
@@ -124,7 +126,12 @@ ${assignData.suffix_code}
                             Language
                         </Form.Label>
                         <Col sm={2}>
-                            <Form.Select id="language" className="rsform">
+                            <Form.Select
+                                id="language"
+                                className="rsform"
+                                value={assignData.language}
+                                onChange={handleChange}
+                            >
                                 <option value="python">
                                     Python (in browser)
                                 </option>
@@ -133,6 +140,7 @@ ${assignData.suffix_code}
                                 <option value="c">C</option>
                                 <option value="javascript">Javascript</option>
                                 <option value="html">HTML</option>
+                                <option value="sql">SQL</option>
                             </Form.Select>
                         </Col>
                     </Form.Group>
@@ -144,7 +152,7 @@ ${assignData.suffix_code}
                             cols={60}
                             id="instructions"
                             className="rsform"
-                            placeholder="Enter Assignment Instructions"
+                            placeholder="Enter Assignment Instructions (HTML Allowed)"
                             value={assignData.instructions}
                             onChange={handleChange}
                         ></Form.Control>
@@ -174,7 +182,7 @@ ${assignData.suffix_code}
                             cols="60"
                             id="suffix_code"
                             className="rsform"
-                            placeholder="Enter Assignment Suffix Code"
+                            placeholder="Enter Assignment Suffix (unit test) Code"
                             value={assignData.suffix_code}
                             onChange={handleChange}
                         ></Form.Control>
