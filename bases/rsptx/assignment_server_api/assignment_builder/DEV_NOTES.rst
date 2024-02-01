@@ -12,3 +12,17 @@ This is a trial implementation of a new assignment interface using React for fro
 5. Update the assignment app to mount 'react' as a static folder
 6. when you run ``npm run build`` set the ``BUILD_PATH`` environment variable to the react folder for the assignment app
 
+
+
+There are lots more options for the activecode, how to expose them without making the interface too complex? -- maybe an advanced button that unhides a bunch of options?
+
+* timelimit
+* stdin
+* datafile
+* sourcefile
+* dburl
+* available_files
+* compileargs
+* linkargs
+* interpreterargs
+* runargs
