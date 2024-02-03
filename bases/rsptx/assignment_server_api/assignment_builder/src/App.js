@@ -20,12 +20,18 @@ function App() {
         suffix_code: "",
     });
 
+    const [acData, setAcData] = useState({
+        uniqueId: "",
+        language: "python",
+    });
+
     const handleChange = (e) => {
         setAsignData((prevData) => ({
             ...prevData,
             [e.target.id]: e.target.value,
         }));
     };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         console.log(assignData);

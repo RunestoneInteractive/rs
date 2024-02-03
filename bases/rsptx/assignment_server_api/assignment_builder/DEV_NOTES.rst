@@ -26,3 +26,9 @@ There are lots more options for the activecode, how to expose them without makin
 * linkargs
 * interpreterargs
 * runargs
+
+
+Save the state as javascript object.  Save that in the source field of the database for the question.
+Write code to convert the javascript to the required html
+
+Save the output as a pretext string.  Make a generic function to convert a json object to pretext.
