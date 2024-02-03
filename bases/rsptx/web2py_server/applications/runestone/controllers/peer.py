@@ -370,9 +370,7 @@ def find_good_partner(group, peeps, answer_dict):
         logger.debug(f"{i} : {peeps[i]}")
         i += 1
 
-    logger.debug("made it")
     if i < len(peeps):
-        logger.debug("made it 2")
         return peeps.pop(i)
     else:
         return peeps.pop()
