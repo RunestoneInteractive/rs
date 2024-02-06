@@ -34,17 +34,76 @@ function App() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log(assignData);
-        // todo: send data to server
         // handle a preview button
-        console.log(assignData)
+        console.log(assignData);
         if (e.target.value === "preview") {
             document.getElementById("preview_div").innerHTML = preview_src;
             renderRunestoneComponent(preview_src, "preview_div", {});
         }
     };
-    const handleSave = (e) => {
+    const handleSave = async (e) => {
         e.preventDefault();
+        let assignmentId = 0;
+        let questionId = 0;
+        let jsheaders = new Headers({
+            "Content-type": "application/json; charset=utf-8",
+            Accept: "application/json",
+        });
+        let body = {
+            name: assignData.name,
+            description: assignData.desc,
+            duedate: assignData.due,
+            points: assignData.points,
+        };
+        let data = {
+            body: JSON.stringify(body),
+            headers: jsheaders,
+            method: "POST",
+        };
+        let resp = await fetch("/assignment/instructor/new_assignment", data);
+        let result = await resp.json();
+        if (result.detail.status === "success") {
+            console.log("Assignment created");
+            assignmentId = result.detail.id;
+        }
+
+        // Now add the question
+        // these names match the database columns
+        body = {
+            name: assignData.name,
+            question: acData,
+            question_type: "activecode",
+            source: JSON.stringify(assignData),
+            htmlsrc: preview_src,
+        };
+        data = {
+            body: JSON.stringify(body),
+            headers: jsheaders,
+            method: "POST",
+        };
+        resp = await fetch("/assignment/instructor/new_question", data);
+        result = await resp.json();
+        if (result.detail.status === "success") {
+            console.log("Question created");
+            questionId = result.detail.id;
+        }
+
+        //finally add the question to the assignment
+        body = {
+            assignment_id: assignmentId,
+            question_id: questionId,
+            points: assignData.points,
+        };
+        data = {
+            body: JSON.stringify(body),
+            headers: jsheaders,
+            method: "POST",
+        };
+        resp = await fetch("/assignment/instructor/new_assignment_q", data);
+        result = await resp.json();
+        if (result.detail.status === "success") {
+            console.log("Question added to assignment");
+        }
     };
 
     // This is the html template for an activecode component.  It is the same as what is generated
