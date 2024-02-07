@@ -75,7 +75,7 @@ while 1:
             newtb = traceback.insert().values(
                 traceback=traceback_str,
                 timestamp=datetime.datetime.utcnow(),
-                err_message=ticket_data["output"],
+                err_message=ticket_data["output"][:512],
                 hostname="web2py",
                 path=path,
                 query_string=query_string,
