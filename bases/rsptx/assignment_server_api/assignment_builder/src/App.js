@@ -13,6 +13,10 @@ function App() {
         desc: "",
         due: "",
         points: "",
+    });
+
+    const [acData, setAcData] = useState({
+        uniqueId: "",
         language: "python",
         instructions: "",
         prefix_code: "",
@@ -20,18 +24,19 @@ function App() {
         suffix_code: "",
     });
 
-    const [acData, setAcData] = useState({
-        uniqueId: "",
-        language: "python",
-    });
-
-    const handleChange = (e) => {
+    const handleAsgnDataChange = (e) => {
         setAsignData((prevData) => ({
             ...prevData,
             [e.target.id]: e.target.value,
         }));
     };
 
+    const handleAcDataChange = (e) => {
+        setAcData((prevData) => ({
+            ...prevData,
+            [e.target.id]: e.target.value,
+        }));
+    };
     const handleSubmit = (e) => {
         e.preventDefault();
         // handle a preview button
@@ -113,19 +118,19 @@ function App() {
 <div class="runestone explainer ac_section ">
 <div data-component="activecode" id=code4_2_4 data-question_Form.Label="4.2.2.2">
 <div id=code4_2_4_question class="ac_question">
-<p>${assignData.instructions}</p>
+<p>${acData.instructions}</p>
 
 </div>
-<textarea data-lang="${assignData.language}" id="${assignData.name}"
+<textarea data-lang="${acData.language}" id="${assignData.name}"
     data-timelimit=25000  data-codelens="true"  style="visibility: hidden;"
     data-audio=''
     data-wasm=/_static
     >
-${assignData.prefix_code}
+${acData.prefix_code}
 ^^^^
-${assignData.starter_code}
+${acData.starter_code}
 ====
-${assignData.suffix_code}
+${acData.suffix_code}
 
 </textarea>
 </div>
@@ -145,7 +150,7 @@ ${assignData.suffix_code}
                             type="text"
                             placeholder="Enter Assignment Name"
                             value={assignData.name}
-                            onChange={handleChange}
+                            onChange={handleAsgnDataChange}
                         />
                         <Form.Label htmlFor="desc">
                             Assignment Description
@@ -157,7 +162,7 @@ ${assignData.suffix_code}
                             type="text"
                             placeholder="Enter Assignment Description"
                             value={assignData.desc}
-                            onChange={handleChange}
+                            onChange={handleAsgnDataChange}
                         />
                     </Form.Group>
                     <Form.Group className="mb-1" as={Row}>
@@ -171,7 +176,7 @@ ${assignData.suffix_code}
                                 type="datetime-local"
                                 placeholder="Enter Assignment Due Date"
                                 value={assignData.due}
-                                onChange={handleChange}
+                                onChange={handleAsgnDataChange}
                             />
                         </Col>
                         <Form.Label column sm={2}>
@@ -184,7 +189,7 @@ ${assignData.suffix_code}
                                 type="number"
                                 placeholder="Points"
                                 value={assignData.points}
-                                onChange={handleChange}
+                                onChange={handleAsgnDataChange}
                             />
                         </Col>
                         <Form.Label column sm={2}>
@@ -194,8 +199,8 @@ ${assignData.suffix_code}
                             <Form.Select
                                 id="language"
                                 className="rsform"
-                                value={assignData.language}
-                                onChange={handleChange}
+                                value={acData.language}
+                                onChange={handleAcDataChange}
                             >
                                 <option value="python">
                                     Python (in browser)
@@ -218,8 +223,8 @@ ${assignData.suffix_code}
                             id="instructions"
                             className="rsform"
                             placeholder="Enter Assignment Instructions (HTML Allowed)"
-                            value={assignData.instructions}
-                            onChange={handleChange}
+                            value={acData.instructions}
+                            onChange={handleAcDataChange}
                         ></Form.Control>
                         <Form.Control
                             as="textarea"
@@ -228,8 +233,8 @@ ${assignData.suffix_code}
                             id="prefix_code"
                             className="rsform"
                             placeholder="Enter Assignment Prefix Code"
-                            value={assignData.prefix_code}
-                            onChange={handleChange}
+                            value={acData.prefix_code}
+                            onChange={handleAcDataChange}
                         ></Form.Control>
                         <Form.Control
                             as="textarea"
@@ -238,8 +243,8 @@ ${assignData.suffix_code}
                             id="starter_code"
                             className="rsform"
                             placeholder="Enter Assignment Starter Code"
-                            value={assignData.starter_code}
-                            onChange={handleChange}
+                            value={acData.starter_code}
+                            onChange={handleAcDataChange}
                         ></Form.Control>
                         <Form.Control
                             as="textarea"
@@ -248,8 +253,8 @@ ${assignData.suffix_code}
                             id="suffix_code"
                             className="rsform"
                             placeholder="Enter Assignment Suffix (unit test) Code"
-                            value={assignData.suffix_code}
-                            onChange={handleChange}
+                            value={acData.suffix_code}
+                            onChange={handleAcDataChange}
                         ></Form.Control>
                     </Form.Group>
                     <Stack direction="horizontal" gap={2}>
