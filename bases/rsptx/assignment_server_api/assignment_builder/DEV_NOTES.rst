@@ -32,3 +32,11 @@ Save the state as javascript object.  Save that in the source field of the datab
 Write code to convert the javascript to the required html
 
 Save the output as a pretext string.  Make a generic function to convert a json object to pretext.
+
+State
+-----
+
+I have refactored the activecode parts into an activecode component.  BUT the state from
+the component needs to be visible to the app so that it can do the preview... Unless the preview should be moved into the component?  The save should also be in the component, but then a second save is needed to save the assignment.
+
+But in any case at least the identifier for the activecode component needs to be visible to the app so that it can be saved in the database when the assignment is saved.
