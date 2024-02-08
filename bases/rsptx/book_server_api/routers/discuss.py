@@ -106,7 +106,9 @@ class ConnectionManager:
             )
 
     async def broadcast(self, message: str) -> None:
-        rslogger.debug(f"{os.getpid()}: {self.active_connections=} {message=}")
+        rslogger.debug(
+            f"CM Broadcast: {os.getpid()}: {self.active_connections=} {message=}"
+        )
         to_remove = []
         for key, connection in self.active_connections.items():
             rslogger.debug(f"{os.getpid()}: sending to {key}@{connection}")
@@ -155,6 +157,7 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
     # by the same worker process.
     local_users.add(username)
     await manager.connect(username, websocket)
+    rslogger.debug(f"Connecting peer instruction websocket to {settings.redis_uri}")
     r = aioredis.from_url(settings.redis_uri)
     subscriber = r.pubsub()
 
