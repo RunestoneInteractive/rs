@@ -6,7 +6,8 @@ import Form from "react-bootstrap/Form";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Stack from "react-bootstrap/Stack";
-
+import ActiveCode
+ from "./activeCode.js";
 function App() {
     const [assignData, setAsignData] = useState({
         name: "",
@@ -192,71 +193,8 @@ ${acData.suffix_code}
                                 onChange={handleAsgnDataChange}
                             />
                         </Col>
-                        <Form.Label column sm={2}>
-                            Language
-                        </Form.Label>
-                        <Col sm={2}>
-                            <Form.Select
-                                id="language"
-                                className="rsform"
-                                value={acData.language}
-                                onChange={handleAcDataChange}
-                            >
-                                <option value="python">
-                                    Python (in browser)
-                                </option>
-                                <option value="java">Java</option>
-                                <option value="cpp">C++</option>
-                                <option value="c">C</option>
-                                <option value="javascript">Javascript</option>
-                                <option value="html">HTML</option>
-                                <option value="sql">SQL</option>
-                            </Form.Select>
-                        </Col>
                     </Form.Group>
-                    <Form.Group className="mb-3">
-                        <br />
-                        <Form.Control
-                            as="textarea"
-                            rows={3}
-                            cols={60}
-                            id="instructions"
-                            className="rsform"
-                            placeholder="Enter Assignment Instructions (HTML Allowed)"
-                            value={acData.instructions}
-                            onChange={handleAcDataChange}
-                        ></Form.Control>
-                        <Form.Control
-                            as="textarea"
-                            rows="4"
-                            cols="60"
-                            id="prefix_code"
-                            className="rsform"
-                            placeholder="Enter Assignment Prefix Code"
-                            value={acData.prefix_code}
-                            onChange={handleAcDataChange}
-                        ></Form.Control>
-                        <Form.Control
-                            as="textarea"
-                            rows="4"
-                            cols="60"
-                            id="starter_code"
-                            className="rsform"
-                            placeholder="Enter Assignment Starter Code"
-                            value={acData.starter_code}
-                            onChange={handleAcDataChange}
-                        ></Form.Control>
-                        <Form.Control
-                            as="textarea"
-                            rows="4"
-                            cols="60"
-                            id="suffix_code"
-                            className="rsform"
-                            placeholder="Enter Assignment Suffix (unit test) Code"
-                            value={acData.suffix_code}
-                            onChange={handleAcDataChange}
-                        ></Form.Control>
-                    </Form.Group>
+                    <ActiveCode acData={acData} handleAcDataChange={handleAcDataChange} />
                     <Stack direction="horizontal" gap={2}>
                         <Button
                             variant="primary"
