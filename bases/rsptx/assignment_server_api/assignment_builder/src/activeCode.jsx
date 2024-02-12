@@ -4,6 +4,7 @@ import Col from "react-bootstrap/Col";
 import Stack from "react-bootstrap/Stack";
 import { renderRunestoneComponent } from "./componentFuncs.js";
 import Button from "react-bootstrap/Button";
+
 import { useState } from "react";
 
 const acStyle = {
@@ -184,6 +185,7 @@ ${acData.suffix_code}
                 <Form.Control
                     as="textarea"
                     rows={3}
+                    cols={60}
                     id="instructions"
                     className="rsform w-75"
                     placeholder="Enter Assignment Instructions (HTML Allowed)"
@@ -196,6 +198,7 @@ ${acData.suffix_code}
                 <Form.Control
                     as="textarea"
                     rows="4"
+                    cols="60"
                     id="prefix_code"
                     className="rsform w-75"
                     placeholder="Enter Assignment Prefix Code"
@@ -208,6 +211,7 @@ ${acData.suffix_code}
                 <Form.Control
                     as="textarea"
                     rows="4"
+                    cols="60"
                     id="starter_code"
                     className="rsform w-75"
                     placeholder="Enter Assignment Starter Code"
@@ -220,6 +224,7 @@ ${acData.suffix_code}
                 <Form.Control
                     as="textarea"
                     rows="4"
+                    cols="60"
                     id="suffix_code"
                     className="rsform w-75"
                     placeholder="Enter Assignment Suffix (unit test) Code"
