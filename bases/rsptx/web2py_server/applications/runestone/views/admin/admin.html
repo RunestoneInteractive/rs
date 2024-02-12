@@ -228,8 +228,8 @@
             <div class="list-group">
                 <form method="POST" id="removeins" action="Javascript:remove_instructor();">
                     <select size="10" id="instructorlist" name="instructor" class="form-control">
-                        {{ for person in sorted(list(instructors.values()), key=lambda s: str(s).split()[-1]): }}
-                        <option value="{{=person}}">{{ =person }}</option>
+                        {{ for pid, person in sorted(list(instructors.items()), key=lambda s: str(s[1]).split()[-1].lower()): }}
+                        <option value="{{=pid}}">{{ =person }}</option>
                         {{ pass }}
                     </select>
                     <div style="text-align: center">
@@ -246,8 +246,8 @@
                 </div>
                 <form id="addins" method="POST" action="Javascript:add_instructor();">
                     <select size="10" id="studentlist" name="student" class="form-control">
-                        {{ for user in students: }}
-                        <option class="available_students" value="{{=user}}">{{ =students[user] }}</option>
+                        {{ for pid, user in sorted(list(students.items()), key=lambda s: str(s[1]).split()[-2].lower()): }}
+                        <option class="available_students" value="{{=pid}}">{{ =user }}</option>
                         {{ pass }}
                     </select>
                     <div style="text-align: center">
@@ -362,7 +362,7 @@
         $('#CopyAssignmentsTab').css('background-color', 'transparent');
         $('#courseTab').css('background-color', 'transparent');
         $('#LTITab').css('background-color', 'transparent');
-        $("aresetTab").css('background-color', 'transparent')
+        $("aresetTab").css('background-color', 'transparent');
         $("#rsnews").hide()
     });
 
