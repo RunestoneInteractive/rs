@@ -27,3 +27,5 @@ build.log
 _build
 /.last_version
 /bases/rsptx/assignment_server_api/react
+.vite
+*.tgz
