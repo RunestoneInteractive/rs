@@ -268,6 +268,22 @@ with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
             with pushd(projdir):
                 status[proj] = "[grey62]building...[/grey62]"
                 lt.update(generate_wheel_table(status))
+                if os.path.isfile("build.py"):
+                    res = subprocess.run(
+                        ["python", "build.py"], capture_output=True
+                    )
+                    if res.returncode == 0:
+                        status[proj] = "[green]Yes[/green]"
+                        lt.update(generate_wheel_table(status))
+                    else:
+                        status[proj] = "[red]Fail[/red]"
+                        lt.update(generate_wheel_table(status))
+                        if VERBOSE:
+                            console.print(res.stderr.decode(stdout_err_encoding))
+                        else:
+                            with open("build.log", "a") as f:
+                                f.write(res.stderr.decode(stdout_err_encoding))
+                        continue
                 if os.path.isfile("pyproject.toml"):
                     res = subprocess.run(
                         ["poetry", "build-project"], capture_output=True

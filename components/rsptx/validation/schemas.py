@@ -24,6 +24,7 @@ from pydantic import (
     BaseConfig,
     create_model,
     Field,
+    Json
 )
 from humps import camelize  # type: ignore
 from typing_extensions import Annotated
@@ -219,3 +220,26 @@ class PeerMessage(BaseModel):
     sender: str
     message: str
     broadcast: bool
+
+
+class AssignmentIncoming(BaseModel):
+    name: str
+    description: str
+    points: int
+    duedate: datetime
+
+
+class QuestionIncoming(BaseModel):
+    name: str
+    source: str
+    question_type: str
+    htmlsrc: str
+    autograde: Optional[str] = None
+    question_json: Json
+
+
+class AssignmentQuestionIncoming(BaseModel):
+    assignment_id: int
+    question_id: int
+    points: int
+    order: Optional[int] = None
