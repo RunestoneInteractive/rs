@@ -12,7 +12,7 @@ const acStyle = {
     padding: "10px",
 };
 
-function ActiveCodeCreator({ assignData }) {
+function ActiveCodeCreator({ assignData, newExercise }) {
     const [acData, setAcData] = useState({
         uniqueId: "activecode_1",
         qpoints: 1,
@@ -24,6 +24,8 @@ function ActiveCodeCreator({ assignData }) {
     });
 
     const handleAcDataChange = (e) => {
+        // the left paren after the arrow is required to avoid a syntax error since the braces are
+        // interpreted as the start of a function body but we want to return an object
         setAcData((prevData) => ({
             ...prevData,
             [e.target.id]: e.target.value,
@@ -42,6 +44,7 @@ function ActiveCodeCreator({ assignData }) {
 
     const handleSave = async (e) => {
         e.preventDefault();
+        newExercise(acData);
         // todo fix to allow for updates
         let assignmentId = 0;
         let questionId = 0;
@@ -160,24 +163,24 @@ ${acData.suffix_code}
                         className="rsform"
                         type="number"
                         placeholder="Points"
-                        value={acData.points}
+                        value={acData.qpoints}
                         onChange={handleAcDataChange}
                     />
                 </Col>
             </Form.Group>
             <Form.Group className="mb-3">
                 <Row>
-                <Form.Label column sm={3}>
-                    Question Name
-                </Form.Label>
-                <Form.Control
-                    id="uniqueId"
-                    className="rsform w-50"
-                    type="text"
-                    placeholder="Enter Question Name"
-                    value={acData.uniqueId}
-                    onChange={handleAcDataChange}
-                />
+                    <Form.Label column sm={3}>
+                        Question Name
+                    </Form.Label>
+                    <Form.Control
+                        id="uniqueId"
+                        className="rsform w-50"
+                        type="text"
+                        placeholder="Enter Question Name"
+                        value={acData.uniqueId}
+                        onChange={handleAcDataChange}
+                    />
                 </Row>
                 <Form.Label column sm={2}>
                     Instructions
