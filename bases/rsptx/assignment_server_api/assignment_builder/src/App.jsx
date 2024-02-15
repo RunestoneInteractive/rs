@@ -6,22 +6,27 @@ import Col from "react-bootstrap/Col";
 import ActiveCodeCreator from "./activeCode.jsx";
 
 function App() {
-    
-    let datetime = `${new Date().getFullYear()}-${`${
-        new Date().getMonth() + 1
-    }`.padStart(2, 0)}-${`${new Date().getDate() + 1}`.padStart(
+    // make the default deadline 7 days from now
+    let cDate = new Date();
+    let epoch = cDate.getTime();
+    epoch = epoch + 60 * 60 * 24 * 7 * 1000;
+    cDate = new Date(epoch);
+    let defaultDeadline = `${cDate.getFullYear()}-${`${
+        cDate.getMonth() + 1
+    }`.padStart(2, 0)}-${`${cDate.getDate()}`.padStart(
         2,
         0
-    )}T${`${new Date().getHours()}`.padStart(
+    )}T${`${cDate.getHours()}`.padStart(
         2,
         0
-    )}:${`${new Date().getMinutes()}`.padStart(2, 0)}`;
+    )}:${`${cDate.getMinutes()}`.padStart(2, 0)}`;
 
     const [assignData, setAsgmtData] = useState({
         name: "",
         desc: "",
-        due: datetime,
+        due: defaultDeadline,
         points: 1,
+        exercises: [],
     });
 
     // The setAsgmtData function is used to update the state of the assignData object.
@@ -33,6 +38,26 @@ function App() {
             [e.target.id]: e.target.value,
         }));
     };
+
+    const handleNewExercise = (eData) => {
+        setAsgmtData((prevData) => {
+            let newd = {
+                ...prevData,
+            };
+            newd.exercises = newd.exercises.filter(
+                (ex) => ex.uniqueId !== eData.uniqueId
+            );
+            newd.exercises.push(eData);
+            newd.points = parseInt(
+                newd.exercises.reduce(
+                    (acc, ex) => acc + parseInt(ex.qpoints),
+                    0
+                )
+            );
+            return newd;
+        });
+    };
+
     return (
         <div className="App">
             <h1>ActiveCode Builder</h1>
@@ -88,7 +113,10 @@ function App() {
                             />
                         </Col>
                     </Form.Group>
-                    <ActiveCodeCreator assignData={assignData} />
+                    <ActiveCodeCreator
+                        assignData={assignData}
+                        newExercise={handleNewExercise}
+                    />
                 </Form>
             </div>
             <div id="preview_div"></div>
