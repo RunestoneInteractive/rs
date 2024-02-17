@@ -82,7 +82,7 @@ XML_EX_END = """
 
 XML_LISTING_START = """
     <program xml:id="{divid}" interactive='activecode' language="{language}">
-{optional_prefix_code}    
+{optional_prefix_code}
         <input>
 {xml_source_code}
         </input>
@@ -309,6 +309,9 @@ class ActiveCode(RunestoneIdDirective):
         else:
             self.options["has_problem_statement"] = False
             self.explain_text = ["Not an Exercise"]
+
+        if self.content and "unittest.gui" in source:
+            self.options["autograde"] = "unittest"
 
         addQuestionToDB(self)
 
