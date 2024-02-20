@@ -4,8 +4,21 @@ import Col from "react-bootstrap/Col";
 import Stack from "react-bootstrap/Stack";
 import { renderRunestoneComponent } from "./componentFuncs.js";
 import Button from "react-bootstrap/Button";
+import { useSelector, useDispatch } from "react-redux";
 
-import { useState } from "react";
+import {
+    updateField,
+    selectId,
+    selectInstructions,
+    selectLanguage,
+    selectQpoints,
+    selectStarterCode,
+    selectPrefixCode,
+    selectSuffixCode,
+    selectAll,
+} from "./features/activecode/acSlice";
+
+import { useState, useSyncExternalStore } from "react";
 
 const acStyle = {
     border: "1px solid black",
@@ -13,23 +26,20 @@ const acStyle = {
 };
 
 function ActiveCodeCreator({ assignData, newExercise }) {
-    const [acData, setAcData] = useState({
-        uniqueId: "activecode_1",
-        qpoints: 1,
-        language: "python",
-        instructions: "",
-        prefix_code: "",
-        starter_code: "",
-        suffix_code: "",
-    });
+    // use these selectors to get the values from the store (slice for activecode)
+    const uniqueId = useSelector(selectId);
+    const instructions = useSelector(selectInstructions);
+    const language = useSelector(selectLanguage);
+    const qpoints = useSelector(selectQpoints);
+    const starter_code = useSelector(selectStarterCode);
+    const prefix_code = useSelector(selectPrefixCode);
+    const suffix_code = useSelector(selectSuffixCode);
+    const dispatch = useDispatch();
+    const acData = useSelector(selectAll);
 
     const handleAcDataChange = (e) => {
-        // the left paren after the arrow is required to avoid a syntax error since the braces are
-        // interpreted as the start of a function body but we want to return an object
-        setAcData((prevData) => ({
-            ...prevData,
-            [e.target.id]: e.target.value,
-        }));
+        // this relies on the fields of the form to have an id that matches the field in the slice
+        dispatch(updateField({ field: e.target.id, newVal: e.target.value }));
     };
 
     const handleSubmit = (e) => {
@@ -44,7 +54,7 @@ function ActiveCodeCreator({ assignData, newExercise }) {
 
     const handleSave = async (e) => {
         e.preventDefault();
-        newExercise(acData);
+        // newExercise(acData);
         // todo fix to allow for updates
         let assignmentId = 0;
         let questionId = 0;
@@ -57,6 +67,7 @@ function ActiveCodeCreator({ assignData, newExercise }) {
             description: assignData.desc,
             duedate: assignData.due,
             points: assignData.points,
+            kind: "quickcode",
         };
         let data = {
             body: JSON.stringify(body),
@@ -73,7 +84,7 @@ function ActiveCodeCreator({ assignData, newExercise }) {
         // Now add the question
         // these names match the database columns
         body = {
-            name: acData.uniqueId,
+            name: uniqueId,
             question: acData,
             question_type: "activecode",
             source: JSON.stringify(assignData),
@@ -113,21 +124,21 @@ function ActiveCodeCreator({ assignData, newExercise }) {
     var preview_src = `
 <div class="ptx-runestone-container">
 <div class="runestone explainer ac_section ">
-<div data-component="activecode" id="${acData.uniqueId}" data-question_Form.Label="4.2.2.2">
+<div data-component="activecode" id="${uniqueId}" data-question_Form.Label="4.2.2.2">
 <div class="ac_question">
-<p>${acData.instructions}</p>
+<p>${instructions}</p>
 
 </div>
-<textarea data-lang="${acData.language}" id="${acData.uniqueId}_editor"
+<textarea data-lang="${language}" id="${uniqueId}_editor"
     data-timelimit=25000  data-codelens="true"  style="visibility: hidden;"
     data-audio=''
     data-wasm=/_static
     >
-${acData.prefix_code}
+${prefix_code}
 ^^^^
-${acData.starter_code}
+${starter_code}
 ====
-${acData.suffix_code}
+${suffix_code}
 
 </textarea>
 </div>
@@ -145,7 +156,7 @@ ${acData.suffix_code}
                     <Form.Select
                         id="language"
                         className="rsform"
-                        value={acData.language}
+                        value={language}
                         onChange={handleAcDataChange}
                     >
                         <option value="python">Python (in browser)</option>
@@ -163,7 +174,7 @@ ${acData.suffix_code}
                         className="rsform"
                         type="number"
                         placeholder="Points"
-                        value={acData.qpoints}
+                        value={qpoints}
                         onChange={handleAcDataChange}
                     />
                 </Col>
@@ -174,12 +185,19 @@ ${acData.suffix_code}
                         Question Name
                     </Form.Label>
                     <Form.Control
-                        id="uniqueId"
                         className="rsform w-50"
+                        id="uniqueId"
                         type="text"
                         placeholder="Enter Question Name"
-                        value={acData.uniqueId}
-                        onChange={handleAcDataChange}
+                        value={uniqueId}
+                        onChange={(e) =>
+                            dispatch(
+                                updateField({
+                                    field: "uniqueId",
+                                    newVal: e.target.value,
+                                })
+                            )
+                        }
                     />
                 </Row>
                 <Form.Label column sm={2}>
@@ -192,7 +210,7 @@ ${acData.suffix_code}
                     id="instructions"
                     className="rsform w-75"
                     placeholder="Enter Assignment Instructions (HTML Allowed)"
-                    value={acData.instructions}
+                    value={instructions}
                     onChange={handleAcDataChange}
                 ></Form.Control>
                 <Form.Label column sm={4}>
@@ -205,7 +223,7 @@ ${acData.suffix_code}
                     id="prefix_code"
                     className="rsform w-75"
                     placeholder="Enter Assignment Prefix Code"
-                    value={acData.prefix_code}
+                    value={prefix_code}
                     onChange={handleAcDataChange}
                 ></Form.Control>
                 <Form.Label column sm={2}>
@@ -218,7 +236,7 @@ ${acData.suffix_code}
                     id="starter_code"
                     className="rsform w-75"
                     placeholder="Enter Assignment Starter Code"
-                    value={acData.starter_code}
+                    value={starter_code}
                     onChange={handleAcDataChange}
                 ></Form.Control>
                 <Form.Label column sm={4}>
@@ -231,7 +249,7 @@ ${acData.suffix_code}
                     id="suffix_code"
                     className="rsform w-75"
                     placeholder="Enter Assignment Suffix (unit test) Code"
-                    value={acData.suffix_code}
+                    value={suffix_code}
                     onChange={handleAcDataChange}
                 ></Form.Control>
             </Form.Group>
