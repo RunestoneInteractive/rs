@@ -25,31 +25,11 @@ function App() {
     const exercises = useSelector(selectExercises);
     const assignData = useSelector(selectAll);
 
-
     // The setAsgmtData function is used to update the state of the assignData object.
     // The notice that the parameter to setAsgmtData is a function that takes the previous
     // state and returns the new state.
     const handleAsgmtDataChange = (e) => {
         dispatch(updateField({ field: e.target.id, newVal: e.target.value }));
-    };
-
-    const handleNewExercise = (eData) => {
-        setAsgmtData((prevData) => {
-            let newd = {
-                ...prevData,
-            };
-            newd.exercises = newd.exercises.filter(
-                (ex) => ex.uniqueId !== eData.uniqueId
-            );
-            newd.exercises.push(eData);
-            newd.points = parseInt(
-                newd.exercises.reduce(
-                    (acc, ex) => acc + parseInt(ex.qpoints),
-                    0
-                )
-            );
-            return newd;
-        });
     };
 
     return (
@@ -107,10 +87,7 @@ function App() {
                             />
                         </Col>
                     </Form.Group>
-                    <ActiveCodeCreator
-                        assignData={assignData}
-                        newExercise={handleNewExercise}
-                    />
+                    <ActiveCodeCreator assignData={assignData} />
                 </Form>
             </div>
             <div id="preview_div"></div>

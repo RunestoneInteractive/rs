@@ -9,10 +9,10 @@ let defaultDeadline = `${cDate.getFullYear()}-${`${
 }`.padStart(2, 0)}-${`${cDate.getDate()}`.padStart(
     2,
     0
-)}T${`${cDate.getHours()}`.padStart(
+)}T${`${cDate.getHours()}`.padStart(2, 0)}:${`${cDate.getMinutes()}`.padStart(
     2,
     0
-)}:${`${cDate.getMinutes()}`.padStart(2, 0)}`;
+)}`;
 
 export const assignSlice = createSlice({
     name: "assignment",
@@ -30,13 +30,13 @@ export const assignSlice = createSlice({
         addExercise: (state, action) => {
             state.exercises.push(action.payload);
         },
-        incrementPoints: (state, action) => {
-            state.points += action.payload;
+        setPoints: (state, action) => {
+            state.points = Number(action.payload);
         },
     },
 });
 
-export const { updateField, addExercise, incrementPoints } =
+export const { updateField, addExercise, setPoints } =
     assignSlice.actions;
 
 // The function below is called a thunk and allows us to perform async logic. It

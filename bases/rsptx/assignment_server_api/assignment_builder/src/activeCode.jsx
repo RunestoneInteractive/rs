@@ -18,14 +18,14 @@ import {
     selectAll,
 } from "./features/activecode/acSlice";
 
-import { useState, useSyncExternalStore } from "react";
+import { selectPoints, setPoints } from "./features/assignment/assignSlice";
 
 const acStyle = {
     border: "1px solid black",
     padding: "10px",
 };
 
-function ActiveCodeCreator({ assignData, newExercise }) {
+function ActiveCodeCreator({ assignData }) {
     // use these selectors to get the values from the store (slice for activecode)
     const uniqueId = useSelector(selectId);
     const instructions = useSelector(selectInstructions);
@@ -54,7 +54,8 @@ function ActiveCodeCreator({ assignData, newExercise }) {
 
     const handleSave = async (e) => {
         e.preventDefault();
-        // newExercise(acData);
+        // The following updates the points when we save the question
+        // dispatch(incrementPoints(Number(qpoints)));
         // todo fix to allow for updates
         let assignmentId = 0;
         let questionId = 0;
@@ -175,7 +176,10 @@ ${suffix_code}
                         type="number"
                         placeholder="Points"
                         value={qpoints}
-                        onChange={handleAcDataChange}
+                        onChange={(e) => {
+                            handleAcDataChange(e);
+                            dispatch(setPoints(Number(e.target.value)));
+                        }}
                     />
                 </Col>
             </Form.Group>
