@@ -4,39 +4,33 @@ import Form from "react-bootstrap/Form";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import ActiveCodeCreator from "./activeCode.jsx";
+import { useSelector, useDispatch } from "react-redux";
+
+import {
+    updateField,
+    selectName,
+    selectDesc,
+    selectDue,
+    selectPoints,
+    selectExercises,
+    selectAll,
+} from "./features/assignment/assignSlice";
 
 function App() {
-    // make the default deadline 7 days from now
-    let cDate = new Date();
-    let epoch = cDate.getTime();
-    epoch = epoch + 60 * 60 * 24 * 7 * 1000;
-    cDate = new Date(epoch);
-    let defaultDeadline = `${cDate.getFullYear()}-${`${
-        cDate.getMonth() + 1
-    }`.padStart(2, 0)}-${`${cDate.getDate()}`.padStart(
-        2,
-        0
-    )}T${`${cDate.getHours()}`.padStart(
-        2,
-        0
-    )}:${`${cDate.getMinutes()}`.padStart(2, 0)}`;
+    const dispatch = useDispatch();
+    const name = useSelector(selectName);
+    const desc = useSelector(selectDesc);
+    const due = useSelector(selectDue);
+    const points = useSelector(selectPoints);
+    const exercises = useSelector(selectExercises);
+    const assignData = useSelector(selectAll);
 
-    const [assignData, setAsgmtData] = useState({
-        name: "",
-        desc: "",
-        due: defaultDeadline,
-        points: 1,
-        exercises: [],
-    });
 
     // The setAsgmtData function is used to update the state of the assignData object.
     // The notice that the parameter to setAsgmtData is a function that takes the previous
     // state and returns the new state.
     const handleAsgmtDataChange = (e) => {
-        setAsgmtData((prevData) => ({
-            ...prevData,
-            [e.target.id]: e.target.value,
-        }));
+        dispatch(updateField({ field: e.target.id, newVal: e.target.value }));
     };
 
     const handleNewExercise = (eData) => {
@@ -70,7 +64,7 @@ function App() {
                             className="rsform"
                             type="text"
                             placeholder="Enter Assignment Name"
-                            value={assignData.name}
+                            value={name}
                             onChange={handleAsgmtDataChange}
                         />
                         <Form.Label htmlFor="desc">
@@ -82,7 +76,7 @@ function App() {
                             className="rsform"
                             type="text"
                             placeholder="Enter Assignment Description"
-                            value={assignData.desc}
+                            value={desc}
                             onChange={handleAsgmtDataChange}
                         />
                     </Form.Group>
@@ -95,7 +89,7 @@ function App() {
                                 id="due"
                                 className="rsform"
                                 type="datetime-local"
-                                value={assignData.due}
+                                value={due}
                                 onChange={handleAsgmtDataChange}
                             />
                         </Col>
@@ -108,7 +102,7 @@ function App() {
                                 className="rsform"
                                 type="number"
                                 placeholder="Points"
-                                value={assignData.points}
+                                value={points}
                                 onChange={handleAsgmtDataChange}
                             />
                         </Col>
