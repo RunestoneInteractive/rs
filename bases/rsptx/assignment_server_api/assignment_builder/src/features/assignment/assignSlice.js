@@ -1,4 +1,14 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+
+export const fetchAssignments = createAsyncThunk(
+    "assignment/fetchAssignments",
+    async () => {
+        const response = await fetch("/assignment/instructor/assignments");
+        const data = await response.json();
+        //dispatch(updateField({ field: "exercises", newVal: data }));
+        return data.detail;
+    }
+);
 
 let cDate = new Date();
 let epoch = cDate.getTime();
@@ -22,6 +32,7 @@ export const assignSlice = createSlice({
         due: defaultDeadline,
         points: 1,
         exercises: [],
+        all_assignments: [],
     },
     reducers: {
         updateField: (state, action) => {
@@ -34,10 +45,16 @@ export const assignSlice = createSlice({
             state.points = Number(action.payload);
         },
     },
+    extraReducers(builder) {
+        builder.addCase(fetchAssignments.fulfilled, (state, action) => {
+            state.all_assignments = action.payload.assignments;
+        }).addCase(fetchAssignments.rejected, (state, action) => {
+            console.log("fetchAssignments rejected");
+        });
+    },
 });
 
-export const { updateField, addExercise, setPoints } =
-    assignSlice.actions;
+export const { updateField, addExercise, setPoints } = assignSlice.actions;
 
 // The function below is called a thunk and allows us to perform async logic. It
 // can be dispatched like a regular action: `dispatch(incrementAsync(10))`. This

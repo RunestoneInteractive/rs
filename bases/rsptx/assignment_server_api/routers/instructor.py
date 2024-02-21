@@ -298,16 +298,16 @@ async def get_assignment_questions(
 
     qlist = []
     for row in res:
-        
+
         aq = AssignmentQuestionValidator.from_orm(row.AssignmentQuestion).model_dump()
         q = QuestionValidator.from_orm(row.Question).model_dump()
         if q["qnumber"] is not None:
             aq["qnumber"] = q["qnumber"]
         else:
             aq["qnumber"] = q["name"]
-        
+
         qlist.append(aq)
-        
+
     rslogger.debug(f"qlist: {qlist}")
 
     return make_json_response(status=status.HTTP_200_OK, detail={"exercises": qlist})
@@ -328,7 +328,7 @@ async def update_assignment_question(
         return make_json_response(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
-    
+
     try:
         update_assignment_question = AssignmentQuestionValidator(
             **request_data.model_dump()
@@ -340,4 +340,3 @@ async def update_assignment_question(
             detail=f"Error updating assignment question: {str(e)}",
         )
     return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
-
