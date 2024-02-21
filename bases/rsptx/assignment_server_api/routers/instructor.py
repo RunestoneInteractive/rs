@@ -10,6 +10,7 @@ from sqlalchemy import create_engine
 # -------------------------
 
 from rsptx.db.crud import (
+    fetch_assignments,
     create_assignment_question,
     create_question,
     fetch_course,
@@ -41,7 +42,7 @@ router = APIRouter(
 
 
 @router.get("/gradebook")
-async def get_assignments(
+async def get_assignment_gb(
     request: Request, user=Depends(auth_manager), response_class=HTMLResponse
 ):
     # get the course
@@ -241,4 +242,26 @@ async def new_assignment_question(
 
     return make_json_response(
         status=status.HTTP_201_CREATED, detail={"status": "success", "id": res.id}
+    )
+
+
+@router.get("/assignments")
+async def get_assignments(
+    request: Request, user=Depends(auth_manager), response_class=JSONResponse
+):
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    # todo: update fetch to only get new style??
+    assignments = await fetch_assignments(course.course_name, is_visible=True)
+    rslogger.debug(f"Got assignments: {assignments} for {course.course_name}")
+
+    return make_json_response(
+        status=status.HTTP_200_OK, detail={"assignments": assignments}
     )
