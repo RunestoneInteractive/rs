@@ -38,6 +38,15 @@ export const assignSlice = createSlice({
         updateField: (state, action) => {
             state[action.payload.field] = action.payload.newVal;
         },
+        setName: (state, action) => {
+            state.name = action.payload;
+        },
+        setDesc: (state, action) => {
+            state.desc = action.payload;
+        },
+        setDue: (state, action) => {
+            state.due = action.payload;
+        },
         addExercise: (state, action) => {
             state.exercises.push(action.payload);
         },
