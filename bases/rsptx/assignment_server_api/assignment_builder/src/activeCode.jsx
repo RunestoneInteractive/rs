@@ -2,7 +2,10 @@ import Form from "react-bootstrap/Form";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Stack from "react-bootstrap/Stack";
-import { renderRunestoneComponent } from "./componentFuncs.js";
+import {
+    renderRunestoneComponent,
+    createActiveCodeTemplate,
+} from "./componentFuncs.js";
 import Button from "react-bootstrap/Button";
 import { useSelector, useDispatch } from "react-redux";
 
@@ -47,6 +50,14 @@ function ActiveCodeCreator({ assignData }) {
         // handle a preview button
         console.log(acData);
         if (e.target.value === "preview") {
+            let preview_src = createActiveCodeTemplate(
+                uniqueId,
+                instructions,
+                language,
+                prefix_code,
+                starter_code,
+                suffix_code
+            );
             document.getElementById("preview_div").innerHTML = preview_src;
             renderRunestoneComponent(preview_src, "preview_div", {});
         }
@@ -121,31 +132,6 @@ function ActiveCodeCreator({ assignData }) {
             console.log("Question added to assignment");
         }
     };
-
-    var preview_src = `
-<div class="ptx-runestone-container">
-<div class="runestone explainer ac_section ">
-<div data-component="activecode" id="${uniqueId}" data-question_Form.Label="4.2.2.2">
-<div class="ac_question">
-<p>${instructions}</p>
-
-</div>
-<textarea data-lang="${language}" id="${uniqueId}_editor"
-    data-timelimit=25000  data-codelens="true"  style="visibility: hidden;"
-    data-audio=''
-    data-wasm=/_static
-    >
-${prefix_code}
-^^^^
-${starter_code}
-====
-${suffix_code}
-
-</textarea>
-</div>
-</div>
-</div>
-    `;
 
     return (
         <div style={acStyle}>
@@ -222,8 +208,8 @@ ${suffix_code}
                 </Form.Label>
                 <Form.Control
                     as="textarea"
-                    rows="4"
-                    cols="60"
+                    rows={4}
+                    cols={60}
                     id="prefix_code"
                     className="rsform w-75"
                     placeholder="Enter Assignment Prefix Code"

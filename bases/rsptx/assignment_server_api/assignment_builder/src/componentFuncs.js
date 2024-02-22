@@ -1,6 +1,5 @@
 // Render a question in the provided div.
 
-
 // TODO: remove document.querySelector dependency
 export async function renderRunestoneComponent(
     componentSrc,
@@ -99,9 +98,10 @@ export async function renderRunestoneComponent(
     if (!opt.graderactive) {
         if (whereDiv !== "modal-preview" && whereDiv !== "questiondisplay") {
             // if we are in modal we are already editing
-            let mp = document.querySelector("#modal-preview")
+            let mp = document.querySelector("#modal-preview");
             if (mp) {
-                mp.dataset.orig_divid = opt.acid || moreOpts.acid || opt.orig.id;
+                mp.dataset.orig_divid =
+                    opt.acid || moreOpts.acid || opt.orig.id;
             }
             // save the original divid
             if (author) {
@@ -110,8 +110,7 @@ export async function renderRunestoneComponent(
                 document.querySelector(`#${whereDiv}`).appendChild(authorInfo);
             }
             let editButton = document.createElement("button");
-            let constrainbc =
-                document.getElementById("qbankform")
+            let constrainbc = document.getElementById("qbankform");
             if (constrainbc) {
                 constrainbc = constrainbc.checked;
             }
@@ -132,13 +131,13 @@ export async function renderRunestoneComponent(
                     headers: jsheaders,
                 };
 
-                let res = await fetch("/runestone/admin/question_text", data)
+                let res = await fetch("/runestone/admin/question_text", data);
                 let rst = document.querySelector("#editRST");
                 if (res.ok) {
                     let js = await res.json();
                     rst.textContent = js;
-                };
-            })
+                }
+            });
             document.querySelector(`#${whereDiv}`).appendChild(editButton);
             let closeButton = document.createElement("button");
             closeButton.textContent = "Close Preview";
@@ -180,19 +179,52 @@ export async function renderRunestoneComponent(
                 }
             });
             document.querySelector(`#${whereDiv}`).appendChild(reportButton);
-            let qraw = document.querySelector("#qrawhtmlmodal")
+            let qraw = document.querySelector("#qrawhtmlmodal");
             if (qraw) {
                 qraw.innerHTML = "";
             }
-            let editrst = document
-                .querySelector("#editRST")
+            let editrst = document.querySelector("#editRST");
             if (editrst) {
-                editrst
-                .addEventListener("keypress", function () {
+                editrst.addEventListener("keypress", function () {
                     document.querySelector("#qrawhtmlmodal").innerHTML = ""; //ensure html refresh
                 });
             }
         }
     }
     //MathJax.typeset([document.querySelector(`#${whereDiv}`)]);
+}
+
+export function createActiveCodeTemplate(
+    uniqueId,
+    instructions,
+    language,
+    prefix_code,
+    starter_code,
+    suffix_code
+) {
+    var preview_src = `
+<div class="ptx-runestone-container">
+<div class="runestone explainer ac_section ">
+<div data-component="activecode" id="${uniqueId}" data-question_Form.Label="4.2.2.2">
+<div class="ac_question">
+<p>${instructions}</p>
+
+</div>
+<textarea data-lang="${language}" id="${uniqueId}_editor"
+    data-timelimit=25000  data-codelens="true"  style="visibility: hidden;"
+    data-audio=''
+    data-wasm=/_static
+    >
+${prefix_code}
+^^^^
+${starter_code}
+====
+${suffix_code}
+
+</textarea>
+</div>
+</div>
+</div>
+    `;
+    return preview_src;
 }
