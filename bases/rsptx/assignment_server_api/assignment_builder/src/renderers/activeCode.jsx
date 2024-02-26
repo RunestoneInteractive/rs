@@ -2,7 +2,7 @@ import Form from "react-bootstrap/Form";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Stack from "react-bootstrap/Stack";
-import { createActiveCodeTemplate } from "./componentFuncs.js";
+import { createActiveCodeTemplate } from "../componentFuncs.js";
 import Button from "react-bootstrap/Button";
 import { useSelector, useDispatch } from "react-redux";
 
@@ -18,10 +18,10 @@ import {
     selectAll,
     saveAssignmentQuestion,
     makePreview,
-} from "./features/activecode/acSlice";
+} from "../state/activecode/acSlice";
 
-import { selectAll as selectAssignAll } from "./features/assignment/assignSlice";
-import { selectPoints, setPoints } from "./features/assignment/assignSlice";
+import { selectAll as selectAssignAll } from "../state/assignment/assignSlice";
+import { selectPoints, setPoints } from "../state/assignment/assignSlice";
 
 const acStyle = {
     border: "1px solid black",
@@ -47,7 +47,7 @@ function ActiveCodeCreator() {
     };
 
     return (
-        <div style={acStyle}>
+        <div className="App" style={acStyle}>
             <Form.Group className="mb-1" as={Row}>
                 <Form.Label column sm={2}>
                     Language
