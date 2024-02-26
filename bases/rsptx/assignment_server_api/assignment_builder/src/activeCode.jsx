@@ -3,7 +3,6 @@ import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Stack from "react-bootstrap/Stack";
 import {
-    renderRunestoneComponent,
     createActiveCodeTemplate,
 } from "./componentFuncs.js";
 import Button from "react-bootstrap/Button";
@@ -19,6 +18,8 @@ import {
     selectPrefixCode,
     selectSuffixCode,
     selectAll,
+    saveAssignmentQuestion,
+    makePreview,
 } from "./features/activecode/acSlice";
 
 import { selectPoints, setPoints } from "./features/assignment/assignSlice";
@@ -45,93 +46,6 @@ function ActiveCodeCreator({ assignData }) {
         dispatch(updateField({ field: e.target.id, newVal: e.target.value }));
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        // handle a preview button
-        console.log(acData);
-        if (e.target.value === "preview") {
-            let preview_src = createActiveCodeTemplate(
-                uniqueId,
-                instructions,
-                language,
-                prefix_code,
-                starter_code,
-                suffix_code
-            );
-            document.getElementById("preview_div").innerHTML = preview_src;
-            renderRunestoneComponent(preview_src, "preview_div", {});
-        }
-    };
-
-    const handleSave = async (e) => {
-        e.preventDefault();
-        // The following updates the points when we save the question
-        // dispatch(incrementPoints(Number(qpoints)));
-        // todo fix to allow for updates
-        let assignmentId = 0;
-        let questionId = 0;
-        let jsheaders = new Headers({
-            "Content-type": "application/json; charset=utf-8",
-            Accept: "application/json",
-        });
-        let body = {
-            name: assignData.name,
-            description: assignData.desc,
-            duedate: assignData.due,
-            points: assignData.points,
-            kind: "quickcode",
-        };
-        let data = {
-            body: JSON.stringify(body),
-            headers: jsheaders,
-            method: "POST",
-        };
-        let resp = await fetch("/assignment/instructor/new_assignment", data);
-        let result = await resp.json();
-        if (result.detail.status === "success") {
-            console.log("Assignment created");
-            assignmentId = result.detail.id;
-        }
-
-        // Now add the question
-        // these names match the database columns
-        body = {
-            name: uniqueId,
-            question: acData,
-            question_type: "activecode",
-            source: JSON.stringify(assignData),
-            htmlsrc: preview_src,
-            question_json: JSON.stringify({ ...acData, ...assignData }),
-        };
-        data = {
-            body: JSON.stringify(body),
-            headers: jsheaders,
-            method: "POST",
-        };
-        resp = await fetch("/assignment/instructor/new_question", data);
-        result = await resp.json();
-        if (result.detail.status === "success") {
-            console.log("Question created");
-            questionId = result.detail.id;
-        }
-
-        //finally add the question to the assignment
-        body = {
-            assignment_id: assignmentId,
-            question_id: questionId,
-            points: assignData.points,
-        };
-        data = {
-            body: JSON.stringify(body),
-            headers: jsheaders,
-            method: "POST",
-        };
-        resp = await fetch("/assignment/instructor/new_assignment_q", data);
-        result = await resp.json();
-        if (result.detail.status === "success") {
-            console.log("Question added to assignment");
-        }
-    };
 
     return (
         <div style={acStyle}>
@@ -248,7 +162,22 @@ function ActiveCodeCreator({ assignData }) {
                     variant="primary"
                     type="button"
                     value="save"
-                    onClick={handleSave}
+                    onClick={(e) =>
+                        dispatch(
+                            saveAssignmentQuestion({
+                                assignData: assignData,
+                                acData: acData,
+                                previewSrc: createActiveCodeTemplate(
+                                    uniqueId,
+                                    instructions,
+                                    language,
+                                    prefix_code,
+                                    starter_code,
+                                    suffix_code
+                                ),
+                            })
+                        )
+                    }
                 >
                     Save
                 </Button>
@@ -258,7 +187,7 @@ function ActiveCodeCreator({ assignData }) {
                     type="button"
                     value="preview"
                     id="preview"
-                    onClick={handleSubmit}
+                    onClick={makePreview}
                 >
                     Preview
                 </Button>
