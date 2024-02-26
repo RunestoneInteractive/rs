@@ -1,6 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
-import acReducer from "../features/activecode/acSlice";
-import assignReducer from "../features/assignment/assignSlice";
+import acReducer from "../state/activecode/acSlice";
+import assignReducer from "../state/assignment/assignSlice";
 
 export default configureStore({
     reducer: {
