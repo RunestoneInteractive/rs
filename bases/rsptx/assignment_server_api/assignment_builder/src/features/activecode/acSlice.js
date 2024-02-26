@@ -1,12 +1,13 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { createActiveCodeTemplate, renderRunestoneComponent } from "../../componentFuncs.js";
+import {
+    createActiveCodeTemplate,
+    renderRunestoneComponent,
+} from "../../componentFuncs.js";
 
 export const saveAssignmentQuestion = createAsyncThunk(
     "acEditor/saveAssignmentQuestion",
-    async (incoming, whatever) => {
-        // The following updates the points when we save the question
-        // dispatch(incrementPoints(Number(qpoints)));
-        // todo fix to allow for updates
+    // incoming is an object that combines the activecode data and the assignment data and the preview_src
+    async (incoming) => {
         let preview_src = incoming.previewSrc;
         let assignData = incoming.assignData;
         let acData = incoming.acData;
@@ -76,22 +77,25 @@ export const saveAssignmentQuestion = createAsyncThunk(
     }
 );
 
-export const makePreview = (e) => {
-    e.preventDefault();
+export const makePreview = (
+    uniqueId,
+    instructions,
+    language,
+    prefix_code,
+    starter_code,
+    suffix_code
+) => {
     // handle a preview button
-    console.log(acData);
-    if (e.target.value === "preview") {
-        let preview_src = createActiveCodeTemplate(
-            uniqueId,
-            instructions,
-            language,
-            prefix_code,
-            starter_code,
-            suffix_code
-        );
-        document.getElementById("preview_div").innerHTML = preview_src;
-        renderRunestoneComponent(preview_src, "preview_div", {});
-    }
+    let preview_src = createActiveCodeTemplate(
+        uniqueId,
+        instructions,
+        language,
+        prefix_code,
+        starter_code,
+        suffix_code
+    );
+    document.getElementById("preview_div").innerHTML = preview_src;
+    renderRunestoneComponent(preview_src, "preview_div", {});
 };
 
 export const acSlice = createSlice({
