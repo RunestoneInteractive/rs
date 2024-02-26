@@ -2,9 +2,7 @@ import Form from "react-bootstrap/Form";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Stack from "react-bootstrap/Stack";
-import {
-    createActiveCodeTemplate,
-} from "./componentFuncs.js";
+import { createActiveCodeTemplate } from "./componentFuncs.js";
 import Button from "react-bootstrap/Button";
 import { useSelector, useDispatch } from "react-redux";
 
@@ -22,6 +20,7 @@ import {
     makePreview,
 } from "./features/activecode/acSlice";
 
+import { selectAll as selectAssignAll } from "./features/assignment/assignSlice";
 import { selectPoints, setPoints } from "./features/assignment/assignSlice";
 
 const acStyle = {
@@ -29,7 +28,7 @@ const acStyle = {
     padding: "10px",
 };
 
-function ActiveCodeCreator({ assignData }) {
+function ActiveCodeCreator() {
     // use these selectors to get the values from the store (slice for activecode)
     const uniqueId = useSelector(selectId);
     const instructions = useSelector(selectInstructions);
@@ -40,12 +39,12 @@ function ActiveCodeCreator({ assignData }) {
     const suffix_code = useSelector(selectSuffixCode);
     const dispatch = useDispatch();
     const acData = useSelector(selectAll);
+    const assignData = useSelector(selectAssignAll);
 
     const handleAcDataChange = (e) => {
         // this relies on the fields of the form to have an id that matches the field in the slice
         dispatch(updateField({ field: e.target.id, newVal: e.target.value }));
     };
-
 
     return (
         <div style={acStyle}>
@@ -135,8 +134,8 @@ function ActiveCodeCreator({ assignData }) {
                 </Form.Label>
                 <Form.Control
                     as="textarea"
-                    rows="4"
-                    cols="60"
+                    rows={4}
+                    cols={60}
                     id="starter_code"
                     className="rsform w-75"
                     placeholder="Enter Assignment Starter Code"
@@ -148,8 +147,8 @@ function ActiveCodeCreator({ assignData }) {
                 </Form.Label>
                 <Form.Control
                     as="textarea"
-                    rows="4"
-                    cols="60"
+                    rows={4}
+                    cols={60}
                     id="suffix_code"
                     className="rsform w-75"
                     placeholder="Enter Assignment Suffix (unit test) Code"
@@ -187,7 +186,16 @@ function ActiveCodeCreator({ assignData }) {
                     type="button"
                     value="preview"
                     id="preview"
-                    onClick={makePreview}
+                    onClick={(e) =>
+                        makePreview(
+                            uniqueId,
+                            instructions,
+                            language,
+                            prefix_code,
+                            starter_code,
+                            suffix_code
+                        )
+                    }
                 >
                     Preview
                 </Button>

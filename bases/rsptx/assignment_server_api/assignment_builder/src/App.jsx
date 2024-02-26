@@ -1,5 +1,4 @@
 import "./App.css";
-import { useState } from "react";
 import Form from "react-bootstrap/Form";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -36,7 +35,6 @@ function App() {
         <div className="App">
             <h1>ActiveCode Builder</h1>
             <div className="ac_details">
-                <Form>
                     <Form.Group className="mb-4">
                         <Form.Label htmlFor="name">Assignment Name</Form.Label>
                         <Form.Control
@@ -87,8 +85,7 @@ function App() {
                             />
                         </Col>
                     </Form.Group>
-                    <ActiveCodeCreator assignData={assignData} />
-                </Form>
+                    <ActiveCodeCreator />
             </div>
             <div id="preview_div"></div>
             <div id="editRST"> </div>
