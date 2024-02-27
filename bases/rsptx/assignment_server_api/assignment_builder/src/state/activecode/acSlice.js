@@ -77,27 +77,8 @@ export const saveAssignmentQuestion = createAsyncThunk(
     }
 );
 
-export const makePreview = (
-    uniqueId,
-    instructions,
-    language,
-    prefix_code,
-    starter_code,
-    suffix_code
-) => {
-    // handle a preview button
-    let preview_src = createActiveCodeTemplate(
-        uniqueId,
-        instructions,
-        language,
-        prefix_code,
-        starter_code,
-        suffix_code
-    );
-    document.getElementById("preview_div").innerHTML = preview_src;
-    renderRunestoneComponent(preview_src, "preview_div", {});
-};
-
+// create a slice for ActiveCodeEditor
+// This slice must be registered with the store in store.js
 export const acSlice = createSlice({
     name: "acEditor",
     initialState: {

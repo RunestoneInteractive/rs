@@ -17,11 +17,11 @@ import {
     selectSuffixCode,
     selectAll,
     saveAssignmentQuestion,
-    makePreview,
 } from "../state/activecode/acSlice";
 
 import { selectAll as selectAssignAll } from "../state/assignment/assignSlice";
 import { selectPoints, setPoints } from "../state/assignment/assignSlice";
+import { selectCode, setCode } from "../state/preview/previewSlice";
 
 const acStyle = {
     border: "1px solid black",
@@ -40,10 +40,26 @@ function ActiveCodeCreator() {
     const dispatch = useDispatch();
     const acData = useSelector(selectAll);
     const assignData = useSelector(selectAssignAll);
+    const previewCode = useSelector(selectCode);
 
     const handleAcDataChange = (e) => {
         // this relies on the fields of the form to have an id that matches the field in the slice
         dispatch(updateField({ field: e.target.id, newVal: e.target.value }));
+    };
+
+    const previewOnBlur = (e) => {
+        dispatch(
+            setCode(
+                createActiveCodeTemplate(
+                    uniqueId,
+                    instructions,
+                    language,
+                    prefix_code,
+                    starter_code,
+                    suffix_code
+                )
+            )
+        );
     };
 
     return (
@@ -93,6 +109,7 @@ function ActiveCodeCreator() {
                         type="text"
                         placeholder="Enter Question Name"
                         value={uniqueId}
+                        onBlur={previewOnBlur}
                         onChange={(e) =>
                             dispatch(
                                 updateField({
@@ -114,6 +131,7 @@ function ActiveCodeCreator() {
                     className="rsform w-75"
                     placeholder="Enter Assignment Instructions (HTML Allowed)"
                     value={instructions}
+                    onBlur={previewOnBlur}
                     onChange={handleAcDataChange}
                 ></Form.Control>
                 <Form.Label column sm={4}>
@@ -127,6 +145,7 @@ function ActiveCodeCreator() {
                     className="rsform w-75"
                     placeholder="Enter Assignment Prefix Code"
                     value={prefix_code}
+                    onBlur={previewOnBlur}
                     onChange={handleAcDataChange}
                 ></Form.Control>
                 <Form.Label column sm={2}>
@@ -140,6 +159,7 @@ function ActiveCodeCreator() {
                     className="rsform w-75"
                     placeholder="Enter Assignment Starter Code"
                     value={starter_code}
+                    onBlur={previewOnBlur}
                     onChange={handleAcDataChange}
                 ></Form.Control>
                 <Form.Label column sm={4}>
@@ -153,7 +173,15 @@ function ActiveCodeCreator() {
                     className="rsform w-75"
                     placeholder="Enter Assignment Suffix (unit test) Code"
                     value={suffix_code}
-                    onChange={handleAcDataChange}
+                    onBlur={previewOnBlur}
+                    onChange={(e) => {
+                        dispatch(
+                            updateField({
+                                field: "suffix_code",
+                                newVal: e.target.value,
+                            })
+                        );
+                    }}
                 ></Form.Control>
             </Form.Group>
             <Stack direction="horizontal" gap={2}>
@@ -186,16 +214,7 @@ function ActiveCodeCreator() {
                     type="button"
                     value="preview"
                     id="preview"
-                    onClick={(e) =>
-                        makePreview(
-                            uniqueId,
-                            instructions,
-                            language,
-                            prefix_code,
-                            starter_code,
-                            suffix_code
-                        )
-                    }
+                    onClick={(e) => previewOnBlur(e)}
                 >
                     Preview
                 </Button>
