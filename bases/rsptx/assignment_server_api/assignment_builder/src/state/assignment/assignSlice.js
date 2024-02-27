@@ -24,6 +24,8 @@ let defaultDeadline = `${cDate.getFullYear()}-${`${
     0
 )}`;
 
+// create a slice for Assignments
+// This slice must be registered with the store in store.js
 export const assignSlice = createSlice({
     name: "assignment",
     initialState: {
@@ -55,11 +57,13 @@ export const assignSlice = createSlice({
         },
     },
     extraReducers(builder) {
-        builder.addCase(fetchAssignments.fulfilled, (state, action) => {
-            state.all_assignments = action.payload.assignments;
-        }).addCase(fetchAssignments.rejected, (state, action) => {
-            console.log("fetchAssignments rejected");
-        });
+        builder
+            .addCase(fetchAssignments.fulfilled, (state, action) => {
+                state.all_assignments = action.payload.assignments;
+            })
+            .addCase(fetchAssignments.rejected, (state, action) => {
+                console.log("fetchAssignments rejected");
+            });
     },
 });
 
