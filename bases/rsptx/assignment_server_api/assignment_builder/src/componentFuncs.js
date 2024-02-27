@@ -2,19 +2,17 @@
 
 // TODO: remove document.querySelector dependency
 export async function renderRunestoneComponent(
-    componentSrc,
-    whereDiv, // ref
+    previewRef, // This is a React ref object
     moreOpts
 ) {
     /**
-     *  The easy part is adding the componentSrc to the existing div.
-     *  The tedious part is calling the right functions to turn the
-     *  source into the actual component.
+     *  The HTML template for the component is in the innerHTML of the
+     *  previewRef.  whenever the  template changes we need to re-render
+     *  We do this by extracing the [data-component] attribute and then
+     *  Use the value of that attribute to look up the component factory
+     *  The component factory then turns the template into the fully rendered
+     * component.
      */
-    if (!componentSrc) {
-        whereDiv.innerHTML = `<p>Sorry, no source is available for preview or grading</p>`;
-        return;
-    }
     if (typeof moreOpts === "undefined") {
         moreOpts = {};
     }
@@ -24,35 +22,37 @@ export async function renderRunestoneComponent(
         delete moreOpts.author;
     }
     let patt = /..\/_images/g;
-    componentSrc = componentSrc.replace(
+    previewRef.current.innerHTML = previewRef.current.innerHTML.replace(
         patt,
         `${window.eBookConfig.app}/books/published/${window.eBookConfig.basecourse}/_images`
     );
-    whereDiv.innerHTML = componentSrc;
 
     if (typeof window.componentMap === "undefined") {
         window.componentMap = {};
     }
 
+    // figure out what kind of component we are dealing with
     let componentKind =
-        whereDiv.current.querySelector(`[data-component]`).dataset.component;
+        previewRef.current.querySelector(`[data-component]`).dataset.component;
     // webwork problems do not have a data-component attribute so we have to try to figure it out.
     //
     if (
-        (!componentKind && componentSrc.indexOf("handleWW") >= 0) ||
-        componentSrc.indexOf("webwork") >= 0
+        (!componentKind &&
+            previewRef.current.innerHTML.indexOf("handleWW") >= 0) ||
+        previewRef.current.innerHTML.indexOf("webwork") >= 0
     ) {
         componentKind = "webwork";
     }
     // Import all the js needed for this component before rendering
     await window.runestoneComponents.runestone_import(componentKind);
     let opt = {};
-    opt.orig = whereDiv.current.querySelector(`[data-component]`);
+    opt.orig = previewRef.current.querySelector(`[data-component]`);
     if (opt.orig) {
         opt.lang = opt.orig.dataset.lang;
         if (!opt.lang) {
             opt.lang = opt.orig.querySelector("[data-lang]").dataset.lang;
         }
+        // We don't want to store runs or keep results so set useServices to fales
         opt.useRunestoneServices = false;
         opt.graderactive = false;
         opt.python3 = true;
@@ -63,13 +63,14 @@ export async function renderRunestoneComponent(
         }
     }
 
+    // loading a valid component will also initialize the component factory
     if (typeof component_factory === "undefined") {
         alert(
             "Error:  Missing the component factory!  probably a webpack version mismatch"
         );
     } else {
-        if (!window.component_factory[componentKind] && !whereDiv.innerHTML) {
-            whereDiv.innerHTML = `<p>Preview not available for ${componentKind}</p>`;
+        if (!window.component_factory[componentKind] && !previewRef.innerHTML) {
+            previewRef.current.innerHTML = `<p>Preview not available for ${componentKind}</p>`;
         } else {
             try {
                 let res = window.component_factory[componentKind](opt);
@@ -85,10 +86,12 @@ export async function renderRunestoneComponent(
                 }
             } catch (e) {
                 console.log(e);
+                previewRef.current.innerHTML = `<p>An error occurred while trying to render a ${componentKind}</p>`;
             }
         }
     }
-    //MathJax.typeset([document.querySelector(`#${whereDiv}`)]);
+    // TODO: Make sure MathJax is loaded and typeset the preview
+    //MathJax.typeset([previewRef.current]);
 }
 
 export function createActiveCodeTemplate(
