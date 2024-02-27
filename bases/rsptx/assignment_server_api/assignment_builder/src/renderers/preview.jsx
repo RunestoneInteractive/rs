@@ -4,14 +4,16 @@ import { setCode, selectCode } from "../state/preview/previewSlice";
 import { renderRunestoneComponent } from "../componentFuncs";
 
 function Preview() {
-    const dispatch = useDispatch();
     const code = useSelector(selectCode);
     const ref = useRef();
 
+    // UseEffect accepts a function and an array of dependencies
+    // the function tells how to render the component in the future, when one of
+    // the dependencies changes.
     useEffect(() => {
         if (!ref.current || code == null) return;
         ref.current.innerHTML = code;
-        renderRunestoneComponent(code, ref, {});
+        renderRunestoneComponent(ref, {});
     }, [code]);
 
     return <div className="App" ref={ref} />;
