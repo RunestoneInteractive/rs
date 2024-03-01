@@ -3,6 +3,7 @@ import {
     createActiveCodeTemplate,
     renderRunestoneComponent,
 } from "../../componentFuncs.js";
+import toast from "react-hot-toast";
 
 export const saveAssignmentQuestion = createAsyncThunk(
     "acEditor/saveAssignmentQuestion",
@@ -30,6 +31,41 @@ export const saveAssignmentQuestion = createAsyncThunk(
             method: "POST",
         };
         let resp = await fetch("/assignment/instructor/new_assignment", data);
+        if (!resp.ok) {
+            console.warn("Error creating assignment");
+            if (resp.status === 422) {
+                console.warn("Missing data for creating assignment");
+                /* The JON response from the server looks like this:
+                {
+                    "detail": [
+                        {
+                            "type": "int_parsing",
+                            "loc": [
+                                "body",
+                                "points"
+                            ],
+                            "msg": "Input should be a valid integer, unable to parse string as an integer",
+                            "input": "",
+                            "url": "https://errors.pydantic.dev/2.6/v/int_parsing"
+                        }
+                    ]
+                }
+                */
+                let result = await resp.json();
+                toast(
+                    `Error ${result.detail[0].msg} for input ${result.detail[0].loc}`,
+                    { duration: 5000 }
+                );
+            } else {
+                toast("Error creating assignment", {
+                    icon: "🔥",
+                    duration: 5000,
+                });
+            }
+
+            return;
+        }
+        toast("Assignment created", { icon: "👍" });
         let result = await resp.json();
         if (result.detail.status === "success") {
             console.log("Assignment created");

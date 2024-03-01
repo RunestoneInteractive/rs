@@ -5,6 +5,7 @@ import Stack from "react-bootstrap/Stack";
 import { createActiveCodeTemplate } from "../componentFuncs.js";
 import Button from "react-bootstrap/Button";
 import { useSelector, useDispatch } from "react-redux";
+import {Toaster} from 'react-hot-toast';
 
 import {
     updateField,
@@ -64,6 +65,7 @@ function ActiveCodeCreator() {
 
     return (
         <div className="App" style={acStyle}>
+            <Toaster />
             <Form.Group className="mb-1" as={Row}>
                 <Form.Label column sm={2}>
                     Language

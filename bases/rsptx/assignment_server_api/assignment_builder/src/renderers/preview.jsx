@@ -11,7 +11,7 @@ function Preview() {
     // the function tells how to render the component in the future, when one of
     // the dependencies changes.
     useEffect(() => {
-        if (!ref.current || code == null) return;
+        if (!ref.current || code == null || code == "") return;
         ref.current.innerHTML = code;
         renderRunestoneComponent(ref, {});
     }, [code]);
