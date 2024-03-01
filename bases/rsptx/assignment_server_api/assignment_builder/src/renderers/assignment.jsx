@@ -3,6 +3,7 @@ import Form from "react-bootstrap/Form";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Dropdown from "react-bootstrap/Dropdown";
+import { DateTime } from "luxon";
 
 import {
     updateField,
@@ -88,11 +89,6 @@ function AssignmentEditor() {
     );
 }
 
-const optionStyle = {
-    marginLeft: "10px",
-    float: "right",
-    fontFamily: "mono",
-};
 
 export function AssignmentPicker() {
     const dispatch = useDispatch();
@@ -109,10 +105,17 @@ export function AssignmentPicker() {
     const all_assignments = useSelector(selectAll).all_assignments;
     let sorted_assignments = structuredClone(all_assignments).sort(sortFunc).reverse();
     sorted_assignments = sorted_assignments.filter((a) => a.name !== "");
+    
     const menuStyle = {
         maxHeight: "200px",
         overflowY: "auto",
     };
+
+    const optionStyle = {
+        marginLeft: "10px",
+        float: "right",
+    };
+
     return (
         <div className="App">
             <h1>Assignment Builder</h1>
@@ -127,11 +130,15 @@ export function AssignmentPicker() {
                 </Dropdown.Toggle>
                 <Dropdown.Menu style={menuStyle}>
                     {sorted_assignments.map((a) => (
-                        <Dropdown.Item eventKey={a.id}>
+                        <Dropdown.Item key={a.id} eventKey={a.id}>
                             <span>
                                 <strong>{a.name}</strong>
                             </span>
-                            <span style={optionStyle}>{a.duedate}</span>
+                            <span style={optionStyle}>
+                                {DateTime.fromISO(a.duedate).toLocaleString(
+                                    DateTime.DATETIME_FULL
+                                )}
+                            </span>
                         </Dropdown.Item>
                     ))}
                 </Dropdown.Menu>
