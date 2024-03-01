@@ -13,6 +13,10 @@ import {
     selectPoints,
     selectExercises,
     selectAll,
+    setName,
+    setDesc,
+    setDue,
+    setPoints,
 } from "../state/assignment/assignSlice";
 
 function AssignmentEditor() {
@@ -89,7 +93,6 @@ function AssignmentEditor() {
     );
 }
 
-
 export function AssignmentPicker() {
     const dispatch = useDispatch();
     const assignData = useSelector(selectAll);
@@ -103,9 +106,11 @@ export function AssignmentPicker() {
     };
 
     const all_assignments = useSelector(selectAll).all_assignments;
-    let sorted_assignments = structuredClone(all_assignments).sort(sortFunc).reverse();
+    let sorted_assignments = structuredClone(all_assignments)
+        .sort(sortFunc)
+        .reverse();
     sorted_assignments = sorted_assignments.filter((a) => a.name !== "");
-    
+
     const menuStyle = {
         maxHeight: "200px",
         overflowY: "auto",
@@ -114,15 +119,19 @@ export function AssignmentPicker() {
     const optionStyle = {
         marginLeft: "10px",
         float: "right",
+        fontFamily: "monospace",
     };
 
     return (
         <div className="App">
             <h1>Assignment Builder</h1>
             <Dropdown
-                onSelect={(e) => {
-                    console.log("Hello");
-                    console.log(e);
+                onSelect={(aKey) => {
+                    let current = all_assignments.find((a) => a.id == aKey);
+                    dispatch(setName(current.name));
+                    dispatch(setDesc(current.description));
+                    dispatch(setDue(current.duedate));
+                    dispatch(setPoints(current.points));
                 }}
             >
                 <Dropdown.Toggle variant="info" id="dropdown-basic">
@@ -136,7 +145,7 @@ export function AssignmentPicker() {
                             </span>
                             <span style={optionStyle}>
                                 {DateTime.fromISO(a.duedate).toLocaleString(
-                                    DateTime.DATETIME_FULL
+                                    DateTime.DATETIME_MED
                                 )}
                             </span>
                         </Dropdown.Item>

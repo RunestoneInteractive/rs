@@ -29,6 +29,7 @@ let defaultDeadline = `${cDate.getFullYear()}-${`${
 export const assignSlice = createSlice({
     name: "assignment",
     initialState: {
+        id: 0,
         name: "",
         desc: "",
         due: defaultDeadline,
@@ -67,7 +68,8 @@ export const assignSlice = createSlice({
     },
 });
 
-export const { updateField, addExercise, setPoints } = assignSlice.actions;
+export const { updateField, addExercise, setName, setDesc, setDue, setPoints } =
+    assignSlice.actions;
 
 // The function below is called a thunk and allows us to perform async logic. It
 // can be dispatched like a regular action: `dispatch(incrementAsync(10))`. This
