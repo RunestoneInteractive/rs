@@ -108,6 +108,17 @@ export default class ShortAnswer extends RunestoneBase {
             this.renderFeedback();
         }.bind(this);
         this.buttonDiv.appendChild(this.submitButton);
+
+        // Create a button to toggle instructor's feedback
+        this.toggleButton = document.createElement("button");
+        $(this.toggleButton).addClass("btn btn-primary");
+        this.toggleButton.type = "button";
+        this.toggleButton.textContent = "Toggle Feedback";
+        this.toggleButton.onclick = function() {
+            $(this.feedbackDiv).toggle(); // Toggle the visibility of the feedback div
+        }.bind(this);
+        this.buttonDiv.appendChild(this.toggleButton);
+
         this.randomSpan = document.createElement("span");
         this.randomSpan.innerHTML = "Instructor's Feedback";
         this.fieldSet.appendChild(this.randomSpan);
@@ -117,6 +128,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.fieldSet.appendChild(this.otherOptionsDiv);
         // add a feedback div to give user feedback
         this.feedbackDiv = document.createElement("div");
+        this.feedbackDiv.style.display = "none";
         //$(this.feedbackDiv).addClass("bg-info form-control");
         //$(this.feedbackDiv).css("width:530px, background-color:#eee, font-style:italic");
         $(this.feedbackDiv).css("width:530px, font-style:italic");
@@ -287,6 +299,10 @@ export default class ShortAnswer extends RunestoneBase {
         }
         if (data.comment) {
             feedbackStr += ` -- ${data.comment}`;
+        }
+        if (!data.comment) {
+            this.feedbackDiv.style.display = "block";
+            this.toggleButton.style.display = "none";
         }
         this.feedbackDiv.innerHTML = feedbackStr;
 
