@@ -180,7 +180,7 @@ if (typeof window.component_factory === "undefined") {
 }
 
 window.component_factory.webwork = function (opts) {
-    return new WebWork();
+    return new WebWork(opts);
 };
 
 $(function () {
