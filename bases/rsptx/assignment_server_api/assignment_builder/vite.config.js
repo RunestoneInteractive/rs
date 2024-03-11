@@ -13,6 +13,7 @@ export default defineConfig(() => {
             },
         },
         // base: "/assignment/react/", // this changes the base for dev as well as prod :-(
+        // see:  https://vitejs.dev/config/ to conditionalize this
         plugins: [react()],
     };
 });
