@@ -4,6 +4,11 @@ import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Dropdown from "react-bootstrap/Dropdown";
 import { DateTime } from "luxon";
+import 'handsontable/dist/handsontable.full.min.css';
+import { HotTable } from '@handsontable/react';
+
+//import 'react-data-grid/lib/styles.css';
+//import DataGrid from "react-data-grid";
 
 import {
     updateField,
@@ -17,6 +22,7 @@ import {
     setDesc,
     setDue,
     setPoints,
+    fetchAssignmentQuestions,
 } from "../state/assignment/assignSlice";
 
 function AssignmentEditor() {
@@ -132,6 +138,7 @@ export function AssignmentPicker() {
                     dispatch(setDesc(current.description));
                     dispatch(setDue(current.duedate));
                     dispatch(setPoints(current.points));
+                    dispatch(fetchAssignmentQuestions(current.id));
                 }}
             >
                 <Dropdown.Toggle variant="info" id="dropdown-basic">
@@ -154,5 +161,25 @@ export function AssignmentPicker() {
             </Dropdown>
         </div>
     );
+}
+
+export function AssignmentQuestion () {
+    const columns = [
+        { key: "id", name: "ID", maxWidth: 100 },
+        { key: "question_id", name: "Name" },
+        { key: "points", name: "Points" },
+        { key: "autograde", name: "GradeType" },
+        { key: "which_to_grade", name: "WhichToGrade" },
+    ];
+    const question_rows = useSelector(selectExercises);
+    return (
+        <div>
+            <DataGrid
+                columns={columns}
+                rows={question_rows}
+                rowKey="id"
+            />
+        </div>
+    );    
 }
 export default AssignmentEditor;
