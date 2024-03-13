@@ -1217,10 +1217,10 @@ def do_calculate_totals(
             _compute_assignment_total(student, assignment, course_name, db)[0]
             for student in student_rows
         ]
-        results[
-            "message"
-        ] = "Calculated totals for {} students\n\tmax: {}\n\tmin: {}\n\tmean: {}".format(
-            len(scores), max(scores), min(scores), sum(scores) / float(len(scores))
+        results["message"] = (
+            "Calculated totals for {} students\n\tmax: {}\n\tmin: {}\n\tmean: {}".format(
+                len(scores), max(scores), min(scores), sum(scores) / float(len(scores))
+            )
         )
 
     return results
@@ -1299,8 +1299,10 @@ def do_autograde(
     logger.debug(f"Origin = {origin}")
     count = 0
     # _profile(start, "after readings fetched")
-    for (name, chapter, subchapter, points, ar, ag, wtg) in readings:
+    for name, chapter, subchapter, points, ar, ag, wtg in readings:
         # logger.debug("\nGrading all students for {}/{}".format(chapter, subchapter))
+        if ar is None:
+            ar = 0
         count += 1
         for s in sids:
             # print("."),
@@ -1366,7 +1368,7 @@ def do_autograde(
 
     # _profile(start, "after questions fetched")
     logger.debug("questions to grade = %s", questions)
-    for (qdiv, points, autograde, which_to_grade, question_type) in questions:
+    for qdiv, points, autograde, which_to_grade, question_type in questions:
         for s in sids:
             if autograde != "manual":
                 _autograde_one_q(

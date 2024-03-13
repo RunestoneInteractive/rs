@@ -8,6 +8,7 @@ function connect(event) {
     }
 
     ws.onclose = function () {
+        console.log("Websocket Closed")
         alert(
             "You have been disconnected from the peer instruction server. Will Reconnect."
         );
@@ -51,6 +52,7 @@ function connect(event) {
                             messarea.style.color = "black";
                             // hide the discussion
                             let discPanel = document.getElementById("discussion_panel");
+                            console.log("voteNum is " + getVoteNum());
                             if (discPanel && getVoteNum() > 1) {
                                 discPanel.style.display = "none";
                             }
@@ -193,6 +195,7 @@ function answerToString(currAnswer) {
 async function logPeerEvent(eventInfo) {
     // This can be refactored to take some parameters if peer grows
     // to require more logging functionality.
+    console.log(`logging peer event ${eventInfo}`)
     let headers = new Headers({
         "Content-type": "application/json; charset=utf-8",
         Accept: "application/json",

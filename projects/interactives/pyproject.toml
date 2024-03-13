@@ -34,7 +34,7 @@ license = "GPL"
 name = "runestone"
 readme = "README.rst"
 repository = "https://github.com/RunestoneInteractive/rs"
-version = "7.2.10"
+version = "7.2.13"
 
 # See https://python-poetry.org/docs/pyproject/#include-and-exclude.
 include = [
@@ -96,7 +96,7 @@ packages = [
 # ============
 [tool.poetry.dependencies]
 # TODO: loosen some of these? Explain why these versions were picked?
-python = "^3.10"
+python = ">=3.10"
 cogapp = ">=2.5"
 click = "~8"
 CodeChat = "<1.9.4"
@@ -119,7 +119,7 @@ python-dotenv = "^1.0.0"
 pydantic = "^2.0.0"
 fastapi = "^0.103.0"
 asyncpg = "^0.28.0"
-greenlet = "^2.0.2"
+greenlet = "^3.0.0"
 dateutils = "^0.6.12"
 pyhumps = "^3.8.0"
 pydal = "^20230521.1"

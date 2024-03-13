@@ -87,7 +87,7 @@
             else if (timeout && (Date.now() - start) >= timeout)
                 reject(new Error("timeout"));
             else {
-                console.log("wiating for componentMap")
+                console.log("waiting for componentMap")
                 setTimeout(waitForIt.bind(this, resolve, reject), 30);
             }
         }

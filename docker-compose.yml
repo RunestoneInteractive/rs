@@ -8,6 +8,7 @@ services:
 
   redis:
     image: redis:6-alpine
+    restart: always
 
   # The db service provides an easy way for new developers to get up and running quickly.
   # it could also be used for a production system for a single department.  For production

@@ -385,9 +385,11 @@ async def serve_page(
         # new_server_prefix=request.scope.get("root_path"),
         # todo: the above doesn't work in the new configuration because we strip off the /ns
         # when we are using docker compose... We need a way to know when we are running in docker compose and when we are not... an environment variable probably
-        new_server_prefix="/ns"
-        if os.environ.get("DOCKER_COMPOSE", False)
-        else request.scope.get("root_path"),
+        new_server_prefix=(
+            "/ns"
+            if os.environ.get("DOCKER_COMPOSE", False)
+            else request.scope.get("root_path")
+        ),
         user_email=user.email if user else "",
         downloads_enabled="true" if course_row.downloads_enabled else "false",
         allow_pairs="true" if course_row.allow_pairs else "false",
@@ -453,7 +455,7 @@ async def library(request: Request, response_class=HTMLResponse):
 
     user = request.state.user
     if user:
-        course = user.course_name
+        course = await fetch_course(user.course_name)
         username = user.username
         instructor_status = await is_instructor(request)
     else:
