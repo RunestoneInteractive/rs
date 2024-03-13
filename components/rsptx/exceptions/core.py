@@ -55,7 +55,7 @@ def add_exception_handlers(app):
     class NotAuthenticatedException(Exception):
         pass
 
-    auth_manager.not_authenticated_exception = NotAuthenticatedException
+    #auth_manager.not_authenticated_exception = NotAuthenticatedException
 
     # Fast API makes it very easy to handle different error types in an
     # elegant way through the use of middleware to catch particular

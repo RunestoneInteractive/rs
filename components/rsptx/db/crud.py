@@ -1318,6 +1318,17 @@ async def create_assignment_question(
 
     return AssignmentQuestionValidator.from_orm(new_assignment_question)
 
+async def update_assignment_question(
+    assignmentQuestion: AssignmentQuestionValidator,
+) -> AssignmentQuestionValidator:
+    """
+    Update an AssignmentQuestion object with the given data (assignmentQuestion)
+    """
+    new_assignment_question = AssignmentQuestion(**assignmentQuestion.dict())
+    async with async_session.begin() as session:
+        session.merge(new_assignment_question)
+
+    return AssignmentQuestionValidator.from_orm(new_assignment_question)
 
 async def fetch_all_assignment_stats(
     course_name: str, userid: int

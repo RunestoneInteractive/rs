@@ -33,7 +33,7 @@ import "./runestone/common/js/jquery_i18n/jquery.i18n.language.js";
 // comment out for overhaul
 //import "bootstrap/dist/css/bootstrap.css";
 import "./ptxrs-bootstrap.less";
-import "./runestone/common/project_template/_templates/plugin_layouts/sphinx_bootstrap/static/bootstrap-sphinx.js";
+//import "./runestone/common/project_template/_templates/plugin_layouts/sphinx_bootstrap/static/bootstrap-sphinx.js";
 
 // Misc
 import "./runestone/common/js/bookfuncs.js";
