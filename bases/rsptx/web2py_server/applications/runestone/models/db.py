@@ -386,6 +386,7 @@ db.auth_user.password.requires = CRYPT(key=auth.settings.hmac_key)
 db.auth_user.username.requires = (
     HAS_NO_DOTS(),
     IS_NOT_IN_DB(db, db.auth_user.username),
+    IS_NOT_EMOJI(db.auth_user.username,f"Username cannot contain emojis")
 )
 db.auth_user.registration_id.requires = IS_NOT_IN_DB(db, db.auth_user.registration_id)
 db.auth_user.email.requires = (
