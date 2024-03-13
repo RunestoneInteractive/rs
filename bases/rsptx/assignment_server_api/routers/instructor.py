@@ -298,7 +298,6 @@ async def get_assignment_questions(
 
     qlist = []
     for row in res:
-
         aq = AssignmentQuestionValidator.from_orm(row.AssignmentQuestion).model_dump()
         q = QuestionValidator.from_orm(row.Question).model_dump()
         if q["qnumber"] is not None:
@@ -328,7 +327,6 @@ async def update_assignment_question(
         return make_json_response(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
-
     try:
         update_assignment_question = AssignmentQuestionValidator(
             **request_data.model_dump()
