@@ -9,6 +9,7 @@ export default defineConfig(() => {
         server: {
             proxy: {
                 "/ns": "http://localhost",
+
                 "/assignment": "http://localhost",
             },
         },

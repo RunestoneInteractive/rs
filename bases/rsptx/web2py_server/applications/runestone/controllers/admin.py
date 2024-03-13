@@ -950,8 +950,8 @@ def removeinstructor():
     """
     removed = []
     if not request.args[0].isnumeric():
-        session.flash = T(f"""instructor id is not numberic: {request.args[0]}""")
-        logger.error(f"instructor id is not numberic: {request.args[0]}")
+        session.flash = T(f"""instructor id is not numeric: {request.args[0]}""")
+        logger.error(f"instructor id is not numeric: {request.args[0]}")
         return json.dumps("Error")
 
     if request.args[0] != str(auth.user.id):
