@@ -158,6 +158,12 @@ export const assignSlice = createSlice({
             .addCase(sendDeleteExercises.rejected, (state, action) => {
                 console.log("deleteExercises rejected");
             })
+            .addCase(reorderAssignmentQuestions.fulfilled, (state, action) => {
+                console.log("reorderAssignmentQuestions fulfilled");
+            })
+            .addCase(reorderAssignmentQuestions.rejected, (state, action) => {
+                console.log("reorderAssignmentQuestions rejected");
+            })
     },
 
 });
