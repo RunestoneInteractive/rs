@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
+// thunks can take a single argument. If you need to pass multiple values, pass an object
 export const fetchAssignments = createAsyncThunk(
     "assignment/fetchAssignments",
     async () => {
@@ -28,8 +29,8 @@ export const fetchAssignmentQuestions = createAsyncThunk(
 export const sendExercise = createAsyncThunk(
     "assignment/sendExercise",
     async (exercise, { getState }) => {
-        state = getState();
-        let idx = state.exercises.findIndex((ex) => ex.id === action.payload.id);
+        let state = getState();
+        let idx = state.assignment.exercises.findIndex((ex) => ex.id === exercise.id);
         const response = await fetch("/assignment/instructor/update_assignment_question", {
             method: "POST",
             headers: {
@@ -41,6 +42,39 @@ export const sendExercise = createAsyncThunk(
         return data.detail;
     }
 );
+
+export const sendDeleteExercises = createAsyncThunk(
+    "assignment/sendDeleteExercises",
+    async (exercises, { getState }) => {
+        console.log("deleteExercises", exercises)
+        const response = await fetch("/assignment/instructor/remove_assignment_questions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(exercises),
+        });
+        const data = await response.json();
+        return data.detail;
+    }
+);
+
+export const reorderAssignmentQuestions = createAsyncThunk(
+    "assignment/reorderAssignmentQuestions",
+    async (exercises, { getState }) => {
+        // exercises is an array of assignment_question ids
+        const response = await fetch("/assignment/instructor/reorder_assignment_questions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(exercises),
+        });
+        const data = await response.json();
+        return data.detail;
+    }
+);
+
 let cDate = new Date();
 let epoch = cDate.getTime();
 epoch = epoch + 60 * 60 * 24 * 7 * 1000;
@@ -89,6 +123,19 @@ export const assignSlice = createSlice({
         updateExercise: (state, action) => {
             let idx = state.exercises.findIndex((ex) => ex.id === action.payload.id);
             state.exercises[idx] = action.payload.exercise;
+        },
+        deleteExercises: (state, action) => {
+            let exercises = action.payload;
+            state.exercises = state.exercises.filter((ex) => !exercises.includes(ex.id));
+        },
+        reorderExercise: (state, action) => {
+            let exOrder = action.payload.exOrder;
+            // reorder the state.assignment.exercises array to match the order of the ids in exercises
+            state.exercises = exOrder.map(id => state.exercises.find(ex => ex.id === id));
+            // now renumber the sort_order field in exercises
+            state.exercises.forEach((ex, idx) => {
+                ex.sorting_priority = idx;
+            });
         }
     },
     extraReducers(builder) {
@@ -104,23 +151,19 @@ export const assignSlice = createSlice({
             })
             .addCase(fetchAssignmentQuestions.rejected, (state, action) => {
                 console.log("fetchAssignmentQuestions rejected");
-            });
+            })
+            .addCase(sendDeleteExercises.fulfilled, (state, action) => {
+                console.log("deleteExercises fulfilled");
+            })
+            .addCase(sendDeleteExercises.rejected, (state, action) => {
+                console.log("deleteExercises rejected");
+            })
     },
 
 });
 
-export const { updateField, addExercise, setName, setDesc, setDue, setPoints, updateExercise } =
+export const { updateField, addExercise, setName, setDesc, setDue, setPoints, reorderExercise, deleteExercises, updateExercise } =
     assignSlice.actions;
-
-// The function below is called a thunk and allows us to perform async logic. It
-// can be dispatched like a regular action: `dispatch(incrementAsync(10))`. This
-// will call the thunk with the `dispatch` function as the first argument. Async
-// code can then be executed and other actions can be dispatched
-// export const incrementAsync = (amount) => (dispatch) => {
-//     setTimeout(() => {
-//         dispatch(incrementByAmount(amount));
-//     }, 1000);
-// };
 
 // The function below is called a selector and allows us to select a value from
 // the state. Selectors can also be defined inline where they're used instead of

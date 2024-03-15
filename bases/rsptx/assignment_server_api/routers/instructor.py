@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import create_engine
 from pydantic import BaseModel
+from typing import List
 
 # Local application imports
 # -------------------------
@@ -17,6 +18,9 @@ from rsptx.db.crud import (
     create_question,
     fetch_course,
     create_assignment,
+    remove_assignment_questions,
+    reorder_assignment_questions,
+    update_assignment_question,
 )
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
@@ -313,9 +317,9 @@ async def get_assignment_questions(
 
 
 @router.post("/update_assignment_question")
-async def update_assignment_question(
+async def up_assignment_question(
     request: Request,
-    request_data: AssignmentQuestionIncoming,
+    request_data: AssignmentQuestionValidator,
     user=Depends(auth_manager),
     response_class=JSONResponse,
 ):
@@ -328,13 +332,61 @@ async def update_assignment_question(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
     try:
-        update_assignment_question = AssignmentQuestionValidator(
-            **request_data.model_dump()
+        await update_assignment_question(
+            AssignmentQuestionValidator(**request_data.model_dump())
         )
     except Exception as e:
         rslogger.error(f"Error updating assignment question: {e}")
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error updating assignment question: {str(e)}",
+        )
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
+
+
+@router.post("/remove_assignment_questions")
+async def remove_assignment_questions_ep(
+    request: Request,
+    request_data: List[int],
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    try:
+        await remove_assignment_questions(request_data)
+    except Exception as e:
+        rslogger.error(f"Error removing assignment questions: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error removing assignment questions: {str(e)}",
+        )
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
+
+
+@router.post("/reorder_assignment_questions")
+async def reorder_assignment_questions_ep(
+    request: Request,
+    request_data: List[int],
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    try:
+        await reorder_assignment_questions(request_data)
+    except Exception as e:
+        rslogger.error(f"Error reordering assignment questions: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error reordering assignment questions: {str(e)}",
         )
     return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})

@@ -27,6 +27,10 @@ import {
     fetchAssignmentQuestions,
     updateExercise,
     sendExercise,
+    reorderExercise,
+    deleteExercises,
+    sendDeleteExercises,
+    reorderAssignmentQuestions
 } from "../state/assignment/assignSlice";
 
 function AssignmentEditor() {
@@ -171,7 +175,7 @@ export function AssignmentQuestion() {
     const dispatch = useDispatch();
     const columns = ["id", "qnumber", "points", "autograde", "which_to_grade"];
     const question_rows = useSelector(selectExercises);
-    const show = question_rows.map(({ id, qnumber, points, autograde, which_to_grade }) =>
+    const hotData = question_rows.map(({ id, qnumber, points, autograde, which_to_grade }) =>
         (Object.values({ id, qnumber, points, autograde, which_to_grade })));
 
     const posToKey = new Map([[0, "id"], [1, "question_id"], [2, "points"], [3, "autograde"], [4, "which_to_grade"]]);
@@ -181,7 +185,7 @@ export function AssignmentQuestion() {
             return;
         }
         console.log(change); // gives us [row, column, oldVal, newVal]
-        console.log(show);
+        console.log(hotData);
         console.log(posToKey);
         console.log(posToKey.get(change[0][1]));
         for (let c of change) {
@@ -189,7 +193,7 @@ export function AssignmentQuestion() {
             let col = c[1];
             let oldVal = c[2];
             let newVal = c[3];
-            let id = show[row][0];
+            let id = hotData[row][0];
             let key = posToKey.get(col);
             let new_row = structuredClone(question_rows[row])
             new_row[key] = newVal;
@@ -200,6 +204,30 @@ export function AssignmentQuestion() {
         }
     };
 
+    const handleDelete = (start, amount) => {
+        // by the time this is called hotData is already updated
+        console.log("delete row", start, amount);
+        let toRemove = question_rows.slice(start, start + amount).map((ex) => ex.id);
+        try {
+            dispatch(deleteExercises(toRemove));
+            dispatch(sendDeleteExercises(toRemove))
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleReorder = (rows, target) => {
+        console.log("reorder", rows, target);
+        // copy hotData to avoid mutating the state
+        let idxs = hotData.map((r) => r[0]);
+        let toMove = idxs.splice(rows[0], rows.length);
+        if (target > rows[0]) {
+            target -= rows.length;
+        }
+        idxs.splice(target, 0, ...toMove);
+        dispatch(reorderExercise({ exOrder: idxs }));
+        dispatch(reorderAssignmentQuestions(idxs));
+    };
     const aqStyle = {
         marginBottom: "10px",
     }
@@ -210,11 +238,13 @@ export function AssignmentQuestion() {
             <HotTable
                 style={aqStyle}
                 width="800px"
-                data={show}
+                data={hotData}
                 stretchH="all"
                 colHeaders={columns}
                 rowHeaders={true}
                 manualRowMove={true}
+                contextMenu={true}
+                allowRemoveRow={true}
                 columns={[{ type: "numeric", readOnly: true },
                 { type: "numeric", readOnly: true },
                 { type: "numeric" },
@@ -228,7 +258,8 @@ export function AssignmentQuestion() {
                 }
                 ]}
                 afterChange={handleChange}
-                afterRowMove={(rows, target) => {}}
+                afterRowMove={handleReorder}
+                afterRemoveRow={handleDelete}
                 licenseKey="non-commercial-and-evaluation"
             />
         </div>

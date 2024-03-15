@@ -1318,6 +1318,7 @@ async def create_assignment_question(
 
     return AssignmentQuestionValidator.from_orm(new_assignment_question)
 
+
 async def update_assignment_question(
     assignmentQuestion: AssignmentQuestionValidator,
 ) -> AssignmentQuestionValidator:
@@ -1326,9 +1327,36 @@ async def update_assignment_question(
     """
     new_assignment_question = AssignmentQuestion(**assignmentQuestion.dict())
     async with async_session.begin() as session:
-        session.merge(new_assignment_question)
+        await session.merge(new_assignment_question)
 
     return AssignmentQuestionValidator.from_orm(new_assignment_question)
+
+
+async def reorder_assignment_questions(question_ids: List[int]):
+    """
+    Reorder the assignment questions with the given question ids (question_ids)
+    """
+    async with async_session.begin() as session:
+        for i, qid in enumerate(question_ids):
+            d = dict(sorting_priority=i)
+            stmt = (
+                update(AssignmentQuestion)
+                .where(AssignmentQuestion.id == qid)
+                .values(**d)
+            )
+            await session.execute(stmt)
+
+
+async def remove_assignment_questions(assignment_ids: List[int]):
+    """
+    Remove all assignment questions for the given assignment ids (assignment_ids)
+    """
+    stmt = delete(AssignmentQuestion).where(
+        AssignmentQuestion.assignment_id.in_(assignment_ids)
+    )
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+
 
 async def fetch_all_assignment_stats(
     course_name: str, userid: int
