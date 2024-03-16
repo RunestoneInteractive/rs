@@ -28,3 +28,18 @@
   margin-left: 10px;
   margin-bottom: 10px;
 }
+
+.builderlabel {
+  display: block;
+  margin-left: 10px;
+  margin-bottom: 10px;
+}
+.contain2col {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.item {
+  flex-basis: 50%;
+  box-sizing: border-box;
+}

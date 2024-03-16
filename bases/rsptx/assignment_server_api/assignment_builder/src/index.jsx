@@ -6,6 +6,8 @@ import reportWebVitals from "./reportWebVitals";
 import store from "./state/store";
 import { Provider } from "react-redux";
 import { fetchAssignments } from "./state/assignment/assignSlice";
+import { PrimeReactProvider, PrimeReactContext } from 'primereact/api';
+        
 
 async function main() {
     store.dispatch(fetchAssignments());
@@ -13,7 +15,9 @@ async function main() {
     const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(
         <Provider store={store}>
+            <PrimeReactProvider>
             <App />
+            </PrimeReactProvider>
         </Provider>
     );
 }
