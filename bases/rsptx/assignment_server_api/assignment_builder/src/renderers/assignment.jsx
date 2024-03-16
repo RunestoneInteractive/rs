@@ -1,16 +1,23 @@
 import { useSelector, useDispatch } from "react-redux";
-import Form from "react-bootstrap/Form";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import Dropdown from "react-bootstrap/Dropdown";
+import { useState } from "react";
+
 import { DateTime } from "luxon";
 import 'handsontable/dist/handsontable.full.min.css';
 import { HotTable } from '@handsontable/react';
 import { registerAllModules } from 'handsontable/registry';
 
+//import "primereact/resources/themes/bootstrap4-light-blue/theme.css"
+import "primereact/resources/themes/lara-light-cyan/theme.css";
+import { Dropdown } from 'primereact/dropdown';
+import { Panel } from 'primereact/panel';
+import { TabView, TabPanel } from 'primereact/tabview';
+import { InputText } from 'primereact/inputtext';
+import { Calendar } from 'primereact/calendar';
+import { InputNumber } from 'primereact/inputnumber';
+
+// This registers all the plugins for the Handsontable library
 registerAllModules();
-//import 'react-data-grid/lib/styles.css';
-//import DataGrid from "react-data-grid";
+
 
 import {
     updateField,
@@ -32,7 +39,11 @@ import {
     sendDeleteExercises,
     reorderAssignmentQuestions
 } from "../state/assignment/assignSlice";
+import ActiveCodeCreator from "./activeCode";
 
+
+// The AssignmentEditor component is a form that allows the user to create or edit an assignment.
+// The form has fields for the name, description, due date, and total points.
 function AssignmentEditor() {
     const dispatch = useDispatch();
     const name = useSelector(selectName);
@@ -51,66 +62,61 @@ function AssignmentEditor() {
 
     return (
         <div className="App">
-            <div className="ac_details">
-                <Form.Group className="mb-4">
-                    <Form.Label htmlFor="name">Assignment Name</Form.Label>
-                    <Form.Control
+            <div className="p-fluid">
+                <div className="p-field p-grid">
+                    <label htmlFor="name" className="p-col-12 p-md-2">Assignment Name</label>
+                    <InputText 
                         id="name"
-                        className="rsform"
-                        type="text"
                         placeholder="Enter Assignment Name"
                         value={name}
-                        onChange={handleAsgmtDataChange}
-                    />
-                    <Form.Label htmlFor="desc">
+                        onChange={(e) => dispatch(setName(e.target.value))} />
+
+                    <label htmlFor="desc" className="p-col-12 p-md-2">
                         Assignment Description
-                    </Form.Label>
-                    <Form.Control
-                        size="50"
+                    </label>
+                    <InputText
                         id="desc"
-                        className="rsform"
-                        type="text"
                         placeholder="Enter Assignment Description"
                         value={desc}
-                        onChange={handleAsgmtDataChange}
+                        onChange={(e) => dispatch(setDesc(e.target.value))}
                     />
-                </Form.Group>
-                <Form.Group className="mb-1" as={Row}>
-                    <Form.Label column sm={1}>
+                    <label htmlFor="due" className="p-col-3">
                         Due
-                    </Form.Label>
-                    <Col sm={4}>
-                        <Form.Control
+                    </label>
+                        <Calendar
+                            className="p-col-3"
                             id="due"
-                            className="rsform"
-                            type="datetime-local"
                             value={due}
-                            onChange={handleAsgmtDataChange}
+                            onChange={(e) => dispatch(setDue(e.target.value))}
+                            showTime
+                            hourFormat="12"
                         />
-                    </Col>
-                    <Form.Label column sm={2}>
+                    <label htmlFor="points">
                         Total Points
-                    </Form.Label>
-                    <Col sm={2}>
-                        <Form.Control
+                    </label>
+                        <InputNumber
                             id="points"
-                            className="rsform"
-                            type="number"
                             placeholder="Points"
                             value={points}
-                            onChange={handleAsgmtDataChange}
+                            onChange={(e) => dispatch(setPoints(e.value))}
                         />
-                    </Col>
-                </Form.Group>
+                </div>
+
             </div>
         </div>
     );
 }
 
+// The Assignment Picker is a dropdown menu that allows the user to select an assignment.
+// It works in combination with the AssignmentEditor component by populating elements of the
+// shared slice.
+// The AssignmentPicker component uses the PrimeReact Dropdown component.
+// The assignment picker also works with the AssignmentQuestion component to populate the table
+// with the questions in the selected assignment.
 export function AssignmentPicker() {
     const dispatch = useDispatch();
     const assignData = useSelector(selectAll);
-
+    const [selectedAssignment, setAssignment] = useState(null);
     const handleAssignmentChange = (e) => {
         dispatch(setAssignment(e.target.value));
     };
@@ -126,51 +132,67 @@ export function AssignmentPicker() {
     sorted_assignments = sorted_assignments.filter((a) => a.name !== "");
 
     const menuStyle = {
-        maxHeight: "200px",
-        overflowY: "auto",
+        width: "25rem",
+        marginBottom: "10px"
     };
+
 
     const optionStyle = {
-        marginLeft: "10px",
-        float: "right",
-        fontFamily: "monospace",
+        width: "12rem",
+        marginRight: "10px",
+        textAlign: "left",
+        float: "left"
     };
 
+    const optionStyle2 = {
+        width: "12rem",
+        textAlign: "end"
+    }
+
+    const optionTemplate = (option) => {
+        return (
+            <div>
+                <span style={optionStyle}>{option.name}</span>
+                <span style={optionStyle2}>
+                    {DateTime.fromISO(option.duedate).toLocaleString(
+                        DateTime.DATETIME_MED
+                    )}
+                </span>
+            </div>
+        );
+    }
     return (
-        <div className="App">
-            <h1>Assignment Builder</h1>
+        <div className="App card flex justify-content-center" style={menuStyle}>
             <Dropdown
-                onSelect={(aKey) => {
-                    let current = all_assignments.find((a) => a.id == aKey);
+                value={selectedAssignment}
+                className="w-full md:w-14rem p-button-secondary"
+                options={sorted_assignments}
+                optionLabel="name"
+                placeholder="Choose Assignment"
+                itemTemplate={optionTemplate}
+                filter
+                onChange={(e) => {
+                    let current = e.value;
                     dispatch(setName(current.name));
                     dispatch(setDesc(current.description));
                     dispatch(setDue(current.duedate));
                     dispatch(setPoints(current.points));
                     dispatch(fetchAssignmentQuestions(current.id));
+                    setAssignment(current);
                 }}
             >
-                <Dropdown.Toggle variant="info" id="dropdown-basic">
-                    Choose Assignment
-                </Dropdown.Toggle>
-                <Dropdown.Menu style={menuStyle}>
-                    {sorted_assignments.map((a) => (
-                        <Dropdown.Item key={a.id} eventKey={a.id}>
-                            <span>
-                                <strong>{a.name}</strong>
-                            </span>
-                            <span style={optionStyle}>
-                                {DateTime.fromISO(a.duedate).toLocaleString(
-                                    DateTime.DATETIME_MED
-                                )}
-                            </span>
-                        </Dropdown.Item>
-                    ))}
-                </Dropdown.Menu>
+
             </Dropdown>
         </div>
-    );
+    )
 }
 
+//
+// The AssignmentQuestion component is a table that displays the questions in the assignment.
+// The table is editable and the user can change the points, autograde, and which_to_grade fields.
+// Questions can be reordered and deleted.
+// This table uses the Handsontable library.
+// It may make sense to revisit this and have it use PrimeReact components.  But for now, it works.
 export function AssignmentQuestion() {
     const dispatch = useDispatch();
     const columns = ["id", "qnumber", "points", "autograde", "which_to_grade"];
@@ -234,35 +256,91 @@ export function AssignmentQuestion() {
 
     return (
         <div className="App">
-            <h3>Assignment Questions</h3>
-            <HotTable
-                style={aqStyle}
-                width="800px"
-                data={hotData}
-                stretchH="all"
-                colHeaders={columns}
-                rowHeaders={true}
-                manualRowMove={true}
-                contextMenu={true}
-                allowRemoveRow={true}
-                columns={[{ type: "numeric", readOnly: true },
-                { type: "numeric", readOnly: true },
-                { type: "numeric" },
-                {
-                    type: "dropdown",
-                    source: ["manual", "all_or_nothing", "pct_correct", "peer", "peer_chat", "interaction", "unittest"]
-                },
-                {
-                    type: "dropdown",
-                    source: ["first_answer", "last_answer", "all_answer", "best_answer"]
-                }
-                ]}
-                afterChange={handleChange}
-                afterRowMove={handleReorder}
-                afterRemoveRow={handleDelete}
-                licenseKey="non-commercial-and-evaluation"
-            />
+            <Panel header="Assignment Questions" toggleable>
+                <HotTable
+                    style={aqStyle}
+                    width="100%"
+                    data={hotData}
+                    stretchH="all"
+                    colHeaders={columns}
+                    rowHeaders={true}
+                    manualRowMove={true}
+                    contextMenu={true}
+                    allowRemoveRow={true}
+                    columns={[{ type: "numeric", readOnly: true },
+                    { type: "numeric", readOnly: true },
+                    { type: "numeric" },
+                    {
+                        type: "dropdown",
+                        source: ["manual", "all_or_nothing", "pct_correct", "peer", "peer_chat", "interaction", "unittest"]
+                    },
+                    {
+                        type: "dropdown",
+                        source: ["first_answer", "last_answer", "all_answer", "best_answer"]
+                    }
+                    ]}
+                    afterChange={handleChange}
+                    afterRowMove={handleReorder}
+                    afterRemoveRow={handleDelete}
+                    licenseKey="non-commercial-and-evaluation"
+                />
+            </Panel>
         </div>
     );
 }
+
+export function MoreOptions() {
+    const [activeIndex, setActiveIndex] = useState(0);
+    return (
+        <div className="App">
+            <Panel header="More Options" collapsed={true} toggleable>
+                <div className="p-fluid">
+                    <div className="p-field p-grid">
+                        <label htmlFor="name" className="p-col-12 p-md-2">Name</label>
+                        <div className="p-col-12 p-md-10">
+                            <input id="name" type="text" className="p-inputtext p-component" />
+                        </div>
+                    </div>
+                    <div className="p-field p-grid">
+                        <label htmlFor="description" className="p-col-12 p-md-2">Description</label>
+                        <div className="p-col-12 p-md-10">
+                            <input id="description" type="text" className="p-inputtext p-component" />
+                        </div>
+                    </div>
+                    <div className="p-field p-grid">
+                        <label htmlFor="category" className="p-col-12 p-md-2">Category</label>
+                        <div className="p-col-12 p-md-10">
+                            <input id="category" type="text" className="p-inputtext p-component" />
+                        </div>
+                    </div>
+                </div>
+            </Panel>
+        </div>
+    );
+}
+
+
+
+export function AddQuestionTabGroup() {
+    const [activeIndex, setActiveIndex] = useState(0);
+    return (
+        <div className="App">
+            <TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)}>
+                <TabPanel header="Search for Question">
+                    <p>Add question</p>
+                </TabPanel>
+                <TabPanel header="Write an Exercise">
+                    <ActiveCodeCreator />
+                </TabPanel>
+                <TabPanel header="Add Exercises">
+                    <p>Add Exercises</p>
+                </TabPanel>
+                <TabPanel header="Add Readings">
+                    <p>Add Readings</p>
+                </TabPanel>
+            </TabView>
+        </div>
+    );
+}
+
 export default AssignmentEditor;

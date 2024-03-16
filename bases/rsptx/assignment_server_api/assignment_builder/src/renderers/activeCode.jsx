@@ -1,11 +1,12 @@
-import Form from "react-bootstrap/Form";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import Stack from "react-bootstrap/Stack";
 import { createActiveCodeTemplate } from "../componentFuncs.js";
-import Button from "react-bootstrap/Button";
 import { useSelector, useDispatch } from "react-redux";
-import {Toaster} from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
+import { Dropdown } from 'primereact/dropdown';
+import { InputNumber } from 'primereact/inputnumber';
+import { InputText } from 'primereact/inputtext';
+import { InputTextarea } from 'primereact/inputtextarea';
+import { Button } from 'primereact/button';
+
 
 import {
     updateField,
@@ -43,10 +44,6 @@ function ActiveCodeCreator() {
     const assignData = useSelector(selectAssignAll);
     const previewCode = useSelector(selectCode);
 
-    const handleAcDataChange = (e) => {
-        // this relies on the fields of the form to have an id that matches the field in the slice
-        dispatch(updateField({ field: e.target.id, newVal: e.target.value }));
-    };
 
     const previewOnBlur = (e) => {
         dispatch(
@@ -63,116 +60,106 @@ function ActiveCodeCreator() {
         );
     };
 
+    const languageOptions = [
+        { value: "python", label: "Python (in browser)" },
+        { value: "java", label: "Java" },
+        { value: "cpp", label: "C++" },
+        { value: "c", label: "C" },
+        { value: "javascript", label: "Javascript" },
+        { value: "html", label: "HTML" },
+        { value: "sql", label: "SQL" },
+    ]
+
     return (
-        <div className="App" style={acStyle}>
+        <div style={acStyle}>
             <Toaster />
-            <Form.Group className="mb-1" as={Row}>
-                <Form.Label column sm={2}>
-                    Language
-                </Form.Label>
-                <Col sm={4}>
-                    <Form.Select
+            <div class="contain2col">
+                <div class="item">
+                    <label htmlFor="language">
+                        Language
+                    </label>
+                    <Dropdown
                         id="language"
-                        className="rsform"
                         value={language}
-                        onChange={handleAcDataChange}
-                    >
-                        <option value="python">Python (in browser)</option>
-                        <option value="java">Java</option>
-                        <option value="cpp">C++</option>
-                        <option value="c">C</option>
-                        <option value="javascript">Javascript</option>
-                        <option value="html">HTML</option>
-                        <option value="sql">SQL</option>
-                    </Form.Select>
-                </Col>
-                <Col sm={2}>
-                    <Form.Control
+                        onChange={(e) => dispatch(updateField({ field: "language", newVal: e.value }))}
+                        options={languageOptions}
+                        optionLabel="label"
+                    />
+
+                </div>
+                <div class="item">
+                    <InputNumber
                         id="qpoints"
-                        className="rsform"
-                        type="number"
                         placeholder="Points"
                         value={qpoints}
                         onChange={(e) => {
-                            handleAcDataChange(e);
-                            dispatch(setPoints(Number(e.target.value)));
+                            dispatch(updateField({ field: "qpoints", newVal: e.value }));
+                            dispatch(setPoints(Number(e.value)));
                         }}
                     />
-                </Col>
-            </Form.Group>
-            <Form.Group className="mb-3">
-                <Row>
-                    <Form.Label column sm={3}>
-                        Question Name
-                    </Form.Label>
-                    <Form.Control
-                        className="rsform w-50"
-                        id="uniqueId"
-                        type="text"
-                        placeholder="Enter Question Name"
-                        value={uniqueId}
-                        onBlur={previewOnBlur}
-                        onChange={(e) =>
-                            dispatch(
-                                updateField({
-                                    field: "uniqueId",
-                                    newVal: e.target.value,
-                                })
-                            )
-                        }
-                    />
-                </Row>
-                <Form.Label column sm={2}>
+                </div>
+            </div>
+            <div>
+                <label htmlFor="uniqueId">
+                    Question Name
+                </label>
+                <InputText
+                    id="uniqueId"
+                    placeholder="Enter Question Name"
+                    value={uniqueId}
+                    onBlur={previewOnBlur}
+                    onChange={(e) =>
+                        dispatch(
+                            updateField({
+                                field: "uniqueId",
+                                newVal: e.value,
+                            })
+                        )
+                    }
+                />
+                <label htmlFor="instructions" class="builderlabel">
                     Instructions
-                </Form.Label>
-                <Form.Control
-                    as="textarea"
+                </label>
+                <InputTextarea
                     rows={3}
                     cols={60}
                     id="instructions"
-                    className="rsform w-75"
                     placeholder="Enter Assignment Instructions (HTML Allowed)"
                     value={instructions}
                     onBlur={previewOnBlur}
-                    onChange={handleAcDataChange}
-                ></Form.Control>
-                <Form.Label column sm={4}>
+                    onChange={(e) => dispatch(updateField({ field: "instructions", newVal: e.target.value }))}
+                ></InputTextarea>
+                <label htmlFor="prefix_code" class="builderlabel">
                     Hidden Prefix Code
-                </Form.Label>
-                <Form.Control
-                    as="textarea"
+                </label>
+                <InputTextarea
                     rows={4}
                     cols={60}
                     id="prefix_code"
-                    className="rsform w-75"
                     placeholder="Enter Assignment Prefix Code"
                     value={prefix_code}
                     onBlur={previewOnBlur}
-                    onChange={handleAcDataChange}
-                ></Form.Control>
-                <Form.Label column sm={2}>
+                    onChange={(e) => dispatch(updateField({ field: "prefix_code", newVal: e.target.value }))}
+                ></InputTextarea>
+                <label htmlFor="starter_code" class="builderlabel">
                     Starter Code
-                </Form.Label>
-                <Form.Control
-                    as="textarea"
+                </label>
+                <InputTextarea
                     rows={4}
                     cols={60}
                     id="starter_code"
-                    className="rsform w-75"
                     placeholder="Enter Assignment Starter Code"
                     value={starter_code}
                     onBlur={previewOnBlur}
-                    onChange={handleAcDataChange}
-                ></Form.Control>
-                <Form.Label column sm={4}>
+                    onChange={(e) => dispatch(updateField({ field: "starter_code", newVal: e.target.value }))}
+                ></InputTextarea>
+                <label htmlFor="suffix_code" class="builderlabel">
                     Hidden Suffix (Test) Code
-                </Form.Label>
-                <Form.Control
-                    as="textarea"
+                </label>
+                <InputTextarea
                     rows={4}
                     cols={60}
                     id="suffix_code"
-                    className="rsform w-75"
                     placeholder="Enter Assignment Suffix (unit test) Code"
                     value={suffix_code}
                     onBlur={previewOnBlur}
@@ -180,47 +167,41 @@ function ActiveCodeCreator() {
                         dispatch(
                             updateField({
                                 field: "suffix_code",
-                                newVal: e.target.value,
+                                newVal: e.value,
                             })
                         );
                     }}
-                ></Form.Control>
-            </Form.Group>
-            <Stack direction="horizontal" gap={2}>
-                <Button
-                    variant="primary"
-                    type="button"
-                    value="save"
-                    onClick={(e) =>
-                        dispatch(
-                            saveAssignmentQuestion({
-                                assignData: assignData,
-                                acData: acData,
-                                previewSrc: createActiveCodeTemplate(
-                                    uniqueId,
-                                    instructions,
-                                    language,
-                                    prefix_code,
-                                    starter_code,
-                                    suffix_code
-                                ),
-                            })
-                        )
-                    }
-                >
-                    Save
-                </Button>
-                <Button
-                    className="ml-2"
-                    variant="info"
-                    type="button"
-                    value="preview"
-                    id="preview"
-                    onClick={(e) => previewOnBlur(e)}
-                >
-                    Preview
-                </Button>
-            </Stack>
+                ></InputTextarea>
+            </div>
+            <Button
+                value="save"
+                onClick={(e) =>
+                    dispatch(
+                        saveAssignmentQuestion({
+                            assignData: assignData,
+                            acData: acData,
+                            previewSrc: createActiveCodeTemplate(
+                                uniqueId,
+                                instructions,
+                                language,
+                                prefix_code,
+                                starter_code,
+                                suffix_code
+                            ),
+                        })
+                    )
+                }
+            >
+                Save
+            </Button>
+            <Button
+                severity="info"
+                value="preview"
+                id="preview"
+                onClick={(e) => previewOnBlur(e)}
+            >
+                Preview
+            </Button>
         </div>
     );
 }

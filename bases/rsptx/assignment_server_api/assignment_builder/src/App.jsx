@@ -1,15 +1,17 @@
 import "./App.css";
-import AssignmentEditor, { AssignmentPicker, AssignmentQuestion } from "./renderers/assignment.jsx";
+import AssignmentEditor, { AssignmentPicker, AssignmentQuestion, MoreOptions, AddQuestionTabGroup } from "./renderers/assignment.jsx";
 import ActiveCodeCreator from "./renderers/activeCode.jsx";
 import Preview from "./renderers/preview.jsx";
 
 function App() {
     return (
         <>
+            <h1 className="App">Assignment Builder</h1>
             <AssignmentPicker />
             <AssignmentEditor />
+            <MoreOptions />
             <AssignmentQuestion />
-            <ActiveCodeCreator />
+            <AddQuestionTabGroup />
             <Preview />
             <div id="editRST"> </div>
         </>
