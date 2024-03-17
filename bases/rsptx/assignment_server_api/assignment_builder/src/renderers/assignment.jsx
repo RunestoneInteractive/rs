@@ -1,5 +1,5 @@
 import { useSelector, useDispatch } from "react-redux";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { DateTime } from "luxon";
 import 'handsontable/dist/handsontable.full.min.css';
@@ -14,6 +14,13 @@ import { TabView, TabPanel } from 'primereact/tabview';
 import { InputText } from 'primereact/inputtext';
 import { Calendar } from 'primereact/calendar';
 import { InputNumber } from 'primereact/inputnumber';
+import { InputSwitch } from 'primereact/inputswitch';
+
+import { SelectButton } from 'primereact/selectbutton';
+import { PrimeIcons } from 'primereact/api';
+import { TreeTable } from 'primereact/treetable';
+import { Column } from 'primereact/column';
+import { NodeService } from '../service/NodeService';
 
 // This registers all the plugins for the Handsontable library
 registerAllModules();
@@ -40,6 +47,7 @@ import {
     reorderAssignmentQuestions
 } from "../state/assignment/assignSlice";
 import ActiveCodeCreator from "./activeCode";
+import { Button } from "primereact/button";
 
 
 // The AssignmentEditor component is a form that allows the user to create or edit an assignment.
@@ -65,7 +73,7 @@ function AssignmentEditor() {
             <div className="p-fluid">
                 <div className="p-field p-grid">
                     <label htmlFor="name" className="p-col-12 p-md-2">Assignment Name</label>
-                    <InputText 
+                    <InputText
                         id="name"
                         placeholder="Enter Assignment Name"
                         value={name}
@@ -80,26 +88,35 @@ function AssignmentEditor() {
                         value={desc}
                         onChange={(e) => dispatch(setDesc(e.target.value))}
                     />
-                    <label htmlFor="due" className="p-col-3">
-                        Due
-                    </label>
-                        <Calendar
-                            className="p-col-3"
-                            id="due"
-                            value={due}
-                            onChange={(e) => dispatch(setDue(e.target.value))}
-                            showTime
-                            hourFormat="12"
-                        />
-                    <label htmlFor="points">
-                        Total Points
-                    </label>
-                        <InputNumber
-                            id="points"
-                            placeholder="Points"
-                            value={points}
-                            onChange={(e) => dispatch(setPoints(e.value))}
-                        />
+                    <div className="contain2col">
+                        <div className="item">
+                            <label htmlFor="due" className="p-col-3">
+                                Due
+                            </label>
+                            <Calendar
+                                className="p-col-3"
+                                id="due"
+                                value={due}
+                                onChange={(e) => dispatch(setDue(e.target.value))}
+                                showTime
+                                hourFormat="12"
+                            />
+                        </div>
+
+                        <div className="item">
+                            <label htmlFor="points">
+                                Total Points
+                            </label>
+                            <InputNumber
+                                id="points"
+                                placeholder="Points"
+                                value={points}
+                                onChange={(e) => dispatch(setPoints(e.value))}
+                            />
+                            <InputSwitch id="visible" checked={assignData.visible} onChange={(e) => dispatch(updateField({ field: "visible", newVal: e.value }))} />
+                            <label htmlFor="visible">Visible to Students</label>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -290,29 +307,53 @@ export function AssignmentQuestion() {
 }
 
 export function MoreOptions() {
-    const [activeIndex, setActiveIndex] = useState(0);
+    const options = ['Regular', 'Timed', "Peer"];
+    const [assignmentKind, setAssignmentKind] = useState(options[0]);
+    const assignData = useSelector(selectAll);
+
+    const dispatch = useDispatch();
+    const renderOptions = () => {
+        if (assignmentKind === "Timed") {
+            return (
+                <>
+                    <div className="p-inputgroup">
+                        <span className="p-inputgroup-addon">
+                            <i className="pi pi-clock">time</i>
+                        </span>
+                        <InputNumber id="timeLimit" placeholder="Time Limit (minutes)" value={assignData.timeLimit} onChange={(e) => dispatch(updateField({ field: "timeLimit", newVal: e.value }))} />
+                        <span className="p-inputgroup-addon">
+                            minutes
+                        </span>
+                    </div>
+                    <label htmlFor="feedback">Allow Feedback</label>
+                    <InputSwitch id="feedback" checked={assignData.feedback} onChange={(e) => dispatch(updateField({ field: "feedback", newVal: e.value }))} />
+                    <label htmlFor="allowPause">Allow Pause</label>
+                    <InputSwitch id="allowPause" checked={assignData.allowPause} onChange={(e) => dispatch(updateField({ field: "allowPause", newVal: e.value }))} />
+                </>
+            )
+        } else if (assignmentKind === "Peer") {
+            return (
+                <>
+                    <label htmlFor="showAsync">Show Async Peer</label>
+                    <InputSwitch id="showAsync" checked={assignData.showAsync} onChange={(e) => dispatch(updateField({ field: "showAsync", newVal: e.value }))} />
+                </>
+            )
+        } else {
+            return (
+                <p>No additional options</p>
+            )
+        }
+    }
+
     return (
         <div className="App">
             <Panel header="More Options" collapsed={true} toggleable>
                 <div className="p-fluid">
                     <div className="p-field p-grid">
-                        <label htmlFor="name" className="p-col-12 p-md-2">Name</label>
-                        <div className="p-col-12 p-md-10">
-                            <input id="name" type="text" className="p-inputtext p-component" />
-                        </div>
+                        <label htmlFor="name" className="p-col-12 p-md-2">What kind of Assignment?</label>
+                        <SelectButton value={assignmentKind} onChange={(e) => setAssignmentKind(e.value)} options={options} />
                     </div>
-                    <div className="p-field p-grid">
-                        <label htmlFor="description" className="p-col-12 p-md-2">Description</label>
-                        <div className="p-col-12 p-md-10">
-                            <input id="description" type="text" className="p-inputtext p-component" />
-                        </div>
-                    </div>
-                    <div className="p-field p-grid">
-                        <label htmlFor="category" className="p-col-12 p-md-2">Category</label>
-                        <div className="p-col-12 p-md-10">
-                            <input id="category" type="text" className="p-inputtext p-component" />
-                        </div>
-                    </div>
+                    {renderOptions()}
                 </div>
             </Panel>
         </div>
@@ -326,21 +367,88 @@ export function AddQuestionTabGroup() {
     return (
         <div className="App">
             <TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)}>
-                <TabPanel header="Search for Question">
-                    <p>Add question</p>
+                <TabPanel header="Search for Exercises">
+                    <SearchPanel />
                 </TabPanel>
                 <TabPanel header="Write an Exercise">
                     <ActiveCodeCreator />
                 </TabPanel>
-                <TabPanel header="Add Exercises">
-                    <p>Add Exercises</p>
+                <TabPanel header="Choose Exercises">
+                    <ExerciseSelector />
                 </TabPanel>
-                <TabPanel header="Add Readings">
-                    <p>Add Readings</p>
+                <TabPanel header="Choose Readings">
+                    <ExerciseSelector />
                 </TabPanel>
             </TabView>
         </div>
     );
+}
+
+export function SearchPanel() {
+    // Just stub this out now as a prototype...
+    return (
+        <div className="p-fluid">
+            <label htmlFor="basecourse">Constrain to base course</label>
+            <InputSwitch id="basecourse" checked={true} />
+            <br />
+            <label htmlFor="search">Free Text Search for Question</label>
+            <InputText id="search"
+                placeholder="question text"
+            />
+            <label htmlFor="tags">Search by Tags</label>
+            <InputText id="tags"
+                placeholder="tags"
+            />
+            <label htmlFor="difficulty">Search by Difficulty</label>
+            <InputText id="difficulty"
+                placeholder="difficulty"
+            />
+            <label htmlFor="type">Search by Question Type</label>
+            <InputText id="type"
+                placeholder="type"
+            />
+            <label htmlFor="author">Search by Author</label>
+            <InputText id="author"
+                placeholder="author"
+            />
+            <Button label="Search" icon="pi pi-search" />
+            <h3>Search Results</h3>
+            <ExerciseSelector />
+        </div>
+    );
+}
+
+
+// export class NodeService {
+
+//     getTreeTableNodes() {
+//         return fetch('data/treetablenodes.json').then(res => res.json())
+//                 .then(d => d.root);
+//     }
+
+//     getTreeNodes() {
+//         return fetch('data/treenodes.json').then(res => res.json())
+//                 .then(d => d.root);
+//     }
+// }
+
+export function ExerciseSelector() {
+    const [nodes, setNodes] = useState([]);
+    const [selectedNodeKeys, setSelectedNodeKeys] = useState(null);
+
+    useEffect(() => {
+        NodeService.getTreeTableNodes().then((data) => setNodes(data));
+    }, []);
+
+    return (
+        <div className="card">
+            <TreeTable value={nodes} selectionMode="checkbox" selectionKeys={selectedNodeKeys} onSelectionChange={(e) => setSelectedNodeKeys(e.value)} tableStyle={{ minWidth: '50rem' }}>
+                <Column field="name" header="Name" expander></Column>
+                <Column field="question_type" header="QuestionType"></Column>
+                <Column field="autograde" header="Auto Graded"></Column>
+            </TreeTable>
+        </div>
+    )
 }
 
 export default AssignmentEditor;

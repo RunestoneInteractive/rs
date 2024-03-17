@@ -73,8 +73,8 @@ function ActiveCodeCreator() {
     return (
         <div style={acStyle}>
             <Toaster />
-            <div class="contain2col">
-                <div class="item">
+            <div className="contain2col">
+                <div className="item">
                     <label htmlFor="language">
                         Language
                     </label>
@@ -87,7 +87,7 @@ function ActiveCodeCreator() {
                     />
 
                 </div>
-                <div class="item">
+                <div className="item">
                     <InputNumber
                         id="qpoints"
                         placeholder="Points"
@@ -117,7 +117,7 @@ function ActiveCodeCreator() {
                         )
                     }
                 />
-                <label htmlFor="instructions" class="builderlabel">
+                <label htmlFor="instructions" className="builderlabel">
                     Instructions
                 </label>
                 <InputTextarea
@@ -129,7 +129,7 @@ function ActiveCodeCreator() {
                     onBlur={previewOnBlur}
                     onChange={(e) => dispatch(updateField({ field: "instructions", newVal: e.target.value }))}
                 ></InputTextarea>
-                <label htmlFor="prefix_code" class="builderlabel">
+                <label htmlFor="prefix_code" className="builderlabel">
                     Hidden Prefix Code
                 </label>
                 <InputTextarea
@@ -141,7 +141,7 @@ function ActiveCodeCreator() {
                     onBlur={previewOnBlur}
                     onChange={(e) => dispatch(updateField({ field: "prefix_code", newVal: e.target.value }))}
                 ></InputTextarea>
-                <label htmlFor="starter_code" class="builderlabel">
+                <label htmlFor="starter_code" className="builderlabel">
                     Starter Code
                 </label>
                 <InputTextarea
@@ -153,7 +153,7 @@ function ActiveCodeCreator() {
                     onBlur={previewOnBlur}
                     onChange={(e) => dispatch(updateField({ field: "starter_code", newVal: e.target.value }))}
                 ></InputTextarea>
-                <label htmlFor="suffix_code" class="builderlabel">
+                <label htmlFor="suffix_code" className="builderlabel">
                     Hidden Suffix (Test) Code
                 </label>
                 <InputTextarea
