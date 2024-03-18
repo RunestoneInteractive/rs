@@ -86,7 +86,8 @@ let defaultDeadline = `${cDate.getFullYear()}-${`${cDate.getMonth() + 1
     )}T${`${cDate.getHours()}`.padStart(2, 0)}:${`${cDate.getMinutes()}`.padStart(
         2,
         0
-    )}`;
+    )}:00.0Z`;
+// old     
 
 // create a slice for Assignments
 // This slice must be registered with the store in store.js

@@ -97,6 +97,7 @@ function AssignmentEditor() {
                                 className="p-col-3"
                                 id="due"
                                 value={due}
+                                placeholder={due}
                                 onChange={(e) => dispatch(setDue(e.target.value))}
                                 showTime
                                 hourFormat="12"
@@ -442,7 +443,7 @@ export function ExerciseSelector() {
 
     return (
         <div className="card">
-            <TreeTable value={nodes} selectionMode="checkbox" selectionKeys={selectedNodeKeys} onSelectionChange={(e) => setSelectedNodeKeys(e.value)} tableStyle={{ minWidth: '50rem' }}>
+            <TreeTable value={nodes} selectionMode="checkbox" selectionKeys={selectedNodeKeys} onSelectionChange={(e) => setSelectedNodeKeys(e.value)} tableStyle={{ minWidth: '10rem' }}>
                 <Column field="name" header="Name" expander></Column>
                 <Column field="question_type" header="QuestionType"></Column>
                 <Column field="autograde" header="Auto Graded"></Column>
