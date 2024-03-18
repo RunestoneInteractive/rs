@@ -135,6 +135,8 @@ export default class LineBasedGrader {
         let numCorrectIndents =
             ((this.correctLines - this.incorrectIndents) / lines) * 0.4;
 
-        this.problem.percent = numLines + numCorrectBlocks + numCorrectIndents;
+        let score = numLines + numCorrectBlocks + numCorrectIndents;
+        score = Math.max(score, 0);
+        this.problem.percent = score;
     }
 }
