@@ -949,6 +949,11 @@ def removeinstructor():
 
     """
     removed = []
+    if not request.args[0].isnumeric():
+        session.flash = T(f"""instructor id is not numberic: {request.args[0]}""")
+        logger.error(f"instructor id is not numberic: {request.args[0]}")
+        return json.dumps("Error")
+
     if request.args[0] != str(auth.user.id):
         db(
             (db.course_instructor.instructor == request.args[0])
@@ -2656,9 +2661,9 @@ def courselog():
     data = data[~data.sid.str.contains(r"^\d{38,38}@")]
 
     response.headers["Content-Type"] = "application/vnd.ms-excel"
-    response.headers[
-        "Content-Disposition"
-    ] = "attachment; filename=data_for_{}.csv".format(auth.user.course_name)
+    response.headers["Content-Disposition"] = (
+        "attachment; filename=data_for_{}.csv".format(auth.user.course_name)
+    )
     return data.to_csv(na_rep=" ")
 
 
@@ -2680,9 +2685,9 @@ def codelog():
     data = data[~data.sid.str.contains(r"^\d{38,38}@")]
 
     response.headers["Content-Type"] = "application/vnd.ms-excel"
-    response.headers[
-        "Content-Disposition"
-    ] = "attachment; filename=data_for_{}.csv".format(auth.user.course_name)
+    response.headers["Content-Disposition"] = (
+        "attachment; filename=data_for_{}.csv".format(auth.user.course_name)
+    )
     return data.to_csv(na_rep=" ")
 
 

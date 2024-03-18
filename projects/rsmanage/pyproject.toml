@@ -26,7 +26,7 @@ psycopg2-binary = "^2.9.6"
 anyio = "^3.6.2"
 pydantic = { version = "^2.0.0", extras = ["dotenv"] }
 asyncpg = "^0.28.0"
-greenlet = "^2.0.2"
+greenlet = "^3.0.0"
 pyhumps = "^3.8.0"
 fastapi = "^0.103.0"
 pydal = "^20230521.1"

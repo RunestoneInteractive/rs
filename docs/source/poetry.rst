@@ -1,4 +1,4 @@
-Poetry and Polylith
+Development Environment Pre-Requisites
 =======================================
 
 Make sure you have Python installed.  We use 3.10 in production and 3.11 in development.  We have not tested with 3.12 yet.  Earlier versions of python are not supported or recommended.
@@ -24,6 +24,8 @@ your copy of poetry. Do the following from a command prompt:
    have other ``poetry`` projects with ``.env`` files that you don't want automatically
    used, you may want to not use ``poetry-dotenv-plugin``. In that case, you will need to
    manually set some environment variables on your machine (detailed later).
+
+   Also, if you edit the ``.env`` file, you will need to restart the poetry shell in order for those changes to take effect.
 
 With those installed descend into the Runestone repository by doing ``cd rs`` and run ``poetry poly info``. You should see something like this:
 

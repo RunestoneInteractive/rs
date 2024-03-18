@@ -470,10 +470,12 @@ def publish_message():
     response.headers["content-type"] = "application/json"
     r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
     data = json.dumps(request.vars)
-    logger.debug(f"data = {data}")
+    logger.debug(f"PM data = {data} {os.environ.get('REDIS_URI', 'redis://redis:6379/0')}")
     r.publish("peermessages", data)
-    mess_count = int(r.hget(f"{auth.user.course_name}_state", "mess_count"))
-    if not mess_count:
+    res = r.hget(f"{auth.user.course_name}_state", "mess_count")
+    if res is not None:
+        mess_count = int(res)
+    else:
         mess_count = 0
     if request.vars.type == "text":
         r.hset(f"{auth.user.course_name}_state", "mess_count", str(mess_count + 1))

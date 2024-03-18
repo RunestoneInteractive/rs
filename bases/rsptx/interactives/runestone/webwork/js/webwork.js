@@ -15,10 +15,13 @@ class WebWork extends RunestoneBase {
         this.question = null;
         this.caption = "WebWork";
         this.containerDiv = opts.orig;
+        this.answers = {};
+        this.percent = 0;
         //this.addCaption("runestone");
         if (this.divid !== "fakeww-ww-rs") {
             this.checkServer("webwork", true);
         }
+        window.wwList[this.divid] = this;
     }
 
     restoreAnswers(data) {
@@ -28,6 +31,7 @@ class WebWork extends RunestoneBase {
             data.answer = "";
         }
         // data.answers comes from postgresql as a JSON column type so no need to parse it.
+
         this.answers = data.answer;
         this.correct = data.correct;
         this.percent = data.percent;
@@ -180,7 +184,7 @@ if (typeof window.component_factory === "undefined") {
 }
 
 window.component_factory.webwork = function (opts) {
-    return new WebWork();
+    return new WebWork(opts);
 };
 
 $(function () {

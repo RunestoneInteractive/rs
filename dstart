@@ -16,6 +16,7 @@ SERVICE=$1
 
 export RUNESTONE_PATH=.
 export BOOK_PATH=~/Runestone/books
+export REDIS_URI=redis://localhost:6379/0
 
 cd $RUNESTONE_PATH
 
