@@ -18,10 +18,7 @@ import { InputSwitch } from 'primereact/inputswitch';
 
 import { SelectButton } from 'primereact/selectbutton';
 import { PrimeIcons } from 'primereact/api';
-import { TreeTable } from 'primereact/treetable';
-import { Column } from 'primereact/column';
-import { NodeService } from '../service/NodeService';
-
+import { ExerciseSelector } from './ePicker';
 // This registers all the plugins for the Handsontable library
 registerAllModules();
 
@@ -378,7 +375,7 @@ export function AddQuestionTabGroup() {
                     <ExerciseSelector />
                 </TabPanel>
                 <TabPanel header="Choose Readings">
-                    <ExerciseSelector />
+                    <ExerciseSelector level="subchapter" />
                 </TabPanel>
             </TabView>
         </div>
@@ -419,37 +416,5 @@ export function SearchPanel() {
     );
 }
 
-
-// export class NodeService {
-
-//     getTreeTableNodes() {
-//         return fetch('data/treetablenodes.json').then(res => res.json())
-//                 .then(d => d.root);
-//     }
-
-//     getTreeNodes() {
-//         return fetch('data/treenodes.json').then(res => res.json())
-//                 .then(d => d.root);
-//     }
-// }
-
-export function ExerciseSelector() {
-    const [nodes, setNodes] = useState([]);
-    const [selectedNodeKeys, setSelectedNodeKeys] = useState(null);
-
-    useEffect(() => {
-        NodeService.getTreeTableNodes().then((data) => setNodes(data));
-    }, []);
-
-    return (
-        <div className="card">
-            <TreeTable value={nodes} selectionMode="checkbox" selectionKeys={selectedNodeKeys} onSelectionChange={(e) => setSelectedNodeKeys(e.value)} tableStyle={{ minWidth: '10rem' }}>
-                <Column field="name" header="Name" expander></Column>
-                <Column field="question_type" header="QuestionType"></Column>
-                <Column field="autograde" header="Auto Graded"></Column>
-            </TreeTable>
-        </div>
-    )
-}
 
 export default AssignmentEditor;

@@ -664,6 +664,7 @@ class Chapter(Base, IdMixin):
     chapter_label = Column(String(512), nullable=False)
     chapter_num = Column(Integer, nullable=False)
 
+ChapterValidator = sqlalchemy_to_pydantic(Chapter)
 
 class SubChapter(Base, IdMixin):
     __tablename__ = "sub_chapters"
@@ -676,6 +677,7 @@ class SubChapter(Base, IdMixin):
     skipreading = Column(Web2PyBoolean, nullable=False)
     sub_chapter_num = Column(Integer, nullable=False)
 
+SubChapterValidator = sqlalchemy_to_pydantic(SubChapter)
 
 # Tracking User Progress
 # ----------------------

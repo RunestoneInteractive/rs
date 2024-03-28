@@ -48,6 +48,7 @@ from rsptx.db.models import (
     AuthUserValidator,
     BookAuthor,
     Chapter,
+    ChapterValidator,
     Code,
     CodeValidator,
     Competency,
@@ -70,6 +71,7 @@ from rsptx.db.models import (
     SelectedQuestion,
     SelectedQuestionValidator,
     SubChapter,
+    SubChapterValidator,
     TimedExam,
     TimedExamValidator,
     TraceBack,
@@ -2126,3 +2128,120 @@ async def get_courses_per_basecourse() -> dict:
             retval[row[0]] = row[1]
 
         return retval
+
+
+async def fetch_questions_for_chapter_subchapter(
+    base_course: str,
+    skipreading: bool = False,
+    from_source_only: bool = True,
+    pages_only: bool = False,
+) -> List[dict]:
+    """
+    Fetch all questions for a given base course, where the skipreading and from_source
+    flags are set to the given values.
+
+    :param base_course: str, the base course
+    :param skipreading: bool, whether to skip questions/sections marked as "skipreading" Usually
+       these sections are the Exercises sections at the end of chapters.
+    :param from_source_only: bool, whether the question is from the source, if this is True
+       then instructor contributed questions will not be included in the result.
+    :param pages_only: bool, whether to include only pages for reading assignment creation.
+    :return: List[dict], a list of questions in a hierarchical json structure
+    """
+    if skipreading:
+        skipr_clause = SubChapter.skipreading == True  # noqa: E712
+    else:
+        skipr_clause = True
+    if from_source_only:
+        froms_clause = Question.from_source == True  # noqa: E712
+    else:
+        froms_clause = True
+    if pages_only:
+        page_clause = Question.question_type == "page"
+    else:
+        page_clause = True
+    query = (
+        select(Question, Chapter, SubChapter)
+        .join(
+            Chapter,
+            and_(
+                Question.chapter == Chapter.chapter_label,
+                Question.base_course == Chapter.course_id,
+            ),
+        )
+        .join(
+            SubChapter,
+            and_(
+                SubChapter.chapter_id == Chapter.id,
+                Question.subchapter == SubChapter.sub_chapter_label,
+            ),
+        )
+        .where(
+            and_(
+                Chapter.course_id == base_course,
+                skipr_clause,
+                froms_clause,
+                page_clause,
+            )
+        )
+        .order_by(Chapter.chapter_num, SubChapter.sub_chapter_num, Question.id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        # convert the result to a hierarchical json structure using the chapter and subchapter labels
+        questions = {}
+        chapters = {}
+
+        for row in res:
+            q = QuestionValidator.from_orm(row.Question)
+            c = ChapterValidator.from_orm(row.Chapter)
+            sc = SubChapterValidator.from_orm(row.SubChapter)
+            if c.chapter_label not in questions:
+                questions[c.chapter_label] = {}
+            if c.chapter_label not in chapters:
+                chapters[c.chapter_label] = {**c.dict(), "sub_chapters": {}}
+            if sc.sub_chapter_label not in questions[c.chapter_label]:
+                questions[c.chapter_label][sc.sub_chapter_label] = []
+            if sc.sub_chapter_label not in chapters[c.chapter_label]["sub_chapters"]:
+                chapters[c.chapter_label]["sub_chapters"][sc.sub_chapter_label] = {
+                    **sc.dict(),
+                }
+            del q.timestamp  # Does not convert to json
+            del q.question
+            questions[c.chapter_label][sc.sub_chapter_label].append(q)
+        # Now create the hierarchical json structure where the keys are the chapter and subchapter labels
+        # This is the structure that is used by the React TreeTable component
+        chaps = []
+        for chapter in questions:
+            subs = []
+            for subchapter in questions[chapter]:
+                subs.append(
+                    {
+                        "key": subchapter,
+                        "data": {
+                            "title": chapters[chapter]["sub_chapters"][subchapter][
+                                "sub_chapter_name"
+                            ],
+                            "num": chapters[chapter]["sub_chapters"][subchapter][
+                                "sub_chapter_num"
+                            ],
+                        },
+                        "children": [
+                            {"key": q.name, "data": q.dict()}
+                            for q in questions[chapter][subchapter]
+                        ],
+                    }
+                )
+            chaps.append(
+                {
+                    "key": chapter,
+                    "data": {
+                        "title": chapters[chapter]["chapter_name"],
+                        "num": chapters[chapter]["chapter_num"],
+                    },
+                    "children": subs,
+                }
+            )
+
+        return chaps

@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import create_engine
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 # Local application imports
 # -------------------------
@@ -18,6 +18,7 @@ from rsptx.db.crud import (
     create_question,
     fetch_course,
     create_assignment,
+    fetch_questions_for_chapter_subchapter,
     remove_assignment_questions,
     reorder_assignment_questions,
     update_assignment_question,
@@ -390,3 +391,33 @@ async def reorder_assignment_questions_ep(
             detail=f"Error reordering assignment questions: {str(e)}",
         )
     return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
+
+
+class PickerOptions(BaseModel):
+    skipreading: Optional[bool] = False
+    from_source_only: Optional[bool] = True
+    pages_only: Optional[bool] = False
+
+
+@router.post("/fetch_chooser_data")
+async def fetch_chooser_data(
+    request: Request,
+    request_data: PickerOptions,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+    res = await fetch_questions_for_chapter_subchapter(
+        course.base_course,
+        skipreading=request_data.skipreading,
+        from_source_only=request_data.from_source_only,
+        pages_only=request_data.pages_only,
+    )
+    return make_json_response(status=status.HTTP_200_OK, detail={"questions": res})
