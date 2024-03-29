@@ -58,12 +58,14 @@ export const fetchChooserData = createAsyncThunk(
     }
 );
 
+
 // create a slice for ActiveCodeEditor
 // This slice must be registered with the store in store.js
 export const epSlice = createSlice({
     name: "ePicker",
     initialState: {
         nodes: [],
+        selectedNodes: {},
     },
     reducers: {
         // todo -- this should have a keys for chapter and subchapter to insert the new node
@@ -72,7 +74,10 @@ export const epSlice = createSlice({
         },
         setNodes: (state, action) => {
             state.nodes = action.payload.questions;
-        }
+        },
+        setSelectedNodes: (state, action) => {
+            state.selectedNodes = action.payload;
+        },
     },
     extraReducers(builder) {
         builder
@@ -86,7 +91,7 @@ export const epSlice = createSlice({
     },
 });
 
-export const { addExercise } = epSlice.actions;
+export const { addExercise, setSelectedNodes } = epSlice.actions;
 
 
 // The function below is called a selector and allows us to select a value from
@@ -94,6 +99,10 @@ export const { addExercise } = epSlice.actions;
 // in the slice file. For example: `useSelector((state) => state.counter.value)`
 export const chooserNodes = (state) => {
     return state.ePicker.nodes;
+}
+
+export const selectedNodes = (state) => {
+    return state.ePicker.selectedNodes;
 }
 
 export default epSlice.reducer;

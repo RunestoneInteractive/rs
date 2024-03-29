@@ -2195,8 +2195,11 @@ async def fetch_questions_for_chapter_subchapter(
 
         for row in res:
             q = QuestionValidator.from_orm(row.Question)
+            q.name = f"q:{q.name}"
             c = ChapterValidator.from_orm(row.Chapter)
+            c.chapter_label = f"c:{c.chapter_label}"
             sc = SubChapterValidator.from_orm(row.SubChapter)
+            sc.sub_chapter_label = f"s:{sc.sub_chapter_label}"
             if c.chapter_label not in questions:
                 questions[c.chapter_label] = {}
             if c.chapter_label not in chapters:

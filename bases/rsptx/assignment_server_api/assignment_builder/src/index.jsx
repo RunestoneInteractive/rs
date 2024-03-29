@@ -8,7 +8,7 @@ import { Provider } from "react-redux";
 import { fetchAssignments } from "./state/assignment/assignSlice";
 import { fetchChooserData } from "./state/epicker/ePickerSlice";
 import { PrimeReactProvider, PrimeReactContext } from 'primereact/api';
-        
+
 
 async function main() {
     store.dispatch(fetchAssignments());
@@ -18,7 +18,7 @@ async function main() {
     root.render(
         <Provider store={store}>
             <PrimeReactProvider>
-            <App />
+                <App />
             </PrimeReactProvider>
         </Provider>
     );

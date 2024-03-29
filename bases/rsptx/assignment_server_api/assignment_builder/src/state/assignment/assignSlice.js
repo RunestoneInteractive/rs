@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { setSelectedNodes } from "../epicker/ePickerSlice";
 
 // thunks can take a single argument. If you need to pass multiple values, pass an object
 export const fetchAssignments = createAsyncThunk(
@@ -13,7 +14,7 @@ export const fetchAssignments = createAsyncThunk(
 
 export const fetchAssignmentQuestions = createAsyncThunk(
     "assignment/fetchAssignmentQuestions",
-    async (assignmentId) => {
+    async (assignmentId, { getState, dispatch }) => {
         const response = await fetch("/assignment/instructor/assignment_questions", {
             method: "POST",
             headers: {
@@ -22,6 +23,23 @@ export const fetchAssignmentQuestions = createAsyncThunk(
             body: JSON.stringify({ assignment: assignmentId }),
         });
         const data = await response.json();
+        let store = getState();
+        let selectedNodes = {};
+        // Not super efficient, but we need to set the selectedNodes for the ePicker
+        // maybe better to include more question data with the assignment_questions then we 
+        // would not have to search.
+        for (let ch of store.ePicker.nodes) {
+            for (let sc of ch.children) {
+                for (let q of sc.children) {
+                    if (data.detail.exercises.find((d) => d.question_id === q.data.id)) {
+                        selectedNodes[q.key] = { checked: true, partialChecked: false };
+                        selectedNodes["c:"+q.data.chapter] = { checked: false, partialChecked: true };
+                        selectedNodes["s:"+q.data.subchapter] = { checked: false, partialChecked: true };
+                    }
+                }
+            }
+        }
+        dispatch(setSelectedNodes(selectedNodes));
         return data.detail;
     }
 );
@@ -106,6 +124,9 @@ export const assignSlice = createSlice({
         updateField: (state, action) => {
             state[action.payload.field] = action.payload.newVal;
         },
+        setId: (state, action) => {
+            state.id = action.payload;
+        },
         setName: (state, action) => {
             state.name = action.payload;
         },
@@ -114,6 +135,9 @@ export const assignSlice = createSlice({
         },
         setDue: (state, action) => {
             state.due = action.payload;
+        },
+        setExercises: (state, action) => {
+            state.exercises = action.payload;
         },
         addExercise: (state, action) => {
             state.exercises.push(action.payload);
@@ -149,6 +173,7 @@ export const assignSlice = createSlice({
             })
             .addCase(fetchAssignmentQuestions.fulfilled, (state, action) => {
                 state.exercises = action.payload.exercises;
+
             })
             .addCase(fetchAssignmentQuestions.rejected, (state, action) => {
                 console.log("fetchAssignmentQuestions rejected");
@@ -169,12 +194,26 @@ export const assignSlice = createSlice({
 
 });
 
-export const { updateField, addExercise, setName, setDesc, setDue, setPoints, reorderExercise, deleteExercises, updateExercise } =
-    assignSlice.actions;
+// export the reducers
+export const {
+    updateField,
+    addExercise,
+    setName,
+    setDesc,
+    setDue,
+    setId,
+    setPoints,
+    reorderExercise,
+    deleteExercises,
+    updateExercise
+} = assignSlice.actions;
 
 // The function below is called a selector and allows us to select a value from
 // the state. Selectors can also be defined inline where they're used instead of
 // in the slice file. For example: `useSelector((state) => state.counter.value)`
+// Note: the state is the global state, followed by the name of the slice (see state.js)
+// followed by the name of the field in the slice
+export const selectId = (state) => state.assignment.id;
 export const selectName = (state) => state.assignment.name;
 export const selectDesc = (state) => state.assignment.desc;
 export const selectDue = (state) => state.assignment.due;

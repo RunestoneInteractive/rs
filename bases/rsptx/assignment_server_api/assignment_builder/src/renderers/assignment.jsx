@@ -31,6 +31,7 @@ import {
     selectPoints,
     selectExercises,
     selectAll,
+    setId,
     setName,
     setDesc,
     setDue,
@@ -132,6 +133,7 @@ export function AssignmentPicker() {
     const dispatch = useDispatch();
     const assignData = useSelector(selectAll);
     const [selectedAssignment, setAssignment] = useState(null);
+    // todo: need to set the selected nodes here after setAssignment
     const handleAssignmentChange = (e) => {
         dispatch(setAssignment(e.target.value));
     };
@@ -192,6 +194,7 @@ export function AssignmentPicker() {
                     dispatch(setDesc(current.description));
                     dispatch(setDue(current.duedate));
                     dispatch(setPoints(current.points));
+                    dispatch(setId(current.id));
                     dispatch(fetchAssignmentQuestions(current.id));
                     setAssignment(current);
                 }}
@@ -361,7 +364,7 @@ export function MoreOptions() {
 
 
 export function AddQuestionTabGroup() {
-    const [activeIndex, setActiveIndex] = useState(0);
+    const [activeIndex, setActiveIndex] = useState(2);
     return (
         <div className="App">
             <TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)}>
