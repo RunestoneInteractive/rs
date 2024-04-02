@@ -1304,6 +1304,16 @@ async def create_assignment(assignment: AssignmentValidator) -> AssignmentValida
 
     return AssignmentValidator.from_orm(new_assignment)
 
+async def update_assignment(assignment: AssignmentValidator) -> AssignmentValidator:
+    """
+    Update an Assignment object with the given data (assignment)
+    """
+    new_assignment = Assignment(**assignment.dict())
+    async with async_session.begin() as session:
+        await session.merge(new_assignment)
+
+    return AssignmentValidator.from_orm(new_assignment)
+
 
 async def create_assignment_question(
     assignmentQuestion: AssignmentQuestionValidator,

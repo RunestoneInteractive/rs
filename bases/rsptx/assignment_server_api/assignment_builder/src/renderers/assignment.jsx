@@ -12,6 +12,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { Panel } from 'primereact/panel';
 import { TabView, TabPanel } from 'primereact/tabview';
 import { InputText } from 'primereact/inputtext';
+import { AutoComplete } from "primereact/autocomplete";
 import { Calendar } from 'primereact/calendar';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputSwitch } from 'primereact/inputswitch';
@@ -42,7 +43,8 @@ import {
     reorderExercise,
     deleteExercises,
     sendDeleteExercises,
-    reorderAssignmentQuestions
+    reorderAssignmentQuestions,
+    createAssignment,
 } from "../state/assignment/assignSlice";
 import ActiveCodeCreator from "./activeCode";
 import { Button } from "primereact/button";
@@ -58,7 +60,11 @@ function AssignmentEditor() {
     const points = useSelector(selectPoints);
     const exercises = useSelector(selectExercises);
     const assignData = useSelector(selectAll);
+    const [items, setItems] = useState(assignData.all_assignments.map((a) => a.name))
 
+    const search = (e) => {
+        setItems(assignData.all_assignments.filter((a) => a.name.toLowerCase().includes(e.query.toLowerCase())))
+    }
     // The setAsgmtData function is used to update the state of the assignData object.
     // The notice that the parameter to setAsgmtData is a function that takes the previous
     // state and returns the new state.
@@ -66,17 +72,54 @@ function AssignmentEditor() {
         dispatch(updateField({ field: e.target.id, newVal: e.target.value }));
     };
 
+    const maybeCreateNew = (e) => {
+        console.log(`in maybeCreate ${e.value} items: ${items}`)
+        // This is a bit tricky.
+        // if e.value is an object then we are selecting an existing assignment
+        // if e.value is a string then we are still searching
+        // occasionally we get a hiccup where items isn't yet updated so will only create when
+        // the button is clicked.
+        if (typeof e.value === "string") {
+            dispatch(setName(e.value))
+        } else {
+            console.log(`choosing current assignment ${e.value.name}`)
+            let current = e.value;
+            dispatch(setName(current.name));
+            dispatch(setDesc(current.description));
+            dispatch(setDue(current.duedate));
+            dispatch(setPoints(current.points));
+            dispatch(setId(current.id));
+            dispatch(fetchAssignmentQuestions(current.id));
+        }
+    }
+
+    const newAssignment = () => {
+        // called when the create button is clicked.
+        let assignment = {
+            name: name,
+            description: desc,
+            duedate: due,
+            points: points,
+        }
+        dispatch(createAssignment(assignment))
+        // reset items so create button disappears
+        setItems(assignData.all_assignments.map((a) => a.name))
+    }
     return (
         <div className="App">
             <div className="p-fluid">
                 <div className="p-field p-grid">
                     <label htmlFor="name" className="p-col-12 p-md-2">Assignment Name</label>
-                    <InputText
+                    <AutoComplete
                         id="name"
+                        field="name"
+                        suggestions={items}
+                        completeMethod={search}
                         placeholder="Enter Assignment Name"
                         value={name}
-                        onChange={(e) => dispatch(setName(e.target.value))} />
-
+                        onChange={maybeCreateNew}
+                        dropdown />
+                    {items.length == 0 && name ? <Button onClick={newAssignment}>Create New</Button> : null}
                     <label htmlFor="desc" className="p-col-12 p-md-2">
                         Assignment Description
                     </label>
@@ -112,7 +155,7 @@ function AssignmentEditor() {
                                 value={points}
                                 onChange={(e) => dispatch(setPoints(e.value))}
                             />
-                            <InputSwitch id="visible" checked={assignData.visible} onChange={(e) => dispatch(updateField({ field: "visible", newVal: e.value }))} />
+                            <InputSwitch id="visible" checked={assignData.visible} onChange={(e) => dispatch(updateField({ field: "visible", newVal: e.value }))}/>
                             <label htmlFor="visible">Visible to Students</label>
                         </div>
                     </div>
@@ -309,8 +352,16 @@ export function AssignmentQuestion() {
 
 export function MoreOptions() {
     const options = ['Regular', 'Timed', "Peer"];
-    const [assignmentKind, setAssignmentKind] = useState(options[0]);
     const assignData = useSelector(selectAll);
+    var kind = ""
+    if (assignData.is_peer) {
+        kind = "Peer"
+    } else if (assignData.is_timed) {
+        kind = "Timed"
+    } else {
+        kind = "Regular"
+    }
+    const [assignmentKind, setAssignmentKind] = useState(kind);
 
     const dispatch = useDispatch();
     const renderOptions = () => {
@@ -352,6 +403,7 @@ export function MoreOptions() {
                 <div className="p-fluid">
                     <div className="p-field p-grid">
                         <label htmlFor="name" className="p-col-12 p-md-2">What kind of Assignment?</label>
+                        // todo: this should set is_peer and/or is_timed on change
                         <SelectButton value={assignmentKind} onChange={(e) => setAssignmentKind(e.value)} options={options} />
                     </div>
                     {renderOptions()}

@@ -1,5 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { setSelectedNodes } from "../epicker/ePickerSlice";
+import toast from "react-hot-toast";
+
 
 // thunks can take a single argument. If you need to pass multiple values, pass an object
 export const fetchAssignments = createAsyncThunk(
@@ -11,6 +13,73 @@ export const fetchAssignments = createAsyncThunk(
         return data.detail;
     }
 );
+
+export const createAssignment = createAsyncThunk(
+    "assignment/createAssignment",
+    // incoming is an object that combines the activecode data and the assignment data and the preview_src
+    async (assignData, { dispatch, getState }) => {
+        let assignmentId = 0;
+        let jsheaders = new Headers({
+            "Content-type": "application/json; charset=utf-8",
+            Accept: "application/json",
+        });
+        let body = {
+            name: assignData.name,
+            description: assignData.description,
+            duedate: assignData.duedate,
+            points: assignData.points,
+            kind: "quickcode",
+        };
+        let data = {
+            body: JSON.stringify(body),
+            headers: jsheaders,
+            method: "POST",
+        };
+        let resp = await fetch("/assignment/instructor/new_assignment", data);
+        if (!resp.ok) {
+            console.warn("Error creating assignment");
+            if (resp.status === 422) {
+                console.warn("Missing data for creating assignment");
+                /* The JON response from the server looks like this:
+                {
+                    "detail": [
+                        {
+                            "type": "int_parsing",
+                            "loc": [
+                                "body",
+                                "points"
+                            ],
+                            "msg": "Input should be a valid integer, unable to parse string as an integer",
+                            "input": "",
+                            "url": "https://errors.pydantic.dev/2.6/v/int_parsing"
+                        }
+                    ]
+                }
+                */
+                let result = await resp.json();
+                toast(
+                    `Error ${result.detail[0].msg} for input ${result.detail[0].loc}`,
+                    { duration: 5000 }
+                );
+            } else {
+                let result = await resp.json();
+                console.error(result.detail)
+                toast("Error creating assignment", {
+                    icon: "🔥",
+                    duration: 5000,
+                });
+            }
+
+            return;
+        }
+        toast("Assignment created", { icon: "👍" });
+        let result = await resp.json();
+        // The result will contain the id assigned to the new assignment
+        dispatch(setId(result.detail.id));
+        // todo: Add the assignment to the list of all_assignments
+        assignData.id = result.detail.id;
+        dispatch(addAssignment(assignData));
+    })
 
 export const fetchAssignmentQuestions = createAsyncThunk(
     "assignment/fetchAssignmentQuestions",
@@ -33,8 +102,8 @@ export const fetchAssignmentQuestions = createAsyncThunk(
                 for (let q of sc.children) {
                     if (data.detail.exercises.find((d) => d.question_id === q.data.id)) {
                         selectedNodes[q.key] = { checked: true, partialChecked: false };
-                        selectedNodes["c:"+q.data.chapter] = { checked: false, partialChecked: true };
-                        selectedNodes["s:"+q.data.subchapter] = { checked: false, partialChecked: true };
+                        selectedNodes["c:" + q.data.chapter] = { checked: false, partialChecked: true };
+                        selectedNodes["s:" + q.data.subchapter] = { checked: false, partialChecked: true };
                     }
                 }
             }
@@ -93,6 +162,27 @@ export const reorderAssignmentQuestions = createAsyncThunk(
     }
 );
 
+export const sendAssignmentUpdate = createAsyncThunk(
+    "assignment/sendAssignmentUpdate",
+    async (assignment, { getState }) => {
+        const response = await fetch("/assignment/instructor/update_assignment", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(assignment),
+        });
+        if (!response.ok) {
+            let err = await response.json();
+            console.error("Error updating assignment", err.detail);
+            return;
+        }
+        const data = await response.json();
+        return data.detail;
+    }
+);
+
+
 let cDate = new Date();
 let epoch = cDate.getTime();
 epoch = epoch + 60 * 60 * 24 * 7 * 1000;
@@ -104,7 +194,7 @@ let defaultDeadline = `${cDate.getFullYear()}-${`${cDate.getMonth() + 1
     )}T${`${cDate.getHours()}`.padStart(2, 0)}:${`${cDate.getMinutes()}`.padStart(
         2,
         0
-    )}:00.0Z`;
+    )}:00.0`;
 // old     
 
 // create a slice for Assignments
@@ -117,6 +207,14 @@ export const assignSlice = createSlice({
         desc: "",
         due: defaultDeadline,
         points: 1,
+        visible: true,
+        is_peer: false,
+        is_timed: false,
+        nofeedback: true,
+        nopause: true,
+        time_limit: null,
+        peer_async_visible: false,
+        kind: "regular", // (regular, peer, timed)
         exercises: [],
         all_assignments: [],
     },
@@ -134,13 +232,22 @@ export const assignSlice = createSlice({
             state.desc = action.payload;
         },
         setDue: (state, action) => {
-            state.due = action.payload;
+            // action.payload is a Date object coming from the date picker or a string from the server
+            // convert it to a string and remove the Z because we don't expect timezone information
+            if (typeof action.payload === "string") {
+                state.due = action.payload;
+                return;
+            }
+            state.due = action.payload.toISOString().replace('Z', '')
         },
         setExercises: (state, action) => {
             state.exercises = action.payload;
         },
         addExercise: (state, action) => {
             state.exercises.push(action.payload);
+        },
+        addAssignment: (state, action) => {
+            state.all_assignments.push(action.payload);
         },
         setPoints: (state, action) => {
             state.points = Number(action.payload);
@@ -150,8 +257,8 @@ export const assignSlice = createSlice({
             state.exercises[idx] = action.payload.exercise;
         },
         deleteExercises: (state, action) => {
-            let exercises = action.payload;
-            state.exercises = state.exercises.filter((ex) => !exercises.includes(ex.id));
+            let exercise = action.payload;
+            state.exercises = state.exercises.filter((ex) => ex.id !== exercise.id);
         },
         reorderExercise: (state, action) => {
             let exOrder = action.payload.exOrder;
@@ -173,7 +280,6 @@ export const assignSlice = createSlice({
             })
             .addCase(fetchAssignmentQuestions.fulfilled, (state, action) => {
                 state.exercises = action.payload.exercises;
-
             })
             .addCase(fetchAssignmentQuestions.rejected, (state, action) => {
                 console.log("fetchAssignmentQuestions rejected");
@@ -190,6 +296,18 @@ export const assignSlice = createSlice({
             .addCase(reorderAssignmentQuestions.rejected, (state, action) => {
                 console.log("reorderAssignmentQuestions rejected");
             })
+            .addCase(createAssignment.fulfilled, (state, action) => {
+                console.log("createAssignment fulfilled");
+            })
+            .addCase(createAssignment.rejected, (state, action) => {
+                console.log("createAssignment rejected");
+            })
+            .addCase(sendAssignmentUpdate.fulfilled, (state, action) => {
+                console.log("sendAssignmentUpdate fulfilled");
+            })
+            .addCase(sendAssignmentUpdate.rejected, (state, action) => {
+                console.log("sendAssignmentUpdate rejected");
+            })
     },
 
 });
@@ -205,7 +323,8 @@ export const {
     setPoints,
     reorderExercise,
     deleteExercises,
-    updateExercise
+    updateExercise,
+    addAssignment,
 } = assignSlice.actions;
 
 // The function below is called a selector and allows us to select a value from

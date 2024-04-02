@@ -1,6 +1,7 @@
 import datetime
 import pandas as pd
 
+from components.rsptx.db.crud import update_assignment
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -169,7 +170,7 @@ async def new_assignment(
         res = await create_assignment(new_assignment)
         rslogger.debug(f"Created assignment: {res} {res.id}")
     except Exception as e:
-        rslogger.error(f"Error creating assignment: {res}")
+        rslogger.error(f"Error creating assignment: {new_assignment}")
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error creating assignment: {str(e)}",
@@ -178,6 +179,31 @@ async def new_assignment(
     return make_json_response(
         status=status.HTTP_201_CREATED, detail={"status": "success", "id": res.id}
     )
+
+
+@router.post("/update_assignment")
+async def do_update_assignment(
+    request: Request,
+    request_data: AssignmentValidator,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    try:
+        await update_assignment(request_data)
+    except Exception as e:
+        rslogger.error(f"Error updating assignment: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error updating assignment: {str(e)}",
+        )
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
 
 
 @router.post("/new_question")

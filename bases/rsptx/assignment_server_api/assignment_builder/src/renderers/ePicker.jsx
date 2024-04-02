@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { TreeTable } from 'primereact/treetable';
 import { Column } from 'primereact/column';
 import { chooserNodes, setSelectedNodes, selectedNodes } from "../state/epicker/ePickerSlice";
-import { addExercise, selectExercises, selectId, sendExercise, deleteExercises } from "../state/assignment/assignSlice";
+import { addExercise, selectExercises, selectId, sendExercise, deleteExercises, sendDeleteExercises } from "../state/assignment/assignSlice";
 import { current } from "@reduxjs/toolkit";
 
 // todo: Add attribute to indicate whether this is a question or a subchapter
@@ -18,14 +18,8 @@ export function ExerciseSelector({ level }) {
     let currentAssignmentId = useSelector(selectId);
     let selectedNodeKeys = useSelector(selectedNodes);
 
-    // initialize the selectedNodeKeys using the currentExercises
-    // let keys = {};
-    // for (let ex of currentExercises) {
-    //     keys[ex.id] = { id: "q:" + ex.name, checked: true, partialChecked: false };
-    // }
-    // if (keys) {
-    //     setSelectedNodeKeys(keys);
-    //}
+    // The initially selected nodes are initialized in the redux store
+    // by the fetchAssignmentQuestions thunk
 
     //
     // event handling functions
@@ -56,13 +50,8 @@ export function ExerciseSelector({ level }) {
         console.log(event.node);
         // find the exercise in the currentExercises and remove it
         let exercise = event.node.data;
-        let newExercises = [];
-        for (let ex of currentExercises) {
-            if (ex.id !== exercise.id) {
-                newExercises.push(ex);
-            }
-        }
         dispatch(deleteExercises(exercise));
+        dispatch(sendDeleteExercises([exercise.id]));
     }
 
     if (level === "subchapter") {
@@ -73,9 +62,9 @@ export function ExerciseSelector({ level }) {
         }
         return (
             <div className="card">
-                <TreeTable value={filteredNodes} 
-                    selectionMode="checkbox" 
-                    selectionKeys={selectedNodeKeys} 
+                <TreeTable value={filteredNodes}
+                    selectionMode="checkbox"
+                    selectionKeys={selectedNodeKeys}
                     onSelectionChange={handleSelectionChange} tableStyle={{ minWidth: '10rem' }}>
                     <Column field="title" header="Title" expander></Column>
                 </TreeTable>
@@ -90,11 +79,14 @@ export function ExerciseSelector({ level }) {
                 onSelectionChange={handleSelectionChange}
                 onSelect={doSelect}
                 onUnselect={doUnSelect}
-                tableStyle={{ minWidth: '10rem' }}>
-                <Column field="title" header="Title" expander></Column>
-                <Column field="qnumber" header="Question Number"></Column>
-                <Column field="name" header="QuestionName"></Column>
-                <Column field="question_type" header="Question Type"></Column>
+                tableStyle={{ minWidth: '10rem' }}
+                scrollable
+                scrollHeight="400px"
+            >
+                <Column field="title" header="Title" expander style={{ width: '25rem' }}></Column>
+                <Column field="qnumber" header="Question Number" style={{ width: '10rem' }}></Column>
+                <Column field="name" header="QuestionName" style={{ width: '10rem' }}></Column>
+                <Column field="question_type" header="Question Type" style={{ width: '10rem' }}></Column>
             </TreeTable>
         </div>
     )

@@ -7,7 +7,6 @@ function App() {
     return (
         <>
             <h1 className="App">Assignment Builder</h1>
-            <AssignmentPicker />
             <AssignmentEditor />
             <MoreOptions />
             <AssignmentQuestion />

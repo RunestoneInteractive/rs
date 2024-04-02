@@ -12,65 +12,9 @@ export const saveAssignmentQuestion = createAsyncThunk(
         let preview_src = incoming.previewSrc;
         let assignData = incoming.assignData;
         let acData = incoming.acData;
-        let assignmentId = 0;
+        let assignmentId = assignData.id;
         let questionId = 0;
-        let jsheaders = new Headers({
-            "Content-type": "application/json; charset=utf-8",
-            Accept: "application/json",
-        });
-        let body = {
-            name: assignData.name,
-            description: assignData.desc,
-            duedate: assignData.due,
-            points: assignData.points,
-            kind: "quickcode",
-        };
-        let data = {
-            body: JSON.stringify(body),
-            headers: jsheaders,
-            method: "POST",
-        };
-        let resp = await fetch("/assignment/instructor/new_assignment", data);
-        if (!resp.ok) {
-            console.warn("Error creating assignment");
-            if (resp.status === 422) {
-                console.warn("Missing data for creating assignment");
-                /* The JON response from the server looks like this:
-                {
-                    "detail": [
-                        {
-                            "type": "int_parsing",
-                            "loc": [
-                                "body",
-                                "points"
-                            ],
-                            "msg": "Input should be a valid integer, unable to parse string as an integer",
-                            "input": "",
-                            "url": "https://errors.pydantic.dev/2.6/v/int_parsing"
-                        }
-                    ]
-                }
-                */
-                let result = await resp.json();
-                toast(
-                    `Error ${result.detail[0].msg} for input ${result.detail[0].loc}`,
-                    { duration: 5000 }
-                );
-            } else {
-                toast("Error creating assignment", {
-                    icon: "🔥",
-                    duration: 5000,
-                });
-            }
-
-            return;
-        }
-        toast("Assignment created", { icon: "👍" });
-        let result = await resp.json();
-        if (result.detail.status === "success") {
-            console.log("Assignment created");
-            assignmentId = result.detail.id;
-        }
+        // todo 
 
         // Now add the question
         // these names match the database columns
