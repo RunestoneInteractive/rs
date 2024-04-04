@@ -62,13 +62,15 @@ import {
 import ActiveCodeCreator from "./activeCode";
 import { Button } from "primereact/button";
 
-
+let canSave = false;
 function select(state) {
     return state.assignment
 }
 
 function diff(oldobj, newobj) {
-    const keys = Array.from(new Set([...Object.keys(oldobj), ...Object.keys(newobj)]))
+    if (!oldobj || !newobj) {
+        return {};
+    }
     const diff = Object.entries({ ...oldobj, ...newobj }).filter(([key]) => oldobj[key] !== newobj[key]);
     return Object.fromEntries(diff);
 }
@@ -84,6 +86,7 @@ function handleChange() {
             let updateKeys = ["due", "points", "visible", "time_limit", "peer_async_visible", "is_peer", "is_timed", "nopause", "nofeedback"]
             let update = keys.filter((k) => updateKeys.includes(k))
             if (update.length > 0) {
+                console.log(`updating assignment ${update}`)
                 let toSend = structuredClone(currentValue)
                 delete toSend.all_assignments
                 delete toSend.exercises
@@ -108,7 +111,6 @@ function AssignmentEditor() {
     const exercises = useSelector(selectExercises);
     const assignData = useSelector(selectAll);
     const [items, setItems] = useState(assignData.all_assignments.map((a) => a.name))
-
     const search = (e) => {
         setItems(assignData.all_assignments.filter((a) => a.name.toLowerCase().includes(e.query.toLowerCase())))
     }
@@ -119,8 +121,8 @@ function AssignmentEditor() {
         dispatch(updateField({ field: e.target.id, newVal: e.target.value }));
     };
 
-    const maybeCreateNew = (e) => {
-        console.log(`in maybeCreate ${e.value} items: ${items}`)
+    const chooseOrNameAssignment = (e) => {
+        console.log(`in choseOrName ${e.value} items: ${items}`)
         // This is a bit tricky.
         // if e.value is an object then we are selecting an existing assignment
         // if e.value is a string then we are still searching
@@ -132,7 +134,12 @@ function AssignmentEditor() {
             console.log(`choosing current assignment ${e.value.name}`)
             let current = e.value;
             dispatch(setName(current.name));
-            dispatch(setDesc(current.description));
+
+            if (current.description === null) {
+                dispatch(setDesc(""));
+            } else {
+                dispatch(setDesc(current.description));
+            }
             dispatch(setDue(current.duedate));
             dispatch(setPoints(current.points));
             dispatch(setId(current.id));
@@ -176,7 +183,7 @@ function AssignmentEditor() {
                         completeMethod={search}
                         placeholder="Enter Assignment Name"
                         value={name}
-                        onChange={maybeCreateNew}
+                        onChange={chooseOrNameAssignment}
                         dropdown />
                     {items.length == 0 && name ? <Button onClick={newAssignment}>Create New</Button> : null}
                     <label htmlFor="desc" className="p-col-12 p-md-2">
@@ -322,7 +329,7 @@ export function AssignmentQuestion() {
     const question_rows = useSelector(selectExercises);
     const hotData = question_rows.map(({ id, qnumber, points, autograde, which_to_grade }) =>
         (Object.values({ id, qnumber, points, autograde, which_to_grade })));
-
+    
     const posToKey = new Map([[0, "id"], [1, "question_id"], [2, "points"], [3, "autograde"], [4, "which_to_grade"]]);
 
     const handleChange = (change, source) => {
@@ -350,12 +357,24 @@ export function AssignmentQuestion() {
     };
 
     const handleDelete = (start, amount) => {
-        // by the time this is called hotData is already updated
+        // Called by the afterRemoveRow hook in HotTable
+        // by the time this is called hotData is already updated and the row is gone.
         console.log("delete row", start, amount);
+        for (let row of hotData) {
+            console.log(row);
+        }
         let toRemove = question_rows.slice(start, start + amount).map((ex) => ex.id);
         try {
             dispatch(deleteExercises(toRemove));
-            dispatch(sendDeleteExercises(toRemove))
+            dispatch(sendDeleteExercises(toRemove));
+            let totalPoints = 0;
+            for (let ex of question_rows) {
+                if (toRemove.includes(ex.id) === false) {
+                    totalPoints += ex.points;
+                }
+            }
+            dispatch(setPoints(totalPoints));
+            // also need to update the selected nodes
         } catch (e) {
             console.error(e);
         }

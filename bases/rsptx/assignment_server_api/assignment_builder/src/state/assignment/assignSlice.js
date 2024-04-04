@@ -285,8 +285,10 @@ export const assignSlice = createSlice({
             state.exercises[idx] = action.payload.exercise;
         },
         deleteExercises: (state, action) => {
-            let exercise = action.payload;
-            state.exercises = state.exercises.filter((ex) => ex.id !== exercise.id);
+            let exercises = action.payload;
+            for (let ex of exercises) {
+                state.exercises = state.exercises.filter((ex) => ex.id !== exercise.id);
+            }
         },
         reorderExercise: (state, action) => {
             let exOrder = action.payload.exOrder;

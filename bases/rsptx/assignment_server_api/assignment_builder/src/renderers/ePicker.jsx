@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { TreeTable } from 'primereact/treetable';
 import { Column } from 'primereact/column';
 import { chooserNodes, setSelectedNodes, selectedNodes } from "../state/epicker/ePickerSlice";
-import { addExercise, selectExercises, selectId, sendExercise, deleteExercises, sendDeleteExercises } from "../state/assignment/assignSlice";
+import { addExercise, selectExercises, setPoints, selectPoints, selectId, sendExercise, deleteExercises, sendDeleteExercises } from "../state/assignment/assignSlice";
 import { current } from "@reduxjs/toolkit";
 
 // todo: Add attribute to indicate whether this is a question or a subchapter
@@ -37,21 +37,35 @@ export function ExerciseSelector({ level }) {
         exercise.assignment_id = currentAssignmentId;
         exercise.question_id = exercise.id;
         let clen = currentExercises.length;
+        // Use the last exercise to set the default values
         exercise.points = clen ? currentExercises[clen - 1].points : 1;
         exercise.autograde = clen ? currentExercises[clen - 1].autograde : "pct_correct";
         exercise.which_to_grade = clen ? currentExercises[clen - 1].which_to_grade : "best_answer";
         exercise.sorting_priority = clen;
         dispatch(addExercise(exercise));
         dispatch(sendExercise(exercise));
-
+        // dispatching addExercise does not modify the currentExercises array
+        let totalPoints = 0;
+        for (let ex of currentExercises) {
+            totalPoints += ex.points;
+        }
+        totalPoints += exercise.points;
+        dispatch(setPoints(totalPoints));
     }
 
     function doUnSelect(event) {
         console.log(event.node);
         // find the exercise in the currentExercises and remove it
         let exercise = event.node.data;
-        dispatch(deleteExercises(exercise));
+        dispatch(deleteExercises([exercise]));
         dispatch(sendDeleteExercises([exercise.id]));
+        let totalPoints = 0;
+        for (let ex of currentExercises) {
+            if (ex.id !== exercise.id) {
+                totalPoints += ex.points;
+            }
+        }
+        dispatch(setPoints(totalPoints));
     }
 
     if (level === "subchapter") {

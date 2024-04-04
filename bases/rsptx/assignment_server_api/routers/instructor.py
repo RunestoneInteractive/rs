@@ -386,7 +386,7 @@ async def remove_assignment_questions_ep(
         return make_json_response(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
-
+    rslogger.debug(f"Removing assignment questions: {request_data}")
     try:
         await remove_assignment_questions(request_data)
     except Exception as e:
