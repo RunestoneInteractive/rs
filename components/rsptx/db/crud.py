@@ -1305,17 +1305,20 @@ async def create_assignment(assignment: AssignmentValidator) -> AssignmentValida
     return AssignmentValidator.from_orm(new_assignment)
 
 
-async def update_assignment(assignment: AssignmentValidator) -> AssignmentValidator:
+async def update_assignment(assignment: AssignmentValidator) -> None:
     """
     Update an Assignment object with the given data (assignment)
     """
-    new_assignment = Assignment(**assignment.dict())
-    new_assignment.current_index = 0
+    assignment_updates = assignment.dict()
+    assignment_updates["current_index"] = 0
+    del assignment_updates["id"]
+    del assignment_updates["name"]
 
+    stmt = update(Assignment).where(Assignment.id == assignment.id).values(assignment_updates)
     async with async_session.begin() as session:
-        await session.merge(new_assignment)
+        await session.execute(stmt)
 
-    return AssignmentValidator.from_orm(new_assignment)
+
 
 
 async def create_assignment_question(
@@ -1366,9 +1369,7 @@ async def remove_assignment_questions(assignment_ids: List[int]):
     """
     Remove all assignment questions for the given assignment ids (assignment_ids)
     """
-    stmt = delete(AssignmentQuestion).where(
-        AssignmentQuestion.assignment_id.in_(assignment_ids)
-    )
+    stmt = delete(AssignmentQuestion).where(AssignmentQuestion.id.in_(assignment_ids))
     async with async_session.begin() as session:
         await session.execute(stmt)
 
