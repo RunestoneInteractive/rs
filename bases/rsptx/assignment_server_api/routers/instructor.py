@@ -1,7 +1,6 @@
 import datetime
 import pandas as pd
 
-from components.rsptx.db.crud import update_assignment
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -23,6 +22,7 @@ from rsptx.db.crud import (
     remove_assignment_questions,
     reorder_assignment_questions,
     update_assignment_question,
+    update_assignment,
 )
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
@@ -188,13 +188,16 @@ async def do_update_assignment(
     user=Depends(auth_manager),
     response_class=JSONResponse,
 ):
-
     user_is_instructor = await is_instructor(request, user=user)
     if not user_is_instructor:
         return make_json_response(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
-
+    course = await fetch_course(user.course_name)
+    request_data.course = course.id
+    rslogger.debug(f"Updating assignment: {request_data}")
+    if request_data.current_index is None:
+        request_data.current_index = 0
     try:
         await update_assignment(request_data)
     except Exception as e:

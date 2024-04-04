@@ -164,6 +164,7 @@ export const reorderAssignmentQuestions = createAsyncThunk(
 
 export const sendAssignmentUpdate = createAsyncThunk(
     "assignment/sendAssignmentUpdate",
+    // todo missing released, duedate, and from_source
     async (assignment, { getState }) => {
         const response = await fetch("/assignment/instructor/update_assignment", {
             method: "POST",
@@ -205,7 +206,7 @@ export const assignSlice = createSlice({
         id: 0,
         name: "",
         desc: "",
-        due: defaultDeadline,
+        duedate: defaultDeadline,
         points: 1,
         visible: true,
         is_peer: false,
@@ -235,10 +236,37 @@ export const assignSlice = createSlice({
             // action.payload is a Date object coming from the date picker or a string from the server
             // convert it to a string and remove the Z because we don't expect timezone information
             if (typeof action.payload === "string") {
-                state.due = action.payload;
+                state.duedate = action.payload;
                 return;
             }
-            state.due = action.payload.toISOString().replace('Z', '')
+            state.duedate = action.payload.toISOString().replace('Z', '')
+        },
+        setVisible: (state, action) => {
+            state.visible = action.payload;
+        },
+        setIsPeer: (state, action) => {
+            state.is_peer = action.payload;
+        },
+        setIsTimed: (state, action) => {
+            state.is_timed = action.payload;
+        },
+        setNoFeedback: (state, action) => {
+            state.nofeedback = action.payload;
+        },
+        setNoPause: (state, action) => {
+            state.nopause = action.payload;
+        },
+        setTimeLimit: (state, action) => {
+            state.time_limit = action.payload;
+        },
+        setPeerAsyncVisible: (state, action) => {
+            state.peer_async_visible = action.payload;
+        },
+        setFromSource: (state, action) => {
+            state.from_source = action.payload;
+        },
+        setReleased: (state, action) => {
+            state.released = action.payload;
         },
         setExercises: (state, action) => {
             state.exercises = action.payload;
@@ -308,6 +336,7 @@ export const assignSlice = createSlice({
             .addCase(sendAssignmentUpdate.rejected, (state, action) => {
                 console.log("sendAssignmentUpdate rejected");
             })
+
     },
 
 });
@@ -321,6 +350,15 @@ export const {
     setDue,
     setId,
     setPoints,
+    setVisible,
+    setIsPeer,
+    setIsTimed,
+    setNoFeedback,
+    setNoPause,
+    setTimeLimit,
+    setPeerAsyncVisible,
+    setFromSource,
+    setReleased,
     reorderExercise,
     deleteExercises,
     updateExercise,
@@ -335,9 +373,15 @@ export const {
 export const selectId = (state) => state.assignment.id;
 export const selectName = (state) => state.assignment.name;
 export const selectDesc = (state) => state.assignment.desc;
-export const selectDue = (state) => state.assignment.due;
+export const selectDue = (state) => state.assignment.duedate;
 export const selectPoints = (state) => state.assignment.points;
 export const selectExercises = (state) => state.assignment.exercises;
 export const selectAll = (state) => state.assignment;
-
+export const selectVisible = (state) => state.assignment.visible;
+export const selectIsPeer = (state) => state.assignment.is_peer;
+export const selectIsTimed = (state) => state.assignment.is_timed;
+export const selectNoFeedback = (state) => state.assignment.nofeedback;
+export const selectNoPause = (state) => state.assignment.nopause;
+export const selectTimeLimit = (state) => state.assignment.time_limit;
+export const selectPeerAsyncVisible = (state) => state.assignment.peer_async_visible;
 export default assignSlice.reducer;

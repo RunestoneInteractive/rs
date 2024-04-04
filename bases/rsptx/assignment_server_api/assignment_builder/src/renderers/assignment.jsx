@@ -20,6 +20,9 @@ import { InputSwitch } from 'primereact/inputswitch';
 import { SelectButton } from 'primereact/selectbutton';
 import { PrimeIcons } from 'primereact/api';
 import { ExerciseSelector } from './ePicker';
+
+import store from "../state/store";
+
 // This registers all the plugins for the Handsontable library
 registerAllModules();
 
@@ -37,6 +40,15 @@ import {
     setDesc,
     setDue,
     setPoints,
+    setFromSource,
+    setReleased,
+    setVisible,
+    setIsPeer,
+    setIsTimed,
+    setTimeLimit,
+    setNoFeedback,
+    setNoPause,
+    setPeerAsyncVisible,
     fetchAssignmentQuestions,
     updateExercise,
     sendExercise,
@@ -45,9 +57,44 @@ import {
     sendDeleteExercises,
     reorderAssignmentQuestions,
     createAssignment,
+    sendAssignmentUpdate,
 } from "../state/assignment/assignSlice";
 import ActiveCodeCreator from "./activeCode";
 import { Button } from "primereact/button";
+
+
+function select(state) {
+    return state.assignment
+}
+
+function diff(oldobj, newobj) {
+    const keys = Array.from(new Set([...Object.keys(oldobj), ...Object.keys(newobj)]))
+    const diff = Object.entries({ ...oldobj, ...newobj }).filter(([key]) => oldobj[key] !== newobj[key]);
+    return Object.fromEntries(diff);
+}
+let currentValue
+function handleChange() {
+    let previousValue = currentValue
+    currentValue = select(store.getState())
+
+    if (currentValue && previousValue !== currentValue) {
+        if (currentValue.id !== 0) {
+            let changes = diff(previousValue, currentValue)
+            let keys = Object.keys(changes)
+            let updateKeys = ["due", "points", "visible", "time_limit", "peer_async_visible", "is_peer", "is_timed", "nopause", "nofeedback"]
+            let update = keys.filter((k) => updateKeys.includes(k))
+            if (update.length > 0) {
+                let toSend = structuredClone(currentValue)
+                delete toSend.all_assignments
+                delete toSend.exercises
+                store.dispatch(sendAssignmentUpdate(toSend))
+                console.log("changes", update)
+            }
+        }
+    }
+}
+
+const unsubscribe = store.subscribe(handleChange)
 
 
 // The AssignmentEditor component is a form that allows the user to create or edit an assignment.
@@ -89,6 +136,8 @@ function AssignmentEditor() {
             dispatch(setDue(current.duedate));
             dispatch(setPoints(current.points));
             dispatch(setId(current.id));
+            dispatch(setFromSource(current.from_source));
+            dispatch(setReleased(current.released));
             dispatch(fetchAssignmentQuestions(current.id));
         }
     }
@@ -104,6 +153,16 @@ function AssignmentEditor() {
         dispatch(createAssignment(assignment))
         // reset items so create button disappears
         setItems(assignData.all_assignments.map((a) => a.name))
+    }
+
+    // 
+    const handleDueChange = (e) => {
+        if (typeof (e.target.value) === "string") {
+            dispatch(setDue(e.target.value));
+        } else {
+            dispatch(setDue(e.target.value.toISOString().replace("Z", "")));
+
+        }
     }
     return (
         <div className="App">
@@ -139,7 +198,7 @@ function AssignmentEditor() {
                                 id="due"
                                 value={due}
                                 placeholder={due}
-                                onChange={(e) => dispatch(setDue(e.target.value))}
+                                onChange={handleDueChange}
                                 showTime
                                 hourFormat="12"
                             />
@@ -155,7 +214,7 @@ function AssignmentEditor() {
                                 value={points}
                                 onChange={(e) => dispatch(setPoints(e.value))}
                             />
-                            <InputSwitch id="visible" checked={assignData.visible} onChange={(e) => dispatch(updateField({ field: "visible", newVal: e.value }))}/>
+                            <InputSwitch id="visible" checked={assignData.visible} onChange={(e) => dispatch(updateField({ field: "visible", newVal: e.value }))} />
                             <label htmlFor="visible">Visible to Students</label>
                         </div>
                     </div>
@@ -238,6 +297,9 @@ export function AssignmentPicker() {
                     dispatch(setDue(current.duedate));
                     dispatch(setPoints(current.points));
                     dispatch(setId(current.id));
+                    dispatch(setDue(current.duedate));
+                    dispatch(setFromSource(current.from_source));
+                    dispatch(setReleased(current.released));
                     dispatch(fetchAssignmentQuestions(current.id));
                     setAssignment(current);
                 }}
@@ -363,6 +425,19 @@ export function MoreOptions() {
     }
     const [assignmentKind, setAssignmentKind] = useState(kind);
 
+    const changeAssigmentKind = (e) => {
+        setAssignmentKind(e.value);
+        if (e.value === "Timed") {
+            dispatch(updateField({ field: "is_timed", newVal: true }));
+            dispatch(updateField({ field: "is_peer", newVal: false }));
+        } else if (e.value === "Peer") {
+            dispatch(updateField({ field: "is_timed", newVal: false }));
+            dispatch(updateField({ field: "is_peer", newVal: true }));
+        } else {
+            dispatch(updateField({ field: "is_timed", newVal: false }));
+            dispatch(updateField({ field: "is_peer", newVal: false }));
+        }
+    }
     const dispatch = useDispatch();
     const renderOptions = () => {
         if (assignmentKind === "Timed") {
@@ -399,12 +474,12 @@ export function MoreOptions() {
 
     return (
         <div className="App">
-            <Panel header="More Options" collapsed={true} toggleable>
+            <Panel header="More Options" collapsed={true} toggleable >
                 <div className="p-fluid">
                     <div className="p-field p-grid">
                         <label htmlFor="name" className="p-col-12 p-md-2">What kind of Assignment?</label>
                         // todo: this should set is_peer and/or is_timed on change
-                        <SelectButton value={assignmentKind} onChange={(e) => setAssignmentKind(e.value)} options={options} />
+                        <SelectButton value={assignmentKind} onChange={changeAssigmentKind} options={options} />
                     </div>
                     {renderOptions()}
                 </div>
