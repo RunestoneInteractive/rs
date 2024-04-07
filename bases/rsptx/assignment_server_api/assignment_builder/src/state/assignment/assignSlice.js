@@ -183,6 +183,20 @@ export const sendAssignmentUpdate = createAsyncThunk(
     }
 );
 
+export const searchForQuestions = createAsyncThunk(
+    "assignment/searchForQuestions",
+    async (searchData, { getState }) => {
+        const response = await fetch("/assignment/instructor/search_questions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(searchData),
+        });
+        const data = await response.json();
+        return data.detail;
+    }
+);
 
 let cDate = new Date();
 let epoch = cDate.getTime();
@@ -218,6 +232,8 @@ export const assignSlice = createSlice({
         kind: "regular", // (regular, peer, timed)
         exercises: [],
         all_assignments: [],
+        search_results: [],
+        question_count: 0,
     },
     reducers: {
         updateField: (state, action) => {
@@ -286,9 +302,7 @@ export const assignSlice = createSlice({
         },
         deleteExercises: (state, action) => {
             let exercises = action.payload;
-            for (let ex of exercises) {
-                state.exercises = state.exercises.filter((ex) => ex.id !== exercise.id);
-            }
+            state.exercises = state.exercises.filter((ex) => !exercises.includes(ex.id));
         },
         reorderExercise: (state, action) => {
             let exOrder = action.payload.exOrder;
@@ -298,6 +312,12 @@ export const assignSlice = createSlice({
             state.exercises.forEach((ex, idx) => {
                 ex.sorting_priority = idx;
             });
+        },
+        setSearchResults: (state, action) => {
+            state.search_results = action.payload;
+        },
+        incrementQuestionCount: (state) => {
+            state.question_count += 1;
         }
     },
     extraReducers(builder) {
@@ -315,10 +335,10 @@ export const assignSlice = createSlice({
                 console.log("fetchAssignmentQuestions rejected");
             })
             .addCase(sendDeleteExercises.fulfilled, (state, action) => {
-                console.log("deleteExercises fulfilled");
+                console.log("senddeleteExercises fulfilled");
             })
             .addCase(sendDeleteExercises.rejected, (state, action) => {
-                console.log("deleteExercises rejected");
+                console.log("sendDeleteExercises rejected");
             })
             .addCase(reorderAssignmentQuestions.fulfilled, (state, action) => {
                 console.log("reorderAssignmentQuestions fulfilled");
@@ -337,6 +357,13 @@ export const assignSlice = createSlice({
             })
             .addCase(sendAssignmentUpdate.rejected, (state, action) => {
                 console.log("sendAssignmentUpdate rejected");
+            })
+            .addCase(searchForQuestions.fulfilled, (state, action) => {
+                console.log("searchForQuestions fulfilled");
+                state.search_results = action.payload.questions;
+            })
+            .addCase(searchForQuestions.rejected, (state, action) => {
+                console.log("searchForQuestions rejected");
             })
 
     },
@@ -365,6 +392,7 @@ export const {
     deleteExercises,
     updateExercise,
     addAssignment,
+    incrementQuestionCount,
 } = assignSlice.actions;
 
 // The function below is called a selector and allows us to select a value from
@@ -376,9 +404,16 @@ export const selectId = (state) => state.assignment.id;
 export const selectName = (state) => state.assignment.name;
 export const selectDesc = (state) => state.assignment.desc;
 export const selectDue = (state) => state.assignment.duedate;
-export const selectPoints = (state) => state.assignment.points;
+export const selectPoints = (state) => {
+    let totalPoints = 0;
+    for (let ex of state.assignment.exercises) {
+        totalPoints += ex.points;
+    }
+    return state.assignment.points;
+}
 export const selectExercises = (state) => state.assignment.exercises;
 export const selectAll = (state) => state.assignment;
+export const selectAssignmentId = (state) => state.assignment.id;
 export const selectVisible = (state) => state.assignment.visible;
 export const selectIsPeer = (state) => state.assignment.is_peer;
 export const selectIsTimed = (state) => state.assignment.is_timed;
@@ -386,4 +421,6 @@ export const selectNoFeedback = (state) => state.assignment.nofeedback;
 export const selectNoPause = (state) => state.assignment.nopause;
 export const selectTimeLimit = (state) => state.assignment.time_limit;
 export const selectPeerAsyncVisible = (state) => state.assignment.peer_async_visible;
+export const selectSearchResults = (state) => state.assignment.search_results;
+export const selectQuestionCount = (state) => state.assignment.question_count;
 export default assignSlice.reducer;

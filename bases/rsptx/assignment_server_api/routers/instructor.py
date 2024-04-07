@@ -14,6 +14,7 @@ from typing import List, Optional
 from rsptx.db.crud import (
     fetch_assignment_questions,
     fetch_assignments,
+    fetch_questions_by_search_criteria,
     create_assignment_question,
     create_question,
     fetch_course,
@@ -37,6 +38,7 @@ from rsptx.validation.schemas import (
     AssignmentIncoming,
     AssignmentQuestionIncoming,
     QuestionIncoming,
+    SearchSpecification,
 )
 from rsptx.logging import rslogger
 
@@ -450,3 +452,39 @@ async def fetch_chooser_data(
         pages_only=request_data.pages_only,
     )
     return make_json_response(status=status.HTTP_200_OK, detail={"questions": res})
+
+
+@router.post("/search_questions")
+async def search_questions(
+    request: Request,
+    request_data: SearchSpecification,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    if request_data.source_regex:
+        words = request_data.source_regex.replace(",", " ")
+        words = request_data.source_regex.split()
+        request_data.source_regex = ".*(" + "|".join(words) + ").*"
+
+    if request_data.base_course == "true":
+        request_data.base_course = course.base_course
+    else:
+        request_data.base_course = None
+
+    res = await fetch_questions_by_search_criteria(request_data)
+
+    qlist = []
+    for row in res:
+        row.timestamp = row.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        qlist.append(row.model_dump())
+    rslogger.debug(f"qlist: {qlist}")
+    return make_json_response(status=status.HTTP_200_OK, detail={"questions": qlist})

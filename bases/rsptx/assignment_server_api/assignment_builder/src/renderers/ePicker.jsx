@@ -1,10 +1,19 @@
 import { useSelector, useDispatch } from "react-redux";
-import { useState, useEffect } from "react";
+import React from "react";
 import { TreeTable } from 'primereact/treetable';
 import { Column } from 'primereact/column';
 import { chooserNodes, setSelectedNodes, selectedNodes } from "../state/epicker/ePickerSlice";
-import { addExercise, selectExercises, setPoints, selectPoints, selectId, sendExercise, deleteExercises, sendDeleteExercises } from "../state/assignment/assignSlice";
-import { current } from "@reduxjs/toolkit";
+import {
+    addExercise,
+    selectExercises,
+    setPoints,
+    selectId,
+    sendExercise,
+    deleteExercises,
+    sendDeleteExercises
+} from "../state/assignment/assignSlice";
+import { setExerciseDefaults } from "../exUtils";
+import PropTypes from 'prop-types';
 
 // todo: Add attribute to indicate whether this is a question or a subchapter
 export function ExerciseSelector({ level }) {
@@ -33,15 +42,7 @@ export function ExerciseSelector({ level }) {
     function doSelect(event) {
         console.log(event.node);
         let exercise = event.node.data;
-        exercise.name = exercise.name.substring(2);
-        exercise.assignment_id = currentAssignmentId;
-        exercise.question_id = exercise.id;
-        let clen = currentExercises.length;
-        // Use the last exercise to set the default values
-        exercise.points = clen ? currentExercises[clen - 1].points : 1;
-        exercise.autograde = clen ? currentExercises[clen - 1].autograde : "pct_correct";
-        exercise.which_to_grade = clen ? currentExercises[clen - 1].which_to_grade : "best_answer";
-        exercise.sorting_priority = clen;
+        exercise = setExerciseDefaults(exercise, currentAssignmentId, currentExercises);
         dispatch(addExercise(exercise));
         dispatch(sendExercise(exercise));
         // dispatching addExercise does not modify the currentExercises array
@@ -106,4 +107,7 @@ export function ExerciseSelector({ level }) {
     )
 }
 
+ExerciseSelector.propTypes = {
+    level: PropTypes.string.isOptional
+}
 export default ExerciseSelector;

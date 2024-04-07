@@ -1314,11 +1314,13 @@ async def update_assignment(assignment: AssignmentValidator) -> None:
     del assignment_updates["id"]
     del assignment_updates["name"]
 
-    stmt = update(Assignment).where(Assignment.id == assignment.id).values(assignment_updates)
+    stmt = (
+        update(Assignment)
+        .where(Assignment.id == assignment.id)
+        .values(assignment_updates)
+    )
     async with async_session.begin() as session:
         await session.execute(stmt)
-
-
 
 
 async def create_assignment_question(
@@ -1541,6 +1543,37 @@ async def fetch_matching_questions(request_data: schemas.SelectQRequest) -> List
                 questionlist.append(row[0])
 
     return questionlist
+
+
+async def fetch_questions_by_search_criteria(
+    criteria: schemas.SearchSpecification,
+) -> List[QuestionValidator]:
+    """
+    Fetch a list of questions that match the search string
+
+    :param search: str, the search string
+    :return: List[QuestionValidator], a list of QuestionValidator objects
+    """
+    where_criteria = []
+    if criteria.source_regex:
+        where_criteria.append(Question.question.regexp_match(criteria.source_regex))
+    if criteria.question_type:
+        where_criteria.append(Question.question_type == criteria.question_type)
+    if criteria.author:
+        where_criteria.append(Question.author == criteria.author)
+    if criteria.base_course:
+        where_criteria.append(Question.base_course == criteria.base_course)
+
+    if len(where_criteria) == 0:
+        raise ValueError("No search criteria provided")
+
+    # todo: add support for tags
+    query = select(Question).where(and_(*where_criteria))
+    rslogger.debug(f"{query=}")
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        return [QuestionValidator.from_orm(q) for q in res.scalars()]
 
 
 async def fetch_assignment_question(
