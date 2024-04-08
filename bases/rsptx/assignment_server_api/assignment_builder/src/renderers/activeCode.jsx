@@ -1,3 +1,4 @@
+import React from "react";
 import { createActiveCodeTemplate } from "../componentFuncs.js";
 import { useSelector, useDispatch } from "react-redux";
 import { Toaster } from 'react-hot-toast';
@@ -22,8 +23,8 @@ import {
 } from "../state/activecode/acSlice";
 
 import { selectAll as selectAssignAll } from "../state/assignment/assignSlice";
-import { selectPoints, setPoints } from "../state/assignment/assignSlice";
-import { selectCode, setCode } from "../state/preview/previewSlice";
+import { setPoints } from "../state/assignment/assignSlice";
+import { setCode } from "../state/preview/previewSlice";
 
 const acStyle = {
     border: "1px solid black",
@@ -42,10 +43,9 @@ function ActiveCodeCreator() {
     const dispatch = useDispatch();
     const acData = useSelector(selectAll);
     const assignData = useSelector(selectAssignAll);
-    const previewCode = useSelector(selectCode);
 
 
-    const previewOnBlur = (e) => {
+    const previewOnBlur = () => {
         dispatch(
             setCode(
                 createActiveCodeTemplate(
@@ -175,7 +175,7 @@ function ActiveCodeCreator() {
             </div>
             <Button
                 value="save"
-                onClick={(e) =>
+                onClick={() =>
                     dispatch(
                         saveAssignmentQuestion({
                             assignData: assignData,

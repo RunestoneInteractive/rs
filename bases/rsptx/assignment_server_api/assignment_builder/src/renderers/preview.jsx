@@ -1,6 +1,7 @@
-import { useSelector, useDispatch } from "react-redux";
-import { useRef, useEffect, useLayoutEffect } from "react";
-import { setCode, selectCode } from "../state/preview/previewSlice";
+import React from "react";
+import { useSelector } from "react-redux";
+import { useRef, useEffect } from "react";
+import { selectCode } from "../state/preview/previewSlice";
 import { renderRunestoneComponent } from "../componentFuncs";
 
 function Preview() {

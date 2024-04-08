@@ -1,5 +1,5 @@
 import { useSelector, useDispatch } from "react-redux";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 
 //import "primereact/resources/themes/bootstrap4-light-blue/theme.css"
@@ -18,7 +18,6 @@ import store from "../state/store";
 
 
 import {
-    updateField,
     selectName,
     selectDesc,
     selectDue,
@@ -79,7 +78,7 @@ function handleChange() {
     }
 }
 
-const unsubscribe = store.subscribe(handleChange)
+const unsubscribe = store.subscribe(handleChange) // eslint-disable-line
 
 
 // The AssignmentEditor component is a form that allows the user to create or edit an assignment.
@@ -196,7 +195,7 @@ function AssignmentEditor() {
                                 value={points}
                                 onChange={(e) => dispatch(setPoints(e.value))}
                             />
-                            <InputSwitch id="visible" checked={assignData.visible} onChange={(e) => dispatch(updateField({ field: "visible", newVal: e.value }))} />
+                            <InputSwitch id="visible" checked={assignData.visible} onChange={(e) => dispatch(setVisible(e.value))} />
                             <label htmlFor="visible">Visible to Students</label>
                         </div>
                     </div>
@@ -224,14 +223,14 @@ export function MoreOptions() {
     const changeAssigmentKind = (e) => {
         setAssignmentKind(e.value);
         if (e.value === "Timed") {
-            dispatch(updateField({ field: "is_timed", newVal: true }));
-            dispatch(updateField({ field: "is_peer", newVal: false }));
+            dispatch(setIsTimed(true));
+            dispatch(setIsPeer(false));
         } else if (e.value === "Peer") {
-            dispatch(updateField({ field: "is_timed", newVal: false }));
-            dispatch(updateField({ field: "is_peer", newVal: true }));
+            dispatch(setIsTimed(false));
+            dispatch(setIsPeer(true));
         } else {
-            dispatch(updateField({ field: "is_timed", newVal: false }));
-            dispatch(updateField({ field: "is_peer", newVal: false }));
+            dispatch(setIsTimed(false));
+            dispatch(setIsPeer(false));
         }
     }
     const dispatch = useDispatch();
@@ -243,22 +242,33 @@ export function MoreOptions() {
                         <span className="p-inputgroup-addon">
                             <i className="pi pi-clock">time</i>
                         </span>
-                        <InputNumber id="timeLimit" placeholder="Time Limit (minutes)" value={assignData.timeLimit} onChange={(e) => dispatch(updateField({ field: "timeLimit", newVal: e.value }))} />
+                        <InputNumber
+                            id="timeLimit"
+                            placeholder="Time Limit (minutes)"
+                            value={assignData.timeLimit}
+                            onChange={(e) => dispatch(setTimeLimit(e.value))} />
                         <span className="p-inputgroup-addon">
                             minutes
                         </span>
                     </div>
                     <label htmlFor="feedback">Allow Feedback</label>
-                    <InputSwitch id="feedback" checked={assignData.feedback} onChange={(e) => dispatch(updateField({ field: "feedback", newVal: e.value }))} />
+                    <InputSwitch id="feedback"
+                        checked={assignData.feedback}
+                        onChange={(e) => dispatch(setNoFeedback(e.value))} />
                     <label htmlFor="allowPause">Allow Pause</label>
-                    <InputSwitch id="allowPause" checked={assignData.allowPause} onChange={(e) => dispatch(updateField({ field: "allowPause", newVal: e.value }))} />
+                    <InputSwitch id="allowPause"
+                        checked={assignData.allowPause}
+                        onChange={(e) => dispatch(setNoPause(e.value))} />
                 </>
             )
         } else if (assignmentKind === "Peer") {
             return (
                 <>
                     <label htmlFor="showAsync">Show Async Peer</label>
-                    <InputSwitch id="showAsync" checked={assignData.showAsync} onChange={(e) => dispatch(updateField({ field: "showAsync", newVal: e.value }))} />
+                    <InputSwitch
+                        id="showAsync"
+                        checked={assignData.showAsync}
+                        onChange={(e) => dispatch(setPeerAsyncVisible(e.value))} />
                 </>
             )
         } else {
