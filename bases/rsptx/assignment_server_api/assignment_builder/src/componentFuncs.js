@@ -50,7 +50,10 @@ export async function renderRunestoneComponent(
     if (opt.orig) {
         opt.lang = opt.orig.dataset.lang;
         if (!opt.lang) {
-            opt.lang = opt.orig.querySelector("[data-lang]").dataset.lang;
+            let langData = opt.orig.querySelector("[data-lang]");
+            if (langData) {
+                opt.lang = langData.dataset.lang;
+            }
         }
         // We don't want to store runs or keep results so set useServices to fales
         opt.useRunestoneServices = false;

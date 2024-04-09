@@ -3,9 +3,16 @@ import { useSelector } from "react-redux";
 import { useRef, useEffect } from "react";
 import { selectCode } from "../state/preview/previewSlice";
 import { renderRunestoneComponent } from "../componentFuncs";
+import PropTypes from 'prop-types';
 
-function Preview() {
-    const code = useSelector(selectCode);
+function Preview(props) {
+    let code;
+    if (props.code != null) {
+        console.log("Preview code: ", props.code);
+        code = props.code;
+    } else {
+        code = useSelector(selectCode);
+    }
     const ref = useRef();
 
     // UseEffect accepts a function and an array of dependencies
@@ -20,4 +27,7 @@ function Preview() {
     return <div className="App" ref={ref} />;
 }
 
+Preview.propTypes = {
+    code: PropTypes.string,
+};
 export default Preview;

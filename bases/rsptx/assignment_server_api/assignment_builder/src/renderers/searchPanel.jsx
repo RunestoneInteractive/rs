@@ -7,6 +7,10 @@ import { InputSwitch } from 'primereact/inputswitch';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
+import Preview from './preview';
+import PropTypes from 'prop-types';
+
+import { Accordion, AccordionTab } from 'primereact/accordion';
 
 import {
     addExercise,
@@ -22,6 +26,22 @@ import {
 } from '../state/assignment/assignSlice';
 
 import { setExerciseDefaults } from '../exUtils';
+
+function PreviewTemplate(exercise) {
+    return (
+        <Accordion>
+            <AccordionTab header="Preview">
+                <div className="ptx-runestone-container" style={{"width": "600px"}}>
+                    <Preview code={exercise.htmlsrc} />
+                </div>
+            </AccordionTab>
+        </Accordion>
+    );
+}
+
+PreviewTemplate.propTypes = {
+    exercise: PropTypes.object,
+};
 
 export function SearchPanel() {
     const dispatch = useDispatch();
@@ -137,6 +157,7 @@ export function SearchPanel() {
                 <Column selectionMode="multiple" style={{ width: '3em' }} />
                 <Column field="qnumber" header="Question" sortable />
                 <Column field="topic" header="Topic" sortable />
+                <Column field="htmlsrc" header="Preview" body={PreviewTemplate} style={{ maxWidth: '100rem' }} />
                 <Column field="author" header="Author" />
                 <Column field="pct_on_first" header="On First" sortable />
             </DataTable>
