@@ -1,4 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import toast from "react-hot-toast";
 
 export const fetchChooserData = createAsyncThunk(
     "ePicker/fetchChooserData",
@@ -78,6 +79,10 @@ export const epSlice = createSlice({
         setSelectedNodes: (state, action) => {
             state.selectedNodes = action.payload;
         },
+        unSelectNode: (state, action) => {
+            // action.payload should be a list of node ids (more like keys?) to unselect
+            state.selectedNodes = state.selectedNodes.filter((node) => !action.payload.includes(node.id));
+        }
     },
     extraReducers(builder) {
         builder
@@ -91,7 +96,7 @@ export const epSlice = createSlice({
     },
 });
 
-export const { addExercise, setSelectedNodes } = epSlice.actions;
+export const { addExercise, setSelectedNodes, unSelectNode } = epSlice.actions;
 
 
 // The function below is called a selector and allows us to select a value from

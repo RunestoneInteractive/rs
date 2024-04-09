@@ -16,7 +16,7 @@ import { setExerciseDefaults } from "../exUtils";
 import PropTypes from 'prop-types';
 
 // todo: Add attribute to indicate whether this is a question or a subchapter
-export function ExerciseSelector({ level }) {
+export function ExerciseSelector(props) {
     const nodes = useSelector(chooserNodes)
     const dispatch = useDispatch();
     // todo: This needs to be in redux and should match up with the current assignment
@@ -69,7 +69,7 @@ export function ExerciseSelector({ level }) {
         dispatch(setPoints(totalPoints));
     }
 
-    if (level === "subchapter") {
+    if (props.level === "subchapter") {
         for (let node of filteredNodes) {
             for (let child of node.children) {
                 delete child.children;
@@ -108,6 +108,6 @@ export function ExerciseSelector({ level }) {
 }
 
 ExerciseSelector.propTypes = {
-    level: PropTypes.string.isOptional
+    level: PropTypes.string,
 }
 export default ExerciseSelector;

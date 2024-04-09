@@ -1,6 +1,6 @@
+import React from "react";
 import "./App.css";
 import AssignmentEditor, { MoreOptions, AddQuestionTabGroup } from "./renderers/assignment.jsx";
-import ActiveCodeCreator from "./renderers/activeCode.jsx";
 import { AssignmentQuestion } from "./renderers/assignmentQuestion.jsx";
 import Preview from "./renderers/preview.jsx";
 

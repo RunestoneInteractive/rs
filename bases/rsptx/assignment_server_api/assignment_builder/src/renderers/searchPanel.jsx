@@ -16,7 +16,9 @@ import {
     searchForQuestions,
     selectSearchResults,
     sendExercise,
-    setPoints
+    setPoints,
+    deleteExercises,
+    sendDeleteExercises,
 } from '../state/assignment/assignSlice';
 
 import { setExerciseDefaults } from '../exUtils';
@@ -118,6 +120,16 @@ export function SearchPanel() {
                         let removedQuestions = selectedQuestions.filter((q) => e.value.includes(q) === false)
                         console.log(`removed ${removedQuestions}`)
                         setSelectedQuestions(e.value)
+                        dispatch(deleteExercises(removedQuestions)); // expects array of questions
+                        dispatch(sendDeleteExercises(removedQuestions.map((q) => q.id))); // array of ids
+                        let totalPoints = 0;
+                        removedQuestions = removedQuestions.map((q) => q.id);
+                        for (let ex of currentExercises) {
+                            if (removedQuestions.includes(ex.id) === false) {
+                                totalPoints += ex.points;
+                            }
+                        }
+                        dispatch(setPoints(totalPoints));
                     }
                     setSelectedQuestions(e.value)
                 }}

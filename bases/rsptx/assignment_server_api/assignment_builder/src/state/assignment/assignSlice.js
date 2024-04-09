@@ -18,7 +18,6 @@ export const createAssignment = createAsyncThunk(
     "assignment/createAssignment",
     // incoming is an object that combines the activecode data and the assignment data and the preview_src
     async (assignData, { dispatch, getState }) => {
-        let assignmentId = 0;
         let jsheaders = new Headers({
             "Content-type": "application/json; charset=utf-8",
             Accept: "application/json",
@@ -116,8 +115,6 @@ export const fetchAssignmentQuestions = createAsyncThunk(
 export const sendExercise = createAsyncThunk(
     "assignment/sendExercise",
     async (exercise, { getState }) => {
-        let state = getState();
-        let idx = state.assignment.exercises.findIndex((ex) => ex.id === exercise.id);
         const response = await fetch("/assignment/instructor/update_assignment_question", {
             method: "POST",
             headers: {
@@ -302,6 +299,7 @@ export const assignSlice = createSlice({
         },
         deleteExercises: (state, action) => {
             let exercises = action.payload;
+            exercises = exercises.map((ex) => ex.id);
             state.exercises = state.exercises.filter((ex) => !exercises.includes(ex.id));
         },
         reorderExercise: (state, action) => {
@@ -321,6 +319,7 @@ export const assignSlice = createSlice({
         }
     },
     extraReducers(builder) {
+        /* eslint-disable */
         builder
             .addCase(fetchAssignments.fulfilled, (state, action) => {
                 state.all_assignments = action.payload.assignments;
@@ -365,7 +364,7 @@ export const assignSlice = createSlice({
             .addCase(searchForQuestions.rejected, (state, action) => {
                 console.log("searchForQuestions rejected");
             })
-
+        /* eslint-enable */
     },
 
 });
@@ -404,13 +403,7 @@ export const selectId = (state) => state.assignment.id;
 export const selectName = (state) => state.assignment.name;
 export const selectDesc = (state) => state.assignment.desc;
 export const selectDue = (state) => state.assignment.duedate;
-export const selectPoints = (state) => {
-    let totalPoints = 0;
-    for (let ex of state.assignment.exercises) {
-        totalPoints += ex.points;
-    }
-    return state.assignment.points;
-}
+export const selectPoints = (state) => state.assignment.points;
 export const selectExercises = (state) => state.assignment.exercises;
 export const selectAll = (state) => state.assignment;
 export const selectAssignmentId = (state) => state.assignment.id;

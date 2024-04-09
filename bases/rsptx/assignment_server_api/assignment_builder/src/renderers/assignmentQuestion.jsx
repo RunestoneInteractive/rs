@@ -5,7 +5,7 @@ import 'handsontable/dist/handsontable.full.min.css';
 import { registerAllModules } from 'handsontable/registry';
 import { HotTable } from '@handsontable/react';
 import { fetchChooserData } from "../state/epicker/ePickerSlice";
-
+import { unSelectNode } from "../state/epicker/ePickerSlice";
 import {
     selectExercises,
     updateExercise,
@@ -78,6 +78,7 @@ export function AssignmentQuestion() {
             }
             dispatch(setPoints(totalPoints));
             dispatch(fetchChooserData({ skipreading: false, from_source_only: true, pages_only: false }));
+            dispatch(unSelectNode(toRemove));
             // also need to update the selected nodes
         } catch (e) {
             console.error(e);
