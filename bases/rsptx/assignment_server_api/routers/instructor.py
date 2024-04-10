@@ -341,6 +341,11 @@ async def get_assignment_questions(
         else:
             aq["qnumber"] = q["name"]
 
+        # augment the assignment question with additional question data
+        aq["name"] = q["name"]
+        aq["subchapter"] = q["subchapter"]
+        aq["chapter"] = q["chapter"]
+        aq["base_course"] = q["base_course"]
         qlist.append(aq)
 
     rslogger.debug(f"qlist: {qlist}")

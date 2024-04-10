@@ -81,7 +81,10 @@ export const epSlice = createSlice({
         },
         unSelectNode: (state, action) => {
             // action.payload should be a list of node ids (more like keys?) to unselect
-            state.selectedNodes = state.selectedNodes.filter((node) => !action.payload.includes(node.id));
+            console.log("nodes to unselect", action.payload)
+            for (let key of action.payload) {
+                delete state.selectedNodes["q:"+key];
+            }
         }
     },
     extraReducers(builder) {

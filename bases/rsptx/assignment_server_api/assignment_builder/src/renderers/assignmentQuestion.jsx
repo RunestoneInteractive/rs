@@ -66,20 +66,20 @@ export function AssignmentQuestion() {
         for (let row of hotData) {
             console.log(row);
         }
-        let toRemove = question_rows.slice(start, start + amount).map((ex) => ex.id);
+        let toRemove = question_rows.slice(start, start + amount);
+        let namesToRemove = question_rows.slice(start, start + amount).map(ex => ex.name);
         try {
             dispatch(deleteExercises(toRemove));
             dispatch(sendDeleteExercises(toRemove));
             let totalPoints = 0;
-            for (let ex of question_rows) {
+            for (let ex of hotData) {
                 if (toRemove.includes(ex.id) === false) {
-                    totalPoints += ex.points;
+                    totalPoints += ex[2];
                 }
             }
             dispatch(setPoints(totalPoints));
             dispatch(fetchChooserData({ skipreading: false, from_source_only: true, pages_only: false }));
-            dispatch(unSelectNode(toRemove));
-            // also need to update the selected nodes
+            dispatch(unSelectNode(namesToRemove));
         } catch (e) {
             console.error(e);
         }

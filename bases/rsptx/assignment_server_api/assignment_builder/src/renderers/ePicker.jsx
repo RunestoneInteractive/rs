@@ -59,7 +59,7 @@ export function ExerciseSelector(props) {
         // find the exercise in the currentExercises and remove it
         let exercise = event.node.data;
         dispatch(deleteExercises([exercise]));
-        dispatch(sendDeleteExercises([exercise.id]));
+        dispatch(sendDeleteExercises([exercise]));
         let totalPoints = 0;
         for (let ex of currentExercises) {
             if (ex.id !== exercise.id) {

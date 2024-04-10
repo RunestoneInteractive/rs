@@ -141,7 +141,7 @@ export function SearchPanel() {
                         console.log(`removed ${removedQuestions}`)
                         setSelectedQuestions(e.value)
                         dispatch(deleteExercises(removedQuestions)); // expects array of questions
-                        dispatch(sendDeleteExercises(removedQuestions.map((q) => q.id))); // array of ids
+                        dispatch(sendDeleteExercises(removedQuestions)); // array of ids
                         let totalPoints = 0;
                         removedQuestions = removedQuestions.map((q) => q.id);
                         for (let ex of currentExercises) {

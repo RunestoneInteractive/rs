@@ -16,9 +16,7 @@ export async function renderRunestoneComponent(
     if (typeof moreOpts === "undefined") {
         moreOpts = {};
     }
-    var author = null;
     if ("author" in moreOpts) {
-        author = moreOpts.author;
         delete moreOpts.author;
     }
     let patt = /..\/_images/g;

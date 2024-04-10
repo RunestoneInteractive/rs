@@ -130,6 +130,7 @@ export const sendExercise = createAsyncThunk(
 export const sendDeleteExercises = createAsyncThunk(
     "assignment/sendDeleteExercises",
     async (exercises, { getState }) => {
+        exercises = exercises.map((ex) => ex.id);
         console.log("deleteExercises", exercises)
         const response = await fetch("/assignment/instructor/remove_assignment_questions", {
             method: "POST",
@@ -299,6 +300,7 @@ export const assignSlice = createSlice({
         },
         deleteExercises: (state, action) => {
             let exercises = action.payload;
+            console.log("deleteExercises", exercises)
             exercises = exercises.map((ex) => ex.id);
             state.exercises = state.exercises.filter((ex) => !exercises.includes(ex.id));
         },
