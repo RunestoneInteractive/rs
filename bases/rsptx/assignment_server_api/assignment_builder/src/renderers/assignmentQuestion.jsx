@@ -42,7 +42,7 @@ export function AssignmentQuestion() {
         console.log(change); // gives us [row, column, oldVal, newVal]
         console.log(hotData);
         console.log(posToKey);
-        console.log(posToKey.get(change[0][1]));
+        let changeKey = posToKey.get(change[0][1]);
         for (let c of change) {
             let row = c[0];
             let col = c[1];
@@ -56,6 +56,13 @@ export function AssignmentQuestion() {
                 dispatch(updateExercise({ id: id, exercise: new_row }))
                 dispatch(sendExercise(new_row))
             }
+        }
+        if (changeKey === "points") {
+            let totalPoints = 0;
+            for (let ex of hotData) {
+                totalPoints += ex[2];
+            }
+            dispatch(setPoints(totalPoints));
         }
     };
 

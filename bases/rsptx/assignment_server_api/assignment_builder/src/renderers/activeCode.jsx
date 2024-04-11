@@ -112,7 +112,7 @@ function ActiveCodeCreator() {
                         dispatch(
                             updateField({
                                 field: "uniqueId",
-                                newVal: e.value,
+                                newVal: e.target.value,
                             })
                         )
                     }
@@ -192,7 +192,7 @@ function ActiveCodeCreator() {
                     )
                 }
             >
-                Save
+                Save &amp; Add
             </Button>
             <Button
                 severity="info"

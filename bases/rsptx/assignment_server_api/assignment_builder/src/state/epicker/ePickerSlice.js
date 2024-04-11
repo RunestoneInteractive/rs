@@ -77,6 +77,10 @@ export const epSlice = createSlice({
             state.nodes = action.payload.questions;
         },
         setSelectedNodes: (state, action) => {
+            if (action.payload === null) {
+                state.selectedNodes = {};
+                return;
+            }
             state.selectedNodes = action.payload;
         },
         unSelectNode: (state, action) => {

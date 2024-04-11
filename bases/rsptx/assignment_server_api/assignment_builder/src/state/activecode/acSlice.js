@@ -4,21 +4,26 @@ import {
     renderRunestoneComponent,
 } from "../../componentFuncs.js";
 import toast from "react-hot-toast";
+import { addExercise, selectPoints, setPoints } from "../assignment/assignSlice.js";
 
 export const saveAssignmentQuestion = createAsyncThunk(
     "acEditor/saveAssignmentQuestion",
     // incoming is an object that combines the activecode data and the assignment data and the preview_src
-    async (incoming) => {
+    async (incoming, { getState, dispatch }) => {
+        let store = getState();
         let preview_src = incoming.previewSrc;
         let assignData = incoming.assignData;
         let acData = incoming.acData;
         let assignmentId = assignData.id;
         let questionId = 0;
         // todo 
-
+        let jsheaders = new Headers({
+            "Content-type": "application/json; charset=utf-8",
+            Accept: "application/json",
+        });
         // Now add the question
         // these names match the database columns
-        body = {
+        let body = {
             name: acData.uniqueId,
             question: acData,
             question_type: "activecode",
@@ -26,26 +31,50 @@ export const saveAssignmentQuestion = createAsyncThunk(
             htmlsrc: preview_src,
             question_json: JSON.stringify({ ...acData, ...assignData }),
         };
-        data = {
+        if (acData.suffix_code) {
+            body.autograde = 'unittest'
+        } else {
+            body.autograde = 'manual'
+        }
+        let data = {
             body: JSON.stringify(body),
             headers: jsheaders,
             method: "POST",
         };
-        resp = await fetch("/assignment/instructor/new_question", data);
-        result = await resp.json();
+        let resp = await fetch("/assignment/instructor/new_question", data);
+        if (!resp.ok) {
+            let result = await resp.json();
+            console.log("Failed to create question", result.detail);
+            toast("Failed to create question - Most likely a name conflict", { icon: "🚫" })
+            return;
+        }
+        let result = await resp.json();
         if (result.detail.status === "success") {
             console.log("Question created");
             questionId = result.detail.id;
-        }
 
-        //finally add the question to the assignment
-        body = {
+        }
+        let aqBody = {
             assignment_id: assignmentId,
             question_id: questionId,
-            points: assignData.points,
+            points: acData.qpoints,
         };
+        let allEx = store.assignment.exercises
+        let clen = allEx.length;
+        aqBody.which_to_grade = clen ? allEx[allEx.length - 1].which_to_grade : "best_answer";
+        aqBody.autograde = body.autograde;
+        aqBody.qnumber = body.name;
+        aqBody.id = questionId;
+        try {
+            dispatch(addExercise(aqBody))
+        } catch (e) {
+            console.error(e);
+        }
+        dispatch(setPoints(selectPoints(store) + acData.qpoints));
+        //finally add the question to the assignment
+        // not sure if this is neeeded after the previous dispatch...
         data = {
-            body: JSON.stringify(body),
+            body: JSON.stringify(aqBody),
             headers: jsheaders,
             method: "POST",
         };

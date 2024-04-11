@@ -286,6 +286,7 @@ export const assignSlice = createSlice({
             state.exercises = action.payload;
         },
         addExercise: (state, action) => {
+            console.log("addExercise", action.payload)
             state.exercises.push(action.payload);
         },
         addAssignment: (state, action) => {
@@ -331,6 +332,12 @@ export const assignSlice = createSlice({
             })
             .addCase(fetchAssignmentQuestions.fulfilled, (state, action) => {
                 state.exercises = action.payload.exercises;
+                let total = 0;
+                for (let ex of state.exercises) {
+                    total += ex.points;
+                }
+                state.points = total;
+                console.log("fetchAssignmentQuestions fulfilled");
             })
             .addCase(fetchAssignmentQuestions.rejected, (state, action) => {
                 console.log("fetchAssignmentQuestions rejected");

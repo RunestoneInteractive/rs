@@ -1258,13 +1258,17 @@ async def fetch_assignments(
     else:
         vclause = None
 
-    query = select(Assignment).where(
-        and_(
-            Assignment.course == Courses.id,
-            Courses.course_name == course_name,
-            Assignment.is_peer == is_peer,
-            vclause,
+    query = (
+        select(Assignment)
+        .where(
+            and_(
+                Assignment.course == Courses.id,
+                Courses.course_name == course_name,
+                Assignment.is_peer == is_peer,
+                vclause,
+            )
         )
+        .order_by(Assignment.duedate.desc())
     )
 
     async with async_session() as session:
