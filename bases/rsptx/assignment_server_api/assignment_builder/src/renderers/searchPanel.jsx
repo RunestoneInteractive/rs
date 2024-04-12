@@ -20,7 +20,6 @@ import {
     searchForQuestions,
     selectSearchResults,
     sendExercise,
-    setPoints,
     deleteExercises,
     sendDeleteExercises,
     sumPoints,

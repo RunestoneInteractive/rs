@@ -14,7 +14,6 @@ import {
     reorderExercise,
     reorderAssignmentQuestions,
     sendDeleteExercises,
-    setPoints,
     sumPoints,
 } from '../state/assignment/assignSlice';
 

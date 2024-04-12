@@ -6,7 +6,6 @@ import { chooserNodes, setSelectedNodes, selectedNodes } from "../state/epicker/
 import {
     addExercise,
     selectExercises,
-    setPoints,
     selectId,
     sendExercise,
     deleteExercises,

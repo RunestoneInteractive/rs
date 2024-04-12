@@ -1,8 +1,4 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import {
-    createActiveCodeTemplate,
-    renderRunestoneComponent,
-} from "../../componentFuncs.js";
 import toast from "react-hot-toast";
 import { addExercise, selectPoints, setPoints } from "../assignment/assignSlice.js";
 
@@ -126,6 +122,7 @@ export const acSlice = createSlice({
         },
     },
     extraReducers(builder) {
+        /* eslint-disable */
         builder
             .addCase(saveAssignmentQuestion.fulfilled, (state, action) => {
                 console.log("Question saved");
@@ -133,6 +130,7 @@ export const acSlice = createSlice({
             .addCase(saveAssignmentQuestion.rejected, (state, action) => {
                 console.log("Question save failed");
             });
+        /* eslint-enable */
     },
 });
 

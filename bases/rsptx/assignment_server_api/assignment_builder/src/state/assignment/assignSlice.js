@@ -17,7 +17,7 @@ export const fetchAssignments = createAsyncThunk(
 export const createAssignment = createAsyncThunk(
     "assignment/createAssignment",
     // incoming is an object that combines the activecode data and the assignment data and the preview_src
-    async (assignData, { dispatch, getState }) => {
+    async (assignData, { dispatch }) => {
         let jsheaders = new Headers({
             "Content-type": "application/json; charset=utf-8",
             Accept: "application/json",
@@ -114,7 +114,7 @@ export const fetchAssignmentQuestions = createAsyncThunk(
 
 export const sendExercise = createAsyncThunk(
     "assignment/sendExercise",
-    async (exercise, { getState }) => {
+    async (exercise) => {
         const response = await fetch("/assignment/instructor/update_assignment_question", {
             method: "POST",
             headers: {
@@ -129,7 +129,7 @@ export const sendExercise = createAsyncThunk(
 
 export const sendDeleteExercises = createAsyncThunk(
     "assignment/sendDeleteExercises",
-    async (exercises, { getState }) => {
+    async (exercises) => {
         exercises = exercises.map((ex) => ex.id);
         console.log("deleteExercises", exercises)
         const response = await fetch("/assignment/instructor/remove_assignment_questions", {
@@ -146,7 +146,7 @@ export const sendDeleteExercises = createAsyncThunk(
 
 export const reorderAssignmentQuestions = createAsyncThunk(
     "assignment/reorderAssignmentQuestions",
-    async (exercises, { getState }) => {
+    async (exercises) => {
         // exercises is an array of assignment_question ids
         const response = await fetch("/assignment/instructor/reorder_assignment_questions", {
             method: "POST",
@@ -163,7 +163,7 @@ export const reorderAssignmentQuestions = createAsyncThunk(
 export const sendAssignmentUpdate = createAsyncThunk(
     "assignment/sendAssignmentUpdate",
     // todo missing released, duedate, and from_source
-    async (assignment, { getState }) => {
+    async (assignment) => {
         const response = await fetch("/assignment/instructor/update_assignment", {
             method: "POST",
             headers: {
@@ -183,7 +183,7 @@ export const sendAssignmentUpdate = createAsyncThunk(
 
 export const searchForQuestions = createAsyncThunk(
     "assignment/searchForQuestions",
-    async (searchData, { getState }) => {
+    async (searchData) => {
         const response = await fetch("/assignment/instructor/search_questions", {
             method: "POST",
             headers: {
