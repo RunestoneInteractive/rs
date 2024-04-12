@@ -10,7 +10,8 @@ import {
     selectId,
     sendExercise,
     deleteExercises,
-    sendDeleteExercises
+    sendDeleteExercises,
+    sumPoints,
 } from "../state/assignment/assignSlice";
 import { setExerciseDefaults } from "../exUtils";
 import PropTypes from 'prop-types';
@@ -46,12 +47,7 @@ export function ExerciseSelector(props) {
         dispatch(addExercise(exercise));
         dispatch(sendExercise(exercise));
         // dispatching addExercise does not modify the currentExercises array
-        let totalPoints = 0;
-        for (let ex of currentExercises) {
-            totalPoints += ex.points;
-        }
-        totalPoints += exercise.points;
-        dispatch(setPoints(totalPoints));
+        dispatch(sumPoints());
     }
 
     function doUnSelect(event) {
@@ -60,13 +56,7 @@ export function ExerciseSelector(props) {
         let exercise = event.node.data;
         dispatch(deleteExercises([exercise]));
         dispatch(sendDeleteExercises([exercise]));
-        let totalPoints = 0;
-        for (let ex of currentExercises) {
-            if (ex.id !== exercise.id) {
-                totalPoints += ex.points;
-            }
-        }
-        dispatch(setPoints(totalPoints));
+        dispatch(sumPoints());
     }
 
     if (props.level === "subchapter") {

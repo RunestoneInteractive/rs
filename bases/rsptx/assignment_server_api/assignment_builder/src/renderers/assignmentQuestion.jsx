@@ -15,6 +15,7 @@ import {
     reorderAssignmentQuestions,
     sendDeleteExercises,
     setPoints,
+    sumPoints,
 } from '../state/assignment/assignSlice';
 
 // This registers all the plugins for the Handsontable library
@@ -58,11 +59,7 @@ export function AssignmentQuestion() {
             }
         }
         if (changeKey === "points") {
-            let totalPoints = 0;
-            for (let ex of hotData) {
-                totalPoints += ex[2];
-            }
-            dispatch(setPoints(totalPoints));
+            dispatch(sumPoints());
         }
     };
 
@@ -78,13 +75,7 @@ export function AssignmentQuestion() {
         try {
             dispatch(deleteExercises(toRemove));
             dispatch(sendDeleteExercises(toRemove));
-            let totalPoints = 0;
-            for (let ex of hotData) {
-                if (toRemove.includes(ex.id) === false) {
-                    totalPoints += ex[2];
-                }
-            }
-            dispatch(setPoints(totalPoints));
+            dispatch(sumPoints())
             dispatch(fetchChooserData({ skipreading: false, from_source_only: true, pages_only: false }));
             dispatch(unSelectNode(namesToRemove));
         } catch (e) {

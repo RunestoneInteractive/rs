@@ -319,6 +319,16 @@ export const assignSlice = createSlice({
         },
         incrementQuestionCount: (state) => {
             state.question_count += 1;
+        },
+        sumPoints: (state, action) => {
+            let total = 0;
+            for (let ex of state.exercises) {
+                total += ex.points;
+            }
+            if (action.payload && action.payload.adjustment) {
+                total += action.payload.adjustment;
+            }
+            state.points = total;
         }
     },
     extraReducers(builder) {
@@ -401,6 +411,7 @@ export const {
     updateExercise,
     addAssignment,
     incrementQuestionCount,
+    sumPoints,
 } = assignSlice.actions;
 
 // The function below is called a selector and allows us to select a value from

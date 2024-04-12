@@ -23,6 +23,7 @@ import {
     setPoints,
     deleteExercises,
     sendDeleteExercises,
+    sumPoints,
 } from '../state/assignment/assignSlice';
 
 import { setExerciseDefaults } from '../exUtils';
@@ -125,15 +126,8 @@ export function SearchPanel() {
                         dispatch(addExercise(newQuestion));
                         dispatch(sendExercise(newQuestion));
                         // dispatching addExercise does not modify the currentExercises array
-                        let totalPoints = 0;
-                        for (let ex of currentExercises) {
-                            totalPoints += ex.points;
-                        }
-                        if (currentExercises.length > 0) {
-                            totalPoints += currentExercises[currentExercises.length - 1].points;
-                        }
+                        dispatch(sumPoints());
                         dispatch(incrementQuestionCount());
-                        dispatch(setPoints(totalPoints));
                     }
                     // if there are fewer questions then figure out which are gone.
                     if (e.value.length < selectedQuestions.length) {
@@ -142,14 +136,7 @@ export function SearchPanel() {
                         setSelectedQuestions(e.value)
                         dispatch(deleteExercises(removedQuestions)); // expects array of questions
                         dispatch(sendDeleteExercises(removedQuestions)); // array of ids
-                        let totalPoints = 0;
-                        removedQuestions = removedQuestions.map((q) => q.id);
-                        for (let ex of currentExercises) {
-                            if (removedQuestions.includes(ex.id) === false) {
-                                totalPoints += ex.points;
-                            }
-                        }
-                        dispatch(setPoints(totalPoints));
+                        dispatch(sumPoints());
                     }
                     setSelectedQuestions(e.value)
                 }}
