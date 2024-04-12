@@ -1,19 +1,73 @@
+/**
+ * @fileoverview This file contains the Redux slice for the assignment builder.
+ * This is a good place to start if you are looking to understand how the assignment builder
+ * interacts with the server.
+ * 
+ * To see the major data, jump to the `assignSlice` object.
+ * 
+ * The first part of this file defines a number of "thunks" which are async functions that can be dispatched
+ * to the Redux store. These thunks are used to interact with the server. for example:
+ * - `fetchAssignments` is used to get the list of assignments from the server
+ * - `createAssignment` is used to create a new assignment on the server
+ * - `fetchAssignmentQuestions` is used to get the list of questions associated with an assignment
+ * - `sendExercise` is used to add a question to an assignment
+ * - `sendDeleteExercises` is used to remove questions from an assignment
+ * - `reorderAssignmentQuestions` is used to reorder the questions in an assignment
+ * - `sendAssignmentUpdate` is used to update the assignment details
+ * - `searchForQuestions` is used to search for questions in the question bank
+ * 
+ */
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { setSelectedNodes } from "../epicker/ePickerSlice";
 import toast from "react-hot-toast";
 
 
 // thunks can take a single argument. If you need to pass multiple values, pass an object
+// thunks can optionally take a second argument which is an object that contains the getState and dispatch
+// functions.  You can call getState to get a reference to the Redux store.
+
+
+
+/**
+ * @function fetchAssignments
+ * @description This function is called to initialize the list of assignments.
+ * @param {object} getState - the getState function from the Redux store
+ * @returns {Promise} - a promise that resolves to the list of assignments
+ * 
+ * When the promise is resolved, the list of assignments is added to the Redux store.
+ * Any further actions that need to be taken after the assignments are fetched can be done in the
+ * fetchAssignments.fulfilled case of the builder object in the extraReducers method.
+ */
 export const fetchAssignments = createAsyncThunk(
     "assignment/fetchAssignments",
-    async () => {
+    async ({ getState }) => {
         const response = await fetch("/assignment/instructor/assignments");
         const data = await response.json();
+        let state = getState();
         //dispatch(updateField({ field: "exercises", newVal: data }));
+        if (!response.ok) {
+            console.warn("Error fetching assignments");
+            if (response.status === 401) {
+                console.warn("Unauthorized to fetch assignments");
+                state.assignment.isAuthorized = false;
+                return;
+            }
+        }
         return data.detail;
     }
 );
 
+/**
+ * @function createAssignment
+ * @param {object} assignData - an object that contains the data for the new assignment
+ * @param {object} dispatch - the dispatch function from the Redux store
+ * @description This function is called when the user creates a new assignment.
+ * 
+ * Upon success, the function dispatches the setId action to set the id of the new assignment.
+ * It also returns a Promise.  When the promise is result any actions that need to be taken after the
+ * assignment is created can be done in the createAssignment.fulfilled case of the builder object 
+ * in the extraReducers method.
+ */
 export const createAssignment = createAsyncThunk(
     "assignment/createAssignment",
     // incoming is an object that combines the activecode data and the assignment data and the preview_src
@@ -232,6 +286,7 @@ export const assignSlice = createSlice({
         all_assignments: [],
         search_results: [],
         question_count: 0,
+        isAuthorized: true,
     },
     reducers: {
         updateField: (state, action) => {
@@ -436,4 +491,6 @@ export const selectTimeLimit = (state) => state.assignment.time_limit;
 export const selectPeerAsyncVisible = (state) => state.assignment.peer_async_visible;
 export const selectSearchResults = (state) => state.assignment.search_results;
 export const selectQuestionCount = (state) => state.assignment.question_count;
+export const selectAllAssignments = (state) => state.assignment.all_assignments;
+export const selectIsAuthorized = (state) => state.assignment.isAuthorized;
 export default assignSlice.reducer;

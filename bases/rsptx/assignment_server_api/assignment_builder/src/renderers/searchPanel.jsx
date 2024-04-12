@@ -43,6 +43,17 @@ PreviewTemplate.propTypes = {
     exercise: PropTypes.object,
 };
 
+/**
+ * @summary The SearchPanel component
+ * @description This component is a panel that allows the user to search for questions and add them to the assignment.
+ * The user can search by question text, tags, question type, and author.
+ * The user can also constrain the search to the base course.
+ * The search results are displayed in a table.
+ * The user can select questions from the table to add to the assignment, or preview the question.
+ * This panel uses the PrimeReact library.
+ * 
+ * @returns The SearchPanel component
+ */
 export function SearchPanel() {
     const dispatch = useDispatch();
     const [selectedQuestionType, setSelectedQuestionType] = useState(null);

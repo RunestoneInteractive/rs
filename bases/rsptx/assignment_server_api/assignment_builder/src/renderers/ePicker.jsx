@@ -1,3 +1,15 @@
+/**
+ * @module ePicker
+ * @file ePicker.jsx
+ * @summary A component to select exercises from a tree table
+ * @description This file defines a component that is a tree table that displays the exercises in the ePicker.
+ * The user can select exercises to add to the assignment.
+ * This table uses the PrimeReact library.
+ * 
+ * The epicker makes use of several APIs to fetch the data for a particular eBook.
+ * The state is maintained in the redux store. See the ePickerSlice for more details.
+ * 
+ */
 import { useSelector, useDispatch } from "react-redux";
 import React from "react";
 import { TreeTable } from 'primereact/treetable';
@@ -15,12 +27,15 @@ import {
 import { setExerciseDefaults } from "../exUtils";
 import PropTypes from 'prop-types';
 
-// todo: Add attribute to indicate whether this is a question or a subchapter
+/**
+ * 
+ * @param {object} props 
+ * @description This component is a tree table that displays the exercises in the ePicker.
+ * @returns The ExerciseSelector component
+ */
 export function ExerciseSelector(props) {
     const nodes = useSelector(chooserNodes)
     const dispatch = useDispatch();
-    // todo: This needs to be in redux and should match up with the current assignment
-    // see https://primereact.org/treetable/
 
     let filteredNodes = structuredClone(nodes);
     let currentExercises = useSelector(selectExercises);
@@ -37,8 +52,13 @@ export function ExerciseSelector(props) {
         dispatch(setSelectedNodes(e.value));
     }
 
-    // Add a question to the current assignment
-    // But, we can ignore the partially selected nodes and just use this to keep the UI in sync
+
+    /**
+     * @function doSelect
+     * @param {event} event 
+     * @description This function is called when a user selects an exercise from the tree table.
+     * The function adds the exercise to the current assignment and sends the exercise to the server.
+     */
     function doSelect(event) {
         console.log(event.node);
         let exercise = event.node.data;
@@ -49,6 +69,12 @@ export function ExerciseSelector(props) {
         dispatch(sumPoints());
     }
 
+    /**
+     * @function doUnSelect
+     * @param {event} event 
+     * @description This function is called when a user unselects an exercise from the tree table.
+     * The function removes the exercise from the current assignment and sends the delete request to the server.
+     */
     function doUnSelect(event) {
         console.log(event.node);
         // find the exercise in the currentExercises and remove it

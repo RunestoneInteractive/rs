@@ -1,6 +1,16 @@
+/**
+ * @module ePicker
+ * @file ePickerSlice.js
+ * @summary Redux slice for the ePicker component
+ */
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
 
+/**
+ * @function fetchChooserData
+ * @summary fetchChooserData
+ * @description This thunk fetches the data for the ePicker component
+ */
 export const fetchChooserData = createAsyncThunk(
     "ePicker/fetchChooserData",
     // incoming is an object that has keys for skipreading, from_source_only, and pages_only

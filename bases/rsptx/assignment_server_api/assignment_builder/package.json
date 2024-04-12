@@ -26,7 +26,8 @@
     "build": "vite build --base=/assignment/react/",
     "serve": "vite preview",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "docs": "jsdoc -r src"
   },
   "browserslist": {
     "production": [

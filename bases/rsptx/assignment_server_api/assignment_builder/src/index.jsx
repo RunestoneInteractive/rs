@@ -7,9 +7,12 @@ import store from "./state/store";
 import { Provider } from "react-redux";
 import { fetchAssignments } from "./state/assignment/assignSlice";
 import { fetchChooserData } from "./state/epicker/ePickerSlice";
-import { PrimeReactProvider, PrimeReactContext } from 'primereact/api';
+import { PrimeReactProvider } from 'primereact/api';
 
 
+/**
+ * 
+ */
 async function main() {
     store.dispatch(fetchAssignments());
     store.dispatch(fetchChooserData({ skipreading: false, from_source_only: true, pages_only: false }));
