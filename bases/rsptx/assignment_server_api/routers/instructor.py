@@ -479,7 +479,7 @@ async def search_questions(
         words = request_data.source_regex.replace(",", " ")
         words = request_data.source_regex.split()
         request_data.source_regex = ".*(" + "|".join(words) + ").*"
-
+        request_data.author = ".*" + request_data.author + ".*"
     if request_data.base_course == "true":
         request_data.base_course = course.base_course
     else:

@@ -25,7 +25,7 @@ import traceback
 # -------------------
 from fastapi.exceptions import HTTPException
 from pydal.validators import CRYPT
-from sqlalchemy import and_, distinct, func, update
+from sqlalchemy import and_, distinct, func, update, or_
 from sqlalchemy.sql import select, text, delete
 from starlette.requests import Request
 
@@ -1553,18 +1553,25 @@ async def fetch_questions_by_search_criteria(
     criteria: schemas.SearchSpecification,
 ) -> List[QuestionValidator]:
     """
-    Fetch a list of questions that match the search string
+    Fetch a list of questions that match the search criteria
+    regular expression matches are case insensitive
 
     :param search: str, the search string
     :return: List[QuestionValidator], a list of QuestionValidator objects
     """
     where_criteria = []
     if criteria.source_regex:
-        where_criteria.append(Question.question.regexp_match(criteria.source_regex))
+        where_criteria.append(
+            or_(
+                Question.question.regexp_match(criteria.source_regex, flags="i"),
+                Question.htmlsrc.regexp_match(criteria.source_regex, flags="i"),
+                Question.topic.regexp_match(criteria.source_regex, flags="i"),
+            )
+        )
     if criteria.question_type:
         where_criteria.append(Question.question_type == criteria.question_type)
     if criteria.author:
-        where_criteria.append(Question.author == criteria.author)
+        where_criteria.append(Question.author.regexp_match(criteria.author, flags="i"))
     if criteria.base_course:
         where_criteria.append(Question.base_course == criteria.base_course)
 
