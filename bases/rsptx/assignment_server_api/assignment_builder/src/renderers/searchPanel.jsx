@@ -27,11 +27,17 @@ import {
 
 import { setExerciseDefaults } from '../exUtils';
 
+/**
+ * @description This component creates and accordian and preview of an exercise designed to live inside a DataTable.
+ * @param {string} exercise 
+ * @returns An accordian component with a preview of the exercise
+ * @memberof AssignmentEditor
+ */
 function PreviewTemplate(exercise) {
     return (
         <Accordion>
             <AccordionTab header="Preview">
-                <div className="ptx-runestone-container" style={{"width": "600px"}}>
+                <div className="ptx-runestone-container" style={{ "width": "600px" }}>
                     <Preview code={exercise.htmlsrc} />
                 </div>
             </AccordionTab>
@@ -44,6 +50,7 @@ PreviewTemplate.propTypes = {
 };
 
 /**
+ * @function SearchPanel
  * @summary The SearchPanel component
  * @description This component is a panel that allows the user to search for questions and add them to the assignment.
  * The user can search by question text, tags, question type, and author.
@@ -53,6 +60,7 @@ PreviewTemplate.propTypes = {
  * This panel uses the PrimeReact library.
  * 
  * @returns The SearchPanel component
+ * @memberof AssignmentEditor
  */
 export function SearchPanel() {
     const dispatch = useDispatch();

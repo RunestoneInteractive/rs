@@ -27,7 +27,7 @@
     "serve": "vite preview",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "docs": "jsdoc -r src"
+    "docs": "jsdoc -c jsdoc.config.json -r src"
   },
   "browserslist": {
     "production": [

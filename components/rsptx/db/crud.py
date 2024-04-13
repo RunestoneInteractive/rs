@@ -2253,7 +2253,6 @@ async def fetch_questions_for_chapter_subchapter(
 
         for row in res:
             q = QuestionValidator.from_orm(row.Question)
-            q.name = f"q:{q.name}"
             c = ChapterValidator.from_orm(row.Chapter)
             c.chapter_label = f"c:{c.chapter_label}"
             sc = SubChapterValidator.from_orm(row.SubChapter)

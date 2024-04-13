@@ -1,3 +1,9 @@
+/**
+ * 
+ * @fileoverview This file contains the AssignmentEditor component which is a form that allows the user to create or edit an assignment.
+ * 
+ */
+
 import { useSelector, useDispatch } from "react-redux";
 import React, { useState } from "react";
 
@@ -83,6 +89,14 @@ const unsubscribe = store.subscribe(handleChange) // eslint-disable-line
 
 // The AssignmentEditor component is a form that allows the user to create or edit an assignment.
 // The form has fields for the name, description, due date, and total points.
+/**
+ * @function AssignmentEditor
+ * @description This component is a form that allows the user to create or edit an assignment.
+ * it uses several additional components to allow the user to search for exercises, write exercises, or choose exercises.
+ * The form has fields for the name, description, due date, and total points. As well as advanced options for timed or peer assignments.
+ * @returns The AssignmentEditor component
+ * @namespace AssignmentEditor
+ */
 function AssignmentEditor() {
     const dispatch = useDispatch();
     const name = useSelector(selectName);

@@ -11,6 +11,12 @@ import { Dropdown } from 'primereact/dropdown';
 import { DateTime } from 'luxon';
 import { selectAll, setId, setName, setDesc, setDue, setPoints, setFromSource, setReleased, fetchAssignmentQuestions } from '../state/assignment/assignSlice';
 
+/**
+ * @description The AssignmentPicker component is a dropdown menu that allows the user to select an assignment.  
+ * This may be useful but the AssignmentEditor contains a nicer autocomplete feature for choosing assignments.
+ * @returns The AssignmentPicker component
+ * @memberof AssignmentEditor
+ */
 export function AssignmentPicker() {
     const dispatch = useDispatch();
     const [selectedAssignment, setAssignment] = useState(null);

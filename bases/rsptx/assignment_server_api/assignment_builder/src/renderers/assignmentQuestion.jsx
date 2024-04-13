@@ -1,11 +1,12 @@
 /**
- * @module assignmentQuestion
+ * 
  * @file assignmentQuestion.jsx
  * @summary A component to display the questions in the assignment
  * @description This component is a table that displays the questions in the assignment.
  * The table is editable and the user can change the points, autograde, and which_to_grade fields.
  * Questions can be reordered and deleted.
  * This table uses the Handsontable library.
+ * @memberof AssignmentEditor
  */
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -31,12 +32,14 @@ registerAllModules();
 
 
 /**
+ * @function AssignmentQuestion
  * @summary The AssignmentQuestion component
  * @description This component is a table that displays the questions in the assignment.
  * The table is editable and the user can change the points, autograde, and which_to_grade fields.
  * Questions can be reordered and deleted.
  * This table uses the Handsontable library.
  * @returns The AssignmentQuestion component
+ * @memberof AssignmentEditor
  */
 export function AssignmentQuestion() {
     const dispatch = useDispatch();

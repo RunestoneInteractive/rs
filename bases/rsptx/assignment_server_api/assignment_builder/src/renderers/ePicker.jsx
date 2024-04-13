@@ -1,5 +1,5 @@
 /**
- * @module ePicker
+ * 
  * @file ePicker.jsx
  * @summary A component to select exercises from a tree table
  * @description This file defines a component that is a tree table that displays the exercises in the ePicker.
@@ -28,10 +28,11 @@ import { setExerciseDefaults } from "../exUtils";
 import PropTypes from 'prop-types';
 
 /**
- * 
+ * @function ExerciseSelector
  * @param {object} props 
  * @description This component is a tree table that displays the exercises in the ePicker.
  * @returns The ExerciseSelector component
+ * @namespace ePicker
  */
 export function ExerciseSelector(props) {
     const nodes = useSelector(chooserNodes)
@@ -58,6 +59,7 @@ export function ExerciseSelector(props) {
      * @param {event} event 
      * @description This function is called when a user selects an exercise from the tree table.
      * The function adds the exercise to the current assignment and sends the exercise to the server.
+     * @memberof ePicker
      */
     function doSelect(event) {
         console.log(event.node);
@@ -74,6 +76,7 @@ export function ExerciseSelector(props) {
      * @param {event} event 
      * @description This function is called when a user unselects an exercise from the tree table.
      * The function removes the exercise from the current assignment and sends the delete request to the server.
+     * @memberof ePicker
      */
     function doUnSelect(event) {
         console.log(event.node);

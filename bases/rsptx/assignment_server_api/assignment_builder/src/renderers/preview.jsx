@@ -5,6 +5,12 @@ import { selectCode } from "../state/preview/previewSlice";
 import { renderRunestoneComponent } from "../componentFuncs";
 import PropTypes from 'prop-types';
 
+/**
+ * @function Preview
+ * @param {object} props
+ * @description This component renders the preview of the activecode component
+ * @returns The Preview component
+ */ 
 function Preview(props) {
     let code;
     if (props.code != null) {

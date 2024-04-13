@@ -1,4 +1,5 @@
 /**
+ * 
  * @fileoverview This file contains the Redux slice for the assignment builder.
  * This is a good place to start if you are looking to understand how the assignment builder
  * interacts with the server.
@@ -15,7 +16,7 @@
  * - `reorderAssignmentQuestions` is used to reorder the questions in an assignment
  * - `sendAssignmentUpdate` is used to update the assignment details
  * - `searchForQuestions` is used to search for questions in the question bank
- * 
+ * @memberof AssignmentEditor
  */
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { setSelectedNodes } from "../epicker/ePickerSlice";
@@ -30,6 +31,7 @@ import toast from "react-hot-toast";
 
 /**
  * @function fetchAssignments
+ * @memberof AssignmentEditor
  * @description This function is called to initialize the list of assignments.
  * @param {object} getState - the getState function from the Redux store
  * @returns {Promise} - a promise that resolves to the list of assignments
@@ -40,7 +42,7 @@ import toast from "react-hot-toast";
  */
 export const fetchAssignments = createAsyncThunk(
     "assignment/fetchAssignments",
-    async ({ getState }) => {
+    async (neededForGetState, { getState }) => {
         const response = await fetch("/assignment/instructor/assignments");
         const data = await response.json();
         let state = getState();
@@ -67,6 +69,7 @@ export const fetchAssignments = createAsyncThunk(
  * It also returns a Promise.  When the promise is result any actions that need to be taken after the
  * assignment is created can be done in the createAssignment.fulfilled case of the builder object 
  * in the extraReducers method.
+ * @memberof AssignmentEditor
  */
 export const createAssignment = createAsyncThunk(
     "assignment/createAssignment",
@@ -134,6 +137,14 @@ export const createAssignment = createAsyncThunk(
         dispatch(addAssignment(assignData));
     })
 
+/**
+ * @function fetchAssignmentQuestions
+ * @param {number} assignmentId - the id of the assignment
+ * @param {object} getState - the getState function from the Redux store
+ * @param {object} dispatch - the dispatch function from the Redux store
+ * @description This function is called to get the questions associated with an assignment.
+ * @memberof AssignmentEditor
+ */
 export const fetchAssignmentQuestions = createAsyncThunk(
     "assignment/fetchAssignmentQuestions",
     async (assignmentId, { getState, dispatch }) => {
@@ -155,8 +166,8 @@ export const fetchAssignmentQuestions = createAsyncThunk(
                 for (let q of sc.children) {
                     if (data.detail.exercises.find((d) => d.question_id === q.data.id)) {
                         selectedNodes[q.key] = { checked: true, partialChecked: false };
-                        selectedNodes["c:" + q.data.chapter] = { checked: false, partialChecked: true };
-                        selectedNodes["s:" + q.data.subchapter] = { checked: false, partialChecked: true };
+                        selectedNodes[q.data.chapter] = { checked: false, partialChecked: true };
+                        selectedNodes[q.data.subchapter] = { checked: false, partialChecked: true };
                     }
                 }
             }
@@ -166,6 +177,13 @@ export const fetchAssignmentQuestions = createAsyncThunk(
     }
 );
 
+
+/**
+ * @function sendExercise
+ * @param {object} exercise - an object that contains the data for the new exercise
+ * @description This function is called to save the exercise to the database.
+ * @memberof AssignmentEditor
+ */
 export const sendExercise = createAsyncThunk(
     "assignment/sendExercise",
     async (exercise) => {
@@ -181,6 +199,12 @@ export const sendExercise = createAsyncThunk(
     }
 );
 
+/**
+ * @function sendDeleteExercises
+ * @param {array} exercises - an array of exercises to delete
+ * @description This function is called to delete exercises from the database.
+ * @memberof AssignmentEditor
+ */
 export const sendDeleteExercises = createAsyncThunk(
     "assignment/sendDeleteExercises",
     async (exercises) => {
@@ -198,6 +222,12 @@ export const sendDeleteExercises = createAsyncThunk(
     }
 );
 
+/**
+ * @function reorderAssignmentQuestions
+ * @param {array} exercises - an array of exercises to reorder
+ * @description This function is called to reorder the exercises in the database.
+ * @memberof AssignmentEditor
+ */
 export const reorderAssignmentQuestions = createAsyncThunk(
     "assignment/reorderAssignmentQuestions",
     async (exercises) => {
@@ -214,6 +244,14 @@ export const reorderAssignmentQuestions = createAsyncThunk(
     }
 );
 
+/**
+ * @function sendAssignmentUpdate
+ * @param {object} assignment - an object that contains the data for the assignment
+ * @description This function is called to update the assignment in the database.
+ * @memberof AssignmentEditor
+ * @returns {Promise} - a promise that resolves to the result of the fetch
+ * 
+ */
 export const sendAssignmentUpdate = createAsyncThunk(
     "assignment/sendAssignmentUpdate",
     // todo missing released, duedate, and from_source
@@ -235,6 +273,13 @@ export const sendAssignmentUpdate = createAsyncThunk(
     }
 );
 
+/**
+ * @function searchForQuestions
+ * @param {object} searchData - an object that contains the search data
+ * @description This function is called to search for questions in the question bank.
+ * @memberof AssignmentEditor
+ * @returns {Promise} - a promise that resolves to the result of the fetch
+  */
 export const searchForQuestions = createAsyncThunk(
     "assignment/searchForQuestions",
     async (searchData) => {
@@ -266,6 +311,36 @@ let defaultDeadline = `${cDate.getFullYear()}-${`${cDate.getMonth() + 1
 
 // create a slice for Assignments
 // This slice must be registered with the store in store.js
+/**
+ * @memberof AssignmentEditor
+ * @description This slice is used to manage the state of the assignment builder.
+ * The slice contains the following reducers:
+ * - updateField
+ * - addExercise
+ * - setName
+ * - setDesc
+ * - setDue
+ * - setId
+ * - setPoints
+ * - setVisible
+ * - setIsPeer
+ * - setIsTimed
+ * - setNoFeedback
+ * - setNoPause
+ * - setTimeLimit
+ * - setPeerAsyncVisible
+ * - setFromSource
+ * - setReleased
+ * - reorderExercise
+ * - deleteExercises
+ * - updateExercise
+ * - addAssignment
+ *  
+ * The slice also contains the following selectors:
+ * 
+ *  
+ * 
+ */
 export const assignSlice = createSlice({
     name: "assignment",
     initialState: {
@@ -393,7 +468,7 @@ export const assignSlice = createSlice({
                 state.all_assignments = action.payload.assignments;
             })
             .addCase(fetchAssignments.rejected, (state, action) => {
-                console.log("fetchAssignments rejected");
+                console.warn("fetchAssignments rejected", action.error.message, action.error.stack);
             })
             .addCase(fetchAssignmentQuestions.fulfilled, (state, action) => {
                 state.exercises = action.payload.exercises;
@@ -405,38 +480,38 @@ export const assignSlice = createSlice({
                 console.log("fetchAssignmentQuestions fulfilled");
             })
             .addCase(fetchAssignmentQuestions.rejected, (state, action) => {
-                console.log("fetchAssignmentQuestions rejected");
+                console.warn("fetchAssignmentQuestions rejected", action.error.message, action.error.stack);
             })
             .addCase(sendDeleteExercises.fulfilled, (state, action) => {
                 console.log("senddeleteExercises fulfilled");
             })
             .addCase(sendDeleteExercises.rejected, (state, action) => {
-                console.log("sendDeleteExercises rejected");
+                console.warn("sendDeleteExercises rejected", action.error.message, action.error.stack);
             })
             .addCase(reorderAssignmentQuestions.fulfilled, (state, action) => {
                 console.log("reorderAssignmentQuestions fulfilled");
             })
             .addCase(reorderAssignmentQuestions.rejected, (state, action) => {
-                console.log("reorderAssignmentQuestions rejected");
+                console.warn("reorderAssignmentQuestions rejected", action.error.message, action.error.stack);
             })
             .addCase(createAssignment.fulfilled, (state, action) => {
                 console.log("createAssignment fulfilled");
             })
             .addCase(createAssignment.rejected, (state, action) => {
-                console.log("createAssignment rejected");
+                console.warn("createAssignment rejected", action.error.message, action.error.stack);
             })
             .addCase(sendAssignmentUpdate.fulfilled, (state, action) => {
                 console.log("sendAssignmentUpdate fulfilled");
             })
             .addCase(sendAssignmentUpdate.rejected, (state, action) => {
-                console.log("sendAssignmentUpdate rejected");
+                console.warn("sendAssignmentUpdate rejected", action.error.message, action.error.stack);
             })
             .addCase(searchForQuestions.fulfilled, (state, action) => {
                 console.log("searchForQuestions fulfilled");
                 state.search_results = action.payload.questions;
             })
             .addCase(searchForQuestions.rejected, (state, action) => {
-                console.log("searchForQuestions rejected");
+                console.warn("searchForQuestions rejected", action.error.message, action.error.stack);
             })
         /* eslint-enable */
     },

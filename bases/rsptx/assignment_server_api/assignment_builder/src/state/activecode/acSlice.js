@@ -1,7 +1,22 @@
+/**
+ * @file acSlice.js
+ * @summary This file defines a slice for the active code editor
+ * @description This file contains the slice for the active code editor. The slice manages the state of the active code editor.
+ */
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
 import { addExercise, selectPoints, setPoints } from "../assignment/assignSlice.js";
 
+/**
+ * @function saveAssignmentQuestion
+ * @summary saveAssignmentQuestion
+ * @description This thunk saves the activecode question to the database as well as adding it to the current assignment
+ * @param {object} incoming - an object that combines the activecode data and the assignment data and the preview_src
+ * @returns {Promise} a promise that resolves to the result of the fetch -- Any thrown by the thunk
+ * will result in the promise being rejected and the error will be logged by the builder in extraReducers.
+ * @memberof ActiveCodeEditor
+ * 
+ */
 export const saveAssignmentQuestion = createAsyncThunk(
     "acEditor/saveAssignmentQuestion",
     // incoming is an object that combines the activecode data and the assignment data and the preview_src
@@ -84,6 +99,25 @@ export const saveAssignmentQuestion = createAsyncThunk(
 
 // create a slice for ActiveCodeEditor
 // This slice must be registered with the store in store.js
+
+/**
+ * @name acSlice
+ * @summary acSlice
+ * @description This slice manages the state of the active code editor. It contains the following reducers:
+ * - updateField
+ * - setUniqueId
+ * - setQpoints
+ * - setLanguage
+ * - setInstructions
+ * - setPrefixCode
+ * - setStarterCode
+ * - setSuffixCode
+ * It also uses the following async thunks:
+ * @see saveAssignmentQuestion
+ * @returns The acSlice reducer
+ * @note This slice must be registered with the store in store.js
+ * @memberof ActiveCodeEditor
+ */
 export const acSlice = createSlice({
     name: "acEditor",
     initialState: {
@@ -128,23 +162,13 @@ export const acSlice = createSlice({
                 console.log("Question saved");
             })
             .addCase(saveAssignmentQuestion.rejected, (state, action) => {
-                console.log("Question save failed");
+                console.log("Question save failed", action.error.message);
             });
         /* eslint-enable */
     },
 });
 
 export const { updateField } = acSlice.actions;
-
-// The function below is called a thunk and allows us to perform async logic. It
-// can be dispatched like a regular action: `dispatch(incrementAsync(10))`. This
-// will call the thunk with the `dispatch` function as the first argument. Async
-// code can then be executed and other actions can be dispatched
-// export const incrementAsync = (amount) => (dispatch) => {
-//     setTimeout(() => {
-//         dispatch(incrementByAmount(amount));
-//     }, 1000);
-// };
 
 // The function below is called a selector and allows us to select a value from
 // the state. Selectors can also be defined inline where they're used instead of

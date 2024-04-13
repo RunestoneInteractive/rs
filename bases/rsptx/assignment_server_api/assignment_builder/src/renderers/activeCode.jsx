@@ -30,7 +30,13 @@ const acStyle = {
     border: "1px solid black",
     padding: "10px",
 };
-
+/**
+ * 
+ * @returns The ActiveCodeCreator component
+ * @description This component creates the ActiveCodeCreator component which allows the user to create an activecode component.
+ * @namespace ActiveCodeEditor
+ * 
+ */
 function ActiveCodeCreator() {
     // use these selectors to get the values from the store (slice for activecode)
     const uniqueId = useSelector(selectId);

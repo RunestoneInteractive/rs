@@ -1,5 +1,5 @@
 /**
- * @module ePicker
+ * @memberof ePicker
  * @file ePickerSlice.js
  * @summary Redux slice for the ePicker component
  */
@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
  * @function fetchChooserData
  * @summary fetchChooserData
  * @description This thunk fetches the data for the ePicker component
+ * @memberof ePicker
  */
 export const fetchChooserData = createAsyncThunk(
     "ePicker/fetchChooserData",
@@ -72,6 +73,17 @@ export const fetchChooserData = createAsyncThunk(
 
 // create a slice for ActiveCodeEditor
 // This slice must be registered with the store in store.js
+/**
+ * @name epSlice
+ * @summary epSlice global state slice for the exercise picker
+ * @description This slice contains the global state for the exercise picker and contains the following reducers:
+ * - addExercise
+ * - setNodes
+ * - setSelectedNodes
+ * - unSelectNode
+ * @returns The epSlice reducer
+ * @memberof ePicker
+ */
 export const epSlice = createSlice({
     name: "ePicker",
     initialState: {
@@ -107,8 +119,8 @@ export const epSlice = createSlice({
                 console.log("Question saved");
                 state.nodes = action.payload.questions;
             })
-            .addCase(fetchChooserData.rejected, () => {
-                console.log("Fetching Questions failed");
+            .addCase(fetchChooserData.rejected, (state, action) => {
+                console.warn("Fetching Questions failed", action.error.message);
             });
     },
 });
