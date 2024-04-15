@@ -341,6 +341,60 @@ let defaultDeadline = `${cDate.getFullYear()}-${`${cDate.getMonth() + 1
  *  
  * 
  */
+/**
+ * @type {assignSlice}
+ */
+/**
+ * Creates a Redux slice for managing assignment state.
+ *
+ * @typedef {Object} AssignSlice
+ * @property {string} name - The name of the slice.
+ * @property {Object} initialState - The initial state of the slice.
+ * @property {number} initialState.id - The ID of the assignment.
+ * @property {string} initialState.name - The name of the assignment.
+ * @property {string} initialState.desc - The description of the assignment.
+ * @property {string} initialState.duedate - The due date of the assignment.
+ * @property {number} initialState.points - The total points of the assignment.
+ * @property {boolean} initialState.visible - Indicates if the assignment is visible.
+ * @property {boolean} initialState.is_peer - Indicates if the assignment is a peer assignment.
+ * @property {boolean} initialState.is_timed - Indicates if the assignment is timed.
+ * @property {boolean} initialState.nofeedback - Indicates if the assignment has no feedback.
+ * @property {boolean} initialState.nopause - Indicates if the assignment has no pause.
+ * @property {number|null} initialState.time_limit - The time limit of the assignment.
+ * @property {boolean} initialState.peer_async_visible - Indicates if the peer assignment is visible asynchronously.
+ * @property {string} initialState.kind - The kind of the assignment (regular, peer, timed).
+ * @property {Array} initialState.exercises - The exercises of the assignment.
+ * @property {Array} initialState.all_assignments - All assignments.
+ * @property {Array} initialState.search_results - The search results.
+ * @property {number} initialState.question_count - The count of questions in the assignment.
+ * @property {boolean} initialState.isAuthorized - Indicates if the user is authorized.
+ * @property {Object} reducers - The reducers for updating the state.
+ * @property {Function} reducers.updateField - Updates a field in the state.
+ * @property {Function} reducers.setId - Sets the ID of the assignment.
+ * @property {Function} reducers.setName - Sets the name of the assignment.
+ * @property {Function} reducers.setDesc - Sets the description of the assignment.
+ * @property {Function} reducers.setDue - Sets the due date of the assignment.
+ * @property {Function} reducers.setVisible - Sets the visibility of the assignment.
+ * @property {Function} reducers.setIsPeer - Sets if the assignment is a peer assignment.
+ * @property {Function} reducers.setIsTimed - Sets if the assignment is timed.
+ * @property {Function} reducers.setNoFeedback - Sets if the assignment has no feedback.
+ * @property {Function} reducers.setNoPause - Sets if the assignment has no pause.
+ * @property {Function} reducers.setTimeLimit - Sets the time limit of the assignment.
+ * @property {Function} reducers.setPeerAsyncVisible - Sets if the peer assignment is visible asynchronously.
+ * @property {Function} reducers.setFromSource - Sets the source of the assignment.
+ * @property {Function} reducers.setReleased - Sets if the assignment is released.
+ * @property {Function} reducers.setExercises - Sets the exercises of the assignment.
+ * @property {Function} reducers.addExercise - Adds an exercise to the assignment.
+ * @property {Function} reducers.addAssignment - Adds an assignment to the list of all assignments.
+ * @property {Function} reducers.setPoints - Sets the total points of the assignment.
+ * @property {Function} reducers.updateExercise - Updates an exercise in the assignment.
+ * @property {Function} reducers.deleteExercises - Deletes exercises from the assignment.
+ * @property {Function} reducers.reorderExercise - Reorders exercises in the assignment.
+ * @property {Function} reducers.setSearchResults - Sets the search results.
+ * @property {Function} reducers.incrementQuestionCount - Increments the question count.
+ * @property {Function} reducers.sumPoints - Calculates the sum of points for the assignment.
+ * @property {Object} extraReducers - Additional reducers for handling asynchronous actions.
+ */
 export const assignSlice = createSlice({
     name: "assignment",
     initialState: {
@@ -364,6 +418,7 @@ export const assignSlice = createSlice({
         isAuthorized: true,
     },
     reducers: {
+
         updateField: (state, action) => {
             state[action.payload.field] = action.payload.newVal;
         },
@@ -549,6 +604,7 @@ export const {
 // in the slice file. For example: `useSelector((state) => state.counter.value)`
 // Note: the state is the global state, followed by the name of the slice (see state.js)
 // followed by the name of the field in the slice
+
 export const selectId = (state) => state.assignment.id;
 export const selectName = (state) => state.assignment.name;
 export const selectDesc = (state) => state.assignment.desc;

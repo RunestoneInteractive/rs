@@ -117,6 +117,20 @@ export const saveAssignmentQuestion = createAsyncThunk(
  * @returns The acSlice reducer
  * @note This slice must be registered with the store in store.js
  * @memberof ActiveCodeEditor
+ *
+ * @typedef {Object} acSlice
+ * @property {string} uniqueId - The unique identifier for the active code editor.
+ * @property {number} qpoints - The number of points assigned to the active code editor.
+ * @property {string} language - The programming language used in the active code editor.
+ * @property {string} instructions - The instructions for the active code editor.
+ * @property {string} prefix_code - The prefix code for the active code editor.
+ * @property {string} starter_code - The starter code for the active code editor.
+ * @property {string} suffix_code - The suffix code for the active code editor.
+ */
+
+
+/**
+ * @type {acSlice}
  */
 export const acSlice = createSlice({
     name: "acEditor",
@@ -130,27 +144,83 @@ export const acSlice = createSlice({
         suffix_code: "",
     },
     reducers: {
+        /**
+         * @function updateField
+         * @description This reducer updates a field in the active code editor
+         * @param {acSlice} state - The current state of the active code editor.
+         * @param {object} action - The action containing the field to update and its new value.
+         * @memberof ActiveCodeEditor
+         */
         updateField: (state, action) => {
             state[action.payload.field] = action.payload.newVal;
         },
+        /**
+         * @function setUniqueId
+         * @description This reducer sets the uniqueId in the active code editor
+         * @param {acSlice} state - The current state of the active code editor.
+         * @param {string} action - The action containing the new uniqueId value.
+         * @memberof ActiveCodeEditor
+         */
         setUniqueId: (state, action) => {
             state.uniqueId = action.payload;
         },
+        /**
+         * @function setQpoints
+         * @description This reducer sets the qpoints in the active code editor
+         * @param {acSlice} state - The current state of the active code editor.
+         * @param {Number} action - The action containing the new qpoints value.
+         * @memberof ActiveCodeEditor
+         */
         setQpoints: (state, action) => {
             state.qpoints = Number(action.payload);
         },
+        /**
+         * @function setLanguage
+         * @description This reducer sets the language in the active code editor
+         * @param {acSlice} state - The current state of the active code editor.
+         * @param {string} action - The action containing the new language value.
+         * @memberof ActiveCodeEditor
+         */
         setLanguage: (state, action) => {
             state.language = action.payload;
         },
+        /**
+         * @function setInstructions
+         * @description This reducer sets the instructions in the active code editor
+         * @param {acSlice} state - The current state of the active code editor.
+         * @param {string} action - The action containing the new instructions value.
+         * @memberof ActiveCodeEditor
+         */
         setInstructions: (state, action) => {
             state.instructions = action.payload;
         },
+        /**
+         * @function setPrefixCode
+         * @description This reducer sets the prefix code in the active code editor
+         * @param {acSlice} state - The current state of the active code editor.
+         * @param {string} action - The action containing the new prefix code value.
+         * @memberof ActiveCodeEditor
+         */
         setPrefixCode: (state, action) => {
             state.prefix_code = action.payload;
         },
+        /**
+         * @function setStarterCode
+         * @description This reducer sets the starter code in the active code editor
+         * @param {acSlice} state - The current state of the active code editor.
+         * @param {string} action - The action containing the new starter code value.
+         * @memberof ActiveCodeEditor
+         */
         setStarterCode: (state, action) => {
             state.starter_code = action.payload;
         },
+        /**
+         * @function setSuffixCode
+         * @description This reducer sets the suffix code in the active code editor
+         * @param {acSlice} state - The current state of the active code editor.
+         * @param {string} action - The action containing the new suffix code value.
+         * @memberof ActiveCodeEditor
+         */
         setSuffixCode: (state, action) => {
             state.suffix_code = action.payload;
         },
@@ -173,13 +243,69 @@ export const { updateField } = acSlice.actions;
 // The function below is called a selector and allows us to select a value from
 // the state. Selectors can also be defined inline where they're used instead of
 // in the slice file. For example: `useSelector((state) => state.counter.value)`
+/**
+ * @function selectId
+ * @param {acSlice} state 
+ * @returns current uniqueId
+ * @memberof ActiveCodeEditor
+ * 
+ */
 export const selectId = (state) => state.acEditor.uniqueId;
+/**
+ * @function selectQpoints
+ * @param {acSlice} state 
+ * @returns current qpoints
+ * @memberof ActiveCodeEditor
+ * 
+ */
 export const selectQpoints = (state) => state.acEditor.qpoints;
+/**
+ * @function selectLanguage
+ * @param {acSlice} state 
+ * @returns current language
+ * @memberof ActiveCodeEditor
+ * 
+ */
 export const selectLanguage = (state) => state.acEditor.language;
+/**
+ * @function selectInstructions
+ * @param {acSlice} state 
+ * @returns current instructions
+ * @memberof ActiveCodeEditor
+ * 
+ */
 export const selectInstructions = (state) => state.acEditor.instructions;
+/**
+ * @function selectPrefixCode
+ * @param {acSlice} state 
+ * @returns current prefix_code
+ * @memberof ActiveCodeEditor
+ * 
+ */
 export const selectPrefixCode = (state) => state.acEditor.prefix_code;
+/**
+ * @function selectStarterCode
+ * @param {acSlice} state 
+ * @returns current starter_code
+ * @memberof ActiveCodeEditor
+ * 
+ */
 export const selectStarterCode = (state) => state.acEditor.starter_code;
+/**
+ * @function selectSuffixCode
+ * @param {acSlice} state 
+ * @returns current suffix_code
+ * @memberof ActiveCodeEditor
+ * 
+ */
 export const selectSuffixCode = (state) => state.acEditor.suffix_code;
+/**
+ * @function selectAll
+ * @param {acSlice} state 
+ * @returns current acEditor
+ * @memberof ActiveCodeEditor
+ * 
+ */
 export const selectAll = (state) => state.acEditor;
-
 export default acSlice.reducer;
+
