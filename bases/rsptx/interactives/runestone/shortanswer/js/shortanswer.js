@@ -228,6 +228,15 @@ export default class ShortAnswer extends RunestoneBase {
             }
         }
     }
+    formatTimestamp(date) {
+        let year = date.getFullYear();
+        let month = ('0' + (date.getMonth() + 1)).slice(-2);
+        let day = ('0' + date.getDate()).slice(-2);
+        let hours = ('0' + date.getHours()).slice(-2);
+        let minutes = ('0' + date.getMinutes()).slice(-2);
+        let seconds = ('0' + date.getSeconds()).slice(-2);
+        return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
+    }
     restoreAnswers(data) {
         // Restore answers from storage retrieval done in RunestoneBase
         // sometimes data.answer can be null
@@ -242,7 +251,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.jInputDiv.appendChild(p);
         var tsString = "";
         if (data.timestamp) {
-            tsString = new Date(data.timestamp).toLocaleString();
+            tsString = formatTimestamp(new Date(data.timestamp));
         } else {
             tsString = "";
         }
