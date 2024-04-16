@@ -1635,6 +1635,40 @@ async def fetch_assignment_questions(
         return res
 
 
+async def fetch_question_count_per_subchapter(
+    course_name: str,
+) -> Dict[Dict[str, str], int]:
+    """
+    Return a dictionary of subchapter_id: count of questions in that subchapter
+    """
+    query = (
+        select(
+            Question.chapter,
+            Question.subchapter,
+            func.count(Question.id).label("question_count"),
+        )
+        .where(
+            and_(
+                Question.base_course == course_name,
+                Question.from_source == True,  # noqa 711
+                Question.optional != True,  # noqa 711
+            )
+        )
+        .group_by(Question.chapter, Question.subchapter)
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+
+    resd = {}
+    for row in res:
+        if row[0] not in resd:
+            resd[row[0]] = {}
+        resd[row[0]][row[1]] = row[2]
+    return resd
+
+
 async def fetch_question_grade(sid: str, course_name: str, qid: str):
     """
     Retrieve the QuestionGrade entry for the given sid, course_name, and qid.
@@ -2254,9 +2288,9 @@ async def fetch_questions_for_chapter_subchapter(
         for row in res:
             q = QuestionValidator.from_orm(row.Question)
             c = ChapterValidator.from_orm(row.Chapter)
-            c.chapter_label = f"c:{c.chapter_label}"
+            c.chapter_label = f"{c.chapter_label}"
             sc = SubChapterValidator.from_orm(row.SubChapter)
-            sc.sub_chapter_label = f"s:{sc.sub_chapter_label}"
+            sc.sub_chapter_label = f"{sc.sub_chapter_label}"
             if c.chapter_label not in questions:
                 questions[c.chapter_label] = {}
             if c.chapter_label not in chapters:
@@ -2270,8 +2304,15 @@ async def fetch_questions_for_chapter_subchapter(
             del q.timestamp  # Does not convert to json
             del q.question
             questions[c.chapter_label][sc.sub_chapter_label].append(q)
+
         # Now create the hierarchical json structure where the keys are the chapter and subchapter labels
         # This is the structure that is used by the React TreeTable component
+        def find_page_id(chapter, subchapter):
+            for q in questions[chapter][subchapter]:
+                if q.question_type == "page":
+                    return q.id
+            return None
+
         chaps = []
         for chapter in questions:
             subs = []
@@ -2286,6 +2327,16 @@ async def fetch_questions_for_chapter_subchapter(
                             "num": chapters[chapter]["sub_chapters"][subchapter][
                                 "sub_chapter_num"
                             ],
+                            "chapter": chapter,
+                            "subchapter": subchapter,
+                            "id": find_page_id(chapter, subchapter),
+                            "numQuestions": len(
+                                [
+                                    q
+                                    for q in questions[chapter][subchapter]
+                                    if q.optional != True
+                                ]
+                            ),
                         },
                         "children": [
                             {"key": q.name, "data": q.dict()}

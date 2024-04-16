@@ -24,7 +24,7 @@ import {
     sendDeleteExercises,
     sumPoints,
 } from "../state/assignment/assignSlice";
-import { setExerciseDefaults } from "../exUtils";
+import { setExerciseDefaults, setReadingDefaults } from "../exUtils";
 import PropTypes from 'prop-types';
 
 /**
@@ -64,7 +64,11 @@ export function ExerciseSelector(props) {
     function doSelect(event) {
         console.log(event.node);
         let exercise = event.node.data;
-        exercise = setExerciseDefaults(exercise, currentAssignmentId, currentExercises);
+        if (props.level === "subchapter") {
+            exercise = setReadingDefaults(exercise, currentAssignmentId, currentExercises);
+        } else {
+            exercise = setExerciseDefaults(exercise, currentAssignmentId, currentExercises);
+        }
         dispatch(addExercise(exercise));
         dispatch(sendExercise(exercise));
         // dispatching addExercise does not modify the currentExercises array
@@ -98,6 +102,8 @@ export function ExerciseSelector(props) {
                 <TreeTable value={filteredNodes}
                     selectionMode="checkbox"
                     selectionKeys={selectedNodeKeys}
+                    onSelect={doSelect}
+                    onUnselect={doUnSelect}
                     onSelectionChange={handleSelectionChange} tableStyle={{ minWidth: '10rem' }}>
                     <Column field="title" header="Title" expander></Column>
                 </TreeTable>

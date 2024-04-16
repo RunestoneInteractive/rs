@@ -26,10 +26,33 @@ import {
     sendDeleteExercises,
     sumPoints,
 } from '../state/assignment/assignSlice';
+import PropTypes from 'prop-types';
 
 // This registers all the plugins for the Handsontable library
 registerAllModules();
 
+export const problemColumns = ["id", "qnumber", "points", "autograde", "which_to_grade"];
+export const problemColumnSpec = [{ type: "numeric", readOnly: true },
+{ type: "numeric", readOnly: true },
+{ type: "numeric" },
+{
+    type: "dropdown",
+    source: ["manual", "all_or_nothing", "pct_correct", "peer", "peer_chat", "interaction", "unittest"]
+},
+{
+    type: "dropdown",
+    source: ["first_answer", "last_answer", "all_answer", "best_answer"]
+}
+]
+export const readingColumns = ["id", "chapter", "subchapter", "numQuestions", "required", "points"];
+export const readingColumnSpec = [
+    { type: "numeric", readOnly: true },
+    { type: "text", readOnly: true },
+    { type: "text", readOnly: true },
+    { type: "numeric", readOnly: true },
+    { type: "numeric" },
+    { type: "numeric" }
+]
 
 /**
  * @function AssignmentQuestion
@@ -41,31 +64,47 @@ registerAllModules();
  * @returns The AssignmentQuestion component
  * @memberof AssignmentEditor
  */
-export function AssignmentQuestion() {
+export function AssignmentQuestion(props) {
     const dispatch = useDispatch();
-    const columns = ["id", "qnumber", "points", "autograde", "which_to_grade"];
     const question_rows = useSelector(selectExercises);
-    const hotData = question_rows.map(({ id, qnumber, points, autograde, which_to_grade }) =>
-        (Object.values({ id, qnumber, points, autograde, which_to_grade })));
+    console.log("columns", props.columns);
 
-    const posToKey = new Map([[0, "id"], [1, "question_id"], [2, "points"], [3, "autograde"], [4, "which_to_grade"]]);
+    let hotData = []
+    for (let row of question_rows) {
+        let newRow = []
+        for (let col of props.columns) {
+            newRow.push(row[col])
+        }
+        if (props.isReading && row.reading_assignment) {
+            hotData.push(newRow)
+        } else if (!props.isReading && !row.reading_assignment) {
+            hotData.push(newRow)
+        }
+    }
 
+    const findRowById = (id) => {
+        for (let row of question_rows) {
+            if (row.id === id) {
+                return row;
+            }
+        }
+        return null;
+    }
     const handleChange = (change, source) => {
         if (source === "loadData" || source === "updateData") {
             return;
         }
         console.log(change); // gives us [row, column, oldVal, newVal]
         console.log(hotData);
-        console.log(posToKey);
-        let changeKey = posToKey.get(change[0][1]);
+        let changeKey = props.columns[change[0][1]];
         for (let c of change) {
             let row = c[0];
             let col = c[1];
             let oldVal = c[2];
             let newVal = c[3];
             let id = hotData[row][0];
-            let key = posToKey.get(col);
-            let new_row = structuredClone(question_rows[row])
+            let key = props.columns[col];
+            let new_row = structuredClone(findRowById(id));
             new_row[key] = newVal;
             if (newVal !== oldVal) {
                 dispatch(updateExercise({ id: id, exercise: new_row }))
@@ -115,29 +154,19 @@ export function AssignmentQuestion() {
 
     return (
         <div className="App">
-            <Panel header="Assignment Questions" toggleable>
+            <Panel header={props.headerTitle} toggleable>
                 <HotTable
                     style={aqStyle}
                     width="100%"
                     data={hotData}
                     stretchH="all"
-                    colHeaders={columns}
+                    colHeaders={props.columns}
                     rowHeaders={true}
                     manualRowMove={true}
                     contextMenu={true}
                     allowRemoveRow={true}
-                    columns={[{ type: "numeric", readOnly: true },
-                    { type: "numeric", readOnly: true },
-                    { type: "numeric" },
-                    {
-                        type: "dropdown",
-                        source: ["manual", "all_or_nothing", "pct_correct", "peer", "peer_chat", "interaction", "unittest"]
-                    },
-                    {
-                        type: "dropdown",
-                        source: ["first_answer", "last_answer", "all_answer", "best_answer"]
-                    }
-                    ]}
+                    hiddenColumns={{ columns: [0] }}
+                    columns={props.columnSpecs}
                     afterChange={handleChange}
                     afterRowMove={handleReorder}
                     afterRemoveRow={handleDelete}
@@ -147,3 +176,10 @@ export function AssignmentQuestion() {
         </div>
     );
 }
+
+AssignmentQuestion.propTypes = {
+    headerTitle: PropTypes.string,
+    columns: PropTypes.array,
+    columnSpecs: PropTypes.array,
+    isReading: PropTypes.bool,
+};

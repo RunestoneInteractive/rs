@@ -526,6 +526,9 @@ export const assignSlice = createSlice({
                 console.warn("fetchAssignments rejected", action.error.message, action.error.stack);
             })
             .addCase(fetchAssignmentQuestions.fulfilled, (state, action) => {
+                for (let ex of action.payload.exercises) {
+                    ex.required = ex.activities_required;
+                }
                 state.exercises = action.payload.exercises;
                 let total = 0;
                 for (let ex of state.exercises) {

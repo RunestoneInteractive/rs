@@ -15,6 +15,7 @@ from rsptx.db.crud import (
     fetch_assignment_questions,
     fetch_assignments,
     fetch_questions_by_search_criteria,
+    fetch_question_count_per_subchapter,
     create_assignment_question,
     create_question,
     fetch_course,
@@ -326,6 +327,8 @@ async def get_assignment_questions(
         )
 
     res = await fetch_assignment_questions(request_data.assignment)
+    countd = await fetch_question_count_per_subchapter(course.base_course)
+
     # res has two components: AssignmentQuestion and Question
     # res.AssignmentQuestion all the assignment question data
     # res.Question all the question data
@@ -340,6 +343,9 @@ async def get_assignment_questions(
             aq["qnumber"] = q["qnumber"]
         else:
             aq["qnumber"] = q["name"]
+
+        if aq["reading_assignment"] == True:
+            aq["numQuestions"] = countd[q["chapter"]][q["subchapter"]]
 
         # augment the assignment question with additional question data
         aq["name"] = q["name"]
