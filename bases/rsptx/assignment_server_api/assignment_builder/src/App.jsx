@@ -26,7 +26,7 @@ function App() {
                 columnSpecs={problemColumnSpec}
             />
             <AssignmentQuestion
-                headerTitle="Reading Questions"
+                headerTitle="Sections to Read"
                 columns={readingColumns}
                 columnSpecs={readingColumnSpec}
                 isReading={true}
