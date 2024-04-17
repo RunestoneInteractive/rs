@@ -5,7 +5,13 @@ import { AssignmentQuestion, problemColumnSpec, problemColumns, readingColumnSpe
 import Preview from "./renderers/preview.jsx";
 import { useSelector } from "react-redux";
 import { selectIsAuthorized } from "./state/assignment/assignSlice.js";
+import { useSearchParams } from "react-router-dom";
+
 function App() {
+    // todo: save this for once routing is implemented
+    //const [searchParams, setSearchParams] = useSearchParams();
+    //let assignmentId = searchParams.get("assignment_id");
+    //console.log("assignmentId: ", assignmentId);
 
     if (useSelector(selectIsAuthorized) === false) {
         return (
@@ -30,7 +36,7 @@ function App() {
                 columns={readingColumns}
                 columnSpecs={readingColumnSpec}
                 isReading={true}
-                />
+            />
             <AddQuestionTabGroup />
             <Preview />
             <div id="editRST"> </div>

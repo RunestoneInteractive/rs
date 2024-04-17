@@ -21,6 +21,7 @@ import { SelectButton } from 'primereact/selectbutton';
 import { ExerciseSelector } from './ePicker';
 import { SearchPanel } from "./searchPanel";
 import store from "../state/store";
+import 'primeicons/primeicons.css';
 
 
 import {
@@ -313,6 +314,7 @@ export function AddQuestionTabGroup() {
     const [activeIndex, setActiveIndex] = useState(2);
     return (
         <div className="App">
+            
             <TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)}>
                 <TabPanel header="Search for Exercises">
                     <SearchPanel />

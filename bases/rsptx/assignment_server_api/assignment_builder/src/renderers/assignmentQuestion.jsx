@@ -9,8 +9,10 @@
  * @memberof AssignmentEditor
  */
 import React from 'react';
+import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Panel } from 'primereact/panel';
+import { Dialog } from 'primereact/dialog';
 import 'handsontable/dist/handsontable.full.min.css';
 import { registerAllModules } from 'handsontable/registry';
 import { HotTable } from '@handsontable/react';
@@ -154,7 +156,7 @@ export function AssignmentQuestion(props) {
 
     return (
         <div className="App">
-            <Panel header={props.headerTitle} toggleable>
+            <Panel headerTemplate={props.isReading ? readingHeader : problemsHeader} header={props.headerTitle} toggleable>
                 <HotTable
                     style={aqStyle}
                     width="100%"
@@ -174,6 +176,65 @@ export function AssignmentQuestion(props) {
                 />
             </Panel>
         </div>
+    );
+}
+
+const readingHeader = (options) => {
+    const className = `${options.className} justify-content-space-between`;
+    const [visible, setVisible] = useState(false);
+
+    return (
+        <>
+            <div className={className}>
+                <div className="flex align-items-center gap-2">
+                    <span className="p-panel-title">{options.props.header} </span>
+                    <span><i className="pi pi-info-circle" role="button" onClick={() => setVisible(true)}></i></span>
+                </div>
+                <div>
+                    {options.togglerElement}
+                </div>
+            </div>
+            <Dialog header="Sections to Read" visible={visible} style={{ width: '50vw' }} onHide={() => setVisible(false)}>
+                <p className="m-0">
+                    Reading assignments are meant to encourage students to do the reading, by giving them
+                    points for interacting with various interactive elements that are a part of the page.
+                    The number of activities required is set to 80% of the number of questions in the reading.
+                    Readings assignments are meant to be <strong>formative</strong> and therefore the questions
+                    are not graded for correctness, rather the students are given points for interacting with them.
+                </p>
+            </Dialog>
+
+        </>
+    );
+}
+
+const problemsHeader = (options) => {
+    const className = `${options.className} justify-content-space-between`;
+    const [visible, setVisible] = useState(false);
+
+    return (
+        <>
+            <div className={className}>
+                <div className="flex align-items-center gap-2">
+                    <span className="p-panel-title">{options.props.header} </span>
+                    <span><i className="pi pi-info-circle" role="button" onClick={() => setVisible(true)}></i></span>
+                </div>
+                <div>
+                    {options.togglerElement}
+                </div>
+            </div>
+            <Dialog header="Problem Set Assignments" visible={visible} style={{ width: '50vw' }} onHide={() => setVisible(false)}>
+                <p className="m-0">
+                    Graded questions are meant to be <strong>summative</strong> and therefore the questions
+                    are graded for correctness.  The correctness of a question is recorded at the time the student answers
+                    the question.  The autograde field determines how the questions are scored, for example &ldquo;all or nothing&rdquo; or
+                    &ldquo;percent correct&rdquo;.
+                    The which_to_grade field determines which answer to grade, for example the first answer or the last answer.
+                    normally this is set to &ldquo;best answer&rdquo;.  This allows you to change the way and assignment
+                    is scored even after the students have answered the questions.
+                </p>
+            </Dialog>
+        </>
     );
 }
 
