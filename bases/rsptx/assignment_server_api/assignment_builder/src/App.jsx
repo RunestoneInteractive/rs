@@ -13,8 +13,9 @@ function AssignmentBuilder() {
     console.log("assignmentId: ", assignmentId);
 
     return (
-        <>
-            <h1 className="App">Assignment Builder</h1>
+        <>  <div className="App card flex justify-content-center">
+            <h1 className="App" style={{marginBottom: "1rem"}}>Assignment Builder</h1>
+            </div>
             <AssignmentEditor />
             <MoreOptions />
             <AssignmentQuestion

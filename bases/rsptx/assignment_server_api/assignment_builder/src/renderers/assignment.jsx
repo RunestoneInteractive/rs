@@ -8,8 +8,7 @@ import { useSelector, useDispatch } from "react-redux";
 import React, { useState } from "react";
 
 
-//import "primereact/resources/themes/bootstrap4-light-blue/theme.css"
-import "primereact/resources/themes/lara-light-cyan/theme.css";
+import "primereact/resources/themes/lara-light-blue/theme.css";
 import "primeflex/primeflex.css";
 import { Panel } from 'primereact/panel';
 import { TabView, TabPanel } from 'primereact/tabview';
@@ -168,35 +167,37 @@ function AssignmentEditor() {
         <div className="App">
             <div className="p-fluid">
                 <div className="p-field p-grid">
-                    <label htmlFor="name" className="p-col-12 p-md-2">Assignment Name</label>
+                    <label htmlFor="name" >Assignment Name</label>
                     <AutoComplete
+                        className="field"
                         id="name"
                         field="name"
                         suggestions={items}
                         completeMethod={search}
-                        placeholder="Enter Assignment Name"
+                        placeholder="Enter or select assignment name"
                         value={name}
                         onChange={chooseOrNameAssignment}
                         dropdown />
-                    {items.length == 0 && name ? 
-                        <Button type="button" className="mb-3 md:mb-0" onClick={newAssignment}>Create New</Button> 
+                    {items.length == 0 && name ?
+                        <Button type="button" className="mb-3 md:mb-0" onClick={newAssignment}>Create New</Button>
                         : null}
-                    <label htmlFor="desc" className="p-col-12 p-md-2">
+                    <label htmlFor="desc" >
                         Assignment Description
                     </label>
                     <InputText
                         id="desc"
-                        placeholder="Enter Assignment Description"
+                        className="field"
+                        placeholder="Enter assignment description"
                         value={desc}
                         onChange={(e) => dispatch(setDesc(e.target.value))}
                     />
                     <div className="contain2col">
                         <div className="item">
-                            <label htmlFor="due" className="p-col-3">
+                            <label htmlFor="due" >
                                 Due
                             </label>
                             <Calendar
-                                className="p-col-3"
+                                className="field"
                                 id="due"
                                 value={due}
                                 placeholder={due}
@@ -212,12 +213,20 @@ function AssignmentEditor() {
                             </label>
                             <InputNumber
                                 id="points"
+                                disabled
+                                className="field"
                                 placeholder="Points"
                                 value={points}
                                 onChange={(e) => dispatch(setPoints(e.value))}
                             />
-                            <InputSwitch id="visible" checked={assignData.visible} onChange={(e) => dispatch(setVisible(e.value))} />
-                            <label htmlFor="visible">Visible to Students</label>
+                            <div className="field grid">
+                                <label className="col-fixed" htmlFor="visible">Visible to Students</label>
+                                <InputSwitch
+                                    id="visible"
+                                    className="field"
+                                    checked={assignData.visible}
+                                    onChange={(e) => dispatch(setVisible(e.value))} />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -304,7 +313,7 @@ export function MoreOptions() {
             <Panel header="More Options" collapsed={true} toggleable >
                 <div className="p-fluid">
                     <div className="p-field p-grid">
-                        <label htmlFor="name" className="p-col-12 p-md-2">What kind of Assignment?</label>
+                        <label htmlFor="name" >What kind of Assignment?</label>
                         <SelectButton value={assignmentKind} onChange={changeAssigmentKind} options={options} />
                     </div>
                     {renderOptions()}
@@ -324,7 +333,7 @@ export function AddQuestionTabGroup() {
     if (assignmentId === 0) {
         return (
             <div className="App card flex justify-content-center">
-                <Message text="Please select or create an assignment" />
+                <Message text="Please select or create an assignment to add exercises." />
             </div>
         )
     }
