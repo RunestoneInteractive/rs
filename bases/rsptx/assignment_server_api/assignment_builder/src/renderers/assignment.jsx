@@ -311,22 +311,22 @@ export function MoreOptions() {
 
 
 export function AddQuestionTabGroup() {
-    const [activeIndex, setActiveIndex] = useState(2);
+    const [activeIndex, setActiveIndex] = useState(0);
     return (
         <div className="App">
-            
+
             <TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)}>
+                <TabPanel header="Choose Readings">
+                    <ExerciseSelector level="subchapter" />
+                </TabPanel>
+                <TabPanel header="Choose Exercises">
+                    <ExerciseSelector />
+                </TabPanel>
                 <TabPanel header="Search for Exercises">
                     <SearchPanel />
                 </TabPanel>
                 <TabPanel header="Write an Exercise">
                     <ActiveCodeCreator />
-                </TabPanel>
-                <TabPanel header="Choose Exercises">
-                    <ExerciseSelector />
-                </TabPanel>
-                <TabPanel header="Choose Readings">
-                    <ExerciseSelector level="subchapter" />
                 </TabPanel>
             </TabView>
         </div>

@@ -33,6 +33,17 @@ import PropTypes from 'prop-types';
 // This registers all the plugins for the Handsontable library
 registerAllModules();
 
+/**
+ * @constant problemColumns
+ * @description The columns for the problem table
+ * @constant problemColumnSpec
+ * @description The column specifications for the problem table
+ * @constant readingColumns
+ * @description The columns for the reading table
+ * @constant readingColumnSpec
+ * @description The column specifications for the reading table
+ * @memberof AssignmentEditor
+ */
 export const problemColumns = ["id", "qnumber", "points", "autograde", "which_to_grade"];
 export const problemColumnSpec = [{ type: "numeric", readOnly: true },
 { type: "numeric", readOnly: true },
@@ -154,9 +165,35 @@ export function AssignmentQuestion(props) {
         marginBottom: "10px",
     }
 
+    const readingHelpText = (
+        <p className="m-0">
+            Reading assignments are meant to encourage students to do the reading, by giving them
+            points for interacting with various interactive elements that are a part of the page.
+            The number of activities required is set to 80% of the number of questions in the reading.
+            Readings assignments are meant to be <strong>formative</strong> and therefore the questions
+            are not graded for correctness, rather the students are given points for interacting with them.
+        </p>
+    );
+
+    const problemHelpText = (
+        <p className="m-0">
+            Graded questions are meant to be <strong>summative</strong> and therefore the questions
+            are graded for correctness.  The correctness of a question is recorded at the time the student answers
+            the question.  The autograde field determines how the questions are scored, for example &ldquo;all or nothing&rdquo; or
+            &ldquo;percent correct&rdquo;.
+            The which_to_grade field determines which answer to grade, for example the first answer or the last answer.
+            normally this is set to &ldquo;best answer&rdquo;.  This allows you to change the way and assignment
+            is scored even after the students have answered the questions.
+        </p>
+    )
+
     return (
         <div className="App">
-            <Panel headerTemplate={props.isReading ? readingHeader : problemsHeader} header={props.headerTitle} toggleable>
+            <Panel
+                headerTemplate={qpHeader}
+                header={props.headerTitle}
+                helpText={props.isReading ? readingHelpText : problemHelpText}
+                toggleable>
                 <HotTable
                     style={aqStyle}
                     width="100%"
@@ -179,7 +216,15 @@ export function AssignmentQuestion(props) {
     );
 }
 
-const readingHeader = (options) => {
+/**
+ * 
+ * @param {*} options 
+ * @function qpHeader
+ * @returns A header for the reading panel.  This header contains a help icon that displays a dialog when clicked.
+ * @memberof AssignmentEditor
+ * @note options is an object that contains a props object that is passed through from the Panel
+ */
+const qpHeader = (options) => {
     const className = `${options.className} justify-content-space-between`;
     const [visible, setVisible] = useState(false);
 
@@ -188,55 +233,22 @@ const readingHeader = (options) => {
             <div className={className}>
                 <div className="flex align-items-center gap-2">
                     <span className="p-panel-title">{options.props.header} </span>
-                    <span><i className="pi pi-info-circle" role="button" onClick={() => setVisible(true)}></i></span>
+                    <button className="p-panel-header-icon p-link mr-2">
+                        <span><i className="pi pi-info-circle" onClick={() => setVisible(true)}></i></span>
+                    </button>
                 </div>
                 <div>
                     {options.togglerElement}
                 </div>
             </div>
-            <Dialog header="Sections to Read" visible={visible} style={{ width: '50vw' }} onHide={() => setVisible(false)}>
-                <p className="m-0">
-                    Reading assignments are meant to encourage students to do the reading, by giving them
-                    points for interacting with various interactive elements that are a part of the page.
-                    The number of activities required is set to 80% of the number of questions in the reading.
-                    Readings assignments are meant to be <strong>formative</strong> and therefore the questions
-                    are not graded for correctness, rather the students are given points for interacting with them.
-                </p>
+            <Dialog header={options.props.header} visible={visible} style={{ width: '50vw' }} onHide={() => setVisible(false)}>
+                {options.props.helpText}
             </Dialog>
 
         </>
     );
 }
 
-const problemsHeader = (options) => {
-    const className = `${options.className} justify-content-space-between`;
-    const [visible, setVisible] = useState(false);
-
-    return (
-        <>
-            <div className={className}>
-                <div className="flex align-items-center gap-2">
-                    <span className="p-panel-title">{options.props.header} </span>
-                    <span><i className="pi pi-info-circle" role="button" onClick={() => setVisible(true)}></i></span>
-                </div>
-                <div>
-                    {options.togglerElement}
-                </div>
-            </div>
-            <Dialog header="Problem Set Assignments" visible={visible} style={{ width: '50vw' }} onHide={() => setVisible(false)}>
-                <p className="m-0">
-                    Graded questions are meant to be <strong>summative</strong> and therefore the questions
-                    are graded for correctness.  The correctness of a question is recorded at the time the student answers
-                    the question.  The autograde field determines how the questions are scored, for example &ldquo;all or nothing&rdquo; or
-                    &ldquo;percent correct&rdquo;.
-                    The which_to_grade field determines which answer to grade, for example the first answer or the last answer.
-                    normally this is set to &ldquo;best answer&rdquo;.  This allows you to change the way and assignment
-                    is scored even after the students have answered the questions.
-                </p>
-            </Dialog>
-        </>
-    );
-}
 
 AssignmentQuestion.propTypes = {
     headerTitle: PropTypes.string,

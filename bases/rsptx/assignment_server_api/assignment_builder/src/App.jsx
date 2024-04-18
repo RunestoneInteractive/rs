@@ -27,15 +27,15 @@ function App() {
             <AssignmentEditor />
             <MoreOptions />
             <AssignmentQuestion
-                headerTitle="Graded Questions"
-                columns={problemColumns}
-                columnSpecs={problemColumnSpec}
-            />
-            <AssignmentQuestion
                 headerTitle="Sections to Read"
                 columns={readingColumns}
                 columnSpecs={readingColumnSpec}
                 isReading={true}
+            />
+            <AssignmentQuestion
+                headerTitle="Graded Exercises"
+                columns={problemColumns}
+                columnSpecs={problemColumnSpec}
             />
             <AddQuestionTabGroup />
             <Preview />
