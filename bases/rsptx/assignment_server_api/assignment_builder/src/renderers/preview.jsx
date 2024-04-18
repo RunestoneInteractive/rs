@@ -30,7 +30,7 @@ function Preview(props) {
         renderRunestoneComponent(ref, {});
     }, [code]);
 
-    return <div className="App" ref={ref} />;
+    return <div ref={ref} />;
 }
 
 Preview.propTypes = {

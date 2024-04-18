@@ -22,6 +22,7 @@ import { ExerciseSelector } from './ePicker';
 import { SearchPanel } from "./searchPanel";
 import store from "../state/store";
 import 'primeicons/primeicons.css';
+import Preview from "../renderers/preview.jsx";
 
 
 import {
@@ -327,6 +328,8 @@ export function AddQuestionTabGroup() {
                 </TabPanel>
                 <TabPanel header="Write an Exercise">
                     <ActiveCodeCreator />
+                    <Preview />
+
                 </TabPanel>
             </TabView>
         </div>
