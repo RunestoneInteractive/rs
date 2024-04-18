@@ -10,6 +10,7 @@ import React, { useState } from "react";
 
 //import "primereact/resources/themes/bootstrap4-light-blue/theme.css"
 import "primereact/resources/themes/lara-light-cyan/theme.css";
+import "primeflex/primeflex.css";
 import { Panel } from 'primereact/panel';
 import { TabView, TabPanel } from 'primereact/tabview';
 import { InputText } from 'primereact/inputtext';
@@ -18,8 +19,10 @@ import { Calendar } from 'primereact/calendar';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputSwitch } from 'primereact/inputswitch';
 import { SelectButton } from 'primereact/selectbutton';
+import { Button } from "primereact/button";
 import { ExerciseSelector } from './ePicker';
 import { SearchPanel } from "./searchPanel";
+import { Message } from 'primereact/message';
 import store from "../state/store";
 import 'primeicons/primeicons.css';
 import Preview from "../renderers/preview.jsx";
@@ -48,9 +51,9 @@ import {
     fetchAssignmentQuestions,
     createAssignment,
     sendAssignmentUpdate,
+    selectId,
 } from "../state/assignment/assignSlice";
 import ActiveCodeCreator from "./activeCode";
-import { Button } from "primereact/button";
 
 function select(state) {
     return state.assignment
@@ -175,7 +178,9 @@ function AssignmentEditor() {
                         value={name}
                         onChange={chooseOrNameAssignment}
                         dropdown />
-                    {items.length == 0 && name ? <Button onClick={newAssignment}>Create New</Button> : null}
+                    {items.length == 0 && name ? 
+                        <Button type="button" className="mb-3 md:mb-0" onClick={newAssignment}>Create New</Button> 
+                        : null}
                     <label htmlFor="desc" className="p-col-12 p-md-2">
                         Assignment Description
                     </label>
@@ -313,6 +318,16 @@ export function MoreOptions() {
 
 export function AddQuestionTabGroup() {
     const [activeIndex, setActiveIndex] = useState(0);
+    let assignmentId = useSelector(selectId);
+    // if assignmentId is 0 then we haven't selected an assignment yet
+    // don't give the user the option to add questions until they have selected an assignment
+    if (assignmentId === 0) {
+        return (
+            <div className="App card flex justify-content-center">
+                <Message text="Please select or create an assignment" />
+            </div>
+        )
+    }
     return (
         <div className="App">
 

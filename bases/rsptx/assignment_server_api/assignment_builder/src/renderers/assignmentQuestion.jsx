@@ -192,7 +192,7 @@ export function AssignmentQuestion(props) {
             <Panel
                 headerTemplate={qpHeader}
                 header={props.headerTitle}
-                helpText={props.isReading ? readingHelpText : problemHelpText}
+                helptext={props.isReading ? readingHelpText : problemHelpText}
                 toggleable>
                 <HotTable
                     style={aqStyle}
@@ -242,7 +242,7 @@ const qpHeader = (options) => {
                 </div>
             </div>
             <Dialog header={options.props.header} visible={visible} style={{ width: '50vw' }} onHide={() => setVisible(false)}>
-                {options.props.helpText}
+                {options.props.helptext}
             </Dialog>
 
         </>
