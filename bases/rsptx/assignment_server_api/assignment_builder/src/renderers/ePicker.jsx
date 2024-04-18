@@ -110,6 +110,11 @@ export function ExerciseSelector(props) {
             </div>
         )
     }
+    for (let node of filteredNodes) {
+        for (let child of node.children) {
+            child.children = child.children.filter((child) => child.data.question_type !== "page");
+        }
+    }
     return (
         <div className="card">
             <TreeTable value={filteredNodes}
