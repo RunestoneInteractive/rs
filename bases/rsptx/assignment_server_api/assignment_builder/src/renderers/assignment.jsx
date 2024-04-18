@@ -67,25 +67,30 @@ function diff(oldobj, newobj) {
 }
 let currentValue
 function handleChange() {
-    let previousValue = currentValue
-    currentValue = select(store.getState())
+    // add a slight delay to prevent multiple updates
+    setTimeout(() => {
+        let previousValue = currentValue
+        currentValue = select(store.getState())
 
-    if (currentValue && previousValue !== currentValue) {
-        if (currentValue.id !== 0) {
-            let changes = diff(previousValue, currentValue)
-            let keys = Object.keys(changes)
-            let updateKeys = ["due", "points", "visible", "time_limit", "peer_async_visible", "is_peer", "is_timed", "nopause", "nofeedback"]
-            let update = keys.filter((k) => updateKeys.includes(k))
-            if (update.length > 0) {
-                console.log(`updating assignment ${update}`)
-                let toSend = structuredClone(currentValue)
-                delete toSend.all_assignments
-                delete toSend.exercises
-                store.dispatch(sendAssignmentUpdate(toSend))
-                console.log("changes", update)
+        if (currentValue && (previousValue !== currentValue)) {
+            if (currentValue.id !== 0 && previousValue.id !== 0) {
+                let changes = diff(previousValue, currentValue)
+                let keys = Object.keys(changes)
+                let updateKeys = ["due", "points", "visible", "time_limit", "peer_async_visible", "is_peer", "is_timed", "nopause", "nofeedback"]
+                let update = keys.filter((k) => updateKeys.includes(k))
+                if (update.length > 0 && keys.indexOf("id") === -1) {
+                    console.log(`updating assignment ${update}`)
+                    let toSend = structuredClone(currentValue)
+                    delete toSend.all_assignments
+                    delete toSend.exercises
+                    store.dispatch(sendAssignmentUpdate(toSend))
+                    console.log("changes", changes)
+                }
             }
+        } else {
+            console.log("no changes")
         }
-    }
+    }, 1500)
 }
 
 const unsubscribe = store.subscribe(handleChange) // eslint-disable-line
@@ -135,6 +140,9 @@ function AssignmentEditor() {
             dispatch(setDue(current.duedate));
             dispatch(setPoints(current.points));
             dispatch(setId(current.id));
+            dispatch(setVisible(current.visible));
+            dispatch(setIsPeer(current.is_peer));
+            dispatch(setIsTimed(current.is_timed));
             dispatch(setFromSource(current.from_source));
             dispatch(setReleased(current.released));
             dispatch(fetchAssignmentQuestions(current.id));

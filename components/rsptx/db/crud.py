@@ -1256,7 +1256,7 @@ async def fetch_assignments(
     if is_visible:
         vclause = Assignment.visible == is_visible
     else:
-        vclause = None
+        vclause = True
 
     query = (
         select(Assignment)
@@ -1264,7 +1264,6 @@ async def fetch_assignments(
             and_(
                 Assignment.course == Courses.id,
                 Courses.course_name == course_name,
-                Assignment.is_peer == is_peer,
                 vclause,
             )
         )
