@@ -410,7 +410,7 @@ export const assignSlice = createSlice({
         nopause: true,
         time_limit: null,
         peer_async_visible: false,
-        kind: "regular", // (regular, peer, timed)
+        kind: "Regular", // (regular, peer, timed)
         exercises: [],
         all_assignments: [],
         search_results: [],
@@ -463,6 +463,9 @@ export const assignSlice = createSlice({
         },
         setFromSource: (state, action) => {
             state.from_source = action.payload;
+        },
+        setKind: (state, action) => {
+            state.kind = action.payload;
         },
         setReleased: (state, action) => {
             state.released = action.payload;
@@ -578,28 +581,29 @@ export const assignSlice = createSlice({
 
 // export the reducers
 export const {
-    updateField,
+    addAssignment,
     addExercise,
-    setName,
+    deleteExercises,
+    incrementQuestionCount,
+    reorderExercise,
     setDesc,
     setDue,
+    setFromSource,
     setId,
-    setPoints,
-    setVisible,
     setIsPeer,
     setIsTimed,
+    setKind,
+    setName,
     setNoFeedback,
     setNoPause,
-    setTimeLimit,
     setPeerAsyncVisible,
-    setFromSource,
+    setPoints,
     setReleased,
-    reorderExercise,
-    deleteExercises,
-    updateExercise,
-    addAssignment,
-    incrementQuestionCount,
+    setTimeLimit,
+    setVisible,
     sumPoints,
+    updateExercise,
+    updateField,
 } = assignSlice.actions;
 
 // The function below is called a selector and allows us to select a value from
@@ -608,23 +612,24 @@ export const {
 // Note: the state is the global state, followed by the name of the slice (see state.js)
 // followed by the name of the field in the slice
 
-export const selectId = (state) => state.assignment.id;
-export const selectName = (state) => state.assignment.name;
+export const selectAll = (state) => state.assignment;
+export const selectAllAssignments = (state) => state.assignment.all_assignments;
+export const selectAssignmentId = (state) => state.assignment.id;
 export const selectDesc = (state) => state.assignment.desc;
 export const selectDue = (state) => state.assignment.duedate;
-export const selectPoints = (state) => state.assignment.points;
 export const selectExercises = (state) => state.assignment.exercises;
-export const selectAll = (state) => state.assignment;
-export const selectAssignmentId = (state) => state.assignment.id;
-export const selectVisible = (state) => state.assignment.visible;
+export const selectId = (state) => state.assignment.id;
+export const selectIsAuthorized = (state) => state.assignment.isAuthorized;
 export const selectIsPeer = (state) => state.assignment.is_peer;
 export const selectIsTimed = (state) => state.assignment.is_timed;
+export const selectKind = (state) => state.assignment.kind;
+export const selectName = (state) => state.assignment.name;
 export const selectNoFeedback = (state) => state.assignment.nofeedback;
 export const selectNoPause = (state) => state.assignment.nopause;
-export const selectTimeLimit = (state) => state.assignment.time_limit;
 export const selectPeerAsyncVisible = (state) => state.assignment.peer_async_visible;
-export const selectSearchResults = (state) => state.assignment.search_results;
+export const selectPoints = (state) => state.assignment.points;
 export const selectQuestionCount = (state) => state.assignment.question_count;
-export const selectAllAssignments = (state) => state.assignment.all_assignments;
-export const selectIsAuthorized = (state) => state.assignment.isAuthorized;
+export const selectSearchResults = (state) => state.assignment.search_results;
+export const selectTimeLimit = (state) => state.assignment.time_limit;
+export const selectVisible = (state) => state.assignment.visible;
 export default assignSlice.reducer;

@@ -28,29 +28,31 @@ import Preview from "../renderers/preview.jsx";
 
 
 import {
-    selectName,
+    createAssignment,
+    fetchAssignmentQuestions,
+    selectAll,
     selectDesc,
     selectDue,
+    selectId,
+    selectKind,
+    selectName,
     selectPoints,
-    selectAll,
-    setId,
-    setName,
+    sendAssignmentUpdate,
     setDesc,
     setDue,
-    setPoints,
     setFromSource,
-    setReleased,
-    setVisible,
+    setId,
     setIsPeer,
     setIsTimed,
-    setTimeLimit,
+    setKind,
+    setName,
     setNoFeedback,
     setNoPause,
     setPeerAsyncVisible,
-    fetchAssignmentQuestions,
-    createAssignment,
-    sendAssignmentUpdate,
-    selectId,
+    setPoints,
+    setReleased,
+    setTimeLimit,
+    setVisible,
 } from "../state/assignment/assignSlice";
 import ActiveCodeCreator from "./activeCode";
 
@@ -76,7 +78,7 @@ function handleChange() {
             if (currentValue.id !== 0 && previousValue.id !== 0) {
                 let changes = diff(previousValue, currentValue)
                 let keys = Object.keys(changes)
-                let updateKeys = ["due", "points", "visible", "time_limit", "peer_async_visible", "is_peer", "is_timed", "nopause", "nofeedback"]
+                let updateKeys = ["due", "points", "visible", "time_limit", "peer_async_visible", "is_peer", "is_timed", "nopause", "nofeedback", "description"]
                 let update = keys.filter((k) => updateKeys.includes(k))
                 if (update.length > 0 && keys.indexOf("id") === -1) {
                     console.log(`updating assignment ${update}`)
@@ -145,7 +147,16 @@ function AssignmentEditor() {
             dispatch(setIsTimed(current.is_timed));
             dispatch(setFromSource(current.from_source));
             dispatch(setReleased(current.released));
+            dispatch(setTimeLimit(current.time_limit));
+            dispatch(setNoFeedback(current.nofeedback));
+            dispatch(setNoPause(current.nopause));
+            dispatch(setPeerAsyncVisible(current.peer_async_visible));
             dispatch(fetchAssignmentQuestions(current.id));
+            if (current.is_peer) {
+                dispatch(setKind("Peer"));
+            } else if (current.is_timed) {
+                dispatch(setKind("Timed"));
+            }
         }
     }
 
@@ -248,6 +259,7 @@ function AssignmentEditor() {
 export function MoreOptions() {
     const options = ['Regular', 'Timed', "Peer"];
     const assignData = useSelector(selectAll);
+    const assignmentKind = useSelector(selectKind);
     var kind = ""
     if (assignData.is_peer) {
         kind = "Peer"
@@ -256,10 +268,11 @@ export function MoreOptions() {
     } else {
         kind = "Regular"
     }
-    const [assignmentKind, setAssignmentKind] = useState(kind);
+    // todo - set assignmentKind in the store
 
+    console.log("assignment kind = ", assignmentKind, kind)
     const changeAssigmentKind = (e) => {
-        setAssignmentKind(e.value);
+        dispatch(setKind(e.value));
         if (e.value === "Timed") {
             dispatch(setIsTimed(true));
             dispatch(setIsPeer(false));
