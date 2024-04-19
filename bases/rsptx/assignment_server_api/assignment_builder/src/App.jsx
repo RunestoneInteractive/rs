@@ -6,6 +6,8 @@ import { useSelector } from "react-redux";
 import { selectIsAuthorized } from "./state/assignment/assignSlice.js";
 import { useSearchParams } from "react-router-dom";
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AssignmentPicker} from "./renderers/assignmentPicker.jsx";
+import { AssignmentSummary } from "./renderers/assignmentSummary.jsx";
 
 function AssignmentBuilder() {
     const [searchParams] = useSearchParams();
@@ -30,10 +32,20 @@ function AssignmentBuilder() {
                 columnSpecs={problemColumnSpec}
             />
             <AddQuestionTabGroup />
-            
         </>
 
     )
+}
+
+function AssignmentGrader() {
+    return (
+        <div className="App">
+            <h1>Assignment Grader</h1>
+            <AssignmentPicker />
+            <AssignmentSummary />
+        </div>
+    )
+
 }
 function App() {
 
@@ -51,6 +63,7 @@ function App() {
             <BrowserRouter>
                 <Routes>
                     <Route path="/" element={<AssignmentBuilder />} />
+                    <Route path="/grader" element={<AssignmentGrader />} />
                 </Routes>
             </BrowserRouter>
         </>

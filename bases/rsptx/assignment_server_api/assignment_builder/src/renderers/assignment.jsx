@@ -182,6 +182,7 @@ function AssignmentEditor() {
 
         }
     }
+
     return (
         <div className="App">
             <div className="p-fluid">
@@ -193,7 +194,7 @@ function AssignmentEditor() {
                         field="name"
                         suggestions={items}
                         completeMethod={search}
-                        placeholder="Enter or select assignment name"
+                        placeholder="Enter or select assignment name... start typing"
                         value={name}
                         onChange={chooseOrNameAssignment}
                         dropdown />
