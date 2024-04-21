@@ -2089,7 +2089,6 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
         }
         // $(`#${whereDiv}`).css("background-color", "white");
     }
-    MathJax.typeset([document.querySelector(`#${whereDiv}`)]);
 }
 
 // Called by the "Search" button in the "Search question bank" panel.
