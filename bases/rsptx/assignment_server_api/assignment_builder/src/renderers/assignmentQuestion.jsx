@@ -44,10 +44,9 @@ registerAllModules();
  * @description The column specifications for the reading table
  * @memberof AssignmentEditor
  */
-export const problemColumns = ["id", "qnumber", "points", "autograde", "which_to_grade"];
+export const problemColumns = ["id", "qnumber", "autograde", "which_to_grade", "points"];
 export const problemColumnSpec = [{ type: "numeric", readOnly: true },
 { type: "numeric", readOnly: true },
-{ type: "numeric" },
 {
     type: "dropdown",
     source: ["manual", "all_or_nothing", "pct_correct", "peer", "peer_chat", "interaction", "unittest"]
@@ -55,7 +54,8 @@ export const problemColumnSpec = [{ type: "numeric", readOnly: true },
 {
     type: "dropdown",
     source: ["first_answer", "last_answer", "all_answer", "best_answer"]
-}
+},
+{ type: "numeric" },
 ]
 export const readingColumns = ["id", "chapter", "subchapter", "numQuestions", "required", "points"];
 export const readingColumnSpec = [

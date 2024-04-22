@@ -75,7 +75,7 @@ function handleChange() {
         currentValue = select(store.getState())
 
         if (currentValue && (previousValue !== currentValue)) {
-            if (currentValue.id !== 0 && previousValue.id !== 0) {
+            if (currentValue.id !== 0 && previousValue && previousValue.id !== 0) {
                 let changes = diff(previousValue, currentValue)
                 let keys = Object.keys(changes)
                 let updateKeys = ["due", "points", "visible", "time_limit", "peer_async_visible", "is_peer", "is_timed", "nopause", "nofeedback", "description"]
@@ -90,7 +90,7 @@ function handleChange() {
                 }
             }
         } else {
-            console.log("no changes")
+            //console.log("no changes")
         }
     }, 1500)
 }

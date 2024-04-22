@@ -7,7 +7,7 @@ import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Button } from 'primereact/button';
-
+import { Panel } from 'primereact/panel';
 
 import {
     updateField,
@@ -177,7 +177,35 @@ function ActiveCodeCreator() {
                             })
                         );
                     }}
-                ></InputTextarea>
+                >
+
+                </InputTextarea>
+                <Panel header="Advanced Options" collapsed={true} toggleable >
+                    <div className="formgrid grid">
+                        <div className="field col">
+                            <label htmlFor="author">Author</label>
+                            <InputText id="author" placeholder="Author" />
+                        </div>
+                        <div className="field col">
+                            <label htmlFor="tags">Tags</label>
+                            <InputText id="tags" placeholder="Tags" className="field" />
+                        </div>
+                        <div>
+                            <label htmlFor="difficulty">Difficulty</label>
+                            <InputNumber id="difficulty" placeholder="Difficulty" className="field" />
+                        </div>
+                        <div className="field col">
+                            <label htmlFor="topic">Topic</label>
+                            <InputText id="topic" placeholder="Topic" className="field" />
+                        </div>
+                        <div className="field col">
+                            <label htmlFor="chapter">Chapter</label>
+                            <InputText id="chapter" placeholder="Chapter" className="field" />
+                            {/* Make a dropdown using keys from the ePicker nodes */}
+                        </div>
+                    </div>
+
+                </Panel>
             </div>
             <Button
                 value="save"
