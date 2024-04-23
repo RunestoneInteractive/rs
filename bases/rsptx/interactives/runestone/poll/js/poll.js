@@ -49,7 +49,7 @@ export default class Poll extends RunestoneBase {
         var _this = this;
         for (var i = 0; i < this.children.length; i++) {
             if (_this.children[i].tagName == "LI") {
-                _this.optionList.push($(_this.children[i]).text());
+                _this.optionList.push($(_this.children[i]).html());
             }
         }
     }
@@ -83,12 +83,13 @@ export default class Poll extends RunestoneBase {
             $(radio).click(this.submitPoll.bind(this));
             var label = document.createElement("label");
             $(label).attr("for", tmpid);
-            $(label).text(this.optionList[i]);
+            $(label).html(this.optionList[i]);
             this.pollForm.appendChild(radio);
             this.optsArray.push(radio);
             this.pollForm.appendChild(label);
             this.pollForm.appendChild(document.createElement("br"));
         }
+
         if (this.comment) {
             this.renderTextField();
         }
@@ -96,6 +97,7 @@ export default class Poll extends RunestoneBase {
         this.containerDiv.appendChild(this.pollForm);
         this.containerDiv.appendChild(this.resultsDiv);
         $(this.origElem).replaceWith(this.containerDiv);
+        this.queueMathJax(this.containerDiv);
     }
     renderTextField() {
         this.textfield = document.createElement("input");
@@ -213,7 +215,7 @@ export default class Poll extends RunestoneBase {
         }
         this.indicate_component_ready();
     }
-    disableOptions() {}
+    disableOptions() { }
     checkPollStorage() {
         //checks the localstorage to see if the poll has been completed already
         var _this = this;
