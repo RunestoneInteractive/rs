@@ -8,7 +8,7 @@ import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Button } from 'primereact/button';
 import { Panel } from 'primereact/panel';
-
+import { ChapterSelector } from "./chapterSelector.jsx";
 import {
     updateField,
     selectId,
@@ -123,6 +123,8 @@ function ActiveCodeCreator() {
                         )
                     }
                 />
+                <label htmlFor="chapSelect">Chapter</label>
+                <ChapterSelector />
                 <label htmlFor="instructions" className="builderlabel">
                     Instructions
                 </label>
@@ -180,7 +182,7 @@ function ActiveCodeCreator() {
                 >
 
                 </InputTextarea>
-                <Panel header="Advanced Options" collapsed={true} toggleable >
+                <Panel header="More Options" collapsed={true} toggleable >
                     <div className="formgrid grid">
                         <div className="field col">
                             <label htmlFor="author">Author</label>
@@ -197,11 +199,6 @@ function ActiveCodeCreator() {
                         <div className="field col">
                             <label htmlFor="topic">Topic</label>
                             <InputText id="topic" placeholder="Topic" className="field" />
-                        </div>
-                        <div className="field col">
-                            <label htmlFor="chapter">Chapter</label>
-                            <InputText id="chapter" placeholder="Chapter" className="field" />
-                            {/* Make a dropdown using keys from the ePicker nodes */}
                         </div>
                     </div>
 

@@ -5,7 +5,7 @@
  */
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
-import { addExercise, selectPoints, setPoints } from "../assignment/assignSlice.js";
+import { addExercise, selectPoints, selectSearchResults, setPoints } from "../assignment/assignSlice.js";
 
 /**
  * @function saveAssignmentQuestion
@@ -142,6 +142,11 @@ export const acSlice = createSlice({
         prefix_code: "",
         starter_code: "",
         suffix_code: "",
+        chapter: "",
+        subchapter: "Exercises",
+        author: "",
+        tags: [],
+        question_type: "activecode",
     },
     reducers: {
         /**
@@ -224,6 +229,9 @@ export const acSlice = createSlice({
         setSuffixCode: (state, action) => {
             state.suffix_code = action.payload;
         },
+        setChapter: (state, action) => {
+            state.chapter = action.payload;
+        },
     },
     extraReducers(builder) {
         /* eslint-disable */
@@ -238,7 +246,7 @@ export const acSlice = createSlice({
     },
 });
 
-export const { updateField } = acSlice.actions;
+export const { updateField, setChapter } = acSlice.actions;
 
 // The function below is called a selector and allows us to select a value from
 // the state. Selectors can also be defined inline where they're used instead of
@@ -307,5 +315,6 @@ export const selectSuffixCode = (state) => state.acEditor.suffix_code;
  * 
  */
 export const selectAll = (state) => state.acEditor;
+export const selectChapter = (state) => state.acEditor.chapter;
 export default acSlice.reducer;
 

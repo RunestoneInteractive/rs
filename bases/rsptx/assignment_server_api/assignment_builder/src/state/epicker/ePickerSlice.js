@@ -3,7 +3,7 @@
  * @file ePickerSlice.js
  * @summary Redux slice for the ePicker component
  */
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, createSelector } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
 
 /**
@@ -139,4 +139,17 @@ export const selectedNodes = (state) => {
     return state.ePicker.selectedNodes;
 }
 
+// We use the createSelector function here, so that we can memoize the result
+// otherwise even if the state does not change the map function will return
+// a new array making it look like things have changed even when they have not.
+// causing unnecessary re-renders. See: https://redux.js.org/usage/deriving-data-selectors#optimizing-selectors-with-memoization
+export const allChapters = createSelector(chooserNodes, (allNodes) => {
+    let chapterList = allNodes.map((node) => {
+        return {
+            chapter: node.key,
+            title: node.data.title
+        }
+    })
+    return chapterList;
+})
 export default epSlice.reducer;
