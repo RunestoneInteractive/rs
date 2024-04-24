@@ -23,6 +23,8 @@ from typing import Optional, Dict, Any
 # -------------------
 from bleach import clean
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 
 # Local application imports
@@ -67,11 +69,40 @@ router = APIRouter(
     tags=["assessment"],
 )
 
+@router.get("/getDoenetState")
+async def getdoenetstate(request: Request, div_id: str, 
+                         course_name: str, event: str,
+                         user=Depends(auth_manager)
+):
+    request_data = AssessmentRequest(course=course_name, div_id=div_id, event=event)
+    assessment_results = await get_assessment_results_internal(request_data, request, user)
+
+    if assessment_results is not None:
+        doenet_state = assessment_results["answer"]["state"]
+        doenet_state["success"] = True
+        doenet_state["loadedState"] = True
+        return JSONResponse( status_code=200, content=jsonable_encoder(doenet_state) )
+    else:
+        return JSONResponse(
+            status_code=200, content=jsonable_encoder({"loadedState": False, "success": True})
+        )
 
 # getAssessResults
 # ----------------
 @router.post("/results")
 async def get_assessment_results(
+    request_data: AssessmentRequest,
+    request: Request,
+    user=Depends(auth_manager),
+):
+    assessment_results = await get_assessment_results_internal(request_data, request, user)
+    if assessment_results is not None:
+        return make_json_response(detail=assessment_results)
+    else:
+        return make_json_response(detail="no data")
+
+
+async def get_assessment_results_internal(
     request_data: AssessmentRequest,
     request: Request,
     user=Depends(auth_manager),
@@ -95,7 +126,7 @@ async def get_assessment_results(
     row = await fetch_last_answer_table_entry(request_data)
     # mypy complains that ``row.id`` doesn't exist (true, but the return type wasn't exact and this does exist).
     if not row or row.id is None:  # type: ignore
-        return make_json_response(detail="no data")
+        return None
     ret = row.dict()
     rslogger.debug(f"row is {ret}")
     if "timestamp" in ret:
@@ -118,7 +149,7 @@ async def get_assessment_results(
         ret["comment"] = grades.comment
         ret["score"] = grades.score
     rslogger.debug(f"Returning {ret}")
-    return make_json_response(detail=ret)
+    return ret
 
 
 # Define a simple model for the gethist request.
