@@ -3,11 +3,14 @@ import acReducer from "../state/activecode/acSlice";
 import assignReducer from "../state/assignment/assignSlice";
 import previewReducer from "../state/preview/previewSlice";
 import epReducer from "../state/epicker/ePickerSlice";
+import editorReducer from "../state/componentEditor/editorSlice";
+
 export default configureStore({
     reducer: {
         acEditor: acReducer,
         assignment: assignReducer,
         preview: previewReducer,
         ePicker: epReducer,
+        componentEditor: editorReducer,
     },
 });

@@ -54,7 +54,8 @@ import {
     setTimeLimit,
     setVisible,
 } from "../state/assignment/assignSlice";
-import ActiveCodeCreator from "./activeCode";
+
+import { InteractiveComponent, InteractiveSelector } from "./interactiveSelector.jsx";
 
 function select(state) {
     return state.assignment
@@ -373,7 +374,8 @@ export function AddQuestionTabGroup() {
                     <SearchPanel />
                 </TabPanel>
                 <TabPanel header="Write an Exercise">
-                    <ActiveCodeCreator />
+                    <InteractiveSelector />
+                    <InteractiveComponent />
                     <Preview />
 
                 </TabPanel>
