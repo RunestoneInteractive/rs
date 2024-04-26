@@ -81,8 +81,8 @@ export default class Poll extends RunestoneBase {
                 value: i,
             });
             $(radio).click(this.submitPoll.bind(this));
-            var label = document.createElement("label");
-            $(label).attr("for", tmpid);
+            var label = document.createElement("span");
+            //$(label).attr("for", tmpid);
             $(label).html(this.optionList[i]);
             this.pollForm.appendChild(radio);
             this.optsArray.push(radio);
@@ -133,14 +133,21 @@ export default class Poll extends RunestoneBase {
         // log the response to the database
         this.logBookEvent(eventInfo); // in bookfuncs.js
         // log the fact that the user has answered the poll to local storage
+        let onlineResponse = "Thanks, your response has been recorded";
+        let offlineResponse = "Thanks, your answers are not recorded";
+        let onlineUpdate = "Only Your last reponse is recorded";
+        let offlineUpdate = "Thanks, your answers are not recorded";
         localStorage.setItem(this.divid, "true");
         if (!document.getElementById(`${this.divid}_sent`)) {
             $(this.pollForm).append(
-                `<span id=${this.divid}_sent><strong>Thanks, your response has been recorded</strong></span>`
+                `<span id=${this.divid}_sent><strong>
+                ${eBookConfig.useRunestoneServices ? onlineResponse : offlineResponse}</strong></span>`
             );
         } else {
             $(`#${this.divid}_sent`).html(
-                "<strong>Only Your last reponse is recorded</strong>"
+                `<strong>
+                ${eBookConfig.useRunestoneServices ? onlineUpdate : offlineUpdate}
+                </strong>`
             );
         }
         // show the results of the poll
