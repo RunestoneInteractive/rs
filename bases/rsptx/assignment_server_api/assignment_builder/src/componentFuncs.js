@@ -129,3 +129,36 @@ ${suffix_code}
     `;
     return preview_src;
 }
+
+
+export function createMCQTemplate(uniqueId, instructions, choices) {
+    // count the number of correct choices
+    var numCorrect = 0;
+    for (let i = 0; i < choices.length; i++) {
+        if (choices[i].correct) {
+            numCorrect++;
+        }
+    }
+    var preview_src = `
+    <div class="ptx-runestone-container">
+    <div class="runestone explainer ac_section ">
+    <ul data-component="multiplechoice" id="${uniqueId}" data-multipleanswers='${numCorrect > 1 ? "true" : "false"}'>
+    <p>${instructions}</p>
+    `
+    for (let i = 0; i < choices.length; i++) {
+        preview_src += `<li data-component="answer" 
+                id="${uniqueId}_opt_${String.fromCharCode(97 + i)}"
+                ${choices[i].correct ? "data-correct='yes'" : ""}
+            >
+            ${choices[i].choice}
+            </li>
+            <li data-component="feedback"
+                id="${uniqueId}_opt_${String.fromCharCode(97 + i)}"
+            >
+            ${choices[i].feedback}
+            </li>`
+    }
+    preview_src += `</ul></div></div>`;
+    console.log(preview_src)
+    return preview_src;
+}
