@@ -2,10 +2,16 @@ import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Dropdown } from "primereact/dropdown";
 import { setComponent, selectComponent, selectComponentOptions } from "../state/componentEditor/editorSlice";
+import { setQuestionType } from "../state/interactive/interactiveSlice";
 import ActiveCodeCreator from "./activeCode";
 import { MultipleChoiceCreator } from "./multipleChoice";
 import { ShortAnswerCreator } from "./shortAnswer";
+import { ComponentCreator } from "./componentCreator";
 
+/**
+ * Choose the kind of exercise to create.
+ * @returns The InteractiveSelector component
+ */
 export function InteractiveSelector() {
     const componentOptions = useSelector(selectComponentOptions);
     const dispatch = useDispatch();
@@ -19,22 +25,31 @@ export function InteractiveSelector() {
             optionLabel="title"
             onChange={(e) => {
                 dispatch(setComponent(e.value));
+                dispatch(setQuestionType(e.value));
             }}
             placeholder="What kind of Exercise?"
         />
     );
 }
 
+const kindMap = {
+    "activecode": ActiveCodeCreator,
+    "multiplechoice": MultipleChoiceCreator,
+    "shortanswer": ShortAnswerCreator,
+};
 
+/**
+ * This component is a container to compose an editing interface for the selected component.
+ * @returns The InteractiveComponent component
+ */
 export function InteractiveComponent() {
     const selectedComponent = useSelector(selectComponent);
 
-    // convert the code below to a switch statement
     switch(selectedComponent) {
         case "activecode":
-            return <ActiveCodeCreator />;
+            return <ComponentCreator component={<ActiveCodeCreator />} />;
         case "multiplechoice":
-            return <MultipleChoiceCreator />;
+            return <ComponentCreator component={<MultipleChoiceCreator />} />;
         case "shortanswer":
             return <ShortAnswerCreator />;
         default:

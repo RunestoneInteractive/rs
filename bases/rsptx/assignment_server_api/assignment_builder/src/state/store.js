@@ -4,6 +4,7 @@ import assignReducer from "../state/assignment/assignSlice";
 import previewReducer from "../state/preview/previewSlice";
 import epReducer from "../state/epicker/ePickerSlice";
 import editorReducer from "../state/componentEditor/editorSlice";
+import interactiveReducer from "../state/interactive/interactiveSlice";
 
 export default configureStore({
     reducer: {
@@ -12,5 +13,6 @@ export default configureStore({
         preview: previewReducer,
         ePicker: epReducer,
         componentEditor: editorReducer,
+        interactive: interactiveReducer,
     },
 });

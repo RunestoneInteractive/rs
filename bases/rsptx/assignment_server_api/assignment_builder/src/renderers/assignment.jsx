@@ -259,7 +259,8 @@ function AssignmentEditor() {
 
 
 export function MoreOptions() {
-    const options = ['Regular', 'Timed', "Peer"];
+    
+    const options = [ { label: 'Regular', value: 'Regular' }, { label: 'Quiz / Exam', value: 'Timed' }, { label: 'Peer Instruction', value: 'Peer' } ];
     const assignData = useSelector(selectAll);
     const assignmentKind = useSelector(selectKind);
     var kind = ""

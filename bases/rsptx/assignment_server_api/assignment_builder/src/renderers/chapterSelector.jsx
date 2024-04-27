@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Dropdown } from "primereact/dropdown"; 
 import { allChapters } from "../state/epicker/ePickerSlice";
-import { setChapter } from "../state/activecode/acSlice";
+import { setChapter } from "../state/interactive/interactiveSlice";
 
 export function ChapterSelector() {
     // const chapterOptions = chapters.map((node) => {
