@@ -45,7 +45,7 @@ export const acSlice = createSlice({
     name: "acEditor",
     initialState: {
         language: "python",
-        instructions: "",
+        statement: "",
         prefix_code: "",
         starter_code: "",
         suffix_code: "",
@@ -79,7 +79,10 @@ export const acSlice = createSlice({
          * @memberof ActiveCodeEditor
          */
         setInstructions: (state, action) => {
-            state.instructions = action.payload;
+            state.statement = action.payload;
+        },
+        setStatement: (state, action) => {
+            state.statement = action.payload;
         },
         /**
          * @function setPrefixCode
@@ -134,7 +137,8 @@ export const selectLanguage = (state) => state.acEditor.language;
  * @memberof ActiveCodeEditor
  * 
  */
-export const selectInstructions = (state) => state.acEditor.instructions;
+export const selectInstructions = (state) => state.acEditor.statement;
+export const selectStatement = (state) => state.acEditor.statement;
 /**
  * @function selectPrefixCode
  * @param {acSlice} state 

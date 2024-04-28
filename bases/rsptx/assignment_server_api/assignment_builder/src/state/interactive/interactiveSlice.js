@@ -42,7 +42,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
             question_type: store.interactive.question_type,
             source: JSON.stringify(assignData),
             htmlsrc: preview_src,
-            question_json: JSON.stringify(store.interactive.question_json),
+            question_json: JSON.stringify(store.interactive),
         };
         if (questionType === "activecode" && store.acEditor.suffix_code) {
             body.autograde = 'unittest'
@@ -95,6 +95,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
         result = await resp.json();
         if (result.detail.status === "success") {
             console.log("Question added to assignment");
+            toast("Question added to assignment", { icon: "👍" })
         }
     }
 );

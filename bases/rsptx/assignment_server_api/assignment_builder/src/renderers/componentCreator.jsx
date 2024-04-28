@@ -17,6 +17,7 @@ import {
 import { saveAssignmentQuestion } from "../state/interactive/interactiveSlice";
 import { selectAll as selectAssignAll } from "../state/assignment/assignSlice";
 import { sumPoints } from "../state/assignment/assignSlice";
+import PropTypes from 'prop-types';
 
 const acStyle = {
     border: "1px solid black",
@@ -107,6 +108,10 @@ export function ComponentCreator({component}) {
             </Button>
         </div>
     );
+}
+
+ComponentCreator.propTypes = {
+    component: PropTypes.element.isRequired
 }
 
 export default ComponentCreator;
