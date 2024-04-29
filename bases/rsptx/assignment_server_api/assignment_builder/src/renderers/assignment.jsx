@@ -55,7 +55,7 @@ import {
     setVisible,
 } from "../state/assignment/assignSlice";
 
-import { InteractiveComponent, InteractiveSelector } from "./interactiveSelector.jsx";
+import { EditorContainer, EditorChooser } from "./editorModeChooser.jsx";
 
 function select(state) {
     return state.assignment
@@ -375,8 +375,8 @@ export function AddQuestionTabGroup() {
                     <SearchPanel />
                 </TabPanel>
                 <TabPanel header="Write an Exercise">
-                    <InteractiveSelector />
-                    <InteractiveComponent />
+                    <EditorChooser />
+                    <EditorContainer />
                     <Preview />
 
                 </TabPanel>

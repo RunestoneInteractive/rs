@@ -119,6 +119,8 @@ const interactiveSlice = createSlice({
         question_type: "",
         preview_src: "",
         question_json: {},
+        topic: "",
+        difficulty: 3,
     },
     reducers: {
         setUniqueId: (state, action) => {
@@ -137,7 +139,10 @@ const interactiveSlice = createSlice({
             state.author = action.payload;
         },
         setTags: (state, action) => {
-            state.tags = action.payload;
+            let tags = action.payload.split(",");
+            tags = tags.map((tag) => tag.trim());
+            tags = tags.map((tag) => tag.toLowerCase());
+            state.tags = state.tags.concat(tags);
         },
         setQuestionType: (state, action) => {
             state.question_type = action.payload;
@@ -147,6 +152,12 @@ const interactiveSlice = createSlice({
         },
         setQuestionJson: (state, action) => {
             state.question_json = action.payload;
+        },
+        setTopic: (state, action) => {
+            state.topic = action.payload;
+        },
+        setDifficulty: (state, action) => {
+            state.difficulty = action.payload;
         },
     },
     extraReducers(builder) {
@@ -174,6 +185,8 @@ export const {
     setQuestionType,
     setPreviewSrc,
     setQuestionJson,
+    setTopic,
+    setDifficulty,
 } = interactiveSlice.actions;
 
 export const selectUniqueId = (state) => state.interactive.uniqueId;

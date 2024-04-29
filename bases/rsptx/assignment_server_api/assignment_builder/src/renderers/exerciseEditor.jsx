@@ -12,6 +12,10 @@ import {
     selectUniqueId,
     selectQpoints,
     setUniqueId,
+    setAuthor,
+    setTags,
+    setDifficulty,
+    setTopic,
 } from "../state/interactive/interactiveSlice";
 
 import { saveAssignmentQuestion } from "../state/interactive/interactiveSlice";
@@ -30,7 +34,7 @@ const acStyle = {
  * @namespace ActiveCodeEditor
  * 
  */
-export function ComponentCreator({component}) {
+export function ExerciseEditor({ component }) {
     // use these selectors to get the values from the store (slice for activecode)
     const uniqueId = useSelector(selectUniqueId);
     const qpoints = useSelector(selectQpoints);
@@ -49,7 +53,7 @@ export function ComponentCreator({component}) {
                         placeholder="Points"
                         value={qpoints}
                         onChange={(e) => {
-                            dispatch(setQpoints( e.value));
+                            dispatch(setQpoints(e.value));
                             dispatch(sumPoints());
                         }}
                     />
@@ -76,19 +80,36 @@ export function ComponentCreator({component}) {
                     <div className="formgrid grid">
                         <div className="field col">
                             <label htmlFor="author">Author</label>
-                            <InputText id="author" placeholder="Author" />
+                            <InputText
+                                id="author"
+                                placeholder="Author"
+                                onChange={(e) => dispatch(setAuthor(e.target.value))} />
                         </div>
                         <div className="field col">
                             <label htmlFor="tags">Tags</label>
-                            <InputText id="tags" placeholder="Tags" className="field" />
+                            <InputText id="tags"
+                                placeholder="Tags"
+                                className="field"
+                                onChange={(e) => dispatch(setTags(e.target.value))} />
                         </div>
                         <div>
                             <label htmlFor="difficulty">Difficulty</label>
-                            <InputNumber id="difficulty" placeholder="Difficulty" className="field" />
+                            <InputNumber
+                                id="difficulty"
+                                placeholder="Difficulty"
+                                className="field"
+                                onChange={(e) => dispatch(setDifficulty(e.target.value))}
+                            />
+
                         </div>
                         <div className="field col">
                             <label htmlFor="topic">Topic</label>
-                            <InputText id="topic" placeholder="Topic" className="field" />
+                            <InputText
+                                id="topic"
+                                placeholder="Topic"
+                                className="field"
+                                onChange={(e) => dispatch(setTopic(e.target.value))}
+                            />
                         </div>
                     </div>
 
@@ -110,8 +131,8 @@ export function ComponentCreator({component}) {
     );
 }
 
-ComponentCreator.propTypes = {
+ExerciseEditor.propTypes = {
     component: PropTypes.element.isRequired
 }
 
-export default ComponentCreator;
+export default ExerciseEditor;
