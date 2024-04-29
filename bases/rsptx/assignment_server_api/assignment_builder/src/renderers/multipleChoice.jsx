@@ -7,15 +7,17 @@ import { createMCQTemplate } from "../componentFuncs";
 import { setCode } from "../state/preview/previewSlice";
 import { setPreviewSrc, setQuestionJson } from "../state/interactive/interactiveSlice";
 import { selectUniqueId } from "../state/interactive/interactiveSlice";
+import { setOptionList, setStatement, addOption, selectOptionList, selectStatement } from "../state/multiplechoice/mcSlice";
+
 export function MultipleChoiceCreator() {
 
-    const [optionList, setOptionList] = React.useState([{ choice: "", feedback: "", correct: false }]);
-    const [statement, setStatement] = React.useState("");
-    const dispatch = useDispatch();
+    const optionList = useSelector(selectOptionList);
+    const statement = useSelector(selectStatement);
     const uniqueId = useSelector(selectUniqueId);
+    const dispatch = useDispatch();
 
     const handleAddOption = () => {
-        setOptionList([...optionList, { choice: "", feedback: "", correct: false }]);
+        dispatch(addOption());
         handleCodeUpdates();
     }
 
@@ -29,28 +31,28 @@ export function MultipleChoiceCreator() {
     const handleNewChoice = (index, event) => {
         let values = structuredClone(optionList);
         values[index].choice = event.target.value;
-        setOptionList(values);
+        dispatch(setOptionList(values));
         handleCodeUpdates();
     }
 
     const handleNewFeedback = (index, event) => {
         const values = structuredClone(optionList);
         values[index].feedback = event.target.value;
-        setOptionList(values);
+        dispatch(setOptionList(values));
         handleCodeUpdates();
     }
 
     const handleDeleteOption = (index) => {
         const values = structuredClone(optionList);
         values.splice(index, 1);
-        setOptionList(values);
+        dispatch(setOptionList(values));
         handleCodeUpdates();
     }
 
     const markCorrect = (index) => {
         const values = structuredClone(optionList);
         values[index].correct = !values[index].correct;
-        setOptionList(values);
+        dispatch(setOptionList(values));
         handleCodeUpdates();
     }
 
@@ -62,7 +64,7 @@ export function MultipleChoiceCreator() {
                 <InputTextarea id="mcStatement"
                     placeholder="Question"
                     value={statement}
-                    onChange={(e) => setStatement(e.target.value)}
+                    onChange={(e) => dispatch(setStatement(e.target.value))}
                     onBlur={handleCodeUpdates}
                 />
             </div>

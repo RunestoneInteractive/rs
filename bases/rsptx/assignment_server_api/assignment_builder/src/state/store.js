@@ -5,6 +5,7 @@ import previewReducer from "../state/preview/previewSlice";
 import epReducer from "../state/epicker/ePickerSlice";
 import editorReducer from "../state/componentEditor/editorSlice";
 import interactiveReducer from "../state/interactive/interactiveSlice";
+import mcReducer from "../state/multiplechoice/mcSlice";
 
 export default configureStore({
     reducer: {
@@ -14,5 +15,6 @@ export default configureStore({
         ePicker: epReducer,
         componentEditor: editorReducer,
         interactive: interactiveReducer,
+        multiplechoice: mcReducer,
     },
 });
