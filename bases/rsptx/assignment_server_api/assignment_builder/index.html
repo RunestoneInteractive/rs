@@ -26,27 +26,26 @@
     -->
     <title>ActiveCode Builder</title>
     <script type="text/javascript">
+
     async function loadRunestone() {
-      let prefix = "/assignment/react/runestone";
-      if (location.port != "" ) {
-        prefix = "/runestone"
-      }
-    const response = await fetch(`${prefix}/webpack_static_imports.json`)
-    const rsFiles = await response.json()
-      for (let f of rsFiles.js) {
-        let fileRef = document.createElement("script")
-        fileRef.src = `${prefix}/${f}`
-        document.getElementsByTagName("head")[0].appendChild(fileRef)
-        console.log(f)
-      }
-      for (let f of rsFiles.css) {
-        let fileRef=document.createElement("link");
-        fileRef.setAttribute("rel", "stylesheet");
-        fileRef.setAttribute("type", "text/css");
-        fileRef.setAttribute("href", `${prefix}/${f}`);
-        document.getElementsByTagName("head")[0].appendChild(fileRef)
-        console.log(f)
-      }
+      let prefix = "%VITE_LOAD_PREFIX%";
+
+      const response = await fetch(`${prefix}/webpack_static_imports.json`)
+      const rsFiles = await response.json()
+        for (let f of rsFiles.js) {
+          let fileRef = document.createElement("script")
+          fileRef.src = `${prefix}/${f}`
+          document.getElementsByTagName("head")[0].appendChild(fileRef)
+          console.log(f)
+        }
+        for (let f of rsFiles.css) {
+          let fileRef=document.createElement("link");
+          fileRef.setAttribute("rel", "stylesheet");
+          fileRef.setAttribute("type", "text/css");
+          fileRef.setAttribute("href", `${prefix}/${f}`);
+          document.getElementsByTagName("head")[0].appendChild(fileRef)
+          console.log(f)
+        }
     }
     
     loadRunestone().then(() => console.log("done loading"))

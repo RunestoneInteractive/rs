@@ -26,7 +26,7 @@
   "homepage": "/assignment/react",
   "scripts": {
     "start": "vite",
-    "build": "vite build --base=/assignment/react/",
+    "build": "vite build --mode production --base=/assignment/react/",
     "serve": "vite preview",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
