@@ -20,8 +20,6 @@
 __author__ = "jaltekruse"
 
 from docutils import nodes
-from docutils.parsers.rst import directives
-from sqlalchemy import Table
 from runestone.server.componentdb import (
     addQuestionToDB,
     addHTMLToDB,
