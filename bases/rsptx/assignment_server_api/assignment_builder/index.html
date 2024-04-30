@@ -25,12 +25,33 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>ActiveCode Builder</title>
-    <script src="jQuery.js"></script>
-    <script type="text/javascript" src="runestone/prefix-runtime.bundle.js"></script>
-    <script type="text/javascript" src="runestone/prefix-vendors-node_modules_bootstrap_dist_js_bootstrap_js-node_modules_jquery-ui_jquery-ui_js-node_-d3d74f.bundle.js"></script>
-    <script type="text/javascript" src="runestone/prefix-runestone.bundle.js"></script>
-    <link rel="stylesheet" type="text/css" href="runestone/prefix-vendors-node_modules_jquery-ui_jquery-ui_js-node_modules_jquery-ui_themes_base_jquery_ui_all_css.d789e6e5a9767e06.css">
-    <link rel="stylesheet" type="text/css" href="runestone/prefix-runestone.a5dea4981ee05bfa.css">
+    <script type="text/javascript">
+    async function loadRunestone() {
+      let prefix = "/assignment/react/runestone";
+      if (location.port != "" ) {
+        prefix = "/runestone"
+      }
+    const response = await fetch(`${prefix}/webpack_static_imports.json`)
+    const rsFiles = await response.json()
+      for (let f of rsFiles.js) {
+        let fileRef = document.createElement("script")
+        fileRef.src = `${prefix}/${f}`
+        document.getElementsByTagName("head")[0].appendChild(fileRef)
+        console.log(f)
+      }
+      for (let f of rsFiles.css) {
+        let fileRef=document.createElement("link");
+        fileRef.setAttribute("rel", "stylesheet");
+        fileRef.setAttribute("type", "text/css");
+        fileRef.setAttribute("href", `${prefix}/${f}`);
+        document.getElementsByTagName("head")[0].appendChild(fileRef)
+        console.log(f)
+      }
+    }
+    
+    loadRunestone().then(() => console.log("done loading"))
+    </script>
+    <script src="/jQuery.js"></script>
   </head>
   <body>
     <script>
