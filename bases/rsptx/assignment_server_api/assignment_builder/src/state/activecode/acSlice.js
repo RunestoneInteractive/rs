@@ -114,10 +114,17 @@ export const acSlice = createSlice({
         setSuffixCode: (state, action) => {
             state.suffix_code = action.payload;
         },
+        setACFields: (state, action) => {
+            state.language = action.payload.language;
+            state.statement = action.payload.statement || action.payload.instructions;
+            state.prefix_code = action.payload.prefix_code;
+            state.starter_code = action.payload.starter_code;
+            state.suffix_code = action.payload.suffix_code;
+        },
     },
 });
 
-export const { updateField, setChapter } = acSlice.actions;
+export const { updateField, setChapter, setACFields } = acSlice.actions;
 
 // The function below is called a selector and allows us to select a value from
 // the state. Selectors can also be defined inline where they're used instead of

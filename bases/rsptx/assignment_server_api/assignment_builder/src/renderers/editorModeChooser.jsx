@@ -7,7 +7,7 @@ import ActiveCodeCreator from "./activeCode";
 import { MultipleChoiceCreator } from "./multipleChoice";
 import { ShortAnswerCreator } from "./shortAnswer";
 import { ExerciseEditor } from "./exerciseEditor";
-
+import PropTypes from 'prop-types';
 /**
  * Choose the kind of exercise to create.
  * @returns The InteractiveSelector component
@@ -32,23 +32,42 @@ export function EditorChooser() {
     );
 }
 
+export const kindMap = {
+    "activecode": ActiveCodeCreator,
+    "multiplechoice": MultipleChoiceCreator,
+    "shortanswer": ShortAnswerCreator,
+}
 
 /**
  * This component is a container to compose an editing interface for the selected component.
  * @returns The InteractiveComponent component
  */
-export function EditorContainer() {
+export function EditorContainer({ componentName }) {
     const selectedComponent = useSelector(selectComponent);
+    let componentChoice = componentName || selectedComponent;
 
-    switch (selectedComponent) {
+    if (!componentChoice) {
+        return null;
+    }
+    switch (componentChoice) {
         case "activecode":
             return <ExerciseEditor component={<ActiveCodeCreator />} />;
         case "multiplechoice":
+        case "mchoice":
             return <ExerciseEditor component={<MultipleChoiceCreator />} />;
         case "shortanswer":
             return <ShortAnswerCreator />;
         default:
-            return null;
+            return (
+                <p>We have not built an editor for this question type yet.</p>
+            );
     }
 
 }
+
+EditorContainer.propTypes = {
+    componentName: PropTypes.string,
+};
+EditorContainer.defaultProps = {
+    componentName: null,
+};

@@ -159,6 +159,21 @@ const interactiveSlice = createSlice({
         setDifficulty: (state, action) => {
             state.difficulty = action.payload;
         },
+        setQuestion: (state, action) => {
+            state.uniqueId = action.payload.name;
+            state.id = action.payload.id;
+            state.from_source = action.payload.from_source;
+            state.qpoints = action.payload.qpoints;
+            state.chapter = action.payload.chapter;
+            state.subchapter = action.payload.subchapter;
+            state.author = action.payload.author;
+            state.tags = action.payload.tags;
+            state.question_type = action.payload.question_type;
+            state.preview_src = action.payload.preview_src;
+            state.question_json = action.payload.question_json;
+            state.topic = action.payload.topic;
+            state.difficulty = action.payload.difficulty;
+        }
     },
     extraReducers(builder) {
         /* eslint-disable */
@@ -184,6 +199,7 @@ export const {
     setTags,
     setQuestionType,
     setPreviewSrc,
+    setQuestion,
     setQuestionJson,
     setTopic,
     setDifficulty,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 
 import { Dropdown } from 'primereact/dropdown';
@@ -9,9 +9,10 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import Preview from './preview';
 import PropTypes from 'prop-types';
-
+import { setComponent } from '../state/componentEditor/editorSlice';
 import { Accordion, AccordionTab } from 'primereact/accordion';
-
+import { setACFields } from '../state/activecode/acSlice';
+import { setMCFields } from '../state/multiplechoice/mcSlice';
 import {
     addExercise,
     incrementQuestionCount,
@@ -25,7 +26,10 @@ import {
     sumPoints,
 } from '../state/assignment/assignSlice';
 
+import { setQuestion } from '../state/interactive/interactiveSlice';
 import { setExerciseDefaults } from '../exUtils';
+import { OverlayPanel } from 'primereact/overlaypanel';
+import { EditorContainer } from './editorModeChooser';
 
 /**
  * @description This component creates and accordian and preview of an exercise designed to live inside a DataTable.
@@ -68,11 +72,7 @@ export function SearchPanel() {
     const [searchText, setSearchText] = useState("");
     const [author, setAuthor] = useState("");
     const [baseCourse, setBaseCourse] = useState(true);
-    const [selectedQuestions, setSelectedQuestions] = useState([])
 
-    const currentSearchResults = useSelector(selectSearchResults);
-    const currentExercises = useSelector(selectExercises);
-    const currentAssigmentId = useSelector(selectAssignmentId);
 
     const qtypes = [
         { label: "All", value: "" },
@@ -126,14 +126,29 @@ export function SearchPanel() {
                     base_course: baseCourse.toLocaleString()
                 }))}
             />
+            <SearchResults />
+        </div>
+    );
+}
+
+export function SearchResults() {
+    const dispatch = useDispatch();
+    const [selectedQuestions, setSelectedQuestions] = useState([])
+    const currentSearchResults = useSelector(selectSearchResults);
+    const currentExercises = useSelector(selectExercises);
+    const currentAssigmentId = useSelector(selectAssignmentId);
+
+
+    return (
+        <>
             <h3>Search Results</h3>
-            <DataTable value={currentSearchResults}
+            <DataTable
+                value={currentSearchResults}
                 selectionMode="checkbox"
                 metaKeySelection="false"
                 dataKey="id"
                 selection={selectedQuestions}
                 onSelectionChange={(e) => {
-                    console.log(selectedQuestions)
                     // if there are more questions then figure out which are new.
                     if (e.value.length > selectedQuestions.length) {
                         let newQuestions = e.value.filter((q) => selectedQuestions.includes(q) === false)
@@ -160,13 +175,39 @@ export function SearchPanel() {
                 }}
             >
                 <Column selectionMode="multiple" style={{ width: '3em' }} />
+                <Column field="question_json" header="Edit" body={EditButton} sortable />
                 <Column field="qnumber" header="Question" sortable />
                 <Column field="topic" header="Topic" sortable />
                 <Column field="htmlsrc" header="Preview" body={PreviewTemplate} style={{ maxWidth: '100rem' }} />
                 <Column field="author" header="Author" />
                 <Column field="pct_on_first" header="On First" sortable />
             </DataTable>
-        </div>
+        </>
     );
 }
 
+    function EditButton(exercise) {
+        const op = useRef(null);
+        const dispatch = useDispatch();
+
+
+        const toggleEditor = (e) => {
+            dispatch(setQuestion(exercise));
+            dispatch(setComponent(exercise.question_type))
+            if (exercise.question_type === "activecode") {
+                dispatch(setACFields(exercise.question_json));
+            } else if (exercise.question_type === "multiplechoice") {
+                dispatch(setMCFields(exercise.question_json));
+            }
+            op.current.toggle(e);
+        }
+
+        return (
+            <>
+                <Button icon="pi pi-cog" rounded text type="button" severity="secondary" onClick={toggleEditor} />
+                <OverlayPanel ref={op} dismissable={false} showCloseIcon>
+                    <EditorContainer exercise={exercise.question_type} />
+                </OverlayPanel>
+            </>
+        );
+    }

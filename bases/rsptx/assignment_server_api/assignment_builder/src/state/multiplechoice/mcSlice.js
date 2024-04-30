@@ -56,11 +56,15 @@ export const mcSlice = createSlice({
         },
         setStatement: (state, action) => {
             state.statement = action.payload;
-        },            
+        },
+        setMCFields: (state, action) => {
+            state.statement = action.payload.statement;  
+            state.optionList = action.payload.optionList;
+        }          
     },
 });
 
-export const { updateField, addOption, removeOption, updateOption, setOptionList, setStatement } = mcSlice.actions;
+export const { updateField, addOption, removeOption, updateOption, setOptionList, setStatement, setMCFields } = mcSlice.actions;
 
 export const selectStatement = (state) => state.multiplechoice.statement;
 export const selectOptionList = (state) => state.multiplechoice.optionList;

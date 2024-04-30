@@ -239,6 +239,7 @@ async def new_question(
         practice=False,
         from_source=False,
         review_flag=False,
+        author=user.first_name + " " + user.last_name,
     )
     try:
         q = await create_question(new_question)
