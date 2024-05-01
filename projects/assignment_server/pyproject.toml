@@ -18,6 +18,11 @@ packages = [
     {include = "rsptx/assignment_server_api", from = "../../bases"}
 ]
 
+exclude = [
+    "**/node_modules/*",
+    "**/out/*",
+    "**/build/*", 
+    ]
 
 [tool.poetry.dependencies]
 python = "^3.10"
