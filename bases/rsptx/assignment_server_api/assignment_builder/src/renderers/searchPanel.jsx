@@ -15,7 +15,6 @@ import { setACFields } from '../state/activecode/acSlice';
 import { setMCFields } from '../state/multiplechoice/mcSlice';
 import {
     addExercise,
-    incrementQuestionCount,
     selectExercises,
     selectAssignmentId,
     searchForQuestions,
@@ -160,7 +159,6 @@ export function SearchResults() {
                         dispatch(sendExercise(newQuestion));
                         // dispatching addExercise does not modify the currentExercises array
                         dispatch(sumPoints());
-                        dispatch(incrementQuestionCount());
                     }
                     // if there are fewer questions then figure out which are gone.
                     if (e.value.length < selectedQuestions.length) {
@@ -192,6 +190,9 @@ export function SearchResults() {
 
 
         const toggleEditor = (e) => {
+            if ( !exercise.question_json) {
+                return null;
+            }
             dispatch(setQuestion(exercise));
             dispatch(setComponent(exercise.question_type))
             if (exercise.question_type === "activecode") {

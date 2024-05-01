@@ -391,7 +391,6 @@ let defaultDeadline = `${cDate.getFullYear()}-${`${cDate.getMonth() + 1
  * @property {Function} reducers.deleteExercises - Deletes exercises from the assignment.
  * @property {Function} reducers.reorderExercise - Reorders exercises in the assignment.
  * @property {Function} reducers.setSearchResults - Sets the search results.
- * @property {Function} reducers.incrementQuestionCount - Increments the question count.
  * @property {Function} reducers.sumPoints - Calculates the sum of points for the assignment.
  * @property {Object} extraReducers - Additional reducers for handling asynchronous actions.
  */
@@ -505,9 +504,6 @@ export const assignSlice = createSlice({
         setSearchResults: (state, action) => {
             state.search_results = action.payload;
         },
-        incrementQuestionCount: (state) => {
-            state.question_count += 1;
-        },
         sumPoints: (state, action) => {
             let total = 0;
             for (let ex of state.exercises) {
@@ -584,7 +580,6 @@ export const {
     addAssignment,
     addExercise,
     deleteExercises,
-    incrementQuestionCount,
     reorderExercise,
     setDesc,
     setDue,
