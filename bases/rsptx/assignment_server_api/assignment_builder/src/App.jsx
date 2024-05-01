@@ -5,8 +5,8 @@ import { AssignmentQuestion, problemColumnSpec, problemColumns, readingColumnSpe
 import { useSelector } from "react-redux";
 import { selectIsAuthorized } from "./state/assignment/assignSlice.js";
 import { useSearchParams } from "react-router-dom";
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { AssignmentPicker} from "./renderers/assignmentPicker.jsx";
+import { HashRouter, Routes, Route } from 'react-router-dom'
+import { AssignmentPicker } from "./renderers/assignmentPicker.jsx";
 import { AssignmentSummary } from "./renderers/assignmentSummary.jsx";
 
 function AssignmentBuilder() {
@@ -16,8 +16,8 @@ function AssignmentBuilder() {
 
     return (
         <>  <div className="App card flex justify-content-center">
-            <h1 className="App" style={{marginBottom: "1rem"}}>Assignment Builder</h1>
-            </div>
+            <h1 className="App" style={{ marginBottom: "1rem" }}>Assignment Builder</h1>
+        </div>
             <AssignmentEditor />
             <MoreOptions />
             <AssignmentQuestion
@@ -58,14 +58,29 @@ function App() {
         )
     }
 
+    /**
+     * The main router for the application.
+     * HashRouter is not recommended, but seems like the easiest way
+     * to get routing to work with the docker setup.  This allows us to
+     * load index.html as served by FastAPI static files but access the routes
+     * in the app.
+     * For example
+     * http://localhost:5173/index.html#/grader for the grader or 
+     * http://localhost:5173/index.html#/ for the assignment builder. 
+     * although http://localhost:5173/index.html also works.
+     * If one was to go back to a BrowserRouter then you would need to
+     * add back in the basename attribute to the BrowserRouter.
+     * basename={import.meta.env.BASE_URL}
+     */
     return (
         <>
-            <BrowserRouter>
+            <HashRouter >
                 <Routes>
                     <Route path="/" element={<AssignmentBuilder />} />
+                    <Route path="/index.html" element={<AssignmentBuilder />} />
                     <Route path="/grader" element={<AssignmentGrader />} />
                 </Routes>
-            </BrowserRouter>
+            </HashRouter>
         </>
     );
 }
