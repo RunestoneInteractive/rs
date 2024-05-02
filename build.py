@@ -266,12 +266,10 @@ with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
         projdir = ym["services"][proj]["build"]["context"]
         if os.path.isdir(projdir):
             with pushd(projdir):
-                status[proj] = "[grey62]building...[/grey62]"
-                lt.update(generate_wheel_table(status))
                 if os.path.isfile("build.py"):
-                    res = subprocess.run(
-                        ["python", "build.py"], capture_output=True
-                    )
+                    status[proj] = "[grey62]pre build...[/grey62]"
+                    lt.update(generate_wheel_table(status))
+                    res = subprocess.run(["python", "build.py"], capture_output=True)
                     if res.returncode == 0:
                         status[proj] = "[green]Yes[/green]"
                         lt.update(generate_wheel_table(status))
@@ -285,6 +283,8 @@ with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
                                 f.write(res.stderr.decode(stdout_err_encoding))
                         continue
                 if os.path.isfile("pyproject.toml"):
+                    status[proj] = "[grey62]building...[/grey62]"
+                    lt.update(generate_wheel_table(status))
                     res = subprocess.run(
                         ["poetry", "build-project"], capture_output=True
                     )
