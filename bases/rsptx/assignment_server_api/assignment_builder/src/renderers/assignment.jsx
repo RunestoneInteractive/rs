@@ -173,15 +173,17 @@ function AssignmentEditor() {
         // reset items so create button disappears
         setItems(assignData.all_assignments.map((a) => a.name))
     }
+    let placeDate = new Date(due);
+    const [datetime12h, setDatetime12h] = useState(placeDate);
 
-    // 
+    // We use two representations because the Calendar, internally wants a date
+    // but Redux gets unhappy with a Date object because its not serializable.
+    // So we use a string for Redux and a Date object for the Calendar.
     const handleDueChange = (e) => {
-        if (typeof (e.target.value) === "string") {
-            dispatch(setDue(e.target.value));
-        } else {
-            dispatch(setDue(e.target.value.toISOString().replace("Z", "")));
-
-        }
+        setDatetime12h(e.value);
+        console.log(`due change ${datetime12h} ${e.value}`)
+        let d = e.value.toISOString().replace("Z", "");
+        dispatch(setDue(d));
     }
 
     return (
@@ -219,12 +221,14 @@ function AssignmentEditor() {
                             </label>
                             <Calendar
                                 className="field"
+                                dateFormat="m/d/yy,"
                                 id="due"
-                                value={due}
-                                placeholder={due}
+                                value={datetime12h}
+                                placeholder={placeDate.toLocaleString()}
                                 onChange={handleDueChange}
                                 showTime
                                 hourFormat="12"
+                                stepMinute={5}
                             />
                         </div>
 
@@ -259,8 +263,8 @@ function AssignmentEditor() {
 
 
 export function MoreOptions() {
-    
-    const options = [ { label: 'Regular', value: 'Regular' }, { label: 'Quiz / Exam', value: 'Timed' }, { label: 'Peer Instruction', value: 'Peer' } ];
+
+    const options = [{ label: 'Regular', value: 'Regular' }, { label: 'Quiz / Exam', value: 'Timed' }, { label: 'Peer Instruction', value: 'Peer' }];
     const assignData = useSelector(selectAll);
     const assignmentKind = useSelector(selectKind);
     var kind = ""

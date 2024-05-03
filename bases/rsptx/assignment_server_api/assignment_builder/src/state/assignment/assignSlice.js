@@ -299,14 +299,7 @@ let cDate = new Date();
 let epoch = cDate.getTime();
 epoch = epoch + 60 * 60 * 24 * 7 * 1000;
 cDate = new Date(epoch);
-let defaultDeadline = `${cDate.getFullYear()}-${`${cDate.getMonth() + 1
-    }`.padStart(2, 0)}-${`${cDate.getDate()}`.padStart(
-        2,
-        0
-    )}T${`${cDate.getHours()}`.padStart(2, 0)}:${`${cDate.getMinutes()}`.padStart(
-        2,
-        0
-    )}:00.0`;
+let defaultDeadline = cDate.toLocaleString();
 // old     
 
 // create a slice for Assignments
