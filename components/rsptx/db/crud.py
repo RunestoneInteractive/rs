@@ -25,7 +25,7 @@ import traceback
 # -------------------
 from fastapi.exceptions import HTTPException
 from pydal.validators import CRYPT
-from sqlalchemy import and_, distinct, func, update
+from sqlalchemy import and_, distinct, func, update, or_
 from sqlalchemy.sql import select, text, delete
 from starlette.requests import Request
 
@@ -48,6 +48,7 @@ from rsptx.db.models import (
     AuthUserValidator,
     BookAuthor,
     Chapter,
+    ChapterValidator,
     Code,
     CodeValidator,
     Competency,
@@ -70,6 +71,7 @@ from rsptx.db.models import (
     SelectedQuestion,
     SelectedQuestionValidator,
     SubChapter,
+    SubChapterValidator,
     TimedExam,
     TimedExamValidator,
     TraceBack,
@@ -1254,15 +1256,18 @@ async def fetch_assignments(
     if is_visible:
         vclause = Assignment.visible == is_visible
     else:
-        vclause = None
+        vclause = True
 
-    query = select(Assignment).where(
-        and_(
-            Assignment.course == Courses.id,
-            Courses.course_name == course_name,
-            Assignment.is_peer == is_peer,
-            vclause,
+    query = (
+        select(Assignment)
+        .where(
+            and_(
+                Assignment.course == Courses.id,
+                Courses.course_name == course_name,
+                vclause,
+            )
         )
+        .order_by(Assignment.duedate.desc())
     )
 
     async with async_session() as session:
@@ -1287,6 +1292,91 @@ async def fetch_one_assignment(assignment_id: int) -> AssignmentValidator:
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return AssignmentValidator.from_orm(res.scalars().first())
+
+
+async def create_assignment(assignment: AssignmentValidator) -> AssignmentValidator:
+    """
+    Create a new Assignment object with the given data (assignment)
+
+    :param assignment: AssignmentValidator, the AssignmentValidator object representing the assignment data
+    :return: AssignmentValidator, the newly created AssignmentValidator object
+    """
+    new_assignment = Assignment(**assignment.dict())
+    async with async_session.begin() as session:
+        session.add(new_assignment)
+
+    return AssignmentValidator.from_orm(new_assignment)
+
+
+async def update_assignment(assignment: AssignmentValidator) -> None:
+    """
+    Update an Assignment object with the given data (assignment)
+    """
+    assignment_updates = assignment.dict()
+    assignment_updates["current_index"] = 0
+    del assignment_updates["id"]
+    del assignment_updates["name"]
+
+    stmt = (
+        update(Assignment)
+        .where(Assignment.id == assignment.id)
+        .values(assignment_updates)
+    )
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+
+
+async def create_assignment_question(
+    assignmentQuestion: AssignmentQuestionValidator,
+) -> AssignmentQuestionValidator:
+    """
+    Create a new AssignmentQuestion object with the given data (assignmentQuestion)
+
+    :param assignmentQuestion: AssignmentQuestionValidator, the AssignmentQuestionValidator object representing the assignment question data
+    :return: AssignmentQuestionValidator, the newly created AssignmentQuestionValidator object
+    """
+    new_assignment_question = AssignmentQuestion(**assignmentQuestion.dict())
+    async with async_session.begin() as session:
+        session.add(new_assignment_question)
+
+    return AssignmentQuestionValidator.from_orm(new_assignment_question)
+
+
+async def update_assignment_question(
+    assignmentQuestion: AssignmentQuestionValidator,
+) -> AssignmentQuestionValidator:
+    """
+    Update an AssignmentQuestion object with the given data (assignmentQuestion)
+    """
+    new_assignment_question = AssignmentQuestion(**assignmentQuestion.dict())
+    async with async_session.begin() as session:
+        await session.merge(new_assignment_question)
+
+    return AssignmentQuestionValidator.from_orm(new_assignment_question)
+
+
+async def reorder_assignment_questions(question_ids: List[int]):
+    """
+    Reorder the assignment questions with the given question ids (question_ids)
+    """
+    async with async_session.begin() as session:
+        for i, qid in enumerate(question_ids):
+            d = dict(sorting_priority=i)
+            stmt = (
+                update(AssignmentQuestion)
+                .where(AssignmentQuestion.id == qid)
+                .values(**d)
+            )
+            await session.execute(stmt)
+
+
+async def remove_assignment_questions(assignment_ids: List[int]):
+    """
+    Remove all assignment questions for the given assignment ids (assignment_ids)
+    """
+    stmt = delete(AssignmentQuestion).where(AssignmentQuestion.id.in_(assignment_ids))
+    async with async_session.begin() as session:
+        await session.execute(stmt)
 
 
 async def fetch_all_assignment_stats(
@@ -1458,6 +1548,44 @@ async def fetch_matching_questions(request_data: schemas.SelectQRequest) -> List
     return questionlist
 
 
+async def fetch_questions_by_search_criteria(
+    criteria: schemas.SearchSpecification,
+) -> List[QuestionValidator]:
+    """
+    Fetch a list of questions that match the search criteria
+    regular expression matches are case insensitive
+
+    :param search: str, the search string
+    :return: List[QuestionValidator], a list of QuestionValidator objects
+    """
+    where_criteria = []
+    if criteria.source_regex:
+        where_criteria.append(
+            or_(
+                Question.question.regexp_match(criteria.source_regex, flags="i"),
+                Question.htmlsrc.regexp_match(criteria.source_regex, flags="i"),
+                Question.topic.regexp_match(criteria.source_regex, flags="i"),
+            )
+        )
+    if criteria.question_type:
+        where_criteria.append(Question.question_type == criteria.question_type)
+    if criteria.author:
+        where_criteria.append(Question.author.regexp_match(criteria.author, flags="i"))
+    if criteria.base_course:
+        where_criteria.append(Question.base_course == criteria.base_course)
+
+    if len(where_criteria) == 0:
+        raise ValueError("No search criteria provided")
+
+    # todo: add support for tags
+    query = select(Question).where(and_(*where_criteria))
+    rslogger.debug(f"{query=}")
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        return [QuestionValidator.from_orm(q) for q in res.scalars()]
+
+
 async def fetch_assignment_question(
     assignment_name: str, question_name: str
 ) -> AssignmentQuestionValidator:
@@ -1504,6 +1632,40 @@ async def fetch_assignment_questions(
         # we cannot return res.scalars() because we want both objects in the row.
         # and the scalars() method onnly returns the first object in the row.
         return res
+
+
+async def fetch_question_count_per_subchapter(
+    course_name: str,
+) -> Dict[Dict[str, str], int]:
+    """
+    Return a dictionary of subchapter_id: count of questions in that subchapter
+    """
+    query = (
+        select(
+            Question.chapter,
+            Question.subchapter,
+            func.count(Question.id).label("question_count"),
+        )
+        .where(
+            and_(
+                Question.base_course == course_name,
+                Question.from_source == True,  # noqa 711
+                Question.optional != True,  # noqa 711
+            )
+        )
+        .group_by(Question.chapter, Question.subchapter)
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+
+    resd = {}
+    for row in res:
+        if row[0] not in resd:
+            resd[row[0]] = {}
+        resd[row[0]][row[1]] = row[2]
+    return resd
 
 
 async def fetch_question_grade(sid: str, course_name: str, qid: str):
@@ -2057,3 +2219,139 @@ async def get_courses_per_basecourse() -> dict:
             retval[row[0]] = row[1]
 
         return retval
+
+
+async def fetch_questions_for_chapter_subchapter(
+    base_course: str,
+    skipreading: bool = False,
+    from_source_only: bool = True,
+    pages_only: bool = False,
+) -> List[dict]:
+    """
+    Fetch all questions for a given base course, where the skipreading and from_source
+    flags are set to the given values.
+
+    :param base_course: str, the base course
+    :param skipreading: bool, whether to skip questions/sections marked as "skipreading" Usually
+       these sections are the Exercises sections at the end of chapters.
+    :param from_source_only: bool, whether the question is from the source, if this is True
+       then instructor contributed questions will not be included in the result.
+    :param pages_only: bool, whether to include only pages for reading assignment creation.
+    :return: List[dict], a list of questions in a hierarchical json structure
+    """
+    if skipreading:
+        skipr_clause = SubChapter.skipreading == True  # noqa: E712
+    else:
+        skipr_clause = True
+    if from_source_only:
+        froms_clause = Question.from_source == True  # noqa: E712
+    else:
+        froms_clause = True
+    if pages_only:
+        page_clause = Question.question_type == "page"
+    else:
+        page_clause = True
+    query = (
+        select(Question, Chapter, SubChapter)
+        .join(
+            Chapter,
+            and_(
+                Question.chapter == Chapter.chapter_label,
+                Question.base_course == Chapter.course_id,
+            ),
+        )
+        .join(
+            SubChapter,
+            and_(
+                SubChapter.chapter_id == Chapter.id,
+                Question.subchapter == SubChapter.sub_chapter_label,
+            ),
+        )
+        .where(
+            and_(
+                Chapter.course_id == base_course,
+                skipr_clause,
+                froms_clause,
+                page_clause,
+            )
+        )
+        .order_by(Chapter.chapter_num, SubChapter.sub_chapter_num, Question.id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        # convert the result to a hierarchical json structure using the chapter and subchapter labels
+        questions = {}
+        chapters = {}
+
+        for row in res:
+            q = QuestionValidator.from_orm(row.Question)
+            c = ChapterValidator.from_orm(row.Chapter)
+            c.chapter_label = f"{c.chapter_label}"
+            sc = SubChapterValidator.from_orm(row.SubChapter)
+            sc.sub_chapter_label = f"{sc.sub_chapter_label}"
+            if c.chapter_label not in questions:
+                questions[c.chapter_label] = {}
+            if c.chapter_label not in chapters:
+                chapters[c.chapter_label] = {**c.dict(), "sub_chapters": {}}
+            if sc.sub_chapter_label not in questions[c.chapter_label]:
+                questions[c.chapter_label][sc.sub_chapter_label] = []
+            if sc.sub_chapter_label not in chapters[c.chapter_label]["sub_chapters"]:
+                chapters[c.chapter_label]["sub_chapters"][sc.sub_chapter_label] = {
+                    **sc.dict(),
+                }
+            del q.timestamp  # Does not convert to json
+            del q.question
+            questions[c.chapter_label][sc.sub_chapter_label].append(q)
+
+        # Now create the hierarchical json structure where the keys are the chapter and subchapter labels
+        # This is the structure that is used by the React TreeTable component
+        def find_page_id(chapter, subchapter):
+            for q in questions[chapter][subchapter]:
+                if q.question_type == "page":
+                    return q.id
+            return None
+
+        chaps = []
+        for chapter in questions:
+            subs = []
+            for subchapter in questions[chapter]:
+                subs.append(
+                    {
+                        "key": subchapter,
+                        "data": {
+                            "title": chapters[chapter]["sub_chapters"][subchapter][
+                                "sub_chapter_name"
+                            ],
+                            "num": chapters[chapter]["sub_chapters"][subchapter][
+                                "sub_chapter_num"
+                            ],
+                            "chapter": chapter,
+                            "subchapter": subchapter,
+                            "id": find_page_id(chapter, subchapter),
+                            "numQuestions": len(
+                                [
+                                    q
+                                    for q in questions[chapter][subchapter]
+                                    if q.optional != True
+                                ]
+                            ),
+                        },
+                        "children": [
+                            {"key": q.name, "data": q.dict()}
+                            for q in questions[chapter][subchapter]
+                        ],
+                    }
+                )
+            chaps.append(
+                {
+                    "key": chapter,
+                    "data": {
+                        "title": chapters[chapter]["chapter_name"],
+                        "num": chapters[chapter]["chapter_num"],
+                    },
+                    "children": subs,
+                }
+            )
+
+        return chaps

@@ -24,7 +24,7 @@ from pydantic import (
     BaseConfig,
     create_model,
     Field,
-    Json
+    Json,
 )
 from humps import camelize  # type: ignore
 from typing_extensions import Annotated
@@ -243,3 +243,11 @@ class AssignmentQuestionIncoming(BaseModel):
     question_id: int
     points: int
     order: Optional[int] = None
+
+
+class SearchSpecification(BaseModel):
+    source_regex: Optional[str] = None
+    question_type: Optional[str] = None
+    author: Optional[str] = None
+    tag_list: Optional[str] = None
+    base_course: Optional[str] = None

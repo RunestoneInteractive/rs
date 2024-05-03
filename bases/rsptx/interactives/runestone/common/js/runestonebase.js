@@ -568,8 +568,7 @@ class AutoQueue extends Queue {
         try {
             this._pendingPromise = true;
 
-            let payload = await MathJax.startup
-                .defaultPageReady()
+            let payload = await window.runestoneMathReady
                 .then(async function () {
                     console.log(
                         `MathJax Ready -- dequeing a typesetting run for ${item.component.id}`

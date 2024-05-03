@@ -28,7 +28,7 @@ import "./runestone/common/js/jquery_i18n/jquery.i18n.messagestore.js";
 import "./runestone/common/js/jquery_i18n/jquery.i18n.parser.js";
 import "./runestone/common/js/jquery_i18n/jquery.i18n.language.js";
 
-// Bootstrap
+// Bootstrap -- comment out for React instructor UI
 import "bootstrap/dist/js/bootstrap.js";
 // comment out for overhaul
 //import "bootstrap/dist/css/bootstrap.css";

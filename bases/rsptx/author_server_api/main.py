@@ -124,7 +124,7 @@ async def create_book_entry(author: str, document_id: str, github: str):
 
 # Install the auth_manager as middleware This will make the user
 # part of the request ``request.state.user`` `See FastAPI_Login Advanced <https://fastapi-login.readthedocs.io/advanced_usage/>`_
-auth_manager.useRequest(app)
+auth_manager.attach_middleware(app)
 
 
 @app.get("/author/")

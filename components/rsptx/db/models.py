@@ -146,7 +146,7 @@ class Useinfo(Base, IdMixin):
     # The type of question (timed exam, fill in the blank, etc.).
     event = Column(String(512), index=True, nullable=False)
     # TODO: What is this? The action associated with this log entry?
-    act = Column(String(512), nullable=False)
+    act = Column(Text, nullable=False)
     # _`div_id`: the ID of the question which produced this entry.
     div_id = Column(String(512), index=True, nullable=False)
     # _`course_id`: the Courses ``course_name`` **NOT** the ``id`` this row refers to. TODO: Use the ``id`` instead!
@@ -504,7 +504,7 @@ class Question(Base, IdMixin):
     chapter = Column(String(512), index=True, nullable=False)
     subchapter = Column(String(512), index=True, nullable=False)
     author = Column(String(512))
-    question = Column(Text)
+    question = Column(Text)  # contains the question source text
     timestamp = Column(DateTime, nullable=False)
     question_type = Column(String(512), nullable=False)
     is_private = Column(Web2PyBoolean)
@@ -521,6 +521,7 @@ class Question(Base, IdMixin):
     difficulty = Column(Float(53))
     pct_on_first = Column(Float(53))
     mean_clicks_to_correct = Column(Float(53))
+    question_json = Column(JSON)  # contains the JSON representation of the question
 
 
 QuestionValidator = sqlalchemy_to_pydantic(Question)
@@ -565,6 +566,7 @@ class Assignment(Base, IdMixin):
     current_index = Column(Integer, default=0)
     enforce_due = Column(Web2PyBoolean)
     peer_async_visible = Column(Web2PyBoolean, default=False)
+    kind = Column(String(128))
 
 
 AssignmentValidator = sqlalchemy_to_pydantic(Assignment)
@@ -662,6 +664,7 @@ class Chapter(Base, IdMixin):
     chapter_label = Column(String(512), nullable=False)
     chapter_num = Column(Integer, nullable=False)
 
+ChapterValidator = sqlalchemy_to_pydantic(Chapter)
 
 class SubChapter(Base, IdMixin):
     __tablename__ = "sub_chapters"
@@ -674,6 +677,7 @@ class SubChapter(Base, IdMixin):
     skipreading = Column(Web2PyBoolean, nullable=False)
     sub_chapter_num = Column(Integer, nullable=False)
 
+SubChapterValidator = sqlalchemy_to_pydantic(SubChapter)
 
 # Tracking User Progress
 # ----------------------
