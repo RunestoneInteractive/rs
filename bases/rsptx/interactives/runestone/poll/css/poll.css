@@ -3,7 +3,7 @@
     padding-bottom: 10px;
 }
 
-.poll-options > label {
+.poll-options>label {
     margin-right: 5px;
 }
 
@@ -27,4 +27,17 @@
 .results-container {
     display: grid;
     grid-template-columns: 2em 90%;
+}
+
+.poll-option {
+    display: inline;
+}
+
+.poll-option .para {
+    display: inline-block;
+    padding-left: 0.5rem;
+}
+
+.poll-results {
+    margin-top: 0.5rem;
 }
