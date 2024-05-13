@@ -61,6 +61,7 @@ from rsptx.db.async_session import init_models, term_models
 from rsptx.configuration import settings
 from rsptx.build_tools.core import _build_runestone_book, _build_ptx_book
 from rsptx.cl_utils.core import load_project_dotenv
+from rsptx.data_extract import Anonymizer
 
 
 class Config(object):
@@ -849,6 +850,49 @@ def grade(config, course, pset, enforce):
         f"{sys.executable} web2py.py -S runestone -M -R applications/runestone/rsmanage/grade.py",
         shell=True,
     )
+
+
+@cli.command()
+@click.option(
+    "--basecourse",
+    help="The name of a course that should already exist in the DB",
+    prompt=True,
+)
+@click.option("--sample_size", help="Number of courses to sample", default=0)
+@click.option("--course_list", help="List of courses to sample", default=None)
+@pass_config
+async def datashop(config, basecourse, sample_size, course_list):
+    """Export the course data to the datashop format"""
+    if not sample_size:
+        sample_size = click.prompt("Sample size", default=0)
+    if not course_list and sample_size == 0:
+        course_list = click.prompt("Course list")
+        if course_list:
+            course_list = [c.strip() for c in course_list.split(",")]
+        if len(course_list) == 1:
+            course_list = course_list[0]
+
+    dburl = config.dburl.replace("+asyncpg", "")
+    print(f"Creating Anonymizer {dburl}")
+    a = Anonymizer(
+        basecourse,
+        dburl,
+        sample_size=3,
+        specific_course=course_list,
+        preserve_user_ids=False,
+    )
+    print("Choosing Courses")
+    a.choose_courses()
+    print(a.chosen_courses)
+    print("Getting Users")
+    a.get_users()
+    print("Getting user activities")
+    a.get_user_activities()
+    print("sessionizing")
+    a.sessionize_data()
+    print("combining to datashop")
+    a.create_datashop_data()
+    a.write_datashop()
 
 
 @cli.command()
