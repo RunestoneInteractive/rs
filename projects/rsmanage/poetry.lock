@@ -1694,6 +1694,23 @@ docs = ["furo", "olefile", "sphinx (>=2.4)", "sphinx-copybutton", "sphinx-inline
 tests = ["check-manifest", "coverage", "defusedxml", "markdown2", "olefile", "packaging", "pyroma", "pytest", "pytest-cov", "pytest-timeout"]
 
 [[package]]
+name = "plastex"
+version = "3.1"
+description = "LaTeX document processing framework"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "plasTeX-3.1-py3-none-any.whl", hash = "sha256:b2494c43923fb58d30de0f2576e7b5d2c2f92e15538a4f5e5e1f36972a0b4871"},
+    {file = "plasTeX-3.1.tar.gz", hash = "sha256:6a2ee7fbca6561d3f4cbd79fe3f4918b9054757382c5422b9fda324d646ab77d"},
+]
+
+[package.dependencies]
+Jinja2 = ">=2.10.1"
+Pillow = ">=7"
+typing-extensions = ">=3.7"
+Unidecode = ">=0.4.21"
+
+[[package]]
 name = "platformdirs"
 version = "3.11.0"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
@@ -1730,13 +1747,13 @@ pyee = "11.0.1"
 
 [[package]]
 name = "pretext"
-version = "2.3.10"
+version = "2.4.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0.0,>=3.8.5"
 files = [
-    {file = "pretext-2.3.10-py3-none-any.whl", hash = "sha256:7b1944e96d726cdfec8e062ca7a487c7fb357829ea9639e0091af8d3bb1bf7e3"},
-    {file = "pretext-2.3.10.tar.gz", hash = "sha256:0278e30e973f95d730ecbc7546dabecad736b7d38f1c7d66cfa626399bf0b7bb"},
+    {file = "pretext-2.4.0-py3-none-any.whl", hash = "sha256:cf4df0900d26a5d06b96774a1e9e00996322acac657aa991a37f316c98035980"},
+    {file = "pretext-2.4.0.tar.gz", hash = "sha256:d90dc4f4cb68bb457dc2f3e0ff86b3dc96c3962a8ce651f9ed050654d5a52522"},
 ]
 
 [package.dependencies]
@@ -1744,8 +1761,10 @@ click = ">=8,<9"
 click-log = ">=0.4,<0.5"
 ghp-import = ">=2,<3"
 GitPython = ">=3,<4"
+jinja2 = ">=3,<4"
 lxml = ">=4.8,<5.0"
 pdfCropMargins = ">=1.0.9,<1.1.0"
+plastex = ">=3,<4"
 playwright = ">=1,<2"
 psutil = ">=5,<6"
 pydantic-xml = ">=2"
@@ -2715,7 +2734,7 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.2.16"
+version = "7.2.18"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = ">=3.10"
@@ -3338,6 +3357,17 @@ python-versions = ">=2"
 files = [
     {file = "tzdata-2023.3-py2.py3-none-any.whl", hash = "sha256:7e65763eef3120314099b6939b5546db7adce1e7d6f2e179e3df563c70511eda"},
     {file = "tzdata-2023.3.tar.gz", hash = "sha256:11ef1e08e54acb0d4f95bdb1be05da659673de4acbd21bf9c69e94cc5e907a3a"},
+]
+
+[[package]]
+name = "unidecode"
+version = "1.3.8"
+description = "ASCII transliterations of Unicode text"
+optional = false
+python-versions = ">=3.5"
+files = [
+    {file = "Unidecode-1.3.8-py3-none-any.whl", hash = "sha256:d130a61ce6696f8148a3bd8fe779c99adeb4b870584eeb9526584e9aa091fd39"},
+    {file = "Unidecode-1.3.8.tar.gz", hash = "sha256:cfdb349d46ed3873ece4586b96aa75258726e2fa8ec21d6f00a591d98806c2f4"},
 ]
 
 [[package]]

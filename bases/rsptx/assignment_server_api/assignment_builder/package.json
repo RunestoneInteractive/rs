@@ -13,6 +13,7 @@
     "primeflex": "^3.3.1",
     "primeicons": "^7.0.0",
     "primereact": "^10.5.1",
+    "prismjs": "^1.29.0",
     "react": "^18.2.0",
     "react-bootstrap": "^2.10.0",
     "react-data-grid": "^7.0.0-beta.42",

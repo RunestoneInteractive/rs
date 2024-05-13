@@ -14,6 +14,7 @@ from shutil import copyfile
 import yaml
 import toml
 import pdb
+from collections import OrderedDict
 
 # use python-dotenv >= 0.21.0
 from dotenv import load_dotenv
@@ -47,6 +48,8 @@ if "--help" in sys.argv:
         --push push all containers to a container registry
         --one <service> build just one container, e.g. --one author
         --restart restart the container(s) after building
+        --clean remove all containers and images before starting
+        --verbose show more output
 
         If something in the build does not work or you have questions about setup or environment
         variables or installation, please check out our developer documentation.
@@ -54,6 +57,15 @@ if "--help" in sys.argv:
         """
     )
     exit(0)
+
+if "--clean" in sys.argv:
+    console.print("Removing all containers and images...", style="bold")
+    ret = subprocess.run(["docker", "system", "prune", "--force"], capture_output=True)
+    if ret.returncode == 0:
+        console.print("All containers and images removed successfully", style="green")
+    else:
+        console.print("Failed to remove all containers and images", style="bold red")
+        exit(1)
 
 # read the version from pyproject.toml
 with open("pyproject.toml") as f:
@@ -166,13 +178,10 @@ if finish:
 
 ym = yaml.load(open("docker-compose.yml"), yaml.FullLoader)
 
+
 # remove the redis service from the list since we don't customize it
 del ym["services"]["redis"]
 
-if "--all" not in sys.argv:
-    # remove the author and worker services from the list since we don't customize them
-    del ym["services"]["author"]
-    del ym["services"]["worker"]
 
 if "--one" in sys.argv:
     svc_to_build = sys.argv[sys.argv.index("--one") + 1]
@@ -180,6 +189,17 @@ if "--one" in sys.argv:
     for svc in list(ym["services"].keys()):
         if svc != svc_to_build:
             del ym["services"][svc]
+
+if "--all" not in sys.argv:
+    # remove the author and worker services from the list since we don't customize them
+    del ym["services"]["author"]
+    del ym["services"]["worker"]
+
+# if --all then add the interactive service at the beginning of ym["services"]
+if "--all" in sys.argv:
+    ym["services"]["interactives"] = {"build": {"context": "./projects/interactives"}}
+    ym["services"] = OrderedDict(ym["services"])  # convert to ordered dict
+    ym["services"].move_to_end("interactives", last=False)
 
 # Attempt to determine the encoding of data returned from stdout/stderr of
 # subprocesses. This is non-trivial. See the discussion at [Python's
@@ -324,6 +344,10 @@ status = {}
 with Live(generate_table(status), refresh_per_second=4) as lt:
     status = {}
     for service in ym["services"]:
+        if service == "interactives":
+            status[service] = "[grey62]skipped...[/grey62]"
+            lt.update(generate_table(status))
+            continue
         status[service] = "[grey62]building...[/grey62]"
         lt.update(generate_table(status))
         # to use a different wheel without editing Dockerfile use --build-arg wheel="wheelname"

@@ -59,6 +59,7 @@ export default class Poll extends RunestoneBase {
         this.containerDiv = document.createElement("div");
         this.pollForm = document.createElement("form");
         this.resultsDiv = document.createElement("div");
+        $(this.resultsDiv).addClass("poll-results");
         this.containerDiv.id = this.divid;
         $(this.containerDiv).addClass(this.origElem.getAttribute("class"));
         $(this.pollForm).html(
@@ -81,9 +82,10 @@ export default class Poll extends RunestoneBase {
                 value: i,
             });
             $(radio).click(this.submitPoll.bind(this));
-            var label = document.createElement("span");
+            var label = document.createElement("div");
             //$(label).attr("for", tmpid);
             $(label).html(this.optionList[i]);
+            $(label).addClass("poll-option");
             this.pollForm.appendChild(radio);
             this.optsArray.push(radio);
             this.pollForm.appendChild(label);

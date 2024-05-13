@@ -8,6 +8,13 @@ import { setCode } from "../state/preview/previewSlice";
 import { setPreviewSrc, setQuestionJson } from "../state/interactive/interactiveSlice";
 import { selectUniqueId } from "../state/interactive/interactiveSlice";
 import { setOptionList, setStatement, addOption, selectOptionList, selectStatement } from "../state/multiplechoice/mcSlice";
+import Prism from "prismjs"; // eslint-disable-line no-unused-vars
+import "prismjs/themes/prism.css"
+import "prismjs/plugins/line-numbers/prism-line-numbers.js"
+import "prismjs/plugins/line-numbers/prism-line-numbers.css"
+import "prismjs/components/prism-python"
+import "prismjs/components/prism-sql"
+import "prismjs/components/prism-java"
 
 export function MultipleChoiceCreator() {
 
@@ -75,16 +82,16 @@ export function MultipleChoiceCreator() {
                 <>
                     <div key={index} className="p-fluid">
                         <label>Choice {index + 1}</label>
-                        <InputTextarea value={option.choice} 
-                            placeholder="text or html ok" 
-                            onChange={(e) => handleNewChoice(index, e)} 
+                        <InputTextarea value={option.choice}
+                            placeholder="text or html ok"
+                            onChange={(e) => handleNewChoice(index, e)}
                             onBlur={handleCodeUpdates} />
                     </div>
                     <div className="flex flex-wrap justify-content-left gap-3 mb-4">
                         <label>Feedback {index + 1}</label>
-                        <InputTextarea value={option.feedback} 
-                            onChange={(e) => handleNewFeedback(index, e)} 
-                            onBlur={handleCodeUpdates}/>
+                        <InputTextarea value={option.feedback}
+                            onChange={(e) => handleNewFeedback(index, e)}
+                            onBlur={handleCodeUpdates} />
                         <label>Correct</label>
                         <Checkbox checked={option.correct} onChange={() => markCorrect(index)} />
                         {optionList.length > 1 && <Button rounded outlined severity="danger" icon="pi pi-trash" onClick={() => handleDeleteOption(index)} />}
