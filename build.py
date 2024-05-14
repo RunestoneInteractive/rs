@@ -391,6 +391,8 @@ if "--push" in sys.argv:
     for service in ym["services"]:
         if "image" in ym["services"][service]:
             image = ym["services"][service]["image"]
+            if "ghcr.io" not in image:
+                continue
             console.print(f"Pushing {image}")
             ret1 = subprocess.run(
                 ["docker", "tag", image, f"{image}:v{version}"], check=True
