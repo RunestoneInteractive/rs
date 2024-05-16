@@ -40,6 +40,8 @@ runestone = "^7.0.0"
 python-dotenv = "^1.0.0"
 pydantic-settings = "^2.0.3"
 pretext = "^2.0.0"
+pandas = "^2.2.2"
+tqdm = "^4.66.4"
 
 [tool.poetry.group.dev.dependencies]
 runestone = { path = "../interactives", develop = true }
