@@ -56,7 +56,7 @@ export function EditorContainer({ componentName }) {
         case "mchoice":
             return <ExerciseEditor component={<MultipleChoiceCreator />} />;
         case "shortanswer":
-            return <ShortAnswerCreator />;
+            return <ExerciseEditor component={<ShortAnswerCreator />} />;
         default:
             return (
                 <p>We have not built an editor for this question type yet.</p>
