@@ -25,6 +25,7 @@ from rsptx.configuration import settings
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.logging import rslogger
 from rsptx.templates import template_folder
+from rsptx.auth.session import auth_manager
 
 # FastAPI setup
 # =============
@@ -51,6 +52,8 @@ app.mount(
 reactdir = pathlib.Path(__file__).parent / "react"
 app.mount("/react", StaticFiles(directory=reactdir), name="react")
 rslogger.info(f"React dir: {reactdir}")
+
+auth_manager.attach_middleware(app)
 
 app.include_router(student.router)
 app.include_router(instructor.router)
