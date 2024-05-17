@@ -202,8 +202,13 @@ async def doAssignment(
 
         return RedirectResponse("/assignment/student/chooseAssignment")
 
-    if assignment.visible == "F" or assignment.visible is None:
+    if (
+        assignment.visible == "F"
+        or assignment.visible is None
+        or assignment.visible == False
+    ):
         if await is_instructor(request) is False:
+            rslogger.error(f"Attempt to access invisible assignment {assignment_id} by {user.username}")
             return RedirectResponse("/assignment/student/chooseAssignment")
 
     if assignment.points is None:
