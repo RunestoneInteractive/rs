@@ -182,6 +182,11 @@ ym = yaml.load(open("docker-compose.yml"), yaml.FullLoader)
 # remove the redis service from the list since we don't customize it
 del ym["services"]["redis"]
 
+if "--all" not in sys.argv:
+    # remove the author and worker services from the list since we don't customize them
+    del ym["services"]["author"]
+    del ym["services"]["worker"]
+
 
 if "--one" in sys.argv:
     svc_to_build = sys.argv[sys.argv.index("--one") + 1]
@@ -189,11 +194,6 @@ if "--one" in sys.argv:
     for svc in list(ym["services"].keys()):
         if svc != svc_to_build:
             del ym["services"][svc]
-
-if "--all" not in sys.argv:
-    # remove the author and worker services from the list since we don't customize them
-    del ym["services"]["author"]
-    del ym["services"]["worker"]
 
 # if --all then add the interactive service at the beginning of ym["services"]
 if "--all" in sys.argv:
@@ -391,6 +391,8 @@ if "--push" in sys.argv:
     for service in ym["services"]:
         if "image" in ym["services"][service]:
             image = ym["services"][service]["image"]
+            if "ghcr.io" not in image:
+                continue
             console.print(f"Pushing {image}")
             ret1 = subprocess.run(
                 ["docker", "tag", image, f"{image}:v{version}"], check=True
