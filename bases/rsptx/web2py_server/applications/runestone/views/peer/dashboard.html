@@ -5,91 +5,39 @@
 </script>
 <div class="hidden-content" style="display: none">
     \( {{=XML(latex_macros)}} \)
- </div>
+</div>
 
 <h2>Peer Instruction: {{=assignment_name}}</h2>
 <div id="imessage"></div>
 
 <div class="row">
     <div class="col-md-6">
-        <form
-            action="/runestone/peer/dashboard"
-            method="GET"
-
-        >
+        <form action="/runestone/peer/dashboard" method="GET">
             <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
             Group Size
             <select id="groupsize" name="groupsize">
-                <option value="2" 
-                {{ if groupsize == "2": }}
-                  selected
-                {{ pass }}
-                >2</option>
-                <option value="3" 
-                {{ if groupsize == "3": }}
-                  selected
-                {{ pass }}
-                >3</option>
-                <option value="4"
-                {{ if groupsize == "4": }}
-                  selected
-                {{ pass }}
-                >4</option>
-                <option value="5"
-                {{ if groupsize == "5": }}
-                  selected
-                {{ pass }}
-                >5</option>
+                <option value="2" {{ if groupsize=="2" : }} selected {{ pass }}>2</option>
+                <option value="3" {{ if groupsize=="3" : }} selected {{ pass }}>3</option>
+                <option value="4" {{ if groupsize=="4" : }} selected {{ pass }}>4</option>
+                <option value="5" {{ if groupsize=="5" : }} selected {{ pass }}>5</option>
             </select>
             <br />
-            <button
-                type="button"
-                id="vote1"
-                class="btn btn-info"
-                onclick="warnAndStopVote(event)"
-            >
+            <button type="button" id="vote1" class="btn btn-info" onclick="warnAndStopVote(event)">
                 Stop Vote 1
             </button>
-            <button
-                type="button"
-                id="makep"
-                class="btn btn-info"
-                onclick="makePartners(event)"
-            >
+            <button type="button" id="makep" class="btn btn-info" onclick="makePartners(event)" disabled>
                 Enable Text Chat
             </button>
-            <button
-                type="button"
-                id="vote2"
-                class="btn btn-info"
-                onclick="startVote2(event)"
-            >
+            <button type="button" id="vote2" class="btn btn-info" onclick="startVote2(event)" disabled>
                 Start Vote 2
             </button>
-            <button
-                type="button"
-                id="vote3"
-                class="btn btn-info"
-                onclick="warnAndStopVote(event)"
-            >
+            <button type="button" id="vote3" class="btn btn-info" onclick="warnAndStopVote(event)" disabled>
                 Stop Vote 2
             </button>
-            <button
-                type="submit"
-                id="nextq"
-                class="btn btn-info"
-                name="next"
-                value="Next"
-            >
+            <button type="submit" id="nextq" class="btn btn-info" name="next" value="Next" disabled>
                 Next Question
             </button>
-            <button
-                type="submit"
-                id="restart"
-                class="btn btn-danger"
-                name="next"
-                value="Reset"
-            >
+            <button type="submit" id="restart" class="btn btn-danger" name="next" value="Reset">
                 Start Over
             </button>
         </form>
@@ -98,7 +46,7 @@
 
 <div class="row">
     <div class="oneq col-md-6 runestone-sphinx">
-    {{=XML(current_question['htmlsrc'])}}
+        {{=XML(current_question['htmlsrc'])}}
     </div>
     <div class="col-md-6">
         <div id="counter1"></div>
