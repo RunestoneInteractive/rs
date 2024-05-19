@@ -30,7 +30,28 @@ from rsptx.db.crud import fetch_instructor_courses, fetch_user
 from rsptx.db.models import AuthUserValidator
 
 
-auth_manager = LoginManager(settings.jwt_secret, "/auth/validate", use_cookie=True)
+class NotAuthenticatedException(Exception):
+    pass
+
+
+# Note -- when we upgrade to fastapi-login >= 1.10 we can use the following
+# not_authenticated_exception = NotAuthenticatedException in the constructor
+
+try:
+    auth_manager = LoginManager(
+        settings.jwt_secret,
+        "/auth/validate",
+        use_cookie=True,
+        custom_exception=NotAuthenticatedException,
+    )
+except:
+    auth_manager = LoginManager(
+        settings.jwt_secret,
+        "/auth/validate",
+        use_cookie=True,
+        not_authenticated_exception=NotAuthenticatedException,
+    )
+
 auth_manager.cookie_name = "access_token"
 
 
