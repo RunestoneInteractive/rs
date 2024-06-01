@@ -8,7 +8,7 @@ function connect(event) {
     }
 
     ws.onclose = function () {
-        console.log("Websocket Closed");
+        console.log("Websocket Closed")
         alert(
             "You have been disconnected from the peer instruction server. Will Reconnect."
         );
@@ -64,9 +64,7 @@ function connect(event) {
                                     messarea.innerHTML = `<h3>Please Give an explanation for your answer</h3><p>Then discuss your answer with your group members</p>`;
                                 } else {
                                     messarea.innerHTML = `<h3>Voting for this question is complete</h3>`;
-                                    let feedbackDiv = document.getElementById(
-                                        `${currentQuestion}_feedback`
-                                    );
+                                    let feedbackDiv = document.getElementById(`${currentQuestion}_feedback`);
                                     feedbackDiv.style.display = "none";
                                 }
                             }
@@ -124,9 +122,7 @@ function connect(event) {
                     }
                     messarea = document.getElementById("imessage");
                     messarea.innerHTML = `<h3>Time to make your 2nd vote</h3>`;
-                    let feedbackDiv = document.getElementById(
-                        `${currentQuestion}_feedback`
-                    );
+                    let feedbackDiv = document.getElementById(`${currentQuestion}_feedback`);
                     feedbackDiv.innerHTML = "";
                     feedbackDiv.className = "";
                     $(".runestone [type=radio]").prop("checked", false);
@@ -204,7 +200,7 @@ function answerToString(currAnswer) {
 async function logPeerEvent(eventInfo) {
     // This can be refactored to take some parameters if peer grows
     // to require more logging functionality.
-    console.log(`logging peer event ${eventInfo}`);
+    console.log(`logging peer event ${eventInfo}`)
     let headers = new Headers({
         "Content-type": "application/json; charset=utf-8",
         Accept: "application/json",
@@ -309,7 +305,6 @@ function startVote2(event) {
     let butt = document.querySelector("#vote2");
     butt.classList.replace("btn-info", "btn-secondary");
     event.srcElement.disabled = true;
-
     voteNum += 1;
     startTime2 = new Date().toUTCString();
     let mess = {
