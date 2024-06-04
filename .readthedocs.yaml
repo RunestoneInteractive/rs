@@ -17,6 +17,7 @@ build:
             - poetry self add poetry-polylith-plugin
             - poetry self add poetry-multiproject-plugin
             - poetry install
+            - poetry shell
             # RUNESTONE_PATH is defined in the readthedocs control panel
 
 sphinx:
