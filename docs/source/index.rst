@@ -12,6 +12,7 @@ Welcome to Runestone Documentation
    readme
    contributing
    developing
+   running
    structure
    poetry
    docker
