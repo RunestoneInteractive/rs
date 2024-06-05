@@ -51,17 +51,22 @@
       <p style="visibility: hidden">This paragraph takes up some space to deal with a funky display issue of the right side lumping over onto the left</p>
 
 
-      <div id="autogradingform" style="text-align: center; visibility: hidden;">
+      <div id="autogradingform" style="text-align: center; visibility: visible;">
         <form>
           <fieldset>
-            <input id="enforceDeadline" type="checkbox" name="enforceDeadline" value="enforceDeadline" class="big-checkbox" checked />
+            <input id="enforceDeadline" type="checkbox" name="enforceDeadline" value="enforceDeadline" class="big-checkbox" checked="">
             <label for="enforceDeadline">Only check work submitted before</label>
-            <span id="dl_disp"></span>
+            <span id="dl_disp">Wed Jan 31 2024 09:20:00 GMT-0500 (Eastern Standard Time)</span>
           </fieldset>
-          <input id="autogradesubmit" type="submit" class="btn btn-primary" value="Autograde and Display Totals" />
+          <input id="autogradesubmit" type="submit" class="btn btn-primary" value="Autograde and Display Totals">
           <!--<button id="autogradebutton"  class="list-group-item" onclick="function(event){event.preventDefault(); autoGrade(event);}">Autograde</button>-->
         </form>
-        <strong>Warning</strong> Autograde does not support multiple selections yet.
+      <p>  <strong>Warning</strong> Autograde does not support multiple selections yet.</p>
+    <a id="gradebookLink" class="btn btn-primary" href="/runestone/dashboard/grades">
+        <p style="text-align: center" class="list-group-item-heading">Grade Book</p>
+        
+    </a>
+    <button id="releasebutton" style="text-align: center; visibility: visible;" class="btn btn-primary btn-sm" onclick="toggle_release_grades();">Hide Grades</button>
       </div>
 
       <div>
