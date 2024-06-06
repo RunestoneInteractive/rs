@@ -79,10 +79,13 @@ export const createAssignment = createAsyncThunk(
             "Content-type": "application/json; charset=utf-8",
             Accept: "application/json",
         });
+        // make a date that is acceptable on the server
+        let duedate = new Date(assignData.duedate);
+        duedate = duedate.toISOString().replace('Z', '');
         let body = {
             name: assignData.name,
             description: assignData.description,
-            duedate: assignData.duedate,
+            duedate: duedate,
             points: assignData.points,
             kind: "quickcode",
         };
