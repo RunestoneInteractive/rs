@@ -2,6 +2,7 @@ import { ActiveCode } from "./activecode.js";
 import JSActiveCode from "./activecode_js.js";
 import HTMLActiveCode from "./activecode_html.js";
 import SQLActiveCode from "./activecode_sql.js";
+import BrythonActiveCode from "./activecode_brython.js";
 import LiveCode from "./livecode.js";
 import {
     TimedActiveCode,
@@ -9,6 +10,7 @@ import {
     TimedJSActiveCode,
     TimedHTMLActiveCode,
     TimedSQLActiveCode,
+    TimedBrythonActiveCode,
 } from "./timed_activecode";
 import "../../common/js/jquery.highlight.js";
 
@@ -30,7 +32,12 @@ export default class ACFactory {
         if (lang === undefined) {
             lang = $(opts.orig).find("[data-lang]").data("lang");
         }
+        var text_area = $(opts.orig).find("textarea")[0]
+        var python3_interpreter = $(text_area).attr("data-python3_interpreter");
         if (opts.timed == true) {
+            if(python3_interpreter==="brython"){
+                return new TimedBrythonActiveCode(opts);   
+            }
             if (lang === "python") {
                 return new TimedActiveCode(opts);
             } else if (
@@ -40,7 +47,10 @@ export default class ACFactory {
                 lang === "python3"
             ) {
                 return new TimedLiveCode(opts);
-            } else if (lang === "javascript") {
+            } else if ((lang ==="python3") && (python3_interpreter === "brython")){
+                return new BrythonActiveCode(opts);   
+            }
+            else if (lang === "javascript") {
                 return new TimedJSActiveCode(opts);
             } else if (lang === "htmlmixed") {
                 return new TimedHTMLActiveCode(opts);

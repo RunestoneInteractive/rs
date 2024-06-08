@@ -78,6 +78,7 @@ export class ActiveCode extends RunestoneBase {
         this.question = $(opts.orig).find(`#${this.divid}_question`)[0];
         this.tie = $(orig).data("tie");
         this.dburl = $(orig).data("dburl");
+        this.python3_interpreter = $(orig).data("python3_interpreter");
         this.runButton = null;
         this.enabledownload = $(orig).data("enabledownload");
         this.downloadButton = null;
@@ -364,7 +365,7 @@ export class ActiveCode extends RunestoneBase {
         $(butt).click(this.createGradeSummary.bind(this));
     }
 
-    addDownloadButton(ctrlDiv) {
+    addDownloadButton(ctrlDiv) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
         let butt = document.createElement("button");
         $(butt).text("Download");
         $(butt).addClass("btn save-button");
@@ -372,7 +373,7 @@ export class ActiveCode extends RunestoneBase {
         this.downloadButton = butt;
         $(butt).click(this.downloadFile.bind(this, this.language));
         $(butt).attr("type", "button");
-    }
+    }                                                                                                                                                                                                                                                                                                                           
 
     enableHideShow(ctrlDiv) {
         $(this.runButton).attr("disabled", "disabled");
