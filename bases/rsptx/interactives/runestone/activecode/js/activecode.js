@@ -481,6 +481,14 @@ export class ActiveCode extends RunestoneBase {
                     }
                 );
                 let post_promise = await fetch(request);
+                if (!post_promise.ok) {
+                    if (post_promise.status === 303 || post_promise.status === 404) {
+                        alert("You must be logged in to share code");
+                    } else {
+                        alert("Sharing Failed return status: ${post_promise.status}");
+                    }
+                    return;
+                }
                 let status = await post_promise.json();
                 if (status.mess === "success") {
                     alert(`Shared Code with ${status.share_count} students`);

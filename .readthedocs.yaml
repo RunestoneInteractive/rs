@@ -16,7 +16,8 @@ build:
             # https://python-poetry.org/docs/managing-dependencies/#dependency-groups
             - poetry self add poetry-polylith-plugin
             - poetry self add poetry-multiproject-plugin
-            - poetry install
+            - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH poetry install
+            # - pip install sphinx-click
             # RUNESTONE_PATH is defined in the readthedocs control panel
 
 sphinx:
