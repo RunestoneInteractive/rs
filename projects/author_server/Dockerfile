@@ -1,5 +1,6 @@
 # pull official base image
 FROM python:3.10-bullseye
+# FROM texlive/texlive:latest
 
 LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
 
