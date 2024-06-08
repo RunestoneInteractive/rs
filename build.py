@@ -182,11 +182,17 @@ ym = yaml.load(open("docker-compose.yml"), yaml.FullLoader)
 # remove the redis service from the list since we don't customize it
 del ym["services"]["redis"]
 
+# add the interactives service to the list so it gets built before the others,
+# assignments depend on it.  We do not build a container for it, but we do build the wheels
+ym["services"]["interactives"] = {"build": {"context": "./projects/interactives"}}
+ym["services"]["interactives"]["image"] = "skip"
+ym["services"] = OrderedDict(ym["services"])  # convert to ordered dict
+ym["services"].move_to_end("interactives", last=False)
+
 if "--all" not in sys.argv:
     # remove the author and worker services from the list since we don't customize them
     del ym["services"]["author"]
     del ym["services"]["worker"]
-
 
 if "--one" in sys.argv:
     svc_to_build = sys.argv[sys.argv.index("--one") + 1]
@@ -195,11 +201,6 @@ if "--one" in sys.argv:
         if svc != svc_to_build:
             del ym["services"][svc]
 
-# if --all then add the interactive service at the beginning of ym["services"]
-if "--all" in sys.argv:
-    ym["services"]["interactives"] = {"build": {"context": "./projects/interactives"}}
-    ym["services"] = OrderedDict(ym["services"])  # convert to ordered dict
-    ym["services"].move_to_end("interactives", last=False)
 
 # Attempt to determine the encoding of data returned from stdout/stderr of
 # subprocesses. This is non-trivial. See the discussion at [Python's
@@ -301,6 +302,7 @@ with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
                         else:
                             with open("build.log", "a") as f:
                                 f.write(res.stderr.decode(stdout_err_encoding))
+                                f.write(res.stdout.decode(stdout_err_encoding))
                         continue
                 if os.path.isfile("pyproject.toml"):
                     status[proj] = "[grey62]building...[/grey62]"
