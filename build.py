@@ -52,6 +52,7 @@ if "--help" in sys.argv:
         --restart restart the container(s) after building
         --clean remove all containers and images before starting
         --verbose show more output
+        --env check key environment variables and exit (verbose is T)
 
         If something in the build does not work or you have questions about setup or environment
         variables or installation, please check out our developer documentation.
@@ -106,12 +107,19 @@ if res.returncode != 0:
 with open("build.log", "w") as f:
     f.write("")
 
+if "--env" in sys.argv:
+    VERBOSE = True
+    console.print("Checking environment variables", style="bold")
+
 # Per the [docs](https://pypi.org/project/python-dotenv/), load `.env` into
 # environment variables.
 load_dotenv()
 table = Table(title="Environment Variables")
 table.add_column("Variable", justify="right", style="grey62", no_wrap=True)
-table.add_column("Set", style="magenta")
+if VERBOSE:
+    table.add_column("Value", style="magenta")
+else:
+    table.add_column("Set", style="magenta")
 finish = False
 for var in [
     "RUNESTONE_PATH",
@@ -122,36 +130,42 @@ for var in [
     "JWT_SECRET",
     "WEB2PY_PRIVATE_KEY",
     "COMPOSE_PROFILES",
+    "DBURL",
+    "DEV_DBURL",
 ]:
     if var not in os.environ:
         table.add_row(var, "[red]No[/red]")
         finish = True
     else:
-        table.add_row(var, "[green]Yes[/green]")
-
-console.print(table)
+        if VERBOSE:
+            table.add_row(var, os.environ[var])
+        else:
+            table.add_row(var, "[green]Yes[/green]")
 
 if "DC_DBURL" not in os.environ:
-    console.print(
-        "DC_DBURL not set.  It will default to DBURL, but you should set it in .env"
-    )
+    table.add_row("DC_DBURL", "[red]No[/red] will default to DBURL")
     if "DBURL" not in os.environ:
-        console.print("DBURL not set.  Please set it in .env", style="bold red")
+        table.add_row("DBURL", "[red]No[/red] please set it in .env")
         finish = True
 else:
-    console.print("DC_DBURL set.  Using it instead of DBURL")
-
+    if VERBOSE:
+        table.add_row("DC_DBURL", os.environ["DC_DBURL"])
+    else:
+        table.add_row("DC_DBURL", "[green]Yes[/green]")
 
 if "DC_DEV_DBURL" not in os.environ:
-    console.print(
-        "DC_DEV_DBURL not set.  It will default to DEV_DBURL, but you should set it in .env",
-        style="bold red",
-    )
+    table.add_row("DC_DEV_DBURL", "[red]No[/red] will default to DEV_DBURL")
     if "DEV_DBURL" not in os.environ:
-        console.print("DEV_DBURL not set.  Please set it in .env")
+        table.add_row("DEV_DBURL", "[red]No[/red] please set it in .env")
         finish = True
 else:
-    console.print("DC_DEV_DBURL set.  Using it instead of DEV_DBURL")
+    if VERBOSE:
+        table.add_row("DC_DEV_DBURL", os.environ["DC_DEV_DBURL"])
+    else:
+        table.add_row("DC_DEV_DBURL", "[green]Yes[/green]")
+
+
+console.print(table)
 
 cprofs = os.environ.get("COMPOSE_PROFILES", "")
 if "basic" in cprofs:
@@ -164,7 +178,7 @@ if "basic" in cprofs:
         finish = True
 else:
     console.print(
-        "You are set up to run your own DB instance.  Make sure it is running."
+        "You are configured to run your own DB instance.  Make sure it is running."
     )
     console.print("If you don't want to run your own, then enable the basic profile.")
     if "2345" in os.environ.get("DEV_DBURL", ""):
@@ -190,6 +204,8 @@ if "COMPOSE_PROFILES" not in os.environ:
     )
     finish = False
 
+if "--env" in sys.argv:
+    exit(0)
 
 if not os.path.isfile("bases/rsptx/web2py_server/applications/runestone/models/1.py"):
     console.print("Copying 1.py.prototype to 1.py")
@@ -491,9 +507,11 @@ if DBOK:
     res = subprocess.run(["alembic", "check"], check=True, capture_output=True)
     if res.returncode == 0:
         if "No new upgrade operations detected." in res.stdout.decode("utf-8"):
-            console.print("No new upgrade operations detected", style="green")
+            console.print(
+                "Your database schema appears to be up to date", style="green"
+            )
         else:
-            console.print("Migrations are needed.  Running them now...", style="green")
+            console.print("Database migrations are needed.  Running them now...")
             res = subprocess.run(["alembic", "upgrade", "head"], check=True)
             if res.returncode == 0:
                 console.print("Migrations completed successfully", style="green")
@@ -510,6 +528,8 @@ if DBOK:
                 )
                 console.print(res.stdout.decode("utf-8"))
 
+if not DBOK:
+    exit(1)
 
 if "--restart" in sys.argv:
     if "--all" in sys.argv:
