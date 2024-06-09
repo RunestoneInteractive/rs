@@ -487,6 +487,28 @@ except:
 
 if DBOK:
     console.print("Database appears to be set up correctly", style="green")
+    console.print("Will now check for any needed migrations")
+    res = subprocess.run(["alembic", "check"], check=True, capture_output=True)
+    if res.returncode == 0:
+        if "No new upgrade operations detected." in res.stdout.decode("utf-8"):
+            console.print("No new upgrade operations detected", style="green")
+        else:
+            console.print("Migrations are needed.  Running them now...", style="green")
+            res = subprocess.run(["alembic", "upgrade", "head"], check=True)
+            if res.returncode == 0:
+                console.print("Migrations completed successfully", style="green")
+            else:
+                console.print("Migrations failed", style="bold red")
+                res = subprocess.run(
+                    ["alembic", "upgrade", "--sql", "head"], capture_output=True
+                )
+                console.print(
+                    "Try running the following commands manually in psql to see what went wrong."
+                )
+                console.print(
+                    "Then run [green]alembic stamp head[/green] to mark the migrations as complete."
+                )
+                console.print(res.stdout.decode("utf-8"))
 
 
 if "--restart" in sys.argv:
