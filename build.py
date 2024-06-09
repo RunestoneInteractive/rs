@@ -15,6 +15,7 @@ import yaml
 import toml
 import pdb
 from collections import OrderedDict
+from datetime import datetime
 
 # use python-dotenv >= 0.21.0
 from dotenv import load_dotenv
@@ -223,6 +224,17 @@ try:
 except AttributeError:
     stdout_err_encoding = locale.getpreferredencoding()
 
+# Now initialize the build.log files for all services
+for service in ym["services"]:
+    now = datetime.now()
+    try:
+        projdir = ym["services"][service]["build"]["context"]
+    except KeyError:
+        continue
+    with pushd(ym["services"][service]["build"]["context"]):
+        with open("build.log", "w") as f:
+            f.write(f"Build log for {service} on {now}\n")
+
 
 def progress_wheel():
     chars = "x+"
@@ -294,8 +306,10 @@ with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
                     if res.returncode == 0:
                         status[proj] = "[green]Yes[/green]"
                         lt.update(generate_wheel_table(status))
+                        with open("build.log", "a") as f:
+                            f.write(res.stdout.decode(stdout_err_encoding))
                     else:
-                        status[proj] = "[red]Fail[/red]"
+                        status[proj] = f"[red]Fail[/red] See {projdir}/build.log"
                         lt.update(generate_wheel_table(status))
                         if VERBOSE:
                             console.print(res.stderr.decode(stdout_err_encoding))
@@ -313,8 +327,10 @@ with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
                     if res.returncode == 0:
                         status[proj] = "[green]Yes[/green]"
                         lt.update(generate_wheel_table(status))
+                        with open("build.log", "a") as f:
+                            f.write(res.stdout.decode(stdout_err_encoding))
                     else:
-                        status[proj] = "[red]Fail[/red]"
+                        status[proj] = f"[red]Fail[/red] see {projdir}/build.log"
                         lt.update(generate_wheel_table(status))
                         if VERBOSE:
                             console.print(res.stderr.decode(stdout_err_encoding))
