@@ -1,8 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+// Note the values of the componentOptions array in this snippet should
+// match the question_types used in the database. See admin.py for the canonical list and  values.
+//
 const componentOptions = [
     {title: "ActiveCode", value: "activecode"},
-    {title: "Multiple Choice", value: "multiplechoice"},
+    {title: "Multiple Choice", value: "mchoice"},
     {title: "Short Answer", value: "shortanswer"},
 ];
 
