@@ -5,7 +5,7 @@
  */
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { addExercise, selectPoints, setPoints } from "../assignment/assignSlice.js";
-import { selectComponent } from "../componentEditor/editorSlice.js";
+
 
 import toast from "react-hot-toast";
 
