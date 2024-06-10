@@ -47,7 +47,11 @@ export const saveAssignmentQuestion = createAsyncThunk(
         if (questionType === "activecode" && store.acEditor.suffix_code) {
             body.autograde = 'unittest'
         } else {
-            body.autograde = 'manual'
+            if (questionType === "activecode") {
+                body.autograde = 'manual'
+            } else {
+                body.autograde = null;
+            }
         }
         let data = {
             body: JSON.stringify(body),
