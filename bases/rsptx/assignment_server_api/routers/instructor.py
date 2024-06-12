@@ -1,4 +1,5 @@
 import datetime
+import pathlib
 import pandas as pd
 
 from fastapi import APIRouter, Depends, Request, status
@@ -500,3 +501,27 @@ async def search_questions(
         qlist.append(row.model_dump())
     rslogger.debug(f"qlist: {qlist}")
     return make_json_response(status=status.HTTP_200_OK, detail={"questions": qlist})
+
+
+@router.get("/builder")
+async def get_builder(
+    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+):
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return RedirectResponse(url="/")
+
+    reactdir = pathlib.Path(__file__).parent.parent / "react"
+    with open(reactdir / "index.html") as f:
+        content = f.read()
+    return HTMLResponse(content=content)
+
+
+@router.get("/grader")
+async def get_grader(
+    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+):
+    return await get_builder(request, user, response_class)
