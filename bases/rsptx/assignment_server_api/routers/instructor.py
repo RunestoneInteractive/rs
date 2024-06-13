@@ -539,6 +539,7 @@ async def get_builder(
             "latex_preamble": course_attrs.get("latex_macros", ""),
             "ptx_js_version": course_attrs.get("ptx_js_version", "0.2"),
             "webwork_js_version": course_attrs.get("webwork_js_version", "2.17"),
+            "user": user,
         },
     )
 

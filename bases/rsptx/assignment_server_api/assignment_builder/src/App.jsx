@@ -8,6 +8,8 @@ import { BrowserRouter, useSearchParams } from "react-router-dom";
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AssignmentPicker } from "./renderers/assignmentPicker.jsx";
 import { AssignmentSummary } from "./renderers/assignmentSummary.jsx";
+import { Menubar } from "primereact/menubar";
+import { buildNavBar } from "./navUtils.js";
 
 function AssignmentBuilder() {
     const [searchParams] = useSearchParams();
@@ -73,8 +75,12 @@ function App() {
      * basename={import.meta.env.BASE_URL}
      */
     console.log("ENV: ", import.meta.env);
+    const items = buildNavBar(window.eBookConfig)
+
+    const start = <img src="/staticAssets/RAIcon.png" height="30px"/>
     return (
         <>
+            <Menubar model={items} start={start} />
             <BrowserRouter basename={import.meta.env.VITE_BASE_URL} >
                 <Routes>
                     <Route path="/" element={<AssignmentBuilder />} />
