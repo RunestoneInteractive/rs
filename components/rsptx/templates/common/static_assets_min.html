@@ -1,0 +1,81 @@
+<!-- In the move to FastAPI, lets try to weed out the unnecessary imports.
+I don't know if any of the following are needed anymore.
+<script src="/staticAssets/js/underscore.js"></script>
+<script src="/staticAssets/js/FileSaver.min.js"></script>
+<script src="/staticAssets/js/animationbase.js"></script>
+-->
+
+<!-- NOTE jquery is loaded in the _base.html template -->
+<!-- This file should be included in the css block -->
+
+{% for css_import in wp_imports["css"] %}
+    <link rel="stylesheet" type="text/css" href="/ns/books/published/{{course.course_name}}/_static/{{css_import}}" />
+{% endfor %}
+{% for js_import in wp_imports["js"] %}
+    <script src='/ns/books/published/{{course.course_name}}/_static/{{js_import}}'></script>
+{% endfor %}
+
+{% if ptx_js_version and webwork_js_version  %}
+    <script src="https://pretextbook.org/js/{{ptx_js_version}}/pretext-webwork/{{webwork_js_version}}/pretext-webwork.js"></script>
+{% else %}
+    <script src="https://pretextbook.org/js/0.3/pretext-webwork/2.18/pretext-webwork.js"></script>
+{% endif %}
+
+<script src="https://webwork-hosting.runestone.academy/webwork2_files/node_modules/iframe-resizer/js/iframeResizer.min.js"></script>
+
+<link href="https://pretextbook.org/css/0.8/pretext_add_on.css" rel="stylesheet" type="text/css">
+
+<script>
+$(document).on("runestone:pre-login-complete", function() {
+    console.log("pre-login-complete");
+})
+var runestoneMathReady = new Promise((resolve) => window.rsMathReady = resolve);
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(','\\)']],
+    tags: "none",
+    tagSide: "right",
+    tagIndent: ".8em",
+    packages: {'[+]': ['base', 'extpfeil', 'ams', 'amscd', 'newcommand', 'knowl']}
+  },
+  options: {
+    ignoreHtmlClass: "tex2jax_ignore|ignore-math",
+    processHtmlClass: "process-math",
+    renderActions: {
+        findScript: [10, function (doc) {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(function(node) {
+                var display = !!node.type.match(/; *mode=display/);
+                var math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+                var text = document.createTextNode('');
+                node.parentNode.replaceChild(text, node);
+                math.start = {node: text, delim: '', n: 0};
+                math.end = {node: text, delim: '', n: 0};
+                doc.math.push(math);
+            });
+        }, '']
+    },
+  },
+  chtml: {
+    scale: 0.88,
+    mtextInheritFont: true
+  },
+  loader: {
+    load: ['input/asciimath', '[tex]/extpfeil', '[tex]/amscd', '[tex]/newcommand', '[pretext]/mathjaxknowl3.js'],
+    paths: {pretext: "https://pretextbook.org/js/lib"},
+  },
+  startup: {
+    pageReady() {
+      return MathJax.startup.defaultPageReady().then(function () {
+      console.log("in ready function");
+      rsMathReady();
+      }
+    )}
+},
+};
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="https://sagecell.sagemath.org/static/embedded_sagecell.js"></script>
+<script src="https://pretextbook.org/js/lib/knowl.js"></script>
+<script src="https://pretextbook.org/js/lib/mathjaxknowl3.js"></script>
+
