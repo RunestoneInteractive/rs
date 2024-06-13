@@ -160,6 +160,7 @@ db.define_table(
     Field("login_required", type="boolean", default=True),
     Field("allow_pairs", type="boolean", default=False),
     Field("student_price", type="integer"),
+    Field("registration_locked", type="boolean", default=False),
     Field("downloads_enabled", type="boolean", default=False),
     Field("courselevel", type="string"),
     Field("new_server", type="boolean", default=False),
@@ -594,7 +595,8 @@ def createUser(username, password, fname, lname, email, course_name, instructor=
 
 def _validateUser(username, password, fname, lname, email, course_name, line):
     errors = []
-
+    if course.registration_locked:
+        errors.append(f"This course's registration is locked.")
     if auth.user.course_name != course_name:
         errors.append(f"Course name does not match your course on line {line}")
     cinfo = db(db.courses.course_name == course_name).select().first()

@@ -610,6 +610,7 @@ def delete():
 def enroll():
     logger.debug(f"Request to login for {request.vars.course_name}")
     course = db(db.courses.course_name == request.vars.course_name).select().first()
+ 
     # is the user already registered for this course?
     res = (
         db(
@@ -623,10 +624,16 @@ def enroll():
         session.flash = f"You are already registered for {request.vars.course_name}"
         redirect(URL("default", "courses"))
 
-    db.user_courses.insert(user_id=auth.user.id, course_id=course.id)
-    db(db.auth_user.id == auth.user.id).update(course_id=course.id, active="T")
-    db(db.auth_user.id == auth.user.id).update(course_name=request.vars.course_name)
-    auth.user.update(course_name=request.course_name)
-    auth.user.update(course_id=course.id)
+    # Check if registration is locked
+    if course and course.registration_locked:
+        session.flash = "Registration is locked for this course."
+        redirect(URL("default", "courses"))
 
-    redirect(URL("default", "donate"))
+    else:
+        db.user_courses.insert(user_id=auth.user.id, course_id=course.id)
+        db(db.auth_user.id == auth.user.id).update(course_id=course.id, active="T")
+        db(db.auth_user.id == auth.user.id).update(course_name=request.vars.course_name)
+        auth.user.update(course_name=request.course_name)
+        auth.user.update(course_id=course.id)
+        redirect(URL("default", "donate"))
+

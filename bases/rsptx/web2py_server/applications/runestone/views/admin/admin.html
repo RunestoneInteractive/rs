@@ -91,6 +91,14 @@
             onchange="updateCourse(this,'allow_pairs')">
             </div>
             <div class="settingsbox">
+                <label for="lockedReg">Registration Locked</label>
+                <input type="checkbox" id="lockedReg"
+                {{ if registration_locked == "true": }}
+                  checked
+                {{ pass }}
+                onchange="updateCourse(this,'registration_locked')">
+                </div>
+            <div class="settingsbox">
                 <label for="pairs">Enable Compare Me Button</label>
                 <input type="checkbox" id="compare_me"
                 {{ if "enable_compare_me" not in globals() or enable_compare_me == "true": }}

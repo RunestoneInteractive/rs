@@ -627,6 +627,7 @@ def admin():
     base_course_id = base_course_id.id
     curr_start_date = course.term_start_date.strftime("%m/%d/%Y")
     downloads_enabled = "true" if sidQuery.downloads_enabled else "false"
+    registration_locked = "true" if hasattr(sidQuery, 'registration_locked') and sidQuery.registration_locked else "false"
     allow_pairs = "true" if sidQuery.allow_pairs else "false"
     keys = (
         db(
@@ -684,6 +685,7 @@ def admin():
         course=sidQuery,
         downloads_enabled=downloads_enabled,
         allow_pairs=allow_pairs,
+        registration_locked=registration_locked,
         instructor_course_list=instructor_course_list,
         motd=motd,
         consumer=consumer,
@@ -2740,6 +2742,10 @@ def update_course():
                 course_id=thecourse.id,
                 attr="groupsize",
                 value=request.vars.groupsize,
+            )
+        if "registration_locked" in request.vars:
+            db(db.courses.id == thecourse.id).update(
+                registration_locked=(request.vars["registration_locked"] == "true")
             )
         return json.dumps(dict(status="success"))
 
