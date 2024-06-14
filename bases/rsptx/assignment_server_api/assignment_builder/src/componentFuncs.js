@@ -162,3 +162,13 @@ export function createMCQTemplate(uniqueId, instructions, choices) {
     console.log(preview_src)
     return preview_src;
 }
+
+export function createShortAnswerTemplate(uniqueId, instructions, attachment) {
+    var preview_src = `
+    <div class="ptx-runestone-container">
+    <div class="runestone explainer ac_section ">
+    <div data-component="shortanswer" id="${uniqueId}" ${attachment ? "data-attachment" : ""}>
+    <p>${instructions}</p>
+    </div></div></div>`;
+    return preview_src;
+}

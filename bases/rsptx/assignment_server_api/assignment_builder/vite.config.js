@@ -1,15 +1,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig(({mode}) => {
+export default defineConfig(({ mode }) => {
     let basedir = "/";
     if (mode === "production") {
-        basedir = "/assignment/react/";
-    } 
+        basedir = "/assignment/instructor/builder";
+    }
     return {
         build: {
             outDir: "../react",
-            base: "/assignment/react/",
+            base: basedir,
+            manifest: true,
         },
         server: {
             proxy: {

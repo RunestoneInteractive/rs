@@ -1,0 +1,25 @@
+{% extends "_react_base.html" %} 
+{% block title %}
+Assignment Builder
+{% endblock %}
+
+{% block css %}
+{% include 'common/static_assets_min.html' %}
+{% for js_import in react_imports["js"] %}
+    <script type="module" crossorigin src='/assignment/react/{{js_import}}'></script>
+{% endfor %}
+{% for css_import in react_imports["css"] %}
+    <link rel="stylesheet" crossorigin type="text/css" href="/assignment/react/{{css_import}}" />
+{% endfor %}
+
+{% endblock %} 
+
+{% block content %}
+{% include 'common/ebook_config.html' %}
+  <div class="hidden-content" style="display: none">
+    \( {{latex_preamble}} \)
+  </div>
+<div id="root"></div>
+{% endblock %} 
+
+

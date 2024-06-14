@@ -20,12 +20,12 @@
             <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
             Group Size
             <select id="groupsize" name="groupsize">
-                <option value="2" 
+                <option value="2"
                 {{ if groupsize == "2": }}
                   selected
                 {{ pass }}
                 >2</option>
-                <option value="3" 
+                <option value="3"
                 {{ if groupsize == "3": }}
                   selected
                 {{ pass }}
@@ -55,6 +55,7 @@
                 id="makep"
                 class="btn btn-info"
                 onclick="makePartners(event)"
+                disabled
             >
                 Enable Text Chat
             </button>
@@ -63,6 +64,7 @@
                 id="vote2"
                 class="btn btn-info"
                 onclick="startVote2(event)"
+                disabled
             >
                 Start Vote 2
             </button>
@@ -71,6 +73,7 @@
                 id="vote3"
                 class="btn btn-info"
                 onclick="warnAndStopVote(event)"
+                disabled
             >
                 Stop Vote 2
             </button>
@@ -80,6 +83,7 @@
                 class="btn btn-info"
                 name="next"
                 value="Next"
+                disabled
             >
                 Next Question
             </button>

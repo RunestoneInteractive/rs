@@ -38,6 +38,8 @@ Test DB Connection and initialize
 
 If you are using the ``basic`` profile to install the database as part of the application you will want to start up and initialize the database first.  Run ``docker compose --profile basic up -d db``.  This will start up just the database server.  You can then initialize the database by running ``docker compose run rsmanage rsmanage initdb``.  Yes, I meant ``rsmanage rsmanage``.  This will create the database tables and add the initial data.  It will first check to see that it can connect to the database.  If not it will give you some information about your database connection url to help you diagnose the problem.
 
+Once the initdb command completes run ``alembic stamp head`` to mark the current state of the database.  This will allow you to run migrations in the future to ensure that your database schema is up to date.
+
 At this point you can also check your environment variables by running `rsmanage env` and/or `docker compose run rsmanage rsmanage env`.  If you have set up separate `DEV_DBURL` and `DC_DEV_DBURL` environment variables both should work.
 
 Start the Servers
@@ -84,3 +86,47 @@ Connecting to the Server
 
 Now you should be able to connect to ``http://localhost/`` from your computer and see the homepage.
 If you get an error check the :ref:`Troubleshooting <debugging>` section.
+
+Using the ``build.py`` script
+----------------------------
+
+The `build.py` script is a convenience script that will build the docker images for the runestone servers.  It will also build the python wheels for all of the runestone components.  This script is run from the top level directory of the rs repo.  It will check to see if you have all of the required environment variables defined and then build the docker images.  It is very useful, but not all knowing.  If there are ways to make it smarter, or to find cases where it fails, or to make it detect mis-configurations, please let us know by filing an issue on the `github repo <https://github.com/RunestoneInteractive/rs/issues>`_.
+
+There are several options that you can pass to the script.  You can see them by running ``poetry run python build.py --help``.  The output of the help option is shown below:
+
+.. code-block:: 
+
+   Checking your environment
+   Usage: build.py [--verbose] [--help] [--all] [--push]
+         --all build all containers, including author and worker
+         --push push all containers to a container registry
+         --one <service> build just one container, e.g. --one author
+         --restart restart the container(s) after building
+         --clean remove all containers and images before starting
+         --verbose show more output
+         --env check key environment variables and exit (verbose is T)
+
+         If something in the build does not work or you have questions about setup or environment
+         variables or installation, please check out our developer documentation.
+         https://runestone-monorepo.readthedocs.io/en/latest/developing.html
+
+Here is a bit more detail on how the script operates so you know what to expect:
+
+#. Load the ``.env`` file.
+
+#. Check common environment variables to make sure they are defined.  If they are not defined the script will exit with an error message.  If you pass the ``--verbose`` option it will print out the values of the environment variables that it checks.
+
+#. If you pass the ``--clean`` option it will remove all of the containers and images before starting.  This is useful if you are having trouble with the containers and want to start fresh.
+
+#. Build the python wheels for all of the runestone components.  This is done by running ``poetry build-project`` in each of the project directories.  This will create a wheel file in the ``dist`` directory of each project.  If there is a ``build.py`` file in the project folder it will be run before the wheel is built.  This is useful for projects that need to build some assets before the wheel is built. such as the interactives or the assignment projects.
+
+#. Build the docker images for the runestone servers.  This is done by running ``docker compose build``.  This will build the images for the runestone servers.  If you pass the ``--all`` option it will also build the images for the author and worker servers.  If you pass the ``--one <service>`` option it will build just the image for the service you specify.
+
+#. Push the images to the container registry if the ``--push`` option is passed.  The container registry is configured in the docker-compose.yml file.  Unless you are authorized to do so, you should not use this option.  It will fail if you do not have the correct permissions.
+
+#. Check the database for possible migrations.  If there are migrations that need to be run it will print out a message telling you how to run them.  You can run the migrations by running ``alembic upgrade head``.  This will run all of the migrations that have not yet been run. **Note:** It is important that the first time you clone `rs` or if you pull from the repo and start over with your database then you should run the ``alembic stamp head`` command to let alembic know that you are starting from a clean slate. The ``build.py`` script can detect this and will tell you. This will allow you to run migrations successfully in the future.  If you see that you are trying to add columns  or tables that are already there, then you are out of sync with alembic and will need to figure out where you are and run ``alembic stamp <revision>`` to get back in sync.  You can find the various revisions by looking in the ``migrations/versions`` directory.
+
+#. if you pass the ``--restart`` option it will restart the containers after building the images.  This is useful if you are making changes to the runestone code and want to see the changes reflected in the running containers.
+
+If a **wheel fails to build** then look at the ``build.log`` file in the appropriate project folder.  If an **image fails to build** look at the ``build.log`` file in the main folder.  If it seems like the author service is taking a long time to build, it is because it is installing a full version of LaTeX and that just takes time!
+

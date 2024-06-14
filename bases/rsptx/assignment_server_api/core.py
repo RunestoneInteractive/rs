@@ -34,7 +34,6 @@ kwargs = {}
 if root_path := os.environ.get("ROOT_PATH"):
     kwargs["root_path"] = root_path
 app = FastAPI(**kwargs)  # type: ignore
-rslogger.info(f"Serving books from {settings.book_path}.\n")
 
 
 # We can mount various "apps" with mount.  Anything that gets to this server with /staticAssets
