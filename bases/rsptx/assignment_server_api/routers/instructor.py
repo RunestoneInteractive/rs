@@ -1,4 +1,5 @@
 import datetime
+import pathlib
 import pandas as pd
 
 from fastapi import APIRouter, Depends, Request, status
@@ -16,6 +17,7 @@ from rsptx.db.crud import (
     fetch_assignments,
     fetch_questions_by_search_criteria,
     fetch_question_count_per_subchapter,
+    fetch_all_course_attributes,
     create_assignment_question,
     create_question,
     fetch_course,
@@ -29,7 +31,11 @@ from rsptx.db.crud import (
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
 from rsptx.configuration import settings
-from rsptx.response_helpers.core import make_json_response
+from rsptx.response_helpers.core import (
+    make_json_response,
+    get_webpack_static_imports,
+    get_react_imports,
+)
 from rsptx.db.models import (
     AssignmentQuestionValidator,
     AssignmentValidator,
@@ -500,3 +506,50 @@ async def search_questions(
         qlist.append(row.model_dump())
     rslogger.debug(f"qlist: {qlist}")
     return make_json_response(status=status.HTTP_200_OK, detail={"questions": qlist})
+
+
+@router.get("/builder")
+async def get_builder(
+    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+):
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return RedirectResponse(url="/")
+
+    reactdir = pathlib.Path(__file__).parent.parent / "react"
+    templates = Jinja2Templates(directory=template_folder)
+    wp_imports = get_webpack_static_imports(course)
+    react_imports = get_react_imports(reactdir)
+    course_attrs = await fetch_all_course_attributes(course.id)
+
+    return templates.TemplateResponse(
+        "assignment/instructor/builder.html",
+        {
+            "course": course,
+            "user": user.username,
+            "request": request,
+            "is_instructor": user_is_instructor,
+            "student_page": False,
+            "wp_imports": wp_imports,
+            "react_imports": react_imports,
+            "settings": settings,
+            "latex_preamble": course_attrs.get("latex_macros", ""),
+            "ptx_js_version": course_attrs.get("ptx_js_version", "0.2"),
+            "webwork_js_version": course_attrs.get("webwork_js_version", "2.17"),
+            "user": user,
+        },
+    )
+
+    # with open(reactdir / "index.html") as f:
+    #     content = f.read()
+    # return HTMLResponse(content=content)
+
+
+@router.get("/grader")
+async def get_grader(
+    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+):
+    return await get_builder(request, user, response_class)

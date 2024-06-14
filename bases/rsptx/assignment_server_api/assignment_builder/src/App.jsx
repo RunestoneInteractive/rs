@@ -4,10 +4,12 @@ import AssignmentEditor, { MoreOptions, AddQuestionTabGroup } from "./renderers/
 import { AssignmentQuestion, problemColumnSpec, problemColumns, readingColumnSpec, readingColumns } from "./renderers/assignmentQuestion.jsx";
 import { useSelector } from "react-redux";
 import { selectIsAuthorized } from "./state/assignment/assignSlice.js";
-import { useSearchParams } from "react-router-dom";
+import { BrowserRouter, useSearchParams } from "react-router-dom";
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AssignmentPicker } from "./renderers/assignmentPicker.jsx";
 import { AssignmentSummary } from "./renderers/assignmentSummary.jsx";
+import { Menubar } from "primereact/menubar";
+import { buildNavBar } from "./navUtils.js";
 
 function AssignmentBuilder() {
     const [searchParams] = useSearchParams();
@@ -72,15 +74,20 @@ function App() {
      * add back in the basename attribute to the BrowserRouter.
      * basename={import.meta.env.BASE_URL}
      */
+    console.log("ENV: ", import.meta.env);
+    const items = buildNavBar(window.eBookConfig)
+
+    const start = <img src="/staticAssets/RAIcon.png" height="30px"/>
     return (
         <>
-            <HashRouter >
+            <Menubar model={items} start={start} />
+            <BrowserRouter basename={import.meta.env.VITE_BASE_URL} >
                 <Routes>
                     <Route path="/" element={<AssignmentBuilder />} />
-                    <Route path="/index.html" element={<AssignmentBuilder />} />
+                    <Route path="/builder" element={<AssignmentBuilder />} />
                     <Route path="/grader" element={<AssignmentGrader />} />
                 </Routes>
-            </HashRouter>
+            </BrowserRouter>
         </>
     );
 }
