@@ -58,8 +58,8 @@ export const mcSlice = createSlice({
             state.statement = action.payload;
         },
         setMCFields: (state, action) => {
-            state.statement = action.payload.statement;  
-            state.optionList = action.payload.optionList;
+            state.statement = action.payload.question_json.statement;  
+            state.optionList = action.payload.question_json.optionList;
         }          
     },
 });
