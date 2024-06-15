@@ -197,7 +197,7 @@ export function SearchResults() {
             dispatch(setComponent(exercise.question_type))
             if (exercise.question_type === "activecode") {
                 dispatch(setACFields(exercise.question_json));
-            } else if (exercise.question_type === "multiplechoice") {
+            } else if (exercise.question_type === "mchoice" || exercise.question_type === "multiplechoice") {
                 dispatch(setMCFields(exercise.question_json));
             }
             op.current.toggle(e);
