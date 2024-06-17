@@ -97,7 +97,7 @@ export default class FITB extends RunestoneBase {
         const dict_ = JSON.parse(json_element.html());
         json_element.remove();
         // Check for older versions that have raw html content.
-        if (dict_.problemHTML !== undefined) {
+        if (dict_.problemHtml !== undefined) {
           this.problemHtml = dict_.problemHtml;
           this.dyn_vars = dict_.dyn_vars;
           this.blankNames = dict_.blankNames;
