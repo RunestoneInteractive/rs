@@ -96,10 +96,16 @@ export default class FITB extends RunestoneBase {
         const json_element = this.scriptSelector(this.origElem);
         const dict_ = JSON.parse(json_element.html());
         json_element.remove();
-        this.problemHtml = dict_.problemHtml;
-        this.dyn_vars = dict_.dyn_vars;
-        this.blankNames = dict_.blankNames;
-        this.feedbackArray = dict_.feedbackArray;
+        // Check for older versions that have raw html content.
+        if (dict_.problemHTML !== undefined) {
+          this.problemHtml = dict_.problemHtml;
+          this.dyn_vars = dict_.dyn_vars;
+          this.blankNames = dict_.blankNames;
+          this.feedbackArray = dict_.feedbackArray;
+        } else {
+          this.problemHtml = this.innerHTML;
+          this.feedbackArray = dict_;
+        }
 
         this.createFITBElement();
         this.setupBlanks();
