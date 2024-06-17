@@ -103,7 +103,7 @@ export default class FITB extends RunestoneBase {
           this.blankNames = dict_.blankNames;
           this.feedbackArray = dict_.feedbackArray;
         } else {
-          this.problemHtml = this.innerHTML;
+          this.problemHtml = this.origElem.innerHTML;
           this.feedbackArray = dict_;
         }
 
