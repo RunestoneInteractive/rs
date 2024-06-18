@@ -46,6 +46,7 @@ pyhumps = "^3.8.0"
 pydal = "^20230521.1"
 runestone = "^7.0.0"
 pydantic-settings = "^2.0.3"
+numpy = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 

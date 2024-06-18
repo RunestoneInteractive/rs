@@ -1,3 +1,8 @@
 .runestone label p {
     display: inline;
+    font-weight: normal !important;
+}
+
+.runestone label pre {
+    font-weight: normal;
 }
