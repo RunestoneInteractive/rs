@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Dropdown } from "primereact/dropdown"; 
+import { Dropdown } from "primereact/dropdown";
 import { allChapters } from "../state/epicker/ePickerSlice";
-import { setChapter } from "../state/interactive/interactiveSlice";
+import { setChapter, selectChapter } from "../state/interactive/interactiveSlice";
 
 export function ChapterSelector() {
     // const chapterOptions = chapters.map((node) => {
@@ -10,7 +10,9 @@ export function ChapterSelector() {
     // });
     const chapterOptions = useSelector(allChapters)
     const dispatch = useDispatch();
-    const [selectedChapter, setSelectedChapter] = useState(null);
+    const currentChapter = useSelector(selectChapter);
+    const sChapter = chapterOptions.find((node) => node.chapter === currentChapter);
+    const [selectedChapter, setSelectedChapter] = useState(sChapter);
 
     return (
         <Dropdown

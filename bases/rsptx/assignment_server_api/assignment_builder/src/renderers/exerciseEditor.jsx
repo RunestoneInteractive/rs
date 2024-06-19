@@ -34,14 +34,14 @@ const acStyle = {
  * @namespace ActiveCodeEditor
  * 
  */
-export function ExerciseEditor({ component }) {
+export function ExerciseEditor(props) {
     // use these selectors to get the values from the store (slice for activecode)
     const uniqueId = useSelector(selectUniqueId);
     const qpoints = useSelector(selectQpoints);
     const dispatch = useDispatch();
     const assignData = useSelector(selectAssignAll);
 
-
+    const buttonTitle = props.editonly ? "Save Changes" : "Save and Add";
     return (
         <div style={acStyle}>
             <Toaster />
@@ -74,7 +74,7 @@ export function ExerciseEditor({ component }) {
                 <label htmlFor="chapSelect">Chapter</label>
                 <ChapterSelector />
 
-                {component}
+                {props.component}
 
                 <Panel header="More Options" collapsed={true} toggleable >
                     <div className="formgrid grid">
@@ -121,18 +121,24 @@ export function ExerciseEditor({ component }) {
                     dispatch(
                         saveAssignmentQuestion({
                             assignData: assignData,
+                            editonly: props.editonly,
                         })
                     )
                 }
             >
-                Save &amp; Add
+                {buttonTitle}
             </Button>
         </div>
     );
 }
 
 ExerciseEditor.propTypes = {
-    component: PropTypes.element.isRequired
+    component: PropTypes.element.isRequired,
+    editonly: PropTypes.bool,
+}
+
+ExerciseEditor.defaultProps = {
+    editonly: false,
 }
 
 export default ExerciseEditor;

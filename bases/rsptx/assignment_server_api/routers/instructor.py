@@ -27,6 +27,7 @@ from rsptx.db.crud import (
     reorder_assignment_questions,
     update_assignment_question,
     update_assignment,
+    update_question,
 )
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
@@ -239,7 +240,7 @@ async def new_question(
         **request_data.model_dump(),
         base_course=course.base_course,
         chapter="test",
-        subchapter="test",
+        subchapter="Exercises",
         timestamp=datetime.datetime.utcnow(),
         is_private=False,
         practice=False,
@@ -259,6 +260,46 @@ async def new_question(
     return make_json_response(
         status=status.HTTP_201_CREATED, detail={"status": "success", "id": q.id}
     )
+
+
+@router.post("/update_question")
+async def do_update_question(
+    request: Request,
+    request_data: QuestionIncoming,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+    course = await fetch_course(user.course_name)
+    rslogger.debug(f"Updating question: {request_data}")
+    req = request_data.model_dump()
+    req["question"] = req["source"]
+    del req["source"]
+    upd_question = QuestionValidator(
+        **req,
+        base_course=course.base_course,
+        subchapter="Exercises",
+        timestamp=datetime.datetime.utcnow(),
+        is_private=False,
+        practice=False,
+        from_source=False,
+        review_flag=False,
+        author=user.first_name + " " + user.last_name,
+    )
+
+    try:
+        await update_question(upd_question)
+    except Exception as e:
+        rslogger.error(f"Error updating question: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error updating question: {str(e)}",
+        )
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
 
 
 @router.post("/new_assignment_q")

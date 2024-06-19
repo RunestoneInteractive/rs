@@ -9,6 +9,7 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import Preview from './preview';
 import PropTypes from 'prop-types';
+import toast from "react-hot-toast";
 import { setComponent } from '../state/componentEditor/editorSlice';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 import { setACFields } from '../state/activecode/acSlice';
@@ -191,6 +192,7 @@ export function SearchResults() {
 
         const toggleEditor = (e) => {
             if ( !exercise.question_json) {
+                toast("No question to edit", { icon: "🚫" })
                 return null;
             }
             dispatch(setQuestion(exercise));
@@ -207,7 +209,7 @@ export function SearchResults() {
             <>
                 <Button icon="pi pi-cog" rounded text type="button" severity="secondary" onClick={toggleEditor} />
                 <OverlayPanel ref={op} dismissable={false} showCloseIcon>
-                    <EditorContainer exercise={exercise.question_type} />
+                    <EditorContainer exercise={exercise.question_type} editonly={true} />
                 </OverlayPanel>
             </>
         );

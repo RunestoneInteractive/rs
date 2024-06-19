@@ -86,6 +86,7 @@ function App() {
                     <Route path="/" element={<AssignmentBuilder />} />
                     <Route path="/builder" element={<AssignmentBuilder />} />
                     <Route path="/grader" element={<AssignmentGrader />} />
+                    <Route path="/admin" element={<h1>Coming Soon</h1>} />
                 </Routes>
             </BrowserRouter>
         </>

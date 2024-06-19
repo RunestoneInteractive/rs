@@ -28,7 +28,11 @@ export const saveAssignmentQuestion = createAsyncThunk(
         let preview_src = store.interactive.preview_src;
         let assignData = incoming.assignData;
         let assignmentId = assignData.id;
+        let editonly = incoming.editonly;
         let questionId = 0;
+        if (editonly) {
+            questionId = store.interactive.id;
+        }
         let questionType = store.interactive.question_type;
         let jsheaders = new Headers({
             "Content-type": "application/json; charset=utf-8",
@@ -38,12 +42,15 @@ export const saveAssignmentQuestion = createAsyncThunk(
         // these names match the database columns
         let body = {
             name: store.interactive.uniqueId,
-            question: "This question was written in the web interface",
+            source: "This question was written in the web interface",
             question_type: store.interactive.question_type,
-            source: JSON.stringify(assignData),
             htmlsrc: preview_src,
-            question_json: JSON.stringify(store.interactive),
+            question_json: JSON.stringify(store.interactive.question_json),
+            chapter: store.interactive.chapter,
         };
+        if (editonly) {
+            body.id = questionId;
+        }
         if (questionType === "activecode" && store.acEditor.suffix_code) {
             body.autograde = 'unittest'
         } else {
@@ -58,7 +65,12 @@ export const saveAssignmentQuestion = createAsyncThunk(
             headers: jsheaders,
             method: "POST",
         };
-        let resp = await fetch("/assignment/instructor/new_question", data);
+        let resp;
+        if (editonly) {
+            resp = await fetch("/assignment/instructor/update_question", data);
+        } else {
+            resp = await fetch("/assignment/instructor/new_question", data);
+        }
         if (!resp.ok) {
             let result = await resp.json();
             console.log("Failed to create question", result.detail);
@@ -70,6 +82,10 @@ export const saveAssignmentQuestion = createAsyncThunk(
             console.log("Question created");
             questionId = result.detail.id;
 
+        }
+        if (editonly) {
+            toast("Question saved", { icon: "👍" })
+            return;
         }
         let aqBody = {
             assignment_id: assignmentId,
