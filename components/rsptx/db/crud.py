@@ -239,6 +239,21 @@ async def create_question(question: QuestionValidator) -> QuestionValidator:
     return QuestionValidator.from_orm(new_question)
 
 
+async def update_question(question: QuestionValidator) -> QuestionValidator:
+    """Update a row in the ``question`` table.
+
+    :param question: A question object
+    :type question: QuestionValidator
+    :return: A representation of the row updated.
+    :rtype: QuestionValidator
+    """
+    async with async_session.begin() as session:
+        stmt = update(Question).where(Question.id == question.id).values(
+            **question.dict()
+        )
+        await session.execute(stmt)
+    return question
+
 async def fetch_poll_summary(div_id: str, course_name: str) -> List[tuple]:
     """
     Find the last answer for each student and then aggregate those answers to provide a summary of poll

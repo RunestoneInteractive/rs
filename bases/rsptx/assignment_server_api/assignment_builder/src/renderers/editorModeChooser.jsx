@@ -42,21 +42,21 @@ export const kindMap = {
  * This component is a container to compose an editing interface for the selected component.
  * @returns The InteractiveComponent component
  */
-export function EditorContainer({ componentName }) {
+export function EditorContainer(props) {
     const selectedComponent = useSelector(selectComponent);
-    let componentChoice = componentName || selectedComponent;
+    let componentChoice = props.componentName || selectedComponent;
 
     if (!componentChoice) {
         return null;
     }
     switch (componentChoice) {
         case "activecode":
-            return <ExerciseEditor component={<ActiveCodeCreator />} />;
+            return <ExerciseEditor component={<ActiveCodeCreator />} editonly={props.editonly} />;
         case "multiplechoice":
         case "mchoice":
-            return <ExerciseEditor component={<MultipleChoiceCreator />} />;
+            return <ExerciseEditor component={<MultipleChoiceCreator />} editonly={props.editonly}/>;
         case "shortanswer":
-            return <ExerciseEditor component={<ShortAnswerCreator />} />;
+            return <ExerciseEditor component={<ShortAnswerCreator />} editonly={props.editonly}/>;
         default:
             return (
                 <p>We have not built an editor for this question type yet.</p>
@@ -67,7 +67,9 @@ export function EditorContainer({ componentName }) {
 
 EditorContainer.propTypes = {
     componentName: PropTypes.string,
+    editonly: PropTypes.bool,
 };
 EditorContainer.defaultProps = {
     componentName: null,
+    editonly: false,
 };

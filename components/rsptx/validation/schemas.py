@@ -230,12 +230,14 @@ class AssignmentIncoming(BaseModel):
 
 
 class QuestionIncoming(BaseModel):
+    id: Optional[int] = None
     name: str
     source: str
     question_type: str
     htmlsrc: str
     autograde: Optional[str] = None
     question_json: Json
+    chapter: Optional[str] = None
 
 
 class AssignmentQuestionIncoming(BaseModel):
