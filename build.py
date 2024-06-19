@@ -504,9 +504,14 @@ except:
 if DBOK:
     console.print("Database appears to be set up correctly", style="green")
     console.print("Will now check for any needed migrations")
-    res = subprocess.run(["alembic", "check"], check=True, capture_output=True)
+    res = subprocess.run(["alembic", "heads"], check=True, capture_output=True)
+    head = res.stdout.decode("utf-8").split()[0].strip()
+    console.print(f"Alembic head is {head}")
+    res = subprocess.run(["alembic", "current"], check=True, capture_output=True)
+    current = res.stdout.decode("utf-8").split("\n")[-2].split()[0].strip()
+    console.print(f"Alembic current is {current}")
     if res.returncode == 0:
-        if "No new upgrade operations detected." in res.stdout.decode("utf-8"):
+        if head == current:
             console.print(
                 "Your database schema appears to be up to date", style="green"
             )
