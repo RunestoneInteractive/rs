@@ -26,7 +26,7 @@ import {
     sumPoints,
 } from '../state/assignment/assignSlice';
 
-import { setQuestion } from '../state/interactive/interactiveSlice';
+import { setQuestion, setPreviewSrc } from '../state/interactive/interactiveSlice';
 import { setExerciseDefaults } from '../exUtils';
 import { OverlayPanel } from 'primereact/overlaypanel';
 import { EditorContainer } from './editorModeChooser';
@@ -197,6 +197,7 @@ export function SearchResults() {
             }
             dispatch(setQuestion(exercise));
             dispatch(setComponent(exercise.question_type))
+            dispatch(setPreviewSrc(exercise.htmlsrc));
             if (exercise.question_type === "activecode") {
                 dispatch(setACFields(exercise.question_json));
             } else if (exercise.question_type === "mchoice" || exercise.question_type === "multiplechoice") {
