@@ -4,7 +4,7 @@
  * @description This file contains the slice for the active code editor. The slice manages the state of the active code editor.
  */
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { addExercise, selectPoints, setPoints } from "../assignment/assignSlice.js";
+import { addExercise, selectPoints, setId, setPoints } from "../assignment/assignSlice.js";
 
 
 import toast from "react-hot-toast";
@@ -30,8 +30,9 @@ export const saveAssignmentQuestion = createAsyncThunk(
         let assignmentId = assignData.id;
         let editonly = incoming.editonly;
         let questionId = 0;
-        if (editonly) {
+        if (editonly || store.interactive.id) {
             questionId = store.interactive.id;
+            editonly = true;
         }
         let questionType = store.interactive.question_type;
         let jsheaders = new Headers({
@@ -81,6 +82,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
         if (result.detail.status === "success") {
             console.log("Question created");
             questionId = result.detail.id;
+            dispatch(setDBId(questionId));
 
         }
         if (editonly) {
@@ -193,6 +195,9 @@ const interactiveSlice = createSlice({
             state.question_json = action.payload.question_json;
             state.topic = action.payload.topic;
             state.difficulty = action.payload.difficulty;
+        },
+        setDBId: (state, action) => {
+            state.id = action.payload;
         }
     },
     extraReducers(builder) {
@@ -223,6 +228,7 @@ export const {
     setQuestionJson,
     setTopic,
     setDifficulty,
+    setDBId,
 } = interactiveSlice.actions;
 
 export const selectUniqueId = (state) => state.interactive.uniqueId;
