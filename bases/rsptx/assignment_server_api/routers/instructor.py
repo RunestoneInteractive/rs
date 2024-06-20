@@ -239,7 +239,6 @@ async def new_question(
     new_question = QuestionValidator(
         **request_data.model_dump(),
         base_course=course.base_course,
-        chapter="test",
         subchapter="Exercises",
         timestamp=datetime.datetime.utcnow(),
         is_private=False,
