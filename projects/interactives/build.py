@@ -20,6 +20,8 @@ with pushd("../../bases/rsptx/interactives"):
         subprocess.run(["npm", "run", "dist"], check=True)
     subprocess.run(["python", "./scripts/dist2xml.py", f"{VERSION}"], check=True)
 
+if "--dev" in sys.argv:
+    sys.exit(0)
 
 subprocess.run(["poetry", "build-project"], check=True)
 
