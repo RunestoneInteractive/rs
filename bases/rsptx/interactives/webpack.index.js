@@ -236,6 +236,10 @@ window.addEventListener("message", (event) => {
         console.log(event.data.location);
         console.log(event.data.name);
         console.log(event.data.data);
+    } else if (event.data.subject == "lti.ext.imathas.result") {
+        console.log(event.data.jwt);  // signed jwt from MyOpenMath
+        console.log(event.data.frame_id)
+    
     }
 });
 

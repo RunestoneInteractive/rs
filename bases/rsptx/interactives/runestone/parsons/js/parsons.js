@@ -335,7 +335,7 @@ export default class Parsons extends RunestoneBase {
                 options["displaymath"] = false;
             }
             textBlock = textBlock.replace(
-                /#(paired|distractor|tag:.*;.*;)/,
+                /\s*#(paired|distractor|tag:.*;.*;)\s*/g,
                 function (mystring, arg1) {
                     options[arg1] = true;
                     return "";

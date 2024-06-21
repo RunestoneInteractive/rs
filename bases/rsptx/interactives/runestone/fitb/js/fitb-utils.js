@@ -176,8 +176,27 @@ export function checkAnswersCore(
                     displayFeed.push(fbl[j]["feedback"]);
                     break;
                 }
-                // If this is a dynamic solution...
-                if (dyn_vars_eval) {
+                // If this is a regexp...
+                if ("regex" in fbl[j]) {
+                    const patt = RegExp(
+                        fbl[j]["regex"],
+                        fbl[j]["regexFlags"]
+                    );
+                    if (patt.test(given)) {
+                        displayFeed.push(fbl[j]["feedback"]);
+                        break;
+                    }
+                } else if ("number" in fbl[j]) {
+                    // This is a number.
+                    const [min, max] = fbl[j]["number"];
+                    // Convert the given string to a number. While there are `lots of ways <https://coderwall.com/p/5tlhmw/converting-strings-to-number-in-javascript-pitfalls>`_ to do this; this version supports other bases (hex/binary/octal) as well as floats.
+                    const actual = +given;
+                    if (actual >= min && actual <= max) {
+                        displayFeed.push(fbl[j]["feedback"]);
+                        break;
+                    }
+                // If this is a dynamic solution, they should provide a testing function
+                } else if (dyn_vars_eval) {
                     const [namedBlankValues, given_arr_converted] =
                         parseAnswers(blankNamesDict, given_arr, dyn_vars_eval);
                     // If there was a parse error, then it student's answer is incorrect.
@@ -211,27 +230,8 @@ export function checkAnswersCore(
                         break;
                     }
                 } else {
-                    // If this is a regexp...
-                    if ("regex" in fbl[j]) {
-                        const patt = RegExp(
-                            fbl[j]["regex"],
-                            fbl[j]["regexFlags"]
-                        );
-                        if (patt.test(given)) {
-                            displayFeed.push(fbl[j]["feedback"]);
-                            break;
-                        }
-                    } else {
-                        // This is a number.
-                        console.assert("number" in fbl[j]);
-                        const [min, max] = fbl[j]["number"];
-                        // Convert the given string to a number. While there are `lots of ways <https://coderwall.com/p/5tlhmw/converting-strings-to-number-in-javascript-pitfalls>`_ to do this; this version supports other bases (hex/binary/octal) as well as floats.
-                        const actual = +given;
-                        if (actual >= min && actual <= max) {
-                            displayFeed.push(fbl[j]["feedback"]);
-                            break;
-                        }
-                    }
+                    // Undefined method of testing.
+                    console.assert("number" in fbl[j]);
                 }
             }
 

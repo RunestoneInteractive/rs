@@ -68,7 +68,6 @@ class Settings(BaseSettings):
 
     # The path to store error logs.
     error_path: Path = Path(os.environ.get("BOOK_PATH", "/usr/books")) / "tickets"
-    rslogger.info(f"Error path is {error_path}")
 
     # Define the mode of operation for the webserver, taken from ``BookServerConfig```. This looks a bit odd, since the string value will be parsed by Pydantic into a Config.
     #

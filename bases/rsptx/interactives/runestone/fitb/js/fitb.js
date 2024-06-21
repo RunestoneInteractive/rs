@@ -630,7 +630,7 @@ export default class FITB extends RunestoneBase {
                     this.dyn_vars_eval
                 );
                 // Convert the returned NodeList into a string of HTML.
-                df = df
+                df = (df?.[0] !== undefined)
                     ? df[0].parentElement.innerHTML
                     : "No feedback provided";
             }
