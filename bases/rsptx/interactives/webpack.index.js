@@ -227,8 +227,20 @@ __webpack_public_path__ = script_src.substring(
     script_src.lastIndexOf("/") + 1
 );
 
+function basicParseJwt(token) {
+    var base64Url = token.split('.')[1];
+    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }
+    ).join(''));
+    return JSON.parse(jsonPayload);
+}
 // SPLICE Events
 window.addEventListener("message", (event) => {
+    //console.log("got a message", event);
+    // if you uncomment the above you get a message about every 1/2 second from React
+    // that is just a keepalive message of some kind
     if (event.data.subject == "SPLICE.reportScoreAndState") {
         console.log(event.data.score);
         console.log(event.data.state);
@@ -236,10 +248,14 @@ window.addEventListener("message", (event) => {
         console.log(event.data.location);
         console.log(event.data.name);
         console.log(event.data.data);
-    } else if (event.data.subject == "lti.ext.imathas.result") {
-        console.log(event.data.jwt);  // signed jwt from MyOpenMath
-        console.log(event.data.frame_id)
-    
+    } else if (event.origin === "https://www.myopenmath.com" &&
+        typeof event.data === 'string' &&
+        event.data.indexOf('lti.ext.imathas.result') != -1) {
+        let msgdata = JSON.parse(event.data);
+        let jwt = basicParseJwt(msgdata.jwt);
+        console.log('Result received from frame ' + msgdata.frame_id + ' with score ' + jwt.score);
+        //console.log(event.data.jwt);  // signed jwt from MyOpenMath
+        //console.log(event.data.frame_id)
     }
 });
 
