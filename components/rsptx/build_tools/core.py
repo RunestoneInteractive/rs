@@ -135,21 +135,22 @@ def _build_ptx_book(config, gen, manifest, course, click=click):
         return False
     else:
         click.echo("Checking files")
-        rs = check_project_ptx()  # sets output_dir to `published/<document-id>`
+        rs = check_project_ptx(course)  # sets output_dir to `published/<course>`
         if not rs:
             return False
+        
 
         rs.build()  # build the book, generating assets as needed
 
         mpath = rs.output_dir_abspath() / manifest
-        process_manifest(cname, mpath)
+        process_manifest(course, mpath)
         # Fetch and copy the runestone components release as advertised by the manifest
         # - Use wget to get all the js files and put them in _static
         click.echo("populating with the latest runestone files")
         populate_static(config, mpath, course)
         # update the library page
         click.echo("updating library...")
-        main_page = find_real_url(cname)
+        main_page = find_real_url(course)
         update_library(config, mpath, course, main_page=main_page, build_system="PTX")
         return True
 
@@ -176,11 +177,11 @@ def process_manifest(cname, mpath, click=click):
     return True
 
 
-def check_project_ptx(click=click):
+def check_project_ptx(click=click,course=None):
     """
     Verify that the PreTeXt project is set up for a Runestone build
 
-    Returns: Name of the main project file.
+    Returns: Runestone target from PreTeXt project
 
     1. Ensure there is a runestone target in project.ptx
     2. Set project output to published directory
@@ -211,12 +212,12 @@ def check_project_ptx(click=click):
         click.echo("Source file specified in runestone target does not have a document-id")
         return False
     docid = docid_list[0]
-    if docid != course:
+    if course is not None and docid != course:
         click.echo(f"Error course: {course} does not match document-id: {docid}")
         return False
-    tgt.output_dir = Path(docid_list[0])
+    tgt.output_dir = Path(docid)
 
-    return rs
+    return tgt
 
 
 def extract_docinfo(tree, string, attr=None, click=click):
