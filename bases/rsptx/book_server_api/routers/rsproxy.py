@@ -147,12 +147,12 @@ async def jobePushFile(
     resp = req.put(url, json=rs)
 
     rslogger.debug("Got response from JOBE %s ", resp.status_code)
-    return JSONResponse(
-        status_code=resp.status_code, content=jsonable_encoder(resp.json())
-    )
+    # pushing the file does not result in any json in the response.  We just care about
+    # the status code
+    return JSONResponse(status_code=resp.status_code, content=jsonable_encoder(""))
 
 
-@router.api_route("/jobeCheckFile/{fhash:str}", methods=["POST", "HEAD", "GET", "PUT"])
+@router.api_route("/jobeCheckFile/{fhash:str}", methods=["HEAD", "GET"])
 async def jobeCheckFile(request: Request, fhash: str, response_class=JSONResponse):
     req = rq.Session()
     rslogger.debug("got a jobe request HEAD jobeCheckFile")
