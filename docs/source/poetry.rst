@@ -31,7 +31,7 @@ With those installed descend into the Runestone repository by doing ``cd rs`` an
 
 You need to have `Docker <https://docs.docker.com/get-docker/>`_ and the `compose subcommand <https://github.com/docker/compose/tree/main?tab=readme-ov-file#linux>`_  Make sure you have a recent version of docker compose We are using 2.27 in development.
 
-Finally the runestone components and the new instructor interface use a lot of javascript.  You will need to have node and npm installed.  We use node 21.7.x and npm 10.5 or later.  You can install `node and npm <https://github.com/nodesource/distributions/blob/master/README.md>` by following the instructions on the node link.  On a mac you can use homebrew to install node and npm.  ``brew install node``
+Finally the runestone components and the new instructor interface use a lot of javascript.  You will need to have node and npm installed.  We use node 21.7.x and npm 10.5 or later.  You can install `node and npm <https://github.com/nodesource/distributions/blob/master/README.md>`_ by following the instructions on the node link.  On a mac you can use homebrew to install node and npm.  ``brew install node``
 
 .. code:: shell
 
