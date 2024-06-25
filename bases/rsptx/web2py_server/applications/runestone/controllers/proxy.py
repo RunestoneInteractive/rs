@@ -1,12 +1,16 @@
 import requests as rq
 import logging
 
+# NOTE
+# This file should no longer be used  Proxying is handled by the book service.
+# This file is only here for legacy reasons to support old books... I will delete it soon.
+
 logger = logging.getLogger(settings.logger)
 logger.setLevel(settings.log_level)
 
-response.headers[
-    "Access-Control-Allow-Headers"
-] = "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With"
+response.headers["Access-Control-Allow-Headers"] = (
+    "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With"
+)
 response.headers["Access-Control-Allow-Methods"] = "GET, PUT, POST, HEAD, OPTIONS"
 
 

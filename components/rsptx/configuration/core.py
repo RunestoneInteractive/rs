@@ -7,6 +7,7 @@ the configuration for most things.  **Private** things should be configured in t
 environment so they are not accidentally committed to Github.
 Defaults provided here may be overridden by environment variables `Per <https://fastapi.tiangolo.com/advanced/settings/>`_.
 """
+
 #
 #
 # Imports
@@ -61,7 +62,9 @@ class Settings(BaseSettings):
 
     # The path to the Runestone application inside web2py.
 
-    runestone_path: PosixPath = Path(os.environ.get("RUNESTONE_PATH", Path.home())).resolve()
+    runestone_path: PosixPath = Path(
+        os.environ.get("RUNESTONE_PATH", Path.home())
+    ).resolve()
 
     # _`book_path`: specify the directory to serve books from. For now, default to serving from the same place as the Runestone server, since the server uses some of these files.
     book_path: Path = runestone_path / "books"
@@ -192,6 +195,9 @@ class Settings(BaseSettings):
     bucket: str = "runestonefiles"
 
     log_level: str = "DEBUG"
+
+    jobe_key: str = ""
+    jobe_server: str = "http://jobe"
 
 
 settings = Settings()
