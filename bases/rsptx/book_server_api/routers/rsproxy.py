@@ -108,7 +108,7 @@ class RunSpec(BaseModel):
 
 
 @router.api_route("/jobeRun", methods=["POST"])
-def jobeRun(request: Request, request_data: RunSpec, response_class=JSONResponse):
+async def jobeRun(request: Request, request_data: RunSpec, response_class=JSONResponse):
     req = rq.Session()
     rslogger.debug("got a jobe request %s", request_data.run_spec)
 
@@ -130,8 +130,8 @@ def jobeRun(request: Request, request_data: RunSpec, response_class=JSONResponse
     )
 
 
-@router.api_route("/jobePushFile/{fhash:str}", methods=["POST", "HEAD", "PUT", "GET"])
-def jobePushFile(
+@router.api_route("/jobePushFile/{fhash:str}", methods=["POST", "PUT"])
+async def jobePushFile(
     request: Request, fhash: str, request_data: RunSpec, response_class=JSONResponse
 ):
     req = rq.Session()
@@ -153,7 +153,7 @@ def jobePushFile(
 
 
 @router.api_route("/jobeCheckFile/{fhash:str}", methods=["POST", "HEAD", "GET", "PUT"])
-def jobeCheckFile(request: Request, fhash: str, response_class=JSONResponse):
+async def jobeCheckFile(request: Request, fhash: str, response_class=JSONResponse):
     req = rq.Session()
     rslogger.debug("got a jobe request HEAD jobeCheckFile")
 
@@ -175,7 +175,7 @@ class PytutorTrace(BaseModel):
 
 
 @router.api_route("/pytutor_trace", methods=["POST"])
-def pytutor_trace(
+async def pytutor_trace(
     request: Request, request_data: PytutorTrace, response_class=JSONResponse
 ):
     code = request_data.code
