@@ -135,7 +135,9 @@ def _build_ptx_book(config, gen, manifest, course, click=click):
         return False
     else:
         click.echo("Checking files")
-        rs = check_project_ptx(course)  # sets output_dir to `published/<course>`
+        # sets output_dir to `published/<course>`
+        # and {"host-platform": "runestone"} in stringparams
+        rs = check_project_ptx(course)
         if not rs:
             return False
         
@@ -216,6 +218,7 @@ def check_project_ptx(click=click,course=None):
         click.echo(f"Error course: {course} does not match document-id: {docid}")
         return False
     tgt.output_dir = Path(docid)
+    tgt.stringparams.update({"host-platform": "runestone"})
 
     return tgt
 
