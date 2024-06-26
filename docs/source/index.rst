@@ -10,11 +10,11 @@ Welcome to Runestone Documentation
    :maxdepth: 2
 
    readme
-   contributing
-   developing
    running
-   structure
+   contributing
    poetry
+   developing
+   structure
    docker
    database
    environmental_vars
