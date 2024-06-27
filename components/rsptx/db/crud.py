@@ -20,6 +20,7 @@ import json
 from collections import namedtuple
 from typing import Dict, List, Optional, Tuple, Any
 import traceback
+import pytz
 
 # Third-party imports
 # -------------------
@@ -248,11 +249,12 @@ async def update_question(question: QuestionValidator) -> QuestionValidator:
     :rtype: QuestionValidator
     """
     async with async_session.begin() as session:
-        stmt = update(Question).where(Question.id == question.id).values(
-            **question.dict()
+        stmt = (
+            update(Question).where(Question.id == question.id).values(**question.dict())
         )
         await session.execute(stmt)
     return question
+
 
 async def fetch_poll_summary(div_id: str, course_name: str) -> List[tuple]:
     """
@@ -2370,3 +2372,64 @@ async def fetch_questions_for_chapter_subchapter(
             )
 
         return chaps
+
+
+async def fetch_answers(question_id: str, event: str, course_name: str, username: str):
+    """
+    Fetch all answers for a given question.
+
+    :param question_id: int, the id of the question
+    :return: List[AnswerValidator], a list of AnswerValidator objects
+    """
+
+    rcd = runestone_component_dict[EVENT2TABLE[event]]
+    tbl = rcd.model
+    query = select(tbl).where(
+        and_(
+            (tbl.div_id == question_id),
+            (tbl.course_name == course_name),
+            (tbl.sid == username),
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        return [a for a in res.scalars()]
+
+
+async def is_assigned(question_id: str, course_id: int) -> bool:
+    """
+    Check if a question is part of an assignment.
+    If the assignment is not yet due -- no problem.
+    If the assignment is past due but the instructor has not enforced the due date -- no problem.
+    If the assignment is past due but the instructor has not enforced the due date, but HAS released the assignment -- then no longer assigned.
+
+    :param question_id: str, the name of the question
+    :param course_id: int, the id of the course
+    :return: Boolean
+    """
+    # select * from assignments join assignment_questions on assignment_questions.assignment_id = assignments.id join courses on courses.id = assignments.course where courses.course_name = 'overview'
+
+    query = select(Assignment, AssignmentQuestion, Question).where(
+        and_(
+            (Question.name == question_id),
+            (AssignmentQuestion.question_id == Question.id),
+            (AssignmentQuestion.assignment_id == Assignment.id),
+            (Assignment.course == course_id),
+        )
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        for row in res:
+            if datetime.datetime.now(datetime.UTC) <= row.Assignment.duedate.replace(
+                tzinfo=pytz.utc
+            ):
+                return True
+            else:
+                if (
+                    row.Assignment.enforce_due == False
+                    and row.Assignment.released == False
+                ):
+                    return True
+        return False
