@@ -2397,39 +2397,60 @@ async def fetch_answers(question_id: str, event: str, course_name: str, username
         return [a for a in res.scalars()]
 
 
-async def is_assigned(question_id: str, course_id: int) -> bool:
+async def is_assigned(question_id: str, course_id: int) -> schemas.ScoringSpecification:
     """
     Check if a question is part of an assignment.
+    If the assignment is not visible, the question is not considered assigned.
     If the assignment is not yet due -- no problem.
     If the assignment is past due but the instructor has not enforced the due date -- no problem.
     If the assignment is past due but the instructor has not enforced the due date, but HAS released the assignment -- then no longer assigned.
 
     :param question_id: str, the name of the question
     :param course_id: int, the id of the course
-    :return: Boolean
+    :return: ScoringSpecification, the scoring specification object
     """
     # select * from assignments join assignment_questions on assignment_questions.assignment_id = assignments.id join courses on courses.id = assignments.course where courses.course_name = 'overview'
 
-    query = select(Assignment, AssignmentQuestion, Question).where(
-        and_(
-            (Question.name == question_id),
-            (AssignmentQuestion.question_id == Question.id),
-            (AssignmentQuestion.assignment_id == Assignment.id),
-            (Assignment.course == course_id),
+    query = (
+        select(Assignment, AssignmentQuestion, Question)
+        .where(
+            and_(
+                (Question.name == question_id),
+                (AssignmentQuestion.question_id == Question.id),
+                (AssignmentQuestion.assignment_id == Assignment.id),
+                (Assignment.course == course_id),
+                (Assignment.is_timed == False),  # noqa: E712
+                (Assignment.is_peer == False),  # noqa: E712
+            )
         )
+        .order_by(Assignment.duedate.desc())
     )
 
     async with async_session() as session:
         res = await session.execute(query)
         for row in res:
+            scoringSpec = schemas.ScoringSpecification(
+                assigned=False,
+                max_score=row.AssignmentQuestion.points,
+                score=0,
+                assignment_id=row.Assignment.id,
+                which_to_grade=row.AssignmentQuestion.which_to_grade,
+                how_to_score=row.AssignmentQuestion.autograde,
+                is_reading=row.AssignmentQuestion.reading_assignment,
+                username="",
+                comment="",
+                question_id=row.Question.id,
+            )
             if datetime.datetime.now(datetime.UTC) <= row.Assignment.duedate.replace(
                 tzinfo=pytz.utc
             ):
-                return True
+                scoringSpec.assigned = True
+                return scoringSpec
             else:
                 if (
                     row.Assignment.enforce_due == False
                     and row.Assignment.released == False
                 ):
-                    return True
-        return False
+                    scoringSpec.assigned = True
+                    return scoringSpec
+        return schemas.ScoringSpecification()

@@ -253,3 +253,15 @@ class SearchSpecification(BaseModel):
     author: Optional[str] = None
     tag_list: Optional[str] = None
     base_course: Optional[str] = None
+
+
+class ScoringSpecification(BaseModel):
+    assigned: bool = False
+    score: Optional[Union[int, float]] = None
+    max_score: Optional[int] = None
+    question_id: Optional[int] = None
+    assignment_id: Optional[int] = None
+    which_to_grade: Optional[str] = None
+    how_to_score: Optional[str] = None
+    username: Optional[str] = None
+    comment: Optional[str] = None
