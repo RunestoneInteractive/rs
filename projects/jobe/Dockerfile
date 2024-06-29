@@ -87,6 +87,8 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
 
 # Fix catch.hpp (use the one from catch2)
 RUN rm -f /usr/include/catch.hpp && ln -s /usr/include/catch2/catch.hpp /usr/include/catch.hpp
+# Precompile catch.hpp to speed things up
+RUN g++ -O2 -Wall -x c++-header /usr/include/catch.hpp -o /usr/include/catch.hpp.gch
 
 # Expose apache
 EXPOSE 80
