@@ -1710,6 +1710,24 @@ async def fetch_question_grade(sid: str, course_name: str, qid: str):
         return QuestionGradeValidator.from_orm(res.scalars().one_or_none())
 
 
+async def create_question_grade_entry(
+    sid: str, course_name: str, qid: str, grade: int
+) -> QuestionGradeValidator:
+    """
+    Create a new QuestionGrade entry with the given sid, course_name, qid, and grade.
+    """
+    new_qg = QuestionGrade(sid=sid, 
+                           course_name=course_name, 
+                           div_id=qid, 
+                           score=grade,
+                           comment="autograded",
+    )
+        
+    async with async_session.begin() as session:
+        session.add(new_qg)
+    return QuestionGradeValidator.from_orm(new_qg)
+
+
 async def fetch_user_experiment(sid: str, ab_name: str) -> int:
     """
     When a question is part of an AB experiement (ab_name) get the experiment
@@ -2454,3 +2472,31 @@ async def is_assigned(question_id: str, course_id: int) -> schemas.ScoringSpecif
                     scoringSpec.assigned = True
                     return scoringSpec
         return schemas.ScoringSpecification()
+
+
+async def fetch_assignment_scores(
+    assignment_id: int, course_name: str, username: str
+) -> List[QuestionGradeValidator]:
+    """
+    Fetch all scores for a given assignment.
+
+    :param assignment_id: int, the id of the assignment
+    :param course_id: int, the id of the course
+    :param username: str, the username of the student
+    :return: List[ScoringSpecification], a list of ScoringSpecification objects
+    """
+    query = select(QuestionGrade).where(
+        and_(
+            (QuestionGrade.sid == username),
+            (QuestionGrade.div_id == Question.name),
+            (Question.id == AssignmentQuestion.question_id),
+            (AssignmentQuestion.assignment_id == assignment_id),
+            (QuestionGrade.course_name == course_name),
+        )
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        return [QuestionGradeValidator.from_orm(q) for q in res.scalars()]
+
