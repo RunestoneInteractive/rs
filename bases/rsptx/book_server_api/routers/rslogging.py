@@ -55,6 +55,7 @@ from rsptx.db.crud import (
     update_sub_chapter_progress,
     update_user_state,
 )
+from rsptx.grading_helpers import grade_submission
 from rsptx.response_helpers.core import make_json_response
 from rsptx.db.models import (
     AuthUserValidator,
@@ -162,6 +163,8 @@ async def log_book_event(
 
             ans_idx = await create_answer_table_entry(valid_table, entry.event)
             rslogger.debug(ans_idx)
+            if entry.event != "timedExam":
+                await grade_submission(user, entry)
 
     if idx:
         return make_json_response(status=status.HTTP_201_CREATED, detail=response_dict)
