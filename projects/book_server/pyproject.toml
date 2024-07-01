@@ -13,6 +13,7 @@ packages = [
     { include = "rsptx/configuration", from = "../../components" },
     { include = "rsptx/response_helpers", from = "../../components" },
     { include = "rsptx/lp_sim_builder", from = "../../components" },
+    { include = "rsptx/grading_helpers", from = "../../components"},
     { include = "rsptx/templates", from = "../../components" },
     { include = "rsptx/exceptions", from = "../../components" },
     { include = "rsptx/book_server_api", from = "../../bases" },
@@ -21,7 +22,7 @@ packages = [
 
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 aioredis = "^2.0.0"
 async-timeout = "^4.0.0"
 celery = { extras = ["redis"], version = "^5.0.0" }

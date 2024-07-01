@@ -1716,15 +1716,35 @@ async def create_question_grade_entry(
     """
     Create a new QuestionGrade entry with the given sid, course_name, qid, and grade.
     """
-    new_qg = QuestionGrade(sid=sid, 
-                           course_name=course_name, 
-                           div_id=qid, 
-                           score=grade,
-                           comment="autograded",
+    new_qg = QuestionGrade(
+        sid=sid,
+        course_name=course_name,
+        div_id=qid,
+        score=grade,
+        comment="autograded",
     )
-        
+
     async with async_session.begin() as session:
         session.add(new_qg)
+    return QuestionGradeValidator.from_orm(new_qg)
+
+
+async def update_question_grade_entry(
+    sid: str, course_name: str, qid: str, grade: int
+) -> QuestionGradeValidator:
+    """
+    Create a new QuestionGrade entry with the given sid, course_name, qid, and grade.
+    """
+    new_qg = QuestionGrade(
+        sid=sid,
+        course_name=course_name,
+        div_id=qid,
+        score=grade,
+        comment="autograded",
+    )
+
+    async with async_session.begin() as session:
+        session.merge(new_qg)
     return QuestionGradeValidator.from_orm(new_qg)
 
 
@@ -2465,10 +2485,7 @@ async def is_assigned(question_id: str, course_id: int) -> schemas.ScoringSpecif
                 scoringSpec.assigned = True
                 return scoringSpec
             else:
-                if (
-                    row.Assignment.enforce_due == False
-                    and row.Assignment.released == False
-                ):
+                if not row.Assignment.enforce_due and not row.Assignment.released:
                     scoringSpec.assigned = True
                     return scoringSpec
         return schemas.ScoringSpecification()
@@ -2499,4 +2516,3 @@ async def fetch_assignment_scores(
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return [QuestionGradeValidator.from_orm(q) for q in res.scalars()]
-
