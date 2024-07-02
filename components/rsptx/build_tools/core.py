@@ -135,46 +135,24 @@ def _build_ptx_book(config, gen, manifest, course, click=click):
         return False
     else:
         click.echo("Checking files")
-        rs = check_project_ptx()
-        main_file = None
-        if rs:
-            main_file = rs.source_abspath()
-        else:
+        # sets output_dir to `published/<course>`
+        # and {"host-platform": "runestone"} in stringparams
+        rs = check_project_ptx(course)
+        if not rs:
             return False
-        # parse the main file, but this does not resolve any xi:includes
-        if main_file is None:
-            click.echo("Error: missing main file")
-            return False
-        tree = ET.parse(main_file)
-        # The next two lines are needed to parse the entire tree
-        root = tree.getroot()
-        ElementInclude.include(
-            root, base_url=str(main_file)
-        )  # include all xi:include parts
-
-        el = root.find("./docinfo/document-id")
-        if el is not None:
-            cname = el.text
-            if cname != course:
-                click.echo(
-                    f"Error course: {course} does not match document-id: {cname}"
-                )
-                return False
-        else:
-            click.echo("Missing document-id please add to <docinfo>")
-            return False
+        
 
         rs.build()  # build the book, generating assets as needed
 
-        mpath = Path(os.getcwd(), "published", cname, manifest)
-        process_manifest(cname, mpath)
+        mpath = rs.output_dir_abspath() / manifest
+        process_manifest(course, mpath)
         # Fetch and copy the runestone components release as advertised by the manifest
         # - Use wget to get all the js files and put them in _static
         click.echo("populating with the latest runestone files")
         populate_static(config, mpath, course)
         # update the library page
         click.echo("updating library...")
-        main_page = find_real_url(cname)
+        main_page = find_real_url(course)
         update_library(config, mpath, course, main_page=main_page, build_system="PTX")
         return True
 
@@ -201,16 +179,18 @@ def process_manifest(cname, mpath, click=click):
     return True
 
 
-def check_project_ptx(click=click):
+def check_project_ptx(click=click,course=None):
     """
     Verify that the PreTeXt project is set up for a Runestone build
 
-    Returns: Name of the main project file.
+    Returns: Runestone target from PreTeXt project
 
-    1. Is there a runestone target in project.ptx?
-    2. Is the output dir set to published/basecourse
-    3. Is the top level source file set properly
-    4. TODO: Is the publisher file set (and present)
+    1. Ensure there is a runestone target in project.ptx
+    2. Set project output to published directory
+    3. Ensure the top level source file exists
+    4. Ensure the publisher file exists
+    5. Ensure the document-id exists
+    6. Set target output to document-id
 
     """
     proj = Project.parse("project.ptx")
@@ -218,22 +198,29 @@ def check_project_ptx(click=click):
         click.echo("No runestone target in project.ptx")
         return False
 
-    rs = proj.get_target("runestone")
-    dest = None
-    if hasattr(rs, "output_dir"):
-        dest = rs.output_dir
-    else:
-        click.echo("No output_dir specified in runestone target")
-        return False
-    if dest is not None:
-        if "published" not in str(dest):
-            click.echo("destination for build must be in published/<document-id>")
-            return False
-    if hasattr(rs, "source") is False:
-        click.echo("No source file specified in runestone target")
-        return False
+    proj.output_dir = Path("published")
 
-    return rs
+    tgt = proj.get_target("runestone")
+
+    if not tgt.source_abspath().exists():
+        click.echo("Source file specified in runestone target does not exist")
+        return False
+    if not tgt.publication_abspath().exists():
+        click.echo("Publication file specified in runestone target does not exist")
+        return False
+    
+    docid_list = tgt.source_element().xpath("/pretext/docinfo/document-id/text()")
+    if len(docid_list) < 1:
+        click.echo("Source file specified in runestone target does not have a document-id")
+        return False
+    docid = docid_list[0]
+    if course is not None and docid != course:
+        click.echo(f"Error course: {course} does not match document-id: {docid}")
+        return False
+    tgt.output_dir = Path(docid)
+    tgt.stringparams.update({"host-platform": "runestone"})
+
+    return tgt
 
 
 def extract_docinfo(tree, string, attr=None, click=click):
