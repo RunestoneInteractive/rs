@@ -9,6 +9,7 @@ from rsptx.db.crud import (
     update_question_grade_entry,
     upsert_grade,
     fetch_assignment_scores,
+    did_send_messages,
 )
 from rsptx.validation.schemas import LogItemIncoming, ScoringSpecification
 from rsptx.db.models import GradeValidator
@@ -29,7 +30,9 @@ async def grade_submission(
 
     # First figure out if the answer is part of an assignment
     update_total = False
-    scoreSpec = await is_assigned(submission.div_id, user.course_id)
+    scoreSpec = await is_assigned(
+        submission.div_id, user.course_id, submission.assignment_id
+    )
     if scoreSpec.assigned:
         rslogger.debug(
             f"Scoring {submission.div_id} for {user.username} scoreSpec = {scoreSpec}"
@@ -41,13 +44,13 @@ async def grade_submission(
             if len(answers) > 0:
                 return
             else:
-                scoreSpec.score = score_one_answer(scoreSpec, submission)
+                scoreSpec.score = await score_one_answer(scoreSpec, submission)
                 await create_question_grade_entry(
                     user.username, user.course_name, submission.div_id, scoreSpec.score
                 )
                 update_total = True
         elif scoreSpec.which_to_grade == "last_answer":
-            scoreSpec.score = score_one_answer(scoreSpec, submission)
+            scoreSpec.score = await score_one_answer(scoreSpec, submission)
             answer = await fetch_question_grade(
                 user.username, user.course_name, submission.div_id
             )
@@ -62,7 +65,7 @@ async def grade_submission(
                 )
             update_total = True
         elif scoreSpec.which_to_grade == "best_answer":
-            scoreSpec.score = score_one_answer(scoreSpec, submission)
+            scoreSpec.score = await score_one_answer(scoreSpec, submission)
             rslogger.debug(
                 f"Scoring best answer with current score of {scoreSpec.score}"
             )
@@ -85,6 +88,32 @@ async def grade_submission(
                     submission.div_id,
                     scoreSpec.score,
                 )
+                update_total = True
+        elif scoreSpec.which_to_grade == "all_answer":
+            # This is a peer instruction question.
+            # check to make sure that this is vote2 before we do anything.
+            # PI questions are scored similar to interact.
+            if "vote2" in submission.act:
+                scoreSpec.username = user.username
+                scoreSpec.score = await score_one_answer(scoreSpec, submission)
+                answer = await fetch_question_grade(
+                    user.username, user.course_name, submission.div_id
+                )
+                if answer:
+                    answer.score = scoreSpec.score
+                    await update_question_grade_entry(
+                        user.username,
+                        user.course_name,
+                        submission.div_id,
+                        scoreSpec.score,
+                    )
+                else:
+                    await create_question_grade_entry(
+                        user.username,
+                        user.course_name,
+                        submission.div_id,
+                        scoreSpec.score,
+                    )
                 update_total = True
         if update_total:
             rslogger.debug("Updating total score")
@@ -113,7 +142,7 @@ async def grade_submission(
             res = await upsert_grade(newGrade)
 
 
-def score_one_answer(
+async def score_one_answer(
     scoreSpec: ScoringSpecification, submission: LogItemIncoming
 ) -> Union[int, float]:
     """
@@ -136,5 +165,13 @@ def score_one_answer(
             return 0
     elif scoreSpec.how_to_score == "interact":
         return scoreSpec.max_score
+    elif scoreSpec.how_to_score == "peer":
+        return scoreSpec.max_score
+    elif scoreSpec.how_to_score == "peer_chat":
+        did_chat = await did_send_messages(
+            scoreSpec.username, submission.div_id, submission.course_name
+        )
+        if did_chat:
+            return scoreSpec.max_score
     else:
         return 0

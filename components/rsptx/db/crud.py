@@ -2435,7 +2435,9 @@ async def fetch_answers(question_id: str, event: str, course_name: str, username
         return [a for a in res.scalars()]
 
 
-async def is_assigned(question_id: str, course_id: int) -> schemas.ScoringSpecification:
+async def is_assigned(
+    question_id: str, course_id: int, assignment_id: Optional[int] = None
+) -> schemas.ScoringSpecification:
     """
     Check if a question is part of an assignment.
     If the assignment is not visible, the question is not considered assigned.
@@ -2448,19 +2450,18 @@ async def is_assigned(question_id: str, course_id: int) -> schemas.ScoringSpecif
     :return: ScoringSpecification, the scoring specification object
     """
     # select * from assignments join assignment_questions on assignment_questions.assignment_id = assignments.id join courses on courses.id = assignments.course where courses.course_name = 'overview'
-
+    clauses = [
+        (Question.name == question_id),
+        (AssignmentQuestion.question_id == Question.id),
+        (AssignmentQuestion.assignment_id == Assignment.id),
+        (Assignment.course == course_id),
+        (Assignment.is_timed == False),  # noqa: E712
+    ]
+    if assignment_id is not None:
+        clauses.append(Assignment.id == assignment_id)
     query = (
         select(Assignment, AssignmentQuestion, Question)
-        .where(
-            and_(
-                (Question.name == question_id),
-                (AssignmentQuestion.question_id == Question.id),
-                (AssignmentQuestion.assignment_id == Assignment.id),
-                (Assignment.course == course_id),
-                (Assignment.is_timed == False),  # noqa: E712
-                (Assignment.is_peer == False),  # noqa: E712
-            )
-        )
+        .where(and_(*clauses))
         .order_by(Assignment.duedate.desc())
     )
 
@@ -2516,3 +2517,25 @@ async def fetch_assignment_scores(
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return [QuestionGradeValidator.from_orm(q) for q in res.scalars()]
+
+
+async def did_send_messages(sid: str, div_id: str, course_name: str) -> bool:
+    """
+    Fetch all messages sent to a given student.
+
+    :param sid: str, the student id
+    :return: List[SentMessageValidator], a list of SentMessageValidator objects
+    """
+    query = select(Useinfo).where(
+        and_(
+            (Useinfo.sid == sid),
+            (Useinfo.div_id == div_id),
+            (Useinfo.course_id == course_name),
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        if len(res.all()) > 0:
+            return True
+        else:
+            return False

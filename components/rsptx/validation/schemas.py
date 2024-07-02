@@ -119,6 +119,7 @@ class LogItemIncoming(BaseModelNone):
     timestamp: Optional[datetime] = None
     chapter: Optional[str] = None
     subchapter: Optional[str] = None
+    assignment_id: Optional[int] = None
     # used by parsons
     source: Optional[str] = None
     # used by dnd

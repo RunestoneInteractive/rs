@@ -100,6 +100,9 @@ export default class RunestoneBase {
         if (typeof this.percent === "number") {
             eventInfo.percent = this.percent;
         }
+        if (window.assignmentId) {
+            eventInfo.assignment_id = window.assignmentId;
+        }
         if (
             eBookConfig.isLoggedIn &&
             eBookConfig.useRunestoneServices &&
@@ -132,6 +135,7 @@ export default class RunestoneBase {
         ) {
             pageProgressTracker.updateProgress(eventInfo.div_id);
         }
+        this.decorateStatus();
         return post_return;
     }
 
@@ -222,19 +226,19 @@ export default class RunestoneBase {
                     alert(`Failed to save your code
                         Status is ${response.status}
                         Detail: ${JSON.stringify(
-                            post_promise.detail,
-                            null,
-                            4
-                        )}`);
+                        post_promise.detail,
+                        null,
+                        4
+                    )}`);
                 } else {
                     console.log(
                         `Did not save the code.
                          Status: ${response.status}
                          Detail: ${JSON.stringify(
-                             post_promise.detail,
-                             null,
-                             4
-                         )}`
+                            post_promise.detail,
+                            null,
+                            4
+                        )}`
                     );
                 }
             } else {
@@ -381,6 +385,7 @@ export default class RunestoneBase {
         } else {
             this.checkLocalStorage();
         }
+        this.decorateStatus();
     }
     shouldUseServer(data) {
         // returns true if server data is more recent than local storage or if server storage is correct
