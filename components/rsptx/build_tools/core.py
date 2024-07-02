@@ -137,10 +137,9 @@ def _build_ptx_book(config, gen, manifest, course, click=click):
         click.echo("Checking files")
         # sets output_dir to `published/<course>`
         # and {"host-platform": "runestone"} in stringparams
-        rs = check_project_ptx(course)
+        rs = check_project_ptx(course=course)
         if not rs:
             return False
-        
 
         rs.build()  # build the book, generating assets as needed
 
@@ -179,7 +178,7 @@ def process_manifest(cname, mpath, click=click):
     return True
 
 
-def check_project_ptx(click=click,course=None):
+def check_project_ptx(click=click, course=None):
     """
     Verify that the PreTeXt project is set up for a Runestone build
 
@@ -194,30 +193,51 @@ def check_project_ptx(click=click,course=None):
 
     """
     proj = Project.parse("project.ptx")
+    target_name = "runestone"
     if proj.has_target("runestone") is False:
-        click.echo("No runestone target in project.ptx")
-        return False
+        if proj.has_target("web"):
+            target_name = "web"
+        elif proj.has_target("html"):
+            target_name = "html"
+        else:
+            click.echo("No runestone suitable targets in project.ptx")
+            return False
+        click.echo(
+            f"No runestone target in project.ptx, will adopt {target_name} target"
+        )
 
     proj.output_dir = Path("published")
 
-    tgt = proj.get_target("runestone")
+    tgt = proj.get_target(target_name)
 
     if not tgt.source_abspath().exists():
-        click.echo("Source file specified in runestone target does not exist")
+        click.echo(f"Source file specified in {target_name} target does not exist")
         return False
     if not tgt.publication_abspath().exists():
-        click.echo("Publication file specified in runestone target does not exist")
+        click.echo(f"Publication file specified in {target_name} target does not exist")
         return False
-    
+
     docid_list = tgt.source_element().xpath("/pretext/docinfo/document-id/text()")
     if len(docid_list) < 1:
-        click.echo("Source file specified in runestone target does not have a document-id")
-        return False
-    docid = docid_list[0]
+        click.echo(
+            f"Source file specified in runestone {target_name} does not have a document-id"
+        )
+        docid = course
+    else:
+        docid = docid_list[0]
+
     if course is not None and docid != course:
         click.echo(f"Error course: {course} does not match document-id: {docid}")
         return False
+
+    if proj.output_dir.resolve().parts[-2] != course:
+        click.echo(
+            f"Project directory does not match course name: {course} they must match!"
+        )
+        return False
+
     tgt.output_dir = Path(docid)
+
     tgt.stringparams.update({"host-platform": "runestone"})
 
     return tgt
