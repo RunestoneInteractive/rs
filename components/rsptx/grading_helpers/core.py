@@ -141,6 +141,8 @@ async def grade_submission(
                 )
             res = await upsert_grade(newGrade)
 
+    return scoreSpec
+
 
 async def score_one_answer(
     scoreSpec: ScoringSpecification, submission: LogItemIncoming

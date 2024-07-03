@@ -19,7 +19,10 @@ Do Assignment
     <h2 style='margin-left:1cm;'>Due: {{ assignment['duedate'] }}</h2>
     <span style="float:right; margin-right:2cm;">
         {% if assignment['points'] > 0 %}
-            {{ 'Self Grade: {} of {} = {:2.1f}%'.format(questions_score + readings_score, assignment['points'], 100*(questions_score + readings_score)/assignment['points']) }}
+            Self Grade: 
+            <span id="total_score">{{questions_score+readings_score}}</span> of 
+            <span id="total_max">{{assignment['points']}}</span> = 
+            <span id="total_percent">{{'%0.2f' | format(100*(questions_score + readings_score)/assignment['points']|float)}}</span>%
         {% else %}
             This assignment is ungraded
         {% endif %}
@@ -107,16 +110,10 @@ Do Assignment
                 {% else %}
                     
                     {% for q in questioninfo %}
-                            {%  if q['comment'] != 'ungraded' %}
                                 <div style='float:right; width:30%;'>
-                                <h4 style='text-align:center;'>Score: {{ q['score']}} / {{ q['points']  }}</h4>
+                                <h4 id="{{ q['name']}}_score" style='text-align:center;'>Score: <span class="qscore">{{ q['score']}}</span> / <span class="qmaxscore">{{ q['points']  }}</span></h4>
                                 <p style='margin-left:2%;'>Comment: {{ q['comment'] }}</p>
                                 </div>
-                            {% else %}
-                                <div style='float:right; width:10%;'>
-                                <h5 style='text-align:center;'>Not yet graded</h5>
-                                </div>
-                            {% endif %}
                             {% if q['question_type'] == 'webwork' %}
                             <div class='oneq full-width runestone-sphinx ptx-content' id='{{ loop.index }}'>
                             {% else %}

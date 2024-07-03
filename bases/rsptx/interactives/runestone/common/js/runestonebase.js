@@ -168,6 +168,11 @@ export default class RunestoneBase {
                     Status: ${response.status}`);
             }
             post_return = await response.json();
+            let scoreSpec = post_return.detail;
+            let gradeBox = document.getElementById(`${this.divid}_score`);
+            if (gradeBox && !this.isTimed) {
+                this.updateScores(gradeBox, scoreSpec);
+            }
         } catch (e) {
             let detail = "none";
             if (post_return && post_return.detail) {
@@ -187,6 +192,35 @@ export default class RunestoneBase {
         }
         return post_return;
     }
+    // update the score for the question and the total score
+    // the presence of the gradeBox is used to determine if we are on an assignment page.
+    updateScores(gradeBox, scoreSpec) {
+        let scoreSpan = gradeBox.getElementsByClassName("qscore")[0];
+        if (scoreSpan) {
+            scoreSpan.innerHTML = scoreSpec.score;
+        }
+        let allScores = document.getElementsByClassName("qscore");
+        let allmax = document.getElementsByClassName("qmaxscore");
+        let total = 0;
+        let max = 0;
+        for (let i = 0; i < allScores.length; i++) {
+            total += parseFloat(allScores[i].innerHTML);
+            max += parseFloat(allmax[i].innerHTML);
+        }
+        let totalSpan = document.getElementById("total_score");
+        if (totalSpan) {
+            totalSpan.innerHTML = total;
+        }
+        let maxSpan = document.getElementById("total_max");
+        if (maxSpan) {
+            maxSpan.innerHTML = max;
+        }
+        let percentSpan = document.getElementById("total_percent");
+        if (percentSpan) {
+            percentSpan.innerHTML = ((total / max) * 100).toFixed(2) + "%";
+        }
+    }
+
     // .. _logRunEvent:
     //
     // logRunEvent
@@ -517,6 +551,7 @@ export default class RunestoneBase {
     }
 
     decorateStatus() {
+        if (this.isTimed) return;
         let rsDiv = $(this.containerDiv).closest("div.runestone")[0];
         if (this.correct) {
             rsDiv.classList.add("isCorrect");
