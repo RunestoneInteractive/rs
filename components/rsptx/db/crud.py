@@ -2483,12 +2483,16 @@ async def is_assigned(
             if datetime.datetime.now(datetime.UTC) <= row.Assignment.duedate.replace(
                 tzinfo=pytz.utc
             ):
-                scoringSpec.assigned = True
-                return scoringSpec
-            else:
-                if not row.Assignment.enforce_due and not row.Assignment.released:
+                if (
+                    row.Assignment.is_visible
+                ):  # todo update this when we have a visible by
                     scoringSpec.assigned = True
                     return scoringSpec
+            else:
+                if not row.Assignment.enforce_due and not row.Assignment.released:
+                    if row.Assignment.is_visible:
+                        scoringSpec.assigned = True
+                        return scoringSpec
         return schemas.ScoringSpecification()
 
 
