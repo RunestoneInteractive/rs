@@ -10,6 +10,8 @@ $.i18n().load({
             "Perfect!  It took you only one try to solve this.  Great job!",
         msg_parson_correct:
             "Perfect!  It took you $1 tries to solve this.  Click Reset to try to solve it in one attempt.",
+        msg_parson_correct_runnable:
+            "Click Run below to test out your solution.",
         msg_parson_wrong_indent:
             "This block is not indented correctly. Either indent it more by dragging it right or reduce the indention by dragging it left.",
         msg_parson_wrong_indents:
