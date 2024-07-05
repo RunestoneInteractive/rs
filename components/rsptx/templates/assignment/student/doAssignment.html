@@ -112,7 +112,11 @@ Do Assignment
                     {% for q in questioninfo %}
                                 <div style='float:right; width:30%;'>
                                 <h4 id="{{ q['name']}}_score" style='text-align:center;'>Score: <span class="qscore">{{ q['score']}}</span> / <span class="qmaxscore">{{ q['points']  }}</span></h4>
-                                <p style='margin-left:2%;'>Comment: {{ q['comment'] }}</p>
+                                {% if q['comment'] != 'autograded' and q['comment'] != 'ungraded' %}
+                                    <p style='margin-left:2%;'>Comment: {{ q['comment'] }}</p>
+                                {% else %}
+                                    <p style='margin-left:2%;'>How Graded: {{q['how_graded']}}</p>
+                                {% endif %}
                                 </div>
                             {% if q['question_type'] == 'webwork' %}
                             <div class='oneq full-width runestone-sphinx ptx-content' id='{{ loop.index }}'>

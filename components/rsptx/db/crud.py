@@ -1711,7 +1711,7 @@ async def fetch_question_grade(sid: str, course_name: str, qid: str):
 
 
 async def create_question_grade_entry(
-    sid: str, course_name: str, qid: str, grade: int
+    sid: str, course_name: str, qid: str, grade: int, qge_id: Optional[int] = None
 ) -> QuestionGradeValidator:
     """
     Create a new QuestionGrade entry with the given sid, course_name, qid, and grade.
@@ -1723,6 +1723,8 @@ async def create_question_grade_entry(
         score=grade,
         comment="autograded",
     )
+    if qge_id is not None:
+        new_qg.id = qge_id
 
     async with async_session.begin() as session:
         session.add(new_qg)
@@ -1730,7 +1732,7 @@ async def create_question_grade_entry(
 
 
 async def update_question_grade_entry(
-    sid: str, course_name: str, qid: str, grade: int
+    sid: str, course_name: str, qid: str, grade: int, qge_id: Optional[int] = None
 ) -> QuestionGradeValidator:
     """
     Create a new QuestionGrade entry with the given sid, course_name, qid, and grade.
@@ -1742,9 +1744,11 @@ async def update_question_grade_entry(
         score=grade,
         comment="autograded",
     )
-
+    if qge_id is not None:
+        new_qg.id = qge_id
+        
     async with async_session.begin() as session:
-        session.merge(new_qg)
+        await session.merge(new_qg)
     return QuestionGradeValidator.from_orm(new_qg)
 
 
@@ -2483,14 +2487,12 @@ async def is_assigned(
             if datetime.datetime.now(datetime.UTC) <= row.Assignment.duedate.replace(
                 tzinfo=pytz.utc
             ):
-                if (
-                    row.Assignment.is_visible
-                ):  # todo update this when we have a visible by
+                if row.Assignment.visible:  # todo update this when we have a visible by
                     scoringSpec.assigned = True
                     return scoringSpec
             else:
                 if not row.Assignment.enforce_due and not row.Assignment.released:
-                    if row.Assignment.is_visible:
+                    if row.Assignment.visible:
                         scoringSpec.assigned = True
                         return scoringSpec
         return schemas.ScoringSpecification()

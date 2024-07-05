@@ -208,7 +208,9 @@ async def doAssignment(
         or assignment.visible == False
     ):
         if await is_instructor(request) is False:
-            rslogger.error(f"Attempt to access invisible assignment {assignment_id} by {user.username}")
+            rslogger.error(
+                f"Attempt to access invisible assignment {assignment_id} by {user.username}"
+            )
             return RedirectResponse("/assignment/student/chooseAssignment")
 
     if assignment.points is None:
@@ -304,6 +306,15 @@ async def doAssignment(
             question_type=q.Question.question_type,
             activities_required=q.AssignmentQuestion.activities_required,
         )
+        if q.AssignmentQuestion.autograde == "manual":
+            info["how_graded"] = "Needs Manual Grading"
+        elif q.AssignmentQuestion.which_to_grade == 'first_answer':
+            info['how_graded'] = 'First Answer'
+        elif q.AssignmentQuestion.which_to_grade == 'last_answer':
+            info['how_graded'] = 'Last Answer'
+        elif q.AssignmentQuestion.which_to_grade == 'best_answer':
+            info['how_graded'] = 'Best Answer'
+
         if q.AssignmentQuestion.reading_assignment:
             # add to readings
             if chap_name not in readings:

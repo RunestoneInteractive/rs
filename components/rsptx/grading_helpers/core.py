@@ -57,7 +57,11 @@ async def grade_submission(
             if answer:
                 answer.score = scoreSpec.score
                 await update_question_grade_entry(
-                    user.username, user.course_name, submission.div_id, scoreSpec.score
+                    user.username,
+                    user.course_name,
+                    submission.div_id,
+                    scoreSpec.score,
+                    answer.id,
                 )
             else:
                 await create_question_grade_entry(
@@ -79,8 +83,11 @@ async def grade_submission(
                         user.course_name,
                         submission.div_id,
                         scoreSpec.score,
+                        current_score.id,
                     )
                     update_total = True
+                else:
+                    scoreSpec.score = current_score.score
             else:
                 await create_question_grade_entry(
                     user.username,
@@ -106,6 +113,7 @@ async def grade_submission(
                         user.course_name,
                         submission.div_id,
                         scoreSpec.score,
+                        answer.id,
                     )
                 else:
                     await create_question_grade_entry(
@@ -118,28 +126,7 @@ async def grade_submission(
         if update_total:
             rslogger.debug("Updating total score")
             # Now compute the total
-            res = await fetch_assignment_scores(
-                scoreSpec.assignment_id, user.course_name, user.username
-            )
-            total = 0
-            for row in res:
-                total += row.score
-
-            # Now update the grade table with the new total
-
-            grade = await fetch_grade(user.id, scoreSpec.assignment_id)
-            if grade:
-                grade.score = total
-                newGrade = grade
-            else:
-                newGrade = GradeValidator(
-                    auth_user=user.id,
-                    course_name=user.course_name,
-                    assignment=scoreSpec.assignment_id,
-                    score=total,
-                    manual_total=False,
-                )
-            res = await upsert_grade(newGrade)
+            total= await compute_total_score(scoreSpec, user)
 
     return scoreSpec
 
@@ -159,7 +146,7 @@ async def score_one_answer(
         if submission.correct:
             return scoreSpec.max_score
         else:
-            return submission.percentage * scoreSpec.max_score
+            return submission.percent * scoreSpec.max_score
     elif scoreSpec.how_to_score == "all_or_nothing":
         if submission.correct:
             return scoreSpec.max_score
@@ -177,3 +164,41 @@ async def score_one_answer(
             return scoreSpec.max_score
     else:
         return 0
+
+
+async def compute_total_score(
+    scoreSpec: ScoringSpecification, user: AuthUserValidator
+) -> int:
+    """
+    Compute the total score for an assignment.
+
+    :param scoreSpec: The scoring specification.
+    :type scoreSpec: ScoringSpecification
+    :param user: The user to compute the score for.
+    :type user: AuthUserValidator
+    :rtype: int
+    """
+
+    res = await fetch_assignment_scores(
+        scoreSpec.assignment_id, user.course_name, user.username
+    )
+    total = 0
+    for row in res:
+        total += row.score
+
+    # Now update the grade table with the new total
+
+    grade = await fetch_grade(user.id, scoreSpec.assignment_id)
+    if grade:
+        grade.score = total
+        newGrade = grade
+    else:
+        newGrade = GradeValidator(
+            auth_user=user.id,
+            course_name=user.course_name,
+            assignment=scoreSpec.assignment_id,
+            score=total,
+            manual_total=False,
+        )
+    res = await upsert_grade(newGrade)
+    return total
