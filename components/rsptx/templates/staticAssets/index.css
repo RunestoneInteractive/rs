@@ -95,3 +95,26 @@ input {
 .library_entry {
     margin-bottom: 5pt;
 }
+
+
+
+.metaquestion {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.griditem {
+    display: flex;
+    flex-direction: column;
+    flex-basis: 100%;
+    flex: 1;
+}
+
+.questionblock {
+    background-color: #ddd;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 10px;
+}
