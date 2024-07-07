@@ -4,15 +4,23 @@ Developing the Javascript for Runestone Components
 The following is what you need to do to work on the javascript for a component testing it against a local build of a book written in PreTeXt.
 
 1. Make a branch in your clone of ``https://github.com/RunestoneInteractive/rs``
-2. Work on the javascript for the component in ``bases/rsptx/interactives/runestone/...``
-3. Run ``poetry install --with=dev`` in the root folder of your clone of ``rs``
-4. Start up a ``poetry shell`` in the root folder of your clone of ``rs``
-5. From ``bases/rsptx/interactives`` run ``npm run build`` → results in ``runestone/dist``
-6. From ``bases/rsptx/interactives`` run ``python ./scripts/dist2xml.py test`` → creates webpack_static_imports.xml and sets up for the files to be in ``_static/test`` in the resulting local build of your PreTeXt book.
-7. Set:``<stringparam key="debug.rs.services.file" value="file:////your/home/rs/bases/interactives/runestone/dist/webpack_static_imports.xml" />`` in the ``project.pxt`` file of the book.
-8. Run ``pretext build`` in the root folder of the book
-9. ``mkdir -p build/html/_static/test``
-10. Copy the contents of ``.../rs/bases/rsptx/interactives/runestone/dist`` to ``build/html/_static/test``
-11. Run ``pretext view``
 
-If you are still working with old RST based books, you can simply use the ``runestone build`` command which automatically copies the files to the correct location.
+2. Work on the javascript for the component in ``bases/rsptx/interactives/runestone/...``
+
+3. From ``bases/rsptx/interactives`` run ``npm run build -- --env builddir=PATH_TO_BOOK_OUTPUT/_static/runestone`` where ``PATH_TO_BOOK`` is a relative or absolute path to the book build folder (and, yes, the double ``--`` are necessary - one set for npm and the other for webpack).
+
+   This should result in the Runestone assets being built in development mode (uncompressed) to ``_static/runestone`` in the book build folder. If you do not set ``--env builddir``, the files will be built to ```bases/rsptx/interactives/runestone/dist``.
+
+   To have webpack monitor for changes, and rebuild the Runestone assets on file change, use ``npm run watch -- --env builddir=PATH_TO_BOOK_OUTPUT/_static/runestone``
+
+4. Set a ``stringparam`` in the PreteXt book for ``debug.rs.dev`` to ``true``. This will cause the book to load the development version of the Runestone assets. Without this flag, PreTeXt will look to download production assets from the Runestone CDN.  
+   
+   If using the PreTeXt CLI, you can add a string param to a build target in your project file (i.e. under ``project/targets/target``) by adding the following: ``<stringparam key="debug.rs.dev" value="true"/>``
+
+5. Run ``pretext build`` in the root folder of the book
+
+6. Run ``pretext view``
+
+If you change your PreTeXt source, you just need to rerun 5 & 6. If you change your Runestone components code, rerun 3 (or use ``watch``) and then hard refresh your browser (Ctrl-F5).
+
+If you are still working with old RST-based books, you can simply use the ``runestone build`` command which automatically copies the files to the correct location.
