@@ -32,6 +32,7 @@ from rsptx.db.crud import (
     fetch_all_assignment_stats,
     fetch_grade,
     upsert_grade,
+    uses_lti,
     fetch_course,
     fetch_all_course_attributes,
     fetch_one_assignment,
@@ -75,7 +76,9 @@ async def get_assignments(
 
     sid = user.username
     course = await fetch_course(user.course_name)
-
+    is_lti_course = False
+    if course and await uses_lti(course.id):
+        is_lti_course = True
     templates = Jinja2Templates(directory=template_folder)
     user_is_instructor = await is_instructor(request, user=user)
     assignments = await fetch_assignments(course.course_name, is_visible=True)
@@ -95,6 +98,7 @@ async def get_assignments(
             "request": request,
             "is_instructor": user_is_instructor,
             "student_page": True,
+            "lti": is_lti_course,
         },
     )
 
@@ -308,12 +312,12 @@ async def doAssignment(
         )
         if q.AssignmentQuestion.autograde == "manual":
             info["how_graded"] = "Needs Manual Grading"
-        elif q.AssignmentQuestion.which_to_grade == 'first_answer':
-            info['how_graded'] = 'First Answer'
-        elif q.AssignmentQuestion.which_to_grade == 'last_answer':
-            info['how_graded'] = 'Last Answer'
-        elif q.AssignmentQuestion.which_to_grade == 'best_answer':
-            info['how_graded'] = 'Best Answer'
+        elif q.AssignmentQuestion.which_to_grade == "first_answer":
+            info["how_graded"] = "First Answer"
+        elif q.AssignmentQuestion.which_to_grade == "last_answer":
+            info["how_graded"] = "Last Answer"
+        elif q.AssignmentQuestion.which_to_grade == "best_answer":
+            info["how_graded"] = "Best Answer"
 
         if q.AssignmentQuestion.reading_assignment:
             # add to readings

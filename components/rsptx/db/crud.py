@@ -56,6 +56,7 @@ from rsptx.db.models import (
     CourseAttribute,
     CourseInstructor,
     CourseInstructorValidator,
+    CourseLtiMap,
     CoursePractice,
     Courses,
     CoursesValidator,
@@ -1746,7 +1747,7 @@ async def update_question_grade_entry(
     )
     if qge_id is not None:
         new_qg.id = qge_id
-        
+
     async with async_session.begin() as session:
         await session.merge(new_qg)
     return QuestionGradeValidator.from_orm(new_qg)
@@ -2545,3 +2546,21 @@ async def did_send_messages(sid: str, div_id: str, course_name: str) -> bool:
             return True
         else:
             return False
+
+
+async def uses_lti(course_id: int) -> bool:
+    """
+    Check if a course uses LTI.
+
+    :param course_id: int, the id of the course
+    :return: bool, whether the course uses LTI
+    """
+    query = select(CourseLtiMap).where(CourseLtiMap.course_id == course_id)
+    async with async_session() as session:
+        res = await session.execute(query)
+        # check the number of rows in res
+        
+        if len(res.all()) > 0:
+            return True
+
+    return False
