@@ -1,5 +1,5 @@
 # pull official base image
-FROM python:3.10-bullseye
+FROM python:3.11-bullseye
 
 LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/latex_image
 
