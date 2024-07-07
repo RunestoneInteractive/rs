@@ -197,7 +197,7 @@ export default class RunestoneBase {
     updateScores(gradeBox, scoreSpec) {
         let scoreSpan = gradeBox.getElementsByClassName("qscore")[0];
         if (scoreSpan) {
-            scoreSpan.innerHTML = scoreSpec.score;
+            scoreSpan.innerHTML = scoreSpec.score.toFixed(1);
         }
         let allScores = document.getElementsByClassName("qscore");
         let allmax = document.getElementsByClassName("qmaxscore");
@@ -209,7 +209,7 @@ export default class RunestoneBase {
         }
         let totalSpan = document.getElementById("total_score");
         if (totalSpan) {
-            totalSpan.innerHTML = total;
+            totalSpan.innerHTML = total.toFixed(1);
         }
         let maxSpan = document.getElementById("total_max");
         if (maxSpan) {
@@ -217,7 +217,7 @@ export default class RunestoneBase {
         }
         let percentSpan = document.getElementById("total_percent");
         if (percentSpan) {
-            percentSpan.innerHTML = ((total / max) * 100).toFixed(2) + "%";
+            percentSpan.innerHTML = ((total / max) * 100).toFixed(2);
         }
     }
 
