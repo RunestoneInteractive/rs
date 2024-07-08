@@ -76,8 +76,13 @@ async def grade_submission(
             current_score = await fetch_question_grade(
                 user.username, user.course_name, submission.div_id
             )
+            # Update the score unless the instructor has left a comment.
+            # Insructors should have the last word?
             if current_score:
-                if current_score.score < scoreSpec.score:
+                if (
+                    current_score.score < scoreSpec.score
+                    and current_score.comment == "autograded"
+                ):
                     await update_question_grade_entry(
                         user.username,
                         user.course_name,
@@ -126,7 +131,7 @@ async def grade_submission(
         if update_total:
             rslogger.debug("Updating total score")
             # Now compute the total
-            total= await compute_total_score(scoreSpec, user)
+            total = await compute_total_score(scoreSpec, user)
 
     return scoreSpec
 
