@@ -195,6 +195,10 @@ export default class RunestoneBase {
     // update the score for the question and the total score
     // the presence of the gradeBox is used to determine if we are on an assignment page.
     updateScores(gradeBox, scoreSpec) {
+        if (!scoreSpec.assigned || scoreSpec.score === null) {
+            document.getElementById(`${this.divid}_message`).innerHTML = "Score not updated.  Submissions are closed.";
+            return;
+        }
         let scoreSpan = gradeBox.getElementsByClassName("qscore")[0];
         if (scoreSpan) {
             scoreSpan.innerHTML = scoreSpec.score.toFixed(1);

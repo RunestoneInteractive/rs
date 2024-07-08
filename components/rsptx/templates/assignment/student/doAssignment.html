@@ -113,11 +113,14 @@ Do Assignment
                         <div class="questionblock">
                         <div class="metaquestion">
                             <div class="griditem">
+                                <p>
                                 {% if origin == "Runestone" %}
                                 <a href="/ns/books/published/{{ course.course_name}}/{{ q['chapter']}}/{{ q['subchapter']}}.html#{{ q['name']    }}">Show this question in the book.</a>
                                 {% else %}
                                 <a href="/ns/books/published/{{ course.course_name}}/{{ q['subchapter']}}.html#{{ q['name']   }}">Show this question in the book</a>
                                 {% endif %}
+                                </p>
+                                <p id="{{q['name']}}_message"></p>
                             </div>
 
                             <div class="griditem">
