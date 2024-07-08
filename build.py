@@ -346,7 +346,9 @@ with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
                 if os.path.isfile("build.py"):
                     status[proj] = "[grey62]pre build...[/grey62]"
                     lt.update(generate_wheel_table(status))
-                    res = subprocess.run(["python", "build.py"], capture_output=True)
+                    res = subprocess.run(
+                        ["python", "build.py", "--fromroot"], capture_output=True
+                    )
                     if res.returncode == 0:
                         status[proj] = "[green]Yes[/green]"
                         lt.update(generate_wheel_table(status))

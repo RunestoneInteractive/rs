@@ -55,6 +55,7 @@ from rsptx.db.crud import (
     update_sub_chapter_progress,
     update_user_state,
 )
+from rsptx.grading_helpers import grade_submission
 from rsptx.response_helpers.core import make_json_response
 from rsptx.db.models import (
     AuthUserValidator,
@@ -129,9 +130,8 @@ async def log_book_event(
     rslogger.debug(useinfo_entry)
     idx = await create_useinfo_entry(useinfo_entry)
     response_dict = dict(timestamp=entry.timestamp)
-    if entry.event in EVENT2TABLE:
-        create_answer_table = True
-        rcd = runestone_component_dict[EVENT2TABLE[entry.event]]
+    if entry.event in EVENT2TABLE or entry.event == "selectquestion":
+        create_answer_table = True and entry.event != "selectquestion"
         if entry.event == "unittest":
             # info we need looks like: "act":"percent:100.0:passed:2:failed:0"
             if not re.match(r"^percent:\d+(\.\d+)?:passed:\d+:failed:\d+$", entry.act):
@@ -153,6 +153,7 @@ async def log_book_event(
             entry.answer = json.loads(useinfo_dict["answer"])
 
         if create_answer_table:
+            rcd = runestone_component_dict[EVENT2TABLE[entry.event]]
             valid_table = rcd.validator.from_orm(entry)  # type: ignore
             # Do server-side grading if needed.
             if feedback := await is_server_feedback(entry.div_id, user.course_name):
@@ -162,6 +163,9 @@ async def log_book_event(
 
             ans_idx = await create_answer_table_entry(valid_table, entry.event)
             rslogger.debug(ans_idx)
+        if entry.event != "timedExam":
+            scoreSpec = await grade_submission(user, entry)
+            response_dict.update(scoreSpec.dict())
 
     if idx:
         return make_json_response(status=status.HTTP_201_CREATED, detail=response_dict)

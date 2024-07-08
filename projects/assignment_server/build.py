@@ -12,5 +12,5 @@ with pushd("../../bases/rsptx/assignment_server_api/assignment_builder"):
     subprocess.run(["npm", "install"], check=True)
     subprocess.run(["npm", "run", "build"], check=True)
 
-
-subprocess.run(["poetry", "build-project"], check=True)
+if "--fromroot" not in sys.argv:
+    subprocess.run(["poetry", "build-project"], check=True)

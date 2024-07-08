@@ -23,7 +23,8 @@ with pushd("../../bases/rsptx/interactives"):
 if "--dev" in sys.argv:
     sys.exit(0)
 
-subprocess.run(["poetry", "build-project"], check=True)
+if "--fromroot" not in sys.argv:
+    subprocess.run(["poetry", "build-project"], check=True)
 
 
 if sys.argv[1:] == ["--publish"]:

@@ -74,11 +74,11 @@ class FITBNode(nodes.General, nodes.Element, RunestoneIdNode):
 # Modified to mimic visit_fitb_feedback_html
 def visit_fitb_html(self, node):
     # Original
-    #node["delimiter"] = "_start__{}_".format(node["runestone_options"]["divid"])
-    #self.body.append(node["delimiter"])
+    # node["delimiter"] = "_start__{}_".format(node["runestone_options"]["divid"])
+    # self.body.append(node["delimiter"])
     #
-    #res = node["template_start"] % node["runestone_options"]
-    #self.body.append(res)
+    # res = node["template_start"] % node["runestone_options"]
+    # self.body.append(res)
     # Modified
     # Save the HTML that's been generated so far. We want to know only what's generated inside this directive.
     self.context.append(self.body)
@@ -131,7 +131,8 @@ def depart_fitb_html(self, node):
     while not node_with_document.document:
         node_with_document = node_with_document.parent
     # Supply client-side grading info if we're not grading on the server.
-    if node_with_document.document.settings.env.config.runestone_server_side_grading:
+    ssg = node_with_document.document.settings.env.config.runestone_server_side_grading
+    if ssg:
         if node.dynamic:
             # Server-side graded dynamic problems render and provide the problem's HTML on the server; just tell the client it's a dynamic problem.
             client_json = json.dumps(dict(dyn_vars=True))
@@ -159,7 +160,7 @@ def depart_fitb_html(self, node):
         node["runestone_options"]["divid"],
         node["runestone_options"]["basecourse"],
         outer_html,
-        db_json,
+        db_json if ssg else None,
     )
     self.body.append(outer_html)
 
