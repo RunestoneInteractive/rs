@@ -163,7 +163,11 @@ module.exports = (env, argv) => {
                     chunkFilename: is_dev_mode ? "prefix-[id].css" : "prefix-[id].[contenthash].css",
                 }),
                 // Copied from the `webpack docs <https://webpack.js.org/plugins/compression-webpack-plugin>`_. This creates ``.gz`` versions of all files. The webserver in use needs to be configured to send this instead of the uncompressed versions.
-                new CompressionPlugin(),
+                new CompressionPlugin({
+                    //don't both compressing in dev mode
+                    test: is_dev_mode ? /^$/ : undefined,
+                }
+                ),
             ],
         },
 
