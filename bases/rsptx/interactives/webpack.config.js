@@ -106,8 +106,9 @@ module.exports = (env, argv) => {
                 },
                 // Node 17.0 reports ``Error: error:0308010C:digital envelope routines::unsupported``. Per `SO <https://stackoverflow.com/a/69394785/16038919>`_, this error is produced by using an old, default hash that OpenSSL removed support for. The `webpack docs <https://webpack.js.org/configuration/output/#outputhashfunction>`__ say that ``xxhash64`` is a faster algorithm.
                 hashFunction: "xxhash64",
-                // Delete everything in the output directory on each build.
-                clean: true,
+                // Delete everything in the output directory on each build in production mode.
+                // Do not do so in dev mode when building to an out
+                clean: !is_dev_mode || env.builddir === undefined,
             },
             // See the `SplitChunksPlugin docs <https://webpack.js.org/guides/code-splitting/#splitchunksplugin>`_.
             optimization: {
