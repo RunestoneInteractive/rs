@@ -16,7 +16,20 @@ Do Assignment
  </div>
 <div id='part1'>
     <h1 id="assignment_name" style='text-align:center'>{{ assignment['name'] }}</h1>
-    <h2 style='margin-left:1cm;'>Due: {{ assignment['duedate'] }}</h2>
+    <p style='margin-left:2cm;'>
+    <span
+    {% if overdue %}
+    class="overdue"
+    {% else %}
+    class="notdue"
+    {% endif %}
+    >
+    Due: {{ assignment['duedate'] }}
+    </span>
+    {% if enforce_pastdue %}
+    Past due and no longer scoring submissions
+    {% endif %}
+    </p>
     <span style="float:right; margin-right:2cm;">
         {% if assignment['points'] > 0 %}
             Current Score: 

@@ -416,11 +416,13 @@ async def doAssignment(
     deadline = assignment.duedate
     if timezoneoffset:
         deadline = deadline + datetime.timedelta(hours=float(timezoneoffset))
-
+    assignment.duedate = assignment.duedate.strftime("%a %d, %b %Y %I:%m %p")
     enforce_pastdue = False
     if assignment.enforce_due and timestamp > deadline:
         enforce_pastdue = True
-
+    overdue = False
+    if timestamp > deadline:
+        overdue = True
     templates = Jinja2Templates(directory=template_folder)
     context = dict(  # This is all the variables that will be used in the doAssignment.html document
         course=course,
@@ -440,6 +442,7 @@ async def doAssignment(
         origin=c_origin,
         is_submit=grade.is_submit,
         is_graded=is_graded,
+        overdue=overdue,
         enforce_pastdue=enforce_pastdue,
         ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
         webwork_js_version=course_attrs.get("webwork_js_version", "2.17"),
