@@ -11,7 +11,6 @@ Welcome to Runestone Documentation
 
    readme
    running
-   contributing
    poetry
    developing
    structure
@@ -21,6 +20,7 @@ Welcome to Runestone Documentation
    building_servers
    addbook
    custom_book
+   contributing
    server_feature
    javascript_feature
    tutorial

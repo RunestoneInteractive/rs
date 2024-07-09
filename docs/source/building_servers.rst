@@ -130,3 +130,17 @@ Here is a bit more detail on how the script operates so you know what to expect:
 
 If a **wheel fails to build** then look at the ``build.log`` file in the appropriate project folder.  If an **image fails to build** look at the ``build.log`` file in the main folder.  If it seems like the author service is taking a long time to build, it is because it is installing a full version of LaTeX and that just takes time!
 
+
+Keeping the Servers Up to Date
+---------------------------------------
+
+To keep the servers up to date with the latest changes in the codebase, you will need to pull the latest changes from the repo and rebuild the servers.  To do this you will need to run the following commands:
+The repository is under active development.  It is a really good idea to keep your local copy up to date.  You don't need to do this daily, but I would recommend weekly.  To do this you will need to:
+
+#. Pull the latest changes from the repo by running ``git pull``.
+#. Run ``poetry install --with=dev`` to install any new dependencies.
+#. Run ``poetry run python build.py`` to rebuild the servers, and check the database.
+#. Run ``docker compose stop`` to start the servers.
+#. Run ``docker compose up -d`` to start the servers.
+
+If  you find that your database is horribly out of date, and running ``alembic upgrade head`` fails. You can run ``docker compose down db`` the down subcommand will  **remove** the database container and then run ``docker compose up -d db`` to start a fresh database.  You will then need to run ``docker compose run rsmanage rsmanage initdb`` to initialize the database.  This will create the tables and add the initial data.  You will then need to run ``alembic stamp head`` to mark the current state of the database.  This will allow you to run migrations in the future to ensure that your database schema is up to date.
