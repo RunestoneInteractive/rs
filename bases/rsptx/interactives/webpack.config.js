@@ -36,9 +36,11 @@ function definePluginDict(env) {
 
 module.exports = (env, argv) => {
     const is_dev_mode = argv.mode === "development";
-    const bundleFormatString = is_dev_mode
-        ? "prefix-[name].bundle.js"
-        : "prefix-[name].[contenthash].bundle.js";
+    // ``env.builddir`` can be used to specify the output directory
+    // Example: ``npm run build -- --env builddir=../mypretextbook/output/_static``
+    const dest_path = env.builddir == undefined ?
+            path.resolve(__dirname, "runestone/dist") :
+            path.resolve(env.builddir);
 
     return [
         // Webpack configuration
@@ -89,13 +91,24 @@ module.exports = (env, argv) => {
                 jquery: "jQuery",
             },
             output: {
-                path: path.resolve(__dirname, "runestone/dist"),
+                path: dest_path,
                 // _`Output file naming`: see the `caching guide <https://webpack.js.org/guides/caching/>`_. This provides a hash for dynamic imports as well, avoiding caching out-of-date JS. Putting the hash in a query parameter (such as ``[name].js?v=[contenthash]``) causes the compression plugin to not update zipped files.
-                filename: bundleFormatString,
+                filename: function (pathData) {
+                    if(is_dev_mode) {
+                        if(pathData.chunk.id.includes("vendors-node_modules_")) {
+                            return "prefix-runtime-libs.bundle.js";
+                        }
+                        else return "prefix-[name].bundle.js"
+                    }
+                    else {
+                        return "prefix-[name].[contenthash].bundle.js";
+                    }
+                },
                 // Node 17.0 reports ``Error: error:0308010C:digital envelope routines::unsupported``. Per `SO <https://stackoverflow.com/a/69394785/16038919>`_, this error is produced by using an old, default hash that OpenSSL removed support for. The `webpack docs <https://webpack.js.org/configuration/output/#outputhashfunction>`__ say that ``xxhash64`` is a faster algorithm.
                 hashFunction: "xxhash64",
-                // Delete everything in the output directory on each build.
-                clean: true,
+                // Delete everything in the output directory on each build in production mode.
+                // Do not do so in dev mode when building to an out
+                clean: !is_dev_mode || env.builddir === undefined,
             },
             // See the `SplitChunksPlugin docs <https://webpack.js.org/guides/code-splitting/#splitchunksplugin>`_.
             optimization: {
@@ -137,11 +150,25 @@ module.exports = (env, argv) => {
                 new DefinePlugin(definePluginDict(env)),
                 new MiniCssExtractPlugin({
                     // See `output file naming`_.
-                    filename: is_dev_mode ? "prefix-[name].css" : "prefix-[name].[contenthash].css",
+                    filename: function (pathData) {
+                        if(is_dev_mode) {
+                            if(pathData.chunk.id.includes("vendors-node_modules_")) {
+                                return "prefix-runtime-libs.css";
+                            }
+                            else return "prefix-[name].css"
+                        }
+                        else {
+                            return "prefix-[name].[contenthash].css";
+                        }
+                    },
                     chunkFilename: is_dev_mode ? "prefix-[id].css" : "prefix-[id].[contenthash].css",
                 }),
                 // Copied from the `webpack docs <https://webpack.js.org/plugins/compression-webpack-plugin>`_. This creates ``.gz`` versions of all files. The webserver in use needs to be configured to send this instead of the uncompressed versions.
-                new CompressionPlugin(),
+                new CompressionPlugin({
+                    //don't both compressing in dev mode
+                    test: is_dev_mode ? /^$/ : undefined,
+                }
+                ),
             ],
         },
 
