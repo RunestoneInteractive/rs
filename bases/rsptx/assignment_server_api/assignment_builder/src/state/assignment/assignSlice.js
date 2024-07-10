@@ -411,6 +411,7 @@ export const assignSlice = createSlice({
         search_results: [],
         question_count: 0,
         isAuthorized: true,
+        released: false,
     },
     reducers: {
 
@@ -472,7 +473,7 @@ export const assignSlice = createSlice({
             console.log("addExercise", action.payload)
             state.exercises.push(action.payload);
         },
-        setIsAuthorized : (state, action) => {
+        setIsAuthorized: (state, action) => {
             state.isAuthorized = action.payload;
         },
         addAssignment: (state, action) => {
