@@ -503,7 +503,7 @@ export default class Timed extends RunestoneBase {
             async function () {
                 if (
                     window.confirm(
-                        "Clicking OK means you are ready to submit your answers and are finished with this assessment."
+                        `You have skipped ${this.skipped} question(s). Clicking OK means you are ready to submit your answers and are finished with this assessment.`
                     )
                 ) {
                     await this.finishAssessment();
