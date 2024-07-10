@@ -501,9 +501,12 @@ export default class Timed extends RunestoneBase {
         this.finishButton.addEventListener(
             "click",
             async function () {
+                let skipped =
+                    this.renderedQuestionArray.filter((x) => !x.question.isAnswered).length;
+                let skipstr = skipped > 0 ? `You have skipped ${skipped} question(s).` : "";
                 if (
                     window.confirm(
-                        `You have skipped ${this.skipped} question(s). Clicking OK means you are ready to submit your answers and are finished with this assessment.`
+                        `${skipstr} Clicking OK means you are ready to submit your answers and are finished with this assessment.`
                     )
                 ) {
                     await this.finishAssessment();
