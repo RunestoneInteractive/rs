@@ -89,6 +89,8 @@ export const epSlice = createSlice({
     initialState: {
         nodes: [],
         selectedNodes: {},
+        readingNodes: [],
+        selectedReadingNodes: {},
     },
     reducers: {
         // todo -- this should have a keys for chapter and subchapter to insert the new node
@@ -105,6 +107,13 @@ export const epSlice = createSlice({
             }
             state.selectedNodes = action.payload;
         },
+        setSelectedReadingNodes: (state, action) => {
+            if (action.payload === null) {
+                state.selectedReadingNodes = {};
+                return;
+            }
+            state.selectedReadingNodes = action.payload;
+        },
         unSelectNode: (state, action) => {
             // action.payload should be a list of node ids (more like keys?) to unselect
             console.log("nodes to unselect", action.payload)
@@ -118,6 +127,7 @@ export const epSlice = createSlice({
             .addCase(fetchChooserData.fulfilled, (state, action) => {
                 console.log("Question saved");
                 state.nodes = action.payload.questions;
+                state.readingNodes = structuredClone(action.payload.questions);
             })
             .addCase(fetchChooserData.rejected, (state, action) => {
                 console.warn("Fetching Questions failed", action.error.message);
@@ -125,7 +135,7 @@ export const epSlice = createSlice({
     },
 });
 
-export const { addExercise, setSelectedNodes, unSelectNode } = epSlice.actions;
+export const { addExercise, setSelectedNodes, unSelectNode, setSelectedReadingNodes } = epSlice.actions;
 
 
 // The function below is called a selector and allows us to select a value from
