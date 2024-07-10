@@ -411,6 +411,7 @@ export const assignSlice = createSlice({
         search_results: [],
         question_count: 0,
         isAuthorized: true,
+        released: false,
     },
     reducers: {
 
