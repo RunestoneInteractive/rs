@@ -84,7 +84,7 @@ async def get_assignments(
     assignments = await fetch_assignments(course.course_name, is_visible=True)
     assignments.sort(key=lambda x: x.duedate, reverse=True)
     stats_list = await fetch_all_assignment_stats(course.course_name, user.id)
-    stats = {}
+    stats = {s.assignment: s for s in stats_list}
     for s in stats_list:
         stats[s.assignment] = s
     rslogger.debug(f"stats: {stats}")
@@ -206,11 +206,10 @@ async def doAssignment(
 
         return RedirectResponse("/assignment/student/chooseAssignment")
 
-    if (
-        assignment.visible == "F"
-        or assignment.visible is None
-        or assignment.visible == False
-    ):
+    current_time = datetime.datetime.utcnow()
+   if not (assignment.visibledate <= current_time and 
+            (assignment.hideDate is None or assignment.hideDate >= current_time)):
+
         if await is_instructor(request) is False:
             rslogger.error(
                 f"Attempt to access invisible assignment {assignment_id} by {user.username}"

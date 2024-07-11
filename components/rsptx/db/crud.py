@@ -1270,9 +1270,11 @@ async def fetch_assignments(
     :param is_peer: bool, whether or not the assignment is a peer assignment
     :return: List[AssignmentValidator], a list of AssignmentValidator objects
     """
+now = datetime.utcnow()
 
+    # Visibility clause
     if is_visible:
-        vclause = Assignment.visible == is_visible
+        vclause = and_(Assignment.visibledate <= now, Assignment.hiddingdate >= now)
     else:
         vclause = True
 
@@ -1294,7 +1296,7 @@ async def fetch_assignments(
         return [AssignmentValidator.from_orm(a) for a in res.scalars()]
 
 
-# write a function that fetches all Assignment objects given a course name
+# write a function that fetches one Assignment objects given a course name
 async def fetch_one_assignment(assignment_id: int) -> AssignmentValidator:
     """
     Fetch one Assignment object
@@ -1303,8 +1305,14 @@ async def fetch_one_assignment(assignment_id: int) -> AssignmentValidator:
 
     :return: AssignmentValidator
     """
-
-    query = select(Assignment).where(Assignment.id == assignment_id)
+    now = datetime.utcnow()
+    query = select(Assignment).where(
+        and_(
+            Assignment.id == assignment_id,
+            Assignment.visibledate <= now,
+            Assignment.hiddingdate >= now
+        )
+    )
 
     async with async_session() as session:
         res = await session.execute(query)
