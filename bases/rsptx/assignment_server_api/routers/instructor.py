@@ -169,6 +169,7 @@ async def new_assignment(
         **request_data.model_dump(),
         course=course.id,
         visible=True,
+        hidden=False,
         released=False,
         from_source=False,
         is_peer=False,
