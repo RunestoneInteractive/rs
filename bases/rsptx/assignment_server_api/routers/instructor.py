@@ -168,8 +168,8 @@ async def new_assignment(
     new_assignment = AssignmentValidator(
         **request_data.model_dump(),
         course=course.id,
-        visible=True,
-        hidden=False,
+        visible=datetime.datetime(),
+        hidden=datetime.datetime(),
         released=False,
         from_source=False,
         is_peer=False,
