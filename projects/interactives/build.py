@@ -14,6 +14,7 @@ else:
 
 
 with pushd("../../bases/rsptx/interactives"):
+    subprocess.run(["npm", "install"], check=True)
     if "--dev" in sys.argv:
         subprocess.run(["npm", "run", "build"], check=True)
     else:
