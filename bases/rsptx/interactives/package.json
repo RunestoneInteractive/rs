@@ -35,6 +35,7 @@
     },
     "dependencies": {
         "-": "0.0.1",
+        "@mapbox/node-pre-gyp": "^1.0.11",
         "bootstrap": "3.4.1",
         "btm-expressions": "^0.1.7",
         "byte-base64": "^1.1.0",
