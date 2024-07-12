@@ -139,7 +139,7 @@ def index():
         selected_chapter = chapters.first()
     if request.vars.chapter is None:
         request.vars.chapter = selected_chapter.chapter_label
-    
+
     logger.debug("making an analyzer")
     data_analyzer = DashboardDataAnalyzer(auth.user.course_id, selected_chapter)
     logger.debug("loading chapter metrics for course {}".format(auth.user.course_name))
@@ -404,9 +404,9 @@ def studentreport():
             params={"sid": sid, "course": auth.user.course_name},
         )
         response.headers["Content-Type"] = "application/vnd.ms-excel"
-        response.headers[
-            "Content-Disposition"
-        ] = "attachment; filename=data_for_{}.csv".format(sid)
+        response.headers["Content-Disposition"] = (
+            "attachment; filename=data_for_{}.csv".format(sid)
+        )
         session.flash = f"Downloading to data_for_{sid}.csv"
         return mtbl.to_csv(na_rep=" ")
 
@@ -419,9 +419,9 @@ def studentreport():
             params={"sid": sid, "course": auth.user.course_id},
         )
         response.headers["Content-Type"] = "application/vnd.ms-excel"
-        response.headers[
-            "Content-Disposition"
-        ] = "attachment; filename=code_for_{}.csv".format(sid)
+        response.headers["Content-Disposition"] = (
+            "attachment; filename=code_for_{}.csv".format(sid)
+        )
         session.flash = f"Downloading to code_for_{sid}.csv"
         return mtbl.to_csv(na_rep=" ")
 
@@ -544,11 +544,11 @@ def grades():
             "first_name": s.first_name,
             "username": s.username,
             "email": s.email,
-            "practice": "{0:.2f}".format(
-                (100 * points_received / total_possible_points)
-            )
-            if total_possible_points > 0
-            else "n/a",
+            "practice": (
+                "{0:.2f}".format((100 * points_received / total_possible_points))
+                if total_possible_points > 0
+                else "n/a"
+            ),
         }
     try:
         practice_average /= len(students)
@@ -792,8 +792,13 @@ def subchapoverview():
             chapter_clause = ""
         else:
             chapter_clause = "and chapter = '{}'".format(request.vars.chapter)
+            chapter = request.vars.chapter
     else:
         chapter_clause = f" and chapter = '{chap_labs[0]}'"
+        chapter = chap_labs[0]
+
+    if request.vars.tablekind == "correctcount":
+        return make_correct_count_table(chapters, chapter, thecourse, dburl, course)
 
     data = pd.read_sql_query(
         f"""
@@ -931,9 +936,9 @@ def subchapoverview():
     logger.debug(f"{chapters=} type {type(chapters)}")
     if request.vars.action == "tocsv":
         response.headers["Content-Type"] = "application/vnd.ms-excel"
-        response.headers[
-            "Content-Disposition"
-        ] = "attachment; filename=data_for_{}.csv".format(auth.user.course_name)
+        response.headers["Content-Disposition"] = (
+            "attachment; filename=data_for_{}.csv".format(auth.user.course_name)
+        )
         return mtbl.to_csv(na_rep=" ")
     else:
         return dict(
@@ -943,6 +948,58 @@ def subchapoverview():
             chapter_frame=chapters,
             summary=mtbl.to_json(orient="records", date_format="iso"),
         )
+
+
+def make_correct_count_table(chapters, chapter, thecourse, dburl, course):
+    df = pd.read_sql_query(
+        f"""
+    select div_id, sid, correct, percent, chapter, subchapter
+    from (
+    (select div_id, sid, correct, percent from mchoice_answers where course_name='{course}')
+    union
+    (select div_id, sid, correct, percent from fitb_answers where course_name = '{course}')
+    union
+    (select div_id, sid, correct, percent from parsons_answers where course_name = '{course}')
+    union
+    (select div_id, sid, correct, percent from codelens_answers where course_name = '{course}')
+    union
+    (select div_id, sid, correct, percent from clickablearea_answers where course_name = '{course}')
+    union
+    (select div_id, sid, correct, percent from dragndrop_answers where course_name = '{course}')
+    union
+    (select div_id, sid, correct, percent from unittest_answers where course_name = '{course}')
+    ) as T
+    join questions on div_id = name and base_course = '{thecourse.base_course}'
+    """,
+        dburl,
+    )
+    correct = df[(df.correct == "T") & (df.chapter == chapter)]
+    correct = correct.drop_duplicates()
+    mtbl = correct.pivot_table(
+        index="subchapter",
+        columns="sid",
+        values="correct",
+        aggfunc="count",
+        fill_value=0,
+    )
+    mtbl = mtbl.reset_index()
+    mtbl = mtbl.rename(columns={"subchapter": "chapter_label"})
+    logger.debug(mtbl)
+
+    if request.vars.action == "tocsv":
+        response.headers["Content-Type"] = "application/vnd.ms-excel"
+        response.headers["Content-Disposition"] = (
+            "attachment; filename=data_for_{}.csv".format(auth.user.course_name)
+        )
+        return mtbl.to_csv(na_rep=" ")
+
+    return dict(
+        course_name=course,
+        course_id=course,
+        course=thecourse,
+        chapter_frame=chapters,
+        summary=mtbl.to_json(orient="records", date_format="iso"),
+    )
 
 
 @auth.requires(
