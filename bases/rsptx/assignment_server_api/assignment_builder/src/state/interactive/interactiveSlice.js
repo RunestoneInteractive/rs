@@ -48,6 +48,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
             htmlsrc: preview_src,
             question_json: JSON.stringify(store.interactive.question_json),
             chapter: store.interactive.chapter,
+            author: store.interactive.author,
         };
         if (editonly) {
             body.id = questionId;

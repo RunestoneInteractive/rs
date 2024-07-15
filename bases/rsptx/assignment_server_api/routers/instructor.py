@@ -235,6 +235,9 @@ async def new_question(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
 
+    if request_data.author is None:
+        request_data.author = user.first_name + " " + user.last_name
+
     # First create the question
     new_question = QuestionValidator(
         **request_data.model_dump(),
@@ -245,7 +248,6 @@ async def new_question(
         practice=False,
         from_source=False,
         review_flag=False,
-        author=user.first_name + " " + user.last_name,
     )
     try:
         q = await create_question(new_question)

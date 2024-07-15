@@ -25,6 +25,7 @@
             <option value="dividmin" {{if request.vars.tablekind == 'dividmin':}}selected{{pass}}>First Interaction with all Activities</option>
             <option value="dividmax" {{if request.vars.tablekind == 'dividmax':}}selected{{pass}}>Last Interaction with all Activities</option>
             <option value="dividnum" {{if request.vars.tablekind == 'dividnum':}}selected{{pass}}>Number of Interactions with each Activity</option>
+            <option value="correctcount" {{if request.vars.tablekind == 'correctcount':}}selected{{pass}}>Number of Activities Correct</option>
         </select>
 
         <button type="submit" name="action" value="tocsv">Download CSV</button>
