@@ -7,6 +7,14 @@ Finally, to create, retrieve, update or delete (crud) elements from the database
 
 If your endpoint is going to be part of the book server, you should look at the routers in the ``rsptx.book_server_api.routers`` module.  If your endpoint is going to be part of the author server, you should look at the routers in the ``rsptx.author_server_api`` module. If your endpoint is going to be part of the assignment server you should look at the routers in the ``rsptx.assignment_server_api``.
 
+To work on feature in a single server use the commands below : 
+<ol> 
+      <li> make sure you run ``poetry shell``</li>
+      <li> Run ``./build.py --one XXXX --restart`` </li>
+</ol>
+
+XXXX is a placeholder for the service you are rebuilding and restarting. For instance, if you are working on runestone you can ``./build.py --one runestone --restart``
+
 
 .. note:: web2py is deprecated
 
