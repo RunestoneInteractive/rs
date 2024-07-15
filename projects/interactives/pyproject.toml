@@ -96,11 +96,11 @@ packages = [
 # ============
 [tool.poetry.dependencies]
 # TODO: loosen some of these? Explain why these versions were picked?
-python = ">=3.10"
+python = "^3.10.0"
 cogapp = ">=2.5"
 click = "~8"
-CodeChat = "<1.9.4"
-jinja2 = "<3.1.0"
+CodeChat = "1.9.3"
+jinja2 = "^3.1.0"
 Paver = ">=1.2.4"
 six = ">1.12"
 Sphinx = ">=4.4.0,<6.0.0"
@@ -112,7 +112,7 @@ sphinx-reredirects = "^0.1.2"
 psycopg2-binary = "^2.9.6"
 lxml = "^4.9.2"
 myst-parser = "^1.0.0"
-pretext = "^2.0.0"
+pretext = "^2.4.1"
 
 # Development dependencies
 # ========================
