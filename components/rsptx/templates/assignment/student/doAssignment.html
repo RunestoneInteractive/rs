@@ -16,10 +16,26 @@ Do Assignment
  </div>
 <div id='part1'>
     <h1 id="assignment_name" style='text-align:center'>{{ assignment['name'] }}</h1>
-    <h2 style='margin-left:1cm;'>Due: {{ assignment['duedate'] }}</h2>
+    <p style='margin-left:2cm;'>
+    <span
+    {% if overdue %}
+    class="overdue"
+    {% else %}
+    class="notdue"
+    {% endif %}
+    >
+    Due: {{ assignment['duedate'] }}
+    </span>
+    {% if enforce_pastdue %}
+    Past due and no longer scoring submissions
+    {% endif %}
+    </p>
     <span style="float:right; margin-right:2cm;">
         {% if assignment['points'] > 0 %}
-            {{ 'Self Grade: {} of {} = {:2.1f}%'.format(questions_score + readings_score, assignment['points'], 100*(questions_score + readings_score)/assignment['points']) }}
+            Current Score: 
+            <span id="total_score">{{questions_score+readings_score}}</span> of 
+            <span id="total_max">{{assignment['points']}}</span> = 
+            <span id="total_percent">{{'%0.2f' | format(100*(questions_score + readings_score)/assignment['points']|float)}}</span>%
         {% else %}
             This assignment is ungraded
         {% endif %}
@@ -107,16 +123,28 @@ Do Assignment
                 {% else %}
                     
                     {% for q in questioninfo %}
-                            {%  if q['comment'] != 'ungraded' %}
-                                <div style='float:right; width:30%;'>
-                                <h4 style='text-align:center;'>Score: {{ q['score']}} / {{ q['points']  }}</h4>
-                                <p style='margin-left:2%;'>Comment: {{ q['comment'] }}</p>
-                                </div>
+                        <div class="questionblock">
+                        <div class="metaquestion">
+                            <div class="griditem">
+                                <p>
+                                {% if origin == "Runestone" %}
+                                <a href="/ns/books/published/{{ course.course_name}}/{{ q['chapter']}}/{{ q['subchapter']}}.html#{{ q['name']    }}">Show this question in the book.</a>
+                                {% else %}
+                                <a href="/ns/books/published/{{ course.course_name}}/{{ q['subchapter']}}.html#{{ q['name']   }}">Show this question in the book</a>
+                                {% endif %}
+                                </p>
+                                <p id="{{q['name']}}_message"></p>
+                            </div>
+
+                            <div class="griditem">
+                            <p id="{{ q['name']}}_score">Score: <span class="qscore">{{ q['score']}}</span> / <span class="qmaxscore">{{ q['points']  }}</span></p>
+                            {% if q['comment'] != 'autograded' and q['comment'] != 'ungraded' %}
+                                <p>Comment: {{ q['comment'] }}</p>
                             {% else %}
-                                <div style='float:right; width:10%;'>
-                                <h5 style='text-align:center;'>Not yet graded</h5>
-                                </div>
+                                <p>Scoring Method: {{q['how_graded']}}</p>
                             {% endif %}
+                            </div>
+                        </div>
                             {% if q['question_type'] == 'webwork' %}
                             <div class='oneq full-width runestone-sphinx ptx-content' id='{{ loop.index }}'>
                             {% else %}
@@ -124,15 +152,7 @@ Do Assignment
                             {% endif %}
                                 {{ q.htmlsrc|safe }}
                             </div>
-                            <div class="oneq" style="width: 100%; text-align: center">
-                                {% if origin == "Runestone" %}
-                                <a href="/ns/books/published/{{ course.course_name}}/{{ q['chapter']}}/{{ q['subchapter']}}.html#{{ q['name']    }}">Question in Context</a>
-                                {% else %}
-                                <a href="/ns/books/published/{{ course.course_name}}/{{ q['subchapter']}}.html#{{ q['name']   }}">Question in Context</a>
-                                {% endif %}
-                            </div>
-                            <hr>
-                    
+                        </div>
                     {% endfor %}
                 {% endif %}
 

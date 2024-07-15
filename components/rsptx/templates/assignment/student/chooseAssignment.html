@@ -8,7 +8,11 @@ Choose Assignment
 {% endblock %} 
 {% block content %}
 <div>
+    {% if lti %}
+    <h3>You must launch assignments through your LMS for this course</h3>
+    {% else %}
     {% include 'assignment/student/assignment_block.html'%}
+    {% endif %}
     <h3>Help</h3>
     <p><strong>Hint: </strong>You can help yourself stay organized by tracking your progress on an assignment.  Use the dropdown menu to quickly mark your assignment as Not Started, In Progress, or Complete.  When your instructor grades the assignment it will be graded regardless of the value in the dropdown menu.  You can also get a preliminary score by clicking on the "Compute Score for Assignment" button on the assignment page.</p>
 

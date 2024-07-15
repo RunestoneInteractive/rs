@@ -44,6 +44,139 @@ When I try to go to ``http://localhost`` I get a mostly blank page with a link t
 
 I'm having problems installing/configuring postgresql.  There is **extensive** documentation and help available to install postgresql on almost every operating system.  I'm not going to try to duplicate any of that in this document.  A simple google search will almost certainly lead you to high quality documenation and tutorial help in setting up postgresql.
 
+Interactive Testing with ipython
+--------------------------------
+
+Using ``ipython`` it is easy to test a lot of the functionality of the runestone server.  You can start an ipython shell by running ``poetry run ipython`` from the root of the rs repository.  You can then import the runestone modules and test them interactively.  For example:  
+
+.. code-block:: python
+
+    from rsptx.db.crud import fetch_course
+    from rich import print
+
+    c = await fetch_course('overview')
+    print(c)
+
+    courses(
+        id=13,
+        course_name='overview',
+        term_start_date=datetime.date(2000, 1, 1),
+        base_course='overview',
+        python3=True,
+        login_required=False,
+        allow_pairs=False,
+        student_price=None,
+        downloads_enabled=False,
+        courselevel='',
+        institution='',
+        new_server=True,
+        is_supporter=None
+    )
+    
+If you set up ipython to use autoreload you can make changes and try the code again without having to restart the ipython shell.  To do this you can create a file in ``~/.ipython/profile_default/ipython_config.py`` with the following contents:
+
+.. code-block:: python
+
+    c.InteractiveShellApp.extensions = ['autoreload']
+    c.InteractiveShellApp.exec_lines = ['%autoreload 2']
+    import IPython
+
+    ipython = IPython.get_ipython()
+    if ipython is not None:
+        ipython_version = IPython.__version__
+        major_version = int(ipython_version.split('.')[0])
+        minor_version = int(ipython_version.split('.')[1])
+
+        if major_version < 8 or (major_version == 8 and minor_version < 1):
+            ipython.magic("load_ext autoreload")
+            ipython.magic("autoreload 2")
+        else:
+            ipython.run_line_magic(magic_name="load_ext", line="autoreload")
+            ipython.run_line_magic(magic_name="autoreload", line="2")
+
+        print("Autoreload enabled.")
+    else:
+        print("Autoreload not enabled.")
+
+
+You can also use the ``pdb`` debugger to step through code.  You can start the debugger by adding the following line to your code:
+
+.. code-block:: python
+
+    import pdb; pdb.set_trace()
+
+When you run the code it will stop at that line and you can use the following commands to step through the code:
+* ``n`` - step to the next line
+* ``c`` - continue to the next breakpoint
+* ``q`` - quit the debugger
+* ``l`` - list the code around the current line
+* ``p <variable>`` - print the value of a variable
+* ``h`` - get help on the debugger commands
+
+Most all of the functions under components can be tested this way!  
+
+Check the values in the database
+--------------------------------
+
+You can use the pgcli tool to interactively query the database.  You can start pgcli with the command ``rsmanage db`` or ``dockcer compose run rsmanage rsmanage db`` You can then use SQL commands to query the database.  For example:
+
+.. code-block:: sql
+
+    select * from useinfo limit 10 order by id desc
+
+This will return something like:
+
+.. code-block:: sql
+
+    +------------+----------------------------+----------------------+-------------+------------------------------------------>
+    | id         | timestamp                  | sid                  | event       | act                                      >
+    |------------+----------------------------+----------------------+-------------+------------------------------------------>
+    | 1002480995 | 2024-07-09 19:16:46.426241 | uras_xxxxxxxx        | page        | view                                     >
+    | 1002480994 | 2024-07-09 19:16:46.200012 | pexxxxxxxxxx@sou.edu | mChoice     | answer:1:correct                         >
+    | 1002480993 | 2024-07-09 19:16:45.729995 | Anonymous            | page        | view                                     >
+    | 1002480992 | 2024-07-09 19:16:45.569879 | laxxxxxx             | parsonsMove | move|13_0-7_0-9_0|0_1_0-2_0-3_0-4_5_0-6_0>
+    | 1002480991 | 2024-07-09 19:16:45.081719 | Anonymous            | page        | view                                     >
+    | 1002480990 | 2024-07-09 19:16:44.098338 | laxxxxxx             | parsonsMove | move|13_0-7_0-9_0|0_1_0-2_0-3_0-6_0-8_0-1>
+    | 1002480989 | 2024-07-09 19:16:43.092947 | Anonymous            | page        | view                                     >
+    | 1002480988 | 2024-07-09 19:16:42.327945 | pexxxxxxxxxx@sou.edu | mChoice     | answer:4:no                              >
+    | 1002480987 | 2024-07-09 19:16:41.92033  | laxxxxxx             | parsonsMove | move|13_0-7_0-9_0|12_0-0_1_0-2_0-3_0-6_0->
+    | 1002480986 | 2024-07-09 19:16:40.544834 | Anonymous            | page        | view                                     >
+    +------------+----------------------------+----------------------+-------------+------------------------------------------>
+    SELECT 10
+
+This will show you the last 10 rows in the useinfo table.  You can use any SQL command that you like to query the database.  If you are not familiar with SQL there are many tutorials available on the web.  You don't need to be an expert to learn enough sql to see what is going on in the database.
+
+To give you a quick guided tour of the database I'll just mention some tables.  the definitions for these tables are in the ``db/models.py`` file.
+
+* ``useinfo`` - this table records every event that happens in the system.  It is used to track student progress and to generate reports.
+* ``user_courses`` - this table records which courses a student is enrolled in.
+* ``mchoice_answers`` - this table records the answers to multiple choice questions.
+* ``fitb_answers`` - this table records the answers to fill in the blank questions.
+* ``xxx_answers`` - there are many other tables that record answers to various types of questions.
+* ``auth_user`` - this table records the users that are allowed to log in to the system.
+* ``auth_group`` - this table records the groups that users can belong to. for example instructor, editor, author.
+* ``auth_membership`` - this table records the membership of users in groups.
+* ``course_instructor`` - this table records the instructors for each course.
+* ``courses`` - this table records the courses that are available in the system.  It is used to generate the course selection page.
+* ``user_courses`` - this table records the courses that each user is enrolled in.
+* ``assignments`` - this table records the assignments that are available in the system.  
+* ``questions`` - this table records the questions that are available in the system. 
+* ``assignments_questions`` - this table records the relationship between assignments and questions.
+* ``question_grades`` - this table records the grades that students have received on questions.
+* ``grades`` - this table records the grades that students have received on assignments.
+
+Using the Javascript Console
+----------------------------
+
+Since much of Runestone is written in Javascript you need to learn how to use the Javascript console effectively.  Although most everyone knows how to open it by using the F12 key, or right clicking on a page and selecting "Inspect". Some browsers have other shortcuts that you can google.  There are several very useful tabs.
+
+* **Console** - This is where you can type Javascript commands and see the output.  You can also see error messages here.
+* **Network** - This tab shows you all of the network requests that are made by the page.  You can see the request and response headers, and the response body.  This is very useful for debugging AJAX requests.  If you click on a request you can see the headers and the response body.  You can also see the cookies that are sent with the request.
+* **Sources** - This tab shows you all of the Javascript files that are loaded by the page.  You can set breakpoints in the code, and step through the code.  You can also see the values of variables at any point in the code.  This is very useful for debugging Javascript code.
+* **Application** - This tab shows you the cookies that are set by the page.  You can see the values of the cookies, and you can delete them.  This is useful for debugging problems with cookies.
+* **Elements** - This tab shows you the HTML of the page.  You can see the structure of the page, and you can edit the HTML.  This is useful for debugging problems with the layout of the page or with CSS.
+
+
 Reporting Problems
 ------------------
 

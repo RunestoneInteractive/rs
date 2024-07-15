@@ -42,7 +42,7 @@ import toast from "react-hot-toast";
  */
 export const fetchAssignments = createAsyncThunk(
     "assignment/fetchAssignments",
-    async (neededForGetState, { getState }) => {
+    async (neededForGetState, { getState, dispatch }) => {
         const response = await fetch("/assignment/instructor/assignments");
         const data = await response.json();
         let state = getState();
@@ -51,7 +51,7 @@ export const fetchAssignments = createAsyncThunk(
             console.warn("Error fetching assignments");
             if (response.status === 401) {
                 console.warn("Unauthorized to fetch assignments");
-                state.assignment.isAuthorized = false;
+                dispatch(setIsAuthorized(false));
                 return;
             }
         }
@@ -417,6 +417,7 @@ export const assignSlice = createSlice({
         search_results: [],
         question_count: 0,
         isAuthorized: true,
+        released: false,
     },
     reducers: {
 
@@ -494,6 +495,9 @@ export const assignSlice = createSlice({
         addExercise: (state, action) => {
             console.log("addExercise", action.payload)
             state.exercises.push(action.payload);
+        },
+        setIsAuthorized: (state, action) => {
+            state.isAuthorized = action.payload;
         },
         addAssignment: (state, action) => {
             state.all_assignments.push(action.payload);
@@ -619,6 +623,7 @@ export const {
     sumPoints,
     updateExercise,
     updateField,
+    setIsAuthorized,
 } = assignSlice.actions;
 
 // The function below is called a selector and allows us to select a value from

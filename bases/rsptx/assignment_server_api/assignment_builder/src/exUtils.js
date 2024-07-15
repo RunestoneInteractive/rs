@@ -1,8 +1,5 @@
 
 export function setExerciseDefaults(exercise, currentAssignmentId, currentExercises) {
-    if (exercise.name.startsWith("q:")) {
-        exercise.name = exercise.name.substring(2);
-    }
     exercise.assignment_id = currentAssignmentId;
     exercise.question_id = exercise.id;
     let clen = currentExercises.length;

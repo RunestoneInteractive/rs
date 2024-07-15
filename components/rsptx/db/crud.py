@@ -20,6 +20,7 @@ import json
 from collections import namedtuple
 from typing import Dict, List, Optional, Tuple, Any
 import traceback
+import pytz
 
 # Third-party imports
 # -------------------
@@ -55,6 +56,7 @@ from rsptx.db.models import (
     CourseAttribute,
     CourseInstructor,
     CourseInstructorValidator,
+    CourseLtiMap,
     CoursePractice,
     Courses,
     CoursesValidator,
@@ -248,11 +250,12 @@ async def update_question(question: QuestionValidator) -> QuestionValidator:
     :rtype: QuestionValidator
     """
     async with async_session.begin() as session:
-        stmt = update(Question).where(Question.id == question.id).values(
-            **question.dict()
+        stmt = (
+            update(Question).where(Question.id == question.id).values(**question.dict())
         )
         await session.execute(stmt)
     return question
+
 
 async def fetch_poll_summary(div_id: str, course_name: str) -> List[tuple]:
     """
@@ -1716,6 +1719,48 @@ async def fetch_question_grade(sid: str, course_name: str, qid: str):
         return QuestionGradeValidator.from_orm(res.scalars().one_or_none())
 
 
+async def create_question_grade_entry(
+    sid: str, course_name: str, qid: str, grade: int, qge_id: Optional[int] = None
+) -> QuestionGradeValidator:
+    """
+    Create a new QuestionGrade entry with the given sid, course_name, qid, and grade.
+    """
+    new_qg = QuestionGrade(
+        sid=sid,
+        course_name=course_name,
+        div_id=qid,
+        score=grade,
+        comment="autograded",
+    )
+    if qge_id is not None:
+        new_qg.id = qge_id
+
+    async with async_session.begin() as session:
+        session.add(new_qg)
+    return QuestionGradeValidator.from_orm(new_qg)
+
+
+async def update_question_grade_entry(
+    sid: str, course_name: str, qid: str, grade: int, qge_id: Optional[int] = None
+) -> QuestionGradeValidator:
+    """
+    Create a new QuestionGrade entry with the given sid, course_name, qid, and grade.
+    """
+    new_qg = QuestionGrade(
+        sid=sid,
+        course_name=course_name,
+        div_id=qid,
+        score=grade,
+        comment="autograded",
+    )
+    if qge_id is not None:
+        new_qg.id = qge_id
+
+    async with async_session.begin() as session:
+        await session.merge(new_qg)
+    return QuestionGradeValidator.from_orm(new_qg)
+
+
 async def fetch_user_experiment(sid: str, ab_name: str) -> int:
     """
     When a question is part of an AB experiement (ab_name) get the experiment
@@ -2378,3 +2423,152 @@ async def fetch_questions_for_chapter_subchapter(
             )
 
         return chaps
+
+
+async def fetch_answers(question_id: str, event: str, course_name: str, username: str):
+    """
+    Fetch all answers for a given question.
+
+    :param question_id: int, the id of the question
+    :return: List[AnswerValidator], a list of AnswerValidator objects
+    """
+
+    rcd = runestone_component_dict[EVENT2TABLE[event]]
+    tbl = rcd.model
+    query = select(tbl).where(
+        and_(
+            (tbl.div_id == question_id),
+            (tbl.course_name == course_name),
+            (tbl.sid == username),
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        return [a for a in res.scalars()]
+
+
+async def is_assigned(
+    question_id: str, course_id: int, assignment_id: Optional[int] = None
+) -> schemas.ScoringSpecification:
+    """
+    Check if a question is part of an assignment.
+    If the assignment is not visible, the question is not considered assigned.
+    If the assignment is not yet due -- no problem.
+    If the assignment is past due but the instructor has not enforced the due date -- no problem.
+    If the assignment is past due but the instructor has not enforced the due date, but HAS released the assignment -- then no longer assigned.
+
+    :param question_id: str, the name of the question
+    :param course_id: int, the id of the course
+    :return: ScoringSpecification, the scoring specification object
+    """
+    # select * from assignments join assignment_questions on assignment_questions.assignment_id = assignments.id join courses on courses.id = assignments.course where courses.course_name = 'overview'
+    clauses = [
+        (Question.name == question_id),
+        (AssignmentQuestion.question_id == Question.id),
+        (AssignmentQuestion.assignment_id == Assignment.id),
+        (Assignment.course == course_id),
+        (Assignment.is_timed == False),  # noqa: E712
+    ]
+    if assignment_id is not None:
+        clauses.append(Assignment.id == assignment_id)
+    query = (
+        select(Assignment, AssignmentQuestion, Question)
+        .where(and_(*clauses))
+        .order_by(Assignment.duedate.desc())
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        for row in res:
+            scoringSpec = schemas.ScoringSpecification(
+                assigned=False,
+                max_score=row.AssignmentQuestion.points,
+                score=0,
+                assignment_id=row.Assignment.id,
+                which_to_grade=row.AssignmentQuestion.which_to_grade,
+                how_to_score=row.AssignmentQuestion.autograde,
+                is_reading=row.AssignmentQuestion.reading_assignment,
+                username="",
+                comment="",
+                question_id=row.Question.id,
+            )
+            if datetime.datetime.now(datetime.UTC) <= row.Assignment.duedate.replace(
+                tzinfo=pytz.utc
+            ):
+                if row.Assignment.visible:  # todo update this when we have a visible by
+                    scoringSpec.assigned = True
+                    return scoringSpec
+            else:
+                if not row.Assignment.enforce_due and not row.Assignment.released:
+                    if row.Assignment.visible:
+                        scoringSpec.assigned = True
+                        return scoringSpec
+        return schemas.ScoringSpecification()
+
+
+async def fetch_assignment_scores(
+    assignment_id: int, course_name: str, username: str
+) -> List[QuestionGradeValidator]:
+    """
+    Fetch all scores for a given assignment.
+
+    :param assignment_id: int, the id of the assignment
+    :param course_id: int, the id of the course
+    :param username: str, the username of the student
+    :return: List[ScoringSpecification], a list of ScoringSpecification objects
+    """
+    query = select(QuestionGrade).where(
+        and_(
+            (QuestionGrade.sid == username),
+            (QuestionGrade.div_id == Question.name),
+            (Question.id == AssignmentQuestion.question_id),
+            (AssignmentQuestion.assignment_id == assignment_id),
+            (QuestionGrade.course_name == course_name),
+        )
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        return [QuestionGradeValidator.from_orm(q) for q in res.scalars()]
+
+
+async def did_send_messages(sid: str, div_id: str, course_name: str) -> bool:
+    """
+    Fetch all messages sent to a given student.
+
+    :param sid: str, the student id
+    :return: List[SentMessageValidator], a list of SentMessageValidator objects
+    """
+    query = select(Useinfo).where(
+        and_(
+            (Useinfo.sid == sid),
+            (Useinfo.div_id == div_id),
+            (Useinfo.course_id == course_name),
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        if len(res.all()) > 0:
+            return True
+        else:
+            return False
+
+
+async def uses_lti(course_id: int) -> bool:
+    """
+    Check if a course uses LTI.
+
+    :param course_id: int, the id of the course
+    :return: bool, whether the course uses LTI
+    """
+    query = select(CourseLtiMap).where(CourseLtiMap.course_id == course_id)
+    async with async_session() as session:
+        res = await session.execute(query)
+        # check the number of rows in res
+        
+        if len(res.all()) > 0:
+            return True
+
+    return False

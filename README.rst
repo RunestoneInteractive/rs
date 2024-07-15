@@ -15,6 +15,9 @@ If you want to do development on Runestone, or run your own server, you will nee
 * Running a server for my own class? - coming soon
 * Running a server for my school or larger group? - coming soon
 
+.. image:: https://readthedocs.org/projects/runestone-monorepo/badge/?version=latest
+    :target: https://runestone-monorepo.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status 
 
 Runestone MonoRepo
 ==================

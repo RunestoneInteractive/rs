@@ -3019,12 +3019,13 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.3.0"
+version = "7.3.1"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "runestone-7.3.0-py3-none-any.whl", hash = "sha256:4f6103ae654a4f18c3c180e570601bc7a62603346c3d112d349877c089d7004f"},
+    {file = "runestone-7.3.1-py3-none-any.whl", hash = "sha256:fe6cbc52697e7eccff67760c5f1989a99ae6d64b5e8b3c87b7ec5ffeff3ce59a"},
+    {file = "runestone-7.3.1.tar.gz", hash = "sha256:cd334c2276c5359b309f6b481cee7c13777872e8d356d0bfa89d488a359c2a69"},
 ]
 
 [package.dependencies]
@@ -3041,6 +3042,7 @@ jupyterlite-sphinx = ">=0.9.3,<0.10.0"
 lxml = ">=4.9.2,<5.0.0"
 myst-parser = ">=1.0.0,<2.0.0"
 Paver = ">=1.2.4"
+pretext = ">=2.0.0,<3.0.0"
 psycopg2-binary = ">=2.9.6,<3.0.0"
 pydal = ">=20230521.1,<20230522.0"
 pydantic = ">=2.0.0,<3.0.0"

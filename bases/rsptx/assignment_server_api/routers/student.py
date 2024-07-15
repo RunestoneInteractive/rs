@@ -32,6 +32,7 @@ from rsptx.db.crud import (
     fetch_all_assignment_stats,
     fetch_grade,
     upsert_grade,
+    uses_lti,
     fetch_course,
     fetch_all_course_attributes,
     fetch_one_assignment,
@@ -75,7 +76,9 @@ async def get_assignments(
 
     sid = user.username
     course = await fetch_course(user.course_name)
-
+    is_lti_course = False
+    if course and await uses_lti(course.id):
+        is_lti_course = True
     templates = Jinja2Templates(directory=template_folder)
     user_is_instructor = await is_instructor(request, user=user)
     assignments = await fetch_assignments(course.course_name, is_visible=True)
@@ -95,6 +98,7 @@ async def get_assignments(
             "request": request,
             "is_instructor": user_is_instructor,
             "student_page": True,
+            "lti": is_lti_course,
         },
     )
 
@@ -207,7 +211,9 @@ async def doAssignment(
             (assignment.hideDate is None or assignment.hideDate >= current_time)):
 
         if await is_instructor(request) is False:
-            rslogger.error(f"Attempt to access invisible assignment {assignment_id} by {user.username}")
+            rslogger.error(
+                f"Attempt to access invisible assignment {assignment_id} by {user.username}"
+            )
             return RedirectResponse("/assignment/student/chooseAssignment")
 
     if assignment.points is None:
@@ -303,6 +309,15 @@ async def doAssignment(
             question_type=q.Question.question_type,
             activities_required=q.AssignmentQuestion.activities_required,
         )
+        if q.AssignmentQuestion.autograde == "manual":
+            info["how_graded"] = "Needs Manual Grading"
+        elif q.AssignmentQuestion.which_to_grade == "first_answer":
+            info["how_graded"] = "First Answer"
+        elif q.AssignmentQuestion.which_to_grade == "last_answer":
+            info["how_graded"] = "Last Answer"
+        elif q.AssignmentQuestion.which_to_grade == "best_answer":
+            info["how_graded"] = "Best Answer"
+
         if q.AssignmentQuestion.reading_assignment:
             # add to readings
             if chap_name not in readings:
@@ -400,11 +415,13 @@ async def doAssignment(
     deadline = assignment.duedate
     if timezoneoffset:
         deadline = deadline + datetime.timedelta(hours=float(timezoneoffset))
-
+    assignment.duedate = assignment.duedate.strftime("%a %d, %b %Y %I:%m %p")
     enforce_pastdue = False
     if assignment.enforce_due and timestamp > deadline:
         enforce_pastdue = True
-
+    overdue = False
+    if timestamp > deadline:
+        overdue = True
     templates = Jinja2Templates(directory=template_folder)
     context = dict(  # This is all the variables that will be used in the doAssignment.html document
         course=course,
@@ -424,6 +441,7 @@ async def doAssignment(
         origin=c_origin,
         is_submit=grade.is_submit,
         is_graded=is_graded,
+        overdue=overdue,
         enforce_pastdue=enforce_pastdue,
         ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
         webwork_js_version=course_attrs.get("webwork_js_version", "2.17"),
