@@ -1275,15 +1275,9 @@ async def fetch_assignments(
     now = datetime.utcnow()
 
     # Visibility clause
-    visibility_conditions = []
     if is_visible:
-        visibility_conditions.append(Assignment.visibledate <= now)
-    if not is_hidden:
-        visibility_conditions.append(Assignment.hiddingdate >= now)
-    if visibility_conditions:
-        vclause = and_(*visibility_conditions)
-    else:
-        vclause = None  # Neutral condition, no visibility filter applied
+         vclause = or_(Assignment.visible == is_visible, and_(Assignment.visibledate >= now, Assignment.hiddingdate <= now)
+             )
 
     if is_peer:
         pclause = Assignment.is_peer == True  # noqa: E712
