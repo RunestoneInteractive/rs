@@ -186,33 +186,33 @@ export function SearchResults() {
     );
 }
 
-    function EditButton(exercise) {
-        const op = useRef(null);
-        const dispatch = useDispatch();
+function EditButton(exercise) {
+    const op = useRef(null);
+    const dispatch = useDispatch();
 
 
-        const toggleEditor = (e) => {
-            if ( !exercise.question_json) {
-                toast("No question to edit", { icon: "🚫" })
-                return null;
-            }
-            dispatch(setQuestion(exercise));
-            dispatch(setComponent(exercise.question_type))
-            dispatch(setPreviewSrc(exercise.htmlsrc));
-            if (exercise.question_type === "activecode") {
-                dispatch(setACFields(exercise.question_json));
-            } else if (exercise.question_type === "mchoice" || exercise.question_type === "multiplechoice") {
-                dispatch(setMCFields(exercise.question_json));
-            }
-            op.current.toggle(e);
+    const toggleEditor = (e) => {
+        if (!exercise.question_json) {
+            toast("No question to edit", { icon: "🚫" })
+            return null;
         }
-
-        return (
-            <>
-                <Button icon="pi pi-cog" rounded text type="button" severity="secondary" onClick={toggleEditor} />
-                <OverlayPanel ref={op} dismissable={false} showCloseIcon>
-                    <EditorContainer exercise={exercise.question_type} editonly={true} />
-                </OverlayPanel>
-            </>
-        );
+        dispatch(setQuestion(exercise));
+        dispatch(setComponent(exercise.question_type))
+        dispatch(setPreviewSrc(exercise.htmlsrc));
+        if (exercise.question_type === "activecode") {
+            dispatch(setACFields(exercise.question_json));
+        } else if (exercise.question_type === "mchoice" || exercise.question_type === "multiplechoice") {
+            dispatch(setMCFields(exercise.question_json));
+        }
+        op.current.toggle(e);
     }
+
+    return (
+        <>
+            <Button icon="pi pi-pencil" rounded text type="button" severity="secondary" onClick={toggleEditor} />
+            <OverlayPanel ref={op} dismissable={false} showCloseIcon>
+                <EditorContainer exercise={exercise.question_type} editonly={true} />
+            </OverlayPanel>
+        </>
+    );
+}
