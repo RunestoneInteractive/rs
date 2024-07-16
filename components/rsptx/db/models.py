@@ -556,6 +556,7 @@ class Assignment(Base, IdMixin):
     duedate = Column(DateTime, nullable=False)
     # visible = Column(Web2PyBoolean, nullable=False)
     threshold_pct = Column(Float(53)) 
+    visible = Column(Web2PyBoolean, nullable=False)
     visibledate = Column(DateTime, nullable=False)
     hiddingdate = Column(DateTime, nullable=False)
     allow_self_autograde = Column(Web2PyBoolean)

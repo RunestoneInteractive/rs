@@ -208,7 +208,7 @@ async def doAssignment(
 
     current_time = datetime.datetime.utcnow()
 
-   if not (assignment.visibledate <= current_time and 
+    if not (assignment.visibledate <= current_time and 
 
             (assignment.hideDate is None or assignment.hideDate >= current_time)):
 
