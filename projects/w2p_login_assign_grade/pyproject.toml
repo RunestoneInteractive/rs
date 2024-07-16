@@ -30,7 +30,7 @@ pandas = "^1.0.0"
 pathlib2 = "^2.0.0"
 Paver = ">= 1.2.4"
 pgcli = "^3.0.0"
-pretext = "^2.0.0"
+pretext = "2.4.1"
 psycopg2-binary = "^2.0.0"
 pyjwt = "== 2.0.1"
 pylint = ">= 1.2.1"
@@ -50,10 +50,11 @@ urllib3-secure-extra = "^0.1.0"
 redis = "^4.3.0"
 gunicorn = "^21.0.0"
 
+
 # These are for testing and development.
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"
-CodeChat = "<1.9.4"
+CodeChat = "1.9.3"
 contextlib2 = "^0.6.0"
 coverage = "^6.0.0"
 coveralls = "^3.0.0"

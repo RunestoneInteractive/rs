@@ -241,6 +241,7 @@ class QuestionIncoming(BaseModel):
     autograde: Optional[str] = None
     question_json: Json
     chapter: Optional[str] = None
+    author: Optional[str] = None
 
 
 class AssignmentQuestionIncoming(BaseModel):

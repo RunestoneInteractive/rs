@@ -1291,8 +1291,6 @@ async def fetch_assignments(
     ]
     if vclause:
         conditions.append(vclause)
-    if is_peer is not None:
-        conditions.append(Assignment.is_peer == is_peer)
 
     query = select(Assignment).where(and_(*conditions)).order_by(Assignment.duedate.desc())
 

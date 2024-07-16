@@ -174,7 +174,8 @@ export function SearchResults() {
                 }}
             >
                 <Column selectionMode="multiple" style={{ width: '3em' }} />
-                <Column field="question_json" header="Edit" body={EditButton} sortable />
+                <Column field="question_json" header="Edit" body={EditButton} />
+                <Column field="name" header="Name" sortable />
                 <Column field="qnumber" header="Question" sortable />
                 <Column field="topic" header="Topic" sortable />
                 <Column field="htmlsrc" header="Preview" body={PreviewTemplate} style={{ maxWidth: '100rem' }} />
