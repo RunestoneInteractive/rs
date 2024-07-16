@@ -61,7 +61,10 @@ async def index(request: Request, user=Depends(auth_manager)):
     rslogger.debug(f"{instructors=}")
     templates = Jinja2Templates(directory=template_folder)
     books = await fetch_library_book(course.base_course)
-    books = [books]
+    if books is None:
+        books = []
+    else:
+        books = [books]
     row = await fetch_last_page(user, course_name)
     if row:
         last_page_url = row.last_page_url
