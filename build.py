@@ -294,7 +294,7 @@ def generate_wheel_table(status: dict) -> Table:
     table.add_column("Wheel", justify="right", style="white", no_wrap=True)
     table.add_column("Built", style="magenta")
     for service in status:
-        table.add_row(f"[black]{service}[/black]", status[service])
+        table.add_row(service, status[service])
     return table
 
 
