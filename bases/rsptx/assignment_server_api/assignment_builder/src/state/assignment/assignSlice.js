@@ -82,10 +82,14 @@ export const createAssignment = createAsyncThunk(
         // make a date that is acceptable on the server
         let duedate = new Date(assignData.duedate);
         duedate = duedate.toISOString().replace('Z', '');
+        let visibledate = new Date(assignData.visibledate).toISOString().replace('Z', '');
+        let hiddingdate = new Date(assignData.hiddingdate).toISOString().replace('Z', '');
         let body = {
             name: assignData.name,
             description: assignData.description,
             duedate: duedate,
+            visibledate: visibledate,
+            hiddingdate: hiddingdate,
             points: assignData.points,
             kind: "quickcode",
         };
