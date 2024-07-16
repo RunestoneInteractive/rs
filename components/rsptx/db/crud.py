@@ -1260,6 +1260,7 @@ async def fetch_assignments(
     course_name: str,
     is_peer: Optional[bool] = False,
     is_visible: Optional[bool] = False,
+    fetch_all: Optional[bool] = False,
 ) -> List[AssignmentValidator]:
     """
     Fetch all Assignment objects for the given course name.
@@ -1276,6 +1277,17 @@ async def fetch_assignments(
     else:
         vclause = True
 
+    if is_peer:
+        pclause = Assignment.is_peer == True  # noqa: E712
+    else:
+        pclause = or_(
+            Assignment.is_peer == False, Assignment.is_peer == None  # noqa: E712, E711
+        )  
+
+    if fetch_all:
+        pclause = True
+        vclause = True
+
     query = (
         select(Assignment)
         .where(
@@ -1283,6 +1295,7 @@ async def fetch_assignments(
                 Assignment.course == Courses.id,
                 Courses.course_name == course_name,
                 vclause,
+                pclause,
             )
         )
         .order_by(Assignment.duedate.desc())
@@ -2559,7 +2572,7 @@ async def uses_lti(course_id: int) -> bool:
     async with async_session() as session:
         res = await session.execute(query)
         # check the number of rows in res
-        
+
         if len(res.all()) > 0:
             return True
 
