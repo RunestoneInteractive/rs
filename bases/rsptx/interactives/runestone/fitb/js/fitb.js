@@ -210,6 +210,7 @@ export default class FITB extends RunestoneBase {
                 this.indicate_component_ready();
             });
         });
+        this.queueMathJax(this.descriptionDiv);
     }
 
     // Find the script tag containing JSON in a given root DOM node.
@@ -345,7 +346,6 @@ export default class FITB extends RunestoneBase {
                 }
             }
 
-            this.queueMathJax(this.descriptionDiv);
             this.setupBlanks();
         }
     }
@@ -373,6 +373,7 @@ export default class FITB extends RunestoneBase {
         // Restore the seed first, since the dynamic render clears all the blanks.
         this.seed = data.seed;
         this.renderDynamicContent();
+        this.queueMathJax(this.descriptionDiv);
 
         var arr;
         // Restore answers from storage retrieval done in RunestoneBase.
@@ -505,6 +506,7 @@ export default class FITB extends RunestoneBase {
             //
             this.seed = Math.floor(Math.random() * 2 ** 32);
             this.renderDynamicContent();
+            this.queueMathJax(this.descriptionDiv);
         } else {
             // This is the server-side case. Send a request to the `results <getAssessResults>` endpoint with ``new_seed`` set to True.
             const request = new Request("/assessment/results", {
