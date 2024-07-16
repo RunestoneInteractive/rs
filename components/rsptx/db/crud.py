@@ -1278,6 +1278,8 @@ async def fetch_assignments(
     if is_visible:
          vclause = or_(Assignment.visible == is_visible, and_(Assignment.visibledate >= now, Assignment.hiddingdate <= now)
              )
+    else: 
+        vclause = True
 
     if is_peer:
         pclause = Assignment.is_peer == True  # noqa: E712
