@@ -348,7 +348,7 @@ async def get_assignments(
         )
 
     # todo: update fetch to only get new style??
-    assignments = await fetch_assignments(course.course_name, is_visible=False)
+    assignments = await fetch_assignments(course.course_name, fetch_all=True)
     rslogger.debug(f"Got assignments: {assignments} for {course.course_name}")
 
     return make_json_response(

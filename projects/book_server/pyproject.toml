@@ -22,7 +22,7 @@ packages = [
 
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 aioredis = "^2.0.0"
 async-timeout = "^4.0.0"
 celery = { extras = ["redis"], version = "^5.0.0" }
@@ -31,7 +31,7 @@ fastapi = "^0.103.0"
 uvicorn = { extras = ["standard"], version = "^0.17.0" }
 # See the `poetry docs <https://python-poetry.org/docs/dependency-specification/#using-environment-markers>`_.
 gunicorn = { version = "^20.0.0", markers = "sys.platform != 'win32'" }
-Jinja2 = "<3.1.0"
+Jinja2 = "^3.1.0"
 aiofiles = "^0.8.0"
 alembic = "^1.0.0"
 python-dateutil = "^2.0.0"

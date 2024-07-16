@@ -363,10 +363,24 @@ with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
                             with open("build.log", "a") as f:
                                 f.write(res.stderr.decode(stdout_err_encoding))
                                 f.write(res.stdout.decode(stdout_err_encoding))
-                        continue
+                        sys.exit(1)
                 if os.path.isfile("pyproject.toml"):
                     status[proj] = "[grey62]building...[/grey62]"
                     lt.update(generate_wheel_table(status))
+                    res = subprocess.run(
+                        ["poetry", "lock", "--no-update"], capture_output=True
+                    )
+                    if res.returncode != 0:
+                        status[proj] = (
+                            f"[red]Fail[/red] probable dependency conflict see {projdir}/build.log"
+                        )
+                        lt.update(generate_wheel_table(status))
+                        if VERBOSE:
+                            console.print(res.stderr.decode(stdout_err_encoding))
+                        else:
+                            with open("build.log", "a") as f:
+                                f.write(res.stderr.decode(stdout_err_encoding))
+                        sys.exit(1)
                     res = subprocess.run(
                         ["poetry", "build-project"], capture_output=True
                     )
@@ -383,6 +397,7 @@ with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
                         else:
                             with open("build.log", "a") as f:
                                 f.write(res.stderr.decode(stdout_err_encoding))
+                        sys.exit(1)
                 else:
                     status[proj] = "[blue]Skipped[/blue]"
                     lt.update(generate_wheel_table(status))

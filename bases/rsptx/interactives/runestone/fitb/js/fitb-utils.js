@@ -229,6 +229,24 @@ export function checkAnswersCore(
                         );
                         break;
                     }
+                // If this is NOT a dynamic solution, but given a testing function
+                } else if ("solution_code" in fbl[j]) {
+                    // Create a function to wrap the expression to evaluate. See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/Function.
+                    // Pass the answer, array of all answers, then all entries in ``this.dyn_vars_eval`` dict as function parameters.
+                    const is_equal = window.Function(
+                        "ans",
+                        "ans_array",
+                        `"use strict;"\nreturn ${fbl[j]["solution_code"]};`
+                    )(given, given_arr);
+                    // If student's answer is equal to this item, then append this item's feedback.
+                    if (is_equal) {
+                        displayFeed.push(
+                            typeof is_equal === "string"
+                                ? is_equal
+                                : fbl[j]["feedback"]
+                        );
+                        break;
+                    }
                 } else {
                     // Undefined method of testing.
                     console.assert("number" in fbl[j]);

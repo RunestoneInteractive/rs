@@ -34,7 +34,7 @@ license = "GPL"
 name = "runestone"
 readme = "README.rst"
 repository = "https://github.com/RunestoneInteractive/rs"
-version = "7.3.2"
+version = "7.3.3"
 
 # See https://python-poetry.org/docs/pyproject/#include-and-exclude.
 include = [
@@ -112,7 +112,7 @@ sphinx-reredirects = "^0.1.2"
 psycopg2-binary = "^2.9.6"
 lxml = "^4.9.2"
 myst-parser = "^1.0.0"
-pretext = "^2.4.1"
+pretext = "^2.5.0"
 
 # Development dependencies
 # ========================
