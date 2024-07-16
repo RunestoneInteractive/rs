@@ -207,7 +207,7 @@ async def doAssignment(
         return RedirectResponse("/assignment/student/chooseAssignment")
 
     current_time = datetime.datetime.utcnow()
-   if not (assignment.visibledate <= current_time and 
+    if not (assignment.visibledate <= current_time and 
             (assignment.hideDate is None or assignment.hideDate >= current_time)):
 
         if await is_instructor(request) is False:
@@ -218,6 +218,7 @@ async def doAssignment(
 
     if assignment.points is None:
         assignment.points = 0
+        
 
     # This query assumes that questions are on a page and in a subchapter that is
     # present in the book.  For many questions that is of course a given.  But for

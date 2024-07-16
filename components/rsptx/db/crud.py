@@ -1260,6 +1260,8 @@ async def fetch_assignments(
     course_name: str,
     is_peer: Optional[bool] = False,
     is_visible: Optional[bool] = False,
+    is_hidden: Optional[bool] = True,
+
 ) -> List[AssignmentValidator]:
     """
     Fetch all Assignment objects for the given course name.
@@ -1270,31 +1272,33 @@ async def fetch_assignments(
     :param is_peer: bool, whether or not the assignment is a peer assignment
     :return: List[AssignmentValidator], a list of AssignmentValidator objects
     """
-now = datetime.utcnow()
+    now = datetime.utcnow()
 
     # Visibility clause
+    visibility_conditions = []
     if is_visible:
-        vclause = and_(Assignment.visibledate <= now, Assignment.hiddingdate >= now)
+        visibility_conditions.append(Assignment.visibledate <= now)
+    if not is_hidden:
+        visibility_conditions.append(Assignment.hiddingdate >= now)
+    if visibility_conditions:
+        vclause = and_(*visibility_conditions)
     else:
-        vclause = True
+        vclause = None  # Neutral condition, no visibility filter applied
 
-    query = (
-        select(Assignment)
-        .where(
-            and_(
-                Assignment.course == Courses.id,
-                Courses.course_name == course_name,
-                vclause,
-            )
-        )
-        .order_by(Assignment.duedate.desc())
-    )
+    conditions = [
+        Assignment.course == Courses.id,
+        Courses.course_name == course_name,
+    ]
+    if vclause:
+        conditions.append(vclause)
+    if is_peer is not None:
+        conditions.append(Assignment.is_peer == is_peer)
+
+    query = select(Assignment).where(and_(*conditions)).order_by(Assignment.duedate.desc())
 
     async with async_session() as session:
         res = await session.execute(query)
-        rslogger.debug(f"{res=}")
         return [AssignmentValidator.from_orm(a) for a in res.scalars()]
-
 
 # write a function that fetches one Assignment objects given a course name
 async def fetch_one_assignment(assignment_id: int) -> AssignmentValidator:
@@ -1596,9 +1600,9 @@ async def fetch_questions_by_search_criteria(
     if criteria.question_type:
         where_criteria.append(Question.question_type == criteria.question_type)
     if criteria.author:
-        where_criteria.append(Question.author.regexp_match(criteria.author, flags="i"))
+        where_criteria.append(Question.author.regexp_match(criteria.author, flags="i")) 
     if criteria.base_course:
-        where_criteria.append(Question.base_course == criteria.base_course)
+        where_criteria.append(Question.base_course == criteria.base_course) 
 
     if len(where_criteria) == 0:
         raise ValueError("No search criteria provided")
