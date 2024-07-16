@@ -291,7 +291,7 @@ progress_wheel.counter = 0
 
 def generate_wheel_table(status: dict) -> Table:
     table = Table(title="Build Python Wheels")
-    table.add_column("Wheel", justify="right", style="grey62", no_wrap=True)
+    table.add_column("Wheel", justify="right", style="white", no_wrap=True)
     table.add_column("Built", style="magenta")
     for service in status:
         table.add_row(f"[black]{service}[/black]", status[service])
@@ -498,7 +498,13 @@ if "--push" in sys.argv:
 
 # Check the database
 # ------------------
-inspector = inspect(create_engine(os.environ["DEV_DBURL"]))
+engine = create_engine(os.environ["DEV_DBURL"])
+try:
+    inspector = inspect(engine)
+    connection = engine.connect()
+except Exception as e:
+    console.print(f"Failed to connect to the database: {e}", style="bold red")
+    exit(1)
 DBOK = True
 # Check if the alembic_version table is present in the database
 try:
