@@ -1800,13 +1800,13 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "pretext"
-version = "2.4.1"
+version = "2.5.1"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0.0,>=3.8.5"
 files = [
-    {file = "pretext-2.4.1-py3-none-any.whl", hash = "sha256:d12f6625fcb123ea006ced41c1d6b907d2336f21677f8d78a85eb8963e7ad5de"},
-    {file = "pretext-2.4.1.tar.gz", hash = "sha256:ec779f19a5417a1f09ad477ca73bcaf2f7251b9d55e6f4042874c4387b0ed95f"},
+    {file = "pretext-2.5.1-py3-none-any.whl", hash = "sha256:e78a77f1790dc11c7278fa18c0cb5a6076c1cf65b83ca525fbaca8fe5ba33034"},
+    {file = "pretext-2.5.1.tar.gz", hash = "sha256:e4f3516132e5e966aa8e353dd080cee7574b39d9a1d62afa9c6ec48b14ef1e94"},
 ]
 
 [package.dependencies]
@@ -1826,6 +1826,9 @@ PyPDF2 = ">=2.5,<2.6"
 qrcode = ">=7,<8"
 requests = ">=2,<3"
 single-version = ">=1,<2"
+
+[package.extras]
+homepage = ["pelican[markdown] (>=4.9.1,<5.0.0)"]
 
 [[package]]
 name = "prometheus-client"
@@ -3483,4 +3486,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0"
-content-hash = "f25ee8fc579665685d1e5c83500c23a0e13448f7976df7ee396964661dd0da26"
+content-hash = "6d33300a8180d98cccf3b15eedf857d4c47896bc391a3579b0551e4dbaae2c68"

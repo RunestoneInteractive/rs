@@ -112,7 +112,7 @@ sphinx-reredirects = "^0.1.2"
 psycopg2-binary = "^2.9.6"
 lxml = "^4.9.2"
 myst-parser = "^1.0.0"
-pretext = "^2.4.1"
+pretext = "^2.5.0"
 
 # Development dependencies
 # ========================
