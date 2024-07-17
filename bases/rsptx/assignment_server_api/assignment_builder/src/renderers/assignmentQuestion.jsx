@@ -119,7 +119,7 @@ export function AssignmentQuestion(props) {
             renderRunestoneComponent(ref, {});
         });
     }
-    
+
     let hotData = []
     for (let row of question_rows) {
         let newRow = []
@@ -279,7 +279,7 @@ const qpHeader = (options) => {
     var previewButton = null;
     if (options.props.header === "Graded Exercises") {
         previewButton = (
-            <Button label="Preview" icon="pi pi-link" severity="secondary" outlined onClick={() => window.open(assignHref)} />
+            <Button label="Preview" icon="pi pi-link" severity="secondary" text outlined onClick={() => window.open(assignHref)} />
         )
     }
 
