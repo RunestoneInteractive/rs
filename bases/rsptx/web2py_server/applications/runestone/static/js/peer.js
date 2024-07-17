@@ -166,7 +166,7 @@ function connect(event) {
     };
 
     window.onbeforeunload = function () {
-        ws.onclose = function () {}; // disable onclose handler first
+        ws.onclose = function () { }; // disable onclose handler first
         ws.close();
     };
 }
@@ -474,8 +474,70 @@ async function showPeerEnableVote2() {
         checkme.addEventListener("click", function (event) {
             studentSubmittedVote2 = true;
             cq.style.display = "block";
+            let group = document.getElementById("assignment_group").selectedOptions;
+            groupList = []
+            for (let student of group) {
+                grouplist.push(student.value);
+            }
+            let peerList = grouplist.join(",");
+            if (peerList) {
+                logPeerEvent({
+                    sid: eBookConfig.username,
+                    div_id: currentQuestion,
+                    event: "peer",
+                    act: `grouplist:${peerList}`,
+                    course: eBookConfig.course,
+                });
+            }
         });
     }
+}
+
+async function setupPeerGroup() {
+    let jsonHeaders = new Headers({
+        "Content-type": "application/json; charset=utf-8",
+        Accept: "application/json",
+    });
+
+    let request = new Request("/runestone/admin/course_students", {
+        method: "GET",
+        headers: jsonHeaders,
+    });
+
+    var studentList = {
+        s1: "User 1",
+        s2: "User 2",
+        s3: "User 3",
+        s4: "User 4",
+        s5: "User 5",
+    }
+
+    try {
+        let response = await fetch(request);
+        if (!response.ok) {
+            throw new Error("Failed to save the log entry");
+        }
+        studentList = await response.json();
+    } catch (e) {
+        console.log(`Error: ${e}`);
+    }
+
+
+
+    let select = document.getElementById("assignment_group");
+    for (let [sid, name] of Object.entries(studentList)) {
+        let opt = document.createElement("option");
+        opt.value = sid;
+        opt.innerHTML = studentList[sid];
+        select.appendChild(opt);
+    }
+    // Make the select element searchable with multiple selections
+    $('.assignment_partner_select').select2({
+        placeholder: "Select up to 4 team members",
+        allowClear: true,
+        maximumSelectionLength: this.limit
+    });
+
 }
 
 $(function () {

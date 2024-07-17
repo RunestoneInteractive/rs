@@ -56,6 +56,12 @@
                 <label class="form-check-label" for="inlineRadio3">Excellent</label>
             </div>
         </form>
+        <div class="col-md-6">
+            <p>In person discussion: select the people in your discussion group.</p>
+            <select id="assignment_group" multiple class="assignment_partner_select" style="width: 95%">
+            </select>
+        </div>
+
     </div>
 </div>
 <p>Please do not leave or refresh the page during a peer instruction session. <strong>Exception:</strong> If you should have seen a new question at this point then you may continue.</p>
@@ -120,4 +126,10 @@
             return "Please do not leave or refresh the page during a peer instruction session.  Exception: If you should have seen a new question at this point then you may continue.";
         }.bind(this)
     );
+
+    async function doIt() {
+        await setupPeerGroup();
+    }
+    doIt();
+
 </script>
