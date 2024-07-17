@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { useRef, useEffect } from "react";
 import { selectCode } from "../state/preview/previewSlice";
 import { renderRunestoneComponent } from "../componentFuncs";
+import { EditButton } from "./searchPanel";
 import PropTypes from 'prop-types';
 
 /**
@@ -11,7 +12,7 @@ import PropTypes from 'prop-types';
  * @description This component renders the preview of the activecode component
  * @returns The Preview component
  */ 
-function Preview(props) {
+export function Preview(props) {
     let code;
     if (props.code != null) {
         console.log("Preview code: ", props.code);
@@ -30,10 +31,16 @@ function Preview(props) {
         renderRunestoneComponent(ref, {});
     }, [code]);
 
-    return <div ref={ref} />;
+    return (
+        <>
+        <div ref={ref} />
+        <EditButton exercise={props.exercise} />
+        </>
+    )
 }
 
 Preview.propTypes = {
     code: PropTypes.string,
+    exercise: PropTypes.object,
 };
 export default Preview;

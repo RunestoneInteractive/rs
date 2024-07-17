@@ -26,6 +26,7 @@ import {
 } from "../state/assignment/assignSlice";
 import { setExerciseDefaults, setReadingDefaults } from "../exUtils";
 import PropTypes from 'prop-types';
+import { PreviewTemplate } from './searchPanel';
 
 /**
  * @function ExerciseSelector
@@ -160,6 +161,7 @@ export function ExerciseSelector(props) {
             >
                 <Column field="title" header="Title" expander style={{ width: '25rem' }}></Column>
                 <Column field="qnumber" header="Question Number" style={{ width: '10rem' }}></Column>
+                <Column field="htmlsrc" header="Preview" body={PreviewTemplate} style={{width: '8rem', maxWidth: '100rem' }} />
                 <Column field="name" header="QuestionName" style={{ width: '10rem' }}></Column>
                 <Column field="question_type" header="Question Type" style={{ width: '10rem' }}></Column>
             </TreeTable>

@@ -37,12 +37,18 @@ import { EditorContainer } from './editorModeChooser';
  * @returns An accordian component with a preview of the exercise
  * @memberof AssignmentEditor
  */
-function PreviewTemplate(exercise) {
+export function PreviewTemplate(exercise) {
+    if (exercise.children) {
+        return null;
+    } else if (exercise.data) {
+        console.log(exercise.data)
+        exercise = exercise.data;
+    }
     return (
         <Accordion>
             <AccordionTab header="Preview">
                 <div className="ptx-runestone-container" style={{ "width": "600px" }}>
-                    <Preview code={exercise.htmlsrc} />
+                    <Preview code={exercise.htmlsrc} exercise={exercise} />
                 </div>
             </AccordionTab>
         </Accordion>
@@ -186,7 +192,7 @@ export function SearchResults() {
     );
 }
 
-function EditButton(exercise) {
+export function EditButton(exercise) {
     const op = useRef(null);
     const dispatch = useDispatch();
 
