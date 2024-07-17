@@ -9,10 +9,11 @@
  * @memberof AssignmentEditor
  */
 import React from 'react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Panel } from 'primereact/panel';
 import { Dialog } from 'primereact/dialog';
+import { Button } from 'primereact/button';
 import 'handsontable/dist/handsontable.full.min.css';
 import { registerAllModules } from 'handsontable/registry';
 import { HotTable } from '@handsontable/react';
@@ -27,7 +28,9 @@ import {
     reorderAssignmentQuestions,
     sendDeleteExercises,
     sumPoints,
+    selectId
 } from '../state/assignment/assignSlice';
+import { renderRunestoneComponent } from "../componentFuncs";
 import PropTypes from 'prop-types';
 
 // This registers all the plugins for the Handsontable library
@@ -57,6 +60,22 @@ export const problemColumnSpec = [{ type: "numeric", readOnly: true },
 },
 { type: "numeric" },
 ]
+
+// this was experimental, and I got it working but I don't see a reason to use
+// it, when you can right click on the row for the same effect.
+function renderDelete(instance, td, row, col, prop, value, cellProperties) {
+    let butt = document.createElement('button');
+    butt.innerHTML = 'Delete';
+    td.innerHTML = '';
+    td.appendChild(butt);
+    butt.addEventListener('click', function () {
+        console.log("delete row", row);
+        instance.alter('remove_row', row);
+    });
+    //return td;
+}
+
+
 export const readingColumns = ["id", "chapter", "subchapter", "numQuestions", "required", "points"];
 export const readingColumnSpec = [
     { type: "numeric", readOnly: true },
@@ -81,7 +100,26 @@ export function AssignmentQuestion(props) {
     const dispatch = useDispatch();
     const question_rows = useSelector(selectExercises);
     console.log("columns", props.columns);
+    let ref = useRef(null);
 
+    // if (props.columns.indexOf("autograde") > -1 &&
+    //     props.columns.indexOf("preview") == -1 ) {
+    //     props.columns.push("preview");
+    //     props.columnSpecs.push({ renderer: renderPreview });
+    // }
+
+    function renderPreview(instance, td, row, col, prop, value, cellProperties) {
+        let butt = document.createElement('button');
+        butt.innerHTML = 'Preview';
+        td.innerHTML = '';
+        td.appendChild(butt);
+        butt.addEventListener('click', function () {
+            console.log("preview row", row);
+            ref.current.innerHTML = question_rows[row].htmlsrc;
+            renderRunestoneComponent(ref, {});
+        });
+    }
+    
     let hotData = []
     for (let row of question_rows) {
         let newRow = []
@@ -176,15 +214,23 @@ export function AssignmentQuestion(props) {
     );
 
     const problemHelpText = (
-        <p className="m-0">
-            Graded questions are meant to be <strong>summative</strong> and therefore the questions
-            are graded for correctness.  The correctness of a question is recorded at the time the student answers
-            the question.  The autograde field determines how the questions are scored, for example &ldquo;all or nothing&rdquo; or
-            &ldquo;percent correct&rdquo;.
-            The which_to_grade field determines which answer to grade, for example the first answer or the last answer.
-            normally this is set to &ldquo;best answer&rdquo;.  This allows you to change the way and assignment
-            is scored even after the students have answered the questions.
-        </p>
+        <>
+            <p className="m-0">
+                Graded questions are meant to be <strong>summative</strong> and therefore the questions
+                are graded for correctness.  The correctness of a question is recorded at the time the student answers
+                the question.  The autograde field determines how the questions are scored, for example &ldquo;all or nothing&rdquo; or
+                &ldquo;percent correct&rdquo;.
+                The which_to_grade field determines which answer to grade, for example the first answer or the last answer.
+                normally this is set to &ldquo;best answer&rdquo;.  This allows you to change the way and assignment
+                is scored even after the students have answered the questions.
+            </p>
+            <p>
+                The table below can be thought of like a spreadsheet.
+                You can reorder the questions by dragging the rows. You can delete a question by right clicking
+                in the margin.  You can copy and paste values across multple rows within a column to change the
+                default values for points, autograde or which to grade.
+            </p>
+        </>
     )
 
     return (
@@ -212,6 +258,7 @@ export function AssignmentQuestion(props) {
                     licenseKey="non-commercial-and-evaluation"
                 />
             </Panel>
+            <div ref={ref} />
         </div>
     );
 }
@@ -227,6 +274,14 @@ export function AssignmentQuestion(props) {
 const qpHeader = (options) => {
     const className = `${options.className} justify-content-space-between`;
     const [visible, setVisible] = useState(false);
+    const currentId = useSelector(selectId);
+    const assignHref = `/assignment/student/doAssignment?assignment_id=${currentId}`;
+    var previewButton = null;
+    if (options.props.header === "Graded Exercises") {
+        previewButton = (
+            <Button label="Preview" icon="pi pi-link" severity="secondary" outlined onClick={() => window.open(assignHref)} />
+        )
+    }
 
     return (
         <>
@@ -236,6 +291,7 @@ const qpHeader = (options) => {
                     <button className="p-panel-header-icon p-link mr-2">
                         <span><i className="pi pi-info-circle" onClick={() => setVisible(true)}></i></span>
                     </button>
+                    {previewButton}
                 </div>
                 <div>
                     {options.togglerElement}
