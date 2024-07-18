@@ -143,8 +143,8 @@ async def log_book_event(
             entry.passed = int(ppf[3])
             entry.failed = int(ppf[5])
             entry.answer = ""
-            entry.correct = ppf[1] == "100.0"
             entry.percent = float(ppf[1])
+            entry.correct = entry.percent >= 100
         elif entry.event == "timedExam":
             if entry.act in ["start", "pause", "resume"]:
                 # We don't need these in the answer table but want the event to be timedExam.
