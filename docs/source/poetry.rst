@@ -1,7 +1,10 @@
 Development Environment Pre-Requisites
 =======================================
 
-Make sure you have Python installed.  We use 3.10 in production and 3.11 in development.  We have not tested with 3.12 yet.  Earlier versions of python are not supported or recommended.
+Make sure you have Python installed.  We use 3.10 in production and 3.11 in development.  We have not tested with 3.12 yet.  Earlier versions of python are not supported or recommended.  Ubuntu 24.04 comes with Python 3.12 and we don't recommend using that.  Stick with 22.04 LTS for now.
+
+Poetry
+------
 
 Runestone uses `Poetry <https://python-poetry.org/docs/>`__ to manage Python dependencies.
 You should begin by following the instructions to `install
@@ -28,6 +31,7 @@ your copy of poetry. Do the following from a command prompt:
    Also, if you edit the ``.env`` file, you will need to restart the poetry shell in order for those changes to take effect.
 
 With those installed descend into the Runestone repository by doing ``cd rs`` and run ``poetry poly info``. You should see something like this:
+
 
 .. code:: shell
 
@@ -123,3 +127,16 @@ the docker image.
 It is not a python project, and we use it like it is, so there is no need
 to build either a docker image or a wheel for it, we simply pull the latest
 from dockerhub.
+
+Docker
+------
+
+You need to have `Docker <https://docs.docker.com/get-docker/>`_ and the `compose subcommand <https://github.com/docker/compose/tree/main?tab=readme-ov-file#linux>`_  Make sure you have a recent version of docker compose We are using 2.27 in development.
+
+If you don't know anything about Docker you might want to start here:  `Docker 101 Tutorial <https://www.docker.com/101-tutorial/>`_.  We use docker to create a consistent development environment across all of the servers that make up the Runestone system.  We also use docker to deploy the system to production.
+
+
+Node and NPM
+------------
+
+Finally the runestone components and the new instructor interface use a lot of Javascript. The new instructor interface is being re-written using React.  If you want to hack on any of that you should familiarize yourself with React  There is a `Quick Start <https://react.dev/learn>`_ tutorial for React to get you started.   You will need to have node and npm installed.  We use node 21.7.x and npm 10.5 or later. Unfortunately Ubuntu 22.04 uses an older version of node and many of the packages used by React and our javascript require a later version.   You can install `node and npm <https://github.com/nodesource/distributions/blob/master/README.md>`_ by following the instructions on the node link.  On a mac you can use homebrew to install node and npm.  ``brew install node``

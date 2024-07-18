@@ -14,6 +14,7 @@ packages = [
     { include = "rsptx/cl_utils", from = "../../components" },
     { include = "rsptx/logging", from = "../../components" },
     { include = "rsptx/rsmanage", from = "../../bases" },
+    { include = "rsptx/data_extract", from = "../../components" },
 ]
 
 [tool.poetry.dependencies]
@@ -30,7 +31,7 @@ greenlet = "^3.0.0"
 pyhumps = "^3.8.0"
 fastapi = "^0.103.0"
 pydal = "^20230521.1"
-myst-parser = "^1.0.0"
+#myst-parser = "^1.0.0"
 sphinx-reredirects = "^0.1.2"
 lxml = "^4.9.2"
 paver = "^1.3.4"
@@ -38,7 +39,11 @@ sphinxcontrib-paverutils = "^1.17.0"
 runestone = "^7.0.0"
 python-dotenv = "^1.0.0"
 pydantic-settings = "^2.0.3"
-pretext = "^2.0.0"
+pretext = "^2.5.0"
+pandas = "^1.0.0"
+numpy = "^1.0.0"
+tqdm = "^4.66.4"
+CodeChat = "1.9.3"
 
 [tool.poetry.group.dev.dependencies]
 runestone = { path = "../interactives", develop = true }

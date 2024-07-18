@@ -13,11 +13,17 @@ packages = [
     {include = "rsptx/configuration", from = "../../components"},
     {include = "rsptx/response_helpers", from = "../../components"},
     {include = "rsptx/lp_sim_builder", from = "../../components"},
+    {include = "rsptx/grading_helpers", from = "../../components"},    
     {include = "rsptx/templates", from = "../../components"},
     {include = "rsptx/exceptions", from = "../../components"},
-    {include = "rsptx/assignment_server_api", from = "../../bases"}
+    {include = "rsptx/assignment_server_api", from = "../../bases"},
 ]
 
+exclude = [
+    "**/node_modules/*",
+    "**/out/*",
+    "**/build/*", 
+    ]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -48,9 +54,10 @@ boto3 = "^1.0.0"
 multi-await = "^1.0.0"
 botocore = "^1.29.87"
 pyflakes = "^3.0.1"
-pandas = "^1.5.0"
+pandas = "^1.0.0"
 psycopg2-binary = "^2.9.7"
 pydantic-settings = "^2.0.3"
+numpy = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"

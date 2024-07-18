@@ -9,6 +9,12 @@ The database is a critical component as it is the glue that ties together the va
 
 2. Install Postgresql on your local host (either natively or in a container). This allows you to use an existing database and to keep your database more insulated from the rest of the project (so that say test data persists through a rebuild of all the servers).
 
+Install Postgresql with docker-compose
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is the default option and requires the least manual work.  Just make sure that you have your ``CONTAINER_PROFILES`` varaible set to include ``basic`` This is how it is set up in the ``sample.env`` file.  The database will be running as a docker container, and if you ever destroy the container all of the data in the database will be lost.  The default environment variables are set up so that you can access the database from outside the container on port 2345.  If you want to do this you will need to install ``psql`` on your host machine.
+
+You need to initialize the database with ``rsmanage initdb`` or ``docker compose run rsmanage rsmanage initdb`` to do it all inside the containerized application.  This will create the database tables and add the initial data.  
 
 Install Postgresql locally
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -27,3 +33,15 @@ If you install postgresql locally you will need to do  a few things to get it re
 6. Restart Postgresql.  On my mac this is done by running ``brew services restart postgresql``.  On linux it is probably ``sudo service postgresql restart``
 7. After you restart try the following command ``psql -h localhost -U runestone runestone_dev``  You should be prompted for a password.  Enter the password you created for the runestone user.  You should then be at a psql prompt.  You can exit by typing ``\q``  If you cannot connect then you have done something wrong.  You can ask for help in the ``developer-forum`` channel on the Runestone discord server.
 8. Use the `rsmanage initdb` command to create the database schemas and populate some initial data for common courses, as well as create `testuser1` with password "xxx" yes three x's super secure.  You can change this password later.  You can also create your own user with the ``rsmanage adduser`` command.  You can also use the ``rsmanage resetpw`` command to change the password for testuser1.
+
+
+Database migrations
+~~~~~~~~~~~~~~~~~~~
+
+We use ``alembic`` to help track changes to the database schema. Note make sure that your run ``poetry shell`` and that you run the ``alembic`` command from the main ``rs`` folder.  The first time you clone the project you should run ``alembic stamp head`` to let alembic know that the current state of the database is the head.  This will allow you to run migrations in the future to ensure that your database schema is in sync with the ``models.py`` file.  In the future when you pull changes You can run ``alembic upgrade head`` to apply all of the migrations to the current database.   You can also run ``alembic history`` to see all of the migrations that have been applied to the database.  The ``build.py`` script will also do its best to check that the database is up to date and will run the migrations for you if it can.
+
+If you make a change to the database model as part of your development work, please create a migration by running ``alembic revision --autogenerate -m "some message"``.  This will create a new migration file in the ``alembic/versions`` directory.  You can then edit this file to make sure that the migration does what you want.  You should commit this and submit it as part of your PR.  If you are not sure how to do this, please ask for help in the ``developer-forum`` channel on the Runestone discord server, **after** you have consulted the extensive documentation and tutorials that are available to help you learn how to use alembic.
+
+If you drop the database and start over by running ``rsmanage initdb`` you will need to run ``alembic stamp head`` again to mark the current state of the database.
+
+If you have been running your own server for a while and you are not sure if you have all of the migrations applied you can run ``alembic upgrade head`` to apply all of the migrations to the current database.  You can also run ``alembic history`` to see all of the migrations that have been applied to the database.  If the migrations fail for reasons like a column already exists then you can run ``alembic upgrade head --sql`` to see the sql that would be run.  You can then edit the migration file to remove the offending line and then run the migration again.  Once you have manually got yourself back in sync you can run ``alembic stamp head`` to mark the current state of the database.  You could also use ``alembic stamp <version>``  followed by ``alembic stamp head`` to work your way from the base to the head one revision at a time.  This might be easier than copy and pasting into psql.  Once you are back in sync things should work as expected.

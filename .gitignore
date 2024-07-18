@@ -17,6 +17,7 @@ datashop
 build_info
 sphinx_settings.json
 dist
+env
 .venv
 cache
 .check_*
@@ -26,3 +27,6 @@ parameters_*.py
 build.log
 _build
 /.last_version
+/bases/rsptx/assignment_server_api/react
+.vite
+*.tgz

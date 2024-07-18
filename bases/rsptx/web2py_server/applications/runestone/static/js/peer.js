@@ -64,6 +64,8 @@ function connect(event) {
                                     messarea.innerHTML = `<h3>Please Give an explanation for your answer</h3><p>Then discuss your answer with your group members</p>`;
                                 } else {
                                     messarea.innerHTML = `<h3>Voting for this question is complete</h3>`;
+                                    let feedbackDiv = document.getElementById(`${currentQuestion}_feedback`);
+                                    feedbackDiv.style.display = "none";
                                 }
                             }
                             if (!eBookConfig.isInstructor) {
@@ -120,6 +122,9 @@ function connect(event) {
                     }
                     messarea = document.getElementById("imessage");
                     messarea.innerHTML = `<h3>Time to make your 2nd vote</h3>`;
+                    let feedbackDiv = document.getElementById(`${currentQuestion}_feedback`);
+                    feedbackDiv.innerHTML = "";
+                    feedbackDiv.className = "";
                     $(".runestone [type=radio]").prop("checked", false);
                     $(".runestone [type=checkbox]").prop("checked", false);
                     break;
@@ -255,9 +260,12 @@ function warnAndStopVote(event) {
     if (event.srcElement.id == "vote1") {
         let butt = document.querySelector("#vote1");
         butt.classList.replace("btn-info", "btn-secondary");
+        document.querySelector("#makep").disabled = false;
+        document.querySelector("#vote2").disabled = false;
     } else {
         let butt = document.querySelector("#vote3");
         butt.classList.replace("btn-info", "btn-secondary");
+        document.querySelector("#nextq").disabled = false;
     }
     event.srcElement.disabled = true;
 }
@@ -289,13 +297,14 @@ async function makePartners() {
         alert(`Pairs not made! ${spec}`);
     } else {
         // success
-        document.querySelector("#makep").disabled = true;
+        butt.disabled = true;
     }
 }
 
 function startVote2(event) {
     let butt = document.querySelector("#vote2");
     butt.classList.replace("btn-info", "btn-secondary");
+    event.srcElement.disabled = true;
     voteNum += 1;
     startTime2 = new Date().toUTCString();
     let mess = {
@@ -307,7 +316,14 @@ function startVote2(event) {
     };
     //ws.send(JSON.stringify(mess));
     publishMessage(mess);
-    event.srcElement.disabled = true;
+
+    // Disabling the "Enable Text Chat" button (if not already done) once Vote 2 begins
+    let textChatButton = document.querySelector("#makep");
+    textChatButton.classList.replace("btn-info", "btn-secondary");
+    textChatButton.disabled = true;
+
+    // Enabling the "Stop Vote 2" button once Vote 2 begins
+    document.querySelector("#vote3").disabled = false;
 }
 
 async function clearPartners(event) {

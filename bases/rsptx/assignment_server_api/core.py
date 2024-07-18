@@ -25,6 +25,7 @@ from rsptx.configuration import settings
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.logging import rslogger
 from rsptx.templates import template_folder
+from rsptx.auth.session import auth_manager
 
 # FastAPI setup
 # =============
@@ -33,7 +34,6 @@ kwargs = {}
 if root_path := os.environ.get("ROOT_PATH"):
     kwargs["root_path"] = root_path
 app = FastAPI(**kwargs)  # type: ignore
-rslogger.info(f"Serving books from {settings.book_path}.\n")
 
 
 # We can mount various "apps" with mount.  Anything that gets to this server with /staticAssets
@@ -48,7 +48,11 @@ base_dir = pathlib.Path(template_folder)
 app.mount(
     "/staticAssets", StaticFiles(directory=base_dir / "staticAssets"), name="static"
 )
+reactdir = pathlib.Path(__file__).parent / "react"
+app.mount("/react", StaticFiles(directory=reactdir), name="react")
+rslogger.info(f"React dir: {reactdir}")
 
+auth_manager.attach_middleware(app)
 
 app.include_router(student.router)
 app.include_router(instructor.router)

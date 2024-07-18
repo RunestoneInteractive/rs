@@ -24,7 +24,7 @@ from pydantic import (
     BaseConfig,
     create_model,
     Field,
-    Json
+    Json,
 )
 from humps import camelize  # type: ignore
 from typing_extensions import Annotated
@@ -119,6 +119,7 @@ class LogItemIncoming(BaseModelNone):
     timestamp: Optional[datetime] = None
     chapter: Optional[str] = None
     subchapter: Optional[str] = None
+    assignment_id: Optional[int] = None
     # used by parsons
     source: Optional[str] = None
     # used by dnd
@@ -230,12 +231,15 @@ class AssignmentIncoming(BaseModel):
 
 
 class QuestionIncoming(BaseModel):
+    id: Optional[int] = None
     name: str
     source: str
     question_type: str
     htmlsrc: str
     autograde: Optional[str] = None
     question_json: Json
+    chapter: Optional[str] = None
+    author: Optional[str] = None
 
 
 class AssignmentQuestionIncoming(BaseModel):
@@ -243,3 +247,23 @@ class AssignmentQuestionIncoming(BaseModel):
     question_id: int
     points: int
     order: Optional[int] = None
+
+
+class SearchSpecification(BaseModel):
+    source_regex: Optional[str] = None
+    question_type: Optional[str] = None
+    author: Optional[str] = None
+    tag_list: Optional[str] = None
+    base_course: Optional[str] = None
+
+
+class ScoringSpecification(BaseModel):
+    assigned: bool = False
+    score: Optional[Union[int, float]] = None
+    max_score: Optional[int] = None
+    question_id: Optional[int] = None
+    assignment_id: Optional[int] = None
+    which_to_grade: Optional[str] = None
+    how_to_score: Optional[str] = None
+    username: Optional[str] = None
+    comment: Optional[str] = None

@@ -10,16 +10,17 @@ Welcome to Runestone Documentation
    :maxdepth: 2
 
    readme
-   contributing
+   running
+   poetry
    developing
    structure
-   poetry
    docker
    database
    environmental_vars
    building_servers
    addbook
    custom_book
+   contributing
    server_feature
    javascript_feature
    tutorial

@@ -96,6 +96,8 @@ pgcli = "^3.5.0"
 pycryptodome = "^3.18.0"
 pydantic-settings = "^2.0.3"
 jupyterlite-sphinx = "^0.9.3"
+alembic = "^1.13.1"
+ipython = "^8.23.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 23.0"

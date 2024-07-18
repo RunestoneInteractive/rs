@@ -1,5 +1,6 @@
 # pull official base image
-FROM python:3.10-bullseye
+#FROM python:3.10-bullseye
+FROM latex_base:latest
 
 LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
 
@@ -32,9 +33,6 @@ RUN pip install --upgrade pip
 RUN apt update
 RUN apt install -y rsync
 
-RUN if [ $texlive = 1 ]; \
-    then  apt install -y --fix-missing git texlive-full xsltproc pdf2svg sagemath; \
-    fi
 
 # copy project
 COPY ./dist/$wheel /usr/src/app/$wheel

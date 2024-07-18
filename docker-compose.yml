@@ -1,9 +1,10 @@
-version: '3.8'
-
 # This docker compose file needs docker compose version 2.20.2 or higher.
 # See https://docs.docker.com/compose/profiles/ for documentation on using profiles
 # and / or setting COMPOSE_PROFILES in your environment.
 
+# Do not set environment variables in this file. Most people will want to set them in a .env file
+# Unless you are developing or modifying a production system you should not need to modify this file.
+#
 services:
 
   redis:
@@ -15,26 +16,25 @@ services:
   # setting up a separate database server is recommended.  Advanced developers probably
   # want to run their own postgresql server and set the environment variables to point to it.
   db:
-      profiles: ["basic"]
-      image:
-          postgres:13
-      restart: always
-      environment:
-          # setting these will create a user with this password and a database with this name
-          # this is a feature of the postgres docker image
-          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-runestone}
-          POSTGRES_USER: ${POSTGRES_USER:-runestone}
-          POSTGRES_DB: ${POSTGRES_DBNAME:-runestone_dev}
-      # use a non-standard port to avoid conflicts with other postgres instances on the host
-      ports:
-        - 2345:5432
+    profiles: [ "basic" ]
+    image: postgres:13
+    restart: always
+    environment:
+      # setting these will create a user with this password and a database with this name
+      # this is a feature of the postgres docker image
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-runestone}
+      POSTGRES_USER: ${POSTGRES_USER:-runestone}
+      POSTGRES_DB: ${POSTGRES_DBNAME:-runestone_dev}
+    # use a non-standard port to avoid conflicts with other postgres instances on the host
+    ports:
+      - 2345:5432
 
   # pgbouncer is for production only, when in a load balancer configuration.
   # This will effectively limit the total number of connections to the database
   # for the composed application to 30.  If you need more than that you will need
   # to set the PGBOUNCER_DEFAULT_POOL_SIZE environment variable to a larger number.
   pgbouncer:
-    profiles: ["production"]
+    profiles: [ "production" ]
     image: bitnami/pgbouncer:latest
     restart: always
     ports:
@@ -76,6 +76,11 @@ services:
     command: uvicorn rsptx.book_server_api.main:app --host 0.0.0.0 --port 8111
     #command: tail -f /var/log/lastlog
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024m"
+        max-file: "3"
     volumes:
       - ${BOOK_PATH}:/usr/books
 
@@ -117,57 +122,61 @@ services:
         condition: service_started
         required: false
 
-
   runestone:
-      build:
-        context: ./projects/w2p_login_assign_grade
-      image: ghcr.io/runestoneinteractive/rs-runestone
-      extra_hosts:
-        - host.docker.internal:host-gateway
-      ports:
-        - 8112:8112
-      #command: gunicorn --bind 0.0.0.0:8112 rsptx.web2py_server.wsgihandler:application
-      # see projects/w2p_login_assign_grade/entrypoint.sh and the Dockerfile
+    build:
+      context: ./projects/w2p_login_assign_grade
+    image: ghcr.io/runestoneinteractive/rs-runestone
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - 8112:8112
+    #command: gunicorn --bind 0.0.0.0:8112 rsptx.web2py_server.wsgihandler:application
+    # see projects/w2p_login_assign_grade/entrypoint.sh and the Dockerfile
 
-      restart: always
-      volumes:
-        - ${BOOK_PATH}:/usr/books
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024m"
+        max-file: "3"
+    volumes:
+      - ${BOOK_PATH}:/usr/books
 
-      environment:
-        - BOOK_PATH=/usr/books
-        - SERVER_CONFIG=${SERVER_CONFIG}
-        - WEB2PY_CONFIG=${SERVER_CONFIG}
-        - RUNESTONE_HOST=${RUNESTONE_HOST}
-        - RUNESTONE_PATH=/usr/src/app
-        - REDIS_URI=redis://${REDIS_HOST}:6379/0
-        # Note: host.docker.internal refers back to the host so we can just use a local instance
-        # of postgresql
-        - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
-        - DBURL=${DC_DBURL:-$DBURL}
-        - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
-        - JWT_SECRET=${JWT_SECRET}
-        - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
-        - ACADEMY_MODE=True
-        - USE_MASTER_AUTHOR=${USE_MASTER_AUTHOR:-False}
-        - EMAIL_SENDER="smtp.gmail.com:587"
-        - EMAIL_SERVER=${EMAIL_SERVER}
-        - EMAIL_LOGIN=${EMAIL_LOGIN}
-        - SPACES_KEY=${SPACES_KEY}
-        - SPACES_SECRET=${SPACES_SECRET}
-        - GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS}
-      depends_on:
-        redis:
-          condition: service_started
-          required: true
-        jobe:
-          condition: service_started
-          required: true
-        pgbouncer:
-          condition: service_started
-          required: false
-        db:
-          condition: service_started
-          required: false
+    environment:
+      - BOOK_PATH=/usr/books
+      - SERVER_CONFIG=${SERVER_CONFIG}
+      - WEB2PY_CONFIG=${SERVER_CONFIG}
+      - RUNESTONE_HOST=${RUNESTONE_HOST}
+      - RUNESTONE_PATH=/usr/src/app
+      - REDIS_URI=redis://${REDIS_HOST}:6379/0
+      # Note: host.docker.internal refers back to the host so we can just use a local instance
+      # of postgresql
+      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+      - DBURL=${DC_DBURL:-$DBURL}
+      - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
+      - JWT_SECRET=${JWT_SECRET}
+      - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
+      - ACADEMY_MODE=True
+      - USE_MASTER_AUTHOR=${USE_MASTER_AUTHOR:-False}
+      - EMAIL_SENDER="smtp.gmail.com:587"
+      - EMAIL_SERVER=${EMAIL_SERVER}
+      - EMAIL_LOGIN=${EMAIL_LOGIN}
+      - SPACES_KEY=${SPACES_KEY}
+      - SPACES_SECRET=${SPACES_SECRET}
+      - GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS}
+    depends_on:
+      redis:
+        condition: service_started
+        required: true
+      jobe:
+        condition: service_started
+        required: true
+      pgbouncer:
+        condition: service_started
+        required: false
+      db:
+        condition: service_started
+        required: false
 
   assignment:
     build:
@@ -180,6 +189,11 @@ services:
     command: uvicorn rsptx.assignment_server_api.core:app --host 0.0.0.0 --port 8113
     #command: tail -f /var/log/lastlog
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024m"
+        max-file: "3"
     volumes:
       - ${BOOK_PATH}:/usr/books
 
@@ -223,6 +237,11 @@ services:
       dockerfile: projects/nginx/Dockerfile
     image: ghcr.io/runestoneinteractive/rs-nginx
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024m"
+        max-file: "3"
     ports:
       # ports are specified host:container
       - 80:80
@@ -246,7 +265,7 @@ services:
   # this second nginx is designed to sit in front of python servers running on a host machine for a more convineient dev environment
   # it exposes the Runestone application on port 8080
   nginx_dstart_dev:
-    profiles: ["dev"]
+    profiles: [ "dev" ]
     # Note we use context: ./ here so that the Dockerfile can copy from the components folder
     build:
       context: ./
@@ -261,7 +280,6 @@ services:
     volumes:
       - ${BOOK_PATH}:/usr/books
       - ./components/rsptx/templates/staticAssets:/usr/share/nginx/html/staticAssets
-
 
   # create an image/container to run rsmanage inside the composed services
   # docker compose run rsmanage rsmanage --help
@@ -284,68 +302,67 @@ services:
       - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
 
-
   author:
-      profiles: ["author"]
-      build:
-          context: ./projects/author_server
-      #image: registry.digitalocean.com/runestone-registry/rs-author
-      image: ghcr.io/runestoneinteractive/rs-author
-      extra_hosts:
-          - host.docker.internal:host-gateway
-      ports:
-          - 8114:8114
-      command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8114
-      volumes:
-          - ${BOOK_PATH}:/books
-          - $HOME/downloads:/usr/src/app/downloads
-      environment:
-          - SERVER_CONFIG=${SERVER_CONFIG}
-          - CELERY_BROKER_URL=redis://redis:6379/0
-          - CELERY_RESULT_BACKEND=redis://redis:6379/0
-          - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
-          - DBURL=${DC_DBURL:-$DBURL}
-          - RUNESTONE_PATH=/usr/src/app
-          - JWT_SECRET=${JWT_SECRET}
-      depends_on:
-          redis:
-              condition: service_started
-              required: true
-          db:
-              condition: service_started
-              required: false
+    profiles: [ "author" ]
+    build:
+      context: ./projects/author_server
+    #image: registry.digitalocean.com/runestone-registry/rs-author
+    image: ghcr.io/runestoneinteractive/rs-author
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - 8114:8114
+    command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8114
+    volumes:
+      - ${BOOK_PATH}:/books
+      - $HOME/downloads:/usr/src/app/downloads
+    environment:
+      - SERVER_CONFIG=${SERVER_CONFIG}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+      - DBURL=${DC_DBURL:-$DBURL}
+      - RUNESTONE_PATH=/usr/src/app
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      redis:
+        condition: service_started
+        required: true
+      db:
+        condition: service_started
+        required: false
 
   worker:
-      profiles: ["author"]
-      build:
-          context: ./projects/author_server
-      #image: registry.digitalocean.com/runestone-registry/rs-worker
-      image: ghcr.io/runestoneinteractive/rs-worker
-      extra_hosts:
-          - host.docker.internal:host-gateway
-      command: celery -A rsptx.author_server_api.worker.celery worker
-      volumes:
-          - ${BOOK_PATH}:/books
-          - ${SSH_AUTH_SOCK:-/tmp}:/ssh-agent # forward host ssh agent
-          - $HOME/downloads:/usr/src/app/downloads
-      environment:
-          - SERVER_CONFIG=${SERVER_CONFIG}
-          - CELERY_BROKER_URL=redis://redis:6379/0
-          - CELERY_RESULT_BACKEND=redis://redis:6379/0
-          - RUNESTONE_PATH=/usr/src/app
-          - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
-          - DBURL=${DC_DBURL:-$DBURL}
-          - WEB2PY_CONFIG=${SERVER_CONFIG}
-          - JWT_SECRET=${JWT_SECRET}
-          - SSH_AUTH_SOCK=/ssh-agent
-          - NUM_SERVERS=${NUM_SERVERS:-1}
-      depends_on:
-          author:
-              condition: service_started
-              required: true
-          redis:
-              condition: service_started
-              required: true
-          db:
-              condition: service_started
-              required: false
+    profiles: [ "author" ]
+    build:
+      context: ./projects/author_server
+    #image: registry.digitalocean.com/runestone-registry/rs-worker
+    image: ghcr.io/runestoneinteractive/rs-worker
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    command: celery -A rsptx.author_server_api.worker.celery worker
+    volumes:
+      - ${BOOK_PATH}:/books
+      - ${SSH_AUTH_SOCK:-/tmp}:/ssh-agent # forward host ssh agent
+      - $HOME/downloads:/usr/src/app/downloads
+    environment:
+      - SERVER_CONFIG=${SERVER_CONFIG}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - RUNESTONE_PATH=/usr/src/app
+      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+      - DBURL=${DC_DBURL:-$DBURL}
+      - WEB2PY_CONFIG=${SERVER_CONFIG}
+      - JWT_SECRET=${JWT_SECRET}
+      - SSH_AUTH_SOCK=/ssh-agent
+      - NUM_SERVERS=${NUM_SERVERS:-1}
+    depends_on:
+      author:
+        condition: service_started
+        required: true
+      redis:
+        condition: service_started
+        required: true
+      db:
+        condition: service_started
+        required: false

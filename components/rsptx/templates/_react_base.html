@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>{% block title %}Runestone Academy{% endblock %}</title>
+        <!-- meta -->
+        <meta name="description" content="Runestone Library listing of all books" />
+        <meta name="author" content="Runestone Academy LTD" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <!-- provide search engines with canonical link -->
+        <link rel="canonical" href="https://runestone.academy/ns/books/index" />
+        <!-- styles -->
+        <!-- always include jquery -->
+        <script src="/staticAssets/js/jquery.js"></script>
+        {% block css %}
+        {% endblock %}
+    </head>
+
+    <body>
+      <!-- child template -->
+      {% block content %}
+      {% endblock %}
+
+      <!-- scripts -->
+      {% block js %}
+      {% endblock %}
+    </body>
+</html>

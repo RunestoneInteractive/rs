@@ -1,24 +1,42 @@
 import datetime
+import pathlib
 import pandas as pd
 
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import create_engine
+from pydantic import BaseModel
+from typing import List, Optional
 
 # Local application imports
 # -------------------------
 
 from rsptx.db.crud import (
+    fetch_assignment_questions,
+    fetch_assignments,
+    fetch_questions_by_search_criteria,
+    fetch_question_count_per_subchapter,
+    fetch_all_course_attributes,
     create_assignment_question,
     create_question,
     fetch_course,
     create_assignment,
+    fetch_questions_for_chapter_subchapter,
+    remove_assignment_questions,
+    reorder_assignment_questions,
+    update_assignment_question,
+    update_assignment,
+    update_question,
 )
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
 from rsptx.configuration import settings
-from rsptx.response_helpers.core import make_json_response
+from rsptx.response_helpers.core import (
+    make_json_response,
+    get_webpack_static_imports,
+    get_react_imports,
+)
 from rsptx.db.models import (
     AssignmentQuestionValidator,
     AssignmentValidator,
@@ -28,6 +46,7 @@ from rsptx.validation.schemas import (
     AssignmentIncoming,
     AssignmentQuestionIncoming,
     QuestionIncoming,
+    SearchSpecification,
 )
 from rsptx.logging import rslogger
 
@@ -41,7 +60,7 @@ router = APIRouter(
 
 
 @router.get("/gradebook")
-async def get_assignments(
+async def get_assignment_gb(
     request: Request, user=Depends(auth_manager), response_class=HTMLResponse
 ):
     # get the course
@@ -161,7 +180,7 @@ async def new_assignment(
         res = await create_assignment(new_assignment)
         rslogger.debug(f"Created assignment: {res} {res.id}")
     except Exception as e:
-        rslogger.error(f"Error creating assignment: {res}")
+        rslogger.error(f"Error creating assignment: {new_assignment}")
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error creating assignment: {str(e)}",
@@ -170,6 +189,34 @@ async def new_assignment(
     return make_json_response(
         status=status.HTTP_201_CREATED, detail={"status": "success", "id": res.id}
     )
+
+
+@router.post("/update_assignment")
+async def do_update_assignment(
+    request: Request,
+    request_data: AssignmentValidator,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+    course = await fetch_course(user.course_name)
+    request_data.course = course.id
+    rslogger.debug(f"Updating assignment: {request_data}")
+    if request_data.current_index is None:
+        request_data.current_index = 0
+    try:
+        await update_assignment(request_data)
+    except Exception as e:
+        rslogger.error(f"Error updating assignment: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error updating assignment: {str(e)}",
+        )
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
 
 
 @router.post("/new_question")
@@ -188,12 +235,14 @@ async def new_question(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
 
+    if request_data.author is None:
+        request_data.author = user.first_name + " " + user.last_name
+
     # First create the question
     new_question = QuestionValidator(
         **request_data.model_dump(),
         base_course=course.base_course,
-        chapter="test",
-        subchapter="test",
+        subchapter="Exercises",
         timestamp=datetime.datetime.utcnow(),
         is_private=False,
         practice=False,
@@ -212,6 +261,46 @@ async def new_question(
     return make_json_response(
         status=status.HTTP_201_CREATED, detail={"status": "success", "id": q.id}
     )
+
+
+@router.post("/update_question")
+async def do_update_question(
+    request: Request,
+    request_data: QuestionIncoming,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+    course = await fetch_course(user.course_name)
+    rslogger.debug(f"Updating question: {request_data}")
+    req = request_data.model_dump()
+    req["question"] = req["source"]
+    del req["source"]
+    upd_question = QuestionValidator(
+        **req,
+        base_course=course.base_course,
+        subchapter="Exercises",
+        timestamp=datetime.datetime.utcnow(),
+        is_private=False,
+        practice=False,
+        from_source=False,
+        review_flag=False,
+        author=user.first_name + " " + user.last_name,
+    )
+
+    try:
+        await update_question(upd_question)
+    except Exception as e:
+        rslogger.error(f"Error updating question: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error updating question: {str(e)}",
+        )
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
 
 
 @router.post("/new_assignment_q")
@@ -242,3 +331,267 @@ async def new_assignment_question(
     return make_json_response(
         status=status.HTTP_201_CREATED, detail={"status": "success", "id": res.id}
     )
+
+
+@router.get("/assignments")
+async def get_assignments(
+    request: Request, user=Depends(auth_manager), response_class=JSONResponse
+):
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    # todo: update fetch to only get new style??
+    assignments = await fetch_assignments(course.course_name, fetch_all=True)
+    rslogger.debug(f"Got assignments: {assignments} for {course.course_name}")
+
+    return make_json_response(
+        status=status.HTTP_200_OK, detail={"assignments": assignments}
+    )
+
+
+class AQRequest(BaseModel):
+    assignment: int
+
+
+@router.post("/assignment_questions")
+async def get_assignment_questions(
+    request: Request,
+    request_data: AQRequest,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    res = await fetch_assignment_questions(request_data.assignment)
+    countd = await fetch_question_count_per_subchapter(course.base_course)
+
+    # res has two components: AssignmentQuestion and Question
+    # res.AssignmentQuestion all the assignment question data
+    # res.Question all the question data
+
+    rslogger.debug(f"Got assignment questions: {res} for {request_data.assignment}")
+
+    qlist = []
+    for row in res:
+        aq = AssignmentQuestionValidator.from_orm(row.AssignmentQuestion).model_dump()
+        q = QuestionValidator.from_orm(row.Question).model_dump()
+        if q["qnumber"] is not None:
+            aq["qnumber"] = q["qnumber"]
+        else:
+            aq["qnumber"] = q["name"]
+
+        if aq["reading_assignment"] == True:
+            aq["numQuestions"] = countd[q["chapter"]][q["subchapter"]]
+
+        # augment the assignment question with additional question data
+        aq["name"] = q["name"]
+        aq["subchapter"] = q["subchapter"]
+        aq["chapter"] = q["chapter"]
+        aq["base_course"] = q["base_course"]
+        qlist.append(aq)
+
+    rslogger.debug(f"qlist: {qlist}")
+
+    return make_json_response(status=status.HTTP_200_OK, detail={"exercises": qlist})
+
+
+@router.post("/update_assignment_question")
+async def up_assignment_question(
+    request: Request,
+    request_data: AssignmentQuestionValidator,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+    try:
+        await update_assignment_question(
+            AssignmentQuestionValidator(**request_data.model_dump())
+        )
+    except Exception as e:
+        rslogger.error(f"Error updating assignment question: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error updating assignment question: {str(e)}",
+        )
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
+
+
+@router.post("/remove_assignment_questions")
+async def remove_assignment_questions_ep(
+    request: Request,
+    request_data: List[int],
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+    rslogger.debug(f"Removing assignment questions: {request_data}")
+    try:
+        await remove_assignment_questions(request_data)
+    except Exception as e:
+        rslogger.error(f"Error removing assignment questions: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error removing assignment questions: {str(e)}",
+        )
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
+
+
+@router.post("/reorder_assignment_questions")
+async def reorder_assignment_questions_ep(
+    request: Request,
+    request_data: List[int],
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    try:
+        await reorder_assignment_questions(request_data)
+    except Exception as e:
+        rslogger.error(f"Error reordering assignment questions: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error reordering assignment questions: {str(e)}",
+        )
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
+
+
+class PickerOptions(BaseModel):
+    skipreading: Optional[bool] = False
+    from_source_only: Optional[bool] = True
+    pages_only: Optional[bool] = False
+
+
+@router.post("/fetch_chooser_data")
+async def fetch_chooser_data(
+    request: Request,
+    request_data: PickerOptions,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+    res = await fetch_questions_for_chapter_subchapter(
+        course.base_course,
+        skipreading=request_data.skipreading,
+        from_source_only=request_data.from_source_only,
+        pages_only=request_data.pages_only,
+    )
+    return make_json_response(status=status.HTTP_200_OK, detail={"questions": res})
+
+
+@router.post("/search_questions")
+async def search_questions(
+    request: Request,
+    request_data: SearchSpecification,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    if request_data.source_regex:
+        words = request_data.source_regex.replace(",", " ")
+        words = request_data.source_regex.split()
+        request_data.source_regex = ".*(" + "|".join(words) + ").*"
+        request_data.author = ".*" + request_data.author + ".*"
+    if request_data.base_course == "true":
+        request_data.base_course = course.base_course
+    else:
+        request_data.base_course = None
+
+    res = await fetch_questions_by_search_criteria(request_data)
+
+    qlist = []
+    for row in res:
+        row.timestamp = row.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        qlist.append(row.model_dump())
+    rslogger.debug(f"qlist: {qlist}")
+    return make_json_response(status=status.HTTP_200_OK, detail={"questions": qlist})
+
+
+@router.get("/builder")
+async def get_builder(
+    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+):
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return RedirectResponse(url="/")
+
+    reactdir = pathlib.Path(__file__).parent.parent / "react"
+    templates = Jinja2Templates(directory=template_folder)
+    wp_imports = get_webpack_static_imports(course)
+    react_imports = get_react_imports(reactdir)
+    course_attrs = await fetch_all_course_attributes(course.id)
+
+    return templates.TemplateResponse(
+        "assignment/instructor/builder.html",
+        {
+            "course": course,
+            "user": user.username,
+            "request": request,
+            "is_instructor": user_is_instructor,
+            "student_page": False,
+            "wp_imports": wp_imports,
+            "react_imports": react_imports,
+            "settings": settings,
+            "latex_preamble": course_attrs.get("latex_macros", ""),
+            "ptx_js_version": course_attrs.get("ptx_js_version", "0.2"),
+            "webwork_js_version": course_attrs.get("webwork_js_version", "2.17"),
+            "user": user,
+        },
+    )
+
+    # with open(reactdir / "index.html") as f:
+    #     content = f.read()
+    # return HTMLResponse(content=content)
+
+
+@router.get("/grader")
+async def get_grader(
+    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+):
+    return await get_builder(request, user, response_class)

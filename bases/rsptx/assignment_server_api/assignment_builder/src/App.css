@@ -1,0 +1,45 @@
+.App {
+  width: 75%;
+  margin: auto;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+.rsform {
+  margin-left: 10px;
+  margin-bottom: 10px;
+}
+
+.builderlabel {
+  display: block;
+  margin-left: 10px;
+  margin-bottom: 10px;
+}
+.contain2col {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.item {
+  flex-basis: 50%;
+  box-sizing: border-box;
+}
