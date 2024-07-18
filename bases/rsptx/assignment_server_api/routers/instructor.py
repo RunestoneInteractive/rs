@@ -277,6 +277,8 @@ async def do_update_question(
         )
     course = await fetch_course(user.course_name)
     rslogger.debug(f"Updating question: {request_data}")
+    if request_data.author is None:
+        request_data.author = user.first_name + " " + user.last_name
     req = request_data.model_dump()
     req["question"] = req["source"]
     del req["source"]
@@ -289,7 +291,6 @@ async def do_update_question(
         practice=False,
         from_source=False,
         review_flag=False,
-        author=user.first_name + " " + user.last_name,
     )
 
     try:
