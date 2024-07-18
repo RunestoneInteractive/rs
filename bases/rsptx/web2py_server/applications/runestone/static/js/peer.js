@@ -480,6 +480,7 @@ async function showPeerEnableVote2() {
                 grouplist.push(student.value);
             }
             let peerList = grouplist.join(",");
+            localStorage.setItem("peerList", peerList);
             if (peerList) {
                 logPeerEvent({
                     sid: eBookConfig.username,
@@ -527,15 +528,19 @@ async function setupPeerGroup() {
     let select = document.getElementById("assignment_group");
     for (let [sid, name] of Object.entries(studentList)) {
         let opt = document.createElement("option");
+        peerList = localStorage.getItem("peerList");
         opt.value = sid;
         opt.innerHTML = studentList[sid];
+        if (peerList.indexOf(sid) > -1) {
+            opt.selected = true;
+        }   
         select.appendChild(opt);
     }
     // Make the select element searchable with multiple selections
     $('.assignment_partner_select').select2({
         placeholder: "Select up to 4 team members",
         allowClear: true,
-        maximumSelectionLength: this.limit
+        maximumSelectionLength: 4,
     });
 
 }
