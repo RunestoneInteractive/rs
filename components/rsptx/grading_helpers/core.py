@@ -151,7 +151,9 @@ async def score_one_answer(
         if submission.correct:
             return scoreSpec.max_score
         else:
-            return submission.percent * scoreSpec.max_score
+            if submission.percent:
+                return submission.percent * scoreSpec.max_score
+            return 0
     elif scoreSpec.how_to_score == "all_or_nothing":
         if submission.correct:
             return scoreSpec.max_score
