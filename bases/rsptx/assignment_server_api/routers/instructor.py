@@ -402,6 +402,9 @@ async def get_assignment_questions(
         aq["subchapter"] = q["subchapter"]
         aq["chapter"] = q["chapter"]
         aq["base_course"] = q["base_course"]
+        aq["htmlsrc"] = q["htmlsrc"]
+        aq["question_type"] = q["question_type"]
+        aq["question_json"] = q["question_json"]
         qlist.append(aq)
 
     rslogger.debug(f"qlist: {qlist}")

@@ -76,6 +76,11 @@ exclude = [
     "runestone/activecode/js/skulpt.min.js.*",
     # All test files.
     "**/test/**/*",
+    "node_modules",
+    "./jsdist",
+    "./dist",
+    "**/.ruff_cache",
+    "**/.DS_Store",
 ]
 
 packages = [
