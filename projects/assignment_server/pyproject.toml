@@ -23,6 +23,10 @@ exclude = [
     "**/node_modules/*",
     "**/out/*",
     "**/build/*", 
+    "**/react/runestone/*",
+    "**/public/runestone/*",
+    "**/.ruff_cache/*",
+
     ]
 
 [tool.poetry.dependencies]
