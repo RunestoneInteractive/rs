@@ -185,7 +185,7 @@ async def pytutor_trace(
     lang = request_data.lang
     # response.headers["Content-Type"] = "application/json; charset=utf-8"
     if request_data.stdin:
-        stdin = request.vars.stdin
+        stdin = request_data.stdin
     else:
         stdin = ""
 

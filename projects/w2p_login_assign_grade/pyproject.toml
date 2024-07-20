@@ -10,7 +10,7 @@ packages = [
     { include = "rsptx/cl_utils", from = "../../components" },
 ]
 
-exclude = ["**/errors/*", "**/tests", "**/__pycache__"]
+exclude = ["**/errors/*", "**/tests", "**/__pycache__", **/docker, **/jobeinabox]
 
 [tool.poetry.dependencies]
 python = "^3.10"
