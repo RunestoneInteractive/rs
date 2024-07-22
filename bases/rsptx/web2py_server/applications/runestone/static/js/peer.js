@@ -91,7 +91,7 @@ function connect(event) {
                                     div_id: currentQuestion,
                                     event: "peer",
                                     act: "stop_question",
-                                    course: eBookConfig.course,
+                                    course_name: eBookConfig.course,
                                 });
                             }
                         }
@@ -205,7 +205,7 @@ async function logPeerEvent(eventInfo) {
         "Content-type": "application/json; charset=utf-8",
         Accept: "application/json",
     });
-    let request = new Request(eBookConfig.ajaxURL + "hsblog", {
+    let request = new Request(`${eBookConfig.new_server_prefix}/logger/bookevent`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify(eventInfo),
@@ -360,7 +360,7 @@ function enableNext() {
             div_id: currentQuestion,
             event: "peer",
             act: "stop_question",
-            course: eBookConfig.course,
+            course_name: eBookConfig.course,
         });
     }
     publishMessage(mess);
@@ -423,7 +423,7 @@ async function showPeerEnableVote2() {
         div_id: currentQuestion,
         event: "sendmessage",
         act: `to:system:${mess}`,
-        course: eBookConfig.course,
+        course_name: eBookConfig.course,
     });
 
     // send a request to get a peer response and display it.
@@ -474,22 +474,6 @@ async function showPeerEnableVote2() {
         checkme.addEventListener("click", function (event) {
             studentSubmittedVote2 = true;
             cq.style.display = "block";
-            let group = document.getElementById("assignment_group").selectedOptions;
-            groupList = []
-            for (let student of group) {
-                grouplist.push(student.value);
-            }
-            let peerList = grouplist.join(",");
-            localStorage.setItem("peerList", peerList);
-            if (peerList) {
-                logPeerEvent({
-                    sid: eBookConfig.username,
-                    div_id: currentQuestion,
-                    event: "peer",
-                    act: `grouplist:${peerList}`,
-                    course: eBookConfig.course,
-                });
-            }
         });
     }
 }
@@ -529,11 +513,14 @@ async function setupPeerGroup() {
     for (let [sid, name] of Object.entries(studentList)) {
         let opt = document.createElement("option");
         peerList = localStorage.getItem("peerList");
+        if (!peerList) {
+            peerList = "";
+        }
         opt.value = sid;
         opt.innerHTML = studentList[sid];
         if (peerList.indexOf(sid) > -1) {
             opt.selected = true;
-        }   
+        }
         select.appendChild(opt);
     }
     // Make the select element searchable with multiple selections

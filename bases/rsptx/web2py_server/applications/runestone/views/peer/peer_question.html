@@ -108,6 +108,22 @@
             function() {
                 if (studentVoteCount == 2) {
                     vote2done = true;
+                    let group = document.getElementById("assignment_group").selectedOptions;
+                    let groupList = []
+                    for (let student of group) {
+                        groupList.push(student.value);
+                    }
+                    let peerList = groupList.join(",");
+                    localStorage.setItem("peerList", peerList);
+                    if (peerList) {
+                        logPeerEvent({
+                            sid: eBookConfig.username,
+                            div_id: currentQuestion,
+                            event: "peer",
+                            act: `grouplist:${peerList}`,
+                            course_name: eBookConfig.course,
+                        });
+                    }
                 }
             })
     });
