@@ -957,6 +957,26 @@ files = [
 ]
 
 [[package]]
+name = "codechat"
+version = "1.9.3"
+description = "The CodeChat System for software documentation"
+optional = false
+python-versions = "*"
+files = [
+    {file = "CodeChat-1.9.3-py3-none-any.whl", hash = "sha256:e0ffa0d5f389b8b3363f1fd9704347a2232deb49aa5352297d61d5468e987c81"},
+    {file = "CodeChat-1.9.3.tar.gz", hash = "sha256:aa077920082b935bdb1a9d7eefb24c169496c2bd32fe454258689abb15a86049"},
+]
+
+[package.dependencies]
+docutils = ">=0.13.1"
+lxml = "*"
+pygments = ">=2.1"
+
+[package.extras]
+sphinx = ["myst-parser", "sphinx (>=3)"]
+test = ["black", "flake8", "myst-parser", "pytest", "sphinx (>=3)"]
+
+[[package]]
 name = "cogapp"
 version = "3.3.0"
 description = "Cog: A content generator for executing Python snippets in source files."
@@ -2040,13 +2060,13 @@ testing = ["Django", "attrs", "colorama", "docopt", "pytest (<7.0.0)"]
 
 [[package]]
 name = "jinja2"
-version = "3.0.3"
+version = "3.1.4"
 description = "A very fast and expressive template engine."
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 files = [
-    {file = "Jinja2-3.0.3-py3-none-any.whl", hash = "sha256:077ce6014f7b40d03b47d1f1ca4b0fc8328a692bd284016f806ed0eaca390ad8"},
-    {file = "Jinja2-3.0.3.tar.gz", hash = "sha256:611bb273cd68f3b993fabdc4064fc858c5b47a973cb5aa7999ec1ba405c87cd7"},
+    {file = "jinja2-3.1.4-py3-none-any.whl", hash = "sha256:bc5dd2abb727a5319567b7a813e6a2e7318c39f4f487cfe6c89c6f9c7d25197d"},
+    {file = "jinja2-3.1.4.tar.gz", hash = "sha256:4a3aee7acbbe7303aede8e9648d13b8bf88a429282aa6122a993f0ac800cb369"},
 ]
 
 [package.dependencies]
@@ -3341,6 +3361,23 @@ docs = ["furo", "olefile", "sphinx (>=2.4)", "sphinx-copybutton", "sphinx-inline
 tests = ["check-manifest", "coverage", "defusedxml", "markdown2", "olefile", "packaging", "pyroma", "pytest", "pytest-cov", "pytest-timeout"]
 
 [[package]]
+name = "plastex"
+version = "3.1"
+description = "LaTeX document processing framework"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "plasTeX-3.1-py3-none-any.whl", hash = "sha256:b2494c43923fb58d30de0f2576e7b5d2c2f92e15538a4f5e5e1f36972a0b4871"},
+    {file = "plasTeX-3.1.tar.gz", hash = "sha256:6a2ee7fbca6561d3f4cbd79fe3f4918b9054757382c5422b9fda324d646ab77d"},
+]
+
+[package.dependencies]
+Jinja2 = ">=2.10.1"
+Pillow = ">=7"
+typing-extensions = ">=3.7"
+Unidecode = ">=0.4.21"
+
+[[package]]
 name = "platformdirs"
 version = "3.11.0"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
@@ -3418,13 +3455,13 @@ files = [
 
 [[package]]
 name = "pretext"
-version = "2.3.1"
+version = "2.6.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
-python-versions = ">=3.8.5,<4.0.0"
+python-versions = "<4.0.0,>=3.8.5"
 files = [
-    {file = "pretext-2.3.1-py3-none-any.whl", hash = "sha256:9f487dac8261ec2888741bfee13de1eb47b27cc4072164bcfd8e45660693bcf1"},
-    {file = "pretext-2.3.1.tar.gz", hash = "sha256:1d89afbab75ab98b962750acdb478c2bc2ca3bf12f0e176ddcfd17ac33b20c26"},
+    {file = "pretext-2.6.0-py3-none-any.whl", hash = "sha256:56b1314878dcc9f6452fac3a16669dd7582775c7644729efdfd25eb240265e7f"},
+    {file = "pretext-2.6.0.tar.gz", hash = "sha256:c25c58d36ac67946d993d72ba44585885ffc35a102d5cbde97cefbb3a035c02a"},
 ]
 
 [package.dependencies]
@@ -3432,8 +3469,10 @@ click = ">=8,<9"
 click-log = ">=0.4,<0.5"
 ghp-import = ">=2,<3"
 GitPython = ">=3,<4"
+jinja2 = ">=3,<4"
 lxml = ">=4.8,<5.0"
 pdfCropMargins = ">=1.0.9,<1.1.0"
+plastex = ">=3,<4"
 playwright = ">=1,<2"
 psutil = ">=5,<6"
 pydantic-xml = ">=2"
@@ -3442,6 +3481,9 @@ PyPDF2 = ">=2.5,<2.6"
 qrcode = ">=7,<8"
 requests = ">=2,<3"
 single-version = ">=1,<2"
+
+[package.extras]
+homepage = ["pelican[markdown] (>=4.9.1,<5.0.0)"]
 
 [[package]]
 name = "prometheus-client"
@@ -4630,14 +4672,15 @@ develop = true
 anyio = "^3.6.2"
 asyncclick = "^8.1.3.4"
 asyncpg = "^0.28.0"
+CodeChat = "1.9.3"
 fastapi = "^0.103.0"
 greenlet = "^3.0.0"
 lxml = "^4.9.2"
-myst-parser = "^1.0.0"
+numpy = "^1.0.0"
 pandas = "^1.0.0"
 paver = "^1.3.4"
 pgcli = "^3.5.0"
-pretext = "^2.0.0"
+pretext = "^2.5.0"
 psycopg2-binary = "^2.9.6"
 pydal = "^20230521.1"
 pydantic = {version = "^2.0.0", extras = ["dotenv"]}
@@ -4657,7 +4700,7 @@ url = "projects/rsmanage"
 
 [[package]]
 name = "runestone"
-version = "7.3.2"
+version = "7.3.3"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
@@ -4667,17 +4710,18 @@ develop = true
 [package.dependencies]
 asyncpg = "^0.28.0"
 click = "~8"
+CodeChat = "1.9.3"
 cogapp = ">=2.5"
 dateutils = "^0.6.12"
 fastapi = "^0.103.0"
 greenlet = "^3.0.0"
-jinja2 = "<3.1.0"
+jinja2 = "^3.1.0"
 json2xml = "^3.21.0"
 jupyterlite-sphinx = "^0.9.3"
 lxml = "^4.9.2"
 myst-parser = "^1.0.0"
 Paver = ">=1.2.4"
-pretext = "^2.0.0"
+pretext = "^2.5.0"
 psycopg2-binary = "^2.9.6"
 pydal = "^20230521.1"
 pydantic = "^2.0.0"
@@ -5483,6 +5527,17 @@ files = [
 ]
 
 [[package]]
+name = "unidecode"
+version = "1.3.8"
+description = "ASCII transliterations of Unicode text"
+optional = false
+python-versions = ">=3.5"
+files = [
+    {file = "Unidecode-1.3.8-py3-none-any.whl", hash = "sha256:d130a61ce6696f8148a3bd8fe779c99adeb4b870584eeb9526584e9aa091fd39"},
+    {file = "Unidecode-1.3.8.tar.gz", hash = "sha256:cfdb349d46ed3873ece4586b96aa75258726e2fa8ec21d6f00a591d98806c2f4"},
+]
+
+[[package]]
 name = "uri-template"
 version = "1.3.0"
 description = "RFC 6570 URI Template Processor"
@@ -5732,4 +5787,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "bb3980e4035f7b387aee5bf0204c1b7d1946a80e780e3965295f764ec83e6a65"
+content-hash = "0318857032c0fe92eeb36691513bed30d33317055581037717717dbb82516330"
