@@ -56,6 +56,12 @@
                 <label class="form-check-label" for="inlineRadio3">Excellent</label>
             </div>
         </form>
+        <div>
+            <p><strong>In person discussion:</strong> select the people in your discussion group.</p>
+            <select id="assignment_group" multiple class="assignment_partner_select" style="width: 95%">
+            </select>
+        </div>
+
     </div>
 </div>
 <p>Please do not leave or refresh the page during a peer instruction session. <strong>Exception:</strong> If you should have seen a new question at this point then you may continue.</p>
@@ -102,6 +108,22 @@
             function() {
                 if (studentVoteCount == 2) {
                     vote2done = true;
+                    let group = document.getElementById("assignment_group").selectedOptions;
+                    let groupList = []
+                    for (let student of group) {
+                        groupList.push(student.value);
+                    }
+                    let peerList = groupList.join(",");
+                    localStorage.setItem("peerList", peerList);
+                    if (peerList) {
+                        logPeerEvent({
+                            sid: eBookConfig.username,
+                            div_id: currentQuestion,
+                            event: "peer",
+                            act: `grouplist:${peerList}`,
+                            course_name: eBookConfig.course,
+                        });
+                    }
                 }
             })
     });
@@ -120,4 +142,10 @@
             return "Please do not leave or refresh the page during a peer instruction session.  Exception: If you should have seen a new question at this point then you may continue.";
         }.bind(this)
     );
+
+    async function doIt() {
+        await setupPeerGroup();
+    }
+    doIt();
+
 </script>
