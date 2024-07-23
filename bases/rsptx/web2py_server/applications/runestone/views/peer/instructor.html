@@ -1,4 +1,4 @@
-{{ extend "admin/instructors.html"}} 
+{{ extend "admin/instructors.html"}}
 {{ block tabcontent }}
 
 <h1>Peer Work</h1>
@@ -7,6 +7,7 @@
 	<tr>
 		<th>Name</th>
 		<th>Extra**</th>
+		<th>Review</th>
 		<th>Due</th>
 		<th>Description</th>
 	</tr>
@@ -18,7 +19,9 @@
 		<td>
 			<a href="extra?assignment_id={{=assignment['id']}}">{{=assignment['name']}} - Extra Info</a>
 		</td>
-
+		<td>
+			<a href="/assignment/instructor/reviewPeerAssignment?assignment_id={{=assignment['id']}}">{{=assignment['name']}} - Review</a>
+		</td>
 		<td>{{=assignment['duedate']}}</td>
 		<td>{{=assignment['description']}}</td>
 	</tr>
