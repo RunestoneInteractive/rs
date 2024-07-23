@@ -20,6 +20,11 @@ packages = [
     { include = "rsptx/author_server_api", from = "../../bases" },
 ]
 
+exclude = [
+    "**/.DS_Store",
+    "**/.ruff_cache/*",
+]
+
 [tool.poetry.dependencies]
 python = "^3.10"
 fastapi = "^0.103.0"

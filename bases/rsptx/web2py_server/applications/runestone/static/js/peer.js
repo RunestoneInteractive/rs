@@ -91,7 +91,7 @@ function connect(event) {
                                     div_id: currentQuestion,
                                     event: "peer",
                                     act: "stop_question",
-                                    course: eBookConfig.course,
+                                    course_name: eBookConfig.course,
                                 });
                             }
                         }
@@ -166,7 +166,7 @@ function connect(event) {
     };
 
     window.onbeforeunload = function () {
-        ws.onclose = function () {}; // disable onclose handler first
+        ws.onclose = function () { }; // disable onclose handler first
         ws.close();
     };
 }
@@ -205,7 +205,7 @@ async function logPeerEvent(eventInfo) {
         "Content-type": "application/json; charset=utf-8",
         Accept: "application/json",
     });
-    let request = new Request(eBookConfig.ajaxURL + "hsblog", {
+    let request = new Request(`${eBookConfig.new_server_prefix}/logger/bookevent`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify(eventInfo),
@@ -360,7 +360,7 @@ function enableNext() {
             div_id: currentQuestion,
             event: "peer",
             act: "stop_question",
-            course: eBookConfig.course,
+            course_name: eBookConfig.course,
         });
     }
     publishMessage(mess);
@@ -423,7 +423,7 @@ async function showPeerEnableVote2() {
         div_id: currentQuestion,
         event: "sendmessage",
         act: `to:system:${mess}`,
-        course: eBookConfig.course,
+        course_name: eBookConfig.course,
     });
 
     // send a request to get a peer response and display it.
@@ -476,6 +476,60 @@ async function showPeerEnableVote2() {
             cq.style.display = "block";
         });
     }
+}
+
+async function setupPeerGroup() {
+    let jsonHeaders = new Headers({
+        "Content-type": "application/json; charset=utf-8",
+        Accept: "application/json",
+    });
+
+    let request = new Request("/runestone/admin/course_students", {
+        method: "GET",
+        headers: jsonHeaders,
+    });
+
+    var studentList = {
+        s1: "User 1",
+        s2: "User 2",
+        s3: "User 3",
+        s4: "User 4",
+        s5: "User 5",
+    }
+
+    try {
+        let response = await fetch(request);
+        if (!response.ok) {
+            throw new Error("Failed to save the log entry");
+        }
+        studentList = await response.json();
+    } catch (e) {
+        console.log(`Error: ${e}`);
+    }
+
+
+
+    let select = document.getElementById("assignment_group");
+    for (let [sid, name] of Object.entries(studentList)) {
+        let opt = document.createElement("option");
+        peerList = localStorage.getItem("peerList");
+        if (!peerList) {
+            peerList = "";
+        }
+        opt.value = sid;
+        opt.innerHTML = studentList[sid];
+        if (peerList.indexOf(sid) > -1) {
+            opt.selected = true;
+        }
+        select.appendChild(opt);
+    }
+    // Make the select element searchable with multiple selections
+    $('.assignment_partner_select').select2({
+        placeholder: "Select up to 4 team members",
+        allowClear: true,
+        maximumSelectionLength: 4,
+    });
+
 }
 
 $(function () {

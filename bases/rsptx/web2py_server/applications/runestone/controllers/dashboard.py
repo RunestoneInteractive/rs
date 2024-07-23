@@ -951,6 +951,7 @@ def subchapoverview():
 
 
 def make_correct_count_table(chapters, chapter, thecourse, dburl, course):
+    logger.info("Making correct count table")
     df = pd.read_sql_query(
         f"""
     select div_id, sid, correct, percent, chapter, subchapter
@@ -984,6 +985,7 @@ def make_correct_count_table(chapters, chapter, thecourse, dburl, course):
     )
     mtbl = mtbl.reset_index()
     mtbl = mtbl.rename(columns={"subchapter": "chapter_label"})
+    mtbl.sort_values("chapter_label", inplace=True)
     logger.debug(mtbl)
 
     if request.vars.action == "tocsv":

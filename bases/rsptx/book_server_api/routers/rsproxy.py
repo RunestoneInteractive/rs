@@ -27,6 +27,7 @@ import requests as rq
 from rsptx.logging import rslogger
 from rsptx.configuration.core import settings
 from rsptx.auth.session import auth_manager, is_instructor
+from rsptx.response_helpers.core import make_json_response
 
 # .. _APIRouter config:
 #
@@ -124,7 +125,8 @@ async def jobeRun(request: Request, request_data: RunSpec, response_class=JSONRe
 
     rslogger.debug("Got response from JOBE %s ", resp.status_code)
     rslogger.debug("Got response from JOBE %s ", resp.content)
-
+    json = resp.json()
+    rslogger.debug("Got response from JOBE Run JSON is %s ", json)
     return JSONResponse(
         status_code=resp.status_code, content=jsonable_encoder(resp.json())
     )
@@ -132,10 +134,9 @@ async def jobeRun(request: Request, request_data: RunSpec, response_class=JSONRe
 
 @router.api_route("/jobePushFile/{fhash:str}", methods=["POST", "PUT"])
 async def jobePushFile(
-    request: Request, fhash: str, request_data: RunSpec, response_class=JSONResponse
+    request: Request, fhash: str, request_data: RunSpec, response_class=Response
 ):
     req = rq.Session()
-    rslogger.debug("got a jobe request %s", request_data.run_spec)
 
     req.headers["Content-type"] = "application/json; charset=utf-8"
     req.headers["Accept"] = "application/json"
@@ -146,14 +147,16 @@ async def jobePushFile(
     rs = {"file_contents": request_data.file_contents}
     resp = req.put(url, json=rs)
 
-    rslogger.debug("Got response from JOBE %s ", resp.status_code)
+    rslogger.debug("Got response from JOBE pushFile %s ", resp.status_code)
+    rslogger.debug("type of status code %s", type(resp.status_code))
     # pushing the file does not result in any json in the response.  We just care about
-    # the status code
-    return JSONResponse(status_code=resp.status_code, content=jsonable_encoder(""))
+    # the status code, so no body is returned.  In fact returning a body causes an error
+    # deep down in the fastapi code.
+    return Response(status_code=resp.status_code)
 
 
 @router.api_route("/jobeCheckFile/{fhash:str}", methods=["HEAD", "GET"])
-async def jobeCheckFile(request: Request, fhash: str, response_class=JSONResponse):
+async def jobeCheckFile(request: Request, fhash: str, response_class=Response):
     req = rq.Session()
     rslogger.debug("got a jobe request HEAD jobeCheckFile")
 
@@ -163,9 +166,9 @@ async def jobeCheckFile(request: Request, fhash: str, response_class=JSONRespons
     uri = "/jobe/index.php/restapi/files/" + fhash
     url = get_jobe_server(request) + uri
     resp = req.head(url)
-    rslogger.debug("Got response from JOBE %s ", resp.status_code)
+    rslogger.debug("Got response from JOBE checkFile %s ", resp.status_code)
 
-    return JSONResponse(status_code=resp.status_code, content=jsonable_encoder(""))
+    return Response(status_code=resp.status_code)
 
 
 class PytutorTrace(BaseModel):
@@ -182,7 +185,7 @@ async def pytutor_trace(
     lang = request_data.lang
     # response.headers["Content-Type"] = "application/json; charset=utf-8"
     if request_data.stdin:
-        stdin = request.vars.stdin
+        stdin = request_data.stdin
     else:
         stdin = ""
 

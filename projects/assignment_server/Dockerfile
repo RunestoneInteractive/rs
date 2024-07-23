@@ -33,6 +33,8 @@ COPY ./dist/$wheel /usr/src/app/$wheel
 # which are stored in the METADATA file inside the wheel
 RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
 
+# Post install clean up and reduce the size of the image
+RUN rm /usr/src/app/$wheel
 
 
 CMD ["uvicorn", "rsptx.assignment_server_api.core:app", "--host", "0.0.0.0", "--port", "8000"]

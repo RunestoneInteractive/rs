@@ -555,8 +555,11 @@ export default class RunestoneBase {
     }
 
     decorateStatus() {
-        if (this.isTimed) return;
+        if (this.isTimed || eBookConfig.peer) return;
         let rsDiv = $(this.containerDiv).closest("div.runestone")[0];
+        rsDiv.classList.remove("notAnswered");
+        rsDiv.classList.remove("isInCorrect");
+        rsDiv.classList.remove("isCorrect");
         if (this.correct) {
             rsDiv.classList.add("isCorrect");
         } else {
