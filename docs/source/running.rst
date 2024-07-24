@@ -11,7 +11,7 @@ The Runestone server uses docker compose to start up a number of containers that
 
 #. Change to the rs directory: ``cd rs``
 
-#. copy the sample.env file to .env: ``cp sample.env .env``
+#. copy the sample.env file to .env: ``cp sample.env .env``  At a minimum you will then need to edit ``.env`` to provide a value for ``BOOK_PATH``
 
 #. Run the command ``docker compose pull`` this will pull the prebuilt images for the runestone services from our public docker hub repository.  This will take a while the first time you run it, but subsequent runs will be faster.
 
@@ -23,7 +23,7 @@ The Runestone server uses docker compose to start up a number of containers that
 
 #. You should now be able to access the Runestone server by going to http://localhost in your web browser.  You can log in with the username ``testuser1`` and the password ``xxx``.
 
-#. Now add a book. ``cd ~/Runestone/books`` and clone a book.  For example: ``git clone https://github.com/RunestoneInteractive/overview.git``
+#. Now add a book. ``cd /your/path/to/book`` (the same value you used for ``BOOK_PATH``) and clone a book.  For example: ``git clone https://github.com/RunestoneInteractive/overview.git``
 
 #. Add the book to the database.  (Note this is not needed for overview since we preload many books) ``docker compose run rsmanage rsmanage addcourse`` You will then be prompted to enter some information about the course:
 

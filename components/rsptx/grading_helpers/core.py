@@ -191,6 +191,8 @@ async def compute_total_score(
     )
     total = 0
     for row in res:
+        if row.score is None:
+            row.score = 0
         total += row.score
 
     # Now update the grade table with the new total
