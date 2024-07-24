@@ -70,6 +70,11 @@ async def grade_submission(
             update_total = True
         elif scoreSpec.which_to_grade == "best_answer":
             scoreSpec.score = await score_one_answer(scoreSpec, submission)
+            if scoreSpec.score is None:
+                scoreSpec.score = 0
+                rslogger.error(
+                    f"score_one_answer returned None scoreSpec = {scoreSpec}"
+                )
             rslogger.debug(
                 f"Scoring best answer with current score of {scoreSpec.score}"
             )
@@ -169,6 +174,8 @@ async def score_one_answer(
         )
         if did_chat:
             return scoreSpec.max_score
+        else:
+            return 0.5 * scoreSpec.max_score
     else:
         return 0
 
