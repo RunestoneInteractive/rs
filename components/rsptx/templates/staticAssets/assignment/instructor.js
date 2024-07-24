@@ -10,6 +10,7 @@
 let currentQuestionIndex = 0;
 const questions = document.querySelectorAll(".question-row");
 let questionsData = null;
+let answersList = {};
 
 function extractAnswerAndFeedback(htmlString) {
     const parser = new DOMParser();
@@ -46,8 +47,9 @@ function renderQuestion(index) {
 
     if (radioButtons.length === 0) {
         // Retry after a short delay if NodeList is empty (i.e., the question component hasn't been rendered yet)
-        setTimeout(() => renderQuestion(index), 100);
+        setTimeout(() => renderQuestion(index), 300);
     } else {
+        answersList[questionName] = radioButtons;
         // Uncheck all radio buttons
         radioButtons.forEach(radio => radio.checked = false);
 
@@ -122,26 +124,23 @@ document.addEventListener("DOMContentLoaded", () => {
     questionsData = JSON.parse(document.getElementById("questions-data").textContent);
 
     questionsData.forEach((q, index) => {
+        const questionIndex = index + 1;
         let {answerElementID, feedbackText} = extractAnswerAndFeedback(q.htmlsrc);
         const correctOption = letterToNumber(answerElementID[answerElementID.length - 1]);
-
-        const vote1Data = generateChartData(q.total_votes.vote_1.counts, correctOption);
-        const vote2Data = generateChartData(q.total_votes.vote_2.counts, correctOption);
-        const questionIndex = index + 1;
 
         // Calculate percentage of correct votes in the first voting stage
         const totalVote1 = Object.values(q.total_votes.vote_1.counts).reduce((a, b) => a + b, 0);
         // Need to use toString because the correct choice is a string
         const correctVote1 = q.total_votes.vote_1.counts[correctOption.toString()] || 0;
-        const correctVote1Percentage = ((correctVote1 / totalVote1) * 100).toFixed(0);
+        const correctVote1Percentage = Math.round((correctVote1 / totalVote1) * 100);
 
         // Calculate the normalized learning change for the question
         // Calculate the percentage of correct votes in the second voting stage
         const totalVote2 = Object.values(q.total_votes.vote_2.counts).reduce((a, b) => a + b, 0);
         const correctVote2 = q.total_votes.vote_2.counts[correctOption.toString()] || 0;
-        const correctVote2Percentage = ((correctVote2 / totalVote2) * 100).toFixed(0);
+        const correctVote2Percentage = Math.round((correctVote2 / totalVote2) * 100);
 
-        var normalizedChange = "";
+        var normalizedChange = null;
 
         // Calculate the normalized change
         if (correctVote1Percentage === 100) {
@@ -151,12 +150,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const learningGain = correctVote2Percentage - correctVote1Percentage;
             const potentialImprovement = 100 - correctVote1Percentage;
             // Calculate the normalized change
-            normalizedChange = ((learningGain / potentialImprovement) * 100).toFixed(0).toString();
+            normalizedChange = Math.round((learningGain / potentialImprovement) * 100);
         }
 
         // Update the normalized change card's text
         const normalizedChangeCard = document.getElementById(`normalized-change-${questionIndex}`);
-        normalizedChangeCard.textContent = normalizedChange;
+        if (normalizedChange === "N/A") {
+            normalizedChangeCard.textContent = normalizedChange;
+        }
+        else {
+            normalizedChangeCard.textContent = normalizedChange + "%";
+        }
 
         // Update the effectiveness card's text and color
         const effectivenessCard = document.getElementById(`effectiveness-card-${questionIndex}`);
@@ -169,19 +173,29 @@ document.addEventListener("DOMContentLoaded", () => {
             effectivenessCard.classList.add("bg-warning");
         }
 
-        renderAltairChart(`chart-vote1-${questionIndex}`, vote1Data, `Vote 1 Results (n=${totalVote1})`);
-        renderAltairChart(`chart-vote2-${questionIndex}`, vote2Data, `Vote 2 Results (n=${totalVote2})`);
-
         showQuestion(currentQuestionIndex);
+
+        // Interval to ensure the answersList for the question is not empty
+        const interval = setInterval(() => {
+            if (answersList[q.name] && answersList[q.name].length > 0) {
+                clearInterval(interval);
+
+                const vote1Data = generateChartData(q.total_votes.vote_1.counts, correctOption, answersList[q.name]);
+                const vote2Data = generateChartData(q.total_votes.vote_2.counts, correctOption, answersList[q.name]);
+
+                renderAltairChart(`chart-vote1-${questionIndex}`, vote1Data, `Vote 1 Results (n=${totalVote1})`);
+                renderAltairChart(`chart-vote2-${questionIndex}`, vote2Data, `Vote 2 Results (n=${totalVote2})`);
+            }
+        }, 100);
     });
 });
 
-function generateChartData(counts, correctOption) {
-    const maxOption = 4; // Since MCQs have 5 options: A, B, C, D, E
+function generateChartData(counts, correctOption, choices) {
+    const numChoices = choices.length;
     const totalVotes = Object.values(counts).reduce((a, b) => a + b, 0);
     const data = [];
 
-    for (let i = 0; i <= maxOption; i++) {
+    for (let i = 0; i < numChoices; i++) {
         const count = counts[i] || 0;
         const percentage = Math.round((count / totalVotes) * 100);
         data.push({
