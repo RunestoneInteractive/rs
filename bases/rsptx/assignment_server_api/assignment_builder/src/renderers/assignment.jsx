@@ -53,6 +53,9 @@ import {
     setReleased,
     setTimeLimit,
     setVisible,
+    setHidden,
+    selectVisible,
+    selectHidden,
 } from "../state/assignment/assignSlice";
 
 import { EditorContainer, EditorChooser } from "./editorModeChooser.jsx";
@@ -79,7 +82,7 @@ function handleChange() {
             if (currentValue.id !== 0 && previousValue && previousValue.id !== 0) {
                 let changes = diff(previousValue, currentValue)
                 let keys = Object.keys(changes)
-                let updateKeys = ["due", "points", "visible", "time_limit", "peer_async_visible", "is_peer", "is_timed", "nopause", "nofeedback", "description"]
+                let updateKeys = ["due","vis", "hid", "points", "visible", "time_limit", "peer_async_visible", "is_peer", "is_timed", "nopause", "nofeedback", "description"]
                 let update = keys.filter((k) => updateKeys.includes(k))
                 if (update.length > 0 && keys.indexOf("id") === -1) {
                     console.log(`updating assignment ${update}`)
@@ -114,6 +117,8 @@ function AssignmentEditor() {
     const name = useSelector(selectName);
     const desc = useSelector(selectDesc);
     const due = useSelector(selectDue);
+    const vis = useSelector(selectVisible)
+    const hid = useSelector(selectHidden)
     const points = useSelector(selectPoints);
     const assignData = useSelector(selectAll);
     const [items, setItems] = useState(assignData.all_assignments.map((a) => a.name))
@@ -143,7 +148,8 @@ function AssignmentEditor() {
             dispatch(setDue(current.duedate));
             dispatch(setPoints(current.points));
             dispatch(setId(current.id));
-            dispatch(setVisible(current.visible));
+            dispatch(setVisible(current.visibledate));
+            dispatch(setHidden(current.hindingdate));
             dispatch(setIsPeer(current.is_peer));
             dispatch(setIsTimed(current.is_timed));
             dispatch(setFromSource(current.from_source));
@@ -167,14 +173,23 @@ function AssignmentEditor() {
             name: name,
             description: desc,
             duedate: due,
+            visibledate: vis,
+            hiddingdate: hid,
             points: points,
         }
         dispatch(createAssignment(assignment))
         // reset items so create button disappears
         setItems(assignData.all_assignments.map((a) => a.name))
     }
+
     let placeDate = new Date(due);
     const [datetime12h, setDatetime12h] = useState(placeDate);
+
+    let placeDate1 = new Date(vis);
+    const [visibleDate, setVisibleDate] = useState(placeDate1);
+
+    let placeDate2 = new Date(hid);
+    const [hiddenDate, setHiddenDate] = useState(placeDate2);
 
     // We use two representations because the Calendar, internally wants a date
     // but Redux gets unhappy with a Date object because its not serializable.
@@ -186,79 +201,110 @@ function AssignmentEditor() {
         dispatch(setDue(d));
     }
 
-    return (
-        <div className="App">
-            <div className="p-fluid">
-                <div className="p-field p-grid">
-                    <label htmlFor="name" >Assignment Name</label>
-                    <AutoComplete
-                        className="field"
-                        id="name"
-                        field="name"
-                        suggestions={items}
-                        completeMethod={search}
-                        placeholder="Enter or select assignment name... start typing"
-                        value={name}
-                        onChange={chooseOrNameAssignment}
-                        dropdown />
-                    {items.length == 0 && name ?
-                        <Button type="button" className="mb-3 md:mb-0" onClick={newAssignment}>Create New</Button>
-                        : null}
-                    <label htmlFor="desc" >
-                        Assignment Description
-                    </label>
-                    <InputText
-                        id="desc"
-                        className="field"
-                        placeholder="Enter assignment description"
-                        value={desc}
-                        onChange={(e) => dispatch(setDesc(e.target.value))}
-                    />
-                    <div className="contain2col">
-                        <div className="item">
-                            <label htmlFor="due" >
-                                Due
-                            </label>
-                            <Calendar
-                                className="field"
-                                dateFormat="m/d/yy,"
-                                id="due"
-                                value={datetime12h}
-                                placeholder={placeDate.toLocaleString()}
-                                onChange={handleDueChange}
-                                showTime
-                                hourFormat="12"
-                                stepMinute={5}
-                            />
-                        </div>
+    const handleVisibleChange = (e) => {
+        setVisibleDate(e.value);
+        console.log(`visible change ${visibleDate} ${e.value}`)
+        let d = e.value.toISOString().replace("Z", "");
+        dispatch(setVisible(d));
+      };
+    
+      const handleHiddenChange = (e) => {
+        console.log(`hidden change ${hiddenDate} ${e.value}`)
+        let d = e.value.toISOString().replace("Z", "");
+        dispatch(setHidden(d));
+      };
 
-                        <div className="item">
-                            <label htmlFor="points">
-                                Total Points
-                            </label>
-                            <InputNumber
-                                id="points"
-                                disabled
-                                className="field"
-                                placeholder="Points"
-                                value={points}
-                                onChange={(e) => dispatch(setPoints(e.value))}
-                            />
-                            <div className="field grid">
-                                <label className="col-fixed" htmlFor="visible">Visible to Students</label>
-                                <InputSwitch
-                                    id="visible"
-                                    className="field"
-                                    checked={assignData.visible}
-                                    onChange={(e) => dispatch(setVisible(e.value))} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+     return (
+    <div className="App">
+      <div className="p-fluid">
+        <div className="p-field p-grid">
+          <label htmlFor="name">Assignment Name</label>
+          <AutoComplete
+            className="field"
+            id="name"
+            field="name"
+            suggestions={items}
+            completeMethod={search}
+            placeholder="Enter or select assignment name... start typing"
+            value={name}
+            onChange={chooseOrNameAssignment}
+            dropdown
+          />
+          {items.length === 0 && name ? (
+            <Button type="button" className="mb-3 md:mb-0" onClick={newAssignment}>
+              Create New
+            </Button>
+          ) : null}
+          <label htmlFor="desc">Assignment Description</label>
+          <InputText
+            id="desc"
+            className="field"
+            placeholder="Enter assignment description"
+            value={desc}
+            onChange={(e) => dispatch(setDesc(e.target.value))}
+          />
+          <div className="contain2col">
+            <div className="item">
+              <label htmlFor="due">Due</label>
+              <Calendar
+                className="field"
+                dateFormat="m/d/yy"
+                id="due"
+                value={datetime12h}
+                placeholder={placeDate.toLocaleString()}
+                onChange={handleDueChange} 
+                showTime
+                hourFormat="12"
+                stepMinute={5}
+              />
             </div>
+            <div className="item">
+              <label htmlFor="points">Total Points</label>
+              <InputNumber
+                id="points"
+                disabled
+                className="field"
+                placeholder="Points"
+                value={points}
+                onChange={(e) => dispatch(setPoints(e.value))}
+              />
+            </div>
+
+            <div className="item">
+              <label htmlFor="vis">Assignment Visible on:</label>
+              <Calendar
+                className="field"
+                dateFormat="m/d/yy"
+                id="vis"
+                value={visibleDate}
+                placeholder={placeDate1.toLocaleString()}
+                onChange={handleVisibleChange} 
+                showTime
+                hourFormat="12"
+                stepMinute={5}
+              />
+            </div>
+
+            <div className="item">
+              <label htmlFor="hid">Assignment Hidden on:</label>
+              <Calendar
+                className="field"
+                dateFormat="m/d/yy"
+                id="hid"
+                value={hiddenDate}
+                placeholder={placeDate2.toLocaleString()}
+                onChange={handleHiddenChange} 
+                showTime
+                hourFormat="12"
+                stepMinute={5}
+              />
+            </div>
+
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 }
 
 

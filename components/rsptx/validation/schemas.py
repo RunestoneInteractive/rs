@@ -228,6 +228,8 @@ class AssignmentIncoming(BaseModel):
     description: str
     points: int
     duedate: datetime
+    visibledate: datetime
+    hiddingdate: datetime
 
 
 class QuestionIncoming(BaseModel):

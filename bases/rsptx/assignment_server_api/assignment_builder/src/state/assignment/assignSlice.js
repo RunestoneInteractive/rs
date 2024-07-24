@@ -82,10 +82,14 @@ export const createAssignment = createAsyncThunk(
         // make a date that is acceptable on the server
         let duedate = new Date(assignData.duedate);
         duedate = duedate.toISOString().replace('Z', '');
+        let visibledate = new Date(assignData.visibledate).toISOString().replace('Z', '');
+        let hiddingdate = new Date(assignData.hiddingdate).toISOString().replace('Z', '');
         let body = {
             name: assignData.name,
             description: assignData.description,
             duedate: duedate,
+            visibledate: visibledate,
+            hiddingdate: hiddingdate,
             points: assignData.points,
             kind: "quickcode",
         };
@@ -303,7 +307,10 @@ let epoch = cDate.getTime();
 epoch = epoch + 60 * 60 * 24 * 7 * 1000;
 cDate = new Date(epoch);
 let defaultDeadline = cDate.toLocaleString();
-// old     
+let visibleEpoch = epoch - 60 * 60 * 24 * 7 * 1000; 
+let hiddenEpoch = epoch + 60 * 60 * 24 * 7 * 1000;    
+let visibleDateDefault = new Date(visibleEpoch).toLocaleString();
+let hiddingDateDefault = new Date(hiddenEpoch).toLocaleString();
 
 // create a slice for Assignments
 // This slice must be registered with the store in store.js
@@ -319,6 +326,7 @@ let defaultDeadline = cDate.toLocaleString();
  * - setId
  * - setPoints
  * - setVisible
+ * - setHidden
  * - setIsPeer
  * - setIsTimed
  * - setNoFeedback
@@ -371,6 +379,7 @@ let defaultDeadline = cDate.toLocaleString();
  * @property {Function} reducers.setDesc - Sets the description of the assignment.
  * @property {Function} reducers.setDue - Sets the due date of the assignment.
  * @property {Function} reducers.setVisible - Sets the visibility of the assignment.
+ * @property {Function} reducers.setHidden - Sets the visibility of the assignment.
  * @property {Function} reducers.setIsPeer - Sets if the assignment is a peer assignment.
  * @property {Function} reducers.setIsTimed - Sets if the assignment is timed.
  * @property {Function} reducers.setNoFeedback - Sets if the assignment has no feedback.
@@ -398,7 +407,8 @@ export const assignSlice = createSlice({
         desc: "",
         duedate: defaultDeadline,
         points: 1,
-        visible: true,
+        visibledate: visibleDateDefault,
+        hiddingdate: hiddingDateDefault,
         is_peer: false,
         is_timed: false,
         nofeedback: true,
@@ -437,8 +447,25 @@ export const assignSlice = createSlice({
             state.duedate = action.payload.toISOString().replace('Z', '')
         },
         setVisible: (state, action) => {
-            state.visible = action.payload;
+            // action.payload is a Date object coming from the date picker or a string from the server
+            // convert it to a string and remove the Z because we don't expect timezone information
+            if (typeof action.payload === "string") {
+                state.visibledate = action.payload;
+                return;
+            }
+            state.visibledate = action.payload.toISOString().replace('Z', '')
         },
+       
+        setHidden: (state, action) => {
+            // action.payload is a Date object coming from the date picker or a string from the server
+            // convert it to a string and remove the Z because we don't expect timezone information
+            if (typeof action.payload === "string") {
+                state.hiddingdate = action.payload;
+                return;
+            }
+            state.hiddingdate = action.payload.toISOString().replace('Z', '')
+        },
+        
         setIsPeer: (state, action) => {
             state.is_peer = action.payload;
         },
@@ -596,6 +623,7 @@ export const {
     setReleased,
     setTimeLimit,
     setVisible,
+    setHidden,
     sumPoints,
     updateExercise,
     updateField,
@@ -627,5 +655,6 @@ export const selectPoints = (state) => state.assignment.points;
 export const selectQuestionCount = (state) => state.assignment.question_count;
 export const selectSearchResults = (state) => state.assignment.search_results;
 export const selectTimeLimit = (state) => state.assignment.time_limit;
-export const selectVisible = (state) => state.assignment.visible;
+export const selectVisible = (state) => state.assignment.visibledate;
+export const selectHidden = (state) => state.assignment.hiddingdate;
 export default assignSlice.reducer;

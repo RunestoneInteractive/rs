@@ -1260,6 +1260,7 @@ async def fetch_assignments(
     course_name: str,
     is_peer: Optional[bool] = False,
     is_visible: Optional[bool] = False,
+    is_hidden: Optional[bool] = True,
     fetch_all: Optional[bool] = False,
 ) -> List[AssignmentValidator]:
     """
@@ -1271,10 +1272,13 @@ async def fetch_assignments(
     :param is_peer: bool, whether or not the assignment is a peer assignment
     :return: List[AssignmentValidator], a list of AssignmentValidator objects
     """
+    now = datetime.utcnow()
 
+    # Visibility clause
     if is_visible:
-        vclause = Assignment.visible == is_visible
-    else:
+         vclause = or_(Assignment.visible == is_visible, and_(Assignment.visibledate >= now, Assignment.hiddingdate <= now)
+             )
+    else: 
         vclause = True
 
     if is_peer:
@@ -1301,13 +1305,12 @@ async def fetch_assignments(
         .order_by(Assignment.duedate.desc())
     )
 
+
     async with async_session() as session:
         res = await session.execute(query)
-        rslogger.debug(f"{res=}")
         return [AssignmentValidator.from_orm(a) for a in res.scalars()]
 
-
-# write a function that fetches all Assignment objects given a course name
+# write a function that fetches one Assignment objects given a course name
 async def fetch_one_assignment(assignment_id: int) -> AssignmentValidator:
     """
     Fetch one Assignment object
@@ -1316,8 +1319,14 @@ async def fetch_one_assignment(assignment_id: int) -> AssignmentValidator:
 
     :return: AssignmentValidator
     """
-
-    query = select(Assignment).where(Assignment.id == assignment_id)
+    now = datetime.utcnow()
+    query = select(Assignment).where(
+        and_(
+            Assignment.id == assignment_id,
+            Assignment.visibledate <= now,
+            Assignment.hiddingdate >= now
+        )
+    )
 
     async with async_session() as session:
         res = await session.execute(query)
@@ -1601,9 +1610,9 @@ async def fetch_questions_by_search_criteria(
     if criteria.question_type:
         where_criteria.append(Question.question_type == criteria.question_type)
     if criteria.author:
-        where_criteria.append(Question.author.regexp_match(criteria.author, flags="i"))
+        where_criteria.append(Question.author.regexp_match(criteria.author, flags="i")) 
     if criteria.base_course:
-        where_criteria.append(Question.base_course == criteria.base_course)
+        where_criteria.append(Question.base_course == criteria.base_course) 
 
     if len(where_criteria) == 0:
         raise ValueError("No search criteria provided")
