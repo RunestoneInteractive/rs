@@ -351,6 +351,7 @@ def peer_question():
     if "latex_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
 
+    
     return dict(
         course_id=auth.user.course_name,
         course=get_course_row(db.courses.ALL),
