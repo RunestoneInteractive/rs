@@ -14,6 +14,7 @@
 import asyncclick as click
 import csv
 import datetime
+from datetime import timezone
 import json
 import os
 import re
@@ -1016,7 +1017,7 @@ async def addbookauthor(config, book, author, github):
             course_name=book,
             base_course=book,
             python3=True,
-            term_start_date=datetime.datetime.utcnow(),
+            term_start_date=datetime.datetime.now(timezone.utc).date(),
             login_required=False,
             institution="Runestone",
             courselevel="",
