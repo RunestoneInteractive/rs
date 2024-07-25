@@ -18,7 +18,7 @@ from rsptx.logging import rslogger
 
 async def grade_submission(
     user: AuthUserValidator, submission: LogItemIncoming
-) -> None:
+) -> ScoringSpecification:
     """
     Grade a submission and store the results in the database.
 
@@ -42,7 +42,7 @@ async def grade_submission(
                 submission.div_id, submission.event, user.course_name, user.username
             )
             if len(answers) > 0:
-                return
+                return scoreSpec
             else:
                 scoreSpec.score = await score_one_answer(scoreSpec, submission)
                 await create_question_grade_entry(
