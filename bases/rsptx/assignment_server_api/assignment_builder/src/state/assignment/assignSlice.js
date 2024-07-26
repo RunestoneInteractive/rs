@@ -395,7 +395,7 @@ export const assignSlice = createSlice({
     initialState: {
         id: 0,
         name: "",
-        desc: "",
+        description: "",
         duedate: defaultDeadline,
         points: 1,
         visible: true,
@@ -425,7 +425,7 @@ export const assignSlice = createSlice({
             state.name = action.payload;
         },
         setDesc: (state, action) => {
-            state.desc = action.payload;
+            state.description = action.payload;
         },
         setDue: (state, action) => {
             // action.payload is a Date object coming from the date picker or a string from the server
@@ -611,7 +611,7 @@ export const {
 export const selectAll = (state) => state.assignment;
 export const selectAllAssignments = (state) => state.assignment.all_assignments;
 export const selectAssignmentId = (state) => state.assignment.id;
-export const selectDesc = (state) => state.assignment.desc;
+export const selectDesc = (state) => state.assignment.description;
 export const selectDue = (state) => state.assignment.duedate;
 export const selectExercises = (state) => state.assignment.exercises;
 export const selectId = (state) => state.assignment.id;
