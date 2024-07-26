@@ -281,12 +281,13 @@ def num_answers():
         & (db.mchoice_answers.course_name == auth.user.course_name)
         & (db.mchoice_answers.timestamp > parse(request.vars.start_time))
     ).count(distinct=db.mchoice_answers.sid)
-    r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
-    res = r.hget(f"{auth.user.course_name}_state", "mess_count")
-    if res is not None:
-        mess_count = int(res)
-    else:
-        mess_count = 0
+    # TODO update this to count the number of sendmessage events since start time for this question
+    mess_count = db(
+        (db.useinfo.div_id == div_id)
+        & (db.useinfo.course_id == auth.user.course_name)
+        & (db.useinfo.event == "sendmessage")
+        & (db.useinfo.timestamp > parse(request.vars.start_time))
+    ).count()
 
     return json.dumps({"count": acount, "mess_count": mess_count})
 
@@ -351,7 +352,6 @@ def peer_question():
     if "latex_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
 
-    
     return dict(
         course_id=auth.user.course_name,
         course=get_course_row(db.courses.ALL),
@@ -471,7 +471,9 @@ def publish_message():
     response.headers["content-type"] = "application/json"
     r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
     data = json.dumps(request.vars)
-    logger.debug(f"PM data = {data} {os.environ.get('REDIS_URI', 'redis://redis:6379/0')}")
+    logger.debug(
+        f"PM data = {data} {os.environ.get('REDIS_URI', 'redis://redis:6379/0')}"
+    )
     r.publish("peermessages", data)
     res = r.hget(f"{auth.user.course_name}_state", "mess_count")
     if res is not None:
