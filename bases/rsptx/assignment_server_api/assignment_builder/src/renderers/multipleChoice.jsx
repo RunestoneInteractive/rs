@@ -32,7 +32,7 @@ export function MultipleChoiceCreator() {
         let code = createMCQTemplate(uniqueId, statement, optionList);
         dispatch(setCode(code));
         dispatch(setPreviewSrc(code));
-        if (newOptList && newOptList.choice !== undefined) {
+        if (newOptList && newOptList.length > 0) {
             dispatch(setQuestionJson({ statement, optionList: newOptList }));
         } else {
             dispatch(setQuestionJson({ statement, optionList }));
