@@ -49,6 +49,9 @@ export const saveAssignmentQuestion = createAsyncThunk(
             question_json: JSON.stringify(store.interactive.question_json),
             chapter: store.interactive.chapter,
             author: store.interactive.author,
+            difficulty: store.interactive.difficulty,
+            topic: store.interactive.topic,
+            //tags: store.interactive.tags,  todo: add to model
         };
         if (editonly) {
             body.id = questionId;
@@ -138,7 +141,7 @@ const interactiveSlice = createSlice({
         chapter: "",
         subchapter: "Exercises",
         author: "",
-        tags: [],
+        tags: "",
         question_type: "",
         preview_src: "",
         question_json: {},
@@ -241,4 +244,6 @@ export const selectTags = (state) => state.interactive.tags;
 export const selectQuestionType = (state) => state.interactive.question_type;
 export const selectPreviewSrc = (state) => state.interactive.preview_src;
 export const selectQuestionJson = (state) => state.interactive.question_json;
+export const selectTopic = (state) => state.interactive.topic;
+export const selectDifficulty = (state) => state.interactive.difficulty;
 export default interactiveSlice.reducer;
