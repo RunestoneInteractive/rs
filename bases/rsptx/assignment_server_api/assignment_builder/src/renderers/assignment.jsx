@@ -79,7 +79,8 @@ function handleChange() {
             if (currentValue.id !== 0 && previousValue && previousValue.id !== 0) {
                 let changes = diff(previousValue, currentValue)
                 let keys = Object.keys(changes)
-                let updateKeys = ["due", "points", "visible", "time_limit", "peer_async_visible", "is_peer", "is_timed", "nopause", "nofeedback", "description"]
+                let updateKeys = ["duedate", "points", "visible", "time_limit", "peer_async_visible",
+                    "is_peer", "is_timed", "nopause", "nofeedback", "description"]
                 let update = keys.filter((k) => updateKeys.includes(k))
                 if (update.length > 0 && keys.indexOf("id") === -1) {
                     console.log(`updating assignment ${update}`)
