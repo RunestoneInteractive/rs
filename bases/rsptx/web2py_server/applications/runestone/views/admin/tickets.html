@@ -9,7 +9,12 @@
         font-family: monospace;
         border: solid black 1px;
     }
+    .ticket-table {
+        height: 75%;
+        overflow: scroll;
+    }
 </style>
+<div class="ticket-table">
 <table style="width: 100%">
     <colgroup>
         <col />
@@ -44,7 +49,7 @@
     </tr>
     {{ pass }}
 </table>
-
+</div>
 <h1>Traceback for ID: <span id="tktnum"></span></h1>
 <pre id="selectedtb"></pre>
 

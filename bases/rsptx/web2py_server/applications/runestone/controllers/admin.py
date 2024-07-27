@@ -3134,7 +3134,7 @@ def reset_exam():
 def tickets():
     ticks = db.executesql(
         """
-    select * from traceback order by timestamp desc
+    select * from traceback order by timestamp desc limit 100
     """,
         as_dict=True,
     )
