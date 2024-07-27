@@ -41,7 +41,10 @@ async def python_check(request: Request):
     via Skulpt.
     """
     code_bytes = await request.body()
-    code = code_bytes.decode("utf-8")
+    try:
+        code = code_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        return "Invalid UTF-8 encoding"
 
     filename = "program.py"
 
