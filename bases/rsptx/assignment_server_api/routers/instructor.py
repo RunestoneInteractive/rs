@@ -453,7 +453,9 @@ async def do_update_question(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error updating question: {str(e)}",
         )
-    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
+    return make_json_response(
+        status=status.HTTP_200_OK, detail={"status": "success", "id": upd_question.id}
+    )
 
 
 @router.post("/new_assignment_q")

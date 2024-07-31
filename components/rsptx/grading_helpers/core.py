@@ -18,7 +18,7 @@ from rsptx.logging import rslogger
 
 async def grade_submission(
     user: AuthUserValidator, submission: LogItemIncoming
-) -> None:
+) -> ScoringSpecification:
     """
     Grade a submission and store the results in the database.
 
@@ -42,7 +42,7 @@ async def grade_submission(
                 submission.div_id, submission.event, user.course_name, user.username
             )
             if len(answers) > 0:
-                return
+                return scoreSpec
             else:
                 scoreSpec.score = await score_one_answer(scoreSpec, submission)
                 await create_question_grade_entry(
@@ -70,6 +70,11 @@ async def grade_submission(
             update_total = True
         elif scoreSpec.which_to_grade == "best_answer":
             scoreSpec.score = await score_one_answer(scoreSpec, submission)
+            if scoreSpec.score is None:
+                scoreSpec.score = 0
+                rslogger.error(
+                    f"score_one_answer returned None scoreSpec = {scoreSpec}"
+                )
             rslogger.debug(
                 f"Scoring best answer with current score of {scoreSpec.score}"
             )
@@ -169,6 +174,8 @@ async def score_one_answer(
         )
         if did_chat:
             return scoreSpec.max_score
+        else:
+            return 0.5 * scoreSpec.max_score
     else:
         return 0
 
@@ -191,6 +198,8 @@ async def compute_total_score(
     )
     total = 0
     for row in res:
+        if row.score is None:
+            row.score = 0
         total += row.score
 
     # Now update the grade table with the new total

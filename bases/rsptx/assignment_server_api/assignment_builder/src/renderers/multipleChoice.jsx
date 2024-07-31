@@ -28,11 +28,15 @@ export function MultipleChoiceCreator() {
         handleCodeUpdates();
     }
 
-    const handleCodeUpdates = () => {
+    const handleCodeUpdates = (newOptList) => {
         let code = createMCQTemplate(uniqueId, statement, optionList);
         dispatch(setCode(code));
         dispatch(setPreviewSrc(code));
-        dispatch(setQuestionJson({ statement, optionList }));
+        if (newOptList && newOptList.length > 0) {
+            dispatch(setQuestionJson({ statement, optionList: newOptList }));
+        } else {
+            dispatch(setQuestionJson({ statement, optionList }));
+        }
     }
 
     const handleNewChoice = (index, event) => {
@@ -56,11 +60,11 @@ export function MultipleChoiceCreator() {
         handleCodeUpdates();
     }
 
-    const markCorrect = (index) => {
+    const markCorrect = (index, event) => {
         const values = structuredClone(optionList);
-        values[index].correct = !values[index].correct;
+        values[index].correct = event.checked;
         dispatch(setOptionList(values));
-        handleCodeUpdates();
+        handleCodeUpdates(values);
     }
 
     return (
@@ -93,7 +97,7 @@ export function MultipleChoiceCreator() {
                             onChange={(e) => handleNewFeedback(index, e)}
                             onBlur={handleCodeUpdates} />
                         <label>Correct</label>
-                        <Checkbox checked={option.correct} onChange={() => markCorrect(index)} />
+                        <Checkbox checked={option.correct} onChange={(e) => markCorrect(index, e)} />
                         {optionList.length > 1 && <Button rounded outlined severity="danger" icon="pi pi-trash" onClick={() => handleDeleteOption(index)} />}
                         {index === optionList.length - 1 && <Button rounded outlined severity="success" icon="pi pi-plus" onClick={handleAddOption} />}
                         <hr />

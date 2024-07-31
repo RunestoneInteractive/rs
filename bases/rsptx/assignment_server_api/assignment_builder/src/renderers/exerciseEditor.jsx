@@ -16,6 +16,10 @@ import {
     setTags,
     setDifficulty,
     setTopic,
+    selectAuthor,
+    selectTags,
+    selectDifficulty,
+    selectTopic,
 } from "../state/interactive/interactiveSlice";
 
 import { saveAssignmentQuestion } from "../state/interactive/interactiveSlice";
@@ -38,6 +42,10 @@ export function ExerciseEditor(props) {
     // use these selectors to get the values from the store (slice for activecode)
     const uniqueId = useSelector(selectUniqueId);
     const qpoints = useSelector(selectQpoints);
+    const difficulty = useSelector(selectDifficulty);
+    const topic = useSelector(selectTopic);
+    const author = useSelector(selectAuthor);
+    const tags = useSelector(selectTags);
     const dispatch = useDispatch();
     const assignData = useSelector(selectAssignAll);
 
@@ -82,12 +90,14 @@ export function ExerciseEditor(props) {
                             <label htmlFor="author">Author</label>
                             <InputText
                                 id="author"
+                                value={author}
                                 placeholder="Author"
                                 onChange={(e) => dispatch(setAuthor(e.target.value))} />
                         </div>
                         <div className="field col">
                             <label htmlFor="tags">Tags</label>
                             <InputText id="tags"
+                                value={tags}
                                 placeholder="Tags"
                                 className="field"
                                 onChange={(e) => dispatch(setTags(e.target.value))} />
@@ -96,6 +106,7 @@ export function ExerciseEditor(props) {
                             <label htmlFor="difficulty">Difficulty</label>
                             <InputNumber
                                 id="difficulty"
+                                value={difficulty}
                                 placeholder="Difficulty"
                                 className="field"
                                 onChange={(e) => dispatch(setDifficulty(e.target.value))}
@@ -106,6 +117,7 @@ export function ExerciseEditor(props) {
                             <label htmlFor="topic">Topic</label>
                             <InputText
                                 id="topic"
+                                value={topic}
                                 placeholder="Topic"
                                 className="field"
                                 onChange={(e) => dispatch(setTopic(e.target.value))}

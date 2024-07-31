@@ -248,6 +248,24 @@ export class ActiveCode extends RunestoneBase {
             }.bind(this)
         ); // use bind to preserve *this* inside the on handler.
 
+        // disable copy/paste for timed exams
+        if (this.isTimed) {
+            editor.on("paste", function (cm, e) {
+                e.preventDefault();
+            });
+
+            document.addEventListener('copy', function (e) {
+                e.preventDefault();
+            });
+
+            document.addEventListener('cut', function (e) {
+                e.preventDefault();
+            });
+
+            document.addEventListener('paste', function (e) {
+                e.preventDefault();
+            });
+        }
         //Solving Keyboard Trap of ActiveCode: If user use tab for navigation outside of ActiveCode, then change tab behavior in ActiveCode to enable tab user to tab out of the textarea
         $(window).keydown(function (e) {
             var code = e.keyCode ? e.keyCode : e.which;
@@ -521,8 +539,8 @@ export class ActiveCode extends RunestoneBase {
                     if (!didAgree) {
                         didAgree = confirm(
                             "Pair Programming should only be used with the consent of your instructor." +
-                                "Your partner must be a registered member of the class and have agreed to pair with you." +
-                                "By clicking OK you certify that both of these conditions have been met."
+                            "Your partner must be a registered member of the class and have agreed to pair with you." +
+                            "By clicking OK you certify that both of these conditions have been met."
                         );
                         if (didAgree) {
                             localStorage.setItem("partnerAgree", "true");
@@ -565,13 +583,13 @@ export class ActiveCode extends RunestoneBase {
         $(butt).attr(
             "href",
             "http://" +
-                chatcodesServer +
-                "/new?" +
-                $.param({
-                    topic: window.location.host + "-" + this.divid,
-                    code: this.editor.getValue(),
-                    lang: "Python",
-                })
+            chatcodesServer +
+            "/new?" +
+            $.param({
+                topic: window.location.host + "-" + this.divid,
+                code: this.editor.getValue(),
+                lang: "Python",
+            })
         );
         this.chatButton = butt;
         chatBar.appendChild(butt);
@@ -951,7 +969,7 @@ export class ActiveCode extends RunestoneBase {
         this.reformatButton.blur();
     }
 
-    toggleEditorVisibility() {}
+    toggleEditorVisibility() { }
 
     addErrorMessage(err) {
         // Add the error message
@@ -1201,7 +1219,7 @@ Yet another is that there is an internal error.  The internal error message is: 
         if (
             this.historyScrubber &&
             this.history[$(this.historyScrubber).slider("value")] !=
-                this.editor.getValue()
+            this.editor.getValue()
         ) {
             saveCode = "True";
             this.history.push(this.editor.getValue());

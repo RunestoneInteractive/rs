@@ -240,6 +240,10 @@ class QuestionIncoming(BaseModel):
     question_json: Json
     chapter: Optional[str] = None
     author: Optional[str] = None
+    tags: Optional[str] = None
+    description: Optional[str] = None
+    difficulty: Optional[float] = None
+    topic: Optional[str] = None
 
 
 class AssignmentQuestionIncoming(BaseModel):

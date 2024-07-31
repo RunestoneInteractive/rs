@@ -8,7 +8,7 @@ You should have already:
 
 #. Set up Poetry.
 
-#. Copied ``sample.env`` to ``.env`` and edited the file.
+#. Copied ``sample.env`` to ``.env`` and edited the file -- make sure ``BOOK_PATH`` is set.
 
 Now you are ready to install the required dependencies and build the servers:
 
