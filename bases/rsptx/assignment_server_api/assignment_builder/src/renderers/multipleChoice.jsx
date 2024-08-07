@@ -28,6 +28,8 @@ export function MultipleChoiceCreator() {
         handleCodeUpdates();
     }
 
+    // TODO: when called this function normally gets an event as the first parameter.
+    // be consistent so we can properly detect the newOptList parameter
     const handleCodeUpdates = (newOptList) => {
         let code = createMCQTemplate(uniqueId, statement, optionList);
         dispatch(setCode(code));

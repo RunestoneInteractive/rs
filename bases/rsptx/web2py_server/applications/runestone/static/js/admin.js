@@ -214,8 +214,7 @@ function autoGrade() {
                         `${index + 1} of ${student_array.length}: ${student}
                         <a href="/runestone/dashboard/questiongrades?sid=${encodeURIComponent(
                             student
-                        )}&assignment_id=${encodeURIComponent(assignment)}">${
-                            students[student]
+                        )}&assignment_id=${encodeURIComponent(assignment)}">${students[student]
                         }</a>
                         ${res.message}
                         Score: ${res.total_mess} <br>`
@@ -564,9 +563,9 @@ function createGradingPanel(element, acid, studentId, multiGrader) {
             obj.open(
                 "GET",
                 "/runestone/admin/getGradeComments?acid=" +
-                    acid +
-                    "&sid=" +
-                    encodeURIComponent(studentId),
+                acid +
+                "&sid=" +
+                encodeURIComponent(studentId),
                 true
             );
             obj.send(
@@ -1713,9 +1712,9 @@ function remove_question(question_name) {
     var assignment_id = getAssignmentId();
     $.getJSON(
         "delete_assignment_question/?name=" +
-            question_name +
-            "&assignment_id=" +
-            assignment_id,
+        question_name +
+        "&assignment_id=" +
+        assignment_id,
         {
             variable: "variable",
         }
@@ -2055,8 +2054,13 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
                     constrainbc: constrainbc,
                 };
                 jQuery.get("/runestone/admin/question_text", data, function (obj) {
-                    $("#editRST").val(JSON.parse(obj));
+                    let res = JSON.parse(obj);
+                    let qText = res.question_text;
+                    let isprivate = res.is_private;
+                    $("#editRST").val(qText);
+                    $("#change_privacy").prop("checked", isprivate);
                 });
+
             });
             $(`#${whereDiv}`).append(editButton);
             let closeButton = document.createElement("button");
@@ -2560,7 +2564,10 @@ function populateEditor(qname) {
     };
     $("#addTags").select2();
     jQuery.get("/runestone/admin/question_text", data, function (obj) {
-        $("#editRST").val(JSON.parse(obj));
+        let res = JSON.parse(obj);
+        let qText = res.question_text;
+        $("#editRST").val(qText);
+        $("#change_privacy").prop("checked", res.isprivate);
     });
 }
 
