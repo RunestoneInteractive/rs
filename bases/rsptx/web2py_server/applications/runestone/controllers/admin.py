@@ -1445,18 +1445,23 @@ def question_text():
         .base_course
     )
     query = db.questions.name == qname
+    is_private = False
+    q_text = None
     if constrainbc == "true":
         query = query & (db.questions.base_course == base_course)
     try:
-        q_text = db(query).select(db.questions.question).first().question
-    except Exception:
+        res = db(query).select(db.questions.question, db.questions.is_private).first()
+        q_text = res.question
+        is_private = res.is_private == True
+    except Exception as e:
         q_text = f"Error: Could not find source for {qname} in the database"
-
+        logger.error(f"Error finding source for {qname} in the database: {e}")
     if q_text == None:
         q_text = f"Error: Could not find source for {qname} in the database"
 
     logger.debug(q_text)
-    return json.dumps(q_text)
+    logger.debug(f"is_private = {is_private} from {res.is_private}")
+    return json.dumps({"question_text": q_text, "is_private": is_private})
 
 
 @auth.requires(
@@ -2039,14 +2044,19 @@ def _add_q_meta_info(qrow):
     else:
         book = "🏫"
 
+    if qrow.questions.is_private == True:
+        private = "🔒"
+    else:
+        private = ""
+
     name = qrow.questions.name
 
-    res = """ <span style="color: green">[{} {} {}
+    res = """ <span style="color: green">[{} {} {} {}
         </span> <span style="color: mediumblue">({})</span>]
         <span>{}...</span>""".format(
-        book, qt, ag, name, qrow.questions.description
+        book, qt, ag, private, name, qrow.questions.description
     )
-
+    logger.debug(f"res = {res}")
     return res
 
 

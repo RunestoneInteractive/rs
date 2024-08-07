@@ -21,7 +21,7 @@ db.define_table(
     Field("optional", type="boolean"),
     Field("description", type="text"),
     Field("pct_on_first", type="float"),
-    Field("mean_clicks_to_correct", "float"),
+    Field("mean_clicks_to_correct", type="float"),
     migrate=bookserver_owned("questions"),
 )
 
