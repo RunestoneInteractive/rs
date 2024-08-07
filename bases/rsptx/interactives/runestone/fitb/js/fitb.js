@@ -622,6 +622,7 @@ export default class FITB extends RunestoneBase {
         var feedback_html = "<ul>";
         for (var i = 0; i < this.displayFeed.length; i++) {
             let df = this.displayFeed[i];
+            let fm = (this.isCorrectArray[i] === true) ? '✔️' : '✖️';
             // Render any dynamic feedback in the provided feedback, for client-side grading of dynamic problems.
             if (typeof this.dyn_vars === "string") {
                 df = renderDynamicFeedback(
@@ -636,7 +637,7 @@ export default class FITB extends RunestoneBase {
                     ? df[0].parentElement.innerHTML
                     : "No feedback provided";
             }
-            feedback_html += `<li>${df}</li>`;
+            feedback_html += `<li>${fm} ${df}</li>`;
         }
         feedback_html += "</ul>";
         // Remove the list if it's just one element.
