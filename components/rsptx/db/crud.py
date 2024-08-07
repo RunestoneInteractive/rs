@@ -19,6 +19,7 @@ import hashlib
 import json
 from collections import namedtuple
 from typing import Dict, List, Optional, Tuple, Any
+import textwrap
 import traceback
 import pytz
 
@@ -1950,7 +1951,7 @@ async def create_traceback(exc: Exception, request: Request, host: str):
         rslogger.debug(f"{dl[-2:]=}")
 
         new_entry = TraceBack(
-            traceback=tbtext + str(dl[-2:]),
+            traceback=tbtext + "\n".join(textwrap.wrap(str(dl[-2:]), 80)),
             timestamp=datetime.datetime.utcnow(),
             err_message=str(exc),
             path=request.url.path,
