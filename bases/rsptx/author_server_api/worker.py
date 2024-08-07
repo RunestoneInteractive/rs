@@ -10,6 +10,7 @@
 #
 # Standard library
 # ----------------
+import datetime
 import os
 import sys
 import subprocess
@@ -139,7 +140,7 @@ def git_pull(self, book):
     )
     if res.returncode != 0:
         outputlog = pathlib.Path("/books", book, "cli.log")
-        with open(outputlog, "w") as olfile:
+        with open(outputlog, "a") as olfile:
             olfile.write(res.stdout.decode("utf8"))
             olfile.write("\n====\n")
             olfile.write(res.stderr.decode("utf8"))
@@ -157,7 +158,7 @@ def git_pull(self, book):
     )
     if res.returncode != 0:
         outputlog = pathlib.Path("/books", book, "cli.log")
-        with open(outputlog, "w") as olfile:
+        with open(outputlog, "a") as olfile:
             olfile.write(res.stdout.decode("utf8"))
             olfile.write("\n====\n")
             olfile.write(res.stderr.decode("utf8"))
@@ -175,7 +176,7 @@ def git_pull(self, book):
     )
     if res.returncode != 0:
         outputlog = pathlib.Path("/books", book, "cli.log")
-        with open(outputlog, "w") as olfile:
+        with open(outputlog, "a") as olfile:
             olfile.write(res.stdout.decode("utf8"))
             olfile.write("\n====\n")
             olfile.write(res.stderr.decode("utf8"))
@@ -230,6 +231,10 @@ def build_ptx_book(self, book, generate=False):
     :return: True if successful
     """
     logger.debug(f"Building {book}")
+    outputlog = pathlib.Path("/books", book, "cli.log")
+    start_time = datetime.datetime.now()
+    with open(outputlog, "w") as olfile:
+        olfile.write(f"Starting build on {start_time}\n")
     self.update_state(state="CHECKING", meta={"current": "pull latest"})
     git_pull(self, book)
 
