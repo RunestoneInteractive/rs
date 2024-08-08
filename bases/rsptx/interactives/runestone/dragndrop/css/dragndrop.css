@@ -1,11 +1,10 @@
-
 .rsdraggable {
     margin-left: 2%;
     margin-top: 5px;
-    display:inline;
-    float:left;
-	text-align: left;
-	vertical-align: top;
+    display: inline;
+    float: left;
+    text-align: left;
+    vertical-align: top;
     background-color: #efefff;
     font-family: monospace;
     font-size: 120%;
@@ -15,33 +14,39 @@
     border: 1px solid #efefff;
     box-sizing: border-box;
 }
+
 .drag-button {
     display: inline-block;
 }
+
 .drag-reset {
     background-color: #474949;
     color: white;
 }
+
 .drag-reset:hover {
     background-color: black;
     color: white;
 }
+
 .drop-incorrect {
     border: 1px solid red !important;
     background-color: #f2dede !important;
 }
+
 .drag-reset:enabled {
     background-color: #474949;
     color: white;
 }
+
 .draggable-drag {
-    -moz-border-radius:10px;
-    -webkit-border-radius:10px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
     border-radius: 10px;
     display: block;
     background-color: var(--draggableBgColor);
-    border:1px solid lightgray;
-    padding:10px;
+    border: 1px solid lightgray;
+    padding: 10px;
     margin-top: 5px;
     cursor: move;
 }
@@ -52,20 +57,29 @@
 }
 
 .draggable-drop {
-    -moz-border-radius:10px;
-    -webkit-border-radius:10px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
     border-radius: 10px;
     display: block;
     background-color: var(--dropableBgColor);
-    border:1px solid lightgray;
-    padding:10px;
+    border: 1px solid lightgray;
+    padding: 10px;
     margin-top: 5px;
 }
+
 .draggable-container {
-    text-align:center;
+    text-align: center;
 }
 
 .possibleDrop {
     border-color: #000000;
     background-color: #CCCCCC;
+}
+
+/* 
+ * This is a hack to allow us to drop on the drop target when
+ * the drop area contains mathjax or or other child elements.
+*/
+.draggable-drop * {
+    pointer-events: none;
 }
