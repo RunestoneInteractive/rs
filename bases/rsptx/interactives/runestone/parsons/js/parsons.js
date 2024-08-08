@@ -678,7 +678,13 @@ export default class Parsons extends RunestoneBase {
                 options
             );
             this.grade = this.grader.grade();
-            this.correct = this.grade;
+            if (this.grade == "correct") {
+                this.correct = true;
+            } else if (this.answerLines().length == 0) {
+                this.correct = null;
+            } else {
+                this.correct = false;
+            }
         }
         // Start the interface
         if (this.needsReinitialization !== true) {
@@ -1299,7 +1305,7 @@ export default class Parsons extends RunestoneBase {
     ==== ACTION ============================================================
     ===================================================================== */
     // The "Check Me" button was pressed.
-    checkCurrentAnswer() { 
+    checkCurrentAnswer() {
         if (!this.hasSolved) {
             this.checkCount++;
             this.clearFeedback();
@@ -1344,8 +1350,8 @@ export default class Parsons extends RunestoneBase {
         } // end outer if not solved
 
         // if now or previous was correct, display runnable
-        if(this.hasSolved && this.options.runnable) {
-            if(!this.runnableDiv)
+        if (this.hasSolved && this.options.runnable) {
+            if (!this.runnableDiv)
                 this.generateRunableVersion();
             else //reveal "reset" runnable
                 this.runnableDiv.style.display = null;
@@ -1358,8 +1364,8 @@ export default class Parsons extends RunestoneBase {
         this.runnableDiv.style.display = null;
 
         let parsonsText = '';
-        for(let b of this.answerBlocks()) {
-            for(let l of b.lines) {
+        for (let b of this.answerBlocks()) {
+            for (let l of b.lines) {
                 parsonsText += '    '.repeat(l.indent) + l.text + '\n';
             }
         }
@@ -1391,8 +1397,8 @@ export default class Parsons extends RunestoneBase {
             answerArea.addClass("correct");
             feedbackArea.fadeIn(100);
             feedbackArea.attr("class", "alert alert-info");
-            let message = this.checkCount > 1 
-                ? $.i18n("msg_parson_correct", this.checkCount) 
+            let message = this.checkCount > 1
+                ? $.i18n("msg_parson_correct", this.checkCount)
                 : $.i18n("msg_parson_correct_first_try");
             if (this.options.runnable)
                 message += " " + $.i18n("msg_parson_correct_runnable");
@@ -1604,9 +1610,9 @@ export default class Parsons extends RunestoneBase {
                     duration:
                         Math.sqrt(
                             Math.pow(endY - startY, 2) +
-                                Math.pow(endX - startX, 2)
+                            Math.pow(endX - startX, 2)
                         ) *
-                            4 +
+                        4 +
                         500,
                     start: function () {
                         that.moving = block;
@@ -2582,7 +2588,7 @@ export default class Parsons extends RunestoneBase {
         this.initializeAreas(this.blocksFromSource(), [], {});
         this.initializeInteractivity();
         document.body.scrollTop = scrollTop;
-        if(this.runnableDiv) {
+        if (this.runnableDiv) {
             // hide the rendered runnable - will get reused as is if rerevealed
             this.runnableDiv.style.display = 'none';
         }

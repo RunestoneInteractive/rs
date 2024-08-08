@@ -564,7 +564,7 @@ export default class RunestoneBase {
         if (this.correct) {
             rsDiv.classList.add("isCorrect");
         } else {
-            if (this.correct === null) {
+            if (this.correct === null || typeof this.correct === "undefined") {
                 rsDiv.classList.add("notAnswered");
             } else {
                 rsDiv.classList.add("isInCorrect");
