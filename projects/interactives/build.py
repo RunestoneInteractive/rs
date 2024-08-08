@@ -25,18 +25,24 @@ with pushd("../../bases/rsptx/interactives"):
             static_path = f"{os.environ['BOOK_PATH']}/{book}/published/{book}/_static"
             print("Building to:", static_path)
             subprocess.run(
-                ["npm", "run", "build", "--", "--env", static_path], check=True
+                ["npm", "run", "build", "--", "--env", f"builddir={static_path}"],
+                check=True,
             )
             data = json.loads(
                 open(os.path.join(static_path, "webpack_static_imports.json")).read()
             )
-            with open(os.path.join(static_path, "webpack_static_imports.xml"), "w") as f:
+            with open(
+                os.path.join(static_path, "webpack_static_imports.xml"), "w"
+            ) as f:
                 f.write(json2xml.Json2xml(data).to_xml())
         else:
             subprocess.run(["npm", "run", "build"], check=True)
+            subprocess.run(
+                ["python", "./scripts/dist2xml.py", f"{VERSION}"], check=True
+            )
     else:
         subprocess.run(["npm", "run", "dist"], check=True)
-    subprocess.run(["python", "./scripts/dist2xml.py", f"{VERSION}"], check=True)
+        subprocess.run(["python", "./scripts/dist2xml.py", f"{VERSION}"], check=True)
 
 if "--dev" in sys.argv:
     sys.exit(0)
