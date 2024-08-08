@@ -23,6 +23,7 @@ import oauth2
 # -------------------------
 from rs_grading import _try_to_send_lti_grade
 
+
 # Code
 # ====
 # For some reason, URL query parameters are being processed twice by Canvas and returned as a list, like [23, 23]. So, just take the first element in the list.
@@ -269,7 +270,13 @@ def index():
 
     elif assignment_id:
         # If the assignment is released, but this is the first time a student has visited the assignment, auto-upload the grade.
-        _launch_assignment(assignment_id, user, result_source_did, outcome_url)
+        _launch_assignment(
+            assignment_id,
+            user,
+            result_source_did,
+            outcome_url,
+            is_instructor=instructor,
+        )
         # If we got here, the assignment wasn't launched.
         return dict(
             logged_in=False,
@@ -286,17 +293,20 @@ def index():
     redirect_url = request.vars.get("redirect", None)
     if redirect_url:
         #  This should be in a model, but web2py is going away, so we will do this for now.
-        if "LOAD_BALANCER_HOST" not in os.environ or os.environ["LOAD_BALANCER_HOST"] == "":
+        if (
+            "LOAD_BALANCER_HOST" not in os.environ
+            or os.environ["LOAD_BALANCER_HOST"] == ""
+        ):
             base_url = f"https://{os.environ.get('RUNESTONE_HOST')}"
         else:
             base_url = f"https://{os.environ['LOAD_BALANCER_HOST']}"
         if type(redirect_url) == list:
-            redirect_url = redirect_url[0]  #web2py does strange things?
-        if redirect_url.startswith('/'):
-            raise ValueError('Redirect URL should not start with /')
-        if redirect_url.startswith('http'):
-            raise ValueError('Redirect URL should not start with http')
-        redirect(f'{base_url}/{redirect_url}')
+            redirect_url = redirect_url[0]  # web2py does strange things?
+        if redirect_url.startswith("/"):
+            raise ValueError("Redirect URL should not start with /")
+        if redirect_url.startswith("http"):
+            raise ValueError("Redirect URL should not start with http")
+        redirect(f"{base_url}/{redirect_url}")
 
     # else just redirect to the book index
     redirect(get_course_url("index.html"))
@@ -326,9 +336,13 @@ def _launch_practice(outcome_url, result_source_did, user, course_id):
     )
 
 
-def _launch_assignment(assignment_id, user, result_source_did, outcome_url):
+def _launch_assignment(
+    assignment_id, user, result_source_did, outcome_url, is_instructor=False
+):
     assignment = (
-        db(db.assignments.id == assignment_id).select(db.assignments.released).first()
+        db(db.assignments.id == assignment_id)
+        .select(db.assignments.released, db.assignments.is_peer)
+        .first()
     )
     # If the assignment isn't valid, return instead of redirecting. The caller will report the error.
     if not assignment:
@@ -356,6 +370,25 @@ def _launch_assignment(assignment_id, user, result_source_did, outcome_url):
     )
     if send_grade:
         _try_to_send_lti_grade(user.id, assignment_id)
+
+    # If the assignment is a peer assignment, redirect to the peer assignment page.
+    if assignment.is_peer:
+        if is_instructor:
+            redirect(
+                URL(
+                    "peer",
+                    "dashboard",
+                    vars={"assignment_id": assignment_id, "next": "Reset"},
+                )
+            )
+        else:
+            redirect(
+                URL(
+                    "peer",
+                    "peer_question",
+                    vars={"assignment_id": assignment_id},
+                )
+            )
 
     redirect(URL("assignments", "doAssignment", vars={"assignment_id": assignment_id}))
 
