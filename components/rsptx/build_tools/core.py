@@ -17,6 +17,8 @@ import os
 import re
 import subprocess
 from pathlib import Path
+import logging
+from io import StringIO
 
 # Third Party
 # -----------
@@ -141,7 +143,15 @@ def _build_ptx_book(config, gen, manifest, course, click=click):
         if not rs:
             return False
 
+        logger = logging.getLogger("ptxlogger")
+        logger.setLevel(logging.INFO)
+        string_io_handler = StringIOHandler()
+        logger.addHandler(string_io_handler)
+
         rs.build()  # build the book, generating assets as needed
+
+        with open("cli.log", "a") as olfile:
+            olfile.write(string_io_handler.getvalue())
 
         mpath = rs.output_dir_abspath() / manifest
         process_manifest(course, mpath)
@@ -755,3 +765,30 @@ def manifest_data_to_db(course_name, manifest_path):
     )
     sess.execute(ins)
     sess.commit()
+
+class StringIOHandler(logging.Handler):
+    """
+    A custom logging handler that captures log entries in a StringIO buffer.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.stream = StringIO()
+
+    def emit(self, record):
+        """
+        Emit a record by writing to the StringIO buffer.
+        """
+        msg = self.format(record)
+        self.stream.write(msg + "\n")
+
+    def getvalue(self):
+        """
+        Return the contents of the StringIO buffer as a string.
+        """
+        return self.stream.getvalue()
+
+    def flush(self):
+        """
+        Flush the StringIO buffer.
+        """
+        self.stream.flush()
