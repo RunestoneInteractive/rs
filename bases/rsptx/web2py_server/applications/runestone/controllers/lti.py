@@ -372,7 +372,7 @@ def _launch_assignment(
         _try_to_send_lti_grade(user.id, assignment_id)
 
     # If the assignment is a peer assignment, redirect to the peer assignment page.
-    if assignment.is_peer:
+    if assignment.is_peer == True: # noqa: E712
         if is_instructor:
             redirect(
                 URL(
