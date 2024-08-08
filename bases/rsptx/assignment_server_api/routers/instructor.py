@@ -28,6 +28,8 @@ from rsptx.db.crud import (
     update_assignment_question,
     update_assignment,
     update_question,
+    fetch_one_assignment,
+    get_peer_votes,
 )
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
@@ -49,6 +51,7 @@ from rsptx.validation.schemas import (
     SearchSpecification,
 )
 from rsptx.logging import rslogger
+from .student import get_course_url
 
 # Routing
 # =======
@@ -58,6 +61,155 @@ router = APIRouter(
     tags=["instructor"],
 )
 
+@router.get("/reviewPeerAssignment")
+async def review_peer_assignment(
+    request: Request,
+    assignment_id: Optional[int] = None,
+    user=Depends(auth_manager),
+):
+    '''
+    This is the endpoint for reviewing a peer assignment. It is used by instructors to review peer assignments.
+    '''
+    # Fetch the course
+    course = await fetch_course(user.course_name)
+
+    if assignment_id is None:
+        rslogger.error("BAD ASSIGNMENT = %s assignment %s", course, assignment_id)
+        return RedirectResponse("/runestone/peer/instructor.html")
+
+    # Check if the user is an instructor
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "not an instructor"})
+
+    # Fetch course attributes
+    course_attrs = await fetch_all_course_attributes(course.id)
+    course_origin = course_attrs.get("markup_system", "Runestone")
+
+    # Fetch assignment details
+    assignment = await fetch_one_assignment(assignment_id)
+
+    if not assignment:
+        rslogger.error(
+            "NO ASSIGNMENT assign_id = %s course = %s user = %s",
+            assignment_id,
+            course,
+            user.username,
+        )
+        return RedirectResponse("/runestone/peer/instructor.html")
+
+    if (
+        assignment.visible == "F"
+        or assignment.visible is None
+        or assignment.visible == False
+    ):
+        if not user_is_instructor:
+            rslogger.error(f"Attempt to access invisible assignment {assignment_id} by {user.username}")
+            return RedirectResponse("/runestone/peer/instructor.html")
+
+    # Fetch questions within the assignment
+    questions = await fetch_assignment_questions(assignment_id)
+    questions_list = []
+
+    for q in questions:
+        # Gathering information about each question
+        answer = None
+        feedback = None
+        if q.Question.htmlsrc:
+            # This replacement is to render images
+            bts = q.Question.htmlsrc
+            htmlsrc = bts.replace(
+                'src="../_static/', 'src="' + get_course_url(course, "_static/")
+            )
+            htmlsrc = htmlsrc.replace("../_images", get_course_url(course, "_images"))
+
+            # Rewrite xref links and knowls in fillintheblank questions
+            if "fillintheblank" in htmlsrc:
+                htmlsrc = htmlsrc.replace(
+                    'href="', f'href="/ns/books/published/{course.base_course}/'
+                )
+
+            # Unescape contents of script tags in fitb questions.
+            if "application/json" in htmlsrc:
+                htmlsrc = htmlsrc.replace("&lt;", "<")
+                htmlsrc = htmlsrc.replace("&gt;", ">")
+                htmlsrc = htmlsrc.replace("&amp;", "&")
+
+            if 'data-knowl="./' in htmlsrc:
+                htmlsrc = htmlsrc.replace(
+                    'data-knowl="./',
+                    f'data-knowl="/ns/books/published/{course.base_course}/',
+                )
+        else:
+            htmlsrc = None
+
+        # Call the internal API to get the aggregate peer votes
+        vote_1_results = await get_peer_votes(q.Question.name, course.course_name, 1)
+        vote_2_results = await get_peer_votes(q.Question.name, course.course_name, 2)
+        total_votes = {"vote_1": aggregate_peer_votes(vote_1_results["acts"]), "vote_2": aggregate_peer_votes(vote_2_results["acts"])}
+
+        question_info = {
+            "id": q.Question.id,
+            "name": q.Question.name,
+            "chapter": q.Question.chapter,
+            "subchapter": q.Question.subchapter,
+            "htmlsrc": htmlsrc,
+            "question_type": q.Question.question_type,
+            "points": q.AssignmentQuestion.points,
+            "activities_required": q.AssignmentQuestion.activities_required,
+            "reading_assignment": q.AssignmentQuestion.reading_assignment,
+            "total_votes": total_votes,
+        }
+        questions_list.append(question_info)
+
+    # Context dictionary to send in the JSON response
+    context = {
+        "message": f"Reviewing assignment {assignment_id}",
+        "course": course,
+        "user": user,
+        "is_instructor": user_is_instructor,
+        "request": request,
+        "assignment_details": {
+            "id": assignment.id,
+            "name": assignment.name,
+            "due_date": assignment.duedate.strftime("%Y-%m-%d %H:%M:%S"),
+            "visible": assignment.visible,
+            "released": assignment.released,
+            "description": assignment.description,
+        },
+        "origin": course_origin,
+        "questions": questions_list,
+        "ptx_js_version": course_attrs.get("ptx_js_version", "0.2"),
+        "webwork_js_version": course_attrs.get("webwork_js_version", "2.17"),
+        "latex_preamble": course_attrs.get("latex_macros", ""),
+        "wp_imports": get_webpack_static_imports(course),
+        "settings": settings
+    }
+
+    templates = Jinja2Templates(directory=template_folder)
+    response = templates.TemplateResponse(
+        "assignment/instructor/reviewPeerAssignment.html", context
+    )
+
+    return response
+
+def aggregate_peer_votes(votes: List[str]):
+    """
+    Aggregate the peer votes for a voting stage given a list of useinfo acts.
+    """
+    # Dictionary to hold the counts
+    counts = {}
+    # Count the occurrences of each unique entry
+    for vote in votes:
+        components = vote.split(":")
+        choice = components[1]
+
+        if choice in counts:
+            counts[choice] += 1
+        else:
+            counts[choice] = 1
+
+    return {"counts": counts}
 
 @router.get("/gradebook")
 async def get_assignment_gb(

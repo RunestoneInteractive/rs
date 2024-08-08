@@ -160,6 +160,29 @@ async def count_useinfo_for(
         rslogger.debug(f"res = {res}")
         return res.all()
 
+async def get_peer_votes(div_id: str, course_name: str, voting_stage: int):
+    """
+    Provide the answers for a peer instruction multiple choice question.
+    What percent of students chose each option. This is used for the Review page of Peer Instruction questions.
+    """
+    query = (
+        select(Useinfo.act)
+        .where(
+            (Useinfo.event == "mChoice") &
+            (Useinfo.course_id == course_name) &
+            (Useinfo.div_id == div_id) &
+            Useinfo.act.like(f"%vote{voting_stage}")
+        )
+        .order_by(Useinfo.id.desc())
+    )
+    async with async_session() as session:
+        result = await session.execute(query)
+        ans = result.scalars().all()
+
+    if ans:
+        return {"acts": ans}
+    else:
+        return {"acts": []}
 
 async def fetch_chapter_for_subchapter(subchapter: str, base_course: str) -> str:
     """
@@ -1283,7 +1306,7 @@ async def fetch_assignments(
     else:
         pclause = or_(
             Assignment.is_peer == False, Assignment.is_peer == None  # noqa: E712, E711
-        )  
+        )
 
     if fetch_all:
         pclause = True
