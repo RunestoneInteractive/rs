@@ -25,7 +25,7 @@ export default class LiveCode extends ActiveCode {
             eBookConfig.proxyuri_files || "/ns/rsproxy/jobeCheckFile/";
         // TODO:  should add a proper put/check in pavement.tmpl as this is misleading and will break on runestone
         this.div2id = {};
-        if (this.stdin) {
+        if (typeof this.stdin !== "undefined") {
             this.createInputElement();
         }
         this.createErrorOutput();

@@ -1,0 +1,149 @@
+{% extends "_base.html" %}
+{% block title %}
+Review Peer Assignment
+{% endblock %}
+{% block css %}
+
+{% include 'common/static_assets.html' %}
+
+<link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
+<style>
+    /* This is used to style the question controls */
+    .question-controls {
+        display: flex;
+        justify-content: space-between;
+    }
+    /* This is to style the chart container */
+    .chart-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: space-around;
+        margin-top: 1.5%;
+        background-color: #FFFFFF;
+        border: solid var(--componentBorderColor);
+        border-radius: 10px;
+        padding: 2%;
+    }
+    /* This is used to make the bar charts take up the entire column */
+    canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+    /* This is used to disable the "Check Me" and "Compare me" buttons */
+    .runestone .btn {
+        display: none;
+    }
+
+    .vega-embed.has-actions {
+        padding-right: 0;
+    }
+    /* This is used to style the question-statistics */
+    .row.question-statistics {
+        margin-left: -5px;
+        gap: 5px;
+    }
+    /* This is used to style the cards for question statistics */
+    .question-statistics .card, .question-statistics .card-body {
+        border-radius: 10px;
+    }
+
+
+</style>
+{% endblock %}
+{% block content %}
+
+{% include 'common/ebook_config.html' %}
+<div class="hidden-content" style="display: none">
+    \( {{latex_preamble}} \)
+</div>
+
+<div id='part1'>
+    <h1 id="assignment_name" class="mt-3" style='text-align:center'>{{ assignment_details.name }}</h1>
+    <div>
+        <p style='max-width:90%; margin:auto;'>Description: {{ assignment_details.description }}</p>
+    </div>
+
+    {% if questions|length > 0 %}
+        <div id="questions" class="runestone-sphinx container-fluid">
+            <style>
+                .ac_section > * {
+                    max-width: 100%;
+                }
+                #questions {
+                    max-width: 90%;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+            </style>
+            {% for q in questions %}
+                <div class="row question-row" id="question-{{ loop.index }}" style="display: none;">
+                    <div class="question-controls mb-3">
+                        <h2>Question {{ loop.index }}</h2>
+                        {% if questions|length > 1 %}
+                            <div class="row" style="text-align: center;">
+                                <button id="prev-btn-{{ loop.index }}" class="btn btn-primary" onclick="showPreviousQuestion()">Previous</button>
+                                <button id="next-btn-{{ loop.index }}" class="btn btn-primary" onclick="showNextQuestion()">Next</button>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="row question-statistics">
+                        <div class="card mb-3">
+                            <div class="card-body text-black" id="effectiveness-card-{{ loop.index }}">
+                                <h4 class="card-title mt-0">Question Effectiveness</h4>
+                                <p class="card-text">Percent Correct Votes in Vote 1: <strong><span id="effectiveness-percentage-{{ loop.index }}">N/A</span></strong></p>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-body text-black" id="normalized-change-card-{{ loop.index }}">
+                                <h4 class="card-title mt-0">Normalized Change</h4>
+                                <p class="card-text"><strong><span id="normalized-change-{{ loop.index }}">N/A</span></strong></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row question-details">
+                        <div class="col-md-6 question-col">
+                            {% if q.question_type == 'webwork' %}
+                                <div class="oneq full-width runestone-sphinx ptx-content">
+                            {% else %}
+                                <div class="oneq full-width runestone-sphinx">
+                            {% endif %}
+                                {{ q.htmlsrc|safe }}
+                            </div>
+                            <div class="oneq" style="width: 100%; text-align: center">
+                                {% if origin == "Runestone" %}
+                                    <a href="/ns/books/published/{{ course.course_name }}/{{ q.chapter }}/{{ q.subchapter }}.html#{{ q.name }}">Show Question in the Book</a>
+                                {% else %}
+                                    <a href="/ns/books/published/{{ course.course_name }}/{{ q.subchapter }}.html#{{ q.name }}">Show Question in the Book</a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 chart-container">
+                            <div id="chart-vote1-{{ loop.index }}" class="chart"></div>
+                            <div id="chart-vote2-{{ loop.index }}" class="chart"></div>
+                        </div>
+                    </div>
+                    <!-- <div class="row chat-summary">
+                        <h4>Chat Summary</h4>
+                    </div> -->
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <h2>No Questions Found</h2>
+    {% endif %}
+</div>
+
+<script id="questions-data" type="application/json">
+    {{ questions | tojson }}
+</script>
+
+{% endblock %}
+{% block js %}
+<script src="/staticAssets/assignment/instructor.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+{% endblock %}
