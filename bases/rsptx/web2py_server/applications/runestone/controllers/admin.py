@@ -2806,20 +2806,29 @@ def enroll_students():
         student_reader = csv.reader(strfile)
         validfile = io.TextIOWrapper(students.file, encoding="utf-8-sig")
         validation_reader = csv.reader(validfile)
+    except UnicodeDecodeError:
+        session.flash = "Could not decode the CSV file. An Excel export is likely the cause (see the Instructor Guide)"
+        return redirect(URL("admin", "admin"))
     except Exception as e:
         session.flash = "please choose a CSV file with student data"
         logger.error(e)
         return redirect(URL("admin", "admin"))
     messages = []
     line = 0
-    for row in validation_reader:
-        line += 1
-        if len(row) == 6:
-            res = _validateUser(row[0], row[4], row[2], row[3], row[1], row[5], line)
-        else:
-            res = [f"Error on line {line} you should have 6 fields"]
-        if res:
-            messages.extend(res)
+    try:
+        for row in validation_reader:
+            line += 1
+            if len(row) == 6:
+                res = _validateUser(
+                    row[0], row[4], row[2], row[3], row[1], row[5], line
+                )
+            else:
+                res = [f"Error on line {line} you should have 6 fields"]
+            if res:
+                messages.extend(res)
+    except UnicodeDecodeError:
+        session.flash = "Error: bad CSV file. An Excel export is likely the cause (see the Instructor Guide)"
+        return redirect(URL("admin", "admin"))
 
     if messages:
         return dict(
