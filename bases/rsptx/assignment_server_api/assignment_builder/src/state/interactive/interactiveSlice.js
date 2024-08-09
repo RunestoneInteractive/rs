@@ -5,6 +5,7 @@
  */
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { addExercise, selectPoints, setId, setPoints } from "../assignment/assignSlice.js";
+import { createMCQTemplate } from "../../componentFuncs";
 
 
 import toast from "react-hot-toast";
@@ -25,7 +26,15 @@ export const saveAssignmentQuestion = createAsyncThunk(
     // incoming is an object that combines the activecode data and the assignment data and the preview_src
     async (incoming, { getState, dispatch }) => {
         let store = getState();
-        let preview_src = store.interactive.preview_src;
+        let preview_src;
+        // temporary fix for multiple choice
+        if (store.interactive.question_type === "mchoice") {
+        preview_src = createMCQTemplate(store.interactive.uniqueId,
+            store.multiplechoice.statement,
+            store.multiplechoice.optionList);
+        } else {
+            preview_src = store.interactive.preview_src;
+        }
         let assignData = incoming.assignData;
         let assignmentId = assignData.id;
         let editonly = incoming.editonly;

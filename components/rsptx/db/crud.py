@@ -160,6 +160,7 @@ async def count_useinfo_for(
         rslogger.debug(f"res = {res}")
         return res.all()
 
+
 async def get_peer_votes(div_id: str, course_name: str, voting_stage: int):
     """
     Provide the answers for a peer instruction multiple choice question.
@@ -168,10 +169,10 @@ async def get_peer_votes(div_id: str, course_name: str, voting_stage: int):
     query = (
         select(Useinfo.act)
         .where(
-            (Useinfo.event == "mChoice") &
-            (Useinfo.course_id == course_name) &
-            (Useinfo.div_id == div_id) &
-            Useinfo.act.like(f"%vote{voting_stage}")
+            (Useinfo.event == "mChoice")
+            & (Useinfo.course_id == course_name)
+            & (Useinfo.div_id == div_id)
+            & Useinfo.act.like(f"%vote{voting_stage}")
         )
         .order_by(Useinfo.id.desc())
     )
@@ -183,6 +184,7 @@ async def get_peer_votes(div_id: str, course_name: str, voting_stage: int):
         return {"acts": ans}
     else:
         return {"acts": []}
+
 
 async def fetch_chapter_for_subchapter(subchapter: str, base_course: str) -> str:
     """
@@ -1620,6 +1622,7 @@ async def fetch_questions_by_search_criteria(
                 Question.question.regexp_match(criteria.source_regex, flags="i"),
                 Question.htmlsrc.regexp_match(criteria.source_regex, flags="i"),
                 Question.topic.regexp_match(criteria.source_regex, flags="i"),
+                Question.name.regexp_match(criteria.source_regex, flags="i"),
             )
         )
     if criteria.question_type:

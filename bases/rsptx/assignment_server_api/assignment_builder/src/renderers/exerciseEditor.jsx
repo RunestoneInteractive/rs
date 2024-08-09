@@ -129,7 +129,7 @@ export function ExerciseEditor(props) {
             </div>
             <Button
                 value="save"
-                onClick={() =>
+                onClick={() => //Should update preview_src first
                     dispatch(
                         saveAssignmentQuestion({
                             assignData: assignData,
