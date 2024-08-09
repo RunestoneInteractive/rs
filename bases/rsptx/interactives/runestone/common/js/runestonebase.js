@@ -18,6 +18,8 @@
 import { pageProgressTracker } from "./bookfuncs.js";
 //import "./../styles/runestone-custom-sphinx-bootstrap.css";
 
+var NO_DECORATE = ["parsonsMove", "showeval", "video", "poll", "view_toggle", 
+    "dashboard", "selectquestion", "codelens", "peer", "shortanswer"]
 export default class RunestoneBase {
     constructor(opts) {
         this.component_ready_promise = new Promise(
@@ -135,7 +137,10 @@ export default class RunestoneBase {
         ) {
             pageProgressTracker.updateProgress(eventInfo.div_id);
         }
-        this.decorateStatus();
+        // if the event is in the NO_DECORATE list then don't decorate the status
+        if (NO_DECORATE.indexOf(eventInfo.event) === -1) {
+            this.decorateStatus();
+        }
         return post_return;
     }
 
