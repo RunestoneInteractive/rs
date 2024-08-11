@@ -271,6 +271,15 @@ h3 {
 
 <script type="text/javascript">
 	$('#startdate').datepicker();
+	let checkbox = document.getElementById("invoice-me")
+	checkbox.addEventListener("change", function() {
+		if (this.checked) {
+			let res = confirm("Checking this box means you want us to email you an Invoice.  If you want to keep using Runestone for free just click cancel")
+			if (res === false) {
+				checkbox.checked = false;
+			}
+		}
+	});
 </script>
 
 {{pass}}
