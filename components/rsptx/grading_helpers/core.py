@@ -110,9 +110,11 @@ async def grade_submission(
             # This is a peer instruction question.
             # check to make sure that this is vote2 before we do anything.
             # PI questions are scored similar to interact.
+            rslogger.debug(f"all_answer -- submission.act = {submission.act}")
             if "vote2" in submission.act:
                 scoreSpec.username = user.username
                 scoreSpec.score = await score_one_answer(scoreSpec, submission)
+                rslogger.debug(f"scoreSpec.score = {scoreSpec.score}")
                 answer = await fetch_question_grade(
                     user.username, user.course_name, submission.div_id
                 )
@@ -152,6 +154,9 @@ async def score_one_answer(
     :return: The score for the answer.
     :rtype: Union[int, float]
     """
+    rslogger.debug(
+        f"scoreSpec.how_to_score = {scoreSpec.how_to_score} {scoreSpec.max_score}"
+    )
     if scoreSpec.how_to_score == "pct_correct":
         if submission.correct:
             return scoreSpec.max_score
@@ -177,6 +182,7 @@ async def score_one_answer(
         else:
             return 0.5 * scoreSpec.max_score
     else:
+        rslogger.debug(f"Unknown how_to_score {scoreSpec.how_to_score}")
         return 0
 
 
