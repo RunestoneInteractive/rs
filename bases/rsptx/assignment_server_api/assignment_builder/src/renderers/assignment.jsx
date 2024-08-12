@@ -57,6 +57,10 @@ import {
 
 import { EditorContainer, EditorChooser } from "./editorModeChooser.jsx";
 
+//
+// subscribe to the store and update the assignment when it changes
+// todo: explore moving this into state.js ??
+//
 function select(state) {
     return state.assignment
 }
