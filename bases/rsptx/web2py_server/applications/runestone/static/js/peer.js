@@ -159,6 +159,10 @@ function connect(event) {
                         });
                     }
                     break;
+                case "enableFaceChat":
+                    console.log("got enableFaceChat message");
+                    let facechat = document.getElementById("group_select_panel");
+                    facechat.style.display = "block";
                 default:
                     console.log("unknown control message");
             }
@@ -221,6 +225,39 @@ async function logPeerEvent(eventInfo) {
         console.log(`Error: ${e}`);
     }
 }
+
+async function sendLtiScores(event) {
+    // parse the assignment_id from the location.search
+    let urlParams = new URLSearchParams(window.location.search);
+    let assignmentId = urlParams.get('assignment_id');
+
+    let data = {
+        div_id: currentQuestion,
+        course_name: eBookConfig.course,
+        assignment_id: assignmentId,
+    };
+    let jsheaders = new Headers({
+        "Content-type": "application/json; charset=utf-8",
+        Accept: "application/json",
+    });
+    let request = new Request("/runestone/peer/send_lti_scores", {
+        method: "POST",
+        headers: jsheaders,
+        body: JSON.stringify(data),
+    });
+    let resp = await fetch(request);
+    let spec = await resp.json();
+    if (spec !== "success") {
+        alert(`Scores not sent! ${spec}`);
+    } else {
+        // success
+        let butt = document.querySelector("#sendScores");
+        butt.classList.replace("btn-info", "btn-secondary");
+        butt.disabled = true;
+    }
+}
+
+
 // Send a message to the websocket server
 // the server can then broadcast the message or send it to a
 // specific user
@@ -262,10 +299,15 @@ function warnAndStopVote(event) {
         butt.classList.replace("btn-info", "btn-secondary");
         document.querySelector("#makep").disabled = false;
         document.querySelector("#vote2").disabled = false;
+        document.querySelector("#facechat").disabled = false;
     } else {
         let butt = document.querySelector("#vote3");
         butt.classList.replace("btn-info", "btn-secondary");
         document.querySelector("#nextq").disabled = false;
+        let sendScore = document.querySelector("#sendScores");
+        if (sendScore) {
+            sendScore.disabled = false;
+        }
     }
     event.srcElement.disabled = true;
 }
@@ -301,6 +343,18 @@ async function makePartners() {
     }
 }
 
+async function enableFaceChat(event) {
+    let mess = {
+        type: "control",
+        sender: `${user}`,
+        message: "enableFaceChat",
+        broadcast: true,
+        course_name: eBookConfig.course,
+    };
+    publishMessage(mess);
+
+}
+
 function startVote2(event) {
     let butt = document.querySelector("#vote2");
     butt.classList.replace("btn-info", "btn-secondary");
@@ -321,6 +375,9 @@ function startVote2(event) {
     let textChatButton = document.querySelector("#makep");
     textChatButton.classList.replace("btn-info", "btn-secondary");
     textChatButton.disabled = true;
+    let faceChatButton = document.querySelector("#facechat");
+    faceChatButton.classList.replace("btn-info", "btn-secondary");
+    faceChatButton.disabled = true;
 
     // Enabling the "Stop Vote 2" button once Vote 2 begins
     document.querySelector("#vote3").disabled = false;

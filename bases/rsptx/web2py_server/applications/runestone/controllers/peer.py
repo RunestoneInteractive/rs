@@ -21,6 +21,7 @@ import altair as alt
 import pandas as pd
 import redis
 from dateutil.parser import parse
+from rs_grading import _try_to_send_lti_grade
 
 logger = logging.getLogger(settings.logger)
 logger.setLevel(settings.log_level)
@@ -84,7 +85,8 @@ def dashboard():
         act="start_question",
         timestamp=datetime.datetime.utcnow(),
     )
-
+    is_lti = db(db.course_lti_map.course_id == auth.user.course_id).count() > 0
+    print("is_lti", is_lti)
     r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
     r.hset(f"{auth.user.course_name}_state", "mess_count", "0")
     mess = {
@@ -106,6 +108,7 @@ def dashboard():
         assignment_name=assignment.name,
         is_instructor=True,
         is_last=done,
+        lti=is_lti,
         **course_attrs,
     )
 
@@ -645,3 +648,16 @@ def _get_user_messages(user, div_id, course_name):
     mess += "</ul>"
 
     return mess, participants
+
+@auth.requires(
+    lambda: verifyInstructorStatus(auth.user.course_id, auth.user),
+    requires_login=True,
+)
+def send_lti_scores():
+    response.headers["content-type"] = "application/json"
+    assignment_id = request.vars.assignment_id
+    grades = db(db.grades.assignment == assignment_id).select()
+    for sid in grades:
+        _try_to_send_lti_grade(sid, assignment_id)
+
+    return json.dumps("success")
