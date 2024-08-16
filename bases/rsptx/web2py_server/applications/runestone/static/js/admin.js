@@ -2584,10 +2584,28 @@ function generateLTIKeys() {
         if (data.consumer) {
             $("#ckey_value").html(data.consumer);
             $("#secret_value").html(data.secret);
+            $("#create_lti").prop("disabled", true);
+            $("#delete_lti").prop("disabled", false);
         } else {
             alert("Hmmm, failed to create keys");
         }
     });
+}
+
+function deleteLTIKeys() {
+    let res = confirm("Really delete the LTI keys?");
+    if (res) {
+        $.getJSON("/assignment/instructor/cancel_lti", {}, function (data) {
+            if (data.detail.status == "success") {
+                $("#ckey_value").html("");
+                $("#secret_value").html("");
+                $("#create_lti").prop("disabled", false);
+                $("#delete_lti").prop("disabled", true);
+            } else {
+                alert("Failed to delete keys");
+            }
+        });
+    }
 }
 
 function copyElementToClipboard(elid) {
