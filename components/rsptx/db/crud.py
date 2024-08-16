@@ -2604,3 +2604,29 @@ async def uses_lti(course_id: int) -> bool:
             return True
 
     return False
+
+async def create_lti_course(course_id: int, lti_id: str) -> CourseLtiMap:
+    """
+    Create a new course in the LTI map.
+
+    :param course_id: int, the id of the course
+    :param lti_id: str, the LTI id of the course
+    :return: CourseLtiMap, the CourseLtiMap object
+    """
+    new_entry = CourseLtiMap(course_id=course_id, lti_id=lti_id)
+    async with async_session.begin() as session:
+        session.add(new_entry)
+    
+    return new_entry
+
+async def delete_lti_course(course_id: int) -> bool:
+    """
+    Delete a course from the LTI map.
+
+    :param course_id: int, the id of the course
+    """
+    query = delete(CourseLtiMap).where(CourseLtiMap.course_id == course_id)
+    async with async_session.begin() as session:
+        await session.execute(query)
+    
+    return True

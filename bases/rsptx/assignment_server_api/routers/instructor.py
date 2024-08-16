@@ -13,6 +13,7 @@ from typing import List, Optional
 # -------------------------
 
 from rsptx.db.crud import (
+    delete_lti_course,
     fetch_assignment_questions,
     fetch_assignments,
     fetch_questions_by_search_criteria,
@@ -61,15 +62,16 @@ router = APIRouter(
     tags=["instructor"],
 )
 
+
 @router.get("/reviewPeerAssignment")
 async def review_peer_assignment(
     request: Request,
     assignment_id: Optional[int] = None,
     user=Depends(auth_manager),
 ):
-    '''
+    """
     This is the endpoint for reviewing a peer assignment. It is used by instructors to review peer assignments.
-    '''
+    """
     # Fetch the course
     course = await fetch_course(user.course_name)
 
@@ -80,7 +82,10 @@ async def review_peer_assignment(
     # Check if the user is an instructor
     user_is_instructor = await is_instructor(request, user=user)
     if not user_is_instructor:
-        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "not an instructor"})
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"detail": "not an instructor"},
+        )
 
     # Fetch course attributes
     course_attrs = await fetch_all_course_attributes(course.id)
@@ -104,7 +109,9 @@ async def review_peer_assignment(
         or assignment.visible == False
     ):
         if not user_is_instructor:
-            rslogger.error(f"Attempt to access invisible assignment {assignment_id} by {user.username}")
+            rslogger.error(
+                f"Attempt to access invisible assignment {assignment_id} by {user.username}"
+            )
             return RedirectResponse("/runestone/peer/instructor.html")
 
     # Fetch questions within the assignment
@@ -146,7 +153,10 @@ async def review_peer_assignment(
         # Call the internal API to get the aggregate peer votes
         vote_1_results = await get_peer_votes(q.Question.name, course.course_name, 1)
         vote_2_results = await get_peer_votes(q.Question.name, course.course_name, 2)
-        total_votes = {"vote_1": aggregate_peer_votes(vote_1_results["acts"]), "vote_2": aggregate_peer_votes(vote_2_results["acts"])}
+        total_votes = {
+            "vote_1": aggregate_peer_votes(vote_1_results["acts"]),
+            "vote_2": aggregate_peer_votes(vote_2_results["acts"]),
+        }
 
         question_info = {
             "id": q.Question.id,
@@ -183,7 +193,7 @@ async def review_peer_assignment(
         "webwork_js_version": course_attrs.get("webwork_js_version", "2.17"),
         "latex_preamble": course_attrs.get("latex_macros", ""),
         "wp_imports": get_webpack_static_imports(course),
-        "settings": settings
+        "settings": settings,
     }
 
     templates = Jinja2Templates(directory=template_folder)
@@ -192,6 +202,7 @@ async def review_peer_assignment(
     )
 
     return response
+
 
 def aggregate_peer_votes(votes: List[str]):
     """
@@ -210,6 +221,7 @@ def aggregate_peer_votes(votes: List[str]):
             counts[choice] = 1
 
     return {"counts": counts}
+
 
 @router.get("/gradebook")
 async def get_assignment_gb(
@@ -753,3 +765,20 @@ async def get_grader(
     request: Request, user=Depends(auth_manager), response_class=HTMLResponse
 ):
     return await get_builder(request, user, response_class)
+
+
+@router.get("/cancel_lti")
+async def cancel_lti(request: Request, user=Depends(auth_manager)):
+    """
+    Cancel the LTI session.
+    """
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return RedirectResponse(url="/")
+
+    await delete_lti_course(course.id)
+
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
