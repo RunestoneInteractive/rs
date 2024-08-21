@@ -86,6 +86,7 @@ export class ActiveCode extends RunestoneBase {
         this.outerDiv = null;
         this.partner = "";
         this.runCount = 0;
+        this.firstAfterRun = true;
         this.logResults = true;
         if (!eBookConfig.allow_pairs || $(orig).data("nopair")) {
             this.enablePartner = false;
@@ -243,6 +244,10 @@ export class ActiveCode extends RunestoneBase {
                         act: "edit",
                         div_id: this.divid,
                     });
+                }
+                if (this.firstAfterRun) {
+                    this.firstAfterRun = false;
+                    this.startEditTimeStamp = new Date()
                 }
                 editor.acEditEvent = true;
             }.bind(this)
@@ -800,6 +805,73 @@ export class ActiveCode extends RunestoneBase {
         $(this.loadButton).attr("title", "Login to load your code");
     }
 
+    computeChangesPerSecond() {
+        const currentCode = this.editor.getValue();
+        let lastCode;
+        if (this.historyScrubber) {
+            lastCode = this.history[this.historyScrubber.value - 1];
+        } else {
+            return 0
+        }
+
+        // Compute the edit distance between the current code and the last code
+        const editDistance = this.computeEditDistance();
+
+        // Compute the time difference between the current code and the last code
+        const currentTime = new Date().getTime();
+        //const lastTime = this.timestamps[this.historyScrubber.value];
+        const lastTime = this.startEditTimeStamp;
+        const timeDifference = (currentTime - lastTime) / 1000;
+        if (timeDifference > 60*60*10) {
+            return -1;
+        }
+
+        // Compute the changes per second
+        return editDistance / timeDifference;
+    }
+
+    computeEditDistance() {
+        const currentCode = this.editor.getValue();
+        let lastCode;
+        if (this.historyScrubber) {
+            lastCode = this.history[this.historyScrubber.value];
+        } else {
+            return 0
+        }
+
+        // Initialize a 2D array to store the edit distances
+        const dp = [];
+        for (let i = 0; i <= currentCode.length; i++) {
+            dp[i] = [];
+            for (let j = 0; j <= lastCode.length; j++) {
+                if (i === 0) {
+                    dp[i][j] = j;
+                } else if (j === 0) {
+                    dp[i][j] = i;
+                } else {
+                    dp[i][j] = 0;
+                }
+            }
+        }
+
+        // Compute the edit distances using dynamic programming
+        for (let i = 1; i <= currentCode.length; i++) {
+            for (let j = 1; j <= lastCode.length; j++) {
+                if (currentCode[i - 1] === lastCode[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1];
+                } else {
+                    dp[i][j] = Math.min(
+                        dp[i - 1][j] + 1, // deletion
+                        dp[i][j - 1] + 1, // insertion
+                        dp[i - 1][j - 1] + 1 // substitution
+                    );
+                }
+            }
+        }
+
+        // Return the edit distance between the current code and the last code
+        return dp[currentCode.length][lastCode.length];
+    }
     downloadFile(lang) {
         var fnb = this.divid;
         var d = new Date();
@@ -1267,6 +1339,10 @@ Yet another is that there is an internal error.  The internal error message is: 
         if (typeof sid !== "undefined") {
             data.sid = sid;
         }
+        let editDist = this.computeEditDistance();
+        let changesPerSecond = this.computeChangesPerSecond();
+        data.editDist = editDist;
+        data.changesPerSecond = changesPerSecond;
         await this.logRunEvent(data);
         // If unit tests were run there will be a unit_results
         if (this.unit_results) {
@@ -1485,6 +1561,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             this.addErrorMessage(err);
         } finally {
             $(this.runButton).removeAttr("disabled");
+            this.firstAfterRun = true;
             if (typeof window.allVisualizers != "undefined") {
                 $.each(window.allVisualizers, function (i, e) {
                     e.redrawConnectors();
