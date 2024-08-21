@@ -2,17 +2,18 @@ import datetime
 import pathlib
 import pandas as pd
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, status, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import create_engine
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Annotated
 
 # Local application imports
 # -------------------------
 
 from rsptx.db.crud import (
+    create_invoice_request,
     delete_lti_course,
     fetch_assignment_questions,
     fetch_assignments,
@@ -22,6 +23,7 @@ from rsptx.db.crud import (
     create_assignment_question,
     create_question,
     fetch_course,
+    fetch_users_for_course,
     create_assignment,
     fetch_questions_for_chapter_subchapter,
     remove_assignment_questions,
@@ -782,3 +784,71 @@ async def cancel_lti(request: Request, user=Depends(auth_manager)):
     await delete_lti_course(course.id)
 
     return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
+
+
+@router.get("/invoice_request")
+async def make_invoice_request(
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+):
+    """
+    Process an invoice request.
+    """
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+    num_students = await fetch_users_for_course(course.course_name)
+
+    amount = len(num_students) * 10.0
+    referer = request.headers.get("Referer")
+    context = dict(
+        email=user.email,
+        amount=amount,
+        course=course,
+        course_name=course.course_name,
+        user=user,
+        request=request,
+        is_instructor=user_is_instructor,
+        referer=referer,
+    )
+    templates = Jinja2Templates(directory=template_folder)
+    response = templates.TemplateResponse("assignment/instructor/invoice.html", context)
+
+    return response
+
+
+@router.post("/invoice")
+async def process_invoice_request(
+    request: Request,
+    email: Annotated[str, Form(...)],
+    amount: Annotated[float, Form(...)],
+    course_name: Annotated[str, Form(...)],
+    referer: Annotated[str, Form(...)],
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+
+    rslogger.debug(f"Processing invoice request: {email} {amount} {course_name}")
+
+    res = await create_invoice_request(user.username, course_name, amount, user.email)
+
+    if not res:
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail="Error creating invoice request",
+        )
+
+    if referer == "None" or "invoice_request" in referer:
+        referer = f"/ns/books/published/{course_name}/index.html"
+
+    # the referer is the page that the user was on when they clicked the invoice request
+    # the status code 302 is a redirect and will ensure that a GET is used
+    # otherwise FastAPI will use the method of the original request which is a POST
+    # in this case
+    return RedirectResponse(url=referer, status_code=status.HTTP_302_FOUND)

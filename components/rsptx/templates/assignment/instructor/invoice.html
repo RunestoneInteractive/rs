@@ -1,0 +1,43 @@
+{% extends "_base.html" %} 
+{% block title %}
+Grade Book
+{% endblock %}
+{% block css %}
+
+<link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
+
+{% endblock %} 
+{% block content %}
+<h1>Invoice Request</h1>
+<p>Runestone Academy is free for you to use.  But many people want to support our work.  If your school/college/university has funds they can use to support us that is Awesome!  If you would like to have us send you an invoice fill out the form below.  We process these requests about once a week.  The invoice email will come from <code>quickbooks@notification.intuit.com</code> Payment is handled through Intuit, so we never see any of your private banking information.</p>
+
+<p>We recommend an amount of $10.00 per student, but if that does not fit with your budget please fill in whatever works for you.</p>
+
+<form method="post" action="/assignment/instructor/invoice" class="col-md-6">
+    <div class="form-group">
+    <label for="email">Email Address</label>
+    <input class="form-control" type="text" id="email" name="email" value="{{email}}" required>
+    <label for="course">Course Name</label>
+    <input class="form-control" type="text" id="course" name="course_name" value="{{course_name}}" required>
+    <label for="amount">Amount</label>
+    <input class="form-control" type="text" id="amount" name="amount" value="{{amount}}" required>
+    </div>
+    <div class="form-group">
+    <input type="submit" class="btn btn-primary" value="Submit" >
+    <input type="hidden" name="referer" value="{{referer}}">
+    </div>
+</form>
+
+
+<p>Thank You!</p>
+
+<p>After you click <strong>Submit</strong> you will be redirected back to the page you came from.</p>
+
+<p><strong>Large Classes</strong> If you have a class of over 500 students we respectfully ask that you send us <i>some support.</i>  We keep our costs down by using as few servers as we can, but large classes really tax those resources.</p>
+
+
+{% endblock %} 
+
+{% block js %}
+<script src="/staticAssets/assignment/student.js"></script>
+{% endblock %}

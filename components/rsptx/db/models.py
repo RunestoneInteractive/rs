@@ -1003,6 +1003,7 @@ class InvoiceRequest(Base, IdMixin):
     sid = Column(String(512))
     course_name = Column(String(512))
     email = Column(String(512))
+    amount = Column(Float)
     processed = Column(Web2PyBoolean)
 
 

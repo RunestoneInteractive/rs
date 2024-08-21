@@ -64,6 +64,7 @@ from rsptx.db.models import (
     EditorBasecourse,
     Grade,
     GradeValidator,
+    InvoiceRequest,
     Library,
     LibraryValidator,
     Question,
@@ -2605,6 +2606,7 @@ async def uses_lti(course_id: int) -> bool:
 
     return False
 
+
 async def create_lti_course(course_id: int, lti_id: str) -> CourseLtiMap:
     """
     Create a new course in the LTI map.
@@ -2616,8 +2618,9 @@ async def create_lti_course(course_id: int, lti_id: str) -> CourseLtiMap:
     new_entry = CourseLtiMap(course_id=course_id, lti_id=lti_id)
     async with async_session.begin() as session:
         session.add(new_entry)
-    
+
     return new_entry
+
 
 async def delete_lti_course(course_id: int) -> bool:
     """
@@ -2628,5 +2631,31 @@ async def delete_lti_course(course_id: int) -> bool:
     query = delete(CourseLtiMap).where(CourseLtiMap.course_id == course_id)
     async with async_session.begin() as session:
         await session.execute(query)
-    
+
     return True
+
+
+async def create_invoice_request(
+    user_id: str, course_name: str, amount: float, email: str
+) -> InvoiceRequest:
+    """
+    Create a new invoice request.
+
+    :param user_id: str, the id of the user
+    :param course_name: str, the name of the course
+    :param amount: float, the amount of the invoice
+    :param email: str, the email address of the user
+    :return: InvoiceRequest, the InvoiceRequest object
+    """
+    new_entry = InvoiceRequest(
+        sid=user_id,
+        course_name=course_name,
+        amount=amount,
+        email=email,
+        timestamp=datetime.datetime.utcnow(),
+        processed=False,
+    )
+    async with async_session.begin() as session:
+        session.add(new_entry)
+
+    return new_entry

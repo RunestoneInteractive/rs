@@ -80,13 +80,6 @@
     margin-bottom: 20px;
 }
 
-input[type="text"] {
-    width: 100%;
-    border: none;
-    background-color: transparent;
-    border-radius: 0px 20px 20px 0px;
-    border-color: rgb(14, 11, 11);
-}
 
 input {
     outline-style: none;
