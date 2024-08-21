@@ -810,6 +810,7 @@ async def make_invoice_request(
     context = dict(
         email=user.email,
         amount=amount,
+        num_students=len(num_students),
         course=course,
         course_name=course.course_name,
         user=user,
@@ -827,9 +828,9 @@ async def make_invoice_request(
 async def process_invoice_request(
     request: Request,
     email: Annotated[str, Form(...)],
-    amount: Annotated[float, Form(...)],
     course_name: Annotated[str, Form(...)],
     referer: Annotated[str, Form(...)],
+    amount: Annotated[float, Form(...)] = None,
     user=Depends(auth_manager),
     response_class=JSONResponse,
 ):
