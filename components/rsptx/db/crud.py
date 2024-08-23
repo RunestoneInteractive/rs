@@ -67,6 +67,7 @@ from rsptx.db.models import (
     InvoiceRequest,
     Library,
     LibraryValidator,
+    LtiKey,
     Question,
     QuestionGrade,
     QuestionGradeValidator,
@@ -2628,9 +2629,19 @@ async def delete_lti_course(course_id: int) -> bool:
 
     :param course_id: int, the id of the course
     """
-    query = delete(CourseLtiMap).where(CourseLtiMap.course_id == course_id)
+    query = select(CourseLtiMap).where(CourseLtiMap.course_id == course_id)
+    async with async_session() as session:
+        res = await session.execute(query)
+    if res:
+        lti_key = res.scalars().first().lti_id
+    else:
+        return False
+
+    d_query1 = delete(CourseLtiMap).where(CourseLtiMap.course_id == course_id)
+    d_query2 = delete(LtiKey).where(LtiKey.id == lti_key)
     async with async_session.begin() as session:
-        await session.execute(query)
+        await session.execute(d_query1)
+        await session.execute(d_query2)
 
     return True
 
