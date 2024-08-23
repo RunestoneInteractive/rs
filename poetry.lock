@@ -3455,13 +3455,13 @@ files = [
 
 [[package]]
 name = "pretext"
-version = "2.6.0"
+version = "2.6.1"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0.0,>=3.8.5"
 files = [
-    {file = "pretext-2.6.0-py3-none-any.whl", hash = "sha256:56b1314878dcc9f6452fac3a16669dd7582775c7644729efdfd25eb240265e7f"},
-    {file = "pretext-2.6.0.tar.gz", hash = "sha256:c25c58d36ac67946d993d72ba44585885ffc35a102d5cbde97cefbb3a035c02a"},
+    {file = "pretext-2.6.1-py3-none-any.whl", hash = "sha256:01398015a94f8feb76774b941e4f50ede2a22057ad82c84f5308d76f18b76dcc"},
+    {file = "pretext-2.6.1.tar.gz", hash = "sha256:b9cb9107729b48b493af600ee3b51769986db78b9bd7926908b2d8efe12436fd"},
 ]
 
 [package.dependencies]

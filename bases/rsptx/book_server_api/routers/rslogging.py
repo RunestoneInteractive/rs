@@ -11,7 +11,7 @@
 # Standard library
 # ----------------
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 from typing import Optional
 
@@ -240,8 +240,12 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
     # everything after this assumes that the user is logged in
 
     useinfo_dict = data.dict()
+    edit_distance = useinfo_dict.pop("editDist", None)
+    cps = useinfo_dict.pop("changesPerSecond", None)
     useinfo_dict["course_id"] = useinfo_dict.pop("course")
-    useinfo_dict["timestamp"] = datetime.utcnow()
+    utcnow = datetime.now(timezone.utc)
+    utcnow = utcnow.replace(tzinfo=None)
+    useinfo_dict["timestamp"] = utcnow
     useinfo_dict["emessage"] = data.errinfo
     if data.errinfo != "success":
         useinfo_dict["event"] = "ac_error"
@@ -258,6 +262,8 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
     useinfo_dict["acid"] = useinfo_dict.pop("div_id")
     if data.to_save:
         useinfo_dict["course_id"] = request.state.user.course_id
+        useinfo_dict["cps"] = cps
+        useinfo_dict["edit_distance"] = edit_distance
         entry = CodeValidator(**useinfo_dict)
         await create_code_entry(entry)
 

@@ -25,6 +25,7 @@ from io import StringIO
 import click
 import lxml.etree as ET
 from lxml import ElementInclude
+import pretext
 from pretext.project import Project
 
 # import xml.etree.ElementTree as ET
@@ -157,8 +158,10 @@ def _build_ptx_book(config, gen, manifest, course, click=click):
         process_manifest(course, mpath)
         # Fetch and copy the runestone components release as advertised by the manifest
         # - Use wget to get all the js files and put them in _static
-        click.echo("populating with the latest runestone files")
-        populate_static(config, mpath, course)
+        # Beginning with 2.6.1 PreTeXt populates the _static folder with the latest
+        if pretext.VERSION < "2.6.1":
+            click.echo("populating with the latest runestone files")
+            populate_static(config, mpath, course)
         # update the library page
         click.echo("updating library...")
         main_page = find_real_url(course)
@@ -766,10 +769,12 @@ def manifest_data_to_db(course_name, manifest_path):
     sess.execute(ins)
     sess.commit()
 
+
 class StringIOHandler(logging.Handler):
     """
     A custom logging handler that captures log entries in a StringIO buffer.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.stream = StringIO()

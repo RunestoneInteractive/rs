@@ -173,6 +173,8 @@ class LogRunIncoming(BaseModelNone):
     suffix: Optional[str] = None
     partner: Optional[str] = None
     sid: Optional[str] = None
+    editDist: Optional[int] = None
+    changesPerSecond: Optional[float] = None
 
 
 # Schemas for Completion Data

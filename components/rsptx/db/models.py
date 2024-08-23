@@ -339,6 +339,8 @@ class Code(Base, IdMixin):
     language = Column(Text, nullable=False)
     emessage = Column(Text, nullable=True)
     comment = Column(Text)
+    edit_distance = Column(Integer)
+    cps = Column(Float())
 
 
 # Used for datafiles and storing questions and their suffix separately.
@@ -522,7 +524,8 @@ class Question(Base, IdMixin):
     pct_on_first = Column(Float(53))
     mean_clicks_to_correct = Column(Float(53))
     question_json = Column(JSON)  # contains the JSON representation of the question
-
+    owner = Column(String(512)) # username of the owner of the question (Author could be any name)
+    tags = Column(String(512))  # comma separated list of tags
 
 QuestionValidator = sqlalchemy_to_pydantic(Question)
 
@@ -664,7 +667,9 @@ class Chapter(Base, IdMixin):
     chapter_label = Column(String(512), nullable=False)
     chapter_num = Column(Integer, nullable=False)
 
+
 ChapterValidator = sqlalchemy_to_pydantic(Chapter)
+
 
 class SubChapter(Base, IdMixin):
     __tablename__ = "sub_chapters"
@@ -677,7 +682,9 @@ class SubChapter(Base, IdMixin):
     skipreading = Column(Web2PyBoolean, nullable=False)
     sub_chapter_num = Column(Integer, nullable=False)
 
+
 SubChapterValidator = sqlalchemy_to_pydantic(SubChapter)
+
 
 # Tracking User Progress
 # ----------------------
@@ -996,6 +1003,7 @@ class InvoiceRequest(Base, IdMixin):
     sid = Column(String(512))
     course_name = Column(String(512))
     email = Column(String(512))
+    amount = Column(Float)
     processed = Column(Web2PyBoolean)
 
 
