@@ -61,6 +61,15 @@
             </button>
             <button
                 type="button"
+                id="facechat"
+                class="btn btn-info"
+                onclick="enableFaceChat(event)"
+                disabled
+            >
+            Enable in-person Chat
+            </button>
+            <button
+                type="button"
                 id="vote2"
                 class="btn btn-info"
                 onclick="startVote2(event)"
@@ -96,6 +105,17 @@
             >
                 Start Over
             </button>
+            {{ if lti: }}
+            <button
+                type="button"
+                id="sendScores"
+                class="btn btn-info"
+                onclick="sendLtiScores(event)"
+                disabled
+                >
+            Send LTI Scores
+            </button>
+            {{ pass }}
         </form>
     </div>
 </div>

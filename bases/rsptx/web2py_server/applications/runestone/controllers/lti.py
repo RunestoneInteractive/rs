@@ -392,7 +392,7 @@ def _launch_assignment(
                     vars={"assignment_id": assignment_id},
                 )
             )
-
+    # todo: redirect to the new assignment page directly /assignment/student/doAssignment
     redirect(URL("assignments", "doAssignment", vars={"assignment_id": assignment_id}))
 
 
