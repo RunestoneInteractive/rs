@@ -29,9 +29,9 @@ export const saveAssignmentQuestion = createAsyncThunk(
         let preview_src;
         // temporary fix for multiple choice
         if (store.interactive.question_type === "mchoice") {
-        preview_src = createMCQTemplate(store.interactive.uniqueId,
-            store.multiplechoice.statement,
-            store.multiplechoice.optionList);
+            preview_src = createMCQTemplate(store.interactive.uniqueId,
+                store.multiplechoice.statement,
+                store.multiplechoice.optionList);
         } else {
             preview_src = store.interactive.preview_src;
         }
@@ -60,7 +60,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
             author: store.interactive.author,
             difficulty: store.interactive.difficulty,
             topic: store.interactive.topic,
-            //tags: store.interactive.tags,  todo: add to model
+            tags: store.interactive.tags, 
         };
         if (editonly) {
             body.id = questionId;
@@ -174,10 +174,11 @@ const interactiveSlice = createSlice({
             state.author = action.payload;
         },
         setTags: (state, action) => {
-            let tags = action.payload.split(",");
-            tags = tags.map((tag) => tag.trim());
-            tags = tags.map((tag) => tag.toLowerCase());
-            state.tags = state.tags.concat(tags);
+            // let tags = action.payload.split(",");
+            // tags = tags.map((tag) => tag.trim());
+            // tags = tags.map((tag) => tag.toLowerCase());
+            // state.tags = state.tags.concat(tags);
+            state.tags = action.payload;
         },
         setQuestionType: (state, action) => {
             state.question_type = action.payload;

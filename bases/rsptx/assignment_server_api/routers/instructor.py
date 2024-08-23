@@ -414,6 +414,7 @@ async def new_question(
         practice=False,
         from_source=False,
         review_flag=False,
+        owner=user.username,
     )
     try:
         q = await create_question(new_question)
@@ -573,6 +574,8 @@ async def get_assignment_questions(
         aq["htmlsrc"] = q["htmlsrc"]
         aq["question_type"] = q["question_type"]
         aq["question_json"] = q["question_json"]
+        aq["owner"] = q["owner"]
+        aq["tags"] = q["tags"]
         qlist.append(aq)
 
     rslogger.debug(f"qlist: {qlist}")
