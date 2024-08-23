@@ -398,6 +398,7 @@ export default class ClickableArea extends RunestoneBase {
         }
         this.percent =
             (this.correctNum - this.incorrectNum) / this.correctArray.length;
+        this.percent = Math.max(0, this.percent);
         this.setLocalStorage({ correct: this.correct ? "T" : "F" });
     }
 
