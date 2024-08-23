@@ -982,8 +982,11 @@ def addinstructor():
     instructor = request.args(0)
     res = db(db.auth_user.id == instructor).select().first()
     if res:
-        db.course_instructor.insert(course=auth.user.course_id, instructor=instructor)
-        retval = "Success"
+        try:
+            db.course_instructor.insert(course=auth.user.course_id, instructor=instructor)
+            retval = "Success"
+        except:
+            retval = "Error:  Adding a duplicate instructor"
     else:
         retval = "Cannot add non-existent user as instructor"
         logger.error("Trying to add non-user {} as instructor".format(instructor))
