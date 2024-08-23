@@ -983,7 +983,9 @@ def addinstructor():
     res = db(db.auth_user.id == instructor).select().first()
     if res:
         try:
-            db.course_instructor.insert(course=auth.user.course_id, instructor=instructor)
+            db.course_instructor.insert(
+                course=auth.user.course_id, instructor=instructor
+            )
             retval = "Success"
         except:
             retval = "Error:  Adding a duplicate instructor"
@@ -2059,7 +2061,7 @@ def _add_q_meta_info(qrow):
         <span>{}...</span>""".format(
         book, qt, ag, private, name, qrow.questions.description
     )
-    logger.debug(f"res = {res}")
+
     return res
 
 
