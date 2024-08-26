@@ -169,7 +169,9 @@ async def score_one_answer(
             return scoreSpec.max_score
         else:
             return 0
-    elif scoreSpec.how_to_score == "interact":
+    elif (
+        scoreSpec.how_to_score == "interact" or scoreSpec.how_to_score == "interaction"
+    ):
         return scoreSpec.max_score
     elif scoreSpec.how_to_score == "peer":
         return scoreSpec.max_score
