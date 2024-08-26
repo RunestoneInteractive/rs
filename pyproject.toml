@@ -98,6 +98,10 @@ pydantic-settings = "^2.0.3"
 jupyterlite-sphinx = "^0.9.3"
 alembic = "^1.13.1"
 ipython = "^8.23.0"
+jupyter-sphinx = "<0.5"
+jupyterlab = "^4.2.4"
+scikit-learn = "^1.5.1"
+ipyleaflet = "^0.19.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 23.0"
