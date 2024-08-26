@@ -77,8 +77,8 @@ while 1:
                 timestamp=datetime.datetime.utcnow(),
                 err_message=ticket_data["output"][:512],
                 hostname="web2py",
-                path=path,
-                query_string=query_string,
+                path=path[:1024],
+                query_string=query_string[:512],
                 hash=hashlib.md5(traceback_str.encode("utf8")).hexdigest(),
             )
             sess.execute(newtb)
