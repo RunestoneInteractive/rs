@@ -77,7 +77,11 @@ def dashboard():
     current_question, done = _get_current_question(assignment_id, next)
     assignment = db(db.assignments.id == assignment_id).select().first()
     course = db(db.courses.course_name == auth.user.course_name).select().first()
+
     course_attrs = getCourseAttributesDict(course.id, course.base_course)
+    if "enable_ab" not in course_attrs:
+        course_attrs["enable_ab"] = False
+
     if "latex_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
     db.useinfo.insert(
