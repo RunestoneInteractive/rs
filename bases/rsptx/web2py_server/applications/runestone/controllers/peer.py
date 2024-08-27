@@ -393,6 +393,7 @@ def find_good_partner(group, peeps, answer_dict):
 )
 def make_pairs():
     response.headers["content-type"] = "application/json"
+    is_ab = request.vars.get("is_ab", False)
     div_id = request.vars.div_id
     df = _get_lastn_answers(1, div_id, auth.user.course_name, request.vars.start_time)
     group_size = int(request.vars.get("group_size", 2))
@@ -415,6 +416,25 @@ def make_pairs():
     # Create a list of groups
     group_list = []
     done = len(peeps) == 0
+    if is_ab:
+        in_person_groups = []
+        in_person_groups = _get_local_groups(auth.user.course_name)
+        peeps_in_person = []
+        # Get the latest in person groups for each student
+        # if this is for AB testing then iterate over peeps and decide if they are in a group or are
+        # a chatting in person.  If a person is not in a group then the rest of their group should be
+        # removed from peeps
+        peep_queue = peeps[:]
+        while peep_queue:
+            p = peep_queue.pop()
+            if random.random() < 0.5:
+                peeps_in_person.append(p)
+                peeps.remove(p)
+                other_peeps = find_set_containing_string(in_person_groups, p)
+                for op in other_peeps:
+                    peeps.remove(op)
+                    peeps_in_person.append(op)
+        # Now peeps contains only those who need to be paired up for chat
     while not done:
         # Start a new group with one student
         group = [peeps.pop()]
@@ -451,9 +471,50 @@ def make_pairs():
         r.hset(f"partnerdb_{auth.user.course_name}", k, json.dumps(v))
     r.hset(f"{auth.user.course_name}_state", "mess_count", "0")
     logger.info(f"DONE makeing pairs for {auth.user.course_name} {gdict}")
+    # todo: if we are doing AB testing then we need not broadcast or maybe broadcast,
+    # but with a way for individual students to know if they are in person or not
+    # maybe a in_persondb paralell to the partnerdb that can be sent like the enableChat
+    # which is not broadcast!
     _broadcast_peer_answers(sid_ans)
     logger.info(f"DONE broadcasting pair information")
+    # todo: broadcast the enableFaceChat message to the in-person chatters
+    if is_ab:
+        _broadcast_faceChat(peeps_in_person)
     return json.dumps("success")
+
+
+def find_set_containing_string(list_of_sets, target_string):
+    # iterating over all sets ensures that even if someone forgets to enter their group
+    # or someone accidentally leaves someone out of the group we will still find them
+    result_set = set()
+    for s in list_of_sets:
+        if target_string in s:
+            result_set |= s
+    return result_set
+
+
+def _get_local_groups(course_name):
+    query = f"""
+SELECT u1.*
+FROM useinfo u1
+JOIN (
+    SELECT sid, MAX(timestamp) AS last_entry
+    FROM useinfo
+    WHERE course_id = {course_name} and event = 'peergroup'
+    GROUP BY sid
+) u2 ON u1.sid = u2.sid AND u1.timestamp = u2.last_entry
+WHERE u1.course_id = {course_name} and u1.event = 'peergroup';
+"""
+    in_person_groups = []
+    res = db.executesql(query)
+    for row in res:
+        peeps = row.act.split(":")[1:]
+        peeps = set(peeps.split(","))
+        if row.sid not in peeps:
+            peeps.add(row.sid)
+        in_person_groups.append(peeps)
+
+    return in_person_groups
 
 
 def _broadcast_peer_answers(answers):
@@ -481,6 +542,28 @@ def _broadcast_peer_answers(answers):
             "message": "enableChat",
             "broadcast": False,
             "answer": json.dumps(pdict),
+            "course_name": auth.user.course_name,
+        }
+        r.publish("peermessages", json.dumps(mess))
+
+
+def _broadcast_faceChat(peeps):
+    """
+    Send the message to enable the face chat to the students in the peeps list
+    """
+
+    r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
+    for p in peeps:
+        # create a message from p1 to put into the publisher queue
+        # it seems odd to not have a to field in the message...
+        # but it is not necessary as the client can figure out how it is to
+        # based on who it is from.
+        mess = {
+            "type": "control",
+            "from": p,
+            "to": p,
+            "message": "enableFaceChat",
+            "broadcast": False,
             "course_name": auth.user.course_name,
         }
         r.publish("peermessages", json.dumps(mess))
