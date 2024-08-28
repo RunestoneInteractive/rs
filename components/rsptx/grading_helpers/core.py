@@ -162,7 +162,11 @@ async def score_one_answer(
             return scoreSpec.max_score
         else:
             if submission.percent:
-                return submission.percent * scoreSpec.max_score
+                # for some reason, lost to the sands of time, the percent is an int for unittests
+                if submission.event == "unittest":
+                    return (submission.percent / 100.0) * scoreSpec.max_score
+                else:
+                    return submission.percent * scoreSpec.max_score
             return 0
     elif scoreSpec.how_to_score == "all_or_nothing":
         if submission.correct:
