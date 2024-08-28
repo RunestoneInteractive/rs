@@ -304,6 +304,10 @@ function warnAndStopVote(event) {
         butt.classList.replace("btn-info", "btn-secondary");
         document.querySelector("#makep").disabled = false;
         document.querySelector("#facechat").disabled = false;
+        let ab = document.querySelector("#makeabgroups");
+        if (ab) {
+            ab.disabled = false;
+        }
     } else {
         let butt = document.querySelector("#vote3");
         butt.classList.replace("btn-info", "btn-secondary");

@@ -432,13 +432,18 @@ def make_pairs():
         while peep_queue:
             p = peep_queue.pop()
             if random.random() < 0.5:
+                logger.debug(f"adding {p} to the in_person list")
                 peeps_in_person.append(p)
                 peeps.remove(p)
                 other_peeps = find_set_containing_string(in_person_groups, p)
                 for op in other_peeps:
                     peeps.remove(op)
                     peeps_in_person.append(op)
+                    logger.debug(f"removing {op} from the peeps list")
         # Now peeps contains only those who need to be paired up for chat
+        logger.debug(f"peeps = {peeps}")
+        logger.debug(f"peeps_in_person = {peeps_in_person}")
+    done = len(peeps) == 0
     while not done:
         # Start a new group with one student
         group = [peeps.pop()]
