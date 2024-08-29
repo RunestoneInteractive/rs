@@ -58,9 +58,8 @@ function addReadingList() {
                 name: "link",
                 class: "btn btn-lg ' + 'buttonConfirmCompletion'",
                 href: nxt_link,
-                text: `Continue to page ${
-                    position + 2
-                } of ${num_readings} in the reading assignment.`,
+                text: `Continue to page ${position + 2
+                    } of ${num_readings} in the reading assignment.`,
             });
         } else {
             l = $("<div />", {
@@ -94,6 +93,10 @@ class PageProgressBar {
     constructor(actDict) {
         this.possible = 0;
         this.total = 1;
+        if ("assignment_spec" in actDict) {
+            this.assignment_spec = actDict.assignment_spec;
+            delete actDict.assignment_spec;
+        }
         if (actDict && Object.keys(actDict).length > 0) {
             this.activities = actDict;
         } else {
@@ -152,13 +155,44 @@ class PageProgressBar {
             $("#scprogresstotal").text(this.total);
             $("#scprogressposs").text(this.possible);
             $("#subchapterprogress").progressbar("option", "value", val);
+            if (this.assignment_spec && this.total >= this.assignment_spec.activities_required) {
+                console.log("Required activities completed");
+                this.sendCompletedReadingScore().then(() => {
+                    console.log("Reading score sent");
+                });
+            }
             if (
                 val == 100.0 &&
                 $("#completionButton").text().toLowerCase() ===
-                    "mark as completed"
+                "mark as completed"
             ) {
                 $("#completionButton").click();
             }
+        }
+    }
+
+    async sendCompletedReadingScore() {
+        let headers = new Headers({
+            "Content-type": "application/json; charset=utf-8",
+            Accept: "application/json",
+        });
+        let data = { ...this.assignment_spec };
+        let request = new Request(
+            `${eBookConfig.new_server_prefix}/logger/update_reading_score`,
+            {
+                method: "POST",
+                body: JSON.stringify(data),
+                headers: headers,
+            }
+        );
+        try {
+            let response = await fetch(request);
+            if (!response.ok) {
+                console.error(`Failed to send reading score! ${response.statusText}`);
+            }
+            data = await response.json();
+        } catch (e) {
+            console.error(`Error sending reading score ${e}`);
         }
     }
 }

@@ -48,6 +48,7 @@ from rsptx.db.crud import (
     fetch_course,
     fetch_library_books,
     fetch_page_activity_counts,
+    fetch_reading_assignment_spec,
     fetch_all_course_attributes,
     fetch_subchapters,
     get_courses_per_basecourse,
@@ -308,6 +309,11 @@ async def serve_page(
         activity_info = await fetch_page_activity_counts(
             chapter, subchapter, course_row.base_course, course_name, user.username
         )
+        assignment__spec = await fetch_reading_assignment_spec(
+            chapter, subchapter, course_row.id
+        )
+        if assignment__spec:
+            activity_info["assignment_spec"] = dict(**assignment__spec)
 
     reading_list = []
     if RS_info:

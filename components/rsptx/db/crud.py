@@ -2542,6 +2542,50 @@ async def is_assigned(
         return schemas.ScoringSpecification()
 
 
+async def fetch_reading_assignment_spec(
+    chapter: str,
+    subchapter: str,
+    course_id: int,
+) -> Optional[int]:
+    """
+    Check if a reading assignment is assigned for a given chapter and subchapter.
+
+    :param chapter: str, the label of the chapter
+    :param subchapter: str, the label of the subchapter
+    :param course_id: int, the id of the course
+    :return: The number of required activities or None
+    """
+    query = (
+        select(
+            AssignmentQuestion.activities_required,
+            AssignmentQuestion.question_id,
+            AssignmentQuestion.points,
+            AssignmentQuestion.assignment_id,
+            Question.name,
+        )
+        .select_from(Assignment)
+        .join(AssignmentQuestion, AssignmentQuestion.assignment_id == Assignment.id)
+        .join(Question, Question.id == AssignmentQuestion.question_id)
+        .where(
+            and_(
+                Assignment.course == course_id,
+                AssignmentQuestion.reading_assignment == True,  # noqa: E712
+                Question.chapter == chapter,
+                Question.subchapter == subchapter,
+                Assignment.visible == True,  # noqa: E712
+                or_(
+                    Assignment.duedate
+                    > datetime.datetime.utcnow(),
+                    Assignment.enforce_due == False, # noqa: E712
+                ),
+            )
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return res.first()
+
+
 async def fetch_assignment_scores(
     assignment_id: int, course_name: str, username: str
 ) -> List[QuestionGradeValidator]:
