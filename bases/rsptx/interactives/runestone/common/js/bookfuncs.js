@@ -93,7 +93,7 @@ class PageProgressBar {
     constructor(actDict) {
         this.possible = 0;
         this.total = 1;
-        if ("assignment_spec" in actDict) {
+        if (actDict && "assignment_spec" in actDict) {
             this.assignment_spec = actDict.assignment_spec;
             delete actDict.assignment_spec;
         }
