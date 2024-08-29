@@ -76,6 +76,8 @@ from rsptx.db.models import (
     runestone_component_dict,
     SelectedQuestion,
     SelectedQuestionValidator,
+    SourceCode,
+    SourceCodeValidator,
     SubChapter,
     SubChapterValidator,
     TimedExam,
@@ -2574,9 +2576,8 @@ async def fetch_reading_assignment_spec(
                 Question.subchapter == subchapter,
                 Assignment.visible == True,  # noqa: E712
                 or_(
-                    Assignment.duedate
-                    > datetime.datetime.utcnow(),
-                    Assignment.enforce_due == False, # noqa: E712
+                    Assignment.duedate > datetime.datetime.utcnow(),
+                    Assignment.enforce_due == False,  # noqa: E712
                 ),
             )
         )
@@ -2750,3 +2751,25 @@ async def fetch_last_useinfo_peergroup(course_name: str) -> List[Useinfo]:
         # Execute the query
         results = await session.execute(query)
         return results.scalars().all()
+
+
+async def fetch_source_code(
+    acid: str, base_course: str, course_name: str
+) -> SourceCodeValidator:
+    """
+    Fetch the source code for a given acid.
+
+    :param acid: str, the acid of the source code
+    :return: SourceCodeValidator, the SourceCodeValidator object
+    """
+    query = select(SourceCode).where(
+        and_(
+            SourceCode.acid == acid,
+            or_(
+                SourceCode.course_id == base_course, SourceCode.course_id == course_name
+            ),
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return SourceCodeValidator.from_orm(res.scalars().first())

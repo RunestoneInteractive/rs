@@ -48,6 +48,7 @@ from rsptx.db.crud import (
     fetch_chapter_for_subchapter,
     fetch_course,
     fetch_course_practice,
+    fetch_source_code,
     fetch_user_chapter_progress,
     fetch_user_sub_chapter_progress,
     fetch_user,
@@ -61,6 +62,7 @@ from rsptx.db.models import (
     AuthUserValidator,
     CodeValidator,
     runestone_component_dict,
+    SourceCodeValidator,
     UseinfoValidation,
 )
 from rsptx.validation.schemas import (
@@ -576,3 +578,26 @@ async def update_reading_score(request: Request, data: ReadingAssignmentSpec):
         data, request.state.user.course_name, request.state.user.username
     )
     return make_json_response(detail="Success")
+
+
+@router.get("/get_datafile")
+async def get_datafile(
+    request: Request,
+    course_id: str,
+    acid: str,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+
+    course = await fetch_course(course_id)
+
+    file_contents = await fetch_source_code(
+        acid, course.base_course, course.course_name
+    )
+
+    if file_contents:
+        file_contents = file_contents.main_code
+    else:
+        file_contents = None
+
+    return make_json_response(detail=file_contents)
