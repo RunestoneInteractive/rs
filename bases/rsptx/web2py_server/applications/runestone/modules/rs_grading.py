@@ -53,7 +53,7 @@ def _score_from_pct_correct(pct_correct: int, points, autograde):
     # ALL_AUTOGRADE_OPTIONS = ['all_or_nothing', 'pct_correct', 'interact']
     if points is None:
         points = 0
-    if autograde == "interact" or autograde == "visited":
+    if autograde in ["interact", "interaction", "visited"]:
         return points
     elif autograde == "pct_correct":
         # prorate credit based on percentage correct
@@ -73,7 +73,7 @@ def _score_from_pct_correct(pct_correct: int, points, autograde):
 def _score_one_code_run(row, points, autograde):
     # row is one row from useinfo table
     # second element of act is the percentage of tests that passed
-    if autograde == "interact":
+    if autograde == "interact" or autograde == "interaction":
         return _score_one_interaction(row, points, autograde)
 
     try:
@@ -798,7 +798,7 @@ def _autograde_one_q(
 
     elif question_type == "codelens":
         if (
-            autograde == "interact"
+            autograde == "interact" or autograde == "interaction"
         ):  # this is probably what we want for *most* codelens it will not be correct when it is an actual codelens question in a reading
             results = _scorable_useinfos(
                 course_name,

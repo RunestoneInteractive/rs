@@ -342,6 +342,7 @@ class Code(Base, IdMixin):
     edit_distance = Column(Integer)
     cps = Column(Float())
 
+CodeValidator = sqlalchemy_to_pydantic(Code)
 
 # Used for datafiles and storing questions and their suffix separately.
 # this maybe redundant TODO: check before we port the api call to get
@@ -356,8 +357,8 @@ class SourceCode(Base, IdMixin):
     main_code = Column(Text, nullable=False)
     suffix_code = Column(Text)
 
+SourceCodeValidator = sqlalchemy_to_pydantic(SourceCode)
 
-CodeValidator = sqlalchemy_to_pydantic(Code)
 
 
 # Courses

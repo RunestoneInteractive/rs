@@ -118,6 +118,11 @@ psycopg2-binary = "^2.9.6"
 lxml = "^4.9.2"
 myst-parser = "^1.0.0"
 pretext = "^2.5.0"
+jupyter-sphinx = "<0.5"
+jupyterlab = "^4.2.4"
+scikit-learn = "^1.5.1"
+ipyleaflet = "^0.19.2"
+
 
 # Development dependencies
 # ========================

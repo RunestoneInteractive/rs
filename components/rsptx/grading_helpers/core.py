@@ -11,7 +11,7 @@ from rsptx.db.crud import (
     fetch_assignment_scores,
     did_send_messages,
 )
-from rsptx.validation.schemas import LogItemIncoming, ScoringSpecification
+from rsptx.validation.schemas import LogItemIncoming, ScoringSpecification, ReadingAssignmentSpec
 from rsptx.db.models import GradeValidator
 from rsptx.logging import rslogger
 
@@ -162,14 +162,20 @@ async def score_one_answer(
             return scoreSpec.max_score
         else:
             if submission.percent:
-                return submission.percent * scoreSpec.max_score
+                # for some reason, lost to the sands of time, the percent is an int for unittests
+                if submission.event == "unittest":
+                    return (submission.percent / 100.0) * scoreSpec.max_score
+                else:
+                    return submission.percent * scoreSpec.max_score
             return 0
     elif scoreSpec.how_to_score == "all_or_nothing":
         if submission.correct:
             return scoreSpec.max_score
         else:
             return 0
-    elif scoreSpec.how_to_score == "interact":
+    elif (
+        scoreSpec.how_to_score == "interact" or scoreSpec.how_to_score == "interaction"
+    ):
         return scoreSpec.max_score
     elif scoreSpec.how_to_score == "peer":
         return scoreSpec.max_score
@@ -224,3 +230,32 @@ async def compute_total_score(
         )
     res = await upsert_grade(newGrade)
     return total
+
+
+async def score_reading_page(
+    reading_spec: ReadingAssignmentSpec, course_name: str, username: str
+):
+    """
+    Score a reading page based on the reading specification.
+
+    :param reading_spec: The reading specification.
+    :type reading_spec: ReadingAssignmentSpec
+    :return: The score for the reading page.
+    :rtype: Union[int, float]
+    """
+    # use the points from the reading_spec to update the question_grade row
+    # for this reading page.
+    score = reading_spec.points
+    # get the question_id for this reading page
+    question_grade = await fetch_question_grade(
+        username, course_name, reading_spec.name
+    )
+    if question_grade:
+        question_grade.score = score
+        await update_question_grade_entry(
+            username, course_name, reading_spec.name, score
+        )
+    else:
+        await create_question_grade_entry(
+            username, course_name, reading_spec.name, score
+        )

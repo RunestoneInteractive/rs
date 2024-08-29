@@ -822,7 +822,7 @@ export class ActiveCode extends RunestoneBase {
         //const lastTime = this.timestamps[this.historyScrubber.value];
         const lastTime = this.startEditTimeStamp;
         const timeDifference = (currentTime - lastTime) / 1000;
-        if (timeDifference > 60*60*10) {
+        if (timeDifference > 60 * 60 * 10) {
             return -1;
         }
 
@@ -1140,9 +1140,9 @@ Yet another is that there is an internal error.  The internal error message is: 
             if (!(divid.endsWith(".js") || divid.endsWith(".py"))) {
                 $.ajax({
                     async: false,
-                    url: `/runestone/ajax/get_datafile?course_id=${eBookConfig.course}&acid=${divid}`,
+                    url: `/ns/logger/get_datafile?course_id=${eBookConfig.course}&acid=${divid}`,
                     success: function (data) {
-                        result = JSON.parse(data).data;
+                        result = data.detail;
                     },
                     error: function (err) {
                         result = null;
@@ -1243,7 +1243,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             return window.componentMap[divid].editor.getValue();
         } else {
             let request = new Request(
-                `/runestone/ajax/get_datafile?course_id=${eBookConfig.course}&acid=${divid}`,
+                `/ns/logger/get_datafile?course_id=${eBookConfig.course}&acid=${divid}`,
                 {
                     method: "GET",
                     headers: this.jsonHeaders,
@@ -1251,7 +1251,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             );
             let wresult = await fetch(request);
             let obj = await wresult.json();
-            return obj.data;
+            return obj.detail;
         }
     }
 

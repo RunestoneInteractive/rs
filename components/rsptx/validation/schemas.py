@@ -273,3 +273,11 @@ class ScoringSpecification(BaseModel):
     how_to_score: Optional[str] = None
     username: Optional[str] = None
     comment: Optional[str] = None
+
+
+class ReadingAssignmentSpec(BaseModel):
+    activities_required: int
+    question_id: int
+    assignment_id: int
+    points: int
+    name: str

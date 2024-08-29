@@ -15,26 +15,33 @@
 # Standard library
 # ----------------
 from datetime import timedelta
-from typing import Optional
+from typing import Optional, Annotated
 
 #
 # Third-party imports
 # -------------------
-from fastapi import APIRouter, Depends, Request, Response  # noqa F401
+from fastapi import APIRouter, Depends, Request, Response, status  # noqa F401
 from fastapi_login.exceptions import InvalidCredentialsException
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydal.validators import CRYPT
+from pydantic import StringConstraints
 
 # Local application imports
 # -------------------------
-from rsptx.auth.session import load_user, auth_manager
+from rsptx.auth.session import load_user, auth_manager, is_instructor
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
-from rsptx.db.crud import create_user
+from rsptx.db.crud import (
+    create_user,
+    fetch_users_for_course,
+    fetch_course,
+    fetch_course_instructors,
+)
 from rsptx.db.models import AuthUserValidator
 from ..localconfig import local_settings
+from rsptx.response_helpers.core import make_json_response
 
 # Routing
 # =======
@@ -127,3 +134,42 @@ async def logout(response_class: RedirectResponse):
 async def register(user: AuthUserValidator) -> Optional[AuthUserValidator]:
     res = await create_user(user)
     return res
+
+
+@router.get("/course_students")
+async def get_course_students(
+    request: Request,
+    user: AuthUserValidator = Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    """
+    Get a list of students in a course.
+    This is used by the group submission feature.
+
+    """  
+    course = await fetch_course(user.course_name)
+    if course.course_name == course.base_course:
+        user_is_instructor = await is_instructor(request, user=user)
+        if not user_is_instructor:
+            return make_json_response(
+                status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+            )
+
+    students = await fetch_users_for_course(course.course_name)
+    instructors = await fetch_course_instructors(course.course_name)
+    iset = set()
+    for i in instructors:
+        iset.add(i.id)
+
+    searchdict = {}
+    for row in students:
+        if row.id not in iset:
+            name = row.first_name + " " + row.last_name
+            username = row.username
+            searchdict[str(username)] = name
+
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={"students": searchdict},
+    )
+

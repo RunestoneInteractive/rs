@@ -696,6 +696,7 @@ def admin():
 
 # Called in admin.js from courseStudents to populate  the list of students
 # eBookConfig.getCourseStudentsURL
+# Deprecated -- use /ns/auth/course_students
 @auth.requires_login()
 def course_students():
     response.headers["content-type"] = "application/json"

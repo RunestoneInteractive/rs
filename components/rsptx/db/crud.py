@@ -29,6 +29,7 @@ from fastapi.exceptions import HTTPException
 from pydal.validators import CRYPT
 from sqlalchemy import and_, distinct, func, update, or_
 from sqlalchemy.sql import select, text, delete
+from sqlalchemy.orm import aliased
 from starlette.requests import Request
 
 from rsptx.validation import schemas
@@ -75,6 +76,8 @@ from rsptx.db.models import (
     runestone_component_dict,
     SelectedQuestion,
     SelectedQuestionValidator,
+    SourceCode,
+    SourceCodeValidator,
     SubChapter,
     SubChapterValidator,
     TimedExam,
@@ -1981,9 +1984,9 @@ async def create_traceback(exc: Exception, request: Request, host: str):
         new_entry = TraceBack(
             traceback=tbtext + "\n".join(textwrap.wrap(str(dl[-2:]), 80)),
             timestamp=datetime.datetime.utcnow(),
-            err_message=str(exc),
-            path=request.url.path,
-            query_string=str(request.query_params),
+            err_message=str(exc)[:512],
+            path=request.url.path[:1024],
+            query_string=str(request.query_params)[:512],
             hash=hashlib.md5(tbtext.encode("utf8")).hexdigest(),
             hostname=host,
         )
@@ -2541,6 +2544,49 @@ async def is_assigned(
         return schemas.ScoringSpecification()
 
 
+async def fetch_reading_assignment_spec(
+    chapter: str,
+    subchapter: str,
+    course_id: int,
+) -> Optional[int]:
+    """
+    Check if a reading assignment is assigned for a given chapter and subchapter.
+
+    :param chapter: str, the label of the chapter
+    :param subchapter: str, the label of the subchapter
+    :param course_id: int, the id of the course
+    :return: The number of required activities or None
+    """
+    query = (
+        select(
+            AssignmentQuestion.activities_required,
+            AssignmentQuestion.question_id,
+            AssignmentQuestion.points,
+            AssignmentQuestion.assignment_id,
+            Question.name,
+        )
+        .select_from(Assignment)
+        .join(AssignmentQuestion, AssignmentQuestion.assignment_id == Assignment.id)
+        .join(Question, Question.id == AssignmentQuestion.question_id)
+        .where(
+            and_(
+                Assignment.course == course_id,
+                AssignmentQuestion.reading_assignment == True,  # noqa: E712
+                Question.chapter == chapter,
+                Question.subchapter == subchapter,
+                Assignment.visible == True,  # noqa: E712
+                or_(
+                    Assignment.duedate > datetime.datetime.utcnow(),
+                    Assignment.enforce_due == False,  # noqa: E712
+                ),
+            )
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return res.first()
+
+
 async def fetch_assignment_scores(
     assignment_id: int, course_name: str, username: str
 ) -> List[QuestionGradeValidator]:
@@ -2670,3 +2716,60 @@ async def create_invoice_request(
         session.add(new_entry)
 
     return new_entry
+
+
+async def fetch_last_useinfo_peergroup(course_name: str) -> List[Useinfo]:
+    """
+    Fetch the last peergroup entry for each student in the given course.
+
+    :param course_name: str, the name of the course
+    :return: List[Useinfo], a list of Useinfo objects
+    """
+    async with async_session.begin() as session:
+        # Aliases for the Useinfo table
+        u1 = aliased(Useinfo)
+        u2 = aliased(Useinfo)
+
+        # Subquery to get the last entry for each student
+        subquery = (
+            select(u2.sid, func.max(u2.timestamp).label("last_entry"))
+            .filter(and_(u2.course_id == course_name, u2.event == "peergroup"))
+            .group_by(u2.sid)
+            .subquery()
+        )
+
+        # Main query to join the subquery and get the last entry details
+        query = (
+            select(u1)
+            .join(
+                subquery,
+                (u1.sid == subquery.c.sid) & (u1.timestamp == subquery.c.last_entry),
+            )
+            .filter(and_(u1.course_id == course_name, u1.event == "peergroup"))
+        )
+
+        # Execute the query
+        results = await session.execute(query)
+        return results.scalars().all()
+
+
+async def fetch_source_code(
+    acid: str, base_course: str, course_name: str
+) -> SourceCodeValidator:
+    """
+    Fetch the source code for a given acid.
+
+    :param acid: str, the acid of the source code
+    :return: SourceCodeValidator, the SourceCodeValidator object
+    """
+    query = select(SourceCode).where(
+        and_(
+            SourceCode.acid == acid,
+            or_(
+                SourceCode.course_id == base_course, SourceCode.course_id == course_name
+            ),
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return SourceCodeValidator.from_orm(res.scalars().first())

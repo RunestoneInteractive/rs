@@ -462,6 +462,7 @@ async def adduser(
         # if fromfile then be sure to get the full path name NOW.
         # csv file should be username, email first_name, last_name, password, course
         # users from a csv cannot be instructors
+        course = None
         for line in csv.reader(fromfile):
             if len(line) != 6:
                 click.echo("Not enough data to create a user.  Lines must be")
@@ -470,13 +471,15 @@ async def adduser(
             if "@" not in line[1]:
                 click.echo("emails should have an @ in them in column 2")
                 exit(1)
+            if course is None:
+                course = await fetch_course(line[5])
             newUser = AuthUserValidator(
                 username=line[0],
                 password=line[4],
                 first_name=line[2],
                 last_name=line[3],
                 email=line[1],
-                course=line[5],
+                course_name=line[5],
                 instructor=False,
                 created_on=datetime.datetime.utcnow(),
                 modified_on=datetime.datetime.utcnow(),
