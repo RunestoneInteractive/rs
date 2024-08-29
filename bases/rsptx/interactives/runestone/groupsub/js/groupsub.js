@@ -50,21 +50,29 @@ class GroupSub extends RunestoneBase {
         // get the classlist to populate
         if (eBookConfig.useRunestoneServices) {
             // get classlist from admin/course_students
-            let request = new Request("/runestone/admin/course_students", {
+            let request = new Request("/ns/auth/course_students", {
                 method: "GET",
                 headers: this.jsonHeaders,
             });
             try {
                 let response = await fetch(request);
                 if (!response.ok) {
-                    throw new Error("Failed to save the log entry");
+                    throw new Error("Failed to get the list of students");
                 }
-                this.studentList = await response.json();
+                if (response.redirected) {
+                    alert("You must be logged in to use this feature");
+                    return;
+                }
+                let resp = await response.json();
+                this.studentList = resp.detail.students;
             } catch (e) {
                 if (this.isTimed) {
-                    alert(`Error: Your action was not saved! The error was ${e}`);
+                    alert(`Error: Failed to get the list of students. The error was ${e}`);
                 }
                 console.log(`Error: ${e}`);
+                this.studentList = {
+                    failed: "Failed to load students - logout and back in",
+                }
             }
 
         } else {
