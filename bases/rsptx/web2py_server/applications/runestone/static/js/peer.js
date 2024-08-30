@@ -574,7 +574,7 @@ async function setupPeerGroup() {
             peerList = "";
         }
         opt.value = sid;
-        opt.innerHTML = studentList[sid];
+        opt.innerHTML = `${studentList[sid]} (${sid})`;
         if (peerList.indexOf(sid) > -1) {
             opt.selected = true;
         }
