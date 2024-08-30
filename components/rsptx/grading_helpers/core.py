@@ -11,7 +11,11 @@ from rsptx.db.crud import (
     fetch_assignment_scores,
     did_send_messages,
 )
-from rsptx.validation.schemas import LogItemIncoming, ScoringSpecification, ReadingAssignmentSpec
+from rsptx.validation.schemas import (
+    LogItemIncoming,
+    ScoringSpecification,
+    ReadingAssignmentSpec,
+)
 from rsptx.db.models import GradeValidator
 from rsptx.logging import rslogger
 
@@ -214,6 +218,7 @@ async def compute_total_score(
             row.score = 0
         total += row.score
 
+    rslogger.debug(f"total = {total} for assignment {scoreSpec.assignment_id}")
     # Now update the grade table with the new total
 
     grade = await fetch_grade(user.id, scoreSpec.assignment_id)
@@ -228,12 +233,13 @@ async def compute_total_score(
             score=total,
             manual_total=False,
         )
+    rslogger.debug(f"newGrade = {newGrade}")
     res = await upsert_grade(newGrade)
     return total
 
 
 async def score_reading_page(
-    reading_spec: ReadingAssignmentSpec, course_name: str, username: str
+    reading_spec: ReadingAssignmentSpec, user: AuthUserValidator
 ):
     """
     Score a reading page based on the reading specification.
@@ -248,14 +254,19 @@ async def score_reading_page(
     score = reading_spec.points
     # get the question_id for this reading page
     question_grade = await fetch_question_grade(
-        username, course_name, reading_spec.name
+        user.username, user.course_name, reading_spec.name
     )
     if question_grade:
         question_grade.score = score
         await update_question_grade_entry(
-            username, course_name, reading_spec.name, score
+            user.username, user.course_name, reading_spec.name, score
         )
     else:
         await create_question_grade_entry(
-            username, course_name, reading_spec.name, score
+            user.username, user.course_name, reading_spec.name, score
         )
+
+    scoreSpec = ScoringSpecification(
+        assigned=True, assignment_id=reading_spec.assignment_id
+    )
+    await compute_total_score(scoreSpec, user)
