@@ -259,7 +259,7 @@ async def score_reading_page(
     if question_grade:
         question_grade.score = score
         await update_question_grade_entry(
-            user.username, user.course_name, reading_spec.name, score
+            user.username, user.course_name, reading_spec.name, score, question_grade.id
         )
     else:
         await create_question_grade_entry(
