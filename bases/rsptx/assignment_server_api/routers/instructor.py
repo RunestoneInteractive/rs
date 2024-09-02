@@ -564,7 +564,10 @@ async def get_assignment_questions(
             aq["qnumber"] = q["name"]
 
         if aq["reading_assignment"] == True:
-            aq["numQuestions"] = countd[q["chapter"]][q["subchapter"]]
+            try:
+                aq["numQuestions"] = countd[q["chapter"]][q["subchapter"]]
+            except KeyError:
+                aq["numQuestions"] = 0
 
         # augment the assignment question with additional question data
         aq["name"] = q["name"]
