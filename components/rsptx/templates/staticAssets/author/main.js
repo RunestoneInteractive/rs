@@ -355,9 +355,9 @@ function updateDlList(res, kind) {
             let a = document.createElement("a");
             // <li><a href="/getfile/{{lfile.name}}">{{lfile.name}}</a></li>
             if (kind === "datashop") {
-                a.href = `/getdatashop/${f}`;
+                a.href = `/author/getdatashop/${f}`;
             } else {
-                a.href = `/getfile/${f}`;
+                a.href = `/author/getfile/${f}`;
             }
             a.innerHTML = f;
             li.appendChild(a);
