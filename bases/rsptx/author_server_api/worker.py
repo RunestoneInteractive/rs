@@ -216,7 +216,7 @@ def build_runestone_book(self, book):
     if res.returncode != 0:
         return False
     self.update_state(state="SUCCESS", meta={"current": "build complete"})
-    # update_last_build(book)
+    update_last_build(book)
     # todo: replace with update_library_book (see crud.py) -- but it is async
     return True
 
@@ -263,7 +263,7 @@ def build_ptx_book(self, book, generate=False):
         return False
 
     self.update_state(state="SUCCESS", meta={"current": "build complete"})
-    # update_last_build(book)
+    update_last_build(book)
     return True
 
 
@@ -290,6 +290,7 @@ def deploy_book(self, book):
             logger.debug(res.stderr)
             return False
     self.update_state(state="SUCCESS", meta={"current": "deploy complete"})
+    update_last_sync(book)
     return True
 
 
@@ -367,3 +368,31 @@ def anonymize_data_dump(self, **kwargs):
     a.write_datashop(path=p)
     self.update_state(state="SUCCESS", meta={"current": "Ready for download"})
     return True
+
+
+def update_last_build(book):
+    """
+    Update the last build time for a book in the library table
+
+    :param book: book name
+    :return: None
+    """
+    # check to see if build_success exists and if not create it
+    if not os.path.exists(f"/books/{book}/build_success"):
+        pathlib.Path(f"/books/{book}/build_success").touch()
+    else:
+        os.utime(f"/books/{book}/build_success", None)
+
+
+def update_last_sync(book):
+    """
+    Update the last sync time for a book in the library table
+
+    :param book: book name
+    :return: None
+    """
+    # check to see if sync_success exists and if not create it
+    if not os.path.exists(f"/books/{book}/sync_success"):
+        pathlib.Path(f"/books/{book}/sync_success").touch()
+    else:
+        os.utime(f"/books/{book}/sync_success", None)
