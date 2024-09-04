@@ -58,7 +58,7 @@ from rsptx.db.crud import create_useinfo_entry
 from rsptx.db.models import UseinfoValidation
 from rsptx.validation.schemas import PeerMessage
 from ..localconfig import local_settings
-
+from rsptx.response_helpers.core import canonical_utcnow
 # from ..session import auth_manager
 
 # Routing
@@ -158,7 +158,9 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
     # by the same worker process.
     local_users.add(username)
     await manager.connect(username, websocket)
-    rslogger.debug(f"Connecting {username} peer instruction redis to {settings.redis_uri}")
+    rslogger.debug(
+        f"Connecting {username} peer instruction redis to {settings.redis_uri}"
+    )
     r = aioredis.from_url(settings.redis_uri)
     subscriber = r.pubsub()
 
@@ -257,7 +259,7 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
                                     div_id=data["div_id"],
                                     course_id=data["course_name"],
                                     sid=mess_from,
-                                    timestamp=datetime.utcnow(),
+                                    timestamp=canonical_utcnow(),
                                 )
                             )
                     else:

@@ -39,7 +39,7 @@ from rsptx.validation import schemas
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
 from .async_session import async_session
-from rsptx.response_helpers.core import http_422error_detail
+from rsptx.response_helpers.core import http_422error_detail, canonical_utcnow
 from rsptx.db.models import (
     Assignment,
     AssignmentValidator,
@@ -1037,7 +1037,7 @@ async def update_sub_chapter_progress(user_data: schemas.LastPageData):
     ud["chapter_id"] = ud.pop("last_page_chapter")
     ud["sub_chapter_id"] = ud.pop("last_page_subchapter")
     if ud["status"] > -1:
-        ud["end_date"] = datetime.datetime.utcnow()
+        ud["end_date"] = canonical_utcnow()
 
     stmt = (
         update(UserSubChapterProgress)
@@ -1154,7 +1154,7 @@ async def create_user_sub_chapter_progress_entry(
         chapter_id=last_page_chapter,
         sub_chapter_id=last_page_subchapter,
         status=status,
-        start_date=datetime.datetime.utcnow(),
+        start_date=canonical_utcnow(),
         course_name=user.course_name,
     )
     async with async_session.begin() as session:
@@ -1200,7 +1200,7 @@ async def create_user_chapter_progress_entry(
         user_id=str(user.id),
         chapter_id=last_page_chapter,
         status=status,
-        start_date=datetime.datetime.utcnow(),
+        start_date=canonical_utcnow(),
     )
     async with async_session.begin() as session:
         session.add(new_ucp)
@@ -1983,7 +1983,7 @@ async def create_traceback(exc: Exception, request: Request, host: str):
 
         new_entry = TraceBack(
             traceback=tbtext + "\n".join(textwrap.wrap(str(dl[-2:]), 80)),
-            timestamp=datetime.datetime.utcnow(),
+            timestamp=canonical_utcnow(),
             err_message=str(exc)[:512],
             path=request.url.path[:1024],
             query_string=str(request.query_params)[:512],
@@ -2576,7 +2576,7 @@ async def fetch_reading_assignment_spec(
                 Question.subchapter == subchapter,
                 Assignment.visible == True,  # noqa: E712
                 or_(
-                    Assignment.duedate > datetime.datetime.utcnow(),
+                    Assignment.duedate > canonical_utcnow(),
                     Assignment.enforce_due == False,  # noqa: E712
                 ),
             )
@@ -2709,7 +2709,7 @@ async def create_invoice_request(
         course_name=course_name,
         amount=amount,
         email=email,
-        timestamp=datetime.datetime.utcnow(),
+        timestamp=canonical_utcnow(),
         processed=False,
     )
     async with async_session.begin() as session:

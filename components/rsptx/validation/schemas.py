@@ -32,7 +32,7 @@ from typing_extensions import Annotated
 # Local application imports
 # -------------------------
 # None.
-
+from rsptx.response_helpers.core import canonical_utcnow
 
 # Schema generation
 # =================
@@ -139,7 +139,7 @@ class AssessmentRequest(BaseModelNone):
     event: str
     sid: Optional[str] = None
     # See `Field with dynamic default value <https://pydantic-docs.helpmanual.io/usage/models/#required-optional-fields>`_.
-    deadline: datetime = Field(default_factory=datetime.utcnow)
+    deadline: datetime = Field(default_factory=canonical_utcnow)
     # TODO[pydantic]: The following keys were removed: `json_encoders`.
     # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
     model_config = ConfigDict(
@@ -153,7 +153,7 @@ class AssessmentRequest(BaseModelNone):
     def time_validate(cls, v):
         if v:
             return isoparse(v)
-        return isoparse(datetime.isoformat(datetime.utcnow()))
+        return isoparse(datetime.isoformat(canonical_utcnow()))
 
 
 class TimezoneRequest(BaseModelNone):

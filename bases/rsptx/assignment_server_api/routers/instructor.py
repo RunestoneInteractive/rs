@@ -1,4 +1,4 @@
-import datetime
+
 import pathlib
 import pandas as pd
 
@@ -41,6 +41,7 @@ from rsptx.response_helpers.core import (
     make_json_response,
     get_webpack_static_imports,
     get_react_imports,
+    canonical_utcnow
 )
 from rsptx.db.models import (
     AssignmentQuestionValidator,
@@ -409,7 +410,7 @@ async def new_question(
         **request_data.model_dump(),
         base_course=course.base_course,
         subchapter="Exercises",
-        timestamp=datetime.datetime.utcnow(),
+        timestamp=canonical_utcnow(),
         is_private=False,
         practice=False,
         from_source=False,
@@ -453,7 +454,7 @@ async def do_update_question(
         **req,
         base_course=course.base_course,
         subchapter="Exercises",
-        timestamp=datetime.datetime.utcnow(),
+        timestamp=canonical_utcnow(),
         is_private=False,
         practice=False,
         from_source=False,

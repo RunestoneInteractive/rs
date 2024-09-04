@@ -14,7 +14,7 @@ from rsptx.auth.session import auth_manager, NotAuthenticatedException
 from rsptx.configuration import settings
 from rsptx.db.crud import create_traceback
 from rsptx.logging import rslogger
-
+from rsptx.response_helpers.core import canonical_utcnow
 
 def add_exception_handlers(app):
     """
@@ -95,7 +95,7 @@ def add_exception_handlers(app):
         """
         rslogger.error("UNHANDLED ERROR")
         rslogger.error(exc)
-        date = datetime.datetime.utcnow().strftime("%Y_%m_%d-%I.%M.%S_%p")
+        date = canonical_utcnow().strftime("%Y_%m_%d-%I.%M.%S_%p")
         with open(f"{settings.error_path}/{date}_traceback.txt", "w") as f:
             traceback.print_tb(exc.__traceback__, file=f)
             f.write(f"Error Message: \n{str(exc)}")
