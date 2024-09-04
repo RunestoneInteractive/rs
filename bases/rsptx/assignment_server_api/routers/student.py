@@ -45,7 +45,7 @@ from rsptx.db.crud import (
 from rsptx.db.models import GradeValidator, UseinfoValidation, CoursesValidator
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
-from rsptx.response_helpers.core import make_json_response, get_webpack_static_imports
+from rsptx.response_helpers.core import make_json_response, get_webpack_static_imports, canonical_utcnow
 from rsptx.configuration import settings
 
 
@@ -239,7 +239,7 @@ async def doAssignment(
             act="viewassignment",
             div_id=assignment.name,
             event="page",
-            timestamp=datetime.datetime.utcnow(),
+            timestamp=canonical_utcnow(),
             course_id=course.course_name,
         )
     )
@@ -412,7 +412,7 @@ async def doAssignment(
 
     timezoneoffset = parsed_js.get("tz_offset", None)
 
-    timestamp = datetime.datetime.utcnow()
+    timestamp = canonical_utcnow()
     deadline = assignment.duedate
     if timezoneoffset:
         deadline = deadline + datetime.timedelta(hours=float(timezoneoffset))

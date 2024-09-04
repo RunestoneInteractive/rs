@@ -8,7 +8,7 @@ from rsptx.db.crud import (
 from rsptx.db.models import AuthUserValidator
 from rsptx.logging import rslogger
 from datetime import datetime, timedelta
-
+from rsptx.response_helpers.core import canonical_utcnow
 
 async def potentially_change_flashcard(
     base_course_name: str,
@@ -34,7 +34,7 @@ async def potentially_change_flashcard(
                 rslogger.debug(
                     f"Adding flashcard for {chapter=}, {subcchapter=}, {questions[0].name=}"
                 )
-                now = datetime.utcnow()
+                now = canonical_utcnow()
                 now_local = now - timedelta(hours=tz_offset)
                 await create_user_topic_practice(
                     user,

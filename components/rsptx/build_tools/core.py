@@ -38,7 +38,7 @@ from sqlalchemy.sql import text
 from rsptx.logging import rslogger
 from runestone.server import get_dburl
 from rsptx.db.models import Library, LibraryValidator
-
+from rsptx.response_helpers.core import canonical_utcnow
 rslogger.setLevel("WARNING")
 
 # Local packages
@@ -338,7 +338,7 @@ def update_library(
         click.echo("Missing library table?  You may need to run an alembic migration.")
         return False
     # using the Model rather than raw sql ensures that everything is properly escaped
-    build_time = datetime.datetime.utcnow()
+    build_time = canonical_utcnow()
     click.echo(f"BUILD time is {build_time}")
     if res.rowcount == 0:
         new_lib = LibraryValidator(

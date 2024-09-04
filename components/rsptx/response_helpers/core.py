@@ -10,6 +10,7 @@ Response Helpers for FastAPI
 #
 # Standard library
 # ----------------
+import datetime
 import json
 import os
 from pathlib import Path
@@ -141,3 +142,10 @@ def get_react_imports(reactdir):
     react_imports["css"] = cssfiles
 
     return react_imports
+
+
+def canonical_utcnow():
+    """
+    Return a datetime object that is the current time in UTC without timezone information.
+    """
+    return datetime.datetime.now(datetime.UTC).replace(tzinfo=None)

@@ -53,7 +53,7 @@ from rsptx.db.crud import (
     is_server_feedback,
     update_selected_question,
 )
-from rsptx.response_helpers.core import make_json_response
+from rsptx.response_helpers.core import make_json_response, canonical_utcnow
 from rsptx.db.models import runestone_component_dict
 from rsptx.validation.schemas import AssessmentRequest, SelectQRequest
 from rsptx.auth.session import is_instructor, auth_manager
@@ -205,7 +205,7 @@ async def getaggregateresults(request: Request, div_id: str, course_name: str):
     # results there to the last 90 days.
     course = await fetch_course(course_name)
     if course.course_name == course.base_course:
-        start_date = datetime.datetime.utcnow() - datetime.timedelta(days=90)
+        start_date = canonical_utcnow() - datetime.timedelta(days=90)
     else:
         start_date = course.term_start_date
 

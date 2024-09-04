@@ -11,7 +11,6 @@
 # Standard library
 # ----------------
 import json
-from datetime import datetime, timezone
 import re
 from typing import Optional
 
@@ -57,7 +56,7 @@ from rsptx.db.crud import (
     update_user_state,
 )
 from rsptx.grading_helpers import grade_submission, score_reading_page
-from rsptx.response_helpers.core import make_json_response
+from rsptx.response_helpers.core import make_json_response, canonical_utcnow
 from rsptx.db.models import (
     AuthUserValidator,
     CodeValidator,
@@ -118,7 +117,7 @@ async def log_book_event(
         rslogger.info(f"user {user.username} is submitting work for {entry.sid}")
 
     # Always use the server's time.
-    entry.timestamp = datetime.utcnow()
+    entry.timestamp = canonical_utcnow()
     # The endpoint receives a ``course_name``, but the ``useinfo`` table calls this ``course_id``. Rename it.
     useinfo_dict = entry.dict()
     useinfo_dict["course_id"] = useinfo_dict.pop("course_name")
@@ -246,8 +245,7 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
     edit_distance = useinfo_dict.pop("editDist", None)
     cps = useinfo_dict.pop("changesPerSecond", None)
     useinfo_dict["course_id"] = useinfo_dict.pop("course")
-    utcnow = datetime.now(timezone.utc)
-    utcnow = utcnow.replace(tzinfo=None)
+    utcnow = canonical_utcnow()
     useinfo_dict["timestamp"] = utcnow
     useinfo_dict["emessage"] = data.errinfo
     if data.errinfo != "success":
@@ -353,7 +351,7 @@ async def updatelastpage(
             lpd["last_page_chapter"] = parts[-2]
 
         lpd["last_page_subchapter"] = subchapter
-        lpd["last_page_accessed_on"] = datetime.utcnow()
+        lpd["last_page_accessed_on"] = canonical_utcnow()
         lpd["user_id"] = request.state.user.id
 
         lpdo: LastPageData = LastPageData(**lpd)

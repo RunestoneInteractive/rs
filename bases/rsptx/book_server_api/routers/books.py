@@ -57,6 +57,7 @@ from rsptx.db.crud import (
 from rsptx.db.models import UseinfoValidation
 from rsptx.auth.session import is_instructor
 from rsptx.templates import template_folder
+from rsptx.response_helpers.core import canonical_utcnow
 from typing_extensions import Annotated
 
 # .. _APIRouter config:
@@ -333,7 +334,7 @@ async def serve_page(
             div_id=pagepath,
             course_id=course_name,
             sid=user.username if user else "Anonymous",
-            timestamp=datetime.utcnow(),
+            timestamp=canonical_utcnow(),
         )
     )
     if "LOAD_BALANCER_HOST" in os.environ:
@@ -348,7 +349,7 @@ async def serve_page(
     # Determine if we should ask for support
     # Trying to do banner ads after the 2nd week of the term
     # but not to high school students or if the instructor has donated for the course
-    now = datetime.utcnow().date()
+    now = canonical_utcnow().date()
     week2 = timedelta(weeks=2)
     if (
         now >= (course_row.term_start_date + week2)

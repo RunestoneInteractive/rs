@@ -63,7 +63,7 @@ from rsptx.configuration import settings
 from rsptx.build_tools.core import _build_runestone_book, _build_ptx_book
 from rsptx.cl_utils.core import load_project_dotenv
 from rsptx.data_extract import Anonymizer
-
+from rsptx.response_helpers.core import canonical_utcnow
 
 class Config(object):
     def __init__(self):
@@ -481,8 +481,8 @@ async def adduser(
                 email=line[1],
                 course_name=line[5],
                 instructor=False,
-                created_on=datetime.datetime.utcnow(),
-                modified_on=datetime.datetime.utcnow(),
+                created_on=canonical_utcnow(),
+                modified_on=canonical_utcnow(),
                 registration_key="",
                 registration_id="",
                 reset_password_key="",
@@ -518,8 +518,8 @@ async def adduser(
         course = await fetch_course(userinfo["course_name"])
         new_user = AuthUserValidator(
             **userinfo,
-            created_on=datetime.datetime.utcnow(),
-            modified_on=datetime.datetime.utcnow(),
+            created_on=canonical_utcnow(),
+            modified_on=canonical_utcnow(),
             registration_key="",
             registration_id="",
             reset_password_key="",
