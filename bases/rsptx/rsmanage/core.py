@@ -40,6 +40,7 @@ from rsptx.db.crud import (
     create_library_book,
     create_user_course_entry,
     delete_user,
+    fetch_all_course_attributes,
     fetch_course,
     fetch_courses_for_user,
     fetch_course_instructors,
@@ -64,6 +65,7 @@ from rsptx.build_tools.core import _build_runestone_book, _build_ptx_book
 from rsptx.cl_utils.core import load_project_dotenv
 from rsptx.data_extract import Anonymizer
 from rsptx.response_helpers.core import canonical_utcnow
+
 
 class Config(object):
     def __init__(self):
@@ -803,6 +805,28 @@ async def addattribute(config, course, attr, value):
         click.echo(f"Can only have one attribute {attr} per course")
 
     click.echo("Success")
+
+
+@cli.command()
+@click.argument("course", default=None)
+@pass_config
+async def showattrs(config, course):
+    """
+    Show all attributes for a course
+
+    """
+    course = course or click.prompt("Name of the course ")
+
+    res = await fetch_course(course)
+    if res:
+        course_id = res.id
+    else:
+        print("Sorry, that course does not exist")
+        sys.exit(-1)
+
+    attr_dict = await fetch_all_course_attributes(course_id)
+    for key in attr_dict:
+        print(key, attr_dict[key])
 
 
 @cli.command()
