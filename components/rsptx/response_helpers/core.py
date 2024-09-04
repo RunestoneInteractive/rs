@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 from typing import Any, List
 
 # Third-party imports
@@ -148,4 +149,7 @@ def canonical_utcnow():
     """
     Return a datetime object that is the current time in UTC without timezone information.
     """
-    return datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+    if sys.version_info.minor >= 11:
+        return datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+    else:
+        return datetime.datetime.utcnow()
