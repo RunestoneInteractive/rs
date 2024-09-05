@@ -1778,8 +1778,6 @@ async def create_question_grade_entry(
         score=grade,
         comment="autograded",
     )
-    if qge_id is not None:
-        new_qg.id = qge_id
 
     async with async_session.begin() as session:
         try:
