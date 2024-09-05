@@ -35,7 +35,6 @@ import time
 #
 # Third-party imports
 # -------------------
-from datetime import datetime
 from typing import Dict, Optional, Any
 from multi_await import multi_await  # type: ignore
 
@@ -59,6 +58,7 @@ from rsptx.db.models import UseinfoValidation
 from rsptx.validation.schemas import PeerMessage
 from ..localconfig import local_settings
 from rsptx.response_helpers.core import canonical_utcnow
+
 # from ..session import auth_manager
 
 # Routing
@@ -80,7 +80,7 @@ class ConnectionManager:
 
     async def connect(self, user: str, websocket: WebSocket):
         await websocket.accept()
-        rslogger.debug(f"{os.getpid()}: {user} connected to websocket")
+        rslogger.debug(f"PEERCOM {os.getpid()}: {user} connected to websocket")
         self.active_connections[user] = websocket
 
     def disconnect(self, sockid: str):
@@ -95,28 +95,28 @@ class ConnectionManager:
         if to in self.active_connections:
             try:
                 rslogger.debug(
-                    f"{os.getpid()}: sending {message} to {to} on {self.active_connections[to]}"
+                    f"PEERCOM {os.getpid()}: sending {message} to {to} on {self.active_connections[to]}"
                 )
                 await self.active_connections[to].send_json(message)
             except Exception as e:
-                rslogger.error(f"{os.getpid()}: Error sending to {to} is {e}")
+                rslogger.error(f"PEERCOM {os.getpid()}: Error sending to {to} is {e}")
                 del self.active_connections[to]
         else:
             rslogger.error(
-                f"{os.getpid()}: {to} is not connected here {self.active_connections}"
+                f"PEERCOM {os.getpid()}: {to} is not connected here {self.active_connections}"
             )
 
     async def broadcast(self, message: str) -> None:
         rslogger.debug(
-            f"CM Broadcast: {os.getpid()}: {self.active_connections=} {message=}"
+            f"PEERCOM Broadcast: {os.getpid()}: {self.active_connections=} {message=}"
         )
         to_remove = []
         for key, connection in self.active_connections.items():
-            rslogger.debug(f"{os.getpid()}: sending to {key}@{connection}")
+            rslogger.debug(f"PEERCOM {os.getpid()}: sending to {key}@{connection}")
             try:
                 await connection.send_json(message)
             except Exception as e:
-                rslogger.debug(f"{os.getpid()}: Failed to send {e}")
+                rslogger.debug(f"PEERCOM {os.getpid()}: Failed to send {e}")
                 to_remove.append(key)
         for key in to_remove:
             del self.active_connections[key]
@@ -133,7 +133,7 @@ async def get_cookie_or_token(
     access_token: Optional[str] = Cookie(None),
     user: Optional[str] = Query(None),
 ):
-    rslogger.debug(f"{os.getpid()}: HELLO {access_token=} or {user=}")
+    rslogger.debug(f"PEERCOM {os.getpid()}: HELLO {access_token=} or {user=}")
     if access_token is None and user is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
     return access_token or user
@@ -152,14 +152,14 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
     Using a non async library like plain redis-py will not work as the subscriber
     will block
     """
-    rslogger.debug(f"{os.getpid()}: IN WEBSOCKET {uname=}")
+    rslogger.debug(f"PEERCOM {os.getpid()}: IN WEBSOCKET {uname=}")
     username = uname
     # local_users is a global/module variable shared by all  requests served
     # by the same worker process.
     local_users.add(username)
     await manager.connect(username, websocket)
     rslogger.debug(
-        f"Connecting {username} peer instruction redis to {settings.redis_uri}"
+        f"PEERCOM Connecting {username} peer instruction redis to {settings.redis_uri}"
     )
     r = aioredis.from_url(settings.redis_uri)
     subscriber = r.pubsub()
@@ -186,26 +186,26 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
             psfail, wsfail = failures
 
             if wsfail is not None:
-                rslogger.error(wsfail)
+                rslogger.error(f"PEERCOMM websocket fail {wsfail}")
                 # The fail is more than likely a runtime error from a page close or refresh
                 # RuntimeError('Cannot call "receive" once a disconnect message has been received.')
                 manager.disconnect(username)
                 return
 
             if psfail is not None:
-                rslogger.error(psfail)
+                rslogger.error(f"PEERCOM pubsub fail {psfail}")
                 # probably do not want to return
 
             # handle message from the pubsub queue
             if pmess is not None:
-                rslogger.debug(f"{os.getpid()}: {pmess=}")
+                rslogger.debug(f"PEERCOM handle pubsub mess {os.getpid()}: {pmess=}")
                 if pmess["type"] == "message":
                     # This is a message sent into the channel, our stuff is in
                     # the ``data`` field of the redis message
                     data = json.loads(pmess["data"])
                 else:
                     rslogger.error(
-                        f"{os.getpid()}: unknown message type {pmess['type']}"
+                        f"PEERCOM {os.getpid()}: unknown message type {pmess['type']}"
                     )
                     continue
                 if data["broadcast"]:
@@ -235,11 +235,11 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
                             await manager.send_personal_message(mess_from, mess)
                         except KeyError:
                             rslogger.error(
-                                f"Not enough data to construct a message: {data}"
+                                f"PEERCOM Not enough data to construct a message: {data}"
                             )
 
                         rslogger.error(
-                            f"{os.getpid()}: Failed to find a partner for {mess_from}"
+                            f"PEERCOM {os.getpid()}: Failed to find a partner for {mess_from}"
                         )
                     if (
                         data["message"] == "enableChat"
@@ -267,7 +267,7 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
 
             if wsres is not None:
                 rslogger.debug(
-                    f"{os.getpid()}: We don't expect in coming websock messages but got: {wsres}"
+                    f"PEERCOM {os.getpid()}: We don't expect in coming websock messages but got: {wsres}"
                 )
                 # TODO: now that we have multi-await working it *may* be more
                 # efficient to go back to sending all peer messages by websocket
