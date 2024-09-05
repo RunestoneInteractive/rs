@@ -1466,7 +1466,7 @@ def question_text():
         q_text = f"Error: Could not find source for {qname} in the database"
 
     logger.debug(q_text)
-    logger.debug(f"is_private = {is_private} from {res.is_private}")
+    logger.debug(f"is_private = {is_private}")
     return json.dumps({"question_text": q_text, "is_private": is_private})
 
 
