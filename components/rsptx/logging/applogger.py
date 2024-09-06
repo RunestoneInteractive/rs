@@ -16,6 +16,25 @@ from the environment variable ``LOG_LEVEL```.  The default is ``INFO``.
 # ----------------
 import logging
 import sys
+import os
+
+
+# write a function to set the log level based on the environment variable LOG_LEVEL
+def get_log_level():
+    log_level = os.getenv("LOG_LEVEL", "INFO")
+    if log_level == "DEBUG":
+        return logging.DEBUG
+    elif log_level == "INFO":
+        return logging.INFO
+    elif log_level == "WARNING":
+        return logging.WARNING
+    elif log_level == "ERROR":
+        return logging.ERROR
+    elif log_level == "CRITICAL":
+        return logging.CRITICAL
+    else:
+        return logging.INFO
+
 
 # Third-party imports
 # -------------------
@@ -29,10 +48,10 @@ import sys
 # Logging
 # =======
 rslogger = logging.getLogger("runestone")
-rslogger.setLevel(logging.DEBUG)
+rslogger.setLevel(get_log_level())
 
 handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.DEBUG)
+handler.setLevel(get_log_level())
 formatter = logging.Formatter(
     "%(levelname)s - %(asctime)s - %(funcName)s - %(message)s"
 )
