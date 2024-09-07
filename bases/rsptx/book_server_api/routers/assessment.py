@@ -393,13 +393,17 @@ async def get_question_source(request: Request, request_data: SelectQRequest):
     # the points from the assignment anyway.
     if assignment_name:
         aq = await fetch_assignment_question(assignment_name, selector_id)
-        ui_points = aq.points
+        if aq:
+            ui_points = aq.points
+        else:
+            ui_points = None
         rslogger.debug(
             f"Assignment Points for {assignment_name}, {selector_id} = {ui_points}"
         )
         if ui_points:
             points = ui_points
-
+        else:
+            points = 0
     questionlist = await fetch_matching_questions(request_data)
 
     if not questionlist:

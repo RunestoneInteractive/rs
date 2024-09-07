@@ -28,6 +28,7 @@ import pytz
 from fastapi.exceptions import HTTPException
 from pydal.validators import CRYPT
 from sqlalchemy import and_, distinct, func, update, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import select, text, delete
 from sqlalchemy.orm import aliased
 from starlette.requests import Request
@@ -1502,11 +1503,19 @@ async def upsert_grade(grade: GradeValidator) -> GradeValidator:
     :return: GradeValidator, the GradeValidator object
     """
     new_grade = Grade(**grade.dict())
-
+    success = True
     async with async_session.begin() as session:
         # merge either inserts or updates the object
-        await session.merge(new_grade)
-    return GradeValidator.from_orm(new_grade)
+        try:
+            await session.merge(new_grade)
+        except IntegrityError as e:
+            rslogger.error(f"IntegrityError: {e} id = {new_grade.id}")
+            success = False
+
+    if success:
+        return GradeValidator.from_orm(new_grade)
+    else:
+        return await fetch_grade(grade.auth_user, grade.assignment)
 
 
 async def fetch_question(
@@ -1757,7 +1766,7 @@ async def fetch_question_grade(sid: str, course_name: str, qid: str):
 
 
 async def create_question_grade_entry(
-    sid: str, course_name: str, qid: str, grade: int, qge_id: Optional[int] = None
+    sid: str, course_name: str, qid: str, grade: int
 ) -> QuestionGradeValidator:
     """
     Create a new QuestionGrade entry with the given sid, course_name, qid, and grade.
@@ -1769,11 +1778,13 @@ async def create_question_grade_entry(
         score=grade,
         comment="autograded",
     )
-    if qge_id is not None:
-        new_qg.id = qge_id
 
     async with async_session.begin() as session:
-        session.add(new_qg)
+        try:
+            session.add(new_qg)
+        except IntegrityError as e:
+            rslogger.error(f"IntegrityError: {e} id = {new_qg.id}")
+            return None
     return QuestionGradeValidator.from_orm(new_qg)
 
 

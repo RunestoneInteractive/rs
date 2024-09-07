@@ -427,9 +427,9 @@ def make_pairs():
     for k, v in gdict.items():
         r.hset(f"partnerdb_{auth.user.course_name}", k, json.dumps(v))
     r.hset(f"{auth.user.course_name}_state", "mess_count", "0")
-    logger.debug(f"DONE makeing pairs for {auth.user.course_name} {gdict}")
+    logger.info(f"DONE makeing pairs for {auth.user.course_name} {gdict}")
     _broadcast_peer_answers(sid_ans)
-    logger.debug(f"DONE broadcasting pair information")
+    logger.info(f"DONE broadcasting pair information")
     return json.dumps("success")
 
 
@@ -474,8 +474,8 @@ def publish_message():
     response.headers["content-type"] = "application/json"
     r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
     data = json.dumps(request.vars)
-    logger.debug(
-        f"PM data = {data} {os.environ.get('REDIS_URI', 'redis://redis:6379/0')}"
+    logger.info(
+        f"PEERCOM data = {data} {os.environ.get('REDIS_URI', 'redis://redis:6379/0')}"
     )
     r.publish("peermessages", data)
     res = r.hget(f"{auth.user.course_name}_state", "mess_count")

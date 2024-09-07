@@ -69,6 +69,7 @@ services:
     build:
       context: ./projects/book_server
     image: ghcr.io/runestoneinteractive/rs-book
+    hostname: book_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
@@ -107,6 +108,7 @@ services:
       - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
       - SPACES_KEY=${SPACES_KEY}
       - SPACES_SECRET=${SPACES_SECRET}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
 
     depends_on:
       redis:
@@ -126,6 +128,7 @@ services:
     build:
       context: ./projects/w2p_login_assign_grade
     image: ghcr.io/runestoneinteractive/rs-runestone
+    hostname: runestone_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
@@ -164,6 +167,7 @@ services:
       - SPACES_KEY=${SPACES_KEY}
       - SPACES_SECRET=${SPACES_SECRET}
       - GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
       redis:
         condition: service_started
@@ -182,6 +186,7 @@ services:
     build:
       context: ./projects/assignment_server
     image: ghcr.io/runestoneinteractive/rs-assignment
+    hostname: assignment_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
@@ -214,6 +219,7 @@ services:
       - UVICORN_MAX_REQUESTS=5000
       - UVICORN_MAX_REQUESTS_JITTER=30
       - UVICORN_TIMEOUT=60
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
 
     depends_on:
       redis:
@@ -301,6 +307,7 @@ services:
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
+      - LOG_LEVEL=${LOG_LEVEL:-WARN}
 
   author:
     profiles: [ "author" ]
@@ -308,6 +315,7 @@ services:
       context: ./projects/author_server
     #image: registry.digitalocean.com/runestone-registry/rs-author
     image: ghcr.io/runestoneinteractive/rs-author
+    hostname: author_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
@@ -338,6 +346,7 @@ services:
       context: ./projects/author_server
     #image: registry.digitalocean.com/runestone-registry/rs-worker
     image: ghcr.io/runestoneinteractive/rs-worker
+    hostname: worker_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
     command: celery -A rsptx.author_server_api.worker.celery worker

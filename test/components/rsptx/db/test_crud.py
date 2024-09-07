@@ -1,6 +1,9 @@
 from rsptx.db.crud import *
 import pytest
+import asyncio
 
+
+@pytest.mark.asyncio
 async def test_create_useinfo_entry():
     assert create_useinfo_entry is not None
     # Write the code for the test here.
@@ -44,4 +47,23 @@ async def test_create_useinfo_entry():
     assert x.ip_address == "test_ip_address"
 
 
+@pytest.mark.asyncio
+async def test_create_question_grade_entry():
+    # Test creating a new QuestionGrade entry
+    sid = "test_sid"
+    course_name = "test_course"
+    qid = "test_qid"
+    grade = 85
 
+    # Call the function to create a new QuestionGrade entry
+    new_qg = await create_question_grade_entry(sid, course_name, qid, grade)
+
+    # Assert that the returned object is not None
+    assert new_qg is not None
+
+    # Assert that the returned object has the correct attributes
+    assert new_qg.sid == sid
+    assert new_qg.course_name == course_name
+    assert new_qg.div_id == qid
+    assert new_qg.score == grade
+    assert new_qg.comment == "autograded"
