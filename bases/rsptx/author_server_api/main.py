@@ -459,11 +459,19 @@ async def check_repo(payload=Body(...)):
 async def do_build(payload=Body(...)):
     bcname = payload["bcname"]
     generate = payload["generate"]
-    ptxproj = pathlib.Path("/books") / bcname / "project.ptx"
-    if ptxproj.exists():
-        book_system = "PreTeXt"
+    lib = await fetch_library_book(bcname)
+    if lib:
+        if lib.build_system == "Runestone":
+            book_system = "Runestone"
+        else:
+            book_system = "PreTeXt"
     else:
-        book_system = "Runestone"
+        # No library entry, so we need to check for the project file
+        ptxproj = pathlib.Path("/books") / bcname / "project.ptx"
+        if ptxproj.exists():
+            book_system = "PreTeXt"
+        else:
+            book_system = "Runestone"
     if book_system == "Runestone":
         task = build_runestone_book.delay(bcname)
     else:
