@@ -29,147 +29,147 @@
     position: relative;
     font-size: 100%;
     list-style: none;
-    background-color: #efefff;
+    background-color: var(--questionBgColor, #efefff);
     padding-bottom: 10px;
     padding-left: 0;
     margin-left: 0;
-    border: 1px solid #b8b8f2;
+    border: 1px solid var(--componentBorderColor, #efefff);
 }
 .parsons .source {
-    background-color: #efefff;
+    background-color: var(--questionBgColor, #efefff);
 }
 .parsons .answer {
-    background-color: #ffa;
-    border-color: #ee0;
+    background-color: var(--parsonsBgColor);
+    border-color: var(--parsonsBorderColor);
 }
 .parsons .answer.incorrect {
-    background-color: #f2dede;
-    border-color: #f2b6b6;
+    background-color: var(--parsonsIncorrectBgColor);
+    border-color: var(--parsonsIncorrectBorderColor);
 }
 .parsons .answer.correct {
-    background-color: #dff0d8;
-    border-color: #ade595;
+    background-color: var(--parsonsCorrectBgColor);
+    border-color: var(--parsonsCorrectBorderColor);
 }
 .parsons .answer1 {
-    background: linear-gradient(#ee0, #ee0) no-repeat border-box;
+    background: linear-gradient(var(--parsonsBorderColor), var(--parsonsBorderColor)) no-repeat border-box;
     background-size: 1px 100%;
     background-position: 30px 0;
     background-origin: padding-box;
-    background-color: #ffa;
-    border-color: #ee0;
+    background-color: var(--parsonsBgColor);
+    border-color: var(--parsonsBorderColor);
 }
 .parsons .answer1.incorrect {
-    background: linear-gradient(#f2b6b6, #f2b6b6) no-repeat border-box;
+    background: linear-gradient(var(--parsonsIncorrectBorderColor), var(--parsonsIncorrectBorderColor)) no-repeat border-box;
     background-size: 1px 100%;
     background-position: 30px 0;
     background-origin: padding-box;
-    background-color: #f2dede;
-    border-color: #f2b6b6;
+    background-color: var(--parsonsIncorrectBgColor);
+    border-color: var(--parsonsIncorrectBorderColor);
 }
 .parsons .answer1.correct {
-    background: linear-gradient(#ade595, #ade595) no-repeat border-box;
+    background: linear-gradient(var(--parsonsCorrectBorderColor), var(--parsonsCorrectBorderColor)) no-repeat border-box;
     background-size: 1px 100%;
     background-position: 30px 0;
     background-origin: padding-box;
-    background-color: #dff0d8;
-    border-color: #ade595;
+    background-color: var(--parsonsCorrectBgColor);
+    border-color: var(--parsonsCorrectBorderColor);
 }
 .parsons .answer2 {
-    background: linear-gradient(#ee0, #ee0) no-repeat border-box,
-        linear-gradient(#ee0, #ee0) no-repeat border-box;
+    background: linear-gradient(var(--parsonsBorderColor), var(--parsonsBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsBorderColor), var(--parsonsBorderColor)) no-repeat border-box;
     background-size: 1px 100%, 1px 100%;
     background-position: 30px 0, 60px 0;
     background-origin: padding-box, padding-box;
-    background-color: #ffa;
-    border-color: #ee0;
+    background-color: var(--parsonsBgColor);
+    border-color: var(--parsonsBorderColor);
 }
 .parsons .answer2.incorrect {
-    background: linear-gradient(#f2b6b6, #f2b6b6) no-repeat border-box,
-        linear-gradient(#f2b6b6, #f2b6b6) no-repeat border-box;
+    background: linear-gradient(var(--parsonsIncorrectBorderColor), var(--parsonsIncorrectBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsIncorrectBorderColor), var(--parsonsIncorrectBorderColor)) no-repeat border-box;
     background-size: 1px 100%, 1px 100%;
     background-position: 30px 0, 60px 0;
     background-origin: padding-box, padding-box;
-    background-color: #f2dede;
-    border-color: #f2b6b6;
+    background-color: var(--parsonsIncorrectBgColor);
+    border-color: var(--parsonsIncorrectBorderColor);
 }
 .parsons .answer2.correct {
-    background: linear-gradient(#ade595, #ade595) no-repeat border-box,
-        linear-gradient(#ade595, #ade595) no-repeat border-box;
+    background: linear-gradient(var(--parsonsCorrectBorderColor), var(--parsonsCorrectBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsCorrectBorderColor), var(--parsonsCorrectBorderColor)) no-repeat border-box;
     background-size: 1px 100%, 1px 100%;
     background-position: 30px 0, 60px 0;
     background-origin: padding-box, padding-box;
-    background-color: #dff0d8;
-    border-color: #ade595;
+    background-color: var(--parsonsCorrectBgColor);
+    border-color: var(--parsonsCorrectBorderColor);
 }
 .parsons .answer3 {
-    background: linear-gradient(#ee0, #ee0) no-repeat border-box,
-        linear-gradient(#ee0, #ee0) no-repeat border-box,
-        linear-gradient(#ee0, #ee0) no-repeat border-box;
+    background: linear-gradient(var(--parsonsBorderColor), var(--parsonsBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsBorderColor), var(--parsonsBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsBorderColor), var(--parsonsBorderColor)) no-repeat border-box;
     background-size: 1px 100%, 1px 100%, 1px 100%;
     background-position: 30px 0, 60px 0, 90px 0;
     background-origin: padding-box, padding-box, padding-box;
-    background-color: #ffa;
-    border-color: #ee0;
+    background-color: var(--parsonsBgColor);
+    border-color: var(--parsonsBorderColor);
 }
 .parsons .answer3.incorrect {
-    background: linear-gradient(#f2b6b6, #f2b6b6) no-repeat border-box,
-        linear-gradient(#f2b6b6, #f2b6b6) no-repeat border-box,
-        linear-gradient(#f2b6b6, #f2b6b6) no-repeat border-box;
+    background: linear-gradient(var(--parsonsIncorrectBorderColor), var(--parsonsIncorrectBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsIncorrectBorderColor), var(--parsonsIncorrectBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsIncorrectBorderColor), var(--parsonsIncorrectBorderColor)) no-repeat border-box;
     background-size: 1px 100%, 1px 100%, 1px 100%;
     background-position: 30px 0, 60px 0, 90px 0;
     background-origin: padding-box, padding-box, padding-box;
-    background-color: #f2dede;
-    border-color: #f2b6b6;
+    background-color: var(--parsonsIncorrectBgColor);
+    border-color: var(--parsonsIncorrectBorderColor);
 }
 .parsons .answer3.correct {
-    background: linear-gradient(#ade595, #ade595) no-repeat border-box,
-        linear-gradient(#ade595, #ade595) no-repeat border-box,
-        linear-gradient(#ade595, #ade595) no-repeat border-box;
+    background: linear-gradient(var(--parsonsCorrectBorderColor), var(--parsonsCorrectBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsCorrectBorderColor), var(--parsonsCorrectBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsCorrectBorderColor), var(--parsonsCorrectBorderColor)) no-repeat border-box;
     background-size: 1px 100%, 1px 100%, 1px 100%;
     background-position: 30px 0, 60px 0, 90px 0;
     background-origin: padding-box, padding-box, padding-box;
-    background-color: #dff0d8;
-    border-color: #ade595;
+    background-color: var(--parsonsCorrectBgColor);
+    border-color: var(--parsonsCorrectBorderColor);
 }
 .parsons .answer4 {
-    background: linear-gradient(#ee0, #ee0) no-repeat border-box,
-        linear-gradient(#ee0, #ee0) no-repeat border-box,
-        linear-gradient(#ee0, #ee0) no-repeat border-box,
-        linear-gradient(#ee0, #ee0) no-repeat border-box;
+    background: linear-gradient(var(--parsonsBorderColor), var(--parsonsBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsBorderColor), var(--parsonsBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsBorderColor), var(--parsonsBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsBorderColor), var(--parsonsBorderColor)) no-repeat border-box;
     background-size: 1px 100%, 1px 100%, 1px 100%, 1px 100%;
     background-position: 30px 0, 60px 0, 90px 0, 120px 0;
     background-origin: padding-box, padding-box, padding-box, padding-box;
-    background-color: #ffa;
-    border-color: #ee0;
+    background-color: var(--parsonsBgColor);
+    border-color: var(--parsonsBorderColor);
 }
 .parsons .answer4.incorrect {
-    background: linear-gradient(#f2b6b6, #f2b6b6) no-repeat border-box,
-        linear-gradient(#f2b6b6, #f2b6b6) no-repeat border-box,
-        linear-gradient(#f2b6b6, #f2b6b6) no-repeat border-box,
-        linear-gradient(#f2b6b6, #f2b6b6) no-repeat border-box;
+    background: linear-gradient(var(--parsonsIncorrectBorderColor), var(--parsonsIncorrectBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsIncorrectBorderColor), var(--parsonsIncorrectBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsIncorrectBorderColor), var(--parsonsIncorrectBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsIncorrectBorderColor), var(--parsonsIncorrectBorderColor)) no-repeat border-box;
     background-size: 1px 100%, 1px 100%, 1px 100%, 1px 100%;
     background-position: 30px 0, 60px 0, 90px 0, 120px 0;
     background-origin: padding-box, padding-box, padding-box, padding-box;
-    background-color: #f2dede;
-    border-color: #f2b6b6;
+    background-color: var(--parsonsIncorrectBgColor);
+    border-color: var(--parsonsIncorrectBorderColor);
 }
 .parsons .answer4.correct {
-    background: linear-gradient(#ade595, #ade595) no-repeat border-box,
-        linear-gradient(#ade595, #ade595) no-repeat border-box,
-        linear-gradient(#ade595, #ade595) no-repeat border-box,
-        linear-gradient(#ade595, #ade595) no-repeat border-box;
+    background: linear-gradient(var(--parsonsCorrectBorderColor), var(--parsonsCorrectBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsCorrectBorderColor), var(--parsonsCorrectBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsCorrectBorderColor), var(--parsonsCorrectBorderColor)) no-repeat border-box,
+        linear-gradient(var(--parsonsCorrectBorderColor), var(--parsonsCorrectBorderColor)) no-repeat border-box;
     background-size: 1px 100%, 1px 100%, 1px 100%, 1px 100%;
     background-position: 30px 0, 60px 0, 90px 0, 120px 0;
     background-origin: padding-box, padding-box, padding-box, padding-box;
-    background-color: #dff0d8;
-    border-color: #ade595;
+    background-color: var(--parsonsCorrectBgColor);
+    border-color: var(--parsonsCorrectBorderColor);
 }
 .parsons .block {
     position: absolute;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
     border-radius: 10px;
-    background-color: #efefef;
+    background-color: var(--background, #efefef);
     border: 1px solid #d3d3d3;
     padding: 5px 10px;
     margin-top: 5px;
@@ -227,7 +227,7 @@
 .parsons .correct {
     border: 1px solid #d6e9c6;
     background: none;
-    background-color: #dff0d8;
+    background-color: var(--parsonsCorrectBgColor);
 }
 .parsons .indentLeft,
 .parsons .indentRight {
@@ -287,6 +287,7 @@
     margin-left: auto;
     margin-right: auto;
     text-align: center;
+    margin-top: 10px;
 }
 
 .parsons [role="tooltip"] {
@@ -302,7 +303,6 @@
 }
 
 .block-label {
-    font-family: "Courier";
     font-size: 90%;
     color: #7e7ee7;
     vertical-align: top;

@@ -2,30 +2,27 @@
     padding: 20px 15px 10px 15px;
 }
 
-.question .nav.nav-tabs {
+.nav.nav-tabs {
     padding-top: 6px;
-    background-color: #CFCCB8;
-    border-color: #fbeed5;
-    border-radius: 4px;
+    background-color: var(--componentBgColor);
+    border-color: var(--componentBorderColor);
 }
 
-.question .nav.nav-tabs li {
+.nav.nav-tabs > li {
     margin-right: 1px;
     margin-left: 6px;
 }
 
-.question .nav.nav-tabs li > a {
-    background-color: #E6E2CC;
-    border-bottom-color: #fcf8e3;
-    color: #555;
+.nav.nav-tabs > li > a {
+    border: 1px solid var(--componentBorderColor);
+    border-radius: 4px 4px 0 0;
+    border-bottom: 0;
+    color: var(--bodyFont, #555);
 }
 
-.question .nav-tabs > li > a:hover {
-    border-color: #b4b19d;
-    border-bottom-width:0;
+.nav.nav-tabs > li.active > a,
+.nav.nav-tabs > li > a:is(:hover, :focus),
+.nav.nav-tabs > li.active > a:is(:hover, :focus) {
+    background-color: #156ba4;
+    color: white;
 }
-
-.question .nav.nav-tabs li.active > a {
-    background-color: #faf7df;
-}
-

@@ -39,10 +39,11 @@
     display: flex;
     flex-wrap: wrap;  /* wrap for smaller screens */
     justify-content: center;
+    margin-bottom: 10px;
 }
 
 .ac_sep {
-    background: #000;
+    background: var(--componentBorderColor);
     display: inline-block;
     margin: -15px 10px;
     width: 1px;
@@ -71,7 +72,7 @@
     background-color: inherit;
 }
 .ac_output pre {
-    background-color: lightgray;
+    background-color: var(--ac-out-background);
 }
 
 .python_check_results pre {
@@ -89,13 +90,12 @@
 
 .ac_question {
     background-color: var(--questionBgColor);
-    padding-left: 10px;
-    padding-top: 10px;
-    margin: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
 }
 
 .active_out {
-    background-color: #dcdcdc;
+    background-color: var(--ac-out-background);
     border-radius: 6px;
     min-width: 20em;
     max-height: 300px;
@@ -103,7 +103,7 @@
 }
 
 .visible-ac-canvas {
-    border: 2px solid black;
+    border: 2px solid var(--componentBorderColor);
 }
 
 .full_width ol {
@@ -115,8 +115,12 @@
 }
 
 .ac-feedback {
-    border: 1px solid black;
+    border: 1px solid var(--componentBorderColor);
     padding: 3px;
+}
+
+.unittest-results tr:not(:first-of-type) td:first-of-type{
+    color: #111; /* deal with hardcoded light backgrounds in skulpt :( */
 }
 
 .CodeMirror {
@@ -125,7 +129,7 @@
 }
 
 .ac_sql_result {
-    background-color: lightgrey;
+    background-color: var(--ac-out-background);
     padding: 10px;
     border-radius: 6px;
     margin-bottom: 10px;
@@ -161,4 +165,5 @@
 
 .ac_section .alert h3:first-child {
     margin-top: 0px;
-  }
+}
+

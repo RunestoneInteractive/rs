@@ -35,13 +35,11 @@ export default class JUnitTestParser {
             let td = document.createElement("td");
             td.classList.add("ac-feedback");
             if (match[match.length - 1] == "true") {
+                td.classList.add("ac-feedback-pass");
                 td.innerHTML = "Pass";
-                td.style =
-                    "background-color: rgb(131, 211, 130); text-align: center;";
             } else {
+                td.classList.add("ac-feedback-fail");
                 td.innerHTML = "Fail";
-                td.style =
-                    "background-color: rgb(222, 142, 150); text-align: center;";
             }
             tr.appendChild(td);
             tbl.appendChild(tr);
