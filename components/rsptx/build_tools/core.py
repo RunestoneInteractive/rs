@@ -39,6 +39,7 @@ from rsptx.logging import rslogger
 from runestone.server import get_dburl
 from rsptx.db.models import Library, LibraryValidator
 from rsptx.response_helpers.core import canonical_utcnow
+
 rslogger.setLevel("WARNING")
 
 # Local packages
@@ -243,7 +244,9 @@ def check_project_ptx(click=click, course=None):
         click.echo(f"Error course: {course} does not match document-id: {docid}")
         return False
 
-    if proj.output_dir.resolve().parts[-2] != course:
+    # This used to be .resolve but that resolves symlinks which foil
+    # our trick of symlinking into a repo that contains a book to build
+    if proj.output_dir.absolute().parts[-2] != course:
         click.echo(
             f"Project directory does not match course name: {course} they must match!"
         )
