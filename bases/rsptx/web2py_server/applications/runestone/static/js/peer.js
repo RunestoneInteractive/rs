@@ -557,9 +557,10 @@ async function setupPeerGroup() {
     try {
         let response = await fetch(request);
         if (!response.ok) {
-            throw new Error("Failed to save the log entry");
+            console.error(`Failed to get the student list for groups! ${response.statusText}`);
+        } else {
+            studentList = await response.json();
         }
-        studentList = await response.json();
     } catch (e) {
         console.log(`Error: ${e}`);
     }
