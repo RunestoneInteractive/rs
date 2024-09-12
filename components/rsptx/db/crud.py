@@ -25,6 +25,7 @@ import pytz
 
 # Third-party imports
 # -------------------
+from asyncpg.exceptions import UniqueViolationError
 from fastapi.exceptions import HTTPException
 from pydal.validators import CRYPT
 from sqlalchemy import and_, distinct, func, update, or_
@@ -1504,14 +1505,13 @@ async def upsert_grade(grade: GradeValidator) -> GradeValidator:
     """
     new_grade = Grade(**grade.dict())
     success = True
-    async with async_session.begin() as session:
-        # merge either inserts or updates the object
-        try:
+    try:
+        async with async_session.begin() as session:
+            # merge either inserts or updates the object
             await session.merge(new_grade)
-        except IntegrityError as e:
-            rslogger.error(f"IntegrityError: {e} id = {new_grade.id}")
-            success = False
-
+    except (IntegrityError, UniqueViolationError) as e:
+        rslogger.error(f"IntegrityError: {e} id = {new_grade.id}")
+        success = False
     if success:
         return GradeValidator.from_orm(new_grade)
     else:
@@ -1778,13 +1778,12 @@ async def create_question_grade_entry(
         score=grade,
         comment="autograded",
     )
-
-    async with async_session.begin() as session:
-        try:
+    try:
+        async with async_session.begin() as session:
             session.add(new_qg)
-        except IntegrityError as e:
-            rslogger.error(f"IntegrityError: {e} id = {new_qg.id}")
-            return None
+    except (IntegrityError, UniqueViolationError) as e:
+        rslogger.error(f"IntegrityError: {e} id = {new_qg.id}")
+        return None
     return QuestionGradeValidator.from_orm(new_qg)
 
 
