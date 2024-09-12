@@ -14,6 +14,7 @@ from decimal import Decimal, ROUND_HALF_UP
 # -------------------
 from psycopg2 import IntegrityError
 from gluon import current
+import pydal
 
 # Local imports
 # -------------
@@ -110,6 +111,11 @@ def _score_peer_instruction(rows, points, autograde):
     has_vote1 = 0
     has_vote2 = 0
     sent_message = 0
+    logger.debug(f"PEER Scoring: rows = {rows}")
+    if type(rows) is not pydal.objects.Rows:
+        logger.error(f"PEER: rows is not a Rows object: {rows}")
+        return 0
+
     for row in rows:
         if "vote1" in row.act:
             has_vote1 = 1

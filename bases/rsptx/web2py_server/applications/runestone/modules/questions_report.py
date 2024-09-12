@@ -621,7 +621,22 @@ def grades_to_hot(
 ):
 
     div_id_dict = grades[None]
-    assert div_id_dict, "No supported question types in this assignment."
+    # do not crash just return empty data
+    if not div_id_dict:
+        return json.dumps(
+            dict(
+                colHeaders=[
+                    "userid",
+                    "Family name",
+                    "Given name",
+                    "e-mail",
+                    "avg grade (%)",
+                ],
+                data=[],
+                orig_data=[],
+                mergeCells=[],
+            )
+        )
 
     # Convert the iterator returned by a dict to a list. Otherwise, the iterator will be used up after producing the first row of data.
     question_info_values = list(div_id_dict.values())
