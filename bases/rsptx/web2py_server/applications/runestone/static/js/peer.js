@@ -352,6 +352,8 @@ async function enableFaceChat(event) {
         course_name: eBookConfig.course,
     };
     publishMessage(mess);
+    let faceChatButton = document.querySelector("#facechat");
+    faceChatButton.disabled = true;
 
 }
 
