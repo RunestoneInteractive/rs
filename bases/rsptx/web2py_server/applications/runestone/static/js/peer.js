@@ -162,7 +162,9 @@ function connect(event) {
                 case "enableFaceChat":
                     console.log("got enableFaceChat message");
                     let facechat = document.getElementById("group_select_panel");
-                    facechat.style.display = "block";
+                    if (facechat) {
+                        facechat.style.display = "block";
+                    }
                 default:
                     console.log("unknown control message");
             }
