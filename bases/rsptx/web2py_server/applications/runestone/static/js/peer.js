@@ -385,6 +385,8 @@ function startVote2(event) {
 
     // Enabling the "Stop Vote 2" button once Vote 2 begins
     document.querySelector("#vote3").disabled = false;
+    let counterel = document.querySelector("#counter2");
+    counterel.innerHTML = "<p>Vote 2 Answers: 0</p>";
 }
 
 async function clearPartners(event) {
