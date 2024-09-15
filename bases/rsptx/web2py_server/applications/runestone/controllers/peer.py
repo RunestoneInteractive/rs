@@ -148,6 +148,7 @@ def _get_numbered_question(assignment_id, qnum):
     done = "false"
     if qnum > len(a_qs) - 1:
         qnum = len(a_qs) - 1
+    if qnum == len(a_qs) - 1:
         done = "true"
 
     current_question_id = a_qs[qnum].question_id
@@ -284,7 +285,7 @@ def num_answers():
         & (db.mchoice_answers.course_name == auth.user.course_name)
         & (db.mchoice_answers.timestamp > parse(request.vars.start_time))
     ).count(distinct=db.mchoice_answers.sid)
-    # TODO update this to count the number of sendmessage events since start time for this question
+
     mess_count = db(
         (db.useinfo.div_id == div_id)
         & (db.useinfo.course_id == auth.user.course_name)
@@ -648,6 +649,7 @@ def _get_user_messages(user, div_id, course_name):
     mess += "</ul>"
 
     return mess, participants
+
 
 @auth.requires(
     lambda: verifyInstructorStatus(auth.user.course_id, auth.user),

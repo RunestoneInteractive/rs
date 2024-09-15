@@ -16,6 +16,7 @@ import ast
 # -------------------
 from fastapi import APIRouter, Request
 from pyflakes import checker as pyflakes_checker
+from applogger import rslogger
 
 # Local application imports
 # -------------------------
@@ -40,7 +41,11 @@ async def python_check(request: Request):
     Pyflakes) on it to provide more detailed advice than is available
     via Skulpt.
     """
-    code_bytes = await request.body()
+    try:
+        code_bytes = await request.body()
+    except Exception as e:
+        rslogger.error(f"Error reading request body: {e}")
+        return ""
     try:
         code = code_bytes.decode("utf-8")
     except UnicodeDecodeError:
