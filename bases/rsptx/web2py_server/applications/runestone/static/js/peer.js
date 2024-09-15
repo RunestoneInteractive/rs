@@ -305,7 +305,10 @@ function warnAndStopVote(event) {
     } else {
         let butt = document.querySelector("#vote3");
         butt.classList.replace("btn-info", "btn-secondary");
-        document.querySelector("#nextq").disabled = false;
+        // done will be true when we are on the last question
+        if (!done) {
+            document.querySelector("#nextq").disabled = false;
+        }
         let sendScore = document.querySelector("#sendScores");
         if (sendScore) {
             sendScore.disabled = false;

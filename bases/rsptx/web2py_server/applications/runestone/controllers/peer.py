@@ -148,6 +148,7 @@ def _get_numbered_question(assignment_id, qnum):
     done = "false"
     if qnum > len(a_qs) - 1:
         qnum = len(a_qs) - 1
+    if qnum == len(a_qs) - 1:
         done = "true"
 
     current_question_id = a_qs[qnum].question_id
@@ -648,6 +649,7 @@ def _get_user_messages(user, div_id, course_name):
     mess += "</ul>"
 
     return mess, participants
+
 
 @auth.requires(
     lambda: verifyInstructorStatus(auth.user.course_id, auth.user),
