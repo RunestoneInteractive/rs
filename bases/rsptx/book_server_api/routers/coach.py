@@ -16,10 +16,11 @@ import ast
 # -------------------
 from fastapi import APIRouter, Request
 from pyflakes import checker as pyflakes_checker
-from applogger import rslogger
 
 # Local application imports
 # -------------------------
+from rsptx.logging import rslogger
+
 
 # .. _APIRouter config:
 #
