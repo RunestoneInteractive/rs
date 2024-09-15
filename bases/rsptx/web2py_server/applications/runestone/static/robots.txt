@@ -1,2 +1,8 @@
 User-agent: *
 Disallow: /welcome/default/user
+Disallow: /runestone/ajax
+Disallow: /cgi-bin
+Disallow: /assignment
+Disallow: /author
+Disallow: /runestone/admin
+Disallow: /runestone/peer
