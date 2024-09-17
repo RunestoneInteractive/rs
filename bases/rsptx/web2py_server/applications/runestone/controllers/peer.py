@@ -403,6 +403,7 @@ def make_pairs():
         peeps.remove(auth.user.username)
     random.shuffle(peeps)
     group_list = []
+    done = len(peeps) == 0
     while not done:
         group = [peeps.pop()]
         for i in range(group_size - 1):
