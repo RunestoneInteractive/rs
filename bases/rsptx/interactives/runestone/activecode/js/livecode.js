@@ -122,6 +122,11 @@ export default class LiveCode extends ActiveCode {
             let m = source.match(classMatch);
             if (m) {
                 sourcefilename = m[1] + ".java";
+            } else {
+                alert(
+                    "Error: Could not find the class name in the source, this will not compile."
+                );
+                throw new Error("No class name in source");
             }
             // this will be unit test code
             m = this.suffix.match(classMatch);
