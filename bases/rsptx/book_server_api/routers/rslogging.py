@@ -581,10 +581,16 @@ async def get_datafile(
     request: Request,
     course_id: str,
     acid: str,
-    user=Depends(auth_manager),
     response_class=JSONResponse,
 ):
+    """
+    Get the source code for a given resource id (acid) in a given course.
+    Normally these are datafiles that are stored here.
 
+    This API does not require a user to be logged in.
+
+    returns: JSONResponse - file contents
+    """
     course = await fetch_course(course_id)
 
     file_contents = await fetch_source_code(

@@ -6,3 +6,4 @@ Disallow: /assignment
 Disallow: /author
 Disallow: /runestone/admin
 Disallow: /runestone/peer
+Disallow: /ns/books/published/*/_templates

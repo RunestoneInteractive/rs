@@ -318,6 +318,11 @@ function warnAndStopVote(event) {
 }
 
 async function makePartners() {
+    // first make sure there are enough votes to make pairs
+    if (answerCount < 2) {
+        alert("Not enough votes to make groups");
+        return;
+    }
     let butt = document.querySelector("#makep");
     butt.classList.replace("btn-info", "btn-secondary");
     let gs = document.getElementById("groupsize").value;

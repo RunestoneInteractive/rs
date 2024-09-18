@@ -209,6 +209,7 @@
         }
         console.log(`startTime = ${startTime} startTime2 = ${startTime2} spec = ${JSON.stringify(spec, null, 2)}`)
         counterel.innerHTML = `<p>Vote ${v} Answers: ${spec.count}</p>`;
+        answerCount = spec.count;
     }
 </script>
 <script src="/runestone/static/js/peer.js?v={{=request.peer_mtime}}"></script>
@@ -223,6 +224,7 @@
     var startTime = new Date().toUTCString();
     var startTime2 = null;
     var mess_count = 0;
+    var answerCount = 0;
     var done = {{=is_last }}
     if (done) {
         document.getElementById("nextq").disabled = true;

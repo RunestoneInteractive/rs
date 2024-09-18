@@ -8,7 +8,7 @@
 # given a competency it will select a random question from all questions that
 # test for that competency.
 
-# Copyright (C) 2020  Runestone Interactive LLC
+# Copyright (C) 2020  Runestone Academy LLC
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -119,15 +119,15 @@ class SelectQuestion(RunestoneIdDirective):
         if is_dynamic or is_preview:
             self.options["message"] = "Loading a dynamic question ..."
         else:
-            self.options[
-                "message"
-            ] = "The selectquestion directive only works with Runestone Services"
+            self.options["message"] = (
+                "The selectquestion directive only works with Runestone Services"
+            )
 
         if "fromid" in self.options:
             self.question_bank_choices = self.options["fromid"]
-            self.options[
-                "selector"
-            ] = f"data-questionlist='{self.question_bank_choices}'"
+            self.options["selector"] = (
+                f"data-questionlist='{self.question_bank_choices}'"
+            )
             self.options[
                 "message"
             ] += f"<br/>Selecting from: {self.question_bank_choices}"
@@ -139,9 +139,9 @@ class SelectQuestion(RunestoneIdDirective):
         self.options["component_id"] = self.arguments[0].strip()
 
         if "proficiency" in self.options:
-            self.options[
-                "proficiency"
-            ] = f"""data-proficiency='{self.options["proficiency"]}'"""
+            self.options["proficiency"] = (
+                f"""data-proficiency='{self.options["proficiency"]}'"""
+            )
         else:
             self.options["proficiency"] = ""
 
@@ -153,16 +153,16 @@ class SelectQuestion(RunestoneIdDirective):
             self.options["points"] = ""
 
         if "min_difficulty" in self.options:
-            self.options[
-                "min_difficulty"
-            ] = f"data-minDifficulty={self.options['min_difficulty']}"
+            self.options["min_difficulty"] = (
+                f"data-minDifficulty={self.options['min_difficulty']}"
+            )
         else:
             self.options["min_difficulty"] = ""
 
         if "max_difficulty" in self.options:
-            self.options[
-                "max_difficulty"
-            ] = f"data-maxDifficulty={self.options['max_difficulty']}"
+            self.options["max_difficulty"] = (
+                f"data-maxDifficulty={self.options['max_difficulty']}"
+            )
         else:
             self.options["max_difficulty"] = ""
 

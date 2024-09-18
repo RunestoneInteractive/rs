@@ -1077,7 +1077,7 @@ def _try_to_send_lti_grade(student_row_num, assignment_id):
         if not grade:
             current.session.flash = (
                 "Failed to find grade object for user {} and assignment {}".format(
-                    auth.user.id, assignment_id
+                    student_row_num, assignment_id
                 )
             )
             return False

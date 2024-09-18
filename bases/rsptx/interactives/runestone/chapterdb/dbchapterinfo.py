@@ -109,7 +109,7 @@ def env_updated(app, doctree, docname):
 # Given a sequence of section numbers, produce a single (orderable) int from the subchapter number and optionally the subsubchapter. Any finer divisions are ignored.
 def make_subchap_num(
     # A sequence of section numbers in the format ``(chapter, subchapter, optional_subsubchapter, ignored_stuff...)``.
-    sn_seq: Sequence[int]
+    sn_seq: Sequence[int],
     # Returns subchapter*100 + optional_subsubchapter.
 ) -> int:
     if not sn_seq or len(sn_seq) < 2:

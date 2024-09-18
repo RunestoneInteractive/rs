@@ -47,7 +47,7 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = "Runestone Interactive Overview"
+project = "Runestone Academy Overview"
 copyright = "2017 bjones"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -180,7 +180,7 @@ html_theme_path = [
 html_title = "Runestone Test Book"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-html_short_title = "Runestone Interactive Overview"
+html_short_title = "Runestone Academy Overview"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
