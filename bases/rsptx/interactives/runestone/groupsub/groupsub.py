@@ -8,7 +8,7 @@
 # given a competency it will select a random question from all questions that
 # test for that competency.
 
-# Copyright (C) 2021  Runestone Interactive LLC
+# Copyright (C) 2021  Runestone Academy LLC
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
