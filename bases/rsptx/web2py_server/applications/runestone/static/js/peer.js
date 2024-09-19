@@ -129,6 +129,7 @@ function connect(event) {
                     $(".runestone [type=checkbox]").prop("checked", false);
                     break;
                 case "enableNext":
+                    console.log("Got enableNext message");
                     // This moves the student to the next question in the assignment
                     // first disable the handler to prevent leaving the page.
                     $(window).off("beforeunload");
