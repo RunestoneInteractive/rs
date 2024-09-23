@@ -112,6 +112,7 @@ def build():
             login_required=login_required,
             python3=python3,
             courselevel=courselevel,
+            state=request.vars.state,
             new_server=True,
         )
 
