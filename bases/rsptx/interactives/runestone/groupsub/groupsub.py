@@ -70,6 +70,7 @@ def setup(app):
 class GroupSubmission(RunestoneDirective):
     """
     .. groupsub:: uniqueid
+       :optional:
        :limit: int
        :question_list:
 
