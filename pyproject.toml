@@ -5,7 +5,7 @@
 # --------------------
 [tool.poetry]
 name = "rs"
-version = "7.1.15"
+version = "7.1.18"
 description = ""
 authors = ["Brad Miller <bonelake@mac.com>"]
 license = "MIT"
