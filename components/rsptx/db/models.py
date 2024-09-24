@@ -342,7 +342,9 @@ class Code(Base, IdMixin):
     edit_distance = Column(Integer)
     cps = Column(Float())
 
+
 CodeValidator = sqlalchemy_to_pydantic(Code)
+
 
 # Used for datafiles and storing questions and their suffix separately.
 # this maybe redundant TODO: check before we port the api call to get
@@ -357,8 +359,8 @@ class SourceCode(Base, IdMixin):
     main_code = Column(Text, nullable=False)
     suffix_code = Column(Text)
 
-SourceCodeValidator = sqlalchemy_to_pydantic(SourceCode)
 
+SourceCodeValidator = sqlalchemy_to_pydantic(SourceCode)
 
 
 # Courses
@@ -386,6 +388,7 @@ class Courses(Base, IdMixin):
     # should be served by the new bookserver
     new_server = Column(Web2PyBoolean, default=True)
     is_supporter = Column(Web2PyBoolean)
+    state = Column(String(128))  # the US State in which the course is taught
 
 
 CoursesValidator = sqlalchemy_to_pydantic(Courses)
@@ -525,8 +528,11 @@ class Question(Base, IdMixin):
     pct_on_first = Column(Float(53))
     mean_clicks_to_correct = Column(Float(53))
     question_json = Column(JSON)  # contains the JSON representation of the question
-    owner = Column(String(512)) # username of the owner of the question (Author could be any name)
+    owner = Column(
+        String(512)
+    )  # username of the owner of the question (Author could be any name)
     tags = Column(String(512))  # comma separated list of tags
+
 
 QuestionValidator = sqlalchemy_to_pydantic(Question)
 

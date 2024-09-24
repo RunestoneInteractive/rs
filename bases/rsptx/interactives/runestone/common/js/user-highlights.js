@@ -8,7 +8,7 @@ function getCompletions() {
     // Get the completion status
     if (
         window.location.href.match(
-            /(index.html|toctree.html|genindex.html|navhelp.html|toc.html|assignments.html|Exercises.html)/
+            /(\/index.html|toctree.html|genindex.html|navhelp.html|toc.html|assignments.html|Exercises.html)/
         )
     ) {
         return;
@@ -49,10 +49,10 @@ function getCompletions() {
                 }
                 $("#scprogresscontainer").append(
                     '<div style="text-align:center"><button class="btn btn-lg ' +
-                        completionClass +
-                        '" id="completionButton">' +
-                        completionMsg +
-                        "</button></div>"
+                    completionClass +
+                    '" id="completionButton">' +
+                    completionMsg +
+                    "</button></div>"
                 );
             }
         });
@@ -63,8 +63,8 @@ function showLastPositionBanner() {
     if (typeof lastPositionVal !== "undefined") {
         $("body").append(
             '<img src="../_static/last-point.png" style="position:absolute; padding-top:55px; left: 10px; top: ' +
-                parseInt(lastPositionVal) +
-                'px;"/>'
+            parseInt(lastPositionVal) +
+            'px;"/>'
         );
         $("html, body").animate({ scrollTop: parseInt(lastPositionVal) }, 1000);
     }
@@ -200,8 +200,8 @@ function decorateTableOfContents() {
                                 if (
                                     allSubChapterURLs[s].href.indexOf(
                                         item.chapterName +
-                                            "/" +
-                                            item.subChapterName
+                                        "/" +
+                                        item.subChapterName
                                     ) != -1
                                 ) {
                                     if (item.completionStatus == 1) {
@@ -209,8 +209,8 @@ function decorateTableOfContents() {
                                             .addClass("completed")
                                             .append(
                                                 '<span class="infoTextCompleted">- Completed this topic on ' +
-                                                    item.endDate +
-                                                    "</span>"
+                                                item.endDate +
+                                                "</span>"
                                             )
                                             .children()
                                             .first()
@@ -235,8 +235,8 @@ function decorateTableOfContents() {
                                             .addClass("active")
                                             .append(
                                                 '<span class="infoTextActive">Last read this topic on ' +
-                                                    item.endDate +
-                                                    "</span>"
+                                                item.endDate +
+                                                "</span>"
                                             )
                                             .children()
                                             .first()
@@ -273,16 +273,16 @@ function decorateTableOfContents() {
                             .show()
                             .html(
                                 '<div id="jump-to-chapter" class="alert alert-info" ><strong>You were Last Reading:</strong> ' +
-                                    lastPageData.lastPageChapter +
-                                    (lastPageData.lastPageSubchapter
-                                        ? " &gt; " +
-                                          lastPageData.lastPageSubchapter
-                                        : "") +
-                                    ' <a href="' +
-                                    lastPageData.lastPageUrl +
-                                    "?lastPosition=" +
-                                    lastPageData.lastPageScrollLocation +
-                                    '">Continue Reading</a></div>'
+                                lastPageData.lastPageChapter +
+                                (lastPageData.lastPageSubchapter
+                                    ? " &gt; " +
+                                    lastPageData.lastPageSubchapter
+                                    : "") +
+                                ' <a href="' +
+                                lastPageData.lastPageUrl +
+                                "?lastPosition=" +
+                                lastPageData.lastPageScrollLocation +
+                                '">Continue Reading</a></div>'
                             );
                     }
                 }
