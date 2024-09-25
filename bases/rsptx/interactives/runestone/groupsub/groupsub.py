@@ -74,10 +74,13 @@ class GroupSubmission(RunestoneDirective):
        :limit: int
        :question_list:
 
+
     For a POGIL or groupwork page to allow one partner to submit answers
     to all questions on the page for everyone in the group.
+    :limit: sets the maximum group size.
     Question list is an anticipated extension that will allow the author
     to specify a list of questions rather than assuming all.
+    The ``:optional:`` flag should almost always be set!!
     """
 
     required_arguments = 1
