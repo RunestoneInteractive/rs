@@ -50,24 +50,26 @@
             >
                 Stop Vote 1
             </button>
-            <button
-                type="button"
-                id="makep"
-                class="btn btn-info"
-                onclick="makePartners(event)"
-                disabled
-            >
-                Enable Text Chat
-            </button>
-            <button
-                type="button"
-                id="facechat"
-                class="btn btn-info"
-                onclick="enableFaceChat(event)"
-                disabled
-            >
-            Enable in-person Chat
-            </button>
+            <div id="chat-modality">
+                <button
+                    type="button"
+                    id="makep"
+                    class="btn btn-info"
+                    onclick="makePartners(event)"
+                    disabled
+                >
+                    Enable Text Chat
+                </button>
+                <button
+                    type="button"
+                    id="facechat"
+                    class="btn btn-info"
+                    onclick="enableFaceChat(event)"
+                    disabled
+                >
+                Enable in-person Chat
+                </button>
+            </div>
             <button
                 type="button"
                 id="vote2"
@@ -86,25 +88,26 @@
             >
                 Stop Vote 2
             </button>
-            <button
-                type="submit"
-                id="nextq"
-                class="btn btn-info"
-                name="next"
-                value="Next"
-                disabled
-            >
-                Next Question
-            </button>
-            <button
-                type="submit"
-                id="restart"
-                class="btn btn-danger"
-                name="next"
-                value="Reset"
-            >
-                Start Over
-            </button>
+            <div>
+                <button
+                    type="submit"
+                    id="nextq"
+                    class="btn btn-info"
+                    name="next"
+                    value="Next"
+                >
+                    Next Question
+                </button>
+                <button
+                    type="submit"
+                    id="restart"
+                    class="btn btn-danger"
+                    name="next"
+                    value="Reset"
+                >
+                    Start Over
+                </button>
+            </div>
             {{ if lti: }}
             <button
                 type="button"
