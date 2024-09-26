@@ -166,7 +166,10 @@ function renderAltairChart(containerId, data, title) {
                         "field": "percentage",
                         "type": "quantitative",
                         "title": "Votes (%)",
-                        "axis": { "tickMinStep": 1 }
+                        "axis": { "tickMinStep": 1 },
+                        "scale": {
+                            "domain": [0, 100]
+                        }
                     },
                     "color": {
                         "field": "correct",
@@ -194,14 +197,22 @@ function renderAltairChart(containerId, data, title) {
                     },
                     "y": {
                         "field": "percentage",
-                        "type": "quantitative"
+                        "type": "quantitative",
+                        "scale": {
+                            "domain": [0, 100]
+                        }
                     },
                     "text": {
-                        "field": "percentage",
-                        "type": "quantitative",
-                        "format": "d"
+                        "field": "percentage_with_sign",
+                        "type": "nominal",
                     }
-                }
+                },
+                "transform": [
+                    {
+                        "calculate": "datum.percentage + '%'",
+                        "as": "percentage_with_sign"
+                    }
+                ]
             }
         ],
         "title": title
