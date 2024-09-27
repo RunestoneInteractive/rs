@@ -439,7 +439,7 @@ public class CodeTestHelper {
                 if (m.getName().equals(methodName)) {
 
                     if (!checkStaticMethod(m) && checkReturnType(m, "void")) {
-                        return getInstanceMethodOutput(m, null);
+                        return getInstanceMethodOutput(m, args);
                     } else if (!checkStaticMethod(m)) {
                         Object o = getTestInstance();
 
