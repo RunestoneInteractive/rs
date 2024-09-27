@@ -301,15 +301,10 @@ function warnAndStopVote(event) {
         let butt = document.querySelector("#vote1");
         butt.classList.replace("btn-info", "btn-secondary");
         document.querySelector("#makep").disabled = false;
-        document.querySelector("#vote2").disabled = false;
         document.querySelector("#facechat").disabled = false;
     } else {
         let butt = document.querySelector("#vote3");
         butt.classList.replace("btn-info", "btn-secondary");
-        // done will be true when we are on the last question
-        if (!done) {
-            document.querySelector("#nextq").disabled = false;
-        }
         let sendScore = document.querySelector("#sendScores");
         if (sendScore) {
             sendScore.disabled = false;
@@ -351,6 +346,7 @@ async function makePartners() {
     } else {
         // success
         butt.disabled = true;
+        document.querySelector("#vote2").disabled = false;
     }
 }
 
@@ -363,9 +359,16 @@ async function enableFaceChat(event) {
         course_name: eBookConfig.course,
     };
     publishMessage(mess);
+
     let faceChatButton = document.querySelector("#facechat");
+    faceChatButton.classList.replace("btn-info", "btn-secondary");
     faceChatButton.disabled = true;
 
+    let textChatButton = document.querySelector("#makep");
+    textChatButton.classList.replace("btn-info", "btn-secondary");
+    textChatButton.disabled = true;
+
+    document.querySelector("#vote2").disabled = false;
 }
 
 function startVote2(event) {
@@ -388,6 +391,7 @@ function startVote2(event) {
     let textChatButton = document.querySelector("#makep");
     textChatButton.classList.replace("btn-info", "btn-secondary");
     textChatButton.disabled = true;
+    // Disabling the "Enable in-person Chat" button (if not already done) once Vote 2 begins
     let faceChatButton = document.querySelector("#facechat");
     faceChatButton.classList.replace("btn-info", "btn-secondary");
     faceChatButton.disabled = true;
