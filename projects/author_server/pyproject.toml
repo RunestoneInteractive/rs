@@ -15,6 +15,7 @@ packages = [
     { include = "rsptx/logging", from = "../../components" },
     { include = "rsptx/validation", from = "../../components" },
     { include = "rsptx/response_helpers", from = "../../components" },
+    { include = "rsptx/exceptions", from = "../../components" },
     { include = "rsptx/build_tools", from = "../../components" },
     { include = "rsptx/templates", from = "../../components" },
     { include = "rsptx/author_server_api", from = "../../bases" },
