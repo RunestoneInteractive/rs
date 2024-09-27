@@ -48,6 +48,8 @@ from rsptx.author_server_api.worker import (
     anonymize_data_dump,
 )
 from rsptx.auth.session import is_instructor
+from rsptx.exceptions.core import add_exception_handlers
+
 from rsptx.db.crud import (
     create_book_author,
     create_library_book,
@@ -86,6 +88,8 @@ app = FastAPI()
 base_dir = pathlib.Path(template_folder)
 app.mount("/static", StaticFiles(directory=base_dir / "staticAssets"), name="static")
 templates = Jinja2Templates(directory=template_folder)
+
+add_exception_handlers(app)
 
 
 async def create_book_entry(author: str, document_id: str, github: str):
