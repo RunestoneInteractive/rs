@@ -149,7 +149,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click):
         logger.setLevel(logging.INFO)
         string_io_handler = StringIOHandler()
         logger.addHandler(string_io_handler)
-
+        click.echo("Building the book")
         rs.build()  # build the book, generating assets as needed
 
         with open("cli.log", "a") as olfile:
