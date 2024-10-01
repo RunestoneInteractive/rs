@@ -79,9 +79,9 @@ def init():
         "Default ActiveCode language", default="python"
     )
     if conf_dict["use_services"] == "true":
-        conf_dict[
-            "project_name"
-        ] = "os.path.basename(os.path.dirname(os.path.abspath(__file__)))"
+        conf_dict["project_name"] = (
+            "os.path.basename(os.path.dirname(os.path.abspath(__file__)))"
+        )
         conf_dict["build_dir"] = "./build"
         conf_dict["dest"] = "./published"
         conf_dict["login_req"] = click.prompt("Require login ", default="false")
@@ -193,6 +193,17 @@ def build(all, wd):
 
     confpath = pathlib.Path(pavement.options.get("confdir", "."))
 
+    if pavement.options.build.template_args["basecourse"] != pavement.project_name:
+        click.echo(
+            click.style(
+                f"""Please update pavement.py so that basecourse ({pavement.options.build.template_args["basecourse"]}) 
+                            and project_name ({pavement.project_name}) match""",
+                fg="red",
+            ),
+            err=True,
+            color=True,
+        )
+        sys.exit(1)
     with open(confpath / "conf.py", encoding="utf-8") as cf:
         ctext = cf.read()
         if not re.search(r"from runestone import.*(setup|script_files)", ctext):

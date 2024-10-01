@@ -88,6 +88,12 @@ def _build_runestone_book(config, course, click=click):
             f"Error: {course} and {paver_vars['project_name']} do not match.  Your course name needs to match the project_name in pavement.py"
         )
         return False
+    if paver_vars.options.build.template_args['basecourse'] != course:
+        click.echo(
+            f"Error: {course} and {paver_vars.options.build.template_args['basecourse']} do not match.  Your course name needs to match the basecourse in pavement.py"
+        )
+        return False
+    
     click.echo("Running runestone build --all")
     res = subprocess.run("runestone build --all", shell=True, capture_output=True)
     with open("cli.log", "wb") as olfile:
