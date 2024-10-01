@@ -19,6 +19,7 @@ import subprocess
 from pathlib import Path
 import logging
 from io import StringIO
+from shutil import copytree
 
 # Third Party
 # -----------
@@ -88,12 +89,12 @@ def _build_runestone_book(config, course, click=click):
             f"Error: {course} and {paver_vars['project_name']} do not match.  Your course name needs to match the project_name in pavement.py"
         )
         return False
-    if paver_vars.options.build.template_args['basecourse'] != course:
+    if paver_vars.options.build.template_args["basecourse"] != course:
         click.echo(
             f"Error: {course} and {paver_vars.options.build.template_args['basecourse']} do not match.  Your course name needs to match the basecourse in pavement.py"
         )
         return False
-    
+
     click.echo("Running runestone build --all")
     res = subprocess.run("runestone build --all", shell=True, capture_output=True)
     with open("cli.log", "wb") as olfile:
@@ -130,7 +131,7 @@ def _build_runestone_book(config, course, click=click):
 
 # Build a PreTeXt Book
 # --------------------
-def _build_ptx_book(config, gen, manifest, course, click=click):
+def _build_ptx_book(config, gen, manifest, course, click=click, target="runestone"):
     """
     Parameters:
     config : This originated as a config object from click -- a mock config will be provided by the AuthorServer
@@ -147,7 +148,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click):
         click.echo("Checking files")
         # sets output_dir to `published/<course>`
         # and {"host-platform": "runestone"} in stringparams
-        rs = check_project_ptx(course=course)
+        rs = check_project_ptx(course=course, target=target)
         if not rs:
             return False
 
@@ -161,6 +162,22 @@ def _build_ptx_book(config, gen, manifest, course, click=click):
         with open("cli.log", "a") as olfile:
             olfile.write(string_io_handler.getvalue())
 
+        book_path = (
+            Path(os.environ.get("BOOK_PATH"))
+            / rs.output_dir
+            / "published"
+            / rs.output_dir
+        )
+
+        click.echo(f"Book will be deployed to {book_path}")
+        if rs.output_dir_abspath() != book_path:
+            res = copytree(rs.output_dir_abspath(), book_path, dirs_exist_ok=True)
+            if not res:
+                click.echo("Error copying files to published")
+                return False
+        else:
+            click.echo("No need to copy files to published")
+        click.echo("Book deployed successfully")
         mpath = rs.output_dir_abspath() / manifest
         process_manifest(course, mpath)
         # Fetch and copy the runestone components release as advertised by the manifest
@@ -170,7 +187,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click):
             click.echo("populating with the latest runestone files")
             populate_static(config, mpath, course)
         # update the library page
-        click.echo("updating library...")
+        click.echo("updating library metadata...")
         main_page = find_real_url(course)
         update_library(config, mpath, course, main_page=main_page, build_system="PTX")
         return True
@@ -198,7 +215,7 @@ def process_manifest(cname, mpath, click=click):
     return True
 
 
-def check_project_ptx(click=click, course=None):
+def check_project_ptx(click=click, course=None, target="runestone"):
     """
     Verify that the PreTeXt project is set up for a Runestone build
 
@@ -213,8 +230,8 @@ def check_project_ptx(click=click, course=None):
 
     """
     proj = Project.parse("project.ptx")
-    target_name = "runestone"
-    if proj.has_target("runestone") is False:
+    target_name = target
+    if proj.has_target(target_name) is False:
         if proj.has_target("web"):
             target_name = "web"
         elif proj.has_target("html"):
@@ -226,7 +243,10 @@ def check_project_ptx(click=click, course=None):
             f"No runestone target in project.ptx, will adopt {target_name} target"
         )
 
-    proj.output_dir = Path("published")
+    book_path = os.environ.get("BOOK_PATH", None)
+    if book_path is None:
+        click.echo("BOOK_PATH must be set in the environment")
+        return False
 
     tgt = proj.get_target(target_name)
 
@@ -248,14 +268,6 @@ def check_project_ptx(click=click, course=None):
 
     if course is not None and docid != course:
         click.echo(f"Error course: {course} does not match document-id: {docid}")
-        return False
-
-    # This used to be .resolve but that resolves symlinks which foil
-    # our trick of symlinking into a repo that contains a book to build
-    if proj.output_dir.absolute().parts[-2] != course:
-        click.echo(
-            f"Project directory does not match course name: {course} they must match!"
-        )
         return False
 
     tgt.output_dir = Path(docid)

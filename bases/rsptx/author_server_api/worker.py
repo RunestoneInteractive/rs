@@ -134,7 +134,7 @@ def clone_runestone_book(self, repo, bcname):
     return True
 
 
-def git_pull(self, book):
+def git_pull(self, book, source_path=None):
     res = subprocess.run(
         ["git", "reset", "--hard", "HEAD"], capture_output=True, cwd=f"/books/{book}"
     )
@@ -222,7 +222,7 @@ def build_runestone_book(self, book):
 
 
 @celery.task(bind=True, name="build_ptx_book")
-def build_ptx_book(self, book, generate=False):
+def build_ptx_book(self, book, generate=False, target="runestone", source_path=None):
     """
     Build a ptx book
 
@@ -230,20 +230,24 @@ def build_ptx_book(self, book, generate=False):
     :param book: book name
     :return: True if successful
     """
-    logger.debug(f"Building {book}")
-    outputlog = pathlib.Path("/books", book, "cli.log")
+    logger.debug(f"Building {book} with target {target} at {source_path}")
+    if source_path:
+        base_path = pathlib.Path("/books", book, source_path)
+    else:
+        base_path = pathlib.Path("/books", book)
+    outputlog = pathlib.Path(base_path, "cli.log")
     start_time = datetime.datetime.now()
     with open(outputlog, "w") as olfile:
         olfile.write(f"Starting build on {start_time}\n")
     self.update_state(state="CHECKING", meta={"current": "pull latest"})
     git_pull(self, book)
 
-    os.chdir(f"/books/{book}")
+    os.chdir(base_path)
     logger.debug(f"Before building myclick self = {self}")
     myclick = MyClick(self, "PTXBUILD")
     logger.debug("Starting build")
     res = _build_ptx_book(
-        config, generate, "runestone-manifest.xml", book, click=myclick
+        config, generate, "runestone-manifest.xml", book, click=myclick, target=target
     )
     if res:
         self.update_state(state="FINISHING", meta={"current": "updating permissions"})
