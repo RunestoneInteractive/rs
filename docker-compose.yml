@@ -365,6 +365,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - SSH_AUTH_SOCK=/ssh-agent
       - NUM_SERVERS=${NUM_SERVERS:-1}
+      - BOOK_PATH=/books
     depends_on:
       author:
         condition: service_started

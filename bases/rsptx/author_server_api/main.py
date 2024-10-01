@@ -479,7 +479,7 @@ async def do_build(payload=Body(...)):
     if book_system == "Runestone":
         task = build_runestone_book.delay(bcname)
     else:
-        task = build_ptx_book.delay(bcname, generate)
+        task = build_ptx_book.delay(bcname, generate, lib.target, lib.source_path)
 
     return JSONResponse({"task_id": task.id})
 

@@ -851,7 +851,9 @@ class Library(Base, IdMixin):
     basecourse = Column(
         String(512), ForeignKey("courses.course_name"), nullable=False, unique=True
     )
+    source_path = Column(String(512))  # path to the book source relative to BOOK_PATH/
     build_system = Column(String(20))
+    target = Column(String(128))  # the target for the PreTeXt build system
     for_classes = Column(Web2PyBoolean)
     is_visible = Column(Web2PyBoolean, default="T")
     github_url = Column(String(512))
@@ -859,6 +861,7 @@ class Library(Base, IdMixin):
     last_build = Column(DateTime)
     github_url = Column(String(255))
     social_url = Column(String(255))  # link to group for instructors
+    default_language = Column(String(20))
 
 
 LibraryValidator = sqlalchemy_to_pydantic(Library)
