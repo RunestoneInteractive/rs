@@ -18,7 +18,7 @@
 import { pageProgressTracker } from "./bookfuncs.js";
 //import "./../styles/runestone-custom-sphinx-bootstrap.css";
 
-var NO_DECORATE = ["parsonsMove", "showeval", "video", "poll", "view_toggle", 
+var NO_DECORATE = ["parsonsMove", "showeval", "video", "poll", "view_toggle",
     "dashboard", "selectquestion", "codelens", "peer", "shortanswer"]
 export default class RunestoneBase {
     constructor(opts) {
@@ -174,8 +174,17 @@ export default class RunestoneBase {
             }
             post_return = await response.json();
             let scoreSpec = post_return.detail;
-            let gradeBox = document.getElementById(`${this.divid}_score`);
-            if (gradeBox && !this.isTimed) {
+            let gradeBox = null;
+            if (this.selector_id) {
+                let selector_id = this.selector_id.replace(
+                    "-toggleSelectedQuestion",
+                    ""
+                );
+                gradeBox = document.getElementById(`${selector_id}_score`);
+            } else {
+                gradeBox = document.getElementById(`${this.divid}_score`);
+            }
+            if (gradeBox && !this.isTimed && scoreSpec.score) {
                 this.updateScores(gradeBox, scoreSpec);
             }
         } catch (e) {
