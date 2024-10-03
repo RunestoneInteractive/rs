@@ -424,6 +424,7 @@ def make_pairs():
         in_person_groups = []
         in_person_groups = _get_local_groups(auth.user.course_name)
         peeps_in_person = []
+        peeps_in_chat = []
         # Get the latest in person groups for each student
         # if this is for AB testing then iterate over peeps and decide if they are in a group or are
         # a chatting in person.  If a person is not in a group then the rest of their group should be
@@ -431,18 +432,33 @@ def make_pairs():
         peep_queue = peeps[:]
         while peep_queue:
             p = peep_queue.pop()
+            if p in peeps_in_person or p in peeps_in_chat:
+                continue
             if random.random() < 0.5:
                 logger.debug(f"adding {p} to the in_person list")
                 peeps_in_person.append(p)
                 peeps.remove(p)
                 other_peeps = find_set_containing_string(in_person_groups, p)
+                logger.debug(f"other_peeps = {other_peeps}")
                 for op in other_peeps:
-                    peeps.remove(op)
-                    peeps_in_person.append(op)
-                    logger.debug(f"removing {op} from the peeps list")
+                    if op in peeps:
+                        peeps.remove(op)
+                        logger.debug(f"removed {op} from the peeps list")
+                    if op not in peeps_in_person:
+                        peeps_in_person.append(op)
+            else:
+                peeps_in_chat.append(p)
+                peeps.remove(p)
+                other_peeps = find_set_containing_string(in_person_groups, p)
+                for op in other_peeps:
+                    if op in peeps:
+                        peeps.remove(op)
+                    if op not in peeps_in_chat:
+                        peeps_in_chat.append(op)
+        peeps = peeps_in_chat
         # Now peeps contains only those who need to be paired up for chat
-        logger.debug(f"peeps = {peeps}")
-        logger.debug(f"peeps_in_person = {peeps_in_person}")
+        logger.debug(f"FINAL PEEPS IN CHAT = {peeps}")
+        logger.debug(f"FINAL PEEPS IN PERSON = {peeps_in_person}")
     done = len(peeps) == 0
     while not done:
         # Start a new group with one student
@@ -509,18 +525,21 @@ FROM useinfo u1
 JOIN (
     SELECT sid, MAX(timestamp) AS last_entry
     FROM useinfo
-    WHERE course_id = {course_name} and event = 'peergroup'
+    WHERE course_id = '{course_name}' and event = 'peergroup'
     GROUP BY sid
 ) u2 ON u1.sid = u2.sid AND u1.timestamp = u2.last_entry
-WHERE u1.course_id = {course_name} and u1.event = 'peergroup';
+WHERE u1.course_id = '{course_name}' and u1.event = 'peergroup';
 """
     in_person_groups = []
     res = db.executesql(query)
     for row in res:
-        peeps = row.act.split(":")[1:]
+        logger.debug(row)
+        # act is index 4
+        peeps = row[4].split(":")[1]
         peeps = set(peeps.split(","))
-        if row.sid not in peeps:
-            peeps.add(row.sid)
+        # sid is index 2
+        if row[2] not in peeps:
+            peeps.add(row[2])
         in_person_groups.append(peeps)
 
     return in_person_groups
