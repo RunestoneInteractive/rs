@@ -317,7 +317,7 @@ function warnAndStopVote(event) {
     event.srcElement.disabled = true;
 }
 
-async function makePartners() {
+async function makePartners(event, is_ab) {
     // first make sure there are enough votes to make pairs
     if (answerCount < 2) {
         alert("Not enough votes to make groups");
@@ -330,6 +330,7 @@ async function makePartners() {
         div_id: currentQuestion,
         start_time: startTime, // set in dashboard.html when loaded
         group_size: gs,
+        is_ab: is_ab,
     };
     let jsheaders = new Headers({
         "Content-type": "application/json; charset=utf-8",
