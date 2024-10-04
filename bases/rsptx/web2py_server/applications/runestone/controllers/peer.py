@@ -391,11 +391,15 @@ def find_good_partner(group, peeps, answer_dict):
         return peeps.pop()
 
 
-def process_peep(p, peeps, target_list, other_list, in_person_groups):
+def process_peep(p, peeps, target_list, other_list, in_person_groups, mode):
     target_list.append(p)
     peeps.remove(p)
     other_peeps = find_set_containing_string(in_person_groups, p)
     logger.debug(f"other_peeps = {other_peeps}")
+    # if no other peeps then this person must be put into a chat group not an in-person group
+    if not other_peeps and mode == "in_person":
+        other_list.append(p)
+        return
     for op in other_peeps:
         if op in peeps:
             peeps.remove(op)
@@ -446,9 +450,18 @@ def make_pairs():
 
             if random.random() < 0.5:
                 logger.debug(f"adding {p} to the in_person list")
-                process_peep(p, peeps, peeps_in_person, peeps_in_chat, in_person_groups)
+                process_peep(
+                    p,
+                    peeps,
+                    peeps_in_person,
+                    peeps_in_chat,
+                    in_person_groups,
+                    "in_person",
+                )
             else:
-                process_peep(p, peeps, peeps_in_chat, peeps_in_person, in_person_groups)
+                process_peep(
+                    p, peeps, peeps_in_chat, peeps_in_person, in_person_groups, "chat"
+                )
 
         peeps = peeps_in_chat
         # Now peeps contains only those who need to be paired up for chat
