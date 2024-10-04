@@ -4,6 +4,7 @@ export default class TimedShortAnswer extends ShortAnswer {
     constructor(opts) {
         super(opts);
         this.renderTimedIcon(this.containerDiv);
+        this.isTimed = true;
         this.hideButtons();
     }
     hideButtons() {

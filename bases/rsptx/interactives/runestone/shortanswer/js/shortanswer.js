@@ -74,7 +74,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.jOptionsDiv.appendChild(this.jLabel);
         this.jTextArea = document.createElement("textarea");
         let self = this;
-        this.jTextArea.onchange = function() {
+        this.jTextArea.onchange = function () {
             self.isAnswered = true;
         };
         this.jTextArea.id = this.divid + "_solution";
@@ -85,8 +85,13 @@ export default class ShortAnswer extends RunestoneBase {
         this.jTextArea.rows = 4;
         this.jTextArea.cols = 50;
         this.jLabel.appendChild(this.jTextArea);
-        this.jTextArea.onchange = function() {
-            this.feedbackDiv.innerHTML = "Your answer has not been saved yet!";
+        this.jTextArea.onchange = function () {
+            this.isAnswered = true;
+            if (this.isTimed) {
+                this.feedbackDiv.innerHTML = "Your answer is automatically saved.";
+            } else {
+                this.feedbackDiv.innerHTML = "Your answer has not been saved yet!";
+            }
             $(this.feedbackDiv).removeClass("alert-success");
             $(this.feedbackDiv).addClass("alert alert-danger");
         }.bind(this);
@@ -102,7 +107,7 @@ export default class ShortAnswer extends RunestoneBase {
         $(this.submitButton).addClass("btn btn-success");
         this.submitButton.type = "button";
         this.submitButton.textContent = "Save";
-        this.submitButton.onclick = function() {
+        this.submitButton.onclick = function () {
             this.checkCurrentAnswer();
             this.logCurrentAnswer();
             this.renderFeedback();
@@ -127,7 +132,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.fieldSet.appendChild(this.feedbackDiv);
         if (this.attachment) {
             let attachDiv = document.createElement("div")
-            if (this.graderactive ) {
+            if (this.graderactive) {
                 // If in grading mode make a button to create a popup with the image
                 let viewButton = document.createElement("button")
                 viewButton.type = "button"
@@ -163,7 +168,14 @@ export default class ShortAnswer extends RunestoneBase {
         }
     }
 
-    checkCurrentAnswer() {}
+    async checkCurrentAnswer() {
+        let value = $(document.getElementById(this.divid + "_solution")).val();
+        this.renderMath(value);
+        this.setLocalStorage({
+            answer: value,
+            timestamp: new Date(),
+        });
+    }
 
     async logCurrentAnswer(sid) {
         let value = $(document.getElementById(this.divid + "_solution")).val();
@@ -256,7 +268,7 @@ export default class ShortAnswer extends RunestoneBase {
             $(toggle_answer_button).css("margin-left", "5px");
 
             $(toggle_answer_button).click(
-                function() {
+                function () {
                     var display_timestamp, button_text;
                     if (this.current_answer === "ontime") {
                         this.jTextArea.value = data.last_answer;
@@ -304,9 +316,9 @@ export default class ShortAnswer extends RunestoneBase {
         if (this.fileUpload.files.length > 0) {
             data.append('file', files[0])
             fetch(`/ns/logger/upload/${this.divid}`, {
-                    method: 'POST',
-                    body: data
-                })
+                method: 'POST',
+                body: data
+            })
                 .then(response => response.json())
                 .then(data => {
                     console.log(data)
@@ -314,7 +326,7 @@ export default class ShortAnswer extends RunestoneBase {
                 .catch(error => {
                     console.error(error)
                 })
-            }
+        }
     }
 
     viewFile() {
@@ -341,8 +353,8 @@ export default class ShortAnswer extends RunestoneBase {
 == Find the custom HTML tags and ==
 ==   execute our code on them    ==
 =================================*/
-$(document).on("runestone:login-complete", function() {
-    $("[data-component=shortanswer]").each(function() {
+$(document).on("runestone:login-complete", function () {
+    $("[data-component=shortanswer]").each(function () {
         if ($(this).closest("[data-component=timedAssessment]").length == 0) {
             // If this element exists within a timed component, don't render it here
             try {
