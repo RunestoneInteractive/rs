@@ -391,6 +391,19 @@ def find_good_partner(group, peeps, answer_dict):
         return peeps.pop()
 
 
+def process_peep(p, peeps, target_list, other_list, in_person_groups):
+    target_list.append(p)
+    peeps.remove(p)
+    other_peeps = find_set_containing_string(in_person_groups, p)
+    logger.debug(f"other_peeps = {other_peeps}")
+    for op in other_peeps:
+        if op in peeps:
+            peeps.remove(op)
+            logger.debug(f"removed {op} from the peeps list")
+        if op not in target_list:
+            target_list.append(op)
+
+
 @auth.requires(
     lambda: verifyInstructorStatus(auth.user.course_id, auth.user),
     requires_login=True,
@@ -421,40 +434,22 @@ def make_pairs():
     group_list = []
     done = len(peeps) == 0
     if is_ab:
-        in_person_groups = []
         in_person_groups = _get_local_groups(auth.user.course_name)
         peeps_in_person = []
         peeps_in_chat = []
-        # Get the latest in person groups for each student
-        # if this is for AB testing then iterate over peeps and decide if they are in a group or are
-        # a chatting in person.  If a person is not in a group then the rest of their group should be
-        # removed from peeps
+
         peep_queue = peeps[:]
         while peep_queue:
             p = peep_queue.pop()
             if p in peeps_in_person or p in peeps_in_chat:
                 continue
+
             if random.random() < 0.5:
                 logger.debug(f"adding {p} to the in_person list")
-                peeps_in_person.append(p)
-                peeps.remove(p)
-                other_peeps = find_set_containing_string(in_person_groups, p)
-                logger.debug(f"other_peeps = {other_peeps}")
-                for op in other_peeps:
-                    if op in peeps:
-                        peeps.remove(op)
-                        logger.debug(f"removed {op} from the peeps list")
-                    if op not in peeps_in_person:
-                        peeps_in_person.append(op)
+                process_peep(p, peeps, peeps_in_person, peeps_in_chat, in_person_groups)
             else:
-                peeps_in_chat.append(p)
-                peeps.remove(p)
-                other_peeps = find_set_containing_string(in_person_groups, p)
-                for op in other_peeps:
-                    if op in peeps:
-                        peeps.remove(op)
-                    if op not in peeps_in_chat:
-                        peeps_in_chat.append(op)
+                process_peep(p, peeps, peeps_in_chat, peeps_in_person, in_person_groups)
+
         peeps = peeps_in_chat
         # Now peeps contains only those who need to be paired up for chat
         logger.debug(f"FINAL PEEPS IN CHAT = {peeps}")
