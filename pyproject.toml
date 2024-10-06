@@ -36,6 +36,7 @@ packages = [
     { include = "rsptx/exceptions", from = "components" },
     { include = "rsptx/build_tools", from = "components" },
     { include = "rsptx/practice", from = "components" },
+    { include = "rsptx/interactives/scripts", from = "bases" },
 ]
 
 [tool.poetry.dependencies]
@@ -130,6 +131,8 @@ pytest-asyncio = "^0.24.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.poetry.scripts]
+buildptx = "rsptx.interactives.scripts.buildptx:build_book"
 
 # isort configuration
 # -------------------
