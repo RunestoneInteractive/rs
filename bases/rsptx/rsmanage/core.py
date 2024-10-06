@@ -952,10 +952,13 @@ def checkEnvironment():
     config = os.environ["SERVER_CONFIG"]
 
     if config == "production":
+        click.echo("Checking for required production environment variables")
         for var in REQ_ENV:
             if var not in os.environ:
                 stop = True
-                click.echo(f"Missing definition for {var} environment variable")
+                click.echo(
+                    f"Missing required definition for {var} environment variable"
+                )
     elif config == "test":
         if "TEST_DBURL" not in os.environ:
             stop = True
@@ -973,6 +976,7 @@ def checkEnvironment():
         click.echo("You have defined docker compose specific environment variables")
 
     if stop:
+        click.echo("You must define the required environment variables")
         sys.exit(1)
 
 
