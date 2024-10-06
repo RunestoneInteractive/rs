@@ -9,29 +9,26 @@ import pathlib
 from rsptx.build_tools.core import _build_ptx_book
 
 p = pathlib.Path.cwd()
-
+print(sys.argv)
 if len(sys.argv) < 2:
-    if (p / "project.ptx").exists():  # we are in a pretext project
-        print(f"Building {p.name} in place")
-        bookname = p.name
-    else:
-        print("You must either name a book or be in the book's folder")
-        exit(-1)
-
-elif p.name != sys.argv[1] and "BOOK_PATH" in os.environ:
-    print("Not in the right folder")
-    newp = pathlib.Path(os.environ["BOOK_PATH"], sys.argv[1])
-    print(f"Trying to change to {newp}")
-    if newp.exists():
-        os.chdir(newp)
-        bookname = sys.argv[1]
-    else:
-        print(f"{newp} does not exist")
-        print("Build Failed")
-        exit(-1)
-
+    print("You must specify a book name")
+    exit(-1)
 else:
     bookname = sys.argv[1]
+
+if "--target" in sys.argv:
+    target = sys.argv[sys.argv.index("--target") + 1]
+else:
+    target = "runestone"
+
+print(f"Building target: {target}")
+
+if (p / "project.ptx").exists():  # we are in a pretext project
+    print(f"Building {sys.argv[1]} in place")
+    bookname = sys.argv[1]
+else:
+    print("You must either name a book or be in the book's folder")
+    exit(-1)
 
 
 class Config:
