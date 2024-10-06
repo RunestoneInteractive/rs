@@ -8,7 +8,6 @@
 services:
 
   redis:
-    profiles: [ "basic" ]
     image: redis:6-alpine
     restart: always
 
