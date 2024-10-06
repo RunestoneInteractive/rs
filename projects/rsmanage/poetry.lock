@@ -3472,7 +3472,7 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.4.2"
+version = "7.4.3"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
@@ -3496,7 +3496,7 @@ jupyterlite-sphinx = "^0.9.3"
 lxml = "^5.0"
 myst-parser = "^1.0.0"
 Paver = ">=1.2.4"
-pretext = "^2.5.0"
+pretext = "^2.7.0"
 psycopg2-binary = "^2.9.6"
 pydal = "^20230521.1"
 pydantic = "^2.0.0"

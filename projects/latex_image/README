@@ -1,0 +1,6 @@
+This image is used by the author and worker services, so we can avoid the long build time 
+introduced by creating a latex image.
+
+To build this image simply run:
+
+docker build . -t latex_base
