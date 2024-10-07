@@ -142,4 +142,7 @@ build = "rsptx.build_tools.build:cli"
 profile = "black"
 
 [tool.ruff]
+exclude = ["__pycache__", ".git", ".tox", ".venv", "build", "dist", "docs", "htmlcov", "node_modules", "venv"]
+
+[tool.ruff.lint]
 ignore = ["E501"]
