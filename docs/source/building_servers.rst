@@ -22,7 +22,7 @@ Now you are ready to install the required dependencies and build the servers:
    Future instructions will make it clear which commands need to be run inside the poetry virtual environment by always including ``poetry run ...`` at the start of the command. This is what you will need to type if you are **NOT** in the poetry shell. If you activate the ``poetry shell``, you will be able to skip typing ``poetry run``. For example, to check the environmental variables, you would type ``poetry run rsmanage env`` if the poetry shell is not active; if the shell is active, you would just type ``rsmanage env``.
 
 
-7.  Run the ``build.py`` script from the ``rs`` folder by doing ``poetry run python ./build.py``. The first step of this script will verify that you have all of your environment variables defined. It will then build the python wheels for all the runestone components and then build the docker servers. This will take a while.
+7.  Run the ``build`` script from the ``rs`` folder by doing ``build full``. The first step of this script will verify that you have all of your environment variables defined. It will then build the python wheels for all the runestone components and then build the docker servers. This will take a while.
 
 
 Starting the Servers
@@ -87,28 +87,44 @@ Connecting to the Server
 Now you should be able to connect to ``http://localhost/`` from your computer and see the homepage.
 If you get an error check the :ref:`Troubleshooting <debugging>` section.
 
-Using the ``build.py`` script
+Using the ``build`` script
 ----------------------------
 
-The `build.py` script is a convenience script that will build the docker images for the runestone servers.  It will also build the python wheels for all of the runestone components.  This script is run from the top level directory of the rs repo.  It will check to see if you have all of the required environment variables defined and then build the docker images.  It is very useful, but not all knowing.  If there are ways to make it smarter, or to find cases where it fails, or to make it detect mis-configurations, please let us know by filing an issue on the `github repo <https://github.com/RunestoneInteractive/rs/issues>`_.
+The `build` script is a convenience script that will build the docker images for the runestone servers.  It will also build the python wheels for all of the runestone components.  This script is run from the top level directory of the rs repo.  It will check to see if you have all of the required environment variables defined and then build the docker images.  It is very useful, but not all knowing.  If there are ways to make it smarter, or to find cases where it fails, or to make it detect mis-configurations, please let us know by filing an issue on the `github repo <https://github.com/RunestoneInteractive/rs/issues>`_.
 
-There are several options that you can pass to the script.  You can see them by running ``poetry run python build.py --help``.  The output of the help option is shown below:
+There are several options that you can pass to the script.  You can see them by running ``build --help``.  The output of the help option is shown below:
 
 .. code-block:: 
 
-   Checking your environment
-   Usage: build.py [--verbose] [--help] [--all] [--push]
-         --all build all containers, including author and worker
-         --push push all containers to a container registry
-         --one <service> build just one container, e.g. --one author
-         --restart restart the container(s) after building
-         --clean remove all containers and images before starting
-         --verbose show more output
-         --env check key environment variables and exit (verbose is T)
+   Usage: build [OPTIONS] COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...
 
-         If something in the build does not work or you have questions about setup or environment
-         variables or installation, please check out our developer documentation.
-         https://runestone-monorepo.readthedocs.io/en/latest/developing.html
+   Build the wheels and Docker containers needed for this application build
+   wheel image restart build wheel image push build --service author --service
+   worker wheel image restart build push -- push the built images to the
+   registry
+
+   Options:
+   --verbose           Show more output
+   --all               Build all containers, including author and worker
+   --core              Build only the core services  [default: True]
+   -s, --service TEXT  Build one service - multiple ok
+   --clean             Remove all containers and images before starting
+   --help              Show this message and exit.
+
+   Commands:
+   checkdb  Check the database and run migrations
+   env      Check key environment variables and exit
+   full     Build the wheels, images, and restart the services
+   image    Build the docker images
+   list     List the services and last build
+   push     Push the images to Docker Hub
+   restart  Restart the runestone docker services
+   wheel    Build the python wheels
+
+
+If something in the build does not work or you have questions about setup or environment
+variables or installation, please check out our developer documentation.
+https://runestone-monorepo.readthedocs.io/en/latest/developing.html
 
 Here is a bit more detail on how the script operates so you know what to expect:
 
@@ -124,9 +140,9 @@ Here is a bit more detail on how the script operates so you know what to expect:
 
 #. Push the images to the container registry if the ``--push`` option is passed.  The container registry is configured in the docker-compose.yml file.  Unless you are authorized to do so, you should not use this option.  It will fail if you do not have the correct permissions.
 
-#. Check the database for possible migrations.  If there are migrations that need to be run it will print out a message telling you how to run them.  You can run the migrations by running ``alembic upgrade head``.  This will run all of the migrations that have not yet been run. **Note:** It is important that the first time you clone `rs` or if you pull from the repo and start over with your database then you should run the ``alembic stamp head`` command to let alembic know that you are starting from a clean slate. The ``build.py`` script can detect this and will tell you. This will allow you to run migrations successfully in the future.  If you see that you are trying to add columns  or tables that are already there, then you are out of sync with alembic and will need to figure out where you are and run ``alembic stamp <revision>`` to get back in sync.  You can find the various revisions by looking in the ``migrations/versions`` directory.
+#. Check the database for possible migrations.  If there are migrations that need to be run it will print out a message telling you how to run them.  You can run the migrations by running ``alembic upgrade head``.  This will run all of the migrations that have not yet been run. **Note:** It is important that the first time you clone `rs` or if you pull from the repo and start over with your database then you should run the ``alembic stamp head`` command to let alembic know that you are starting from a clean slate. The ``build checkdb`` command can detect this and will tell you. This will allow you to run migrations successfully in the future.  If you see that you are trying to add columns  or tables that are already there, then you are out of sync with alembic and will need to figure out where you are and run ``alembic stamp <revision>`` to get back in sync.  You can find the various revisions by looking in the ``migrations/versions`` directory.
 
-#. if you pass the ``--restart`` option it will restart the containers after building the images.  This is useful if you are making changes to the runestone code and want to see the changes reflected in the running containers.
+#. if you run the ``restart`` subcommand it will restart the containers after building the images.  This is useful if you are making changes to the runestone code and want to see the changes reflected in the running containers.
 
 If a **wheel fails to build** then look at the ``build.log`` file in the appropriate project folder.  If an **image fails to build** look at the ``build.log`` file in the main folder.  If it seems like the author service is taking a long time to build, it is because it is installing a full version of LaTeX and that just takes time!
 
@@ -139,7 +155,8 @@ The repository is under active development.  It is a really good idea to keep yo
 
 #. Pull the latest changes from the repo by running ``git pull``.
 #. Run ``poetry install --with=dev`` to install any new dependencies.
-#. Run ``poetry run python build.py`` to rebuild the servers, and check the database.
+#. Run ``poetry shell`` to start a poetry shell.
+#. Run ``build full`` to rebuild the servers, and check the database.
 #. Run ``docker compose stop`` to start the servers.
 #. Run ``docker compose up -d`` to start the servers.
 

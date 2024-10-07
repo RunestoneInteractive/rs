@@ -9,7 +9,7 @@ The rs repository is under continuous development so make sure that you keep it 
 
 Make sure that you are running the **rs** virtual environment.  Normally your shell will show you your current virtual environment by decorating the command prompt.  Also, make sure that you keep your virtual environment up to date.  If the pyproject.toml file changes or the poetry.lock file changes then you should update your virtual environment by running `poetry install --with=dev` from the root folder of the **rs** repository.
 
-Make sure that you run `./build.py` or `./build.py --all` command from the root folder, and pay attention to the status messages both for building the Wheels and for building the services.  If a service fails to build you should look at the log in the project folder for that service.
+Make sure that you run `build --core full` or `build --all full` command from the root folder, and pay attention to the status messages both for building the Wheels and for building the services.  If a service fails to build you should look at the log in the project folder for that service.
 
 Many problems can be traced back to bad or missing environment variables.  Make sure to review that section and check your `.env` file for errors or typos.
 
@@ -19,7 +19,7 @@ You are trying to run the ``runestone build`` command but it fails with a stack 
 
 If you get an error when you are running runestone the first thing to do is to make sure you are running the version of the command you think you are running.  Run the command ``which runestone``, it should tell show you something like ``/path/to/rs/.venv/bin/runestone``  If the error indicates that a package or module is missing, make sure you update the virtual environment as described above.
 
-The server does not start up.  When I run ``docker compose up`` I see messages like ``COPY ./dist/rsmanage-2.0.0-py3-none-any.whl ...``  This indicates that the build did not complete.  `COPY` is a command that runs as part of building a docker image.  ``docker compose up`` will try to build an image if one does not exist.  In this case you should go back to running the ``./build.py`` script again, and checking the logs of whatever service failed to build.
+The server does not start up.  When I run ``docker compose up`` I see messages like ``COPY ./dist/rsmanage-2.0.0-py3-none-any.whl ...``  This indicates that the build did not complete.  `COPY` is a command that runs as part of building a docker image.  ``docker compose up`` will try to build an image if one does not exist.  In this case you should go back to running the ``build` command again, and checking the logs of whatever service failed to build.
 
 Docker builds can fail for many reasons unrelated to runestone.  Docker uses a lot of disk space, and occassionally a build will fail because docker has used up all the space it is allocated.  It pays to run the command ``docker system prune`` once a week or so to clear out docker's cache and clean up outdated images.
 
