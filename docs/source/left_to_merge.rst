@@ -14,7 +14,7 @@ This assumes that you have already followed the instructions for installing post
 2. Run ``poetry install --with=dev`` from the top level directory.  This will install all of the dependencies for the project.  When that completes run ``poetry shell`` to start a poetry shell.  You can verify that this worked correctly by running ``rsmanage env``.  You should see a list of environment variables that are set.  If you do not see them then you may need to run ``poetry shell`` again.  If you get an error message that you cannot interpret you can ask for help in the ``#developer`` channel on the Runestone discord server.
 3.  Create a new database for your class or book.  You can do this by running ``createdb -O runestone <dbname>``.  You can also do this in the psql command line interface by running ``create database <dbname> owner runestone;``  You may have to become the postgres user in order to run that command.  If you have already created a database you can skip this one.
 4.  From the ``bases/rsptx/interactives`` folder run ``npm install``.  This will install all of the javascript dependencies for the interactives.  Next run ``npm run build`` this will build the Runestone Interactive javascript files.  You will need to do this every time you make a change to the javascript files.  If you are NOT going to build a book, then you can skip this step.
-5.  Run the ``build.py`` script from the ``rs`` folder. The first step of this script will verify that you have all of your environment variables defined.
+5.  Run the ``build --core full`` command from the ``rs`` folder. The first step of this script will verify that you have all of your environment variables defined.
 6.  Make sure you are not already running a webserver on your computer.  You can check this by running ``lsof -i :80``.  If you see a line that says ``nginx`` then you are already running a webserver.  You can stop it by running ``sudo nginx -s stop``.  Alternatively you can edit the ``docker-compose.yml`` file and change the port that nginx is listening on to something other than 80.
 7.  Run ``docker-compose up`` from the ``rs`` folder.  This will start up all of the except the author and worker. Those are only needed in a production environment where you want to give authors the ability to build and deploy their own books. If you want to start up **everything** you run ``COMPOSE_PROFILES=basic,author docker compose up ` You can also run ``docker-compose up <server name>`` to start up just one server.  The server names are ``runestone``, ``book``, ``author``, ``dash``, ``assignment``, ``worker``, and ``nginx``.  You can also run ``docker-compose up -d`` to run the servers in the background.
 8.  Now you should be able to connect to ``http://localhost/`` from your computer and see the homepage.
@@ -48,21 +48,37 @@ Each project has a Dockerfile for building an image. These images should
 be push-able to our docker container registry and or the public docker
 container registry
 
-To build all of the docker containers and bring them up together.  You can run the ``build.py`` script in the top level directory. The dependencies for the build.py script are included in the top level ``pyproject.toml`` file.  ``poetry install --with=dev`` will install everything you need and then you may will want to start up a poetry shell. The ``build.py`` script will build all of the Python wheels and Docker images, when that completes run ``docker-compose up``.  You can also run ``docker-compose up`` directly if you have already built the images.
+To build all of the docker containers and bring them up together.  You can run the ``build`` command in the top level directory. The dependencies for the build command are included in the top level ``pyproject.toml`` file.  The command is added to your path when you run ``poetry install``  ``poetry install --with=dev`` will install everything you need and then you may will want to start up a poetry shell. The ``build --core full`` command will build all of the Python wheels and Docker images, when that completes run ``docker-compose up``.  You can also run ``docker-compose up`` directly if you have already built the images.
 
 .. code-block:: bash
 
-   poetry run ./build.py --help
-   Checking your environment
-   Usage: build.py [--verbose] [--help] [--all] [--push] [--one <container>] [--restart]
-         --all build all containers, including author and worker
-         --push push all containers to docker hub
-         --one <container> build just one container, e.g. --one author
-         --restart restart the container(s) after building
-         --help print this message
-         --verbose print more information about what is happening
+   build --help
+   Usage: build [OPTIONS] COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...
 
-The ``build.py`` script will build one or all of the Python wheels and Docker images, when that completes it will stop and run ``docker-compose up -d``. to restart one or more images.  It will also do a minimal check of your environment variables to make sure you have the ones you need.  It will not check to see if they are correct.  If you are missing any that are required for the build.py script to run it will tell you which ones are missing and then stop.
+   Build the wheels and Docker containers needed for this application build
+   wheel image restart build wheel image push build --service author --service
+   worker wheel image restart build push -- push the built images to the
+   registry
+
+   Options:
+   --verbose           Show more output
+   --all               Build all containers, including author and worker
+   --core              Build only the core services  [default: True]
+   -s, --service TEXT  Build one service - multiple ok
+   --clean             Remove all containers and images before starting
+   --help              Show this message and exit.
+
+   Commands:
+   checkdb  Check the database and run migrations
+   env      Check key environment variables and exit
+   full     Build the wheels, images, and restart the services
+   image    Build the docker images
+   list     List the services and last build
+   push     Push the images to Docker Hub
+   restart  Restart the runestone docker services
+   wheel    Build the python wheels
+
+The ``build`` command will build one or all of the Python wheels and Docker images, when that completes it will stop and run ``docker-compose up -d``. to restart one or more images.  It will also do a minimal check of your environment variables to make sure you have the ones you need.  It will not check to see if they are correct.  If you are missing any that are required for the build script to run it will tell you which ones are missing and then stop.
 
 
 When developing and you need multiple servers running

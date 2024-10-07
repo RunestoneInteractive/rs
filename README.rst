@@ -12,12 +12,14 @@ If you want to use the Runestone Academy servers to run a class using an existin
 If you want to do development on Runestone, or run your own server, you will need to set up your own copy of the Runestone software:
 
 * I want to contribute to the Runestone Academy software - Finish reading this page, then move on to the `Contributing Guide <https://runestone-monorepo.readthedocs.io/en/latest/contributing.html>`_
-* Running a server for my own class? - coming soon
-* Running a server for my school or larger group? - coming soon
+* Running a server for my own class? See ``Running a Server <https://runestone-monorepo.readthedocs.io/en/latest/running.html>``_
+* Running a server for my school or larger group? See ``Running a Server <https://runestone-monorepo.readthedocs.io/en/latest/running.html>``_
 
 .. image:: https://readthedocs.org/projects/runestone-monorepo/badge/?version=latest
     :target: https://runestone-monorepo.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status 
+
+Chat with us on ``Discord <https://discord.gg/f3Qmbk9P3U>``_
 
 Runestone MonoRepo
 ==================
@@ -92,7 +94,7 @@ Our Community
 
 The Runestone community has been actively developing and supporting this project since 2011.
 
-Join us on Discord
+Join us on ``Discord <https://discord.gg/f3Qmbk9P3U>``_
 
 The new book authoring language is PreTeXt.  We have a very active community of PreTeXt authors and developers.  If you are interested in contributing to the PreTeXt project, please visit the `PreTeXt project page <https://pretextbook.org>`_.
 

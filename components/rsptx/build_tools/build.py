@@ -67,6 +67,9 @@ def cli(config, verbose, all, core, service, clean):
     build --service author --service worker wheel image restart
     build push -- push the built images to the registry
     """
+
+    os.chdir(findProjectRoot())
+
     if not os.path.exists(".env"):
         console.print(
             "No .env file found.  Please copy sample.env to .env and edit it.",
@@ -74,7 +77,7 @@ def cli(config, verbose, all, core, service, clean):
         )
         exit(1)
     config.verbose = verbose
-    print(all, core, service)
+
     if clean:
         clean()
 
@@ -153,6 +156,21 @@ def clean():
     else:
         console.print("Failed to remove all containers and images", style="bold red")
         exit(1)
+
+
+def findProjectRoot():
+    start = os.getcwd()
+    prevdir = ""
+    while start != prevdir:
+        if os.path.exists(os.path.join(start, "docker-compose.yml")):
+            if prevdir != "":
+                console.print(
+                    f"Changing working directory to {start}", style="bold blue"
+                )
+            return start
+        prevdir = start
+        start = os.path.dirname(start)
+    raise IOError("You must be in the rs repo to run the build command")
 
 
 @cli.command()
@@ -520,7 +538,7 @@ def push(config):
                 continue
             console.print(f"Pushing {image}")
             ret1 = subprocess.run(
-                ["docker", "tag", image, f"{image}:v{version}"], check=True
+                ["docker", "tag", image, f"{image}:v{config.version}"], check=True
             )
             # we do 2 pushes because the version tag is not automatically pushed
             # and we want to push both the latest and the version tagged images
@@ -528,7 +546,7 @@ def push(config):
             # on the server.
             ret2 = subprocess.run(["docker", "push", "--quiet", image], check=True)
             ret3 = subprocess.run(
-                ["docker", "push", "--quiet", f"{image}:v{version}"], check=True
+                ["docker", "push", "--quiet", f"{image}:v{config.version}"], check=True
             )
 
             if ret1.returncode + ret2.returncode + ret3.returncode == 0:
@@ -713,8 +731,8 @@ def full(ctx, config):
     ctx.invoke(env)
     ctx.invoke(wheel)
     ctx.invoke(image)
-    ctx.invoke(restart)
     ctx.invoke(checkdb)
+    ctx.invoke(restart)
 
 
 if __name__ == "__main__":
