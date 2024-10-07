@@ -17,7 +17,7 @@ The Runestone server uses docker compose to start up a number of containers that
 
 #. Start the database server by running the following command: ``docker compose up -d db``
 
-#. Initialize the database by running the following command: ``docker compose run rsmanage rsmanage initdb``
+#. Initialize the database by running the following command: ``docker compose run --rm rsmanage rsmanage initdb``
 
 #. Start the Runestone server by running the following command: ``docker compose up -d``
 
@@ -25,7 +25,7 @@ The Runestone server uses docker compose to start up a number of containers that
 
 #. Now add a book. ``cd /your/path/to/book`` (the same value you used for ``BOOK_PATH``) and clone a book.  For example: ``git clone https://github.com/RunestoneInteractive/overview.git``
 
-#. Add the book to the database.  (Note this is not needed for overview since we preload many books) ``docker compose run rsmanage rsmanage addcourse`` You will then be prompted to enter some information about the course:
+#. Add the book to the database.  (Note this is not needed for overview since we preload many books) ``docker compose run --rm rsmanage rsmanage addcourse`` You will then be prompted to enter some information about the course:
 
     .. code-block:: text
 
@@ -38,7 +38,7 @@ The Runestone server uses docker compose to start up a number of containers that
 
     If the course already exists in the database, it will ask you if you want to use a different name.
 
-#. Now go back to the rs directory and run the following command: ``docker compose run rsmanage rsmanage build overview``  Insert your courses name in place of overview.  If you are building a PreTeXt book you will need to run ``docker compose run rsmanage rsmanage build --ptx yourbook``
+#. Now go back to the rs directory and run the following command: ``docker compose run --rm rsmanage rsmanage build overview``  Insert your courses name in place of overview.  If you are building a PreTeXt book you will need to run ``docker compose run --rm rsmanage rsmanage build --ptx yourbook``
 
 #. You should now be able to access the overview book on your server running on localhost.  The url to go directly to your book is is `http://localhost/ns/books/published/yourbook/index.html``
 
