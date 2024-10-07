@@ -140,3 +140,6 @@ build = "rsptx.build_tools.build:cli"
 # See the [docs](https://pycqa.github.io/isort/docs/configuration/black_compatibility.html).
 [tool.isort]
 profile = "black"
+
+[tool.ruff]
+ignore = ["E501"]

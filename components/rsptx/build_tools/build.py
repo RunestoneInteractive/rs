@@ -13,7 +13,7 @@ import sys
 from shutil import copyfile
 import yaml
 import toml
-import pdb
+import pdb  # noqa
 from collections import OrderedDict
 from datetime import datetime
 
@@ -23,9 +23,8 @@ from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 from sqlalchemy import create_engine, inspect
-import rich
 import click
-from rsptx.cl_utils.core import pushd, stream_command, subprocess_streamer
+from rsptx.cl_utils.core import pushd
 
 
 class Config(object):
@@ -62,6 +61,10 @@ console = Console()
 def cli(config, verbose, all, core, service, clean):
     """
     Build the wheels and Docker containers needed for this application
+    You can control which parts of the pipeline to run and which services to build or
+    restart.  The default is to build the core services and restart them.  Here are some
+    examples:
+    build --core full
     build wheel image restart
     build wheel image push
     build --service author --service worker wheel image restart
@@ -119,6 +122,7 @@ def cli(config, verbose, all, core, service, clean):
                 del ym["services"][svc]
 
     if core:
+        config.core = True
         svc_list = [x for x in ym["services"].keys()]
         for svc in svc_list:
             if svc in [
@@ -134,7 +138,7 @@ def cli(config, verbose, all, core, service, clean):
     for service in ym["services"]:
         now = datetime.now()
         try:
-            projdir = ym["services"][service]["build"]["context"]
+            _ = ym["services"][service]["build"]["context"]
         except KeyError:
             continue
         with pushd(ym["services"][service]["build"]["context"]):
@@ -551,7 +555,6 @@ def push(config):
 
             if ret1.returncode + ret2.returncode + ret3.returncode == 0:
                 console.print(f"{image} pushed successfully")
-                ret = 0
             else:
                 console.print(f"{image} failed to push", style="bold red")
                 exit(1)
@@ -570,7 +573,7 @@ def checkdb(config):
     engine = create_engine(os.environ["DEV_DBURL"])
     try:
         inspector = inspect(engine)
-        connection = engine.connect()
+        _ = engine.connect()
     except Exception as e:
         console.print(f"Failed to connect to the database: {e}", style="bold red")
         exit(1)
@@ -578,7 +581,7 @@ def checkdb(config):
     # Check if the alembic_version table is present in the database
     try:
         inspector.get_table_names().index("useinfo")
-    except:
+    except Exception:
         console.print(
             "It appears your database has not been initialized or your database is not started. Please see the documentation for how to initialize the database.",
             style="bold red",
@@ -586,7 +589,7 @@ def checkdb(config):
         DBOK = False
     try:
         inspector.get_table_names().index("alembic_version")
-    except:
+    except Exception:
         console.print(
             "The Migrations have not been set up for your database.  You need to run the alembic stamp head command to create it.",
             style="bold red",
@@ -633,17 +636,21 @@ def checkdb(config):
 @pass_config
 def restart(config):
     """Restart the runestone docker services"""
-    if config.all:
+    profiles = os.environ.get("COMPOSE_PROFILES", "")
+    if profiles:
+        profiles = profiles.split(",")
+    if config.all or config.core:
+        console.print("Restarting all services...", style="bold")
+        if config.all and "author" not in profiles:
+            profiles.append("author")
+            os.environ["COMPOSE_PROFILES"] = ",".join(profiles)
         command_list = [
             "docker",
             "compose",
-            "--profile",
-            "author",
             "-f",
             "docker-compose.yml",
             "stop",
         ]
-        console.print("Restarting all services...", style="bold")
         ret1 = subprocess.run(
             command_list,
             capture_output=True,
@@ -673,12 +680,10 @@ def restart(config):
                     f"Runestone service {service} failed to stop", style="bold red"
                 )
                 exit(1)
-    if all:
+    if config.all or config.core:
         command_list = [
             "docker",
             "compose",
-            "--profile",
-            "author",
             "-f",
             "docker-compose.yml",
             "up",
@@ -696,14 +701,6 @@ def restart(config):
             command_list = [
                 "docker",
                 "compose",
-                "--profile",
-                "author",
-                "--profile",
-                "basic",
-                "--profile",
-                "dev",
-                "--profile",
-                "production",
                 "-f",
                 "docker-compose.yml",
                 "up",
@@ -722,7 +719,9 @@ def restart(config):
     console.print("Runestone services restarted successfully", style="green")
 
 
-# This is a cool trick with click that lets you chain commands together to form a meta command
+# This is a cool trick with click that lets you chain commands together to
+# form a meta command. so this will run the env command first, then the wheel
+# command, then the image command, then checkdb, then the restart command.
 @cli.command()
 @pass_config
 @click.pass_context
