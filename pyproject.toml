@@ -133,6 +133,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 buildptx = "rsptx.interactives.scripts.buildptx:build_book"
+build = "rsptx.build_tools.build:cli"
 
 # isort configuration
 # -------------------

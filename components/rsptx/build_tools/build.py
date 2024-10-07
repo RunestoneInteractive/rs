@@ -95,6 +95,8 @@ def cli(config, verbose, all, core, service, clean):
 
     ym = yaml.load(open("docker-compose.yml"), yaml.FullLoader)
 
+    config.orig = ym.copy()
+
     # remove the redis service from the list since we don't customize it
     del ym["services"]["redis"]
 
@@ -108,12 +110,14 @@ def cli(config, verbose, all, core, service, clean):
     # remove all services except the one we want to build
     if service:
         core = False
-        for svc in list(ym["services"].keys()):
+        svc_list = [x for x in ym["services"].keys()]
+        for svc in svc_list:
             if svc not in service:
                 del ym["services"][svc]
 
     if core:
-        for svc in list(ym["services"].keys()):
+        svc_list = [x for x in ym["services"].keys()]
+        for svc in svc_list:
             if svc in [
                 "author",
                 "worker",
@@ -149,6 +153,33 @@ def clean():
     else:
         console.print("Failed to remove all containers and images", style="bold red")
         exit(1)
+
+
+@cli.command()
+@pass_config
+def list(config):
+    """List the services and last build"""
+
+    table = Table(title="Services")
+    table.add_column("Service", justify="right", style="grey62", no_wrap=True)
+    table.add_column("Last Built", style="magenta")
+
+    for s in config.orig["services"]:
+        # get the mtime of build.log in project/service and print it
+        try:
+            projdir = config.orig["services"][s]["build"]["context"]
+        except KeyError:
+            mtime = "No Context"
+            continue
+        with pushd(projdir):
+            try:
+                mtime = os.path.getmtime("build.log")
+                mtime = datetime.fromtimestamp(mtime)
+            except FileNotFoundError:
+                mtime = "Not Built"
+            #            console.print(f"{s} - {mtime}")
+            table.add_row(s, str(mtime))
+    console.print(table)
 
 
 @cli.command()
