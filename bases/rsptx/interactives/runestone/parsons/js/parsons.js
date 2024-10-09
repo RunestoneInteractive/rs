@@ -154,6 +154,7 @@ export default class Parsons extends RunestoneBase {
             html: "prettyprint lang-html",
             c: "prettyprint lang-c",
             "c++": "prettyprint lang-cpp",
+            cpp: "prettyprint lang-cpp",
             ruby: "prettyprint lang-rb",
         }[language];
         if (prettifyLanguage == undefined) {
