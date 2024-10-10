@@ -202,6 +202,7 @@
     clear: both;
     float: left;
     background-color: transparent;
+    white-space: pre; /* prevent wrap */
 }
 
 .parsons .block p {
@@ -324,6 +325,7 @@
 .runestone .lines {
     display: inline-block;
     align-self: left;
+    overflow: auto; /* scroll if really long lines */
 }
 
 .border_left {
