@@ -476,7 +476,7 @@ export default class Parsons extends RunestoneBase {
                 this.options.language == "natural" ||
                 this.options.language == "math"
             ) {
-                if (typeof runestoneMathready !== "undefined") {
+                if (typeof runestoneMathReady !== "undefined") {
                     await runestoneMathReady.then(
                         async () => await self.queueMathJax(item[0])
                     );
