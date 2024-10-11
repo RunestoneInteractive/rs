@@ -51,7 +51,7 @@ console = Console()
     is_flag=True,
     show_default=True,
     help="Build only the core services",
-    default=True,
+    default=False,
 )
 @click.option("-s", "--service", multiple=True, help="Build one service - multiple ok")
 @click.option(
@@ -83,6 +83,10 @@ def cli(config, verbose, all, core, service, clean):
 
     if clean:
         clean()
+
+    if not service and not all:
+        click.echo("No services specified, building core services")
+        core = True
 
     with open("pyproject.toml") as f:
         config.pyproject = toml.load(f)
