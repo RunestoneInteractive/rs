@@ -1049,11 +1049,6 @@ textarea.lp-result {
     padding-right: 2em;
 }
 
-#scprogresscontainer {
-    width: 100%;
-    max-width: 500px;
-    margin: 10px auto;
-}
 
 #subchapterprogress.ui-progressbar .ui-progressbar-value {
     margin: 0;
