@@ -122,7 +122,6 @@ def cli(config, verbose, all, core, service, clean):
                 del ym["services"][svc]
 
     if core:
-        config.core = True
         svc_list = [x for x in ym["services"].keys()]
         for svc in svc_list:
             if svc in [
@@ -149,6 +148,7 @@ def cli(config, verbose, all, core, service, clean):
     console.print(f"Building services: {service_list}", style="bold")
 
     config.all = all
+    config.core = core
     config.ym = ym
 
 
