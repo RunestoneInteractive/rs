@@ -325,7 +325,8 @@
 .runestone .lines {
     display: inline-block;
     align-self: left;
-    overflow: auto; /* scroll if really long lines */
+    overflow-x: auto; /* scroll if really long lines */
+    overflow-y: hidden; /* hide vertical scroll bar in that case */
 }
 
 .border_left {
