@@ -154,6 +154,7 @@ export default class Parsons extends RunestoneBase {
             html: "prettyprint lang-html",
             c: "prettyprint lang-c",
             "c++": "prettyprint lang-cpp",
+            cpp: "prettyprint lang-cpp",
             ruby: "prettyprint lang-rb",
         }[language];
         if (prettifyLanguage == undefined) {
@@ -475,7 +476,7 @@ export default class Parsons extends RunestoneBase {
                 this.options.language == "natural" ||
                 this.options.language == "math"
             ) {
-                if (typeof runestoneMathready !== "undefined") {
+                if (typeof runestoneMathReady !== "undefined") {
                     await runestoneMathReady.then(
                         async () => await self.queueMathJax(item[0])
                     );
