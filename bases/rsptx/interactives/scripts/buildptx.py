@@ -49,11 +49,10 @@ def build_book(target, bookname):
     res = subprocess.run(f"chgrp -R www-data .", shell=True, capture_output=True)
     if res.returncode != 0:
         print("failed to change group")
-        exit(-1)
+
     res = subprocess.run(f"chmod -R go+rw .", shell=True, capture_output=True)
     if res.returncode != 0:
         print("failed to change permissions")
-        exit(-1)
 
 
 if __name__ == "__main__":
