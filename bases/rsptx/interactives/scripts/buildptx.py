@@ -46,6 +46,10 @@ def build_book(target, bookname):
         print("build failed")
         exit(-1)
 
+    # touch the file build_complete
+    with open("build_success", "w") as f:
+        f.write("build success")
+
     res = subprocess.run(f"chgrp -R www-data .", shell=True, capture_output=True)
     if res.returncode != 0:
         print("failed to change group")
