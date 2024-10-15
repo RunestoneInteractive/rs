@@ -19,12 +19,12 @@ Getting started with Runestone Development
 
 To get started, work through the following sections of the documents. Each step will be explained in further detail in their own respective page. Briefly, you will need to:
 
-* Get the Runestone code
-* Set up Poetry and other tools
-* Set up environmental variables
-* Chose how to set up your database
-* Build the various Runestone servers and run them
-* Clone and build one or more books
+* :ref:`Get the Runestone code<get-the-code>`
+* :ref:`Set up Poetry and other tools<development-prerequisites>`
+* :ref:`Set up environmental variables<environment-variables>`
+* :ref:`Chose how to set up your database<database-options>`
+* :ref:`Build the various Runestone servers and run them<building-servers>`
+* :ref:`Clone and build one or more books<adding-book>`
 
 This diagram gives you an overview of the whole process.  It is not a trivial exercise to get this all going, but with some patience and careful attention to detail you can do it.
 
