@@ -94,7 +94,7 @@ Our Community
 
 The Runestone community has been actively developing and supporting this project since 2011.
 
-Join us on ``Discord <https://discord.gg/f3Qmbk9P3U>``_
+Join us on `Discord <https://discord.gg/f3Qmbk9P3U>`_
 
 The new book authoring language is PreTeXt.  We have a very active community of PreTeXt authors and developers.  If you are interested in contributing to the PreTeXt project, please visit the `PreTeXt project page <https://pretextbook.org>`_.
 
