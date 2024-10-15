@@ -14,7 +14,7 @@ Install Postgresql with docker-compose
 
 This is the default option and requires the least manual work.  Just make sure that you have your ``CONTAINER_PROFILES`` varaible set to include ``basic`` This is how it is set up in the ``sample.env`` file.  The database will be running as a docker container, and if you ever destroy the container all of the data in the database will be lost.  The default environment variables are set up so that you can access the database from outside the container on port 2345.  If you want to do this you will need to install ``psql`` on your host machine.
 
-You need to initialize the database with ``rsmanage initdb`` or ``docker compose run rsmanage rsmanage initdb`` to do it all inside the containerized application.  This will create the database tables and add the initial data.  
+You need to initialize the database with ``rsmanage initdb`` or ``docker compose run rsmanage rsmanage initdb`` to do it all inside the containerized application.  This will create the database tables and add the initial data.
 
 Install Postgresql locally
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -23,7 +23,7 @@ This is the option you will want for production use cases, and it gives you the 
 
 You can connect to the database with one of 3 URLs depending on your server configuration (``SERVER_CONFIG``) environment variable - production, development, or test.  Test is really just for unit testing.  So you will most often want to use development.  The environment variables to set are ``DBURL``, ``DEV_DBURL`` or ``TEST_DBURL``.
 
-If you install postgresql locally you will need to do  a few things to get it ready to go.  
+If you install postgresql locally you will need to do  a few things to get it ready to go.
 
 1. Create a user called ``runestone`` with password ``runestone`` (or whatever you want to call it) This is done by running ``createuser -P runestone`` and entering the password when prompted.  You can also do this in the psql command line interface by running ``create user --superuser runestone with password 'runestone';``  You may have to become the postgres user in order to run that command.
 2. You will also find it convenient to create a user for yourself.  This is done by running ``createuser -P <your username>`` and entering the password when prompted.  You can also do this in the psql command line interface by running ``create user --superuser <your username> with password '<your password>';``  You may have to become the postgres user in order to run that command.
