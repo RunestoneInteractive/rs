@@ -987,6 +987,28 @@ def make_correct_count_table(chapters, chapter, thecourse, dburl, course):
     mtbl = mtbl.rename(columns={"subchapter": "chapter_label"})
     mtbl.sort_values("chapter_label", inplace=True)
     logger.debug(mtbl)
+    enrolled = pd.read_sql(
+        f"""select distinct username 
+    from auth_user join user_courses on auth_user.course_id = user_courses.course_id 
+        and user_courses.course_id = {thecourse.id}""",
+        dburl,
+    )
+
+    usernames = enrolled["username"].tolist()
+
+    # Add a column for each username that is not already a column in c
+    for username in usernames:
+        if username not in mtbl.columns:
+            mtbl[username] = 0
+
+    # Get the columns starting from the second column
+    columns_to_sort = mtbl.columns[1:]
+
+    # Sort the columns ignoring case
+    sorted_columns = sorted(columns_to_sort, key=lambda x: x.lower())
+
+    # Reorder the DataFrame
+    mtbl = mtbl[["chapter_label"] + sorted_columns]
 
     if request.vars.action == "tocsv":
         response.headers["Content-Type"] = "application/vnd.ms-excel"
