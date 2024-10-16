@@ -11,8 +11,8 @@ Welcome to Runestone Documentation
 
    readme
    running
-   poetry
    developing
+   poetry
    structure
    docker
    database

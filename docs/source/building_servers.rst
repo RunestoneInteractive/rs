@@ -1,3 +1,4 @@
+.. _building-servers:
 
 Building and Running the Servers
 ===================================
@@ -94,7 +95,7 @@ The `build` script is a convenience script that will build the docker images for
 
 There are several options that you can pass to the script.  You can see them by running ``build --help``.  The output of the help option is shown below:
 
-.. code-block:: 
+.. code-block::
 
    Usage: build [OPTIONS] COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...
 
