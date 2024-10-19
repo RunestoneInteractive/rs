@@ -1,4 +1,4 @@
-.. _database-options:
+.. _database-options-old:
 
 MERGE ME
 =======================================

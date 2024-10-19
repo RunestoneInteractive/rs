@@ -88,10 +88,12 @@ async def grade_submission(
             # Update the score unless the instructor has left a comment.
             # Insructors should have the last word?
             if current_score:
+                if current_score.score is None:
+                    current_score.score = 0
+                    # maybe if there is no score we should update it regardless of the comment?
                 if (
                     current_score.score < scoreSpec.score
-                    and current_score.comment == "autograded"
-                ):
+                ) and current_score.comment == "autograded":
                     await update_question_grade_entry(
                         user.username,
                         user.course_name,

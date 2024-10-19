@@ -1,3 +1,5 @@
+.. _adding-book:
+
 Adding a Book
 -------------
 
