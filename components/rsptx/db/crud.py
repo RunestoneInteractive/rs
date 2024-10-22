@@ -64,6 +64,8 @@ from rsptx.db.models import (
     CoursePractice,
     Courses,
     CoursesValidator,
+    DeadlineException,
+    DeadlineExceptionValidator,
     EditorBasecourse,
     Grade,
     GradeValidator,
@@ -1916,6 +1918,29 @@ async def fetch_timed_exam(
         return TimedExamValidator.from_orm(res.scalars().first())
 
 
+async def did_start_timed(sid: str, exam_id: str, course_name: str) -> bool:
+    """
+    Retrieve the start time for the given sid, exam_id, and course_name.
+
+    :param sid: str, the student id
+    :param exam_id: str, the id of the timed exam
+    :param course_name: str, the name of the course
+    :return: bool, whether the exam has started
+    """
+    start_query = select(Useinfo).where(
+        and_(
+            Useinfo.sid == sid,
+            Useinfo.div_id == exam_id,
+            Useinfo.course_id == course_name,
+            Useinfo.event == "timedExam",
+            Useinfo.act == "start",
+        )
+    )
+    async with async_session() as session:
+        start = await session.execute(start_query)
+        return start.scalars().first() is not None
+
+
 async def create_timed_exam_entry(
     sid: str, exam_id: str, course_name: str, start_time: datetime
 ) -> TimedExamValidator:
@@ -2783,3 +2808,38 @@ async def fetch_source_code(
     async with async_session() as session:
         res = await session.execute(query)
         return SourceCodeValidator.from_orm(res.scalars().first())
+
+
+async def fetch_deadline_exception(
+    course_id: int, username: str, assignment_id: int = None
+) -> DeadlineExceptionValidator:
+    """
+    Fetch the deadline exception for a given username and assignment_id.
+
+    :param username: str, the username of the student
+    :param assignment_id: int, the id of the assignment
+    :return: DeadlineExceptionValidator, the DeadlineExceptionValidator object
+    """
+    query = select(DeadlineException).where(
+        and_(
+            DeadlineException.course_id == course_id,
+            DeadlineException.sid == username,
+        )
+    )
+    time_limit = None
+    deadline = None
+    async with async_session() as session:
+        res = await session.execute(query)
+        for row in res.scalars().fetchall():
+            rslogger.debug(f"{row=}, {assignment_id=}")
+            if assignment_id is not None:
+                if row.assignment_id == assignment_id:
+                    return DeadlineExceptionValidator.from_orm(row)
+            else:
+                if row.time_limit is not None:
+                    time_limit = row.time_limit
+                if row.deadline is not None:
+                    deadline = row.deadline
+        return DeadlineExceptionValidator(
+            course_id=course_id, sid=username, time_limit=time_limit, deadline=deadline
+        )
