@@ -3122,11 +3122,18 @@ def reset_exam():
     else:
         return json.dumps({"status": "Failed", "mess": "Unknown Student"})
 
+    num_update = db(
+        (db.useinfo.sid == username)
+        & (db.useinfo.div_id == assignment_name)
+        & (db.useinfo.course_id == auth.user.course_name)
+        & (db.useinfo.event == "timedExam")
+    ).update(act="start_reset")
+
     # Remove records from the timed exam table
     num_del = db(
         (db.timed_exam.div_id == assignment_name) & (db.timed_exam.sid == username)
     ).delete()
-    if num_del == 0:
+    if num_del == 0 and num_update == 0:
         return json.dumps(
             {
                 "status": "Failed",
