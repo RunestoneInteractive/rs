@@ -10,6 +10,7 @@ import { AssignmentPicker } from "./renderers/assignmentPicker.jsx";
 import { AssignmentSummary } from "./renderers/assignmentSummary.jsx";
 import { Menubar } from "primereact/menubar";
 import { buildNavBar } from "./navUtils.js";
+import { ExceptionScheduler } from "./renderers/exceptionScheduler.jsx";
 
 function AssignmentBuilder() {
     const [searchParams] = useSearchParams();
@@ -87,6 +88,7 @@ function App() {
                     <Route path="/builder" element={<AssignmentBuilder />} />
                     <Route path="/grader" element={<AssignmentGrader />} />
                     <Route path="/admin" element={<h1>Coming Soon</h1>} />
+                    <Route path="/except" element={<ExceptionScheduler />} />
                 </Routes>
             </BrowserRouter>
         </>

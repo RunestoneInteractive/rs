@@ -33,6 +33,11 @@ export function buildNavBar(eBookConfig) {
             url: 'builder'
         },
         {
+            label: 'Exceptions',
+            icon: 'pi pi-ban',
+            url: 'except'
+        },
+        {
             label: 'User',
             icon: 'pi pi-user',
             items: [

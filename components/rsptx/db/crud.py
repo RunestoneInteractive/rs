@@ -539,7 +539,7 @@ async def fetch_courses_for_user(
 #
 async def fetch_users_for_course(course_name: str) -> list[AuthUserValidator]:
     """
-    Retrieve a list of users enrolled in a given course (course_name)
+    Retrieve a list of users/students enrolled in a given course (course_name)
 
     :param course_name: str, the name of the course
     :return: list[AuthUserValidator], a list of AuthUserValidator objects representing the users
@@ -848,6 +848,19 @@ async def create_instructor_course_entry(iid: int, cid: int) -> CourseInstructor
         session.add(nci)
     return nci
 
+
+async def fetch_course_students(course_id: int) -> List[AuthUserValidator]:
+    """
+    Retrieve a list of students for the given course id (course_id)
+
+    :param course_id: int, the id of the course
+    :return: List[AuthUserValidator], a list of AuthUserValidator objects representing the students
+    """
+    query = select(AuthUser).join(UserCourse, UserCourse.user_id == AuthUser.id).where(UserCourse.course_id == course_id)
+    async with async_session() as session:
+        res = await session.execute(query)
+    student_list = [AuthUserValidator.from_orm(x) for x in res.scalars().fetchall()]
+    return student_list
 
 # Code
 # ----
@@ -2825,7 +2838,7 @@ async def fetch_deadline_exception(
             DeadlineException.course_id == course_id,
             DeadlineException.sid == username,
         )
-    )
+    ).order_by(DeadlineException.id.desc())
     time_limit = None
     deadline = None
     async with async_session() as session:
@@ -2843,3 +2856,26 @@ async def fetch_deadline_exception(
         return DeadlineExceptionValidator(
             course_id=course_id, sid=username, time_limit=time_limit, deadline=deadline
         )
+
+async def create_deadline_exception(
+    course_id: int, username: str, time_limit: float, deadline: int, visible: bool, assignment_id: int = None
+) -> DeadlineExceptionValidator:
+    """
+    Create a new deadline exception for a given username and assignment_id.
+
+    :param username: str, the username of the student
+    :param assignment_id: int, the id of the assignment
+    :return: DeadlineExceptionValidator, the DeadlineExceptionValidator object
+    """
+    new_entry = DeadlineException(
+        course_id=course_id,
+        sid=username,
+        time_limit=time_limit,
+        duedate=deadline,
+        visible=visible,
+        assignment_id=assignment_id
+    )
+    async with async_session.begin() as session:
+        session.add(new_entry)
+
+    return DeadlineExceptionValidator.from_orm(new_entry)

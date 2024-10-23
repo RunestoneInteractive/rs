@@ -1,4 +1,3 @@
-
 import pathlib
 import pandas as pd
 
@@ -21,6 +20,7 @@ from rsptx.db.crud import (
     fetch_question_count_per_subchapter,
     fetch_all_course_attributes,
     create_assignment_question,
+    create_deadline_exception,
     create_question,
     fetch_course,
     fetch_users_for_course,
@@ -41,7 +41,7 @@ from rsptx.response_helpers.core import (
     make_json_response,
     get_webpack_static_imports,
     get_react_imports,
-    canonical_utcnow
+    canonical_utcnow,
 )
 from rsptx.db.models import (
     AssignmentQuestionValidator,
@@ -860,3 +860,66 @@ async def process_invoice_request(
     # otherwise FastAPI will use the method of the original request which is a POST
     # in this case
     return RedirectResponse(url=referer, status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/course_roster")
+async def get_course_roster(
+    request: Request, user=Depends(auth_manager), response_class=JSONResponse
+):
+    """
+    Get the list of students in the course.
+    """
+
+    students = await fetch_users_for_course(user.course_name)
+    students = [
+        s.model_dump(
+            exclude={
+                "created_on",
+                "modified_on",
+                "password",
+                "reset_password_key",
+                "registration_key",
+            }
+        )
+        for s in students
+    ]
+
+    return make_json_response(status=status.HTTP_200_OK, detail={"students": students})
+
+
+@router.post("/save_exception")
+async def save_exception(
+    request: Request,
+    request_data: dict,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    """
+    Save an exception to the database.
+    """
+    # get the course
+    course = await fetch_course(user.course_name)
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    # save the exception
+    res = await create_deadline_exception(
+        course.id,
+        request_data["sid"],
+        request_data["time_limit"],
+        request_data["due_date"],
+        request_data["visible"],
+        request_data["assignment_id"],
+    )
+
+    if not res:
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail="Error saving exception",
+        )
+    else:
+        return make_json_response(status=status.HTTP_200_OK, detail={"success": True})
