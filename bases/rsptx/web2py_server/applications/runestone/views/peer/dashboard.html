@@ -8,7 +8,6 @@
  </div>
 
 <h2>Peer Instruction: {{=assignment_name}}</h2>
-<div id="imessage"></div>
 
 <div class="row">
     <div class="col-md-6">
@@ -53,21 +52,21 @@
             <div id="chat-modality">
                 <button
                     type="button"
-                    id="makep"
-                    class="btn btn-info"
-                    onclick="makePartners(event)"
-                    disabled
-                >
-                    Enable Text Chat
-                </button>
-                <button
-                    type="button"
                     id="facechat"
                     class="btn btn-info"
                     onclick="enableFaceChat(event)"
                     disabled
                 >
                 Enable in-person Chat
+                </button>
+                <button
+                    type="button"
+                    id="makep"
+                    class="btn btn-info"
+                    onclick="makePartners(event)"
+                    disabled
+                >
+                    Enable Text Chat
                 </button>
             </div>
             <button
@@ -122,6 +121,8 @@
         </form>
     </div>
 </div>
+
+<div id="imessage"></div>
 
 <div class="row">
     <div class="oneq col-md-6 runestone-sphinx">
