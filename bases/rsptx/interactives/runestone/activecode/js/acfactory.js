@@ -122,12 +122,12 @@ export default class ACFactory {
             'htmlmixed': 'HTML',
             'java': 'Java',
             'javascript': 'JavaScript',
-            'js':'JavaScript',
+            'js': 'JavaScript',
             'octave': 'Octave',
             'python': 'Python',
-            'py2':'Python 2',
+            'py2': 'Python 2',
             'python2': 'Python 2',
-            'py3':'Python 3',
+            'py3': 'Python 3',
             'py3anaconda': 'Python 3 with Anaconda',
             'python3': 'Python 3',
             'ruby': 'Ruby',
@@ -156,7 +156,7 @@ export default class ACFactory {
             </div>`;
         var el = $(html);
         $("body").append(el);
-        el.on("shown.bs.modal", function(){
+        el.on("shown.bs.modal", function () {
             // default lang isn't in dictionary of known programming languages
             if (!languageNames[lang.toLowerCase()]) {
                 alert(`${lang} is a known language. Please report this`)
@@ -193,8 +193,9 @@ $(document).on("runestone:login-complete", function () {
                     $(this).find("textarea").data("lang")
                 );
             } catch (err) {
-                console.log(`Error rendering Activecode Problem ${this.id}
+                console.error(`Error rendering Activecode Problem ${this.id}
                 Details: ${err}`);
+                console.error(err.stack)
             }
         }
     });

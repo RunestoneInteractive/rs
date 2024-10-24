@@ -115,9 +115,10 @@ async def return_static_asset(course: str, kind: str, filepath: str):
         kind,
         filepath,
     )
+    headers = {"Cache-Control": "public, max-age=630000"}
     rslogger.debug(f"GETTING: {filepath}")
     if os.path.exists(filepath) and not os.path.isdir(filepath):
-        return FileResponse(filepath)
+        return FileResponse(filepath, headers=headers)
     else:
         raise HTTPException(404)
 
