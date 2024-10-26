@@ -776,6 +776,20 @@ async def get_grader(
     return await get_builder(request, user, response_class)
 
 
+@router.get("/except")
+async def get_except(
+    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+):
+    return await get_builder(request, user, response_class)
+
+
+@router.get("/admin")
+async def get_admin(
+    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+):
+    return await get_builder(request, user, response_class)
+
+
 @router.get("/cancel_lti")
 async def cancel_lti(request: Request, user=Depends(auth_manager)):
     """

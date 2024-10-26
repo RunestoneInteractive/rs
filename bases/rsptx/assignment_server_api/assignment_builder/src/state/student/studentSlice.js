@@ -57,6 +57,7 @@ export const saveException = createAsyncThunk(
         let result = await resp.json();
         if (result.detail.success) {
             console.log("exception saved");
+            toast("Exception saved", {icon: "🎉"});
             return result.detail.success;
         }
     }

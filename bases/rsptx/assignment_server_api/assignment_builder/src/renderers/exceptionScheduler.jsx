@@ -63,8 +63,10 @@ export function ExceptionScheduler() {
     }
     return (
         <div className="App">
-            <h1>Deadline Exception Scheduler</h1>
+            <h1>Accommodation Scheduler</h1>
             <p>Create scheduling or access exceptions for assignments.</p>
+            <p>October 26, This is an experimental feature.  Visible and time limit should work, but have only limited testing.  Added days have not been implemented yet.</p>
+            <Toaster />
             <h3>Choose one or more students</h3>
             <StudentPicker />
             <h3>Choose zero or more assignments</h3>
