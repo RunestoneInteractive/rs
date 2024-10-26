@@ -604,6 +604,40 @@ class AssignmentQuestion(Base, IdMixin):
 
 AssignmentQuestionValidator = sqlalchemy_to_pydantic(AssignmentQuestion)
 
+#
+# DeadlineException
+# ----------------
+# This table is used to store exceptions to the deadline for an assignment or assignments
+# if the assignment is identified, then the exception is for that assignment only.  If it
+# is not specified then the exception is for that student for all assignments
+#
+
+
+class DeadlineException(Base, IdMixin):
+    __tablename__ = "deadline_exceptions"
+
+    course_id = Column(
+        ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    assignment_id = Column(
+        ForeignKey("assignments.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    sid = Column(
+        ForeignKey("auth_user.username", ondelete="CASCADE"), nullable=False, index=True
+    )
+    visible = Column(
+        Web2PyBoolean, nullable=True
+    )  # Override the assignment visibility for this student
+    duedate = Column(
+        Integer, nullable=True
+    )  # number of days to extend the assignment deadline
+    time_limit = Column(
+        Float, nullable=True
+    )  # multiplier for the time limit of a timed exam
+
+
+DeadlineExceptionValidator = sqlalchemy_to_pydantic(DeadlineException)
+
 
 # Grading
 # -------

@@ -7,6 +7,7 @@ import editorReducer from "../state/componentEditor/editorSlice";
 import interactiveReducer from "../state/interactive/interactiveSlice";
 import mcReducer from "../state/multiplechoice/mcSlice";
 import shortReducer from "../state/shortanswer/shortSlice";
+import studentReducer from "../state/student/studentSlice";
 
 export default configureStore({
     reducer: {
@@ -18,5 +19,6 @@ export default configureStore({
         interactive: interactiveReducer,
         multiplechoice: mcReducer,
         shortanswer: shortReducer,
+        student: studentReducer,
     },
 });

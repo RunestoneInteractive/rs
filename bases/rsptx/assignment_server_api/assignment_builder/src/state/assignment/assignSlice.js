@@ -412,6 +412,7 @@ export const assignSlice = createSlice({
         question_count: 0,
         isAuthorized: true,
         released: false,
+        selectedAssignments: [],
     },
     reducers: {
 
@@ -513,6 +514,9 @@ export const assignSlice = createSlice({
                 total += action.payload.adjustment;
             }
             state.points = total;
+        },
+        setSelected: (state, action) => {
+            state.selectedAssignments = action.payload;
         }
     },
     extraReducers(builder) {
@@ -600,6 +604,7 @@ export const {
     updateExercise,
     updateField,
     setIsAuthorized,
+    setSelected,
 } = assignSlice.actions;
 
 // The function below is called a selector and allows us to select a value from
@@ -628,4 +633,5 @@ export const selectQuestionCount = (state) => state.assignment.question_count;
 export const selectSearchResults = (state) => state.assignment.search_results;
 export const selectTimeLimit = (state) => state.assignment.time_limit;
 export const selectVisible = (state) => state.assignment.visible;
+export const selectSelectedAssignments = (state) => state.assignment.selectedAssignments;
 export default assignSlice.reducer;

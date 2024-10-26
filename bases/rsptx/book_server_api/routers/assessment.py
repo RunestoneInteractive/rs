@@ -32,6 +32,7 @@ from rsptx.db.crud import (
     EVENT2TABLE,
     count_matching_questions,
     count_useinfo_for,
+    did_start_timed,
     create_selected_question,
     create_user_experiment_entry,
     fetch_assignment_question,
@@ -525,7 +526,8 @@ async def tookTimedAssessment(request: Request, request_data: ExamRequest):
     exam_id = request_data.div_id
     course = request_data.course_name
     rows = await fetch_timed_exam(sid, exam_id, course)
-
+    if not rows:
+        rows = await did_start_timed(sid, exam_id, course)
     rslogger.debug(f"checking {exam_id} {sid} {course} {rows}")
     if rows:
         return make_json_response(detail={"tookAssessment": True})

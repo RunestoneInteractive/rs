@@ -2,6 +2,7 @@
 FROM python:3.11-bullseye
 
 LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/latex_image
+LABEL importance="high"
 
 # install dependencies
 RUN pip install --upgrade pip

@@ -78,6 +78,11 @@ export function buildNavBar(eBookConfig) {
                     url: '/runestone/admin/admin'
                 },
                 {
+                    label: 'Accommodations',
+                    icon: 'pi pi-ban',
+                    url: 'except'
+                },
+                {
                     label: 'Progress Page',
                     url: '/runestone/dashboard/studentreport'
                 },

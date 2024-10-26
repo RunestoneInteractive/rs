@@ -41,11 +41,16 @@ from rsptx.db.crud import (
     fetch_user_chapter_progress,
     fetch_user_sub_chapter_progress,
 )
+from rsptx.grading_helpers.core import check_for_exceptions
 
 from rsptx.db.models import GradeValidator, UseinfoValidation, CoursesValidator
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
-from rsptx.response_helpers.core import make_json_response, get_webpack_static_imports, canonical_utcnow
+from rsptx.response_helpers.core import (
+    make_json_response,
+    get_webpack_static_imports,
+    canonical_utcnow,
+)
 from rsptx.configuration import settings
 
 
@@ -206,12 +211,14 @@ async def doAssignment(
 
         return RedirectResponse("/assignment/student/chooseAssignment")
 
+    deadline_exception = await check_for_exceptions(user, assignment_id)
+
     if (
         assignment.visible == "F"
         or assignment.visible is None
         or assignment.visible == False
     ):
-        if await is_instructor(request) is False:
+        if not (await is_instructor(request) or deadline_exception.visible):
             rslogger.error(
                 f"Attempt to access invisible assignment {assignment_id} by {user.username}"
             )
@@ -230,7 +237,14 @@ async def doAssignment(
     # proficiency exam that you are writing as an rst page that the page containing
     # the exam should be linked to a toctree somewhere so that it gets added.
     #
-
+    # write a sql insert statement to add a visible exception for testuser1 for assignment 187
+    # insert into deadline_exceptions (course_id, assignment_id, visible, time_limit, due_date, user_id)
+    # values ('testcourse', 187, 1, 1, '2020-12-31 23:59:59', 1);
+    if assignment.is_timed:
+        if assignment.time_limit and deadline_exception.time_limit:
+            assignment.time_limit = (
+                assignment.time_limit * deadline_exception.time_limit
+            )
     questions = await fetch_assignment_questions(assignment_id)
 
     await create_useinfo_entry(

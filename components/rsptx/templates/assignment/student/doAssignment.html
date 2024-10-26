@@ -43,6 +43,7 @@ Do Assignment
     <div style='background-color:powderblue; margin-left:2cm; margin-right:2cm;'>
         <p style='margin-left:0.5cm; margin-right:0.5cm;'>Description: {{ assignment['description'] }}</p>
     </div>
+    {% if not assignment.is_timed %}
     <div>
         {% if is_submit == "Finished" %}
             <div style='background-color:rgb(146, 207, 165); margin-left:2cm; margin-right:2cm;'>
@@ -58,7 +59,7 @@ Do Assignment
             </div>
         {% endif %}
     </div>
-
+    {% endif %}
     {% if readings|length > 0 %}
         <div id='readings' style='margin-left:15%;'>
             <h3>Readings</h3>
@@ -159,6 +160,7 @@ Do Assignment
         </div>
     {% endif %}
 </div>
+{% if not assignment.is_timed %}
 <div>
     {% if is_submit == "Finished" %}
         <div style='background-color:rgb(146, 207, 165); margin-left:2cm; margin-right:2cm;'>
@@ -186,6 +188,7 @@ Do Assignment
         </div>
     {% endif %}
 </div>
+{% endif %}
 
 {% if not released and not assignment.is_timed %}
 <div style="text-align:center">
