@@ -280,6 +280,9 @@ def chartdata():
 def num_answers():
     response.headers["content-type"] = "application/json"
     div_id = request.vars.div_id
+    if not request.vars.start_time:
+        return json.dumps({"count": 0, "mess_count": 0})
+
     acount = db(
         (db.mchoice_answers.div_id == div_id)
         & (db.mchoice_answers.course_name == auth.user.course_name)
