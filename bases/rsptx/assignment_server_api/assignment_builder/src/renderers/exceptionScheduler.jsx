@@ -11,6 +11,8 @@ import store from "../state/store";
 import { InputNumber } from 'primereact/inputnumber';
 import { InputSwitch } from "primereact/inputswitch";
 import { Button } from 'primereact/button';
+import { Dialog } from 'primereact/dialog';
+
 
 store.dispatch(fetchClassRoster());
 
@@ -21,6 +23,7 @@ export function ExceptionScheduler() {
     const [checked, setChecked] = React.useState(false);
     const [tlMult, setTlMult] = React.useState(null);
     const [extraDays, setExtraDays] = React.useState(null);
+    const [helpVisible, setHelpVisible] = React.useState(false);
     const saveAllExceptions = () => {
         for (let student of students) {
             if (assignments.length === 0) {
@@ -96,6 +99,21 @@ export function ExceptionScheduler() {
                 <div className="flex-auto">
                     <label htmlFor="access">Allow student to see/access assignments that are not visible to others.</label>
                     <InputSwitch id="access" checked={checked} onChange={(e) => setChecked(e.value)} />
+                </div>
+                <div className="flex-auto">
+                    <Button icon="pi pi-question-circle" rounded outlined onClick={() => setHelpVisible(true)} />
+                    <Dialog header="Help" visible={helpVisible} style={{ width: '50vw' }} onHide={() => setHelpVisible(false)}>
+                        <p>
+                            <ul>
+                                <li>Time Limit Multiplier: Give the student N times the standard amount</li>
+                                <li>Extra Days: Extend the deadline by X days.</li>
+                                <li>Access: Allow the student to see and access the assignment even if it is not visible to others.</li>
+                            </ul>
+                            Note: If you have already extended the deadline for a student by N days and you still
+                            want to give them more time, you should enter the total number of days you want to give them.
+                            The last entry wins.
+                        </p>
+                    </Dialog>
                     <p></p>
                 </div>
             </div>
@@ -117,11 +135,11 @@ function StudentPicker() {
         dispatch(setStudents(e.value));
     }
     return (
-        <ListBox multiple
+        <ListBox multiple filter
             value={selectedStudents}
             options={students}
-            optionLabel="username"
-            itemTemplate={studentTemplate}
+            optionLabel="label"
+            //itemTemplate={studentTemplate}
             onChange={handleChange}
             listStyle={{ maxHeight: '250px' }}
         />
@@ -147,7 +165,7 @@ function AssignmentPicker() {
     }
     return (
 
-        <ListBox multiple
+        <ListBox multiple filter
             value={selectedAssignments}
             onChange={handleChange}
             options={assignments}
