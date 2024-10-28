@@ -26,6 +26,7 @@ from rsptx.db.crud import (
     fetch_course,
     fetch_courses_for_user,
     fetch_course_instructors,
+    fetch_deadline_exception,
     fetch_last_page,
     fetch_library_book,
     update_user,
@@ -34,6 +35,7 @@ from rsptx.db.crud import (
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import make_json_response
 from rsptx.auth.session import is_instructor
+from rsptx.grading_helpers.core import adjust_deadlines
 
 
 # .. _APIRouter config:
@@ -78,7 +80,14 @@ async def index(request: Request, user=Depends(auth_manager)):
     course_list = await fetch_courses_for_user(user.id)
     course_list.sort(key=lambda x: x.id, reverse=True)
     user_is_instructor = await is_instructor(request)
-    assignments = await fetch_assignments(course_name, is_visible=True)
+    assignments = await fetch_assignments(course_name)
+    accommodations = await fetch_deadline_exception(
+        course.id, user.username, fetch_all=True
+    )
+    # filter assignments based on deadline exceptions
+    assignment_ids = [a.assignment_id for a in accommodations]
+    assignments = [a for a in assignments if a.visible or a.id in assignment_ids]
+    assignments = adjust_deadlines(assignments, accommodations)
     assignments.sort(key=lambda x: x.duedate, reverse=True)
     stats_list = await fetch_all_assignment_stats(course_name, user.id)
     stats = {}

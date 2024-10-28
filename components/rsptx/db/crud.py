@@ -1319,7 +1319,6 @@ async def fetch_assignments(
     :param is_peer: bool, whether or not the assignment is a peer assignment
     :return: List[AssignmentValidator], a list of AssignmentValidator objects
     """
-
     if is_visible:
         vclause = Assignment.visible == is_visible
     else:
@@ -2824,7 +2823,7 @@ async def fetch_source_code(
 
 
 async def fetch_deadline_exception(
-    course_id: int, username: str, assignment_id: int = None
+    course_id: int, username: str, assignment_id: int = None, fetch_all: bool =False
 ) -> DeadlineExceptionValidator:
     """
     Fetch the deadline exception for a given username and assignment_id.
@@ -2843,6 +2842,8 @@ async def fetch_deadline_exception(
     deadline = None
     async with async_session() as session:
         res = await session.execute(query)
+        if fetch_all:
+            return [DeadlineExceptionValidator.from_orm(row) for row in res.scalars().fetchall()]
         for row in res.scalars().fetchall():
             rslogger.debug(f"{row=}, {assignment_id=}")
             if assignment_id is not None:
