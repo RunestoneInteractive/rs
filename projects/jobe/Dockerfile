@@ -62,7 +62,8 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     sudo \
     tzdata \
     unzip \
-    vim && \
+    vim \
+    wget && \
     python3 -m pip install pylint beautifulsoup4 pandas requests altair && \
     pylint --reports=no --score=n --generate-rcfile > /etc/pylintrc && \
     ln -sf /proc/self/fd/1 /var/log/apache2/access.log && \
@@ -87,8 +88,10 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
 
 # Fix catch.hpp (use the one from catch2)
 RUN rm -f /usr/include/catch.hpp && ln -s /usr/include/catch2/catch.hpp /usr/include/catch.hpp
-# Precompile catch.hpp to speed things up
-RUN g++ -O2 -Wall -x c++-header /usr/include/catch.hpp -o /usr/include/catch.hpp.gch
+
+# Get doctest.h - could instead point to stable version like
+#   https://github.com/doctest/doctest/releases/download/v2.4.11/doctest.h
+RUN wget https://github.com/doctest/doctest/releases/latest/download/doctest.h -O /usr/include/doctest.h
 
 # Expose apache
 EXPOSE 80

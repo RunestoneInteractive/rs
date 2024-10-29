@@ -175,16 +175,27 @@ async def get_peer_votes(div_id: str, course_name: str, voting_stage: int):
     Provide the answers for a peer instruction multiple choice question.
     What percent of students chose each option. This is used for the Review page of Peer Instruction questions.
     """
+    # Subquery to get the latest vote for each student
+    subquery = (
+        select(func.max(Useinfo.id).label("max_id"))
+        .where(
+            (Useinfo.event == "mChoice") &
+            (Useinfo.course_id == course_name) &
+            (Useinfo.div_id == div_id) &
+            Useinfo.act.like(f"%vote{voting_stage}")
+        )
+        # Group by student ID to get each student's latest vote
+        .group_by(Useinfo.sid)
+        .subquery()
+    )
+
+    # Querying the Useinfo table for every student's latest votes using the subquery
     query = (
         select(Useinfo.act)
-        .where(
-            (Useinfo.event == "mChoice")
-            & (Useinfo.course_id == course_name)
-            & (Useinfo.div_id == div_id)
-            & Useinfo.act.like(f"%vote{voting_stage}")
-        )
+        .join(subquery, Useinfo.id == subquery.c.max_id)
         .order_by(Useinfo.id.desc())
     )
+
     async with async_session() as session:
         result = await session.execute(query)
         ans = result.scalars().all()
