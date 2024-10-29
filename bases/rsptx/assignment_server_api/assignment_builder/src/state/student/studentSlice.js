@@ -27,6 +27,9 @@ export const fetchClassRoster = createAsyncThunk(
             return;
         }
         let result = await resp.json();
+        for (let student of result.detail.students) {
+            student.label = `${student.first_name} ${student.last_name} (${student.username})`;
+        }
         if (result.detail.students) {
             console.log("students fetched");
             return result.detail.students;

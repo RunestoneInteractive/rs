@@ -35,6 +35,7 @@ from rsptx.db.crud import (
     uses_lti,
     fetch_course,
     fetch_all_course_attributes,
+    fetch_deadline_exception,
     fetch_one_assignment,
     fetch_assignment_questions,
     fetch_question_grade,
@@ -86,7 +87,15 @@ async def get_assignments(
         is_lti_course = True
     templates = Jinja2Templates(directory=template_folder)
     user_is_instructor = await is_instructor(request, user=user)
-    assignments = await fetch_assignments(course.course_name, is_visible=True)
+    # fetch all assignments, we will filter them using the deadline_exception data
+    assignments = await fetch_assignments(course.course_name)
+    # fetch all deadline exceptions for the user
+    accommodations = await fetch_deadline_exception(
+        course.id, user.username, fetch_all=True
+    )
+    # filter assignments based on deadline exceptions
+    assignment_ids = [a.assignment_id for a in accommodations]
+    assignments = [a for a in assignments if a.visible or a.id in assignment_ids]
     assignments.sort(key=lambda x: x.duedate, reverse=True)
     stats_list = await fetch_all_assignment_stats(course.course_name, user.id)
     stats = {}

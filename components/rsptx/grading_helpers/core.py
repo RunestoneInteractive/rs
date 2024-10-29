@@ -1,4 +1,5 @@
-from typing import Union
+from typing import Union, List
+from datetime import timedelta
 from rsptx.db.models import AuthUserValidator, DeadlineExceptionValidator
 from rsptx.db.crud import (
     is_assigned,
@@ -17,7 +18,11 @@ from rsptx.validation.schemas import (
     ScoringSpecification,
     ReadingAssignmentSpec,
 )
-from rsptx.db.models import GradeValidator
+from rsptx.db.models import (
+    GradeValidator,
+    AssignmentValidator,
+    DeadlineExceptionValidator,
+)
 from rsptx.logging import rslogger
 
 
@@ -35,8 +40,14 @@ async def grade_submission(
 
     # First figure out if the answer is part of an assignment
     update_total = False
+    accommodation = await fetch_deadline_exception(
+        user.course_id, user.username, submission.assignment_id
+    )
     scoreSpec = await is_assigned(
-        submission.div_id, user.course_id, submission.assignment_id
+        submission.div_id,
+        user.course_id,
+        submission.assignment_id,
+        accommodation=accommodation,
     )
     if scoreSpec.assigned:
         rslogger.debug(
@@ -294,3 +305,19 @@ async def check_for_exceptions(
     )
     rslogger.debug(f"deadline exception = {exception}")
     return exception
+
+
+def adjust_deadlines(
+    assignment_list: List[AssignmentValidator],
+    accommodations: List[DeadlineExceptionValidator],
+) -> List[AssignmentValidator]:
+    """
+    Adjust the deadlines for assignments based on accommodations.
+    """
+    for assignment in assignment_list:
+        for exception in accommodations:
+            if assignment.id == exception.assignment_id:
+                if exception.duedate:
+                    assignment.duedate += timedelta(days=exception.duedate)
+                break
+    return assignment_list
