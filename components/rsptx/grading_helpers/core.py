@@ -25,6 +25,7 @@ from rsptx.db.models import (
 )
 from rsptx.logging import rslogger
 
+
 async def grade_submission(
     user: AuthUserValidator, submission: LogItemIncoming
 ) -> ScoringSpecification:
@@ -39,8 +40,14 @@ async def grade_submission(
 
     # First figure out if the answer is part of an assignment
     update_total = False
+    accommodation = await fetch_deadline_exception(
+        user.course_id, user.username, submission.assignment_id
+    )
     scoreSpec = await is_assigned(
-        submission.div_id, user.course_id, submission.assignment_id
+        submission.div_id,
+        user.course_id,
+        submission.assignment_id,
+        accommodation=accommodation,
     )
     if scoreSpec.assigned:
         rslogger.debug(
