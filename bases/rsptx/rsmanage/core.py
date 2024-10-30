@@ -31,6 +31,7 @@ from psycopg2.errors import UniqueViolation
 # our own package imports
 
 from rsptx.db.crud import (
+    copy_course_attributes,
     create_initial_courses_users,
     create_book_author,
     create_course,
@@ -358,8 +359,11 @@ async def addcourse(
         allow_pairs=allow_pairs,
         new_server="T",
     )
-    await create_course(newCourse)
+    newCourse = await create_course(newCourse)
     click.echo("Course added to DB successfully")
+    bc = await fetch_course(basecourse)
+    if bc.id != newCourse.id:
+        await copy_course_attributes(bc.id, newCourse.id)
 
 
 #

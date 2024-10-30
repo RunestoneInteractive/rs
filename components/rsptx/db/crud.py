@@ -179,10 +179,10 @@ async def get_peer_votes(div_id: str, course_name: str, voting_stage: int):
     subquery = (
         select(func.max(Useinfo.id).label("max_id"))
         .where(
-            (Useinfo.event == "mChoice") &
-            (Useinfo.course_id == course_name) &
-            (Useinfo.div_id == div_id) &
-            Useinfo.act.like(f"%vote{voting_stage}")
+            (Useinfo.event == "mChoice")
+            & (Useinfo.course_id == course_name)
+            & (Useinfo.div_id == div_id)
+            & Useinfo.act.like(f"%vote{voting_stage}")
         )
         # Group by student ID to get each student's latest vote
         .group_by(Useinfo.sid)
@@ -514,6 +514,7 @@ async def create_course(course_info: CoursesValidator) -> None:
     new_course = Courses(**course_info.dict())
     async with async_session.begin() as session:
         session.add(new_course)
+    return new_course
 
 
 async def fetch_courses_for_user(
@@ -624,6 +625,22 @@ async def create_course_attribute(course_id: int, attr: str, value: str):
     new_attr = CourseAttribute(course_id=course_id, attr=attr, value=value)
     async with async_session.begin() as session:
         session.add(new_attr)
+
+
+async def copy_course_attributes(basecourse_id: int, new_course_id: int):
+    """
+    Copy all course attributes from a base course to a new course
+    """
+    query = select(CourseAttribute).where(CourseAttribute.course_id == basecourse_id)
+    async with async_session() as session:
+        res = await session.execute(query)
+        for row in res.scalars().fetchall():
+            print(row.attr, row.value)
+            new_attr = CourseAttribute(
+                course_id=new_course_id, attr=row.attr, value=row.value
+            )
+            session.add(new_attr)
+        await session.commit()
 
 
 async def get_course_origin(base_course):
