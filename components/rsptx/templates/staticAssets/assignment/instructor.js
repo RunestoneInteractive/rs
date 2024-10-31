@@ -223,76 +223,85 @@ function renderAltairChart(containerId, data, title) {
 
 // Have to divide this code into functions
 document.addEventListener("DOMContentLoaded", () => {
-    questionsData = JSON.parse(document.getElementById("questions-data").textContent);
+    const first_interval = setInterval(() => {
+        questionsData = JSON.parse(document.getElementById("questions-data").textContent);
 
-    questionsData.forEach((q, index) => {
-        const questionIndex = index + 1;
+        if (questionsData) {
+            clearInterval(first_interval);
+            console.log("Questions data:", questionsData);
+            questionsData.forEach((q, index) => {
+                const questionIndex = index + 1;
+                // Calculate the total votes for each voting stage
+                const totalVote1 = Object.values(q.total_votes.vote_1.counts).reduce((a, b) => a + b, 0);
+                const totalVote2 = Object.values(q.total_votes.vote_2.counts).reduce((a, b) => a + b, 0);
 
-        // Calculate the total votes for each voting stage
-        const totalVote1 = Object.values(q.total_votes.vote_1.counts).reduce((a, b) => a + b, 0);
-        const totalVote2 = Object.values(q.total_votes.vote_2.counts).reduce((a, b) => a + b, 0);
+                // TODO: Perhaps the only other place I can think of where we can add an interval
+                let {answerElementID, feedbackText} = extractAnswerAndFeedback(q.htmlsrc);
+                // Checking if the correct answer has been specified in the question and there are votes for at least the first voting stage
+                if (answerElementID && totalVote1 > 0) {
+                    const correctOption = letterToNumber(answerElementID[answerElementID.length - 1]);
 
-        let {answerElementID, feedbackText} = extractAnswerAndFeedback(q.htmlsrc);
-        // Checking if the correct answer has been specified in the question
-        if (answerElementID && totalVote1 > 0) {
-            const correctOption = letterToNumber(answerElementID[answerElementID.length - 1]);
+                    // Need to use toString because the correct choice is a string
+                    const correctVote1 = q.total_votes.vote_1.counts[correctOption.toString()] || 0;
+                    const correctVote2 = q.total_votes.vote_2.counts[correctOption.toString()] || 0;
 
-            // Need to use toString because the correct choice is a string
-            const correctVote1 = q.total_votes.vote_1.counts[correctOption.toString()] || 0;
-            const correctVote2 = q.total_votes.vote_2.counts[correctOption.toString()] || 0;
+                    // Calculate the percentage of correct votes in each voting stage
+                    const correctVote1Percentage = Math.round((correctVote1 / totalVote1) * 100);
+                    const correctVote2Percentage = Math.round((correctVote2 / totalVote2) * 100);
 
-            // Calculate the percentage of correct votes in each voting stage
-            const correctVote1Percentage = Math.round((correctVote1 / totalVote1) * 100);
-            const correctVote2Percentage = Math.round((correctVote2 / totalVote2) * 100);
+                    // Dealing with the edge case where there are no votes for the second voting stage (i.e., NaN correctVote2Percentage)
+                    if (totalVote2 > 0) {
+                        // Calculate the learning gain
+                        const learningGain = correctVote2Percentage - correctVote1Percentage;
+                        const potentialImprovement = 100 - correctVote1Percentage;
+                        // Calculate the normalized change
+                        const normalizedChange = correctVote1Percentage === 100 ? "N/A" : Math.round((learningGain / potentialImprovement) * 100);
 
-            // Dealing with the edge case where there are no votes for the second voting stage (i.e., NaN correctVote2Percentage)
-            if (totalVote2 > 0) {
-                // Calculate the learning gain
-                const learningGain = correctVote2Percentage - correctVote1Percentage;
-                const potentialImprovement = 100 - correctVote1Percentage;
-                // Calculate the normalized change
-                const normalizedChange = correctVote1Percentage === 100 ? "N/A" : Math.round((learningGain / potentialImprovement) * 100);
+                        // Update the normalized change card's text
+                        const normalizedChangeCard = document.getElementById(`normalized-change-card-${questionIndex}`);
+                        const normalizedChangePercentage = document.getElementById(`normalized-change-${questionIndex}`);
+                        if (normalizedChange !== "N/A") {
+                            normalizedChangePercentage.textContent = normalizedChange + "%";
+                            normalizedChangeCard.classList.add("bg-info");
+                        }
+                    }
 
-                // Update the normalized change card's text
-                const normalizedChangeCard = document.getElementById(`normalized-change-card-${questionIndex}`);
-                const normalizedChangePercentage = document.getElementById(`normalized-change-${questionIndex}`);
-                if (normalizedChange !== "N/A") {
-                    normalizedChangePercentage.textContent = normalizedChange + "%";
-                    normalizedChangeCard.classList.add("bg-info");
+                    // Update the effectiveness card's text and color
+                    const effectivenessCard = document.getElementById(`effectiveness-card-${questionIndex}`);
+                    const effectivenessPercentage = document.getElementById(`effectiveness-percentage-${questionIndex}`);
+                    effectivenessPercentage.textContent = correctVote1Percentage + "%";
+                    if (correctVote1Percentage >= 30 && correctVote1Percentage <= 70) {
+                        effectivenessCard.classList.add("bg-success");
+                    } else {
+                        effectivenessCard.classList.add("bg-warning");
+                    }
+
+                    // Interval to ensure the answersList for the question is not empty
+                    const second_interval = setInterval(() => {
+                        if (answersList[q.name] && answersList[q.name].length > 0) {
+                            clearInterval(second_interval);
+
+                            const vote1Data = generateChartData(q.total_votes.vote_1.counts, correctOption, answersList[q.name]);
+                            const vote2Data = generateChartData(q.total_votes.vote_2.counts, correctOption, answersList[q.name]);
+
+                            renderAltairChart(`chart-vote1-${questionIndex}`, vote1Data, `Vote 1 Results (n=${totalVote1})`);
+                            renderAltairChart(`chart-vote2-${questionIndex}`, vote2Data, `Vote 2 Results (n=${totalVote2})`);
+                        }
+                    }, 100);
                 }
-            }
-
-            // Update the effectiveness card's text and color
-            const effectivenessCard = document.getElementById(`effectiveness-card-${questionIndex}`);
-            const effectivenessPercentage = document.getElementById(`effectiveness-percentage-${questionIndex}`);
-            effectivenessPercentage.textContent = correctVote1Percentage + "%";
-            if (correctVote1Percentage >= 30 && correctVote1Percentage <= 70) {
-                effectivenessCard.classList.add("bg-success");
-            } else {
-                effectivenessCard.classList.add("bg-warning");
-            }
-
-            // Interval to ensure the answersList for the question is not empty
-            const interval = setInterval(() => {
-                if (answersList[q.name] && answersList[q.name].length > 0) {
-                    clearInterval(interval);
-
-                    const vote1Data = generateChartData(q.total_votes.vote_1.counts, correctOption, answersList[q.name]);
-                    const vote2Data = generateChartData(q.total_votes.vote_2.counts, correctOption, answersList[q.name]);
-
-                    renderAltairChart(`chart-vote1-${questionIndex}`, vote1Data, `Vote 1 Results (n=${totalVote1})`);
-                    renderAltairChart(`chart-vote2-${questionIndex}`, vote2Data, `Vote 2 Results (n=${totalVote2})`);
+                else {
+                    // If the correct answer is not specified or there are no votes for the question, don't render the charts
+                    const vote1ChartDiv = document.getElementById(`chart-vote1-${questionIndex}`);
+                    const vote2ChartDiv = document.getElementById(`chart-vote2-${questionIndex}`);
+                    vote1ChartDiv.textContent = "No data for vote 1.";
+                    vote2ChartDiv.textContent = "No data for vote 2.";
                 }
-            }, 100);
+
+                showQuestion(currentQuestionIndex);
+            });
         }
         else {
-            // If the correct answer is not specified, don't render the charts
-            const vote1ChartDiv = document.getElementById(`chart-vote1-${questionIndex}`);
-            const vote2ChartDiv = document.getElementById(`chart-vote2-${questionIndex}`);
-            vote1ChartDiv.textContent = "No data for vote 1.";
-            vote2ChartDiv.textContent = "No data for vote 2.";
+            console.log("Questions data not found.");
         }
-
-        showQuestion(currentQuestionIndex);
-    });
+    }, 100);
 });
