@@ -1,6 +1,7 @@
 import { ActiveCode } from "./activecode.js";
 import MD5 from "./md5.js";
-import JUnitTestParser from "./extractUnitResults.js";
+import JUnitTestParser from "./extractUnitResults-JUnit.js";
+import DoctestTestParser from "./extractUnitResults-Doctest.js";
 import "../../codelens/js/pytutor-embed.bundle.js";
 import { base64encode } from "byte-base64";
 
@@ -334,10 +335,18 @@ export default class LiveCode extends ActiveCode {
         this.errinfo = logresult;
         switch (result.outcome) {
             case 15: {
-                this.parsedOutput = new JUnitTestParser(
-                    result.stdout,
-                    this.divid
-                );
+                if (this.language === "java") {
+                    this.parsedOutput = new JUnitTestParser(
+                        result.stdout,
+                        this.divid
+                    );
+                } else if (this.language === "cpp") {
+                    this.parsedOutput = new DoctestTestParser(
+                        result.stdout,
+                        this.divid
+                    );
+                }
+
                 $(odiv).html(this.parsedOutput.stdout);
                 if (this.suffix) {
                     if (this.parsedOutput.pct === undefined) {
