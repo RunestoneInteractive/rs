@@ -172,7 +172,9 @@ def git_pull(self, book, source_path=None):
         )
         raise Ignore()
     res = subprocess.run(
-        ["git", "pull", "--no-edit"], capture_output=True, cwd=f"/books/{book}"
+        ["git", "pull", "--no-edit", "--strategy-option=theirs"],
+        capture_output=True,
+        cwd=f"/books/{book}",
     )
     if res.returncode != 0:
         outputlog = pathlib.Path("/books", book, "cli.log")
