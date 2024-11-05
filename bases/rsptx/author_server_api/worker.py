@@ -230,6 +230,8 @@ def build_ptx_book(self, book, generate=False, target="runestone", source_path=N
     :param book: book name
     :return: True if successful
     """
+    if target is None:
+        target = "runestone"
     logger.debug(f"Building {book} with target {target} at {source_path}")
     if source_path:
         base_path = pathlib.Path("/books", book, source_path)
