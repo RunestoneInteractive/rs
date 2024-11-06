@@ -172,7 +172,7 @@ def git_pull(self, book, source_path=None):
         )
         raise Ignore()
     res = subprocess.run(
-        ["git", "pull", "--no-edit", "--strategy-option=theirs"],
+        ["git", "pull", "--rebase", "--no-edit", "--strategy-option=theirs"],
         capture_output=True,
         cwd=f"/books/{book}",
     )
