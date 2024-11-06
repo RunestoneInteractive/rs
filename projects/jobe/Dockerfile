@@ -2,7 +2,7 @@
 # With thanks to David Bowes (d.h.bowes@lancaster.ac.uk) who did all the hard work
 # on this originally.
 
-FROM docker.io/ubuntu:22.04
+FROM docker.io/ubuntu:24.04
 
 # https://github.com/opencontainers/image-spec/blob/master/annotations.md
 LABEL \
@@ -12,59 +12,58 @@ LABEL \
     org.opencontainers.image.documentation="https://github.com/trampgeek/jobeinabox" \
     org.opencontainers.image.source="https://github.com/trampgeek/jobeinabox"
 
-ARG TZ=Etc/GMT-0
+ARG TZ=Pacific/Auckland
 # Set up the (apache) environment variables
-ENV APACHE_RUN_USER www-data
-ENV APACHE_RUN_GROUP www-data
-ENV APACHE_LOG_DIR /var/log/apache2
-ENV APACHE_LOCK_DIR /var/lock/apache2
-ENV APACHE_PID_FILE /var/run/apache2.pid
-ENV LANG C.UTF-8
+ENV APACHE_RUN_USER=www-data
+ENV APACHE_RUN_GROUP=www-data
+ENV APACHE_LOG_DIR=/var/log/apache2
+ENV APACHE_LOCK_DIR=/var/lock/apache2
+ENV APACHE_PID_FILE=/var/run/apache2.pid
+ENV LANG=C.UTF-8
 
 # Copy apache virtual host file for later use
 COPY 000-jobe.conf /
 # Copy test script
 COPY container-test.sh /
-COPY include/* /usr/include/
-RUN mkdir -p /usr/local/lib/java
-COPY files/* /usr/local/lib/java/
-RUN chmod a+w /usr/local/lib/java
 
-
+# Mount secrets
 # Set timezone
 # Install extra packages
 # Redirect apache logs to stdout
 # Configure apache
 # Configure php
-# Get and install jobe - from RunestoneInteractive/jobe - contains our changes.
+# Get jobe
+# Handle jobe API keys
+# Install jobe
 # Clean up
-RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
+RUN --mount=type=secret,id=api_keys \
+    export API_KEYS=`cat /run/secrets/api_keys | tr '\n' ' '` && \
+    ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     echo "$TZ" > /etc/timezone && \
     apt-get update && \
     apt-get --no-install-recommends install -yq \
-    acl \
-    apache2 \
-    build-essential \
-    catch2 \
-    fp-compiler \
-    git \
-    libapache2-mod-php \
-    nodejs \
-    octave \
-    openjdk-18-jdk \
-    php \
-    php-cli \
-    php-mbstring \
-    python3 \
-    python3-pip \
-    python3-setuptools \
-    sqlite3 \
-    sudo \
-    tzdata \
-    unzip \
-    vim \
-    wget && \
-    python3 -m pip install pylint beautifulsoup4 pandas requests altair && \
+        acl \
+        apache2 \
+        build-essential \
+        fp-compiler \
+        git \
+        libapache2-mod-php \
+        nano \
+        nodejs \
+        octave \
+        default-jdk \
+        php \
+        php-cli \
+        php-mbstring \
+        php-intl \
+        python3 \
+        python3-pip \
+        python3-setuptools \
+        pylint \
+        sqlite3 \
+        sudo \
+        tzdata \
+        unzip && \
     pylint --reports=no --score=n --generate-rcfile > /etc/pylintrc && \
     ln -sf /proc/self/fd/1 /var/log/apache2/access.log && \
     ln -sf /proc/self/fd/1 /var/log/apache2/error.log && \
@@ -76,11 +75,16 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     mv /000-jobe.conf /etc/apache2/sites-enabled/ && \
     mkdir -p /var/crash && \
     chmod 777 /var/crash && \
-    echo '<!DOCTYPE html><html lang="en"><title>Jobe</title><h1>Jobe</h1></html>' > /var/www/html/index.html && \
-    git clone https://github.com/RunestoneInteractive/jobe.git /var/www/html/jobe && \
+    echo '<!DOCTYPE html><html lang="en"><title>Jobe</title><h1>Jobe</h1></html>' > /var/www/html/index.html
+# Get Jobe from RS repository instead of the original one
+RUN git https://github.com/RunestoneInteractive/jobe.git /var/www/html/jobe && \
     apache2ctl start && \
     cd /var/www/html/jobe && \
-    /usr/bin/python3 /var/www/html/jobe/install && \
+    if [ ! -z "${API_KEYS}" ]; then \
+        sed -i 's/$require_api_keys = false/$require_api_keys = true/' /var/www/html/jobe/app/Config/Jobe.php && \
+        sed -i "s/'2AAA7A.*/$API_KEYS/" /var/www/html/jobe/app/Config/Jobe.php \
+    ; fi && \
+    /usr/bin/python3 /var/www/html/jobe/install --max_uid=500 && \
     chown -R ${APACHE_RUN_USER}:${APACHE_RUN_GROUP} /var/www/html && \
     apt-get -y autoremove --purge && \
     apt-get -y clean && \
@@ -91,13 +95,17 @@ RUN rm -f /usr/include/catch.hpp && ln -s /usr/include/catch2/catch.hpp /usr/inc
 
 # Get doctest.h - could instead point to stable version like
 #   https://github.com/doctest/doctest/releases/download/v2.4.11/doctest.h
-RUN wget https://github.com/doctest/doctest/releases/latest/download/doctest.h -O /usr/include/doctest.h
+RUN apt-get update && apt-get install -yq wget && \
+    wget https://github.com/doctest/doctest/releases/latest/download/doctest.h -O /usr/include/doctest.h
 
 # Expose apache
 EXPOSE 80
 
-# Healthcheck, minimaltest.py should complete within 2 seconds
-HEALTHCHECK --interval=5m --timeout=2s \
+# Healthcheck every minute, minimaltest.py should complete within 2 seconds
+# If you're running docker version 25.0 or later, you could consider
+# changing the following line to
+# HEALTHCHECK --start-period=30s --start-interval=5s --interval=5m --timeout=2s \
+HEALTHCHECK --interval=1m --timeout=2s \
     CMD /usr/bin/python3 /var/www/html/jobe/minimaltest.py || exit 1
 
 # Start apache
