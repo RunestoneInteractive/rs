@@ -14,8 +14,7 @@
 // `;
 
 
-//export default class DoctestTestParser {
-class DoctestTestParser {
+export default class DoctestTestParser {
     constructor(output, parentId) {
 
         let [pre, testDetails, report] = output.split("===============================================================================");
@@ -83,11 +82,11 @@ class DoctestTestParser {
             let td = document.createElement("td");
             td.classList.add("ac-feedback");
             if (this.pct == 100) {
-                td.innerHTML = "Pass";
+                td.innerHTML = $.i18n("msg_activecode_passed");
                 td.style =
                     "background-color: rgb(131, 211, 130); text-align: center;";
             } else {
-                td.innerHTML = "Fail";
+                td.innerHTML = $.i18n("msg_activecode_failed");
                 td.style =
                     "background-color: rgb(222, 142, 150); text-align: center;";
             }

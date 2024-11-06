@@ -120,6 +120,14 @@ export class ActiveCode extends RunestoneBase {
         if (this.includes) {
             this.includes = this.includes.split(/\s+/);
         }
+        // first check for some iotests at VERY end of code
+        // They will be a single line JSON object that comes after a line that says ===iotests===
+        let iotestsStart = this.code.indexOf("===iotests===");
+        if (iotestsStart > -1) {
+            let iotestText = this.code.substring(iotestsStart + 13);
+            this.iotests = JSON.parse(iotestText);
+            this.code = this.code.substring(0, iotestsStart);
+        }
         let prefixEnd = this.code.indexOf("^^^^");
         if (prefixEnd > -1) {
             this.prefix = this.code.substring(0, prefixEnd);

@@ -62,7 +62,7 @@
 
 .unittest-results {
     margin-left: 20px;
-    margin-bottom: 8px;
+    margin-bottom: 20px;
 }
 
 .ac_output {
@@ -117,6 +117,7 @@
 .ac-feedback {
     border: 1px solid var(--componentBorderColor);
     padding: 3px;
+    background-color: var(--mainbackground,#fff);
 }
 
 .unittest-results tr:not(:first-of-type) td:first-of-type{
@@ -173,4 +174,14 @@
     resize: none;
     overflow: auto;
     margin-bottom: 20px;
+}
+
+.unittest-results__heading {
+    text-align: center;
+    font-weight: bold;
+    font-size: 120%;
+}
+.unittest-results__percent {
+    text-align: center;
+    font-weight: bold;
 }
