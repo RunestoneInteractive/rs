@@ -204,6 +204,11 @@ export default class LiveCode extends ActiveCode {
         if (this.language === "octave") {
             paramobj.memorylimit = 200000;
         }
+        if (this.timelimit) {
+            // convert to seconds to match JOBE - decimal is OK
+            let timelimitSeconds = this.timelimit / 1000;
+            paramobj.cputime = timelimitSeconds;
+        }
 
         if (this.stdin) {
             stdin = $(this.stdin_el).val();
