@@ -730,11 +730,24 @@ def restart(config):
 @pass_config
 @click.pass_context
 def full(ctx, config):
-    """Build the wheels, images, and restart the services"""
+    """Check the environment, Build the wheels, images, and run migrations, then restart the services"""
     ctx.invoke(env)
     ctx.invoke(wheel)
     ctx.invoke(image)
     ctx.invoke(checkdb)
+    ctx.invoke(restart)
+
+
+# This is a cool trick with click that lets you chain commands together to
+# form a meta command. so this will run the env command first, then the wheel
+# command, then the image command, then checkdb, then the restart command.
+@cli.command()
+@pass_config
+@click.pass_context
+def dev(ctx, config):
+    """Build the wheels, images, and restart the services"""
+    ctx.invoke(wheel)
+    ctx.invoke(image)
     ctx.invoke(restart)
 
 
