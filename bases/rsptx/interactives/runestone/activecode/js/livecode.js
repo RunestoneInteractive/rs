@@ -33,16 +33,18 @@ export default class LiveCode extends ActiveCode {
     }
     outputfun(a) { }
     createInputElement() {
+        let inputContainer = document.createElement("div");
         var label = document.createElement("label");
         label.for = this.divid + "_stdin";
         $(label).text($.i18n("msg_activecode_input_prg"));
-        var input = document.createElement("input");
+        var input = document.createElement("textarea");
         input.id = this.divid + "_stdin";
-        input.type = "text";
-        input.size = "35";
+        input.classList.add("activecode__stdin");
         input.value = this.stdin;
-        this.outerDiv.appendChild(label);
-        this.outerDiv.appendChild(input);
+        input.setAttribute("rows", "3");
+        this.outerDiv.appendChild(inputContainer);
+        inputContainer.appendChild(label);
+        inputContainer.appendChild(input);
         this.stdin_el = input;
     }
     createErrorOutput() { }

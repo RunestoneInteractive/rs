@@ -167,3 +167,10 @@
     margin-top: 0px;
 }
 
+.activecode__stdin {
+    display: block;
+    width: 100%;
+    resize: none;
+    overflow: auto;
+    margin-bottom: 20px;
+}
