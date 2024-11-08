@@ -1130,6 +1130,13 @@ Yet another is that there is an internal error.  The internal error message is: 
         if (elem === null) {
             elem = document.querySelector(`[data-filename="${divid}"]`);
         }
+        // Check if data file was cached and retrieve it if it was
+        const cacheKey = `datafile_${divid}`;
+        const cachedData = localStorage.getItem(cacheKey);
+        if (cachedData) {
+            return cachedData;
+        }
+
         let data = "";
         let result = "";
         if (elem == null && Sk.builtinFiles.files.hasOwnProperty(divid)) {
@@ -1143,6 +1150,7 @@ Yet another is that there is an internal error.  The internal error message is: 
                     url: `/ns/logger/get_datafile?course_id=${eBookConfig.course}&acid=${divid}`,
                     success: function (data) {
                         result = data.detail;
+                        localStorage.setItem(cacheKey, result);
                     },
                     error: function (err) {
                         result = null;
