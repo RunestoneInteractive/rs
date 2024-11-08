@@ -1787,7 +1787,7 @@ function create_question(formdata) {
     var template = formdata.template.value;
     var qcode = formdata.qcode.value;
     var lines = qcode.split("\n");
-    var htmlsrc = formdata.qrawhtml.value;
+    var htmlsrc = btoa(formdata.qrawhtml.value);
     var name = find_name(lines);
     var question = formdata.qcode.value;
     var difficulty = formdata.difficulty;
@@ -2256,7 +2256,7 @@ function edit_question(form) {
     let orig_divid = $("#modal-preview").data("orig_divid");
     var question_text = form.editRST.value;
     var lines = form.editRST.value.split("\n");
-    var htmlsrc = form.qrawhtml.value;
+    var htmlsrc = btoa(form.qrawhtml.value);
     var name = find_name(lines);
     var isp = document.getElementById("change_privacy").checked;
     data = {

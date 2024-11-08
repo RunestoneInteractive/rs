@@ -10,6 +10,7 @@
 #
 # Standard library
 # ----------------
+import base64
 import csv
 import datetime
 import io
@@ -1378,7 +1379,7 @@ def edit_question():
     subchapter = old_question.subchapter
 
     question = vars["questiontext"]
-    htmlsrc = vars["htmlsrc"]
+    htmlsrc = base64.b64decode(vars["htmlsrc"]).decode("utf-8")
     private = True if vars["isprivate"] == "true" else False
     print("PRIVATE = ", private)
 
@@ -1522,7 +1523,7 @@ def createquestion():
     * assignmentid': assignmentid
     * points integer number of points
     * timed- is this part of a timed exam
-    * htmlsrc htmlsrc from the previewer
+    * htmlsrc htmlsrc from the previewer -- encoded as base64
     """
     row = (
         db(db.courses.id == auth.user.course_id)
@@ -1562,6 +1563,8 @@ def createquestion():
             logger.error(f"question mismatch for question type {question_type}")
 
     try:
+        # htmlsrc should be sent as base64 encoded to avoid XSS attacks
+        source = base64.b64decode(request.vars["htmlsrc"]).decode("utf-8")
         newqID = db.questions.insert(
             base_course=base_course,
             name=request.vars["name"].strip(),
@@ -1577,7 +1580,7 @@ def createquestion():
             practice=practice,
             from_source=False,
             topic=topic,
-            htmlsrc=request.vars["htmlsrc"],
+            htmlsrc=source,
         )
 
         if request.vars["template"] == "datafile":
