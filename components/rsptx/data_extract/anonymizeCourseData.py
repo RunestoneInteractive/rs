@@ -389,7 +389,10 @@ class Anonymizer:
             code_withnames = code_withnames[
                 ["acid", "anon_code", "sid", "course_name_y", "timestamp", "emessage"]
             ]
-
+        else:
+            code_withnames["anon_code"] = ""
+            code_withnames["course_name_y"] = ""            
+            
         useinfo["sid"] = useinfo.sid.map(lambda x: self.user_map.get(x, "REMOVEME"))
         useinfo["course_id"] = useinfo.course_id.map(lambda x: self.course_map.get(x))
         useinfo["base_course"] = useinfo.course_id.map(
