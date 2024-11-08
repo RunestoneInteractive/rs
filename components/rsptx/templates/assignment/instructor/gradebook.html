@@ -16,6 +16,15 @@ Feedback and ideas on the Discord are very welcome, but right now the main goal 
 {{table_html|safe}}
 
 <button id="export" data-export="export">Download Gradebook</button>
+
+<h4>Quick Links to Student Progress</h4>
+
+<ol>
+{% for row in pt %}
+<li>{{pt[row]}} <a href="/runestone/dashboard/studentreport?id={{row}}">{{row}}</a></li>
+{% endfor %}
+</ol>
+
 <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI=" crossorigin="anonymous"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 <script type="text/javascript" src="/staticAssets/js/jquery.tabletoCSV.js"></script>

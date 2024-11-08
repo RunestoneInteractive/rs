@@ -282,6 +282,7 @@ async def get_assignment_gb(
     sfirst = students.first_name.to_dict()
     slast = students.last_name.to_dict()
     semail = students.email.to_dict()
+    suser = students.username.to_dict()
     pt = df.pivot(index="sid", columns="assignment", values="score").rename(
         columns=aname
     )
@@ -290,11 +291,16 @@ async def get_assignment_gb(
     pt["first_name"] = pt.index.map(sfirst)
     pt["last_name"] = pt.index.map(slast)
     pt["email"] = pt.index.map(semail)
+    pt["username"] = pt.index.map(suser)
     pt = pt.sort_values(by=["last_name", "first_name"])
-    pt = pt[["first_name", "last_name", "email"] + cols]
+    pt = pt[["first_name", "last_name", "email", "username"] + cols]
     pt = pt.reset_index()
     pt = pt.drop(columns=["sid"], axis=1)
     pt.columns.name = None
+
+    names = {}
+    for ix, row in pt.iterrows():
+        names[row.username] = row.first_name + " " + row.last_name
 
     templates = Jinja2Templates(directory=template_folder)
 
@@ -307,6 +313,7 @@ async def get_assignment_gb(
                 index=False,
                 na_rep="",
             ),
+            "pt": names,
             "course": course,
             "user": user.username,
             "request": request,
