@@ -68,13 +68,15 @@ function connect(event) {
                                     feedbackDiv.style.display = "none";
                                 }
                             }
+
                             if (!eBookConfig.isInstructor) {
-                                window.componentMap[
-                                    currentQuestion
-                                ].submitButton.disabled = true;
-                                window.componentMap[
-                                    currentQuestion
-                                ].disableInteraction();
+                                let qq = window.componentMap[currentQuestion];
+                                if (getVoteNum() > 1) {
+                                    qq.checkCurrentAnswer();
+                                    qq.logCurrentAnswer();
+                                }
+                                qq.submitButton.disabled = true;
+                                qq.disableInteraction();
                             }
                             clearInterval(itimerid);
                             // Get the current answer and insert it into the
