@@ -2897,12 +2897,12 @@ async def fetch_deadline_exception(
                 if row.assignment_id == assignment_id:
                     return DeadlineExceptionValidator.from_orm(row)
             else:
-                if row.time_limit is not None:
+                if row.time_limit is not None and row.assignment_id is None:
                     time_limit = row.time_limit
-                if row.deadline is not None:
-                    deadline = row.deadline
+                if row.duedate is not None and row.assignment_id is None:
+                    deadline = row.duedate
         return DeadlineExceptionValidator(
-            course_id=course_id, sid=username, time_limit=time_limit, deadline=deadline
+            course_id=course_id, sid=username, time_limit=time_limit, duedate=deadline
         )
 
 
