@@ -300,8 +300,10 @@ async def get_assignment_gb(
 
     names = {}
     for ix, row in pt.iterrows():
-        names[row.username] = row.first_name + " " + row.last_name
+        if type(row.first_name) is str and type(row.last_name) is str:
+            names[row.username] = row.first_name + " " + row.last_name
 
+    pt = pt.drop(columns=["username"], axis=1)
     templates = Jinja2Templates(directory=template_folder)
 
     return templates.TemplateResponse(
