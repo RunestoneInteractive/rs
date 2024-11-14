@@ -127,15 +127,21 @@ def cli(config, verbose, all, core, service, clean):
 
     if core:
         svc_list = [x for x in ym["services"].keys()]
+        to_remove = [
+            "author",
+            "worker",
+            "nginx_dstart_dev",
+            "pgbouncer",
+            "interactives",
+            "db",
+        ]
+        if not os.path.exists(
+            "bases/rsptx/interactives/runestone/dist/webpack_static_imports.json"
+        ):
+            to_remove.remove("interactives")
+            click.echo("Keeping interactives in the build list since they are missing")
         for svc in svc_list:
-            if svc in [
-                "author",
-                "worker",
-                "nginx_dstart_dev",
-                "pgbouncer",
-                "interactives",
-                "db",
-            ]:
+            if svc in to_remove:
                 del ym["services"][svc]
     # Now initialize the build.log files for all services
     for service in ym["services"]:

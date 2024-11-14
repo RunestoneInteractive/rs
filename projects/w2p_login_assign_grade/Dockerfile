@@ -1,5 +1,5 @@
 # pull official base image
-FROM python:3.10-bullseye
+FROM python:3.10-slim AS builder
 
 LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
 
@@ -24,14 +24,22 @@ ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
 
 # install dependencies
 RUN pip install --upgrade pip
+RUN apt update
+RUN apt-get install -y gcc python3-dev
 
 # copy project
 COPY ./dist/$wheel /usr/src/app/$wheel
-COPY entrypoint.sh /usr/src/app/entrypoint.sh
+
 
 # When you pip install a wheel it also installs all of the dependencies
 # which are stored in the METADATA file inside the wheel
 RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
+RUN rm /usr/src/app/$wheel
+
+FROM python:3.10-slim
+
+COPY --from=builder /usr/local /usr/local
+COPY entrypoint.sh /usr/src/app/entrypoint.sh
 RUN chown -R www-data:www-data /usr/local/lib/python3.10/site-packages/rsptx/web2py_server
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
 # The default entrypoint is essentially /bin/bash
