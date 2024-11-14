@@ -49,7 +49,19 @@ from fastapi.staticfiles import StaticFiles
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
 from rsptx.db.async_session import term_models
-from rsptx.lp_sim_builder.feedback import init_graders
+
+try:
+    from rsptx.lp_sim_builder.feedback import init_graders
+
+    server_side_grading = True
+except ImportError:
+    server_side_grading = False
+    rslogger.warning("Server side grading not available")
+
+    def init_graders():
+        pass
+
+
 from .routers import assessment
 from .routers import auth
 from .routers import books

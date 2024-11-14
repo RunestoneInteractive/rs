@@ -1,5 +1,5 @@
 # pull official base image
-FROM python:3.11-bullseye
+FROM python:3.11-slim AS builder
 
 LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
 
@@ -25,14 +25,18 @@ ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
 # install dependencies
 RUN pip install --upgrade pip
 RUN apt update
-
+RUN apt install -y gcc python3-dev
 
 # copy project
 COPY ./dist/$wheel /usr/src/app/$wheel
 # When you pip install a wheel it also installs all of the dependencies
 # which are stored in the METADATA file inside the wheel
 RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
+RUN rm /usr/src/app/$wheel
 
+FROM python:3.11-slim
+WORKDIR /usr/src/app
 
+COPY --from=builder /usr/local /usr/local
 
 CMD ["uvicorn", "rsptx.book_server_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
