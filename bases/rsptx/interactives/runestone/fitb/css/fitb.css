@@ -8,3 +8,8 @@ input.input-validation-error {
     border: 1px solid #e80c4d;
 }
 
+
+.dark-mode .fillintheblank_section input[type="text"] {
+    color: unset;
+    background-color: #333;
+}

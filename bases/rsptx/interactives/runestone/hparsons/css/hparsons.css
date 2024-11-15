@@ -1,3 +1,5 @@
+/* Todo, better integration with prism and Pretext dark mode*/
+
 .hparsons_section {
     position: relative;
     margin-right: auto;
@@ -28,11 +30,11 @@
     background-color: inherit;
 }
 .hp_output pre {
-    background-color: lightgray;
+    background-color: var(--questionBgColor, lightgray);
 }
 
 .hp_sql_result {
-    background-color: lightgrey;
+    background-color: var(--questionBgColor, lightgray);
     padding: 10px;
     border-radius: 6px;
     margin-bottom: 10px;
@@ -40,7 +42,7 @@
 
 .hp_sql_result_success {
     background-color: transparent;
-    color: green;
+    color: var(--parsonsCorrectBgColor, green);
     border: 0px;
     padding: 0px;
     margin-top: 10px;
@@ -50,10 +52,19 @@
 
 .hp_sql_result_failure {
     background-color: transparent;
-    color: red;
+    color: var(--parsonsIncorrectBgColor, red);
     border: 0px;
     padding: 0px;
     margin-top: 10px;
     margin-bottom: 10px;
     min-height: 0px !important;
 } 
+
+micro-parsons .drag-area {
+    background-color: var(--questionBgColor, #efefff);
+    border: 1px solid var(--componentBorderColor, #efefff);
+}
+
+micro-parsons .parsons-block {
+    color: black;
+}

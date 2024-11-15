@@ -37,7 +37,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
    e.g., http://meyerweb.com/eric/tools/css/reset/
 */
 div.ExecutionVisualizer {
-  /* none for now */
+  /* make sure dark mode text is still black
+     todo: actually make dark mode work */
+  color: black;
 }
 
 div.ExecutionVisualizer table.visualizer {

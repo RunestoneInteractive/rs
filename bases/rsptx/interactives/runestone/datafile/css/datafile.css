@@ -1,18 +1,18 @@
 .datafiletextfield {
-    margin-left: auto;
-    margin-right: auto;
     display: block;
+    border: 1px solid var(--componentBorderColor);
 }
 
 .datafile_caption {
     margin-bottom: -1px; /* to collapse border w/ below w/o needing border-bottom: none */
-    margin-left: 1em;
-    display: inline-block;
+    display: block;
+    width:fit-content;
     padding: 0 0.2em;
-    border: 1px solid #ccc;
     border-radius: 4px 4px 0 0;
     font-style: italic;
-    background: white;
+    color: var(--bodyFont);
+    background: var(--componentBgColor);
+    border: 1px solid var(--componentBorderColor);
 }
 .datafile_caption code {
     background: none;
@@ -25,8 +25,20 @@
     overflow: auto;
     white-space: pre;
     height: 30em;
+    border: 1px solid var(--componentBorderColor);
+    font-size: 90%;
 }
 .datafile_hidden {
     display: none;
 }
+.datafile img {
+    display: block;
+    border: 1px solid var(--componentBorderColor);
+    margin: 0;
+}
 
+.datafile_caption code.code-inline {
+    color: inherit;
+    background: inherit;
+    border: 0;
+}
