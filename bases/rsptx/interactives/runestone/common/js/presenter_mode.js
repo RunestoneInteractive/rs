@@ -46,7 +46,7 @@ function presentToggle() {
 function loadPresenterCss() {
     presenterCssLink = document.createElement("link");
     presenterCssLink.type = "text/css";
-    presenterCssLink.href = "../_static/presenter_mode.css";
+    presenterCssLink.href = "../_static/presenter_mode.less";
     presenterCssLink.rel = "stylesheet";
     document.getElementsByTagName("head")[0].appendChild(presenterCssLink);
 }

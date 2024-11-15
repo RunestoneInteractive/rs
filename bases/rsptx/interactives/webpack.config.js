@@ -38,6 +38,7 @@ module.exports = (env, argv) => {
     const is_dev_mode = argv.mode === "development";
     // ``env.builddir`` can be used to specify the output directory
     // Example: ``npm run build -- --env builddir=../mypretextbook/output/_static``
+
     const dest_path = env.builddir == undefined ?
             path.resolve(__dirname, "runestone/dist") :
             path.resolve(env.builddir);

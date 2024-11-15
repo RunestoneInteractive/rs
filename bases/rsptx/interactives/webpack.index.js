@@ -47,7 +47,7 @@ import "./runestone/webgldemo/css/webglinteractive.css";
 // These are only needed for the Runestone book, but not in a library mode (such as pretext). I would prefer to dynamically load them. However, these scripts are so small I haven't bothered to do so.
 import { getSwitch, switchTheme } from "./runestone/common/js/theme.js";
 import "./runestone/common/js/presenter_mode.js";
-import "./runestone/common/css/presenter_mode.css";
+import "./runestone/common/css/presenter_mode.less";
 import { renderOneComponent } from "./runestone/common/js/renderComponent.js";
 import RunestoneBase from "./runestone/common/js/runestonebase.js";
 

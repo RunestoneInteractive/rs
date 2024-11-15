@@ -1,3 +1,6 @@
+// TODO - How much of this is needed? Lots of overlap with what syntax highlighting
+// via pretext theme does...
+
 function H() {
     var x =
         navigator &&
