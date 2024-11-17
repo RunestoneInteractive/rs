@@ -104,7 +104,7 @@
                             <td class="{{=assignments[item-5]['name']}}"> {{=gradetable[row][item]}} </td>
                         {{elif item <= 4:}} 
                             {{if item == 2:}}
-                                <td><a href="/runestone/dashboard/studentreport?id={{= urllib.parse.unquote(gradetable[row][item])}}">{{= urllib.parse.unquote(gradetable[row][item])}}</a></td>
+                                <td class="roguecol"><a href="/runestone/dashboard/studentreport?id={{= urllib.parse.unquote(gradetable[row][item])}}">{{= urllib.parse.unquote(gradetable[row][item])}}</a></td>
                             {{else:}}
                                 <td class="roguecol">{{= urllib.parse.unquote(gradetable[row][item])}}</td>
                             {{pass}}
