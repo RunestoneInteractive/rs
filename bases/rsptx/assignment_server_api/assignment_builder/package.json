@@ -31,8 +31,8 @@
     "start": "vite",
     "build": "tsc && vite build --mode production --base=/assignment/react/",
     "serve": "vite preview",
-    "test": "vitest --coverage.enabled",
     "docs": "jsdoc -c jsdoc.config.json -r src",
+    "test": "vitest --coverage.enabled",
     "test:eslint": "eslint src --max-warnings=0"
   },
   "browserslist": {
