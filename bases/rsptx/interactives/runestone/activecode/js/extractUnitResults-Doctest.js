@@ -64,8 +64,8 @@ export default class DoctestTestParser {
             pctString.innerHTML = match[0].replace("[doctest] ", "");
             this.pctString = pctString;
 
-            this.passed = match.groups.passed;
-            this.failed = match.groups.failed;
+            this.passed = parseInt(match.groups.passed);
+            this.failed = parseInt(match.groups.failed);
 
             // Make a pretty results table
             let parent = document.createElement("div");
