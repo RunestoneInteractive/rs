@@ -11,7 +11,7 @@ This is a trial implementation of a new assignment interface using React for fro
         "homepage": "/assignments/react",
 5. Update the assignment app to mount 'react' as a static folder
 6. when you run ``npm run build`` it will use environment variables set in .env.production to set the base url for the api calls.
-7. See vite.config.js to configure a different build folder for the react app.
+7. See vite.config.ts to configure a different build folder for the react app.
 
 
 

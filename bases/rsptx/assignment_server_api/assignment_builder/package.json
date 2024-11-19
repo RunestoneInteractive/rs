@@ -2,12 +2,14 @@
   "name": "assignment_builder",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "engines": {
+    "npm": ">=8.0.0",
+    "node": ">=^18.0.0"
+  },
   "dependencies": {
     "@handsontable/react": "^14.2.0",
     "@reduxjs/toolkit": "^2.2.1",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
     "handsontable": "^14.2.0",
     "luxon": "^3.4.4",
     "primeflex": "^3.3.1",
@@ -27,11 +29,11 @@
   "homepage": "/assignment/react",
   "scripts": {
     "start": "vite",
-    "build": "vite build --mode production --base=/assignment/react/",
+    "build": "tsc && vite build --mode production --base=/assignment/react/",
     "serve": "vite preview",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "docs": "jsdoc -c jsdoc.config.json -r src"
+    "docs": "jsdoc -c jsdoc.config.json -r src",
+    "test": "vitest --coverage.enabled",
+    "test:eslint": "eslint src --max-warnings=0"
   },
   "browserslist": {
     "production": [
@@ -46,8 +48,36 @@
     ]
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.1",
-    "eslint-plugin-react": "^7.34.1",
-    "vite": "^5.1.1"
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vitejs/plugin-react": "^4.3.3",
+    "@vitest/coverage-istanbul": "^2.1.5",
+    "camelcase": "^8.0.0",
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb-typescript": "^18.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-config-react-app": "^7.0.1",
+    "eslint-plugin-flowtype": "^8.0.3",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-only-warn": "^1.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.14",
+    "jsdom": "^25.0.1",
+    "path": "^0.12.7",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vite-plugin-checker": "^0.8.0",
+    "vite-plugin-commonjs": "^0.10.3",
+    "vite-tsconfig-paths": "^5.1.2",
+    "vitest": "^2.1.5"
   }
 }
