@@ -122,5 +122,6 @@ $.i18n().load({
         msg_activecode_test_run_error: "Runtime error",
         msg_activecode_test_compile_error: "Compiler error",
         msg_activecode_iotest_results: "IO tests completed. See table for results.",
+        msg_activecode_assertions_checked: "Assertions checked:",
     },
 });
