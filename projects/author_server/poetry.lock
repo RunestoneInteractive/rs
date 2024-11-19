@@ -2605,13 +2605,13 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "pretext"
-version = "2.8.2"
+version = "2.9.1"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0.0,>=3.8.5"
 files = [
-    {file = "pretext-2.8.2-py3-none-any.whl", hash = "sha256:06ccd062a33410093db45afd132b5afd1383ff546a6b5ccf7f9e10353b763cd6"},
-    {file = "pretext-2.8.2.tar.gz", hash = "sha256:1c8a490f9198592f7de49cb0104e1c664750947b59ebd31beb90bc5ba2373b89"},
+    {file = "pretext-2.9.1-py3-none-any.whl", hash = "sha256:27974d49d44291cf5e9045e65522e33688b04b12a4404fa7d544775a89a17b9e"},
+    {file = "pretext-2.9.1.tar.gz", hash = "sha256:e9dc18746bdf4182688e3878560da75b3717b3a97f0f05a7c3942bd194e0f151"},
 ]
 
 [package.dependencies]
@@ -2634,6 +2634,7 @@ single-version = ">=1,<2"
 
 [package.extras]
 homepage = ["pelican[markdown] (>=4.9.1,<5.0.0)"]
+prefigure = ["prefig[pycairo] (>=0.2.6,<0.3.0)"]
 
 [[package]]
 name = "prometheus-client"
