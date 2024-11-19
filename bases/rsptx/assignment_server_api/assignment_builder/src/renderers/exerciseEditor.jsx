@@ -1,13 +1,13 @@
-import { Button } from 'primereact/button';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
-import { Panel } from 'primereact/panel';
-import PropTypes from 'prop-types';
-import { Toaster } from 'react-hot-toast';
-import { useSelector, useDispatch } from 'react-redux';
+import { Button } from "primereact/button";
+import { InputNumber } from "primereact/inputnumber";
+import { InputText } from "primereact/inputtext";
+import { Panel } from "primereact/panel";
+import PropTypes from "prop-types";
+import { Toaster } from "react-hot-toast";
+import { useSelector, useDispatch } from "react-redux";
 
-import { selectAll as selectAssignAll } from '../state/assignment/assignSlice';
-import { sumPoints } from '../state/assignment/assignSlice';
+import { selectAll as selectAssignAll } from "../state/assignment/assignSlice";
+import { sumPoints } from "../state/assignment/assignSlice";
 import {
   setQpoints,
   selectUniqueId,
@@ -21,14 +21,14 @@ import {
   selectTags,
   selectDifficulty,
   selectTopic,
-} from '../state/interactive/interactiveSlice';
-import { saveAssignmentQuestion } from '../state/interactive/interactiveSlice';
+} from "../state/interactive/interactiveSlice";
+import { saveAssignmentQuestion } from "../state/interactive/interactiveSlice";
 
-import { ChapterSelector } from './chapterSelector.jsx';
+import { ChapterSelector } from "./chapterSelector.jsx";
 
 const acStyle = {
-  border: '1px solid black',
-  padding: '10px',
+  border: "1px solid black",
+  padding: "10px",
 };
 /**
  *
@@ -49,7 +49,7 @@ export function ExerciseEditor(props) {
   const dispatch = useDispatch();
   const assignData = useSelector(selectAssignAll);
 
-  const buttonTitle = props.editonly ? 'Save Changes' : 'Save and Add';
+  const buttonTitle = props.editonly ? "Save Changes" : "Save and Add";
 
   return (
     <div style={acStyle}>

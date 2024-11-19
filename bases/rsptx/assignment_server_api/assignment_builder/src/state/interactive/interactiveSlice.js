@@ -3,11 +3,11 @@
  * @summary This file defines a slice for the active code editor
  * @description This file contains the slice for the active code editor. The slice manages the state of the active code editor.
  */
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import toast from 'react-hot-toast';
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import toast from "react-hot-toast";
 
-import { createMCQTemplate } from '../../componentFuncs';
-import { addExercise, selectPoints, setId, setPoints } from '../assignment/assignSlice.js';
+import { createMCQTemplate } from "../../componentFuncs";
+import { addExercise, selectPoints, setId, setPoints } from "../assignment/assignSlice.js";
 
 /**
  * @function saveAssignmentQuestion
@@ -20,14 +20,14 @@ import { addExercise, selectPoints, setId, setPoints } from '../assignment/assig
  *
  */
 export const saveAssignmentQuestion = createAsyncThunk(
-  'acEditor/saveAssignmentQuestion',
+  "acEditor/saveAssignmentQuestion",
   // incoming is an object that combines the activecode data and the assignment data and the preview_src
   async (incoming, { getState, dispatch }) => {
     let store = getState();
     let preview_src;
     // temporary fix for multiple choice
 
-    if (store.interactive.question_type === 'mchoice') {
+    if (store.interactive.question_type === "mchoice") {
       preview_src = createMCQTemplate(
         store.interactive.uniqueId,
         store.multiplechoice.statement,
@@ -47,14 +47,14 @@ export const saveAssignmentQuestion = createAsyncThunk(
     }
     let questionType = store.interactive.question_type;
     let jsheaders = new Headers({
-      'Content-type': 'application/json; charset=utf-8',
-      Accept: 'application/json',
+      "Content-type": "application/json; charset=utf-8",
+      Accept: "application/json",
     });
     // Now add the question
     // these names match the database columns
     let body = {
       name: store.interactive.uniqueId,
-      source: 'This question was written in the web interface',
+      source: "This question was written in the web interface",
       question_type: store.interactive.question_type,
       htmlsrc: preview_src,
       question_json: JSON.stringify(store.interactive.question_json),
@@ -68,11 +68,11 @@ export const saveAssignmentQuestion = createAsyncThunk(
     if (editonly) {
       body.id = questionId;
     }
-    if (questionType === 'activecode' && store.acEditor.suffix_code) {
-      body.autograde = 'unittest';
+    if (questionType === "activecode" && store.acEditor.suffix_code) {
+      body.autograde = "unittest";
     } else {
-      if (questionType === 'activecode') {
-        body.autograde = 'manual';
+      if (questionType === "activecode") {
+        body.autograde = "manual";
       } else {
         body.autograde = null;
       }
@@ -80,31 +80,31 @@ export const saveAssignmentQuestion = createAsyncThunk(
     let data = {
       body: JSON.stringify(body),
       headers: jsheaders,
-      method: 'POST',
+      method: "POST",
     };
     let resp;
 
     if (editonly) {
-      resp = await fetch('/assignment/instructor/update_question', data);
+      resp = await fetch("/assignment/instructor/update_question", data);
     } else {
-      resp = await fetch('/assignment/instructor/new_question', data);
+      resp = await fetch("/assignment/instructor/new_question", data);
     }
     if (!resp.ok) {
       let result = await resp.json();
 
-      console.log('Failed to create question', result.detail);
-      toast('Failed to create question - Most likely a name conflict', { icon: '🚫' });
+      console.log("Failed to create question", result.detail);
+      toast("Failed to create question - Most likely a name conflict", { icon: "🚫" });
       return;
     }
     let result = await resp.json();
 
-    if (result.detail.status === 'success') {
-      console.log('Question created');
+    if (result.detail.status === "success") {
+      console.log("Question created");
       questionId = result.detail.id;
       dispatch(setDBId(questionId));
     }
     if (editonly) {
-      toast('Question saved', { icon: '👍' });
+      toast("Question saved", { icon: "👍" });
       return;
     }
     let aqBody = {
@@ -115,7 +115,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
     let allEx = store.assignment.exercises;
     let clen = allEx.length;
 
-    aqBody.which_to_grade = clen ? allEx[allEx.length - 1].which_to_grade : 'best_answer';
+    aqBody.which_to_grade = clen ? allEx[allEx.length - 1].which_to_grade : "best_answer";
     aqBody.autograde = body.autograde;
     aqBody.qnumber = body.name;
     aqBody.id = questionId;
@@ -130,37 +130,37 @@ export const saveAssignmentQuestion = createAsyncThunk(
     data = {
       body: JSON.stringify(aqBody),
       headers: jsheaders,
-      method: 'POST',
+      method: "POST",
     };
-    resp = await fetch('/assignment/instructor/new_assignment_q', data);
+    resp = await fetch("/assignment/instructor/new_assignment_q", data);
     result = await resp.json();
-    if (result.detail.status === 'success') {
-      console.log('Question added to assignment');
-      toast('Question added to assignment', { icon: '👍' });
+    if (result.detail.status === "success") {
+      console.log("Question added to assignment");
+      toast("Question added to assignment", { icon: "👍" });
     }
   },
 );
 const today = new Date();
 const date =
   today.getFullYear() +
-  (today.getMonth() + 1).toString().padStart(2, '0') +
-  today.getDate().toString().padStart(2, '0');
+  (today.getMonth() + 1).toString().padStart(2, "0") +
+  today.getDate().toString().padStart(2, "0");
 const randInt = Math.floor(Math.random() * 1000);
 const default_id = `question_${date}_${randInt}`;
 
 const interactiveSlice = createSlice({
-  name: 'interactive',
+  name: "interactive",
   initialState: {
     uniqueId: default_id,
     qpoints: 1,
-    chapter: '',
-    subchapter: 'Exercises',
-    author: '',
-    tags: '',
-    question_type: '',
-    preview_src: '',
+    chapter: "",
+    subchapter: "Exercises",
+    author: "",
+    tags: "",
+    question_type: "",
+    preview_src: "",
     question_json: {},
-    topic: '',
+    topic: "",
     difficulty: 3,
   },
   reducers: {

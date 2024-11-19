@@ -116,6 +116,8 @@
         "variables": false
       }
     ],
-    "@typescript-eslint/naming-convention": "off"
+    "@typescript-eslint/naming-convention": "off",
+    "quotes": ["error", "double"],
+    "prettier/prettier": ["error", { "singleQuote": false }]
   }
 }

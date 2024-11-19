@@ -3,7 +3,7 @@
  * @summary This file defines a slice for the active code editor
  * @description This file contains the slice for the active code editor. The slice manages the state of the active code editor.
  */
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 // create a slice for ActiveCodeEditor
 // This slice must be registered with the store in store.js
@@ -40,13 +40,13 @@ import { createSlice } from '@reduxjs/toolkit';
  * @type {acSlice}
  */
 export const acSlice = createSlice({
-  name: 'acEditor',
+  name: "acEditor",
   initialState: {
-    language: 'python',
-    statement: '',
-    prefix_code: '',
-    starter_code: '',
-    suffix_code: '',
+    language: "python",
+    statement: "",
+    prefix_code: "",
+    starter_code: "",
+    suffix_code: "",
   },
   reducers: {
     /**

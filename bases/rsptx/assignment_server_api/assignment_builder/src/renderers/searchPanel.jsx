@@ -1,18 +1,18 @@
-import { Accordion, AccordionTab } from 'primereact/accordion';
-import { Button } from 'primereact/button';
-import { Column } from 'primereact/column';
-import { DataTable } from 'primereact/datatable';
-import { Dropdown } from 'primereact/dropdown';
-import { InputSwitch } from 'primereact/inputswitch';
-import { InputText } from 'primereact/inputtext';
-import { OverlayPanel } from 'primereact/overlaypanel';
-import PropTypes from 'prop-types';
-import React, { useRef, useState } from 'react';
-import toast from 'react-hot-toast';
-import { useSelector, useDispatch } from 'react-redux';
+import { Accordion, AccordionTab } from "primereact/accordion";
+import { Button } from "primereact/button";
+import { Column } from "primereact/column";
+import { DataTable } from "primereact/datatable";
+import { Dropdown } from "primereact/dropdown";
+import { InputSwitch } from "primereact/inputswitch";
+import { InputText } from "primereact/inputtext";
+import { OverlayPanel } from "primereact/overlaypanel";
+import PropTypes from "prop-types";
+import React, { useRef, useState } from "react";
+import toast from "react-hot-toast";
+import { useSelector, useDispatch } from "react-redux";
 
-import { setExerciseDefaults } from '../exUtils';
-import { setACFields } from '../state/activecode/acSlice';
+import { setExerciseDefaults } from "../exUtils";
+import { setACFields } from "../state/activecode/acSlice";
 import {
   addExercise,
   selectExercises,
@@ -23,14 +23,13 @@ import {
   deleteExercises,
   sendDeleteExercises,
   sumPoints,
-} from '../state/assignment/assignSlice';
-import { setComponent } from '../state/componentEditor/editorSlice';
-import { setMCFields } from '../state/multiplechoice/mcSlice';
+} from "../state/assignment/assignSlice";
+import { setComponent } from "../state/componentEditor/editorSlice";
+import { setQuestion, setPreviewSrc } from "../state/interactive/interactiveSlice";
+import { setMCFields } from "../state/multiplechoice/mcSlice";
 
-import { EditorContainer } from './editorModeChooser';
-import Preview from './preview';
-
-import { setQuestion, setPreviewSrc } from '../state/interactive/interactiveSlice';
+import { EditorContainer } from "./editorModeChooser";
+import Preview from "./preview";
 
 /**
  * @description This component creates and accordian and preview of an exercise designed to live inside a DataTable.
@@ -48,7 +47,7 @@ export function PreviewTemplate(exercise) {
   return (
     <Accordion>
       <AccordionTab header="Preview">
-        <div className="ptx-runestone-container" style={{ width: '600px' }}>
+        <div className="ptx-runestone-container" style={{ width: "600px" }}>
           <Preview code={exercise.htmlsrc} exercise={exercise} />
         </div>
       </AccordionTab>
@@ -76,23 +75,23 @@ PreviewTemplate.propTypes = {
 export function SearchPanel() {
   const dispatch = useDispatch();
   const [selectedQuestionType, setSelectedQuestionType] = useState(null);
-  const [searchText, setSearchText] = useState('');
-  const [author, setAuthor] = useState('');
+  const [searchText, setSearchText] = useState("");
+  const [author, setAuthor] = useState("");
   const [baseCourse, setBaseCourse] = useState(true);
 
   const qtypes = [
-    { label: 'All', value: '' },
-    { label: 'Multiple Choice', value: 'mchoice' },
-    { label: 'Short Answer', value: 'shortanswer' },
-    { label: 'Active Code', value: 'activecode' },
-    { label: 'Fill in the Blank', value: 'fillintheblank' },
-    { label: 'Clickable Area', value: 'clickablearea' },
-    { label: 'Poll', value: 'poll' },
-    { label: 'Drag and Drop', value: 'draganddrop' },
-    { label: 'Parsons Problem', value: 'parsonsprob' },
-    { label: 'Horizontal Parsons', value: 'hparsons' },
-    { label: 'WeBWorK', value: 'webwork' },
-    { label: 'Doenet', value: 'doenet' },
+    { label: "All", value: "" },
+    { label: "Multiple Choice", value: "mchoice" },
+    { label: "Short Answer", value: "shortanswer" },
+    { label: "Active Code", value: "activecode" },
+    { label: "Fill in the Blank", value: "fillintheblank" },
+    { label: "Clickable Area", value: "clickablearea" },
+    { label: "Poll", value: "poll" },
+    { label: "Drag and Drop", value: "draganddrop" },
+    { label: "Parsons Problem", value: "parsonsprob" },
+    { label: "Horizontal Parsons", value: "hparsons" },
+    { label: "WeBWorK", value: "webwork" },
+    { label: "Doenet", value: "doenet" },
   ];
 
   return (
@@ -192,7 +191,7 @@ export function SearchResults() {
           setSelectedQuestions(e.value);
         }}
       >
-        <Column selectionMode="multiple" style={{ width: '3em' }} />
+        <Column selectionMode="multiple" style={{ width: "3em" }} />
         <Column field="question_json" header="Edit" body={EditButton} />
         <Column field="name" header="Name" sortable />
         <Column field="qnumber" header="Question" sortable />
@@ -201,7 +200,7 @@ export function SearchResults() {
           field="htmlsrc"
           header="Preview"
           body={PreviewTemplate}
-          style={{ maxWidth: '100rem' }}
+          style={{ maxWidth: "100rem" }}
         />
         <Column field="author" header="Author" />
         <Column field="pct_on_first" header="On First" sortable />
@@ -216,17 +215,17 @@ export function EditButton(exercise) {
 
   const toggleEditor = (e) => {
     if (!exercise.question_json) {
-      toast('No question to edit', { icon: '🚫' });
+      toast("No question to edit", { icon: "🚫" });
       return null;
     }
     dispatch(setQuestion(exercise));
     dispatch(setComponent(exercise.question_type));
     dispatch(setPreviewSrc(exercise.htmlsrc));
-    if (exercise.question_type === 'activecode') {
+    if (exercise.question_type === "activecode") {
       dispatch(setACFields(exercise.question_json));
     } else if (
-      exercise.question_type === 'mchoice' ||
-      exercise.question_type === 'multiplechoice'
+      exercise.question_type === "mchoice" ||
+      exercise.question_type === "multiplechoice"
     ) {
       dispatch(setMCFields(exercise.question_json));
     }

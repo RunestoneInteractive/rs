@@ -9,24 +9,24 @@ export const NodeService = {
   getTreeTableNodesData() {
     return [
       {
-        key: 'chapter1',
+        key: "chapter1",
         data: {
-          name: 'Getting Started',
+          name: "Getting Started",
         },
         children: [
           {
-            key: 'subchap1',
+            key: "subchap1",
             data: {
-              name: 'Pretest for the CSA Exam',
+              name: "Pretest for the CSA Exam",
             },
             children: [
               {
-                key: 'foo',
+                key: "foo",
                 data: {
-                  name: 'Exercise 1.2.1',
-                  question_type: 'Multiple Choice',
-                  autograde: 'Yes',
-                  question_json: '',
+                  name: "Exercise 1.2.1",
+                  question_type: "Multiple Choice",
+                  autograde: "Yes",
+                  question_json: "",
                 },
               },
             ],
@@ -34,27 +34,27 @@ export const NodeService = {
         ],
       },
       {
-        key: '1',
+        key: "1",
         data: {
-          name: 'Preview 2.1.1',
-          question_type: 'Parsons',
-          autograde: 'Yes',
+          name: "Preview 2.1.1",
+          question_type: "Parsons",
+          autograde: "Yes",
         },
       },
       {
-        key: '2',
+        key: "2",
         data: {
-          name: 'Exercise 3.1.1',
-          question_type: 'Active Code',
-          autograde: 'No',
+          name: "Exercise 3.1.1",
+          question_type: "Active Code",
+          autograde: "No",
         },
       },
       {
-        key: '3',
+        key: "3",
         data: {
-          name: 'Exercise 3.2.1',
-          question_type: 'Active Code',
-          autograde: 'Yes',
+          name: "Exercise 3.2.1",
+          question_type: "Active Code",
+          autograde: "Yes",
         },
       },
       // {

@@ -3,12 +3,12 @@
  * @summary This file defines a slice for the multiple choice editor
  * @description This file contains the slice for the multiple choice editor.
  */
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 export const shortSlice = createSlice({
-  name: 'shortanswer',
+  name: "shortanswer",
   initialState: {
-    statement: '',
+    statement: "",
     attachment: false,
   },
   reducers: {

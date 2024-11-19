@@ -1,9 +1,9 @@
-import { Dropdown } from 'primereact/dropdown';
-import React, { useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { Dropdown } from "primereact/dropdown";
+import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 
-import { allChapters } from '../state/epicker/ePickerSlice';
-import { setChapter, selectChapter } from '../state/interactive/interactiveSlice';
+import { allChapters } from "../state/epicker/ePickerSlice";
+import { setChapter, selectChapter } from "../state/interactive/interactiveSlice";
 
 export function ChapterSelector() {
   // const chapterOptions = chapters.map((node) => {

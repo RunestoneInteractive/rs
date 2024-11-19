@@ -8,17 +8,17 @@
  * This table uses the Handsontable library.
  * @memberof AssignmentEditor
  */
-import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
-import { Panel } from 'primereact/panel';
-import PropTypes from 'prop-types';
-import { useState, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import 'handsontable/dist/handsontable.full.min.css';
-import { registerAllModules } from 'handsontable/registry';
-import { HotTable } from '@handsontable/react';
+import { Button } from "primereact/button";
+import { Dialog } from "primereact/dialog";
+import { Panel } from "primereact/panel";
+import PropTypes from "prop-types";
+import { useState, useRef } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import "handsontable/dist/handsontable.full.min.css";
+import { registerAllModules } from "handsontable/registry";
+import { HotTable } from "@handsontable/react";
 
-import { renderRunestoneComponent } from '../componentFuncs';
+import { renderRunestoneComponent } from "../componentFuncs";
 import {
   selectExercises,
   updateExercise,
@@ -29,9 +29,9 @@ import {
   sendDeleteExercises,
   sumPoints,
   selectId,
-} from '../state/assignment/assignSlice';
-import { fetchChooserData } from '../state/epicker/ePickerSlice';
-import { unSelectNode } from '../state/epicker/ePickerSlice';
+} from "../state/assignment/assignSlice";
+import { fetchChooserData } from "../state/epicker/ePickerSlice";
+import { unSelectNode } from "../state/epicker/ePickerSlice";
 
 // This registers all the plugins for the Handsontable library
 registerAllModules();
@@ -47,52 +47,52 @@ registerAllModules();
  * @description The column specifications for the reading table
  * @memberof AssignmentEditor
  */
-export const problemColumns = ['id', 'qnumber', 'autograde', 'which_to_grade', 'points'];
+export const problemColumns = ["id", "qnumber", "autograde", "which_to_grade", "points"];
 export const problemColumnSpec = [
-  { type: 'numeric', readOnly: true },
-  { type: 'numeric', readOnly: true },
+  { type: "numeric", readOnly: true },
+  { type: "numeric", readOnly: true },
   {
-    type: 'dropdown',
+    type: "dropdown",
     source: [
-      'manual',
-      'all_or_nothing',
-      'pct_correct',
-      'peer',
-      'peer_chat',
-      'interaction',
-      'unittest',
+      "manual",
+      "all_or_nothing",
+      "pct_correct",
+      "peer",
+      "peer_chat",
+      "interaction",
+      "unittest",
     ],
   },
   {
-    type: 'dropdown',
-    source: ['first_answer', 'last_answer', 'all_answer', 'best_answer'],
+    type: "dropdown",
+    source: ["first_answer", "last_answer", "all_answer", "best_answer"],
   },
-  { type: 'numeric' },
+  { type: "numeric" },
 ];
 
 // this was experimental, and I got it working but I don't see a reason to use
 // it, when you can right click on the row for the same effect.
 function renderDelete(instance, td, row, col, prop, value, cellProperties) {
-  let butt = document.createElement('button');
+  let butt = document.createElement("button");
 
-  butt.innerHTML = 'Delete';
-  td.innerHTML = '';
+  butt.innerHTML = "Delete";
+  td.innerHTML = "";
   td.appendChild(butt);
-  butt.addEventListener('click', function () {
-    console.log('delete row', row);
-    instance.alter('remove_row', row);
+  butt.addEventListener("click", function () {
+    console.log("delete row", row);
+    instance.alter("remove_row", row);
   });
   //return td;
 }
 
-export const readingColumns = ['id', 'chapter', 'subchapter', 'numQuestions', 'required', 'points'];
+export const readingColumns = ["id", "chapter", "subchapter", "numQuestions", "required", "points"];
 export const readingColumnSpec = [
-  { type: 'numeric', readOnly: true },
-  { type: 'text', readOnly: true },
-  { type: 'text', readOnly: true },
-  { type: 'numeric', readOnly: true },
-  { type: 'numeric' },
-  { type: 'numeric' },
+  { type: "numeric", readOnly: true },
+  { type: "text", readOnly: true },
+  { type: "text", readOnly: true },
+  { type: "numeric", readOnly: true },
+  { type: "numeric" },
+  { type: "numeric" },
 ];
 
 /**
@@ -109,7 +109,7 @@ export function AssignmentQuestion(props) {
   const dispatch = useDispatch();
   const question_rows = useSelector(selectExercises);
 
-  console.log('columns', props.columns);
+  console.log("columns", props.columns);
   let ref = useRef(null);
 
   // if (props.columns.indexOf("autograde") > -1 &&
@@ -119,13 +119,13 @@ export function AssignmentQuestion(props) {
   // }
 
   function renderPreview(instance, td, row, col, prop, value, cellProperties) {
-    let butt = document.createElement('button');
+    let butt = document.createElement("button");
 
-    butt.innerHTML = 'Preview';
-    td.innerHTML = '';
+    butt.innerHTML = "Preview";
+    td.innerHTML = "";
     td.appendChild(butt);
-    butt.addEventListener('click', function () {
-      console.log('preview row', row);
+    butt.addEventListener("click", function () {
+      console.log("preview row", row);
       ref.current.innerHTML = question_rows[row].htmlsrc;
       renderRunestoneComponent(ref, {});
     });
@@ -155,7 +155,7 @@ export function AssignmentQuestion(props) {
     return null;
   };
   const handleChange = (change, source) => {
-    if (source === 'loadData' || source === 'updateData') {
+    if (source === "loadData" || source === "updateData") {
       return;
     }
     console.log(change); // gives us [row, column, oldVal, newVal]
@@ -177,7 +177,7 @@ export function AssignmentQuestion(props) {
         dispatch(sendExercise(new_row));
       }
     }
-    if (changeKey === 'points') {
+    if (changeKey === "points") {
       dispatch(sumPoints());
     }
   };
@@ -185,7 +185,7 @@ export function AssignmentQuestion(props) {
   const handleDelete = (start, amount) => {
     // Called by the afterRemoveRow hook in HotTable
     // by the time this is called hotData is already updated and the row is gone.
-    console.log('delete row', start, amount);
+    console.log("delete row", start, amount);
     for (let row of hotData) {
       console.log(row);
     }
@@ -204,7 +204,7 @@ export function AssignmentQuestion(props) {
   };
 
   const handleReorder = (rows, target) => {
-    console.log('reorder', rows, target);
+    console.log("reorder", rows, target);
     // copy hotData to avoid mutating the state
     let idxs = hotData.map((r) => r[0]);
     let toMove = idxs.splice(rows[0], rows.length);
@@ -217,7 +217,7 @@ export function AssignmentQuestion(props) {
     dispatch(reorderAssignmentQuestions(idxs));
   };
   const aqStyle = {
-    marginBottom: '10px',
+    marginBottom: "10px",
   };
 
   const readingHelpText = (
@@ -296,7 +296,7 @@ const qpHeader = (options) => {
   const assignHref = `/assignment/student/doAssignment?assignment_id=${currentId}`;
   var previewButton = null;
 
-  if (options.props.header === 'Graded Exercises') {
+  if (options.props.header === "Graded Exercises") {
     previewButton = (
       <Button
         label="Preview"
@@ -326,7 +326,7 @@ const qpHeader = (options) => {
       <Dialog
         header={options.props.header}
         visible={visible}
-        style={{ width: '50vw' }}
+        style={{ width: "50vw" }}
         onHide={() => setVisible(false)}
       >
         {options.props.helptext}

@@ -1,8 +1,8 @@
-import { Dropdown } from 'primereact/dropdown';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { useSelector, useDispatch } from 'react-redux';
+import { Dropdown } from "primereact/dropdown";
+import { InputTextarea } from "primereact/inputtextarea";
+import { useSelector, useDispatch } from "react-redux";
 
-import { createActiveCodeTemplate } from '../componentFuncs.js';
+import { createActiveCodeTemplate } from "../componentFuncs.js";
 import {
   updateField,
   selectInstructions,
@@ -10,17 +10,17 @@ import {
   selectStarterCode,
   selectPrefixCode,
   selectSuffixCode,
-} from '../state/activecode/acSlice';
+} from "../state/activecode/acSlice";
 import {
   selectUniqueId,
   setQuestionJson,
   setPreviewSrc,
-} from '../state/interactive/interactiveSlice';
-import { setCode } from '../state/preview/previewSlice';
+} from "../state/interactive/interactiveSlice";
+import { setCode } from "../state/preview/previewSlice";
 
 const acStyle = {
-  border: '1px solid black',
-  padding: '10px',
+  border: "1px solid black",
+  padding: "10px",
 };
 /**
  *
@@ -56,13 +56,13 @@ function ActiveCodeCreator() {
   };
 
   const languageOptions = [
-    { value: 'python', label: 'Python (in browser)' },
-    { value: 'java', label: 'Java' },
-    { value: 'cpp', label: 'C++' },
-    { value: 'c', label: 'C' },
-    { value: 'javascript', label: 'Javascript' },
-    { value: 'html', label: 'HTML' },
-    { value: 'sql', label: 'SQL' },
+    { value: "python", label: "Python (in browser)" },
+    { value: "java", label: "Java" },
+    { value: "cpp", label: "C++" },
+    { value: "c", label: "C" },
+    { value: "javascript", label: "Javascript" },
+    { value: "html", label: "HTML" },
+    { value: "sql", label: "SQL" },
   ];
 
   return (
@@ -72,7 +72,7 @@ function ActiveCodeCreator() {
         <Dropdown
           id="language"
           value={language}
-          onChange={(e) => dispatch(updateField({ field: 'language', newVal: e.value }))}
+          onChange={(e) => dispatch(updateField({ field: "language", newVal: e.value }))}
           options={languageOptions}
           optionLabel="label"
         />
@@ -88,7 +88,7 @@ function ActiveCodeCreator() {
         placeholder="Enter Assignment Instructions (HTML Allowed)"
         value={instructions}
         onBlur={previewOnBlur}
-        onChange={(e) => dispatch(updateField({ field: 'instructions', newVal: e.target.value }))}
+        onChange={(e) => dispatch(updateField({ field: "instructions", newVal: e.target.value }))}
       ></InputTextarea>
       <label htmlFor="prefix_code" className="builderlabel">
         Hidden Prefix Code
@@ -100,7 +100,7 @@ function ActiveCodeCreator() {
         placeholder="Enter Assignment Prefix Code"
         value={prefix_code}
         onBlur={previewOnBlur}
-        onChange={(e) => dispatch(updateField({ field: 'prefix_code', newVal: e.target.value }))}
+        onChange={(e) => dispatch(updateField({ field: "prefix_code", newVal: e.target.value }))}
       ></InputTextarea>
       <label htmlFor="starter_code" className="builderlabel">
         Starter Code
@@ -112,7 +112,7 @@ function ActiveCodeCreator() {
         placeholder="Enter Assignment Starter Code"
         value={starter_code}
         onBlur={previewOnBlur}
-        onChange={(e) => dispatch(updateField({ field: 'starter_code', newVal: e.target.value }))}
+        onChange={(e) => dispatch(updateField({ field: "starter_code", newVal: e.target.value }))}
       ></InputTextarea>
       <label htmlFor="suffix_code" className="builderlabel">
         Hidden Suffix (Test) Code
@@ -127,7 +127,7 @@ function ActiveCodeCreator() {
         onChange={(e) => {
           dispatch(
             updateField({
-              field: 'suffix_code',
+              field: "suffix_code",
               newVal: e.value,
             }),
           );

@@ -1,18 +1,18 @@
-import { Dropdown } from 'primereact/dropdown';
-import PropTypes from 'prop-types';
-import { useSelector, useDispatch } from 'react-redux';
+import { Dropdown } from "primereact/dropdown";
+import PropTypes from "prop-types";
+import { useSelector, useDispatch } from "react-redux";
 
 import {
   setComponent,
   selectComponent,
   selectComponentOptions,
-} from '../state/componentEditor/editorSlice';
-import { setQuestionType } from '../state/interactive/interactiveSlice';
+} from "../state/componentEditor/editorSlice";
+import { setQuestionType } from "../state/interactive/interactiveSlice";
 
-import ActiveCodeCreator from './activeCode';
-import { ExerciseEditor } from './exerciseEditor';
-import { MultipleChoiceCreator } from './multipleChoice';
-import { ShortAnswerCreator } from './shortAnswer';
+import ActiveCodeCreator from "./activeCode";
+import { ExerciseEditor } from "./exerciseEditor";
+import { MultipleChoiceCreator } from "./multipleChoice";
+import { ShortAnswerCreator } from "./shortAnswer";
 /**
  * Choose the kind of exercise to create.
  * @returns The InteractiveSelector component
@@ -55,12 +55,12 @@ export function EditorContainer(props) {
     return null;
   }
   switch (componentChoice) {
-    case 'activecode':
+    case "activecode":
       return <ExerciseEditor component={<ActiveCodeCreator />} editonly={props.editonly} />;
-    case 'multiplechoice':
-    case 'mchoice':
+    case "multiplechoice":
+    case "mchoice":
       return <ExerciseEditor component={<MultipleChoiceCreator />} editonly={props.editonly} />;
-    case 'shortanswer':
+    case "shortanswer":
       return <ExerciseEditor component={<ShortAnswerCreator />} editonly={props.editonly} />;
     default:
       return <p>We have not built an editor for this question type yet.</p>;

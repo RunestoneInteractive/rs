@@ -1,27 +1,27 @@
-import { Button } from 'primereact/button';
-import { Checkbox } from 'primereact/checkbox';
-import { InputTextarea } from 'primereact/inputtextarea';
-import Prism from 'prismjs'; // eslint-disable-line no-unused-vars
-import { useSelector, useDispatch } from 'react-redux';
+import { Button } from "primereact/button";
+import { Checkbox } from "primereact/checkbox";
+import { InputTextarea } from "primereact/inputtextarea";
+import Prism from "prismjs"; // eslint-disable-line no-unused-vars
+import { useSelector, useDispatch } from "react-redux";
 
-import { createMCQTemplate } from '../componentFuncs';
-import { setPreviewSrc, setQuestionJson } from '../state/interactive/interactiveSlice';
-import { selectUniqueId } from '../state/interactive/interactiveSlice';
+import { createMCQTemplate } from "../componentFuncs";
+import { setPreviewSrc, setQuestionJson } from "../state/interactive/interactiveSlice";
+import { selectUniqueId } from "../state/interactive/interactiveSlice";
 import {
   setOptionList,
   setStatement,
   addOption,
   selectOptionList,
   selectStatement,
-} from '../state/multiplechoice/mcSlice';
-import { setCode } from '../state/preview/previewSlice';
+} from "../state/multiplechoice/mcSlice";
+import { setCode } from "../state/preview/previewSlice";
 
-import 'prismjs/themes/prism.css';
-import 'prismjs/plugins/line-numbers/prism-line-numbers.js';
-import 'prismjs/plugins/line-numbers/prism-line-numbers.css';
-import 'prismjs/components/prism-python';
-import 'prismjs/components/prism-sql';
-import 'prismjs/components/prism-java';
+import "prismjs/themes/prism.css";
+import "prismjs/plugins/line-numbers/prism-line-numbers.js";
+import "prismjs/plugins/line-numbers/prism-line-numbers.css";
+import "prismjs/components/prism-python";
+import "prismjs/components/prism-sql";
+import "prismjs/components/prism-java";
 
 export function MultipleChoiceCreator() {
   const optionList = useSelector(selectOptionList);

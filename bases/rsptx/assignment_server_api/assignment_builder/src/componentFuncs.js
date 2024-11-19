@@ -13,10 +13,10 @@ export async function renderRunestoneComponent(
    *  The component factory then turns the template into the fully rendered
    * component.
    */
-  if (typeof moreOpts === 'undefined') {
+  if (typeof moreOpts === "undefined") {
     moreOpts = {};
   }
-  if ('author' in moreOpts) {
+  if ("author" in moreOpts) {
     delete moreOpts.author;
   }
   let patt = /..\/_images/g;
@@ -26,30 +26,30 @@ export async function renderRunestoneComponent(
     `${window.eBookConfig.app}/books/published/${window.eBookConfig.basecourse}/_images`,
   );
 
-  if (typeof window.componentMap === 'undefined') {
+  if (typeof window.componentMap === "undefined") {
     window.componentMap = {};
   }
 
   // figure out what kind of component we are dealing with
-  let componentKind = previewRef.current.querySelector(`[data-component]`).dataset.component;
+  let componentKind = previewRef.current.querySelector("[data-component]").dataset.component;
   // webwork problems do not have a data-component attribute so we have to try to figure it out.
   //
 
   if (
-    (!componentKind && previewRef.current.innerHTML.indexOf('handleWW') >= 0) ||
-    previewRef.current.innerHTML.indexOf('webwork') >= 0
+    (!componentKind && previewRef.current.innerHTML.indexOf("handleWW") >= 0) ||
+    previewRef.current.innerHTML.indexOf("webwork") >= 0
   ) {
-    componentKind = 'webwork';
+    componentKind = "webwork";
   }
   // Import all the js needed for this component before rendering
   await window.runestoneComponents.runestone_import(componentKind);
   let opt = {};
 
-  opt.orig = previewRef.current.querySelector(`[data-component]`);
+  opt.orig = previewRef.current.querySelector("[data-component]");
   if (opt.orig) {
     opt.lang = opt.orig.dataset.lang;
     if (!opt.lang) {
-      let langData = opt.orig.querySelector('[data-lang]');
+      let langData = opt.orig.querySelector("[data-lang]");
 
       if (langData) {
         opt.lang = langData.dataset.lang;
@@ -59,7 +59,7 @@ export async function renderRunestoneComponent(
     opt.useRunestoneServices = false;
     opt.graderactive = false;
     opt.python3 = true;
-    if (typeof moreOpts !== 'undefined') {
+    if (typeof moreOpts !== "undefined") {
       for (let key in moreOpts) {
         opt[key] = moreOpts[key];
       }
@@ -67,8 +67,8 @@ export async function renderRunestoneComponent(
   }
 
   // loading a valid component will also initialize the component factory
-  if (typeof component_factory === 'undefined') {
-    alert('Error:  Missing the component factory!  probably a webpack version mismatch');
+  if (typeof component_factory === "undefined") {
+    alert("Error:  Missing the component factory!  probably a webpack version mismatch");
   } else {
     if (!window.component_factory[componentKind] && !previewRef.innerHTML) {
       previewRef.current.innerHTML = `<p>Preview not available for ${componentKind}</p>`;
@@ -77,7 +77,7 @@ export async function renderRunestoneComponent(
         let res = window.component_factory[componentKind](opt);
 
         res.multiGrader = moreOpts.multiGrader;
-        if (componentKind === 'activecode') {
+        if (componentKind === "activecode") {
           if (moreOpts.multiGrader) {
             window.componentMap[`${moreOpts.gradingContainer} ${res.divid}`] = res;
           } else {
@@ -142,14 +142,14 @@ export function createMCQTemplate(uniqueId, instructions, choices) {
   var preview_src = `
     <div class="ptx-runestone-container">
     <div class="runestone explainer ac_section ">
-    <ul data-component="multiplechoice" id="${uniqueId}" data-multipleanswers='${numCorrect > 1 ? 'true' : 'false'}'>
+    <ul data-component="multiplechoice" id="${uniqueId}" data-multipleanswers='${numCorrect > 1 ? "true" : "false"}'>
     <p>${instructions}</p>
     `;
 
   for (let i = 0; i < choices.length; i++) {
     preview_src += `<li data-component="answer" 
                 id="${uniqueId}_opt_${String.fromCharCode(97 + i)}"
-                ${choices[i].correct ? "data-correct='yes'" : ''}
+                ${choices[i].correct ? "data-correct='yes'" : ""}
             >
             ${choices[i].choice}
             </li>
@@ -159,7 +159,7 @@ export function createMCQTemplate(uniqueId, instructions, choices) {
             ${choices[i].feedback}
             </li>`;
   }
-  preview_src += `</ul></div></div>`;
+  preview_src += "</ul></div></div>";
   console.log(preview_src);
   return preview_src;
 }
@@ -168,7 +168,7 @@ export function createShortAnswerTemplate(uniqueId, instructions, attachment) {
   var preview_src = `
     <div class="ptx-runestone-container">
     <div class="runestone explainer ac_section ">
-    <div data-component="shortanswer" id="${uniqueId}" ${attachment ? 'data-attachment' : ''}>
+    <div data-component="shortanswer" id="${uniqueId}" ${attachment ? "data-attachment" : ""}>
     <p>${instructions}</p>
     </div></div></div>`;
 

@@ -1,5 +1,5 @@
-import camelcase from 'camelcase';
-import path from 'path';
+import camelcase from "camelcase";
+import path from "path";
 
 // Replaces SVG files in tests
 export default (filename: string) => {

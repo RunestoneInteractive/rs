@@ -1,20 +1,20 @@
-import { InputSwitch } from 'primereact/inputswitch';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { useSelector, useDispatch } from 'react-redux';
+import { InputSwitch } from "primereact/inputswitch";
+import { InputTextarea } from "primereact/inputtextarea";
+import { useSelector, useDispatch } from "react-redux";
 
-import { createShortAnswerTemplate } from '../componentFuncs';
+import { createShortAnswerTemplate } from "../componentFuncs";
 import {
   setQuestionJson,
   selectUniqueId,
   setPreviewSrc,
-} from '../state/interactive/interactiveSlice';
-import { setCode } from '../state/preview/previewSlice';
+} from "../state/interactive/interactiveSlice";
+import { setCode } from "../state/preview/previewSlice";
 import {
   setStatement,
   setAttachment,
   selectAttachment,
   selectStatement,
-} from '../state/shortanswer/shortSlice';
+} from "../state/shortanswer/shortSlice";
 
 export function ShortAnswerCreator() {
   const statement = useSelector(selectStatement);
@@ -23,7 +23,7 @@ export function ShortAnswerCreator() {
   const uniqueId = useSelector(selectUniqueId);
 
   function handleCodeUpdates() {
-    console.log('Code updates');
+    console.log("Code updates");
     let code = createShortAnswerTemplate(uniqueId, statement, attachment);
 
     dispatch(setCode(code));

@@ -3,13 +3,13 @@
  * @summary This file defines a slice for the multiple choice editor
  * @description This file contains the slice for the multiple choice editor.
  */
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 export const mcSlice = createSlice({
-  name: 'multiplechoice',
+  name: "multiplechoice",
   initialState: {
-    statement: '',
-    optionList: [{ choice: '', feedback: '', correct: false }],
+    statement: "",
+    optionList: [{ choice: "", feedback: "", correct: false }],
   },
   reducers: {
     /**
@@ -29,7 +29,7 @@ export const mcSlice = createSlice({
      * @memberof MultipleChoiceEditor
      */
     addOption: (state) => {
-      state.optionList.push({ choice: '', feedback: '', correct: false });
+      state.optionList.push({ choice: "", feedback: "", correct: false });
     },
     /**
      * @function removeOption

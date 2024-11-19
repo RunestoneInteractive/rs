@@ -4,29 +4,29 @@
  *
  */
 
-import { useSelector, useDispatch } from 'react-redux';
-import React, { useState } from 'react';
+import { useSelector, useDispatch } from "react-redux";
+import React, { useState } from "react";
 
-import 'primereact/resources/themes/lara-light-blue/theme.css';
-import 'primeflex/primeflex.css';
-import { AutoComplete } from 'primereact/autocomplete';
-import { Button } from 'primereact/button';
-import { Calendar } from 'primereact/calendar';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputSwitch } from 'primereact/inputswitch';
-import { InputText } from 'primereact/inputtext';
+import "primereact/resources/themes/lara-light-blue/theme.css";
+import "primeflex/primeflex.css";
+import { AutoComplete } from "primereact/autocomplete";
+import { Button } from "primereact/button";
+import { Calendar } from "primereact/calendar";
+import { InputNumber } from "primereact/inputnumber";
+import { InputSwitch } from "primereact/inputswitch";
+import { InputText } from "primereact/inputtext";
 
-import { ExerciseSelector } from './ePicker';
-import { SearchPanel } from './searchPanel';
+import { ExerciseSelector } from "./ePicker";
+import { SearchPanel } from "./searchPanel";
 
-import { Message } from 'primereact/message';
-import { Panel } from 'primereact/panel';
-import { SelectButton } from 'primereact/selectbutton';
-import { TabView, TabPanel } from 'primereact/tabview';
+import { Message } from "primereact/message";
+import { Panel } from "primereact/panel";
+import { SelectButton } from "primereact/selectbutton";
+import { TabView, TabPanel } from "primereact/tabview";
 
-import store from '../state/store';
-import 'primeicons/primeicons.css';
-import Preview from '../renderers/preview.jsx';
+import store from "../state/store";
+import "primeicons/primeicons.css";
+import Preview from "../renderers/preview.jsx";
 import {
   createAssignment,
   fetchAssignmentQuestions,
@@ -53,9 +53,9 @@ import {
   setReleased,
   setTimeLimit,
   setVisible,
-} from '../state/assignment/assignSlice';
+} from "../state/assignment/assignSlice";
 
-import { EditorContainer, EditorChooser } from './editorModeChooser.jsx';
+import { EditorContainer, EditorChooser } from "./editorModeChooser.jsx";
 
 //
 // subscribe to the store and update the assignment when it changes
@@ -89,27 +89,27 @@ function handleChange() {
         let changes = diff(previousValue, currentValue);
         let keys = Object.keys(changes);
         let updateKeys = [
-          'duedate',
-          'points',
-          'visible',
-          'time_limit',
-          'peer_async_visible',
-          'is_peer',
-          'is_timed',
-          'nopause',
-          'nofeedback',
-          'description',
+          "duedate",
+          "points",
+          "visible",
+          "time_limit",
+          "peer_async_visible",
+          "is_peer",
+          "is_timed",
+          "nopause",
+          "nofeedback",
+          "description",
         ];
         let update = keys.filter((k) => updateKeys.includes(k));
 
-        if (update.length > 0 && keys.indexOf('id') === -1) {
+        if (update.length > 0 && keys.indexOf("id") === -1) {
           console.log(`updating assignment ${update}`);
           let toSend = structuredClone(currentValue);
 
           delete toSend.all_assignments;
           delete toSend.exercises;
           store.dispatch(sendAssignmentUpdate(toSend));
-          console.log('changes', changes);
+          console.log("changes", changes);
         }
       }
     } else {
@@ -153,7 +153,7 @@ function AssignmentEditor() {
     // if e.value is a string then we are still searching
     // occasionally we get a hiccup where items isn't yet updated so will only create when
     // the button is clicked.
-    if (typeof e.value === 'string') {
+    if (typeof e.value === "string") {
       dispatch(setName(e.value));
     } else {
       console.log(`choosing current assignment ${e.value.name}`);
@@ -162,7 +162,7 @@ function AssignmentEditor() {
       dispatch(setName(current.name));
 
       if (current.description === null) {
-        dispatch(setDesc(''));
+        dispatch(setDesc(""));
       } else {
         dispatch(setDesc(current.description));
       }
@@ -180,9 +180,9 @@ function AssignmentEditor() {
       dispatch(setPeerAsyncVisible(current.peer_async_visible));
       dispatch(fetchAssignmentQuestions(current.id));
       if (current.is_peer) {
-        dispatch(setKind('Peer'));
+        dispatch(setKind("Peer"));
       } else if (current.is_timed) {
-        dispatch(setKind('Timed'));
+        dispatch(setKind("Timed"));
       }
     }
   };
@@ -209,7 +209,7 @@ function AssignmentEditor() {
   const handleDueChange = (e) => {
     setDatetime12h(e.value);
     console.log(`due change ${datetime12h} ${e.value}`);
-    let d = e.value.toISOString().replace('Z', '');
+    let d = e.value.toISOString().replace("Z", "");
 
     dispatch(setDue(d));
   };
@@ -290,30 +290,30 @@ function AssignmentEditor() {
 
 export function MoreOptions() {
   const options = [
-    { label: 'Regular', value: 'Regular' },
-    { label: 'Quiz / Exam', value: 'Timed' },
-    { label: 'Peer Instruction', value: 'Peer' },
+    { label: "Regular", value: "Regular" },
+    { label: "Quiz / Exam", value: "Timed" },
+    { label: "Peer Instruction", value: "Peer" },
   ];
   const assignData = useSelector(selectAll);
   const assignmentKind = useSelector(selectKind);
-  var kind = '';
+  var kind = "";
 
   if (assignData.is_peer) {
-    kind = 'Peer';
+    kind = "Peer";
   } else if (assignData.is_timed) {
-    kind = 'Timed';
+    kind = "Timed";
   } else {
-    kind = 'Regular';
+    kind = "Regular";
   }
   // todo - set assignmentKind in the store
 
-  console.log('assignment kind = ', assignmentKind, kind);
+  console.log("assignment kind = ", assignmentKind, kind);
   const changeAssigmentKind = (e) => {
     dispatch(setKind(e.value));
-    if (e.value === 'Timed') {
+    if (e.value === "Timed") {
       dispatch(setIsTimed(true));
       dispatch(setIsPeer(false));
-    } else if (e.value === 'Peer') {
+    } else if (e.value === "Peer") {
       dispatch(setIsTimed(false));
       dispatch(setIsPeer(true));
     } else {
@@ -323,7 +323,7 @@ export function MoreOptions() {
   };
   const dispatch = useDispatch();
   const renderOptions = () => {
-    if (assignmentKind === 'Timed') {
+    if (assignmentKind === "Timed") {
       return (
         <>
           <div className="p-inputgroup">
@@ -352,7 +352,7 @@ export function MoreOptions() {
           />
         </>
       );
-    } else if (assignmentKind === 'Peer') {
+    } else if (assignmentKind === "Peer") {
       return (
         <>
           <label htmlFor="showAsync">Show Async Peer</label>

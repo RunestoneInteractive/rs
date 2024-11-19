@@ -10,12 +10,12 @@
  * The state is maintained in the redux store. See the ePickerSlice for more details.
  *
  */
-import { Column } from 'primereact/column';
-import { TreeTable } from 'primereact/treetable';
-import PropTypes from 'prop-types';
-import { useSelector, useDispatch } from 'react-redux';
+import { Column } from "primereact/column";
+import { TreeTable } from "primereact/treetable";
+import PropTypes from "prop-types";
+import { useSelector, useDispatch } from "react-redux";
 
-import { setExerciseDefaults, setReadingDefaults } from '../exUtils';
+import { setExerciseDefaults, setReadingDefaults } from "../exUtils";
 import {
   addExercise,
   selectExercises,
@@ -24,15 +24,15 @@ import {
   deleteExercises,
   sendDeleteExercises,
   sumPoints,
-} from '../state/assignment/assignSlice';
+} from "../state/assignment/assignSlice";
 import {
   chooserNodes,
   setSelectedNodes,
   selectedNodes,
   setSelectedReadingNodes,
-} from '../state/epicker/ePickerSlice';
+} from "../state/epicker/ePickerSlice";
 
-import { PreviewTemplate } from './searchPanel';
+import { PreviewTemplate } from "./searchPanel";
 
 /**
  * @function ExerciseSelector
@@ -44,8 +44,8 @@ import { PreviewTemplate } from './searchPanel';
 export function ExerciseSelector(props) {
   var nodes;
 
-  if (props.level === 'subchapter') {
-    console.log('subchapter');
+  if (props.level === "subchapter") {
+    console.log("subchapter");
     nodes = useSelector((state) => state.ePicker.readingNodes);
   } else {
     nodes = useSelector(chooserNodes);
@@ -58,7 +58,7 @@ export function ExerciseSelector(props) {
 
   let selectedNodeKeys;
 
-  if (props.level === 'subchapter') {
+  if (props.level === "subchapter") {
     selectedNodeKeys = useSelector((state) => state.ePicker.selectedReadingNodes);
   } else {
     selectedNodeKeys = useSelector(selectedNodes);
@@ -70,7 +70,7 @@ export function ExerciseSelector(props) {
   // event handling functions
   //
   function handleSelectionChange(e) {
-    if (props.level === 'subchapter') {
+    if (props.level === "subchapter") {
       dispatch(setSelectedReadingNodes(e.value));
     } else {
       dispatch(setSelectedNodes(e.value));
@@ -95,7 +95,7 @@ export function ExerciseSelector(props) {
     }
     let exercise = event.node.data;
 
-    if (props.level === 'subchapter') {
+    if (props.level === "subchapter") {
       exercise = setReadingDefaults(exercise, currentAssignmentId, currentExercises);
     } else {
       if (!exercise.name) return; // not an exercise
@@ -132,7 +132,7 @@ export function ExerciseSelector(props) {
     dispatch(sumPoints());
   }
 
-  if (props.level === 'subchapter') {
+  if (props.level === "subchapter") {
     for (let node of filteredNodes) {
       for (let child of node.children) {
         delete child.children;
@@ -147,7 +147,7 @@ export function ExerciseSelector(props) {
           onSelect={doSelect}
           onUnselect={doUnSelect}
           onSelectionChange={handleSelectionChange}
-          tableStyle={{ minWidth: '10rem' }}
+          tableStyle={{ minWidth: "10rem" }}
         >
           <Column field="title" header="Title" expander></Column>
         </TreeTable>
@@ -156,7 +156,7 @@ export function ExerciseSelector(props) {
   }
   for (let node of filteredNodes) {
     for (let child of node.children) {
-      child.children = child.children.filter((child) => child.data.question_type !== 'page');
+      child.children = child.children.filter((child) => child.data.question_type !== "page");
     }
   }
   return (
@@ -168,20 +168,20 @@ export function ExerciseSelector(props) {
         onSelectionChange={handleSelectionChange}
         onSelect={doSelect}
         onUnselect={doUnSelect}
-        tableStyle={{ minWidth: '10rem' }}
+        tableStyle={{ minWidth: "10rem" }}
         scrollable
         scrollHeight="400px"
       >
-        <Column field="title" header="Title" expander style={{ width: '25rem' }}></Column>
-        <Column field="qnumber" header="Question Number" style={{ width: '10rem' }}></Column>
+        <Column field="title" header="Title" expander style={{ width: "25rem" }}></Column>
+        <Column field="qnumber" header="Question Number" style={{ width: "10rem" }}></Column>
         <Column
           field="htmlsrc"
           header="Preview"
           body={PreviewTemplate}
-          style={{ width: '8rem', maxWidth: '100rem' }}
+          style={{ width: "8rem", maxWidth: "100rem" }}
         />
-        <Column field="name" header="QuestionName" style={{ width: '10rem' }}></Column>
-        <Column field="question_type" header="Question Type" style={{ width: '10rem' }}></Column>
+        <Column field="name" header="QuestionName" style={{ width: "10rem" }}></Column>
+        <Column field="question_type" header="Question Type" style={{ width: "10rem" }}></Column>
       </TreeTable>
     </div>
   );

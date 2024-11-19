@@ -18,10 +18,10 @@
  * - `searchForQuestions` is used to search for questions in the question bank
  * @memberof AssignmentEditor
  */
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import toast from 'react-hot-toast';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import toast from "react-hot-toast";
 
-import { setSelectedNodes } from '../epicker/ePickerSlice';
+import { setSelectedNodes } from "../epicker/ePickerSlice";
 
 // thunks can take a single argument. If you need to pass multiple values, pass an object
 // thunks can optionally take a second argument which is an object that contains the getState and dispatch
@@ -39,17 +39,17 @@ import { setSelectedNodes } from '../epicker/ePickerSlice';
  * fetchAssignments.fulfilled case of the builder object in the extraReducers method.
  */
 export const fetchAssignments = createAsyncThunk(
-  'assignment/fetchAssignments',
+  "assignment/fetchAssignments",
   async (neededForGetState, { getState, dispatch }) => {
-    const response = await fetch('/assignment/instructor/assignments');
+    const response = await fetch("/assignment/instructor/assignments");
     const data = await response.json();
     let state = getState();
     //dispatch(updateField({ field: "exercises", newVal: data }));
 
     if (!response.ok) {
-      console.warn('Error fetching assignments');
+      console.warn("Error fetching assignments");
       if (response.status === 401) {
-        console.warn('Unauthorized to fetch assignments');
+        console.warn("Unauthorized to fetch assignments");
         dispatch(setIsAuthorized(false));
         return;
       }
@@ -71,35 +71,35 @@ export const fetchAssignments = createAsyncThunk(
  * @memberof AssignmentEditor
  */
 export const createAssignment = createAsyncThunk(
-  'assignment/createAssignment',
+  "assignment/createAssignment",
   // incoming is an object that combines the activecode data and the assignment data and the preview_src
   async (assignData, { dispatch }) => {
     let jsheaders = new Headers({
-      'Content-type': 'application/json; charset=utf-8',
-      Accept: 'application/json',
+      "Content-type": "application/json; charset=utf-8",
+      Accept: "application/json",
     });
     // make a date that is acceptable on the server
     let duedate = new Date(assignData.duedate);
 
-    duedate = duedate.toISOString().replace('Z', '');
+    duedate = duedate.toISOString().replace("Z", "");
     let body = {
       name: assignData.name,
       description: assignData.description,
       duedate: duedate,
       points: assignData.points,
-      kind: 'quickcode',
+      kind: "quickcode",
     };
     let data = {
       body: JSON.stringify(body),
       headers: jsheaders,
-      method: 'POST',
+      method: "POST",
     };
-    let resp = await fetch('/assignment/instructor/new_assignment', data);
+    let resp = await fetch("/assignment/instructor/new_assignment", data);
 
     if (!resp.ok) {
-      console.warn('Error creating assignment');
+      console.warn("Error creating assignment");
       if (resp.status === 422) {
-        console.warn('Missing data for creating assignment');
+        console.warn("Missing data for creating assignment");
         /* The JON response from the server looks like this:
                 {
                     "detail": [
@@ -125,15 +125,15 @@ export const createAssignment = createAsyncThunk(
         let result = await resp.json();
 
         console.error(result.detail);
-        toast('Error creating assignment', {
-          icon: '🔥',
+        toast("Error creating assignment", {
+          icon: "🔥",
           duration: 5000,
         });
       }
 
       return;
     }
-    toast('Assignment created', { icon: '👍' });
+    toast("Assignment created", { icon: "👍" });
     let result = await resp.json();
     // The result will contain the id assigned to the new assignment
 
@@ -153,12 +153,12 @@ export const createAssignment = createAsyncThunk(
  * @memberof AssignmentEditor
  */
 export const fetchAssignmentQuestions = createAsyncThunk(
-  'assignment/fetchAssignmentQuestions',
+  "assignment/fetchAssignmentQuestions",
   async (assignmentId, { getState, dispatch }) => {
-    const response = await fetch('/assignment/instructor/assignment_questions', {
-      method: 'POST',
+    const response = await fetch("/assignment/instructor/assignment_questions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ assignment: assignmentId }),
     });
@@ -191,11 +191,11 @@ export const fetchAssignmentQuestions = createAsyncThunk(
  * @description This function is called to save the exercise to the database.
  * @memberof AssignmentEditor
  */
-export const sendExercise = createAsyncThunk('assignment/sendExercise', async (exercise) => {
-  const response = await fetch('/assignment/instructor/update_assignment_question', {
-    method: 'POST',
+export const sendExercise = createAsyncThunk("assignment/sendExercise", async (exercise) => {
+  const response = await fetch("/assignment/instructor/update_assignment_question", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(exercise),
   });
@@ -211,14 +211,14 @@ export const sendExercise = createAsyncThunk('assignment/sendExercise', async (e
  * @memberof AssignmentEditor
  */
 export const sendDeleteExercises = createAsyncThunk(
-  'assignment/sendDeleteExercises',
+  "assignment/sendDeleteExercises",
   async (exercises) => {
     exercises = exercises.map((ex) => ex.id);
-    console.log('deleteExercises', exercises);
-    const response = await fetch('/assignment/instructor/remove_assignment_questions', {
-      method: 'POST',
+    console.log("deleteExercises", exercises);
+    const response = await fetch("/assignment/instructor/remove_assignment_questions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(exercises),
     });
@@ -235,13 +235,13 @@ export const sendDeleteExercises = createAsyncThunk(
  * @memberof AssignmentEditor
  */
 export const reorderAssignmentQuestions = createAsyncThunk(
-  'assignment/reorderAssignmentQuestions',
+  "assignment/reorderAssignmentQuestions",
   async (exercises) => {
     // exercises is an array of assignment_question ids
-    const response = await fetch('/assignment/instructor/reorder_assignment_questions', {
-      method: 'POST',
+    const response = await fetch("/assignment/instructor/reorder_assignment_questions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(exercises),
     });
@@ -260,13 +260,13 @@ export const reorderAssignmentQuestions = createAsyncThunk(
  *
  */
 export const sendAssignmentUpdate = createAsyncThunk(
-  'assignment/sendAssignmentUpdate',
+  "assignment/sendAssignmentUpdate",
   // todo missing released, duedate, and from_source
   async (assignment) => {
-    const response = await fetch('/assignment/instructor/update_assignment', {
-      method: 'POST',
+    const response = await fetch("/assignment/instructor/update_assignment", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(assignment),
     });
@@ -274,7 +274,7 @@ export const sendAssignmentUpdate = createAsyncThunk(
     if (!response.ok) {
       let err = await response.json();
 
-      console.error('Error updating assignment', err.detail);
+      console.error("Error updating assignment", err.detail);
       return;
     }
     const data = await response.json();
@@ -291,12 +291,12 @@ export const sendAssignmentUpdate = createAsyncThunk(
  * @returns {Promise} - a promise that resolves to the result of the fetch
  */
 export const searchForQuestions = createAsyncThunk(
-  'assignment/searchForQuestions',
+  "assignment/searchForQuestions",
   async (searchData) => {
-    const response = await fetch('/assignment/instructor/search_questions', {
-      method: 'POST',
+    const response = await fetch("/assignment/instructor/search_questions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(searchData),
     });
@@ -400,11 +400,11 @@ let defaultDeadline = cDate.toLocaleString();
  * @property {Object} extraReducers - Additional reducers for handling asynchronous actions.
  */
 export const assignSlice = createSlice({
-  name: 'assignment',
+  name: "assignment",
   initialState: {
     id: 0,
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     duedate: defaultDeadline,
     points: 1,
     visible: true,
@@ -414,7 +414,7 @@ export const assignSlice = createSlice({
     nopause: true,
     time_limit: null,
     peer_async_visible: false,
-    kind: 'Regular', // (regular, peer, timed)
+    kind: "Regular", // (regular, peer, timed)
     exercises: [],
     all_assignments: [],
     search_results: [],
@@ -439,11 +439,11 @@ export const assignSlice = createSlice({
     setDue: (state, action) => {
       // action.payload is a Date object coming from the date picker or a string from the server
       // convert it to a string and remove the Z because we don't expect timezone information
-      if (typeof action.payload === 'string') {
+      if (typeof action.payload === "string") {
         state.duedate = action.payload;
         return;
       }
-      state.duedate = action.payload.toISOString().replace('Z', '');
+      state.duedate = action.payload.toISOString().replace("Z", "");
     },
     setVisible: (state, action) => {
       state.visible = action.payload;
@@ -479,7 +479,7 @@ export const assignSlice = createSlice({
       state.exercises = action.payload;
     },
     addExercise: (state, action) => {
-      console.log('addExercise', action.payload);
+      console.log("addExercise", action.payload);
       state.exercises.push(action.payload);
     },
     setIsAuthorized: (state, action) => {
@@ -499,7 +499,7 @@ export const assignSlice = createSlice({
     deleteExercises: (state, action) => {
       let exercises = action.payload;
 
-      console.log('deleteExercises', exercises);
+      console.log("deleteExercises", exercises);
       exercises = exercises.map((ex) => ex.id);
       state.exercises = state.exercises.filter((ex) => !exercises.includes(ex.id));
     },

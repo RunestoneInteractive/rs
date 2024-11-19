@@ -5,10 +5,10 @@
 // The assignment picker also works with the AssignmentQuestion component to populate the table
 // with the questions in the selected assignment.
 
-import { DateTime } from 'luxon';
-import { Dropdown } from 'primereact/dropdown';
-import React, { useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { DateTime } from "luxon";
+import { Dropdown } from "primereact/dropdown";
+import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 
 import {
   selectAll,
@@ -20,7 +20,7 @@ import {
   setFromSource,
   setReleased,
   fetchAssignmentQuestions,
-} from '../state/assignment/assignSlice';
+} from "../state/assignment/assignSlice";
 
 /**
  * @description The AssignmentPicker component is a dropdown menu that allows the user to select an assignment.
@@ -40,23 +40,23 @@ export function AssignmentPicker() {
   const all_assignments = useSelector(selectAll).all_assignments;
   let sorted_assignments = structuredClone(all_assignments).sort(sortFunc).reverse();
 
-  sorted_assignments = sorted_assignments.filter((a) => a.name !== '');
+  sorted_assignments = sorted_assignments.filter((a) => a.name !== "");
 
   const menuStyle = {
-    width: '25rem',
-    marginBottom: '10px',
+    width: "25rem",
+    marginBottom: "10px",
   };
 
   const optionStyle = {
-    width: '12rem',
-    marginRight: '10px',
-    textAlign: 'left',
-    float: 'left',
+    width: "12rem",
+    marginRight: "10px",
+    textAlign: "left",
+    float: "left",
   };
 
   const optionStyle2 = {
-    width: '12rem',
-    textAlign: 'end',
+    width: "12rem",
+    textAlign: "end",
   };
 
   const optionTemplate = (option) => {

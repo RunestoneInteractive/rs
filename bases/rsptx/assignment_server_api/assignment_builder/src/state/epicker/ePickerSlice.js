@@ -3,8 +3,8 @@
  * @file ePickerSlice.js
  * @summary Redux slice for the ePicker component
  */
-import { createAsyncThunk, createSlice, createSelector } from '@reduxjs/toolkit';
-import toast from 'react-hot-toast';
+import { createAsyncThunk, createSlice, createSelector } from "@reduxjs/toolkit";
+import toast from "react-hot-toast";
 
 /**
  * @function fetchChooserData
@@ -13,26 +13,26 @@ import toast from 'react-hot-toast';
  * @memberof ePicker
  */
 export const fetchChooserData = createAsyncThunk(
-  'ePicker/fetchChooserData',
+  "ePicker/fetchChooserData",
   // incoming is an object that has keys for skipreading, from_source_only, and pages_only
   // and a value that is a boolean  This can be used for search results for reading questions
   // or for problem sets.
   async (incoming) => {
     let jsheaders = new Headers({
-      'Content-type': 'application/json; charset=utf-8',
-      Accept: 'application/json',
+      "Content-type": "application/json; charset=utf-8",
+      Accept: "application/json",
     });
     let data = {
       body: JSON.stringify(incoming),
       headers: jsheaders,
-      method: 'POST',
+      method: "POST",
     };
-    let resp = await fetch('/assignment/instructor/fetch_chooser_data', data);
+    let resp = await fetch("/assignment/instructor/fetch_chooser_data", data);
 
     if (!resp.ok) {
-      console.warn('Error fetching picker content');
+      console.warn("Error fetching picker content");
       if (resp.status === 422) {
-        console.warn('Missing data for getting picker content');
+        console.warn("Missing data for getting picker content");
         /* The JON response from the server looks like this:
                 {
                     "detail": [
@@ -55,8 +55,8 @@ export const fetchChooserData = createAsyncThunk(
           duration: 5000,
         });
       } else {
-        toast('Error fetching questions', {
-          icon: '🔥',
+        toast("Error fetching questions", {
+          icon: "🔥",
           duration: 5000,
         });
       }
@@ -66,7 +66,7 @@ export const fetchChooserData = createAsyncThunk(
     let result = await resp.json();
 
     if (result.detail.questions) {
-      console.log('data fetched');
+      console.log("data fetched");
       return result.detail;
     }
   },
@@ -86,7 +86,7 @@ export const fetchChooserData = createAsyncThunk(
  * @memberof ePicker
  */
 export const epSlice = createSlice({
-  name: 'ePicker',
+  name: "ePicker",
   initialState: {
     nodes: [],
     selectedNodes: {},
@@ -117,7 +117,7 @@ export const epSlice = createSlice({
     },
     unSelectNode: (state, action) => {
       // action.payload should be a list of node ids (more like keys?) to unselect
-      console.log('nodes to unselect', action.payload);
+      console.log("nodes to unselect", action.payload);
       for (let key of action.payload) {
         delete state.selectedNodes[key];
       }
@@ -126,12 +126,12 @@ export const epSlice = createSlice({
   extraReducers(builder) {
     builder
       .addCase(fetchChooserData.fulfilled, (state, action) => {
-        console.log('Question saved');
+        console.log("Question saved");
         state.nodes = action.payload.questions;
         state.readingNodes = structuredClone(action.payload.questions);
       })
       .addCase(fetchChooserData.rejected, (state, action) => {
-        console.warn('Fetching Questions failed', action.error.message);
+        console.warn("Fetching Questions failed", action.error.message);
       });
   },
 });

@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
-import { useRef, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import PropTypes from "prop-types";
+import { useRef, useEffect } from "react";
+import { useSelector } from "react-redux";
 
-import { renderRunestoneComponent } from '../componentFuncs';
-import { selectCode } from '../state/preview/previewSlice';
+import { renderRunestoneComponent } from "../componentFuncs";
+import { selectCode } from "../state/preview/previewSlice";
 
-import { EditButton } from './searchPanel';
+import { EditButton } from "./searchPanel";
 
 /**
  * @function Preview
@@ -17,7 +17,7 @@ export function Preview(props) {
   let code;
 
   if (props.code != null) {
-    console.log('Preview code: ', props.code);
+    console.log("Preview code: ", props.code);
     code = props.code;
   } else {
     code = useSelector(selectCode);
@@ -28,7 +28,7 @@ export function Preview(props) {
   // the function tells how to render the component in the future, when one of
   // the dependencies changes.
   useEffect(() => {
-    if (!ref.current || code == null || code == '') return;
+    if (!ref.current || code == null || code == "") return;
     ref.current.innerHTML = code;
     renderRunestoneComponent(ref, {});
   }, [code]);

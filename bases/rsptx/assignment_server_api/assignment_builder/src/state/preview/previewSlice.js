@@ -1,11 +1,11 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 // create a slice for our preview
 // This slice must be registered with the store in store.js
 export const previewSlice = createSlice({
-  name: 'preview',
+  name: "preview",
   initialState: {
-    code: '',
+    code: "",
   },
   reducers: {
     setCode: (state, action) => {

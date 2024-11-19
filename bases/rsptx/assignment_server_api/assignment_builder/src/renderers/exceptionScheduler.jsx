@@ -1,21 +1,21 @@
-import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputSwitch } from 'primereact/inputswitch';
-import { ListBox } from 'primereact/listbox';
-import { Toaster } from 'react-hot-toast';
-import { useSelector, useDispatch } from 'react-redux';
+import { Button } from "primereact/button";
+import { Dialog } from "primereact/dialog";
+import { InputNumber } from "primereact/inputnumber";
+import { InputSwitch } from "primereact/inputswitch";
+import { ListBox } from "primereact/listbox";
+import { Toaster } from "react-hot-toast";
+import { useSelector, useDispatch } from "react-redux";
 
-import { selectAllAssignments } from '../state/assignment/assignSlice';
-import { setSelected, selectSelectedAssignments } from '../state/assignment/assignSlice';
-import store from '../state/store';
+import { selectAllAssignments } from "../state/assignment/assignSlice";
+import { setSelected, selectSelectedAssignments } from "../state/assignment/assignSlice";
+import store from "../state/store";
 import {
   fetchClassRoster,
   selectRoster,
   selectSelectedStudents,
   saveException,
-} from '../state/student/studentSlice';
-import { setSelectedStudents as setStudents } from '../state/student/studentSlice';
+} from "../state/student/studentSlice";
+import { setSelectedStudents as setStudents } from "../state/student/studentSlice";
 
 store.dispatch(fetchClassRoster());
 
@@ -58,15 +58,15 @@ export function ExceptionScheduler() {
   };
 
   let style = {
-    width: '100%',
-    maxWidth: '100%',
-    marginTop: '1rem',
-    padding: '1rem',
-    border: '1px solid #ccc',
-    borderRadius: '5px',
-    marginBottom: '1rem',
-    backgroundColor: 'white',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.26)',
+    width: "100%",
+    maxWidth: "100%",
+    marginTop: "1rem",
+    padding: "1rem",
+    border: "1px solid #ccc",
+    borderRadius: "5px",
+    marginBottom: "1rem",
+    backgroundColor: "white",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.26)",
   };
 
   return (
@@ -75,7 +75,7 @@ export function ExceptionScheduler() {
       <p>Create individualized deadlines or time limits for assignments.</p>
       <p>
         November 5, This is an experimental feature. All features should work, but please report any
-        problems.{' '}
+        problems.{" "}
       </p>
       <Toaster />
       <h3>Choose one or more students</h3>
@@ -122,7 +122,7 @@ export function ExceptionScheduler() {
           <Dialog
             header="Help"
             visible={helpVisible}
-            style={{ width: '50vw' }}
+            style={{ width: "50vw" }}
             onHide={() => setHelpVisible(false)}
           >
             <p>
@@ -166,7 +166,7 @@ function StudentPicker() {
       optionLabel="label"
       //itemTemplate={studentTemplate}
       onChange={handleChange}
-      listStyle={{ maxHeight: '250px' }}
+      listStyle={{ maxHeight: "250px" }}
     />
   );
 }
@@ -199,7 +199,7 @@ function AssignmentPicker() {
       onChange={handleChange}
       options={assignments}
       optionLabel="name"
-      listStyle={{ maxHeight: '250px' }}
+      listStyle={{ maxHeight: "250px" }}
     />
   );
 }
