@@ -31,17 +31,17 @@ export default class DoctestTestParser {
 
         let testOutputLines = testDetails.split("\n");
         if(testOutputLines.length > 0) {
-            cleanedOutput += "Test messages:\n";
+            cleanedOutput += "Test messages:";
             for (let line of testOutputLines) {
                 cleanedOutput += line + "\n";
             }
         }
 
-        
+
         let reportLines = report.split("\n");
         if(reportLines.length > 0) {
-            cleanedOutput += "Test output:\n";
-            for (let line of testOutputLines) {
+            cleanedOutput += "Test results:";
+            for (let line of reportLines) {
                 cleanedOutput += line + "\n";
             }
         }

@@ -379,11 +379,13 @@ export default class LiveCode extends ActiveCode {
                         result.stdout,
                         this.divid
                     );
+                    $(odiv).html(this.parsedOutput.stdout);
                 } else if (this.language === "cpp" && result.stdout.includes("[doctest]")) {
                     this.parsedOutput = new DoctestTestParser(
                         result.stdout,
                         this.divid
                     );
+                    $(odiv).html(this.parsedOutput.stdout);
                 } else {
                     let output = result.stdout ? result.stdout : "";
                     $(odiv).html(output);
