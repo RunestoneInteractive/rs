@@ -488,33 +488,28 @@ export default class LiveCode extends ActiveCode {
                     if(produced === desired) {
                         passedTests++;
                         td4.innerHTML = $.i18n("msg_activecode_passed");
-                        td4.style =
-                            "background-color: rgb(131, 211, 130); text-align: center;";
+                        td4.classList.add("ac-feedback-pass");
                     } else {
                         td4.innerHTML = $.i18n("msg_activecode_failed");
-                        td4.style =
-                            "background-color: rgb(222, 142, 150); text-align: center;";
+                        td4.classList.add("ac-feedback-fail");
                     }
                     break;
                 case 11: // compiler error
                     $(odiv).html(result.cmpinfo.replace(/\n/g, "<br>"));
                     td4.innerHTML = $.i18n("msg_activecode_test_compile_error");
-                    td4.style =
-                        "background-color: rgb(222, 142, 150); text-align: center;";
+                    td4.classList.add("ac-feedback-fail");
                     this.errinfo = result.cmpinfo;
                     break;
                 case 12: // run time error
                     $(odiv).html(result.stderr.replace(/\n/g, "<br>"));
                     td4.innerHTML = $.i18n("msg_activecode_test_run_error");
-                    td4.style =
-                        "background-color: rgb(222, 142, 150); text-align: center;";
+                    td4.classList.add("ac-feedback-fail");
                     this.errinfo = result.stderr;
                     break;
                 case 13: // time limit
                     $(odiv).html(escapeHtml(result.stdout).replace(/\n/g, "<br>"));
                     td4.innerHTML = $.i18n("msg_activecode_time_limit_exc");
-                    td4.style =
-                        "background-color: rgb(222, 142, 150); text-align: center;";
+                    td4.classList.add("ac-feedback-fail");
                     this.errinfo = 'time exceeded ' + result.stdout;
                     break;
                 default:
@@ -522,9 +517,8 @@ export default class LiveCode extends ActiveCode {
                         $(odiv).html(result.stderr.replace(/\n/g, "<br>"));
                     }
                     td4.innerHTML = $.i18n("msg_activecode_server_err");
-                    td4.style =
-                        "background-color: rgb(222, 142, 150); text-align: center;";
-                        this.errinfo = result.stderr;
+                    td4.classList.add("ac-feedback-fail");
+                    this.errinfo = result.stderr;
             }
             if (this.errinfo) {
                 break;

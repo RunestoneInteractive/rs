@@ -83,12 +83,10 @@ export default class DoctestTestParser {
             td.classList.add("ac-feedback");
             if (this.pct == 100) {
                 td.innerHTML = $.i18n("msg_activecode_passed");
-                td.style =
-                    "background-color: rgb(131, 211, 130); text-align: center;";
+                td.classList.add("ac-feedback-pass");
             } else {
                 td.innerHTML = $.i18n("msg_activecode_failed");
-                td.style =
-                    "background-color: rgb(222, 142, 150); text-align: center;";
+                td.classList.add("ac-feedback-fail");
             }
             tr.appendChild(td);
             tbl.appendChild(tr);

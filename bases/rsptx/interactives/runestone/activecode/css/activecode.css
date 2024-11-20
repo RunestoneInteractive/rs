@@ -120,6 +120,16 @@
     background-color: var(--mainbackground,#fff);
 }
 
+.ac-feedback-pass {
+    background-color: rgb(131, 211, 130);
+    text-align: center;
+}
+
+.ac-feedback-fail {
+    background-color: rgb(222, 142, 150);
+    text-align: center;
+}
+
 .unittest-results tr:not(:first-of-type) td:first-of-type{
     color: #111; /* deal with hardcoded light backgrounds in skulpt :( */
 }
