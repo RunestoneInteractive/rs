@@ -62,7 +62,7 @@
 
 .unittest-results {
     margin-left: 20px;
-    margin-bottom: 8px;
+    margin-bottom: 20px;
 }
 
 .ac_output {
@@ -117,6 +117,17 @@
 .ac-feedback {
     border: 1px solid var(--componentBorderColor);
     padding: 3px;
+    background-color: var(--mainbackground,#fff);
+}
+
+.ac-feedback-pass {
+    background-color: rgb(131, 211, 130);
+    text-align: center;
+}
+
+.ac-feedback-fail {
+    background-color: rgb(222, 142, 150);
+    text-align: center;
 }
 
 .unittest-results tr:not(:first-of-type) td:first-of-type{
@@ -167,3 +178,20 @@
     margin-top: 0px;
 }
 
+.activecode__stdin {
+    display: block;
+    width: 100%;
+    resize: none;
+    overflow: auto;
+    margin-bottom: 20px;
+}
+
+.unittest-results__heading {
+    text-align: center;
+    font-weight: bold;
+    font-size: 120%;
+}
+.unittest-results__percent {
+    text-align: center;
+    font-weight: bold;
+}
