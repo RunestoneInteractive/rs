@@ -68,11 +68,6 @@ export default class LiveCode extends ActiveCode {
         }
         await this.runSetup();
         try {
-            $(this.outDiv).show({
-                duration: 700,
-                queue: false
-            });
-
             // Either have one run or are doing a series of io tests
             if (!this.iotests) {
                 let res = await this.submitToJobe();
