@@ -172,7 +172,9 @@ def git_pull(self, book, source_path=None):
         )
         raise Ignore()
     res = subprocess.run(
-        ["git", "pull", "--no-edit"], capture_output=True, cwd=f"/books/{book}"
+        ["git", "pull", "--rebase", "--no-edit", "--strategy-option=theirs"],
+        capture_output=True,
+        cwd=f"/books/{book}",
     )
     if res.returncode != 0:
         outputlog = pathlib.Path("/books", book, "cli.log")
@@ -230,6 +232,8 @@ def build_ptx_book(self, book, generate=False, target="runestone", source_path=N
     :param book: book name
     :return: True if successful
     """
+    if target is None:
+        target = "runestone"
     logger.debug(f"Building {book} with target {target} at {source_path}")
     if source_path:
         base_path = pathlib.Path("/books", book, source_path)
@@ -281,7 +285,7 @@ def deploy_book(self, book):
     numServers = int(os.environ["NUM_SERVERS"].strip())
 
     for i in range(1, numServers + 1):
-        command = f"rsync -e 'ssh -oStrictHostKeyChecking=no'  --exclude '__pycache__' -P -rzc /books/{book} {user}@server{i}:~/books --copy-links --delete"
+        command = f"rsync -e 'ssh -oStrictHostKeyChecking=no'  --exclude '__pycache__' -P -rzc /books/{book}/published/{book} {user}@server{i}:~/books/{book}/published --copy-links --delete"
         logger.debug(command)
         self.update_state(state="DEPLOYING", meta={"current": f"server{i}"})
         res = subprocess.run(

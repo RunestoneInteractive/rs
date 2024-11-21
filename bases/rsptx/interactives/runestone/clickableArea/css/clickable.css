@@ -2,13 +2,17 @@
     cursor: pointer;
 }
 
-.clickable-clicked {
+.clickable:has(code) {
+    padding: 3px;
+    display: inline-block;
+}
+
+.clickable-clicked:has(code) {
     box-shadow: 0px 0px 2px 2px rgba(0,100,0,0.75);
 }
 
-span.clickable-clicked {
-    background-color: yellow;
-    box-shadow: initial;
+.clickable-clicked {
+    background-color: var(--clickableBgColor);
 }
 
 .clickable-clicked td {
@@ -43,21 +47,31 @@ th.clickable-clicked{
     box-shadow: initial;
 }
 
-.clickable-incorrect {
-    border: 1px solid red !important;
-    background-color: #f2dede !important;
-}
-
-.clickable-incorrect th {
-    border: 1px solid red !important;
-    background-color: #f2dede !important;
-}
-
+.clickable-incorrect,
+.clickable-incorrect th,
 .clickable-incorrect td {
     border: 1px solid red !important;
-    background-color: #f2dede !important;
+    background-color: var(--clickableIncorrectBgColor);
 }
 
 img.clickable-incorrect {
     box-shadow: 0px 0px 2px 2px rgba(100,0,0,0.75);
+}
+
+.clickable-incorrect:has(code) {
+    box-shadow: 0px 0px 2px 2px rgba(251, 0, 0, 0.75);
+}
+
+:root {
+    --clickableBgColor: yellow;
+    --clickableIncorrectBgColor: #ffcccc;
+}
+
+:root.dark-mode {
+    --clickableBgColor: rgb(60, 86, 36);
+    --clickableIncorrectBgColor: #562c2c;
+
+    .clickable-clicked:has(code):not(.clickable-incorrect) {
+        box-shadow: 0px 0px 2px 2px rgba(251, 255, 21, 0.75);
+    }
 }

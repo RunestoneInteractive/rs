@@ -1787,7 +1787,7 @@ function create_question(formdata) {
     var template = formdata.template.value;
     var qcode = formdata.qcode.value;
     var lines = qcode.split("\n");
-    var htmlsrc = formdata.qrawhtml.value;
+    var htmlsrc = base64Encode(formdata.qrawhtml.value);
     var name = find_name(lines);
     var question = formdata.qcode.value;
     var difficulty = formdata.difficulty;
@@ -2256,7 +2256,7 @@ function edit_question(form) {
     let orig_divid = $("#modal-preview").data("orig_divid");
     var question_text = form.editRST.value;
     var lines = form.editRST.value.split("\n");
-    var htmlsrc = form.qrawhtml.value;
+    var htmlsrc = base64Encode(form.qrawhtml.value);
     var name = find_name(lines);
     var isp = document.getElementById("change_privacy").checked;
     data = {
@@ -2621,6 +2621,23 @@ function copyElementToClipboard(elid) {
     /* Copy the text inside the text field */
     document.execCommand("copy");
     document.body.removeChild(el);
+}
+
+// This is a good alternative to btoa for encoding strings as it will work for utf8
+// characters.  On the python side you can use base64.b64decode to decode the string
+// but you will further need to decode it as utf-8
+function base64Encode(str) {
+    // Create a new TextEncoder instance
+    const encoder = new TextEncoder();
+    // Encode the string as a Uint8Array
+    const data = encoder.encode(str);
+    // Convert the byte array to a binary string
+    let binaryString = '';
+    for (let i = 0; i < data.length; i++) {
+        binaryString += String.fromCharCode(data[i]);
+    }
+    // Use btoa to encode the binary string to Base64
+    return btoa(binaryString);
 }
 
 if (window.location.href.includes("runestone/admin/assignments")) {

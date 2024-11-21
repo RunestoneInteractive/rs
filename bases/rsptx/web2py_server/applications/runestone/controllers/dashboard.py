@@ -790,6 +790,7 @@ def subchapoverview():
     if request.vars.chapter:
         if request.vars.chapter == "all":
             chapter_clause = ""
+            chapter = "all"
         else:
             chapter_clause = "and chapter = '{}'".format(request.vars.chapter)
             chapter = request.vars.chapter
@@ -841,8 +842,13 @@ def subchapoverview():
         logger.error(
             "Empty Dataframe after pivot for {} ".format(auth.user.course_name)
         )
-        session.flash = "Error: Not enough data"
-        return redirect(URL("dashboard", "index"))
+        return dict(
+            course_name=auth.user.course_name,
+            course_id=auth.user.course_name,
+            course=thecourse,
+            chapter_frame=chapters,
+            summary="{}",
+        )
 
     if request.vars.tablekind == "sccount":
         x = pt.to_dict()
@@ -974,7 +980,10 @@ def make_correct_count_table(chapters, chapter, thecourse, dburl, course):
     """,
         dburl,
     )
-    correct = df[(df.correct == "T") & (df.chapter == chapter)]
+    if chapter == "all":
+        correct = df[(df.correct == "T")]
+    else:
+        correct = df[(df.correct == "T") & (df.chapter == chapter)]
     correct = correct.drop_duplicates()
     mtbl = correct.pivot_table(
         index="subchapter",

@@ -250,6 +250,9 @@ def check_project_ptx(click=click, course=None, target="runestone"):
 
     tgt = proj.get_target(target_name)
 
+    rslogger.info(f"target name: {target_name}")
+    rslogger.info(f"target source: {tgt.source_abspath()}")
+    rslogger.info(f"target publication: {tgt.publication_abspath()}")
     if not tgt.source_abspath().exists():
         click.echo(f"Source file specified in {target_name} target does not exist")
         return False

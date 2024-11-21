@@ -127,15 +127,21 @@ def cli(config, verbose, all, core, service, clean):
 
     if core:
         svc_list = [x for x in ym["services"].keys()]
+        to_remove = [
+            "author",
+            "worker",
+            "nginx_dstart_dev",
+            "pgbouncer",
+            "interactives",
+            "db",
+        ]
+        if not os.path.exists(
+            "bases/rsptx/interactives/runestone/dist/webpack_static_imports.json"
+        ):
+            to_remove.remove("interactives")
+            click.echo("Keeping interactives in the build list since they are missing")
         for svc in svc_list:
-            if svc in [
-                "author",
-                "worker",
-                "nginx_dstart_dev",
-                "pgbouncer",
-                "interactives",
-                "db",
-            ]:
+            if svc in to_remove:
                 del ym["services"][svc]
     # Now initialize the build.log files for all services
     for service in ym["services"]:
@@ -730,11 +736,24 @@ def restart(config):
 @pass_config
 @click.pass_context
 def full(ctx, config):
-    """Build the wheels, images, and restart the services"""
+    """Check the environment, Build the wheels, images, and run migrations, then restart the services"""
     ctx.invoke(env)
     ctx.invoke(wheel)
     ctx.invoke(image)
     ctx.invoke(checkdb)
+    ctx.invoke(restart)
+
+
+# This is a cool trick with click that lets you chain commands together to
+# form a meta command. so this will run the env command first, then the wheel
+# command, then the image command, then checkdb, then the restart command.
+@cli.command()
+@pass_config
+@click.pass_context
+def dev(ctx, config):
+    """Build the wheels, images, and restart the services"""
+    ctx.invoke(wheel)
+    ctx.invoke(image)
     ctx.invoke(restart)
 
 

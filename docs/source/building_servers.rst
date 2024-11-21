@@ -93,6 +93,10 @@ Using the ``build`` script
 
 The `build` script is a convenience script that will build the docker images for the runestone servers.  It will also build the python wheels for all of the runestone components.  This script is run from the top level directory of the rs repo.  It will check to see if you have all of the required environment variables defined and then build the docker images.  It is very useful, but not all knowing.  If there are ways to make it smarter, or to find cases where it fails, or to make it detect mis-configurations, please let us know by filing an issue on the `github repo <https://github.com/RunestoneInteractive/rs/issues>`_.
 
+.. note::
+
+   You either have to be in the poetry shell or run the script with ``poetry run build ...``.
+
 There are several options that you can pass to the script.  You can see them by running ``build --help``.  The output of the help option is shown below:
 
 .. code-block::
@@ -137,9 +141,9 @@ Here is a bit more detail on how the script operates so you know what to expect:
 
 #. Build the python wheels for all of the runestone components.  This is done by running ``poetry build-project`` in each of the project directories.  This will create a wheel file in the ``dist`` directory of each project.  If there is a ``build.py`` file in the project folder it will be run before the wheel is built.  This is useful for projects that need to build some assets before the wheel is built. such as the interactives or the assignment projects.
 
-#. Build the docker images for the runestone servers.  This is done by running ``docker compose build``.  This will build the images for the runestone servers.  If you pass the ``--all`` option it will also build the images for the author and worker servers.  If you pass the ``--one <service>`` option it will build just the image for the service you specify.
+#. Build the docker images for the runestone servers.  This is done by running ``docker compose build``.  This will build the images for the runestone servers.  If you pass the ``--all`` option it will also build the images for the author and worker servers.  If you pass one or more ``--service <service>`` option(s) it will build for the services you specify.
 
-#. Push the images to the container registry if the ``--push`` option is passed.  The container registry is configured in the docker-compose.yml file.  Unless you are authorized to do so, you should not use this option.  It will fail if you do not have the correct permissions.
+#. Push the images to the container registry if the ``push`` subcommand is passed.  The container registry is configured in the docker-compose.yml file.  Unless you are authorized to do so, you should not use this option.  It will fail if you do not have the correct permissions.
 
 #. Check the database for possible migrations.  If there are migrations that need to be run it will print out a message telling you how to run them.  You can run the migrations by running ``alembic upgrade head``.  This will run all of the migrations that have not yet been run. **Note:** It is important that the first time you clone `rs` or if you pull from the repo and start over with your database then you should run the ``alembic stamp head`` command to let alembic know that you are starting from a clean slate. The ``build checkdb`` command can detect this and will tell you. This will allow you to run migrations successfully in the future.  If you see that you are trying to add columns  or tables that are already there, then you are out of sync with alembic and will need to figure out where you are and run ``alembic stamp <revision>`` to get back in sync.  You can find the various revisions by looking in the ``migrations/versions`` directory.
 

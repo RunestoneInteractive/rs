@@ -8,7 +8,7 @@
     --background: #ffffff;
     --outerBackground: #eeeeee;
     --links: #0645ad;
-    --bodyFont: #000000;
+    --bodyFont: var(--bodyfontcolor, #000000);
     --tooltip: #ffffff;
     --grayToWhite: #333333;
     --navbar: #f8f8f8;
@@ -28,6 +28,42 @@
     --componentBgColor: #f0f8ff;
     --componentBorderColor: #000000;
     --questionBgColor: #e1efff;
+    --parsonsBgColor: #ffa;
+    --parsonsBorderColor: #ee0;
+    --parsonsCorrectBgColor: #dff0d8;
+    --parsonsCorrectBorderColor: #ade595;
+    --parsonsIncorrectBgColor: #f2dede;
+    --parsonsIncorrectBorderColor: #f2b6b6;
+}
+
+:root.dark-mode {
+    --background: #2c2f33;
+    --outerBackground: #23272a;
+    --links: #7289da;
+    --bodyFont: var(--bodyfontcolor, #99aab5);
+    --tooltip: #000000;
+    --grayToWhite: #ffffff;
+    --navbar: #3d3d3d;
+    --navbarFont: #ffffff;
+    --navbarFontHover: #d6d6d6;
+    --alerts: #714082;
+    --completionButton: #650087;
+    --completionButtonHover: #560073;
+    --admonition: #3d3d3d;
+    --admonitionBorder: #262626;
+    --codeButtons: #67739d;
+    --codeButtonsBorder: #ffffff;
+    --dangerAlerts: #8c2626;
+    --successAlerts: #217300;
+    --componentBgColor: var(--rs-component-bg, var(--knowlbackground, #07467d));
+    --componentBorderColor: var(--rs-component-border, var(--knowlborder, #939090));
+    --questionBgColor: var(--rs-component-bg, var(--knowlNested1Background, #0f5a9b));
+    --parsonsBgColor: rgb(232, 232, 178);
+    --parsonsBorderColor: rgb(168, 168, 45);
+    --parsonsCorrectBgColor: #a3c097;
+    --parsonsCorrectBorderColor: #60904c;
+    --parsonsIncorrectBgColor: #ae9090;
+    --parsonsIncorrectBorderColor: #c16b6b;
 }
 
 [data-theme="dark"] {

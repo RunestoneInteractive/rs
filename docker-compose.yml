@@ -304,10 +304,14 @@ services:
       - RUNESTONE_HOST=${RUNESTONE_HOST}
       - RUNESTONE_PATH=/usr/src/app
       - REDIS_URI=redis://${REDIS_HOST}:6379/0
+      - DC_DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+      - DC_DBURL=${DC_DBURL:-$DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
       - LOG_LEVEL=${LOG_LEVEL:-WARN}
+      - JWT_SECRET=${JWT_SECRET}
+      - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
 
   author:
     profiles: [ "author" ]

@@ -13,7 +13,7 @@ Open [http://localhost:5173](http://localhost:5173) to view it in your browser.
 
 The page will reload when you make changes.\
 You may also see any lint errors in the console.
-API calls are proxied to either the servers running in development mode see `dstart` in the root folder.  Or to the Docker based servers, you will need to adjust the port setting in `vite.config.js`  (add port 8080 to run with `dstart` servers)
+API calls are proxied to either the servers running in development mode see `dstart` in the root folder.  Or to the Docker based servers, you will need to adjust the port setting in `vite.config.ts`  (add port 8080 to run with `dstart` servers)
 
 
 ### `npm test`

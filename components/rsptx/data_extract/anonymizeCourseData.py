@@ -375,10 +375,24 @@ class Anonymizer:
         # Students often use their own name as a variable, or add their name as a comment.  This should eliminate names.  Our strategy is simple, we know the first and last name of the student associated with each piece of code.  If replace their first and/or last name with an anonymous equivalent.  This should not break any code, but if it does it should be pretty obvious what the issue is and what was broken
 
         code_withnames = code.merge(self.user_df, left_on="sid", right_on="username")
-        code_withnames["anon_code"] = code_withnames.progress_apply(
-            remove_names, axis=1
-        )
+        if len(code_withnames) > 0:
+            code_withnames["anon_code"] = code_withnames.progress_apply(
+                remove_names, axis=1
+            )
 
+            code_withnames["sid"] = code_withnames.sid.map(
+                lambda x: self.user_map.get(x, "REMOVEME")
+            )
+            code_withnames["course_name_y"] = code_withnames.course_name_y.map(
+                lambda x: self.course_map.get(x)
+            )
+            code_withnames = code_withnames[
+                ["acid", "anon_code", "sid", "course_name_y", "timestamp", "emessage"]
+            ]
+        else:
+            code_withnames["anon_code"] = ""
+            code_withnames["course_name_y"] = ""            
+            
         useinfo["sid"] = useinfo.sid.map(lambda x: self.user_map.get(x, "REMOVEME"))
         useinfo["course_id"] = useinfo.course_id.map(lambda x: self.course_map.get(x))
         useinfo["base_course"] = useinfo.course_id.map(
@@ -389,16 +403,6 @@ class Anonymizer:
         useinfo["act"] = useinfo.apply(self.anonymize_ratepeer, axis=1)
         # anonymize ratepeer fields
         useinfo["div_id"] = useinfo.div_id.map(anon_page)
-
-        code_withnames["sid"] = code_withnames.sid.map(
-            lambda x: self.user_map.get(x, "REMOVEME")
-        )
-        code_withnames["course_name_y"] = code_withnames.course_name_y.map(
-            lambda x: self.course_map.get(x)
-        )
-        code_withnames = code_withnames[
-            ["acid", "anon_code", "sid", "course_name_y", "timestamp", "emessage"]
-        ]
 
         # ## Remove names that could not be anonymized
         useinfo = useinfo[useinfo.sid != "REMOVEME"]
@@ -562,11 +566,13 @@ class Anonymizer:
 
         td_5sec = pd.Timedelta(5, "seconds")
         useinfo_w_answers.closest_time = useinfo_w_answers.progress_apply(
-            lambda x: x.closest_time
-            if not pd.isna(x.closest_time)
-            and not pd.isna(x.Time)
-            and abs(x.closest_time - x.Time) < td_5sec
-            else pd.NaT,
+            lambda x: (
+                x.closest_time
+                if not pd.isna(x.closest_time)
+                and not pd.isna(x.Time)
+                and abs(x.closest_time - x.Time) < td_5sec
+                else pd.NaT
+            ),
             axis=1,
         )
 
@@ -587,9 +593,11 @@ class Anonymizer:
         )
 
         y["Feedback Classification"] = y.apply(
-            lambda row: row.emessage
-            if not pd.isna(row.emessage)
-            else row["Feedback Classification"],
+            lambda row: (
+                row.emessage
+                if not pd.isna(row.emessage)
+                else row["Feedback Classification"]
+            ),
             axis=1,
         )
 

@@ -47,8 +47,9 @@ import "./runestone/webgldemo/css/webglinteractive.css";
 // These are only needed for the Runestone book, but not in a library mode (such as pretext). I would prefer to dynamically load them. However, these scripts are so small I haven't bothered to do so.
 import { getSwitch, switchTheme } from "./runestone/common/js/theme.js";
 import "./runestone/common/js/presenter_mode.js";
-import "./runestone/common/css/presenter_mode.css";
+import "./runestone/common/css/presenter_mode.less";
 import { renderOneComponent } from "./runestone/common/js/renderComponent.js";
+import RunestoneBase from "./runestone/common/js/runestonebase.js";
 
 // Dynamically loaded components
 // =============================
@@ -236,28 +237,54 @@ function basicParseJwt(token) {
     ).join(''));
     return JSON.parse(jsonPayload);
 }
-// SPLICE Events
-window.addEventListener("message", (event) => {
-    //console.log("got a message", event);
-    // if you uncomment the above you get a message about every 1/2 second from React
-    // that is just a keepalive message of some kind
-    if (event.data.subject == "SPLICE.reportScoreAndState") {
-        console.log(event.data.score);
-        console.log(event.data.state);
-    } else if (event.data.subject == "SPLICE.sendEvent") {
-        console.log(event.data.location);
-        console.log(event.data.name);
-        console.log(event.data.data);
-    } else if (event.origin === "https://www.myopenmath.com" &&
-        typeof event.data === 'string' &&
-        event.data.indexOf('lti.ext.imathas.result') != -1) {
-        let msgdata = JSON.parse(event.data);
-        let jwt = basicParseJwt(msgdata.jwt);
-        console.log('Result received from frame ' + msgdata.frame_id + ' with score ' + jwt.score);
-        //console.log(event.data.jwt);  // signed jwt from MyOpenMath
-        //console.log(event.data.frame_id)
+
+class SpliceWrapper extends RunestoneBase {
+
+    constructor() {
+        super();
+        this.initSplice();
     }
-});
+
+    initSplice() {
+        // SPLICE Events
+        window.addEventListener("message", (event) => {
+            //console.log("got a message", event);
+            // if you uncomment the above you get a message about every 1/2 second from React
+            // that is just a keepalive message of some kind
+            if (event.data.subject == "SPLICE.reportScoreAndState") {
+                console.log(event.data.location);
+                console.log(event.data.score);
+                console.log(event.data.state);
+                this.logBookEvent({
+                    event: "SPLICE.score",
+                    divid: event.data.location,
+                    act: `score: ${event.data.score}`,
+                    score: event.data.score,
+                    correct: event.data.score == 1.0 ? true : false
+                }
+                );
+            } else if (event.data.subject == "SPLICE.sendEvent") {
+                console.log(event.data.location);
+                console.log(event.data.name);
+                console.log(event.data.data);
+            } else if (event.origin === "https://www.myopenmath.com" &&
+                typeof event.data === 'string' &&
+                event.data.indexOf('lti.ext.imathas.result') != -1) {
+                let msgdata = JSON.parse(event.data);
+                let jwt = basicParseJwt(msgdata.jwt);
+                console.log('Result received from frame ' + msgdata.frame_id + ' with score ' + jwt.score);
+                //console.log(event.data.jwt);  // signed jwt from MyOpenMath
+                //console.log(event.data.frame_id)
+            }
+        });
+    }
+    checkLocalStorage() { }
+    setLocalStorage() { }
+    restoreAnswers() { }
+    disableInteraction() { }
+}
+
+var splice = new SpliceWrapper();
 
 // Manual exports
 // ==============
