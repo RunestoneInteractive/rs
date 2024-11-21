@@ -1,9 +1,10 @@
-import React from "react";
 import "./App.css";
+import { AssignmentBuilder as NewAssignmentBuilder } from "@components/routes/AssignmentBuilder";
 import { Menubar } from "primereact/menubar";
+import { Toaster } from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { BrowserRouter, useSearchParams } from "react-router-dom";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
 import { buildNavBar } from "./navUtils.js";
 import AssignmentEditor, { MoreOptions, AddQuestionTabGroup } from "./renderers/assignment.jsx";
@@ -13,7 +14,7 @@ import {
   problemColumnSpec,
   problemColumns,
   readingColumnSpec,
-  readingColumns,
+  readingColumns
 } from "./renderers/assignmentQuestion.jsx";
 import { AssignmentSummary } from "./renderers/assignmentSummary.jsx";
 import { ExceptionScheduler } from "./renderers/exceptionScheduler.jsx";
@@ -60,6 +61,7 @@ function AssignmentGrader() {
     </div>
   );
 }
+
 function App() {
   if (useSelector(selectIsAuthorized) === false) {
     return (
@@ -92,15 +94,21 @@ function App() {
   return (
     <>
       <Menubar model={items} start={start} />
-      <BrowserRouter basename={import.meta.env.VITE_BASE_URL}>
-        <Routes>
-          <Route path="/" element={<AssignmentBuilder />} />
-          <Route path="/builder" element={<AssignmentBuilder />} />
-          <Route path="/grader" element={<AssignmentGrader />} />
-          <Route path="/admin" element={<h1>Coming Soon</h1>} />
-          <Route path="/except" element={<ExceptionScheduler />} />
-        </Routes>
-      </BrowserRouter>
+      <div className="layout-main-container">
+        <div className="layout-main">
+          <BrowserRouter basename={import.meta.env.VITE_BASE_URL}>
+            <Routes>
+              <Route path="/" element={<NewAssignmentBuilder />} />
+              <Route path="/builder" element={<AssignmentBuilder />} />
+              <Route path="/grader" element={<AssignmentGrader />} />
+              <Route path="/admin" element={<h1>Coming Soon</h1>} />
+              <Route path="/except" element={<ExceptionScheduler />} />
+            </Routes>
+          </BrowserRouter>
+        </div>
+      </div>
+
+      <Toaster toastOptions={{ duration: 5000 }} />
     </>
   );
 }

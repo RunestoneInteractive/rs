@@ -118,6 +118,6 @@
     ],
     "@typescript-eslint/naming-convention": "off",
     "quotes": ["error", "double"],
-    "prettier/prettier": ["error", { "singleQuote": false }]
+    "prettier/prettier": ["error", { "singleQuote": false, "trailingComma" : "none" }]
   }
 }
