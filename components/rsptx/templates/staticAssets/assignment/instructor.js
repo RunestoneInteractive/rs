@@ -228,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (questionsData) {
             clearInterval(first_interval);
-            console.log("Questions data:", questionsData);
+            // console.log("Questions data:", questionsData);
             questionsData.forEach((q, index) => {
                 const questionIndex = index + 1;
                 // Calculate the total votes for each voting stage
