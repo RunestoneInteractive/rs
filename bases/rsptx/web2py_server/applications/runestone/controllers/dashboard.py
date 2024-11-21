@@ -798,7 +798,6 @@ def subchapoverview():
         chapter_clause = f" and chapter = '{chap_labs[0]}'"
         chapter = chap_labs[0]
 
-    
     if request.vars.tablekind == "correctcount":
         return make_correct_count_table(chapters, chapter, thecourse, dburl, course)
 
@@ -843,8 +842,13 @@ def subchapoverview():
         logger.error(
             "Empty Dataframe after pivot for {} ".format(auth.user.course_name)
         )
-        session.flash = "Error: No interactive activities found for this chapter"
-        return redirect(URL("dashboard", "subchapoverview"))
+        return dict(
+            course_name=auth.user.course_name,
+            course_id=auth.user.course_name,
+            course=thecourse,
+            chapter_frame=chapters,
+            summary="{}",
+        )
 
     if request.vars.tablekind == "sccount":
         x = pt.to_dict()

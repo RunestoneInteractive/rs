@@ -1,0 +1,3 @@
+# Disables JSHint for the React part of the application, as it's better to use ESLint + Prettier.
+# After the full migration to React, JSHint can be completely removed.
+src

@@ -1,6 +1,7 @@
 import { ActiveCode } from "./activecode.js";
 import MD5 from "./md5.js";
-import JUnitTestParser from "./extractUnitResults.js";
+import JUnitTestParser from "./extractUnitResults-JUnit.js";
+import DoctestTestParser from "./extractUnitResults-Doctest.js";
 import "../../codelens/js/pytutor-embed.bundle.js";
 import { base64encode } from "byte-base64";
 
@@ -32,19 +33,26 @@ export default class LiveCode extends ActiveCode {
     }
     outputfun(a) { }
     createInputElement() {
+        let inputContainer = document.createElement("div");
         var label = document.createElement("label");
         label.for = this.divid + "_stdin";
         $(label).text($.i18n("msg_activecode_input_prg"));
-        var input = document.createElement("input");
+        var input = document.createElement("textarea");
         input.id = this.divid + "_stdin";
-        input.type = "text";
-        input.size = "35";
+        input.classList.add("activecode__stdin");
         input.value = this.stdin;
-        this.outerDiv.appendChild(label);
-        this.outerDiv.appendChild(input);
+        input.setAttribute("rows", "3");
+        this.outerDiv.appendChild(inputContainer);
+        inputContainer.appendChild(label);
+        inputContainer.appendChild(input);
         this.stdin_el = input;
     }
     createErrorOutput() { }
+
+    hasUnitTests() {
+        return this.language === "java" && this.suffix && this.suffix.indexOf("import org.junit") > -1
+        || this.language === "cpp" && this.suffix && this.suffix.indexOf("[doctest]") > -1;
+    }
 
     /*  Main runProg method for livecode
      *
@@ -60,16 +68,42 @@ export default class LiveCode extends ActiveCode {
         }
         await this.runSetup();
         try {
-            let res = await this.submitToJobe();
-            if (!res.ok) {
-                this.addJobeErrorMessage(
-                    $.i18n(`Server Error: ${res.statusText}`)
-                );
-                $(this.runButton).removeAttr("disabled");
-                return "fail";
+            // Either have one run or are doing a series of io tests
+            if (!this.iotests) {
+                let res = await this.submitToJobe();
+                if (!res.ok) {
+                    this.addJobeErrorMessage(
+                        $.i18n(`Server Error: ${res.statusText}`)
+                    );
+                    $(this.runButton).removeAttr("disabled");
+                    return "fail";
+                }
+                let runResults = await res.json();
+                this.processJobeResponse(runResults);
+            } else {
+                if(this.hasUnitTests()) {
+                    console.log(`IO tests are not supported with unit tests. They will be ignored in ${this.divid}`);
+                } else {
+                    let ioResults = [];
+                    for(let iotest of this.iotests) {
+                        let spec = JSON.parse(this.json_runspec);
+                        spec.run_spec.input = iotest.input;
+                        this.json_runspec = JSON.stringify(spec);
+                        let iores = await this.submitToJobe();
+                        if (!iores.ok) {
+                            this.addJobeErrorMessage(
+                                $.i18n(`Server Error: ${iores.statusText}`)
+                            );
+                            $(this.runButton).removeAttr("disabled");
+                            return "fail";
+                        }
+                        let result = await iores.json();
+                        result.test = iotest;
+                        ioResults.push(result);
+                    }
+                    this.processJobeIOResponses(ioResults);
+                }
             }
-            let runResults = await res.json();
-            this.processJobeResponse(runResults);
         } catch (e) {
             this.addJobeErrorMessage(
                 $.i18n("msg_activecode_server_comm_err") + e.toString()
@@ -164,6 +198,11 @@ export default class LiveCode extends ActiveCode {
         }
         if (this.language === "octave") {
             paramobj.memorylimit = 200000;
+        }
+        if (this.timelimit) {
+            // convert to seconds to match JOBE - decimal is OK
+            let timelimitSeconds = this.timelimit / 1000;
+            paramobj.cputime = timelimitSeconds;
         }
 
         if (this.stdin) {
@@ -321,6 +360,7 @@ export default class LiveCode extends ActiveCode {
         ///$("#" + divid + "_errinfo").remove();
     }
 
+    // Handle the results of a single program run (including formal unit tests)
     processJobeResponse(result) {
         var logresult;
         var odiv = this.output;
@@ -334,11 +374,22 @@ export default class LiveCode extends ActiveCode {
         this.errinfo = logresult;
         switch (result.outcome) {
             case 15: {
-                this.parsedOutput = new JUnitTestParser(
-                    result.stdout,
-                    this.divid
-                );
-                $(odiv).html(this.parsedOutput.stdout);
+                if (this.language === "java") {
+                    this.parsedOutput = new JUnitTestParser(
+                        result.stdout,
+                        this.divid
+                    );
+                    $(odiv).html(this.parsedOutput.stdout);
+                } else if (this.language === "cpp" && result.stdout.includes("[doctest]")) {
+                    this.parsedOutput = new DoctestTestParser(
+                        result.stdout,
+                        this.divid
+                    );
+                    $(odiv).html(this.parsedOutput.stdout);
+                } else {
+                    let output = result.stdout ? result.stdout : "";
+                    $(odiv).html(output);
+                }
                 if (this.suffix) {
                     if (this.parsedOutput.pct === undefined) {
                         this.parsedOutput.pct =
@@ -362,7 +413,7 @@ export default class LiveCode extends ActiveCode {
                 }
                 break;
             case 13: // time limit
-                $(odiv).html(escapeHtml(result.stdout.replace(/\n/g, "<br>")));
+                $(odiv).html(escapeHtml(result.stdout).replace(/\n/g, "<br>"));
                 this.addJobeErrorMessage(
                     $.i18n("msg_activecode_time_limit_exc")
                 );
@@ -376,7 +427,111 @@ export default class LiveCode extends ActiveCode {
                     );
                 }
         }
-        // todo: handle server busy and timeout errors too
+        // todo: handle server busy errors too
+    }
+
+    // Handle the results of a seriest of program runs from IO tests
+    processJobeIOResponses(resultList) {
+        //process a series of IO test results into one unittest-like result
+
+        $(this.output).html($.i18n("msg_activecode_iotest_results"));
+        $(this.runButton).removeAttr("disabled");
+        const odiv = this.output;
+        this.parsedOutput = {};
+
+        // Make a pretty results table
+        const parent = document.createElement("div");
+        const heading = document.createElement("div");
+        heading.classList.add("unittest-results__heading");
+        heading.innerHTML = $.i18n("msg_activecode_unit_test_results");
+        parent.appendChild(heading);
+        parent.classList.add("unittest-results");
+        const tbl = document.createElement("table");
+        tbl.classList.add("ac-feedback");
+        parent.appendChild(tbl);
+        parent.setAttribute("id", `${this.divid}_unit_results`);
+        const trh = document.createElement("tr");
+        trh.innerHTML =
+            '<th class="ac-feedback">Input:</th><th class="ac-feedback">Expected Output:</th><th class="ac-feedback">Your Output:</th><th class="ac-feedback">Result:</th>';
+        tbl.appendChild(trh);
+        this.parsedOutput.table = parent;
+
+        // Process each IO test result
+        let passedTests = 0;
+        // we will stop on the first error
+        this.errinfo = null;
+        for (let result of resultList) {
+            const produced = result.stdout.trim();
+            const desired = result.test.out.trim();
+            const tr = document.createElement("tr");
+            const td1 = document.createElement("td");
+            td1.classList.add("ac-feedback");
+            td1.innerHTML = result.test.input.replace(/\n/g, "<br>");
+            tr.appendChild(td1);
+            const td2 = document.createElement("td");
+            td2.classList.add("ac-feedback");
+            td2.innerHTML = desired.replace(/\n/g, "<br>");
+            tr.appendChild(td2);
+            const td3 = document.createElement("td");
+            td3.classList.add("ac-feedback");
+            td3.innerHTML = produced.replace(/\n/g, "<br>");
+            tr.appendChild(td3);
+            const td4 = document.createElement("td");
+            td4.classList.add("ac-feedback");
+            tr.appendChild(td4);
+            tbl.appendChild(tr);
+            switch (result.outcome) {
+                case 15:
+                    if(produced === desired) {
+                        passedTests++;
+                        td4.innerHTML = $.i18n("msg_activecode_passed");
+                        td4.classList.add("ac-feedback-pass");
+                    } else {
+                        td4.innerHTML = $.i18n("msg_activecode_failed");
+                        td4.classList.add("ac-feedback-fail");
+                    }
+                    break;
+                case 11: // compiler error
+                    $(odiv).html(result.cmpinfo.replace(/\n/g, "<br>"));
+                    td4.innerHTML = $.i18n("msg_activecode_test_compile_error");
+                    td4.classList.add("ac-feedback-fail");
+                    this.errinfo = result.cmpinfo;
+                    break;
+                case 12: // run time error
+                    $(odiv).html(result.stderr.replace(/\n/g, "<br>"));
+                    td4.innerHTML = $.i18n("msg_activecode_test_run_error");
+                    td4.classList.add("ac-feedback-fail");
+                    this.errinfo = result.stderr;
+                    break;
+                case 13: // time limit
+                    $(odiv).html(escapeHtml(result.stdout).replace(/\n/g, "<br>"));
+                    td4.innerHTML = $.i18n("msg_activecode_time_limit_exc");
+                    td4.classList.add("ac-feedback-fail");
+                    this.errinfo = 'time exceeded ' + result.stdout;
+                    break;
+                default:
+                    if (result.stderr) {
+                        $(odiv).html(result.stderr.replace(/\n/g, "<br>"));
+                    }
+                    td4.innerHTML = $.i18n("msg_activecode_server_err");
+                    td4.classList.add("ac-feedback-fail");
+                    this.errinfo = result.stderr;
+            }
+            if (this.errinfo) {
+                break;
+            }
+        }
+
+        const pct = (passedTests / resultList.length) * 100;
+        this.unit_results = `percent:${pct}:passed:${passedTests}:failed:${resultList.length - passedTests}`;
+        const pctString = document.createElement("div");
+        pctString.classList.add("unittest-results__percent");
+        pctString.innerHTML = `${Math.round(pct)}% ` + $.i18n("msg_activecode_passed");
+        this.parsedOutput.pctString = pctString;
+
+        if (!this.errinfo) {
+            this.errinfo = "success";
+        }
     }
 
     renderFeedback() {
@@ -385,7 +540,7 @@ export default class LiveCode extends ActiveCode {
             rdiv.remove();
         }
         if (this.parsedOutput && this.parsedOutput.table) {
-            this.outDiv.appendChild(this.parsedOutput.table);
+            this.outDiv.parentNode.appendChild(this.parsedOutput.table);
         }
         rdiv = document.getElementById(`${this.divid}_unit_results`);
         if (rdiv) {
@@ -394,6 +549,9 @@ export default class LiveCode extends ActiveCode {
     }
 
     addJobeErrorMessage(err) {
+        if (this.errDiv) {
+            this.errDiv.remove();
+        }
         var errHead = $("<h3>").html("Error");
         var eContainer = this.outerDiv.appendChild(
             document.createElement("div")
