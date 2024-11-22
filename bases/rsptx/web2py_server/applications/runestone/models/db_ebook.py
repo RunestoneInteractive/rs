@@ -366,6 +366,28 @@ def getCourseAttribute(course_id: int, attr_name: str):
         return None
 
 
+db.define_table(
+    "library",
+    Field("title", "string", length=512),
+    Field("subtitle", "string", length=512),
+    Field("description", "text"),
+    Field("authors", "string", length=512),
+    Field("shelf_section", "string", length=512),
+    Field("basecourse", "string", length=512),
+    Field("source_path", "string", length=512),
+    Field("build_system", "string", length=20),
+    Field("target", "string", length=128),
+    Field("for_classes" "boolean"),
+    Field("is_visible", "boolean"),
+    Field("github_url", "string", length=255),
+    Field("main_page", "string", length=255),
+    Field("last_build", "datetime"),
+    Field("github_url", "string", length=255),
+    Field("social_url", "string", length=255),
+    Field("default_language", "string", length=20),
+    migrate=bookserver_owned("library"),
+)
+
 # this check has to be here to ensure that the course_attributes table is defined.
 
 # if auth.user:

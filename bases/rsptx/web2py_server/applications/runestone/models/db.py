@@ -219,9 +219,21 @@ def getCourseOrigin(base_course):
     return res
 
 
-def getCourseAttributesDict(course_id):
+def getCourseAttributesDict(course_id, base_course=None):
+    if not base_course:
+        course = db(db.courses.id == course_id).select().first()
+        base_course = course.base_course
     attributes = db(db.course_attributes.course_id == course_id).select(**SELECT_CACHE)
     attrdict = {row.attr: row.value for row in attributes}
+    attrdict["default_language"] = (
+        db(db.library.basecourse == base_course)
+        .select(db.library.default_language)
+        .first()
+        .default_language
+    )
+    if not attrdict["default_language"]:
+        attrdict["default_language"] = "python"
+
     return attrdict
 
 

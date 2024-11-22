@@ -117,6 +117,7 @@ def index():
             return redirect(URL("admin", "admin"))
 
     course = db(db.courses.id == auth.user.course_id).select().first()
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     assignments = db(db.assignments.course == course.id).select(
         db.assignments.ALL, orderby=db.assignments.name
     )
@@ -327,6 +328,7 @@ def index():
         recentactivity=recentactivity,
         dailyactivity=dailyactivity,
         origin=c_origin,
+        **course_attrs,
     )
 
 
@@ -463,7 +465,7 @@ def grades():
     assignments = db(db.assignments.course == course.id).select(
         db.assignments.ALL, orderby=(db.assignments.duedate, db.assignments.id)
     )
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     # recalculate total points for each assignment in case the stored
     # total is out of sync.
     duedates = []
