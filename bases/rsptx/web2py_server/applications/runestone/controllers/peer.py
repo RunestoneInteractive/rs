@@ -45,11 +45,14 @@ def instructor():
         & (db.assignments.course == auth.user.course_id)
     ).select(orderby=~db.assignments.duedate)
 
+    course_attrs = getCourseAttributesDict(auth.user.course_id)
+
     return dict(
         course_id=auth.user.course_name,
         course=get_course_row(db.courses.ALL),
         assignments=assignments,
         is_instructor=True,
+        **course_attrs,
     )
 
 
@@ -74,7 +77,7 @@ def dashboard():
     current_question, done = _get_current_question(assignment_id, next)
     assignment = db(db.assignments.id == assignment_id).select().first()
     course = db(db.courses.course_name == auth.user.course_name).select().first()
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     if "latex_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
     db.useinfo.insert(
@@ -331,7 +334,7 @@ def student():
         & (db.assignments.visible == True)
     ).select(orderby=~db.assignments.duedate)
     course = db(db.courses.course_name == auth.user.course_name).select().first()
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     if "latext_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
 
@@ -355,7 +358,7 @@ def peer_question():
     current_question, done = _get_current_question(assignment_id, False)
     assignment = db(db.assignments.id == assignment_id).select().first()
     course = db(db.courses.course_name == auth.user.course_name).select().first()
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     if "latex_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
 
@@ -530,7 +533,7 @@ def peer_async():
 
     current_question, all_done = _get_numbered_question(assignment_id, qnum)
     course = db(db.courses.course_name == auth.user.course_name).select().first()
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     if "latex_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
 
