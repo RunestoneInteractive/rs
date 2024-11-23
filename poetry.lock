@@ -3555,13 +3555,13 @@ files = [
 
 [[package]]
 name = "pretext"
-version = "2.8.2"
+version = "2.9.2"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0.0,>=3.8.5"
 files = [
-    {file = "pretext-2.8.2-py3-none-any.whl", hash = "sha256:06ccd062a33410093db45afd132b5afd1383ff546a6b5ccf7f9e10353b763cd6"},
-    {file = "pretext-2.8.2.tar.gz", hash = "sha256:1c8a490f9198592f7de49cb0104e1c664750947b59ebd31beb90bc5ba2373b89"},
+    {file = "pretext-2.9.2-py3-none-any.whl", hash = "sha256:b0e099fa64f4af64fad149b9b32b4d4ff70d2ae9861995c7d51b40a44843c7f8"},
+    {file = "pretext-2.9.2.tar.gz", hash = "sha256:0c9ea8ceac11098a5f0369c2fe776dcbc94cda8bbf7683fc5aaca5f676bef7b7"},
 ]
 
 [package.dependencies]
@@ -3583,7 +3583,8 @@ requests = ">=2,<3"
 single-version = ">=1,<2"
 
 [package.extras]
-homepage = ["pelican[markdown] (>=4.9.1,<5.0.0)"]
+homepage = ["pelican[markdown] (>=4.10,<5.0)"]
+prefigure = ["prefig[pycairo] (>=0.2.8,<0.3.0)"]
 
 [[package]]
 name = "prometheus-client"
@@ -4771,7 +4772,7 @@ url = "projects/rsmanage"
 
 [[package]]
 name = "runestone"
-version = "7.4.4"
+version = "7.4.6"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
