@@ -2,8 +2,6 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 import { userActions } from "@store/user/userLogic";
 import toast from "react-hot-toast";
 
-import { generateSelectedNodes } from "@/refactorCandidates/generateSelectedNodes";
-import { setSelectedNodes } from "@/state/epicker/ePickerSlice";
 import { baseQuery } from "@/store/baseQuery";
 import { DetailResponse, HttpStatusCode } from "@/types/api";
 import {
@@ -111,20 +109,12 @@ export const assignmentApi = createApi({
       transformResponse: (response: DetailResponse<GetExercisesResponse>) => {
         return response.detail.exercises;
       },
-      onQueryStarted: (_, { dispatch, queryFulfilled, getState }) => {
-        queryFulfilled
-          .then(({ data }) => {
-            const state = getState();
-            // @ts-ignore
-            const selectedNodes = generateSelectedNodes(state.ePicker.nodes, data);
-
-            dispatch(setSelectedNodes(selectedNodes));
-          })
-          .catch(() => {
-            toast("Unable to fetch exercises", {
-              icon: "🔥"
-            });
+      onQueryStarted: (_, { queryFulfilled }) => {
+        queryFulfilled.catch(() => {
+          toast("Unable to fetch exercises", {
+            icon: "🔥"
           });
+        });
       }
     }),
     updateAssignmentExercise: build.mutation<void, UpdateAssignmentReadingPayload>({

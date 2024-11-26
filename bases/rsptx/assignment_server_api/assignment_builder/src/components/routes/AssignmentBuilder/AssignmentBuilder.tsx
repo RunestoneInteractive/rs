@@ -63,7 +63,7 @@ export const AssignmentBuilder = () => {
   };
 
   return (
-    <div className="col-12" style={{ minWidth: "750px" }}>
+    <div className="col-12" style={{ minWidth: "500px" }}>
       <div className="card">
         <h3>Assignment Builder</h3>
         <div className="p-fluid formgrid grid">
