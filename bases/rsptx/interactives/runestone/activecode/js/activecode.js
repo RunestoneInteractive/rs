@@ -135,10 +135,12 @@ export class ActiveCode extends RunestoneBase {
         // ===! = visible suffix
         // Tags may or may not have a trailing /n assume that if they do, it is to be removed.
         // newline is standard in rst markup, but sometimes intentionally not emitted by pretext
-        let prefixEnd = this.code.indexOf("^^^^"); // invisible prefix
-        if (prefixEnd > -1) {
+        let prefixMarker = this.code.match(/\^\^\^\^\^*/);  // regex to handle 5+ symbols which old code allowed
+        if (prefixMarker) {
+            let prefixEnd = prefixMarker.index;  //invisible suffix
+            let prefixLength = prefixMarker[0].length;
             this.prefix = this.code.substring(0, prefixEnd);
-            let markerLength = this.code[prefixEnd + 4] == "\n" ? 5 : 4;
+            let markerLength = this.code[prefixEnd + prefixLength] == "\n" ? prefixLength + 1 : prefixLength;
             this.code = this.code.substring(prefixEnd + markerLength);
         }
         // If there are both invisible and visible prefixes, the invisible one must come first
@@ -151,9 +153,11 @@ export class ActiveCode extends RunestoneBase {
         // There may be both a visible and invisible (tests) suffix
         // Currently assumed the visible one is first in the source so we can peel off the
         // invisible one and leave visible one in place.
-        let suffStart = this.code.indexOf("====");  //invisible suffix
-        if (suffStart > -1) {
-            let markerLength = this.code[suffStart + 4] == "\n" ? 5 : 4;
+        let suffixMarker = this.code.match(/=====*/);  // regex to handle 5+ symbols which old code allowed
+        if (suffixMarker) {
+            let suffStart = suffixMarker.index;  //invisible suffix
+            let suffLength = suffixMarker[0].length;
+            let markerLength = this.code[suffStart + suffLength] == "\n" ? suffLength + 1 : suffLength;
             this.suffix = this.code.substring(suffStart + markerLength);
             this.code = this.code.substring(0, suffStart);
         }
