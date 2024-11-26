@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { assignmentApi } from "@store/assignment/assignmentLogic.api";
+import { assignmentApi } from "@store/assignment/assignment.logic.api";
+import { readingsApi } from "@store/readings/readings.logic.api";
 import { rootReducer, RootState } from "@store/rootReducer";
 
 export const setupStore = (preloadedState?: Partial<RootState>) => {
@@ -7,7 +8,10 @@ export const setupStore = (preloadedState?: Partial<RootState>) => {
     reducer: rootReducer,
     preloadedState,
     middleware: (getDefaultMiddleware) => {
-      return getDefaultMiddleware({ serializableCheck: false }).concat(assignmentApi.middleware);
+      return getDefaultMiddleware({ serializableCheck: false }).concat(
+        assignmentApi.middleware,
+        readingsApi.middleware
+      );
     }
   });
 };

@@ -1,10 +1,10 @@
 import "./App.css";
-import { AssignmentBuilder as NewAssignmentBuilder } from "@components/routes/AssignmentBuilder";
 import { Menubar } from "primereact/menubar";
 import { Toaster } from "react-hot-toast";
 import { useSelector } from "react-redux";
-import { BrowserRouter, useSearchParams } from "react-router-dom";
-import { Routes, Route } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, useSearchParams } from "react-router-dom";
+
+import { routerService } from "@/router";
 
 import { buildNavBar } from "./navUtils.js";
 import AssignmentEditor, { MoreOptions, AddQuestionTabGroup } from "./renderers/assignment.jsx";
@@ -20,7 +20,7 @@ import { AssignmentSummary } from "./renderers/assignmentSummary.jsx";
 import { ExceptionScheduler } from "./renderers/exceptionScheduler.jsx";
 import { selectIsAuthorized } from "./state/assignment/assignSlice.js";
 
-function AssignmentBuilder() {
+function OldAssignmentBuilder() {
   const [searchParams] = useSearchParams();
   let assignmentId = searchParams.get("assignment_id");
 
@@ -89,22 +89,48 @@ function App() {
   console.log("ENV: ", import.meta.env);
   const items = buildNavBar(window.eBookConfig);
 
-  const start = <img src="/staticAssets/RAIcon.png" height="30px" />;
+  const start = <img alt="" src="/staticAssets/RAIcon.png" height="30px" />;
+
+  const router = routerService.init(
+    createBrowserRouter(
+      [
+        {
+          path: "/",
+          async lazy() {
+            let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+            return { Component: AssignmentBuilder };
+          }
+        },
+        {
+          path: "/builder",
+          element: <OldAssignmentBuilder />
+        },
+        {
+          path: "/grader",
+          element: <AssignmentGrader />
+        },
+        {
+          path: "/admin",
+          element: <h1>Coming Soon</h1>
+        },
+        {
+          path: "/except",
+          element: <ExceptionScheduler />
+        }
+      ],
+      {
+        basename: import.meta.env.VITE_BASE_URL
+      }
+    )
+  );
 
   return (
     <>
       <Menubar model={items} start={start} />
       <div className="layout-main-container">
         <div className="layout-main">
-          <BrowserRouter basename={import.meta.env.VITE_BASE_URL}>
-            <Routes>
-              <Route path="/" element={<NewAssignmentBuilder />} />
-              <Route path="/builder" element={<AssignmentBuilder />} />
-              <Route path="/grader" element={<AssignmentGrader />} />
-              <Route path="/admin" element={<h1>Coming Soon</h1>} />
-              <Route path="/except" element={<ExceptionScheduler />} />
-            </Routes>
-          </BrowserRouter>
+          <RouterProvider router={router} />
         </div>
       </div>
 

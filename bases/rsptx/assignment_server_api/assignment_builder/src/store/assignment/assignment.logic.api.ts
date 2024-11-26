@@ -16,9 +16,9 @@ import {
   Exercise,
   GetExercisesResponse,
   SearchExercisePayload,
-  SearchExercisesResponse,
-  UpdateAssignmentExercisePayload
+  SearchExercisesResponse
 } from "@/types/exercises";
+import { UpdateAssignmentReadingPayload } from "@/types/readings";
 
 export const assignmentApi = createApi({
   reducerPath: "assignmentAPI",
@@ -127,7 +127,7 @@ export const assignmentApi = createApi({
           });
       }
     }),
-    updateAssignmentExercise: build.mutation<void, UpdateAssignmentExercisePayload>({
+    updateAssignmentExercise: build.mutation<void, UpdateAssignmentReadingPayload>({
       query: (body) => ({
         method: "POST",
         url: "/assignment/instructor/update_assignment_question",

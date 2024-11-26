@@ -1,3 +1,5 @@
+export type KindOfAssignment = "Regular" | "Peer" | "Timed";
+
 export type Assignment = {
   id: number;
   name: string;
@@ -11,7 +13,7 @@ export type Assignment = {
   nopause: boolean;
   time_limit: number | null;
   peer_async_visible: boolean;
-  kind: "Regular" | "Peer" | "Timed";
+  kind: KindOfAssignment;
   exercises: [];
   all_assignments: [];
   search_results: [];

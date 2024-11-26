@@ -1,5 +1,7 @@
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
-import { assignmentApi } from "@store/assignment/assignmentLogic.api.js";
+import { assignmentSlice } from "@store/assignment/assignment.logic";
+import { assignmentApi } from "@store/assignment/assignment.logic.api.js";
+import { readingsApi } from "@store/readings/readings.logic.api";
 import { userSlice } from "@store/user/userLogic.js";
 import { StateType } from "typesafe-actions";
 
@@ -24,7 +26,9 @@ const reducersMap = {
   shortanswer: shortReducer,
   student: studentReducer,
   [assignmentApi.reducerPath]: assignmentApi.reducer,
-  user: userSlice.reducer
+  assignmentTemp: assignmentSlice.reducer,
+  user: userSlice.reducer,
+  [readingsApi.reducerPath]: readingsApi.reducer
 };
 
 export type RootState = StateType<typeof reducersMap>;
@@ -34,7 +38,10 @@ export const setupStore = (preloadedState?: Partial<RootState>) => {
     reducer: combineReducers(reducersMap),
     preloadedState,
     middleware: (getDefaultMiddleware) => {
-      return getDefaultMiddleware({ serializableCheck: false }).concat(assignmentApi.middleware);
+      return getDefaultMiddleware({ serializableCheck: false }).concat(
+        assignmentApi.middleware,
+        readingsApi.middleware
+      );
     }
   });
 };

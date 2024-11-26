@@ -1,3 +1,5 @@
+@use "variables";
+
 /* Utils */
 .clearfix:after {
     content: " ";
@@ -11,7 +13,7 @@
     padding: 2rem;
     margin-bottom: 2rem;
     box-shadow: var(--card-shadow);
-    border-radius: $borderRadius;
+    border-radius: variables.$borderRadius;
 
     &:last-child {
         margin-bottom: 0;
