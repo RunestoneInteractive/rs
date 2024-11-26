@@ -1,15 +1,17 @@
 import { InputNumber } from "primereact/inputnumber";
 import { InputSwitch } from "primereact/inputswitch";
-import { JSX, useState } from "react";
+import { JSX } from "react";
 
+import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { KindOfAssignment } from "@/types/assignment";
 
-export const KindOfAssignmentOptions = ({
-  selectedOption
-}: {
-  selectedOption: KindOfAssignment;
-}) => {
-  const [switchValue, setSwitchValue] = useState(false);
+export const KindOfAssignmentOptions = () => {
+  const { selectedAssignment, updateAssignment } = useSelectedAssignment();
+
+  if (!selectedAssignment) {
+    return null;
+  }
+
   const config: Record<KindOfAssignment, () => JSX.Element> = {
     Regular: () => {
       return (
@@ -28,8 +30,8 @@ export const KindOfAssignmentOptions = ({
             <InputSwitch
               className="flex-shrink-0"
               id="showAsyncPeer"
-              checked={switchValue}
-              onChange={(e) => setSwitchValue(e.value ?? false)}
+              checked={selectedAssignment.peer_async_visible}
+              onChange={(e) => updateAssignment({ peer_async_visible: e.value })}
             />
           </div>
         </div>
@@ -43,7 +45,12 @@ export const KindOfAssignmentOptions = ({
               <span className="p-inputgroup-addon">
                 <i className="pi pi-clock"></i>
               </span>
-              <InputNumber placeholder="Time Limit (minutes)" />
+              <InputNumber
+                placeholder="Time Limit (minutes)"
+                value={selectedAssignment.time_limit}
+                min={0}
+                onChange={(e) => updateAssignment({ time_limit: e.value })}
+              />
               <span className="p-inputgroup-addon">minutes</span>
             </div>
           </div>
@@ -55,8 +62,8 @@ export const KindOfAssignmentOptions = ({
               <InputSwitch
                 className="flex-shrink-0"
                 id="allowFeedback"
-                checked={switchValue}
-                onChange={(e) => setSwitchValue(e.value ?? false)}
+                checked={!selectedAssignment.nofeedback}
+                onChange={(e) => updateAssignment({ nofeedback: !e.value })}
               />
             </div>
           </div>
@@ -68,8 +75,8 @@ export const KindOfAssignmentOptions = ({
               <InputSwitch
                 className="flex-shrink-0"
                 id="allowPause"
-                checked={switchValue}
-                onChange={(e) => setSwitchValue(e.value ?? false)}
+                checked={!selectedAssignment.nopause}
+                onChange={(e) => updateAssignment({ nopause: !e.value })}
               />
             </div>
           </div>
@@ -78,5 +85,5 @@ export const KindOfAssignmentOptions = ({
     }
   };
 
-  return config[selectedOption]();
+  return (config[selectedAssignment.kind] ?? config.Regular)();
 };

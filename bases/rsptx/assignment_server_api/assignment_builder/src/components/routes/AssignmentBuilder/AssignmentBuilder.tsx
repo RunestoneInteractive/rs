@@ -2,22 +2,23 @@ import { AssignmentViewSelect } from "@components/routes/AssignmentBuilder/compo
 import { defaultAssignment } from "@components/routes/AssignmentBuilder/defaultAssignment";
 import { AutoComplete } from "@components/ui/AutoComplete";
 import { Loader } from "@components/ui/Loader";
-import { assignmentActions, assignmentSelectors } from "@store/assignment/assignment.logic";
+import { assignmentActions } from "@store/assignment/assignment.logic";
 import {
   useCreateAssignmentMutation,
   useGetAssignmentsQuery
 } from "@store/assignment/assignment.logic.api";
 import { InputSwitch } from "primereact/inputswitch";
 import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+
+import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 
 export const AssignmentBuilder = () => {
   const dispatch = useDispatch();
   const { isLoading, isError, data: assignments } = useGetAssignmentsQuery();
   const [createAssignment] = useCreateAssignmentMutation();
   const [selectedAssignmentName, setSelectedAssignmentName] = useState<string | undefined>();
-  const selectedAssignment = useSelector(assignmentSelectors.getSelectedAssignment);
-  const [switchValue, setSwitchValue] = useState(false);
+  const { selectedAssignment, updateAssignment } = useSelectedAssignment();
 
   useEffect(() => {
     dispatch(
@@ -43,11 +44,12 @@ export const AssignmentBuilder = () => {
 
   const onAssignmentSelect = ({ value }: { value: string }) => {
     setSelectedAssignmentName(value);
-    console.log(value);
     const assignmentFromList = assignments.find((a) => a.name === value);
 
     if (!assignmentFromList) {
       createAssignment({ ...defaultAssignment, name: value });
+    } else {
+      dispatch(assignmentActions.setSelectedAssignment(assignmentFromList));
     }
   };
 
@@ -77,8 +79,8 @@ export const AssignmentBuilder = () => {
                   <InputSwitch
                     className="flex-shrink-0"
                     id="visibleToStudents"
-                    checked={switchValue}
-                    onChange={(e) => setSwitchValue(e.value ?? false)}
+                    checked={selectedAssignment.visible}
+                    onChange={({ value }) => updateAssignment({ visible: value })}
                   />
                 </div>
               </div>

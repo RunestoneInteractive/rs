@@ -1,21 +1,21 @@
 import { AssignmentReadingsHeader } from "@components/routes/AssignmentBuilder/components/reading/AssignmentReadingsHeader";
 import { Loader } from "@components/ui/Loader";
+import { readingsActions, readingsSelectors } from "@store/readings/readings.logic";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
-import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 import { useReadingsSelector } from "@/hooks/useReadingsSelector";
 import { Exercise } from "@/types/exercises";
 
 export const AssignmentReadings = () => {
+  const dispatch = useDispatch();
   const { loading, error, readingExercises, refetch } = useReadingsSelector();
-  const [selectedReadings, setSelectedReadings] = useState<Exercise[]>([]);
+  const selectedReadings = useSelector(readingsSelectors.getSelectedReadings);
 
-  useEffect(() => {
-    setSelectedReadings((oldState) =>
-      oldState.filter((r) => readingExercises?.map((e) => e.id).includes(r.id))
-    );
-  }, [readingExercises]);
+  const setSelectedReadings = (readings: Exercise[]) => {
+    dispatch(readingsActions.setSelectedReadings(readings));
+  };
 
   if (loading) {
     return <Loader />;
@@ -42,13 +42,8 @@ export const AssignmentReadings = () => {
       size="small"
       stripedRows
       showGridlines
-      header={
-        <AssignmentReadingsHeader
-          selectedReadings={selectedReadings}
-          setSelectedReadings={setSelectedReadings}
-        />
-      }
-      selection={selectedReadings}
+      header={<AssignmentReadingsHeader />}
+      selection={selectedReadings!}
       selectionMode="multiple"
       onSelectionChange={(e) => setSelectedReadings(e.value as unknown as Exercise[])}
     >

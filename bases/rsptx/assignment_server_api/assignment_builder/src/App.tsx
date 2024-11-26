@@ -120,7 +120,15 @@ function App() {
         }
       ],
       {
-        basename: import.meta.env.VITE_BASE_URL
+        basename: import.meta.env.VITE_BASE_URL,
+        future: {
+          v7_relativeSplatPath: true,
+          v7_fetcherPersist: true,
+          v7_normalizeFormMethod: true,
+          v7_partialHydration: true,
+          v7_skipActionErrorRevalidation: true,
+          v7_startTransition: true
+        }
       }
     )
   );
@@ -130,7 +138,7 @@ function App() {
       <Menubar model={items} start={start} />
       <div className="layout-main-container">
         <div className="layout-main">
-          <RouterProvider router={router} />
+          <RouterProvider router={router} future={{ v7_startTransition: true }} />
         </div>
       </div>
 

@@ -3,53 +3,75 @@ import { Calendar } from "primereact/calendar";
 import { InputNumber } from "primereact/inputnumber";
 import { InputTextarea } from "primereact/inputtextarea";
 import { SelectButton } from "primereact/selectbutton";
-import { useState } from "react";
 
+import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { KindOfAssignment } from "@/types/assignment";
+import { convertDateToISO, convertISOStringToDate } from "@/utils/date";
 type KindOfAssignmentOption = { label: string; value: KindOfAssignment };
 
 export const AssignmentGeneral = () => {
-  const [calendarValue, setCalendarValue] = useState<Date | null>(null);
+  const { selectedAssignment, updateAssignment } = useSelectedAssignment();
+
+  if (!selectedAssignment) {
+    return null;
+  }
 
   const options: Array<KindOfAssignmentOption> = [
     { label: "Regular", value: "Regular" },
     { label: "Quiz / Exam", value: "Timed" },
     { label: "Peer Instruction", value: "Peer" }
   ];
-  const [selectedOption, setSelectedOption] = useState<KindOfAssignment>("Regular");
 
   return (
     <>
       <div className="field col-12">
         <label htmlFor="description">Assignment Description</label>
-        <InputTextarea id="description" rows={2} autoResize maxLength={500} />
+        <InputTextarea
+          id="description"
+          rows={2}
+          autoResize
+          maxLength={500}
+          value={selectedAssignment.description}
+          onChange={(e) => updateAssignment({ description: e.target.value })}
+        />
       </div>
       <div className="field col-12 md:col-6">
         <label htmlFor="duedate">Due</label>
         <Calendar
+          dateFormat="dd/mm/yy"
+          showTime
+          hourFormat="12"
           id="duedate"
           selectionMode="single"
+          hideOnDateTimeSelect
+          stepMinute={5}
           showIcon
-          showButtonBar
-          value={calendarValue}
-          onChange={(e) => setCalendarValue(e.value ?? null)}
+          value={convertISOStringToDate(selectedAssignment.duedate)}
+          onChange={(e) => e.value && updateAssignment({ duedate: convertDateToISO(e.value) })}
         />
       </div>
       <div className="field col-12 md:col-6">
         <label htmlFor="points">Points</label>
-        <InputNumber id="points" type="number" min={0} max={1000} />
+        <InputNumber
+          id="points"
+          min={0}
+          value={selectedAssignment.points ?? 0}
+          onChange={(e) => updateAssignment({ points: e.value ?? 0 })}
+        />
       </div>
       <div className="field col-12">
         <label htmlFor="kindOfAssignment">What kind of Assignment?</label>
         <SelectButton
           id="kindOfAssignment"
-          value={selectedOption}
-          onChange={(e) => setSelectedOption(e.value)}
+          value={selectedAssignment.kind}
+          onChange={(e) => {
+            updateAssignment({ kind: e.value });
+          }}
           options={options}
           optionLabel="label"
         />
       </div>
-      <KindOfAssignmentOptions selectedOption={selectedOption} />
+      <KindOfAssignmentOptions />
     </>
   );
 };

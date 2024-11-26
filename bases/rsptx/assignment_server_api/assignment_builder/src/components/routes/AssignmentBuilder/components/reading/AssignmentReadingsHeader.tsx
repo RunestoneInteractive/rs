@@ -1,21 +1,18 @@
+import { readingsActions, readingsSelectors } from "@store/readings/readings.logic";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { confirmPopup, ConfirmPopup } from "primereact/confirmpopup";
 import { OverlayPanel } from "primereact/overlaypanel";
 import { TreeTable } from "primereact/treetable";
 import { useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 import { useReadingsSelector } from "@/hooks/useReadingsSelector";
 import { Exercise } from "@/types/exercises";
 
 type ButtonEvent = React.MouseEvent<HTMLButtonElement>;
-export const AssignmentReadingsHeader = ({
-  selectedReadings,
-  setSelectedReadings
-}: {
-  selectedReadings: Exercise[];
-  setSelectedReadings: (exercises: Exercise[]) => void;
-}) => {
+export const AssignmentReadingsHeader = () => {
+  const dispatch = useDispatch();
   const {
     selectReadingsData,
     selectedKeys,
@@ -24,6 +21,11 @@ export const AssignmentReadingsHeader = ({
     removeReadings
   } = useReadingsSelector();
   const overlayRef = useRef<OverlayPanel>(null);
+  const selectedReadings = useSelector(readingsSelectors.getSelectedReadings);
+
+  const setSelectedReadings = (readings: Exercise[]) => {
+    dispatch(readingsActions.setSelectedReadings(readings));
+  };
 
   const toggleDataTable = (event: ButtonEvent) => {
     overlayRef.current?.toggle(event);

@@ -14,6 +14,7 @@ interface AutoCompleteProps extends PrimeAutoCompleteProps {
 export const AutoComplete = (props: AutoCompleteProps) => {
   const [searchValue, setSearchValue] = useState(props.value);
   const [filteredValues, setFilteredValues] = useState(props.suggestions);
+  const { defaultOption, ...restProps } = props;
 
   const search = ({ query }: { query: string }): void => {
     if (!query.trim().length) {
@@ -27,8 +28,8 @@ export const AutoComplete = (props: AutoCompleteProps) => {
       suggestion.toLowerCase()[searchMethod](query.toLowerCase())
     );
 
-    if (!matches.length && !!props.defaultOption) {
-      setFilteredValues([props.defaultOption]);
+    if (!matches.length && !!defaultOption) {
+      setFilteredValues([defaultOption]);
       return;
     }
 
@@ -36,7 +37,7 @@ export const AutoComplete = (props: AutoCompleteProps) => {
   };
 
   const onSelect = (event: AutoCompleteSelectEvent) => {
-    if (event.value === props.defaultOption) {
+    if (event.value === defaultOption) {
       setSearchValue(searchValue);
       props.onSelect?.({ originalEvent: event.originalEvent, value: searchValue });
       return;
@@ -48,7 +49,7 @@ export const AutoComplete = (props: AutoCompleteProps) => {
   return (
     <PrimeAutoComplete
       // eslint-disable-next-line react/jsx-props-no-spreading
-      {...props}
+      {...restProps}
       suggestions={filteredValues}
       value={searchValue}
       completeMethod={search}

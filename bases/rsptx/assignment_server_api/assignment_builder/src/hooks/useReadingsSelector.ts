@@ -4,12 +4,15 @@ import {
   useRemoveAssignmentExercisesMutation,
   useUpdateAssignmentExerciseMutation
 } from "@store/assignment/assignment.logic.api";
+import { readingsActions, readingsSelectors } from "@store/readings/readings.logic";
 import { useGetAvailableReadingsQuery } from "@store/readings/readings.logic.api";
 import { TreeNode } from "primereact/treenode";
 import { TreeTableEvent } from "primereact/treetable";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 export const useReadingsSelector = () => {
+  const dispatch = useDispatch();
+  const selectedReadings = useSelector(readingsSelectors.getSelectedReadings);
   const selectedAssignment = useSelector(assignmentSelectors.getSelectedAssignment);
   const [addReadingPost] = useUpdateAssignmentExerciseMutation();
   const [removeReadingsPost] = useRemoveAssignmentExercisesMutation();
@@ -112,7 +115,14 @@ export const useReadingsSelector = () => {
   };
 
   const removeReadings = (toRemove: Array<{ id: number }>) => {
-    removeReadingsPost(toRemove.map((item) => item.id));
+    const idsToRemove = toRemove.map((item) => item.id);
+
+    removeReadingsPost(idsToRemove);
+    dispatch(
+      readingsActions.setSelectedReadings(
+        selectedReadings.filter((r) => !idsToRemove.includes(r.id))
+      )
+    );
   };
 
   const removeReadingsFromAvailableReadings = ({ node }: TreeTableEvent) => {
