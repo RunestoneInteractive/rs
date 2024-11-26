@@ -15,7 +15,12 @@ import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 
 export const AssignmentBuilder = () => {
   const dispatch = useDispatch();
-  const { isLoading, isError, data: assignments } = useGetAssignmentsQuery();
+  const {
+    isLoading,
+    isError,
+    data: assignments,
+    refetch: refetchAssignments
+  } = useGetAssignmentsQuery();
   const [createAssignment] = useCreateAssignmentMutation();
   const [selectedAssignmentName, setSelectedAssignmentName] = useState<string | undefined>();
   const { selectedAssignment, updateAssignment } = useSelectedAssignment();
@@ -27,6 +32,10 @@ export const AssignmentBuilder = () => {
       )
     );
   }, [assignments, dispatch, selectedAssignmentName]);
+
+  useEffect(() => {
+    refetchAssignments();
+  }, [refetchAssignments, selectedAssignmentName]);
 
   if (isLoading) {
     return (
