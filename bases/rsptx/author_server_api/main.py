@@ -18,6 +18,7 @@ import pathlib
 import logging
 import sys
 import time
+from typing import Optional
 
 # third party
 # -----------
@@ -92,7 +93,9 @@ templates = Jinja2Templates(directory=template_folder)
 add_exception_handlers(app)
 
 
-async def create_book_entry(author: str, document_id: str, github: str):
+async def create_book_entry(
+    author: str, document_id: str, github: str, repo_path: Optional[str] = None
+) -> bool:
     # need to create a library entry first.
 
     course = CoursesValidator(
@@ -116,6 +119,7 @@ async def create_book_entry(author: str, document_id: str, github: str):
         "shelf_section": "Misc",
         "is_visible": False,
         "for_classes": False,
+        "repo_path": repo_path,
     }
     await create_library_book(document_id, vals)
     await create_book_author(author, document_id)
@@ -305,7 +309,12 @@ async def subchapmap(
 # Called to download the log
 @app.get("/author/getlog/{book}")
 async def getlog(request: Request, book):
-    logpath = pathlib.Path("/books", book, "cli.log")
+    book_entry = await fetch_library_book(book)
+    if book_entry and book_entry.repo_path:
+        work_dir = book_entry.repo_path
+    else:
+        work_dir = f"/books/{book}"
+    logpath = pathlib.Path(work_dir, "cli.log")
 
     if logpath.exists():
         async with aiofiles.open(logpath, "rb") as f:
@@ -431,10 +440,14 @@ async def new_course(payload=Body(...), user=Depends(auth_manager)):
     github_url = payload["github"]
     logger.debug(f"Got {base_course} and {github_url}")
 
+    gh_parts = github_url.split("/")
+    repo_path = gh_parts[-1].replace(".git", "")
+    logger.debug(f"repo_path = {repo_path}")
+
     if "DEV_DBURL" not in os.environ:
         return JSONResponse({"detail": "DBURL is not set"})
     else:
-        res = await create_book_entry(user.username, base_course, github_url)
+        res = await create_book_entry(user.username, base_course, github_url, repo_path)
         if res:
             return JSONResponse({"detail": "success"})
         else:
@@ -445,7 +458,7 @@ async def new_course(payload=Body(...), user=Depends(auth_manager)):
 async def do_clone(payload=Body(...)):
     repourl = payload["url"]
     bcname = payload["bcname"]
-    task = clone_runestone_book.delay(repourl, bcname)
+    task = clone_runestone_book.delay(bcname, repourl)
     return JSONResponse({"task_id": task.id})
 
 
