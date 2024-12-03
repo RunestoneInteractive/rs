@@ -36,6 +36,8 @@ class LibraryForm(StarletteForm):
     github_url = StringField("Github URL")
     main_page = StringField("Main page")
     social_url = StringField("Social URL")
+    repo_path = StringField("Repo Path")
+
     # last_build = DateTimeField("Last Build") - no reason to update this manually
 
 
