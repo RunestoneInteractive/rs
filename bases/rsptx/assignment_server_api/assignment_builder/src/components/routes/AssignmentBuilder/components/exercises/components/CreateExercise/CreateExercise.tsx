@@ -1,35 +1,18 @@
-import { CreateActiveCodeExercise } from "@components/routes/AssignmentBuilder/components/exercises/components/createExercise/CreateActiveCodeExercise";
-import { CreateMultipleChoiceExercise } from "@components/routes/AssignmentBuilder/components/exercises/components/createExercise/CreateMultipleChoiceExercise";
-import { CreateShortAnswerExercise } from "@components/routes/AssignmentBuilder/components/exercises/components/createExercise/CreateShortAnswerExercise";
 import { useCreateNewExerciseMutation } from "@store/exercises/exercises.logic.api";
 import { Button } from "primereact/button";
 import { Chips } from "primereact/chips";
 import { Dropdown } from "primereact/dropdown";
 import { InputNumber } from "primereact/inputnumber";
 import { InputText } from "primereact/inputtext";
-import { JSX } from "react";
 import { useForm, Controller } from "react-hook-form";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
-import { CreateExerciseFormProps, ExerciseDropdownType } from "@/types/createExerciseForm";
+import { ExerciseDropdownType } from "@/types/createExerciseForm";
 import { FormData } from "@/types/createExerciseForm";
 import { ExerciseType } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
 
-const CreateExerciseViewComponent = ({
-  mode,
-  ...restProps
-}: {
-  mode: ExerciseType;
-} & CreateExerciseFormProps) => {
-  const config: Record<ExerciseType, JSX.Element> = {
-    activecode: <CreateActiveCodeExercise {...restProps} />,
-    mchoice: <CreateMultipleChoiceExercise {...restProps} />,
-    shortanswer: <CreateShortAnswerExercise {...restProps} />
-  };
-
-  return config[mode];
-};
+import { CreateExerciseView } from "./CreateExerciseView";
 
 export const CreateExercise = ({ onExerciseAdd }: { onExerciseAdd: VoidFunction }) => {
   const [createNewExercise] = useCreateNewExerciseMutation();
@@ -300,7 +283,7 @@ export const CreateExercise = ({ onExerciseAdd }: { onExerciseAdd: VoidFunction 
           {errors.difficulty && <small className="p-error">{errors.difficulty.message}</small>}
         </div>
 
-        <CreateExerciseViewComponent
+        <CreateExerciseView
           mode={exerciseType.key as ExerciseType}
           control={control}
           errors={errors}

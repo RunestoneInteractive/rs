@@ -1,4 +1,3 @@
-import { AddExerciseModal } from "@components/routes/AssignmentBuilder/components/exercises/AddExerciseModal";
 import { exercisesActions, exercisesSelectors } from "@store/exercises/exercises.logic";
 import { Button } from "primereact/button";
 import { confirmPopup, ConfirmPopup } from "primereact/confirmpopup";
@@ -6,6 +5,8 @@ import { useDispatch, useSelector } from "react-redux";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { Exercise } from "@/types/exercises";
+
+import { AddExerciseModal } from "./AddExerciseModal";
 
 export const AssignmentExercisesHeader = () => {
   const dispatch = useDispatch();

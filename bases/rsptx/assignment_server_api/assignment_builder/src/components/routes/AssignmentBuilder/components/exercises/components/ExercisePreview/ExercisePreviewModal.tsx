@@ -1,9 +1,10 @@
-import { ExercisePreview } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { useState } from "react";
 
 import { Exercise } from "@/types/exercises";
+
+import { ExercisePreview } from "./ExercisePreview";
 
 export const ExercisePreviewModal = ({ htmlsrc }: Pick<Exercise, "htmlsrc">) => {
   const [showModal, setShowModal] = useState(false);

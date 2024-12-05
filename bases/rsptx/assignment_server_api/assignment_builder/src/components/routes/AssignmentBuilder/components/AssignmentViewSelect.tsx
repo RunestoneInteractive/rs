@@ -1,9 +1,10 @@
-import { AssignmentExercises } from "@components/routes/AssignmentBuilder/components/exercises/AssignmentExercises";
-import { AssignmentGeneral } from "@components/routes/AssignmentBuilder/components/general/AssignmentGeneral";
-import { AssignmentReadings } from "@components/routes/AssignmentBuilder/components/reading/AssignmentReadings";
 import { MenuItem } from "primereact/menuitem";
 import { TabMenu } from "primereact/tabmenu";
 import { JSX, useState } from "react";
+
+import { AssignmentExercises } from "./exercises/AssignmentExercises";
+import { AssignmentGeneral } from "./general/AssignmentGeneral";
+import { AssignmentReadings } from "./reading/AssignmentReadings";
 
 type AssignmentViewMode = "general" | "reading" | "exercise";
 

@@ -1,4 +1,4 @@
-import { ExercisePreviewModal } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreviewModal";
+import { ExercisePreviewModal } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreviewModal";
 import { Column } from "primereact/column";
 import { TreeTable } from "primereact/treetable";
 

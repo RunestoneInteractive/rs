@@ -1,4 +1,3 @@
-import { AssignmentExercisesHeader } from "@components/routes/AssignmentBuilder/components/exercises/AssignmentExercisesHeader";
 import { Loader } from "@components/ui/Loader";
 import { exercisesActions, exercisesSelectors } from "@store/exercises/exercises.logic";
 import { Column } from "primereact/column";
@@ -7,6 +6,8 @@ import { useDispatch, useSelector } from "react-redux";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { Exercise } from "@/types/exercises";
+
+import { AssignmentExercisesHeader } from "./AssignmentExercisesHeader";
 
 export const AssignmentExercises = () => {
   const dispatch = useDispatch();

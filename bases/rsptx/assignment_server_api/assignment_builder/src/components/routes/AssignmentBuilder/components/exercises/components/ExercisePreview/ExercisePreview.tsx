@@ -13,7 +13,7 @@ export const ExercisePreview = ({ htmlsrc }: Pick<Exercise, "htmlsrc">) => {
       ref.current.innerHTML = htmlsrc;
       renderRunestoneComponent(ref, {}).then(forceUpdate);
     }
-  }, [htmlsrc, ref.current]);
+  }, [htmlsrc]);
 
   return (
     <div className="ptx-runestone-container">

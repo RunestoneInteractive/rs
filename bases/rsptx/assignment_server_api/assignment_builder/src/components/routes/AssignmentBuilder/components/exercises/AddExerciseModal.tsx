@@ -5,9 +5,9 @@ import { TabMenu } from "primereact/tabmenu";
 import { Toast } from "primereact/toast";
 import { JSX, useRef, useState } from "react";
 
-import { ChooseExercises } from "./components/ChooseExercises";
-import { SearchExercises } from "./components/SearchExercises";
-import { CreateExercise } from "./components/createExercise/CreateExercise";
+import { ChooseExercises } from "./components/ChooseExercises/ChooseExercises";
+import { CreateExercise } from "./components/CreateExercise/CreateExercise";
+import { SearchExercises } from "./components/SearchExercises/SearchExercises";
 
 type AddExerciseViewMode = "choose" | "search" | "create";
 

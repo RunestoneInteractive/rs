@@ -1,5 +1,3 @@
-import { AssignmentViewSelect } from "@components/routes/AssignmentBuilder/components/AssignmentViewSelect";
-import { defaultAssignment } from "@components/routes/AssignmentBuilder/defaultAssignment";
 import { AutoComplete } from "@components/ui/AutoComplete";
 import { Loader } from "@components/ui/Loader";
 import { assignmentActions } from "@store/assignment/assignment.logic";
@@ -12,6 +10,9 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
+
+import { AssignmentViewSelect } from "./components/AssignmentViewSelect";
+import { defaultAssignment } from "./defaultAssignment";
 
 export const AssignmentBuilder = () => {
   const dispatch = useDispatch();

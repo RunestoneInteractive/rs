@@ -1,4 +1,3 @@
-import { KindOfAssignmentOptions } from "@components/routes/AssignmentBuilder/components/general/KindOfAssignmentOptions";
 import { Calendar } from "primereact/calendar";
 import { InputNumber } from "primereact/inputnumber";
 import { InputTextarea } from "primereact/inputtextarea";
@@ -7,6 +6,8 @@ import { SelectButton } from "primereact/selectbutton";
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { KindOfAssignment } from "@/types/assignment";
 import { convertDateToISO, convertISOStringToDate } from "@/utils/date";
+
+import { KindOfAssignmentOptions } from "./KindOfAssignmentOptions";
 type KindOfAssignmentOption = { label: string; value: KindOfAssignment };
 
 export const AssignmentGeneral = () => {
