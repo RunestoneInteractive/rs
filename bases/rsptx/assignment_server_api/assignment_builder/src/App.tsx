@@ -2,7 +2,12 @@ import "./App.css";
 import { Menubar } from "primereact/menubar";
 import { Toaster } from "react-hot-toast";
 import { useSelector } from "react-redux";
-import { createBrowserRouter, RouterProvider, useSearchParams } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  useSearchParams,
+  BrowserRouter as Router
+} from "react-router-dom";
 
 import { routerService } from "@/router";
 
@@ -95,7 +100,7 @@ function App() {
     createBrowserRouter(
       [
         {
-          path: "/",
+          path: "/builderV2",
           async lazy() {
             let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
 
@@ -134,7 +139,7 @@ function App() {
   );
 
   return (
-    <>
+    <Router>
       <Menubar model={items} start={start} />
       <div className="layout-main-container">
         <div className="layout-main">
@@ -142,8 +147,8 @@ function App() {
         </div>
       </div>
 
-      <Toaster toastOptions={{ duration: 5000 }} />
-    </>
+      <Toaster toastOptions={{ duration: 3000 }} />
+    </Router>
   );
 }
 

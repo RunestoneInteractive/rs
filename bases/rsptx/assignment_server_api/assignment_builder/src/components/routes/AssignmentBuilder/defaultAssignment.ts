@@ -6,5 +6,5 @@ export const defaultAssignment: CreateAssignmentPayload = {
   description: "",
   duedate: convertDateToISO(new Date()),
   points: 1,
-  kind: "quickcode"
+  kind: "Regular"
 };

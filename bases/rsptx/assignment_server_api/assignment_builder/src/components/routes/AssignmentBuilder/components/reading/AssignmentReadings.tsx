@@ -24,7 +24,7 @@ export const AssignmentReadings = () => {
   if (error) {
     return (
       <div>
-        <p>Error fetching questions for the selected assignment.</p>
+        <p>Error fetching readings for the selected assignment.</p>
         <button onClick={refetch}>Refetch</button>
       </div>
     );
@@ -43,7 +43,7 @@ export const AssignmentReadings = () => {
       stripedRows
       showGridlines
       header={<AssignmentReadingsHeader />}
-      selection={selectedReadings!}
+      selection={selectedReadings}
       selectionMode="multiple"
       onSelectionChange={(e) => setSelectedReadings(e.value as unknown as Exercise[])}
     >
@@ -51,11 +51,7 @@ export const AssignmentReadings = () => {
       <Column field="chapter" header="Chapter"></Column>
       <Column field="subchapter" header="Subchapter"></Column>
       <Column field="numQuestions" header="Number of questions"></Column>
-      <Column
-        field="activities_required"
-        header="Required"
-        body={(data: Exercise) => (data.activities_required ? "Yes" : "No")}
-      ></Column>
+      <Column field="activities_required" header="Required"></Column>
       <Column field="points" header="Points"></Column>
     </DataTable>
   );

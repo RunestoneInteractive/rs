@@ -6,6 +6,7 @@ import { baseQuery } from "@/store/baseQuery";
 import { DetailResponse, HttpStatusCode } from "@/types/api";
 import {
   Assignment,
+  CreateAssignmentExercisePayload,
   CreateAssignmentPayload,
   CreateAssignmentValidationResponse,
   GetAssignmentsResponse
@@ -63,7 +64,7 @@ export const assignmentApi = createApi({
         }
         return [];
       },
-      onQueryStarted: (_, { dispatch, queryFulfilled }) => {
+      onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled
           .then(() => {
             toast("Assignment created", { icon: "👍" });
@@ -183,6 +184,26 @@ export const assignmentApi = createApi({
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
           toast("Error searching exercises", {
+            icon: "🔥"
+          });
+        });
+      }
+    }),
+    createAssignmentExercise: build.mutation<void, CreateAssignmentExercisePayload>({
+      query: (body) => ({
+        method: "POST",
+        url: "/assignment/instructor/new_assignment_q",
+        body
+      }),
+      invalidatesTags: (_, error) => {
+        if (!error) {
+          return [{ type: "Exercises" }];
+        }
+        return [];
+      },
+      onQueryStarted: (_, { queryFulfilled }) => {
+        queryFulfilled.catch(() => {
+          toast("Error creating assignment exercise", {
             icon: "🔥"
           });
         });

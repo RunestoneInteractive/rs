@@ -27,7 +27,7 @@ export const AssignmentReadingsHeader = () => {
     dispatch(readingsActions.setSelectedReadings(readings));
   };
 
-  const toggleDataTable = (event: ButtonEvent) => {
+  const toggleAddReadingsOverlay = (event: ButtonEvent) => {
     overlayRef.current?.toggle(event);
   };
 
@@ -60,7 +60,12 @@ export const AssignmentReadingsHeader = () => {
         )}
       </div>
       <div>
-        <Button type="button" label="Choose Readings" onClick={toggleDataTable} size="small" />
+        <Button
+          type="button"
+          label="Choose Readings"
+          onClick={toggleAddReadingsOverlay}
+          size="small"
+        />
         <OverlayPanel
           ref={overlayRef}
           id="overlay_panel_choose_readings"

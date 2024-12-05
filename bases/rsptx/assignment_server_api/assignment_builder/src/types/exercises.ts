@@ -77,3 +77,20 @@ export type SearchExercisePayload = {
 export type SearchExercisesResponse = {
   questions: Exercise[];
 };
+
+export type ExerciseType = "activecode" | "mchoice" | "shortanswer";
+
+export type CreateExercisesPayload = {
+  author: string;
+  autograde: null;
+  chapter: string;
+  difficulty: number;
+  htmlsrc: string;
+  name: string;
+  question_json: string;
+  question_type: ExerciseType;
+  source: "This question was written in the web interface";
+  tags: string;
+  topic: string;
+  points: number;
+};

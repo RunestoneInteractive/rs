@@ -6,6 +6,8 @@ import {
 } from "@reduxjs/toolkit/query";
 import toast from "react-hot-toast";
 
+import { HttpStatusCode } from "@/types/api";
+
 export const baseQuery = fetchBaseQuery({
   baseUrl: location.origin,
   prepareHeaders: (headers) => {
@@ -27,7 +29,7 @@ export const baseQueryWithErrorHandlers: BaseQueryFn<
   let result = await baseQuery(args, api, extraOptions);
 
   if (result.error) {
-    if (result.error.status === 401) {
+    if (result.error.status === HttpStatusCode.UNAUTHORIZED) {
       toast("Unauthorized");
     } else {
       toast("Something went wrong");

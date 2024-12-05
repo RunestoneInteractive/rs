@@ -34,7 +34,7 @@ export type CreateAssignmentPayload = {
   description: string;
   duedate: string;
   points: number;
-  kind: "quickcode";
+  kind: "Regular";
 };
 
 export type CreateAssignmentValidationResponse = [
@@ -47,4 +47,14 @@ export type CreateAssignmentValidationResponse = [
 
 export type GetAssignmentsResponse = {
   assignments: Assignment[];
+};
+
+export type CreateAssignmentExercisePayload = {
+  assignment_id: number;
+  autograde: null;
+  id: number;
+  points: number;
+  qnumber: string;
+  question_id: number;
+  which_to_grade: "best_answer";
 };

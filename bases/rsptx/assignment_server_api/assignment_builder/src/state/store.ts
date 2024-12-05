@@ -6,6 +6,8 @@ import {
 } from "@reduxjs/toolkit";
 import { assignmentActions, assignmentSlice } from "@store/assignment/assignment.logic";
 import { assignmentApi } from "@store/assignment/assignment.logic.api.js";
+import { exercisesSlice } from "@store/exercises/exercises.logic";
+import { exercisesApi } from "@store/exercises/exercises.logic.api";
 import { readingsSlice } from "@store/readings/readings.logic";
 import { readingsApi } from "@store/readings/readings.logic.api";
 import { userSlice } from "@store/user/userLogic.js";
@@ -35,7 +37,9 @@ const reducersMap = {
   assignmentTemp: assignmentSlice.reducer,
   user: userSlice.reducer,
   readings: readingsSlice.reducer,
-  [readingsApi.reducerPath]: readingsApi.reducer
+  exercises: exercisesSlice.reducer,
+  [readingsApi.reducerPath]: readingsApi.reducer,
+  [exercisesApi.reducerPath]: exercisesApi.reducer
 };
 
 export type RootState = StateType<typeof reducersMap>;
@@ -68,6 +72,7 @@ export const setupStore = (preloadedState?: Partial<RootState>) => {
       return getDefaultMiddleware({ serializableCheck: false }).concat(
         assignmentApi.middleware,
         readingsApi.middleware,
+        exercisesApi.middleware,
         listenerMiddleware.middleware
       );
     }
