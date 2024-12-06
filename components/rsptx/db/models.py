@@ -300,6 +300,14 @@ class WebWorkAnswers(Base, CorrectAnswerMixin):
     __table_args__ = (Index("idx_div_sid_course_ww", "sid", "div_id", "course_name"),)
 
 
+@register_answer_table
+class SpliceAnswers(Base, CorrectAnswerMixin):
+    __tablename__ = "splice_answers"
+    # answer contains the splice state data.
+    answer = Column(JSON, nullable=False)
+    __table_args__ = (Index("idx_div_sid_course_sp", "sid", "div_id", "course_name"),)
+
+
 # An answer to a fill-in-the-blank question.
 @register_answer_table
 class MicroParsonsAnswers(Base, CorrectAnswerMixin):
