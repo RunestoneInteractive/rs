@@ -16,7 +16,6 @@
 .nav.nav-tabs > li > a {
     border: 1px solid var(--componentBorderColor);
     border-radius: 4px 4px 0 0;
-    border-bottom: 0;
     color: var(--bodyFont, #555);
 }
 
