@@ -405,26 +405,40 @@ def make_pairs():
     peeps = df.sid.to_list()
     sid_ans = df.set_index("sid")["answer"].to_dict()
 
+    # If the instructor is in the list of students, remove them
     if auth.user.username in peeps:
         peeps.remove(auth.user.username)
+
+    # Shuffle the list of students
     random.shuffle(peeps)
+
+    # Create a list of groups
     group_list = []
     done = len(peeps) == 0
     while not done:
+        # Start a new group with one student
         group = [peeps.pop()]
+
+        # Try to add more students to the group
         for i in range(group_size - 1):
             try:
+                # Find a student with a different answer than the first student in the group
                 group.append(find_good_partner(group, peeps, sid_ans))
             except IndexError:
-                logger.debug("except")
+                # If no more students are left to add, stop
                 done = True
+        # If the group only has one student, add them to the previous group
         if len(group) == 1:
             group_list[-1].append(group[0])
         else:
+            # Otherwise add the group to the list of groups
             group_list.append(group)
+
+        # Stop if all students have been grouped
         if len(peeps) == 0:
             done = True
 
+    # Create a dictionary mapping each student to their group
     gdict = {}
     for group in group_list:
         for p in group:
@@ -432,6 +446,7 @@ def make_pairs():
             gl.remove(p)
             gdict[p] = gl
 
+    # Save the groups to the redis database
     for k, v in gdict.items():
         r.hset(f"partnerdb_{auth.user.course_name}", k, json.dumps(v))
     r.hset(f"{auth.user.course_name}_state", "mess_count", "0")
