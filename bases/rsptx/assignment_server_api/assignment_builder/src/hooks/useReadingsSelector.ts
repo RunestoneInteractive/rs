@@ -103,14 +103,20 @@ export const useReadingsSelector = () => {
 
     addReadingPost({
       assignment_id: selectedAssignment.id,
-      question_id: data.id,
       points: readingExercisesLength ? readingExercises[readingExercisesLength - 1].points : 1,
       sorting_priority: readingExercisesLength,
       reading_assignment: true,
       autograde: "interaction",
       which_to_grade: "best_answer",
       activities_required: Math.round(data.numQuestions * 0.8),
-      required: !!Math.round(data.numQuestions * 0.8)
+      required: !!Math.round(data.numQuestions * 0.8),
+      chapter: data.chapter,
+      id: data.id,
+      question_id: data.id,
+      num: data.num,
+      numQuestions: data.numQuestions,
+      subchapter: data.subchapter,
+      title: data.title
     });
   };
 

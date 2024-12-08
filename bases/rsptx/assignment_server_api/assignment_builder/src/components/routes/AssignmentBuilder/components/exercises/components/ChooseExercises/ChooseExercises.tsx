@@ -16,7 +16,6 @@ export const ChooseExercises = () => {
       onSelect={() => {}}
       onUnselect={() => {}}
       scrollable
-      scrollHeight="50vh"
       value={availableExercises}
     >
       <Column field="title" header="Select exercises" expander></Column>

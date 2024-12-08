@@ -23,8 +23,8 @@ export const CreateMultipleChoiceExercise = ({
   };
 
   const removeChoice = (index: number) => {
-    if (choices.length === 1) {
-      toast("At least one choice is required");
+    if (choices.length <= 2) {
+      toast("At least two choices are required");
       return;
     }
     const updatedChoices = choices.filter((_, i) => i !== index);

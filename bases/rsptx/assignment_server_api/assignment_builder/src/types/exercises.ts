@@ -6,9 +6,9 @@ export type Exercise = {
   timed: boolean;
   autograde: string;
   which_to_grade: string;
-  reading_assignment: null;
+  reading_assignment: boolean;
   sorting_priority: number;
-  activities_required: null;
+  activities_required: number;
   qnumber: string;
   name: string;
   subchapter: string;
@@ -22,6 +22,10 @@ export type Exercise = {
   };
   owner: string;
   tags: string;
+  num: number;
+  numQuestions: number;
+  required: boolean;
+  title: string;
 };
 
 export type GetExercisesResponse = {
@@ -32,44 +36,10 @@ export type GetExercisesPayload = {
   assignment: number;
 };
 
-export type UpdateAssignmentExercisePayload = {
-  id: number;
-  base_course: string;
-  name: string;
-  chapter: string;
-  subchapter: string;
-  author: string;
-  question: string;
-  timestamp: string;
-  question_type: string;
-  is_private: boolean;
-  htmlsrc: string;
-  autograde: string;
-  practice: null;
-  topic: string;
-  feedback: null;
-  from_source: boolean;
-  review_flag: boolean;
-  qnumber: string;
-  optional: boolean;
-  description: string;
-  difficulty: number;
-  pct_on_first: null;
-  mean_clicks_to_correct: null;
-  question_json: null;
-  owner: null;
-  tags: null;
-  assignment_id: number;
-  question_id: number;
-  points: number;
-  which_to_grade: string;
-  sorting_priority: number;
-  reading_assignment: boolean;
-};
-
 export type SearchExercisePayload = {
   author: string;
-  base_course: boolean;
+  // TODO: Change endpoint to get boolean instead of string: RUN-15
+  base_course: "true" | "false";
   question_type: string;
   source_regex: string;
 };
@@ -94,3 +64,48 @@ export type CreateExercisesPayload = {
   topic: string;
   points: number;
 };
+
+export type UpdateAssignmentReadingPayload = {
+  assignment_id: number;
+  points: number;
+  sorting_priority: number;
+  reading_assignment: boolean;
+  autograde: string;
+  which_to_grade: string;
+  activities_required: number;
+  required: boolean;
+  chapter: string;
+  id: number;
+  num: number;
+  numQuestions: number;
+  subchapter: string;
+  title: string;
+  question_id: number;
+};
+
+export type UpdateAssignmentQuestionPayload = UpdateAssignmentReadingPayload & {
+  author: string;
+  base_course: string;
+  description: string;
+  difficulty: number;
+  feedback: any;
+  from_source: boolean;
+  htmlsrc: string;
+  is_private: boolean;
+  mean_clicks_to_correct: any;
+  name: string;
+  optional: boolean;
+  owner: any;
+  pct_on_first: any;
+  practice: boolean;
+  qnumber: string;
+  question_json: any;
+  question_type: string;
+  review_flag: boolean;
+  tags: string;
+  topic: string;
+};
+
+export type UpdateAssignmentExercisePayload =
+  | UpdateAssignmentReadingPayload
+  | UpdateAssignmentQuestionPayload;

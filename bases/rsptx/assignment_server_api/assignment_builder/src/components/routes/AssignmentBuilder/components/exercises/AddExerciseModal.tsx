@@ -1,9 +1,11 @@
+import { useToastContext } from "@components/ui/ToastContext";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { MenuItem } from "primereact/menuitem";
 import { TabMenu } from "primereact/tabmenu";
 import { Toast } from "primereact/toast";
 import { JSX, useRef, useState } from "react";
+import toast from "react-hot-toast";
 
 import { ChooseExercises } from "./components/ChooseExercises/ChooseExercises";
 import { CreateExercise } from "./components/CreateExercise/CreateExercise";
@@ -35,18 +37,18 @@ export const AddExerciseModal = () => {
     { label: "Write an exercise", id: "create" }
   ];
   const [mode, setMode] = useState(0);
-  const toast = useRef<Toast>(null);
+  const { showToast, clearToast } = useToastContext();
 
   const handleClose = () => setShowDialog(false);
 
   const handleOpen = () => {
-    toast.current?.clear();
+    clearToast();
     setShowDialog(true);
   };
 
   const onExerciseAdd = () => {
     handleClose();
-    toast.current?.show({
+    showToast({
       severity: "info",
       sticky: true,
       content: () => (
@@ -61,7 +63,7 @@ export const AddExerciseModal = () => {
             severity="info"
             onClick={() => {
               handleOpen();
-              toast.current?.clear();
+              clearToast();
             }}
           ></Button>
         </div>
@@ -71,7 +73,6 @@ export const AddExerciseModal = () => {
 
   return (
     <div>
-      <Toast ref={toast} />
       <Button type="button" label="Add Exercise" onClick={handleOpen} size="small" />
       <Dialog
         header={<TabMenu model={modes} activeIndex={mode} onTabChange={(e) => setMode(e.index)} />}

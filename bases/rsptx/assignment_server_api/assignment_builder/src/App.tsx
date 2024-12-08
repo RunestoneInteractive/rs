@@ -1,4 +1,5 @@
 import "./App.css";
+import { ToastContextProvider } from "@components/ui/ToastContext";
 import { Menubar } from "primereact/menubar";
 import { Toaster } from "react-hot-toast";
 import { useSelector } from "react-redux";
@@ -140,14 +141,16 @@ function App() {
 
   return (
     <Router>
-      <Menubar model={items} start={start} />
-      <div className="layout-main-container">
-        <div className="layout-main">
-          <RouterProvider router={router} future={{ v7_startTransition: true }} />
+      <ToastContextProvider>
+        <Menubar model={items} start={start} />
+        <div className="layout-main-container">
+          <div className="layout-main">
+            <RouterProvider router={router} future={{ v7_startTransition: true }} />
+          </div>
         </div>
-      </div>
 
-      <Toaster toastOptions={{ duration: 3000 }} />
+        <Toaster toastOptions={{ duration: 3000 }} />
+      </ToastContextProvider>
     </Router>
   );
 }

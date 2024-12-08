@@ -20,13 +20,11 @@ export const ExercisePreviewModal = ({ htmlsrc }: Pick<Exercise, "htmlsrc">) => 
       />
       <Dialog
         visible={showModal}
-        style={{ width: "45vw" }}
         modal
         contentStyle={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 0
+          alignItems: "start",
+          justifyContent: "center"
         }}
         onHide={() => setShowModal(false)}
         headerStyle={{ padding: "0.5rem" }}

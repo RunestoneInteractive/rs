@@ -1,3 +1,4 @@
+import { exerciseTypes } from "@components/routes/AssignmentBuilder/components/exercises/components/exerciseTypes";
 import { useCreateNewExerciseMutation } from "@store/exercises/exercises.logic.api";
 import { Button } from "primereact/button";
 import { Chips } from "primereact/chips";
@@ -7,7 +8,6 @@ import { InputText } from "primereact/inputtext";
 import { useForm, Controller } from "react-hook-form";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
-import { ExerciseDropdownType } from "@/types/createExerciseForm";
 import { FormData } from "@/types/createExerciseForm";
 import { ExerciseType } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
@@ -17,14 +17,9 @@ import { CreateExerciseView } from "./CreateExerciseView";
 export const CreateExercise = ({ onExerciseAdd }: { onExerciseAdd: VoidFunction }) => {
   const [createNewExercise] = useCreateNewExerciseMutation();
   const { chapters } = useExercisesSelector();
-  const modes: ExerciseDropdownType[] = [
-    { label: "ActiveCode", key: "activecode" },
-    { label: "Multiple choice", key: "mchoice" },
-    { label: "Short answer", key: "shortanswer" }
-  ];
 
   const getDefaultValues = () => ({
-    exerciseType: modes[0],
+    exerciseType: exerciseTypes[0],
     points: 1,
     exerciseName: createExerciseId(),
     chapter: chapters && chapters[0],
@@ -34,7 +29,10 @@ export const CreateExercise = ({ onExerciseAdd }: { onExerciseAdd: VoidFunction 
     tags: [],
     questionPrompt: "",
     allowAttachments: false,
-    choices: [{ text: "", feedback: "", correct: false }],
+    choices: [
+      { text: "", feedback: "", correct: false },
+      { text: "", feedback: "", correct: false }
+    ],
     language: { key: "python", label: "Python (in browser)" },
     instructions: "",
     hiddenPrefixCode: "",
@@ -115,7 +113,7 @@ export const CreateExercise = ({ onExerciseAdd }: { onExerciseAdd: VoidFunction 
                 <Dropdown
                   id={field.name}
                   {...field}
-                  options={modes}
+                  options={exerciseTypes}
                   placeholder=" "
                   optionLabel="label"
                   className={errors.exerciseType ? "p-invalid" : ""}

@@ -5,7 +5,12 @@ import toast from "react-hot-toast";
 
 import { RootState } from "@/state/store";
 import { DetailResponse } from "@/types/api";
-import { CreateExercisesPayload } from "@/types/exercises";
+import {
+  CreateExercisesPayload,
+  Exercise,
+  SearchExercisePayload,
+  SearchExercisesResponse
+} from "@/types/exercises";
 
 export const exercisesApi = createApi({
   reducerPath: "exercisesAPI",
@@ -45,8 +50,25 @@ export const exercisesApi = createApi({
             });
           });
       }
+    }),
+    searchExercises: build.query<Exercise[], SearchExercisePayload>({
+      query: (body) => ({
+        method: "POST",
+        url: "/assignment/instructor/search_questions",
+        body
+      }),
+      transformResponse: (response: DetailResponse<SearchExercisesResponse>) => {
+        return response.detail.questions;
+      },
+      onQueryStarted: (_, { queryFulfilled }) => {
+        queryFulfilled.catch(() => {
+          toast("Error searching exercises", {
+            icon: "🔥"
+          });
+        });
+      }
     })
   })
 });
 
-export const { useCreateNewExerciseMutation } = exercisesApi;
+export const { useCreateNewExerciseMutation, useSearchExercisesQuery } = exercisesApi;

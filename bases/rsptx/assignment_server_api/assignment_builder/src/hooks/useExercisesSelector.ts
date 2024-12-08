@@ -45,7 +45,7 @@ export const useExercisesSelector = () => {
   if (!exercises || isExercisesError || !availableExercises || isAvailableExercisesError) {
     return { error: true, refetch };
   }
-  console.log(availableExercises);
+
   const assignmentExercises = exercises.filter((ex) => !ex.reading_assignment);
 
   const chapters: Array<Chapter> = availableExercises.map((node) => {

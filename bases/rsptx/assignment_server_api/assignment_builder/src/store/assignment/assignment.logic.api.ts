@@ -15,9 +15,9 @@ import {
   Exercise,
   GetExercisesResponse,
   SearchExercisePayload,
-  SearchExercisesResponse
+  SearchExercisesResponse,
+  UpdateAssignmentExercisePayload
 } from "@/types/exercises";
-import { UpdateAssignmentReadingPayload } from "@/types/readings";
 
 export const assignmentApi = createApi({
   reducerPath: "assignmentAPI",
@@ -118,7 +118,7 @@ export const assignmentApi = createApi({
         });
       }
     }),
-    updateAssignmentExercise: build.mutation<void, UpdateAssignmentReadingPayload>({
+    updateAssignmentExercise: build.mutation<void, UpdateAssignmentExercisePayload>({
       query: (body) => ({
         method: "POST",
         url: "/assignment/instructor/update_assignment_question",
@@ -172,23 +172,6 @@ export const assignmentApi = createApi({
         });
       }
     }),
-    searchExercises: build.query<Exercise[], SearchExercisePayload>({
-      query: (body) => ({
-        method: "POST",
-        url: "/assignment/instructor/search_questions",
-        body
-      }),
-      transformResponse: (response: DetailResponse<SearchExercisesResponse>) => {
-        return response.detail.questions;
-      },
-      onQueryStarted: (_, { queryFulfilled }) => {
-        queryFulfilled.catch(() => {
-          toast("Error searching exercises", {
-            icon: "🔥"
-          });
-        });
-      }
-    }),
     createAssignmentExercise: build.mutation<void, CreateAssignmentExercisePayload>({
       query: (body) => ({
         method: "POST",
@@ -218,6 +201,5 @@ export const {
   useGetExercisesQuery,
   useUpdateAssignmentExerciseMutation,
   useRemoveAssignmentExercisesMutation,
-  useReorderAssignmentExercisesMutation,
-  useSearchExercisesQuery
+  useReorderAssignmentExercisesMutation
 } = assignmentApi;
