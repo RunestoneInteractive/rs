@@ -3,7 +3,7 @@ import { Button } from "primereact/button";
 import { confirmPopup, ConfirmPopup } from "primereact/confirmpopup";
 import { MouseEvent } from "react";
 
-import { useExerciseSearch } from "@/hooks/useExerciseSearch";
+import { useAddAssignmentExercise } from "@/hooks/useAddAssignmentExercise";
 import { Exercise } from "@/types/exercises";
 
 export const SearchExercisesHeader = ({
@@ -13,7 +13,7 @@ export const SearchExercisesHeader = ({
   setSelectedExercises: (exercises: Exercise[]) => void;
   selectedExercises: Exercise[];
 }) => {
-  const { addExerciseToAssignment } = useExerciseSearch();
+  const { addExerciseToAssignment } = useAddAssignmentExercise();
   const { showToast } = useToastContext();
 
   const onAddClick = async (event: MouseEvent<HTMLButtonElement>) => {

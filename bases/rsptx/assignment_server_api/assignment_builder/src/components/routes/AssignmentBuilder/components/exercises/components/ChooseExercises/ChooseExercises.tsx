@@ -6,14 +6,15 @@ import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { Exercise } from "@/types/exercises";
 
 export const ChooseExercises = () => {
-  const { availableExercises } = useExercisesSelector();
+  const { availableExercises, selectedKeys, addExercises, removeExercisesFromAvailableExercises } =
+    useExercisesSelector();
 
   return (
     <TreeTable
       selectionMode="checkbox"
-      selectionKeys={[]}
-      onSelect={() => {}}
-      onUnselect={() => {}}
+      selectionKeys={selectedKeys}
+      onSelect={addExercises}
+      onUnselect={removeExercisesFromAvailableExercises}
       scrollable
       value={availableExercises}
       resizableColumns

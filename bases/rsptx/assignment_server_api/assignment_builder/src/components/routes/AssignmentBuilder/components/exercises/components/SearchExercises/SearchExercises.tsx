@@ -106,7 +106,8 @@ export const SearchExercises = () => {
         body={(data: Exercise) => {
           return (
             <div style={{ width: "12rem" }} className="flex gap-1 flex-wrap flex-row">
-              {data.tags && data.tags.split(",").map((t) => <Chip label={t.trim()} key={t} />)}
+              {data.tags &&
+                data.tags.split(",").map((t, i) => <Chip label={t.trim()} key={`${t}${i}`} />)}
             </div>
           );
         }}
