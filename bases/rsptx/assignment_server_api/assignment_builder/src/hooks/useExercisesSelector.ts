@@ -5,6 +5,7 @@ import {
 } from "@store/assignment/assignment.logic.api";
 import { exercisesActions, exercisesSelectors } from "@store/exercises/exercises.logic";
 import { useGetAvailableReadingsQuery } from "@store/readings/readings.logic.api";
+import { TreeNode } from "primereact/treenode";
 import { useDispatch, useSelector } from "react-redux";
 
 import { Chapter } from "@/types/createExerciseForm";
@@ -66,9 +67,22 @@ export const useExercisesSelector = () => {
     );
   };
 
+  const mapAvailableExercises = (nodes: TreeNode[], currentLevel: number = 0): TreeNode[] => {
+    return nodes
+      .filter((node) => node.data.question_type !== "page")
+      .map((node) => ({
+        ...node,
+        level: currentLevel,
+        disabled: node.children
+          ? !node.children.filter((n) => n.data.question_type !== "page").length
+          : false,
+        children: node.children ? mapAvailableExercises(node.children, currentLevel + 1) : undefined
+      }));
+  };
+
   return {
     assignmentExercises,
-    availableExercises,
+    availableExercises: mapAvailableExercises(availableExercises),
     chapters,
     removeExercises
   };

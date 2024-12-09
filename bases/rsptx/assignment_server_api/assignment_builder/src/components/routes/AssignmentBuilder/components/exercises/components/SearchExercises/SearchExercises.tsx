@@ -50,7 +50,6 @@ export const SearchExercises = () => {
       value={exercises}
       sortMode="single"
       scrollable
-      scrollHeight="500px"
       size="small"
       stripedRows
       showGridlines

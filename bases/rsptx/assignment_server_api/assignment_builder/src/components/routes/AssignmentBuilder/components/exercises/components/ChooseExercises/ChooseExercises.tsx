@@ -10,18 +10,27 @@ export const ChooseExercises = () => {
 
   return (
     <TreeTable
-      style={{ height: "75vh" }}
       selectionMode="checkbox"
       selectionKeys={[]}
       onSelect={() => {}}
       onUnselect={() => {}}
       scrollable
       value={availableExercises}
+      resizableColumns
     >
-      <Column field="title" header="Select exercises" expander></Column>
-      <Column field="name" header="Name"></Column>
-      <Column field="qnumber" header="Question number"></Column>
       <Column
+        style={{ width: "35%" }}
+        field="title"
+        header="Select exercises"
+        expander
+        bodyClassName={(_, options) => {
+          return options.props.node.disabled ? "treetable-no-checkbox" : "";
+        }}
+      ></Column>
+      <Column style={{ width: "20%" }} field="name" header="Name"></Column>
+      <Column style={{ width: "15%" }} field="qnumber" header="Question number"></Column>
+      <Column
+        style={{ width: "15%" }}
         field="htmlsrc"
         header="Preview"
         body={({ data }: { data: Exercise }) => {
@@ -32,7 +41,7 @@ export const ChooseExercises = () => {
           return <ExercisePreviewModal htmlsrc={data.htmlsrc} />;
         }}
       ></Column>
-      <Column field="question_type" header="Question type"></Column>
+      <Column style={{ width: "15%" }} field="question_type" header="Question type"></Column>
     </TreeTable>
   );
 };
