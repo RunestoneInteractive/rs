@@ -24,7 +24,6 @@ import { Panel } from "primereact/panel";
 import { SelectButton } from "primereact/selectbutton";
 import { TabView, TabPanel } from "primereact/tabview";
 
-import store from "../state/store";
 import "primeicons/primeicons.css";
 import Preview from "../renderers/preview.jsx";
 import {
@@ -52,7 +51,7 @@ import {
   setPoints,
   setReleased,
   setTimeLimit,
-  setVisible,
+  setVisible
 } from "../state/assignment/assignSlice";
 
 import { EditorContainer, EditorChooser } from "./editorModeChooser.jsx";
@@ -70,55 +69,55 @@ function diff(oldobj, newobj) {
     return {};
   }
   const diff = Object.entries({ ...oldobj, ...newobj }).filter(
-    ([key]) => oldobj[key] !== newobj[key],
+    ([key]) => oldobj[key] !== newobj[key]
   );
 
   return Object.fromEntries(diff);
 }
 let currentValue;
 
-function handleChange() {
-  // add a slight delay to prevent multiple updates
-  setTimeout(() => {
-    let previousValue = currentValue;
+// function handleChange() {
+//   // add a slight delay to prevent multiple updates
+//   setTimeout(() => {
+//     let previousValue = currentValue;
+//
+//     currentValue = select(store.getState());
+//
+//     if (currentValue && previousValue !== currentValue) {
+//       if (currentValue.id !== 0 && previousValue && previousValue.id !== 0) {
+//         let changes = diff(previousValue, currentValue);
+//         let keys = Object.keys(changes);
+//         let updateKeys = [
+//           "duedate",
+//           "points",
+//           "visible",
+//           "time_limit",
+//           "peer_async_visible",
+//           "is_peer",
+//           "is_timed",
+//           "nopause",
+//           "nofeedback",
+//           "description"
+//         ];
+//         let update = keys.filter((k) => updateKeys.includes(k));
+//
+//         if (update.length > 0 && keys.indexOf("id") === -1) {
+//           console.log(`updating assignment ${update}`);
+//           let toSend = structuredClone(currentValue);
+//
+//           delete toSend.all_assignments;
+//           delete toSend.exercises;
+//           store.dispatch(sendAssignmentUpdate(toSend));
+//           console.log("changes", changes);
+//         }
+//       }
+//     } else {
+//       //console.log("no changes")
+//     }
+//   }, 1500);
+// }
 
-    currentValue = select(store.getState());
-
-    if (currentValue && previousValue !== currentValue) {
-      if (currentValue.id !== 0 && previousValue && previousValue.id !== 0) {
-        let changes = diff(previousValue, currentValue);
-        let keys = Object.keys(changes);
-        let updateKeys = [
-          "duedate",
-          "points",
-          "visible",
-          "time_limit",
-          "peer_async_visible",
-          "is_peer",
-          "is_timed",
-          "nopause",
-          "nofeedback",
-          "description",
-        ];
-        let update = keys.filter((k) => updateKeys.includes(k));
-
-        if (update.length > 0 && keys.indexOf("id") === -1) {
-          console.log(`updating assignment ${update}`);
-          let toSend = structuredClone(currentValue);
-
-          delete toSend.all_assignments;
-          delete toSend.exercises;
-          store.dispatch(sendAssignmentUpdate(toSend));
-          console.log("changes", changes);
-        }
-      }
-    } else {
-      //console.log("no changes")
-    }
-  }, 1500);
-}
-
-const unsubscribe = store.subscribe(handleChange); // eslint-disable-line
+//const unsubscribe = store.subscribe(handleChange); // eslint-disable-line
 
 // The AssignmentEditor component is a form that allows the user to create or edit an assignment.
 // The form has fields for the name, description, due date, and total points.
@@ -140,9 +139,7 @@ function AssignmentEditor() {
   const [items, setItems] = useState(assignData.all_assignments.map((a) => a.name));
   const search = (e) => {
     setItems(
-      assignData.all_assignments.filter((a) =>
-        a.name.toLowerCase().includes(e.query.toLowerCase()),
-      ),
+      assignData.all_assignments.filter((a) => a.name.toLowerCase().includes(e.query.toLowerCase()))
     );
   };
 
@@ -193,7 +190,7 @@ function AssignmentEditor() {
       name: name,
       description: desc,
       duedate: due,
-      points: points,
+      points: points
     };
 
     dispatch(createAssignment(assignment));
@@ -292,7 +289,7 @@ export function MoreOptions() {
   const options = [
     { label: "Regular", value: "Regular" },
     { label: "Quiz / Exam", value: "Timed" },
-    { label: "Peer Instruction", value: "Peer" },
+    { label: "Peer Instruction", value: "Peer" }
   ];
   const assignData = useSelector(selectAll);
   const assignmentKind = useSelector(selectKind);

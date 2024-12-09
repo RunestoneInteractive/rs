@@ -86,12 +86,6 @@
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "error",
     "react/react-in-jsx-scope": "off",
-    "react/jsx-props-no-spreading": [
-      "error",
-      {
-        "exceptions": ["FormProvider", "Tooltip", "OrmcoTooltip"]
-      }
-    ],
     "react/jsx-curly-brace-presence": "error",
     "jsx-a11y/click-events-have-key-events": "off",
     "jsx-a11y/no-static-element-interactions": "off",
@@ -118,6 +112,6 @@
     ],
     "@typescript-eslint/naming-convention": "off",
     "quotes": ["error", "double"],
-    "prettier/prettier": ["error", { "singleQuote": false }]
+    "prettier/prettier": ["error", { "singleQuote": false, "trailingComma" : "none" }]
   }
 }
