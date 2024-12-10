@@ -21,8 +21,7 @@ export default class SQLActiveCode extends ActiveCode {
             fnprefix = bookprefix + "/_static";
         } else {
             // The else clause handles the case where you are building for a static web browser
-            bookprefix = "";
-            fnprefix = "/_static";
+            fnprefix = "_static";
         }
         this.config = {
             locateFile: (filename) => `${fnprefix}/${filename}`,
@@ -33,9 +32,20 @@ export default class SQLActiveCode extends ActiveCode {
             // set up call to load database asynchronously if given
             if (self.dburl) {
                 if (self.dburl.startsWith("/_static")) {
+                    // RST markup
                     self.dburl = `${bookprefix}${self.dburl}`;
                 } else if (self.dburl.startsWith("external")) {
-                    self.dburl = `${bookprefix}/${self.dburl}`;
+                    // PTX markup
+                    if(
+                        eBookConfig.useRunestoneServices  ||
+                        window.location.search.includes("mode=browsing")
+                    ) {
+                        // On Runestone server
+                        self.dburl = `${bookprefix}/${self.dburl}`;
+                    } else {
+                        // static individual book
+                        self.dburl = `${self.dburl}`;
+                    }
                 }
                 $(self.runButton).attr("disabled", "disabled");
                 let buttonText = $(self.runButton).text();
