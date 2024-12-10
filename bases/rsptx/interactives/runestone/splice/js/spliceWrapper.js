@@ -8,27 +8,12 @@ export class SpliceWrapper extends RunestoneBase {
 
     initSplice() {
         // SPLICE Events
-        window.addEventListener("message", (event) => {
+        window.addEventListener("message", async (event) => {
             //console.log("got a message", event);
             // if you uncomment the above you get a message about every 1/2 second from React
             // that is just a keepalive message of some kind
             if (event.data.subject == "SPLICE.reportScoreAndState") {
-                console.log("Got SPLICE.reportScoreAndState");
-                console.log(event.data.location);
-                console.log(event.data.score);
-                console.log(event.data.state);
-                let location = event.data.location;
-                if (!location) {
-                    location = event.target.location.href;
-                }
-                this.logBookEvent({
-                    event: event.data.subject,
-                    div_id: location,
-                    act: `score: ${event.data.score}`,
-                    score: event.data.score,
-                    correct: event.data.score == 1.0 ? true : false,
-                    state: event.data.state,
-                });
+                this.handleScoreAndState(event);
             } else if (event.data.subject == "SPLICE.sendEvent") {
                 console.log("Got SPLICE.sendEvent");
                 console.log(event.data.location);
@@ -42,13 +27,14 @@ export class SpliceWrapper extends RunestoneBase {
                 // Get the location and get the saved state from the DB
                 // event.source.postMessage to send data back
                 // subject is SPLICE.getState.response
-                event.source.postMessage(
-                    {
-                        subject: "SPLICE.getState.response",
-                        state: event.data.state,
-                    },
-                    event.origin
-                );
+                let location = this.getLocation(event);
+                let res = await this.getSavedState(location);
+                let state = res.detail.answer;
+                event.source.postMessage({
+                    message_id: event.data.message_id,
+                    subject: "SPLICE.getState.response",
+                    state: state,
+                });
             } else if (
                 event.origin === "https://www.myopenmath.com" &&
                 typeof event.data === "string" &&
@@ -67,9 +53,72 @@ export class SpliceWrapper extends RunestoneBase {
             }
         });
     }
+
+    getLocation(event) {
+        let location = event.data.location;
+        if (!location) {
+            let frame = this.sendingIframe(event);
+            if (frame) {
+                location = frame.src;
+            } else {
+                location = "unknown";
+                console.error(
+                    "Could not find iframe that sent the score event"
+                );
+            }
+        }
+        return location;
+    }
+
+    handleScoreAndState(event) {
+        console.log("Got SPLICE.reportScoreAndState");
+        console.log(event.data.location);
+        console.log(event.data.score);
+        console.log(event.data.state);
+        let location = this.getLocation(event);
+        this.logBookEvent({
+            event: event.data.subject,
+            div_id: location,
+            act: `score: ${event.data.score}`,
+            score: event.data.score,
+            correct: event.data.score == 1.0 ? true : false,
+            answer: JSON.stringify(event.data.state),
+        });
+    }
+
+    sendingIframe(event) {
+        for (const f of document.getElementsByTagName("iframe")) {
+            if (f.contentWindow === event.source) return f;
+        }
+        return undefined;
+    }
+
+    async getSavedState(location) {
+        try {
+            const response = await fetch("/ns/assessment/results", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    div_id: location,
+                    course: eBookConfig.course,
+                    event: "SPLICE.getState",
+                }),
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Error fetching SPLICE state:", error);
+            return null;
+        }
+    }
+
     checkLocalStorage() {}
     setLocalStorage() {}
     restoreAnswers() {}
     disableInteraction() {}
 }
-

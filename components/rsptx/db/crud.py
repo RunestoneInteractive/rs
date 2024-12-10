@@ -116,6 +116,9 @@ EVENT2TABLE = {
     "timedExam": "timed_exam",
     "webwork": "webwork_answers",
     "hparsonsAnswer": "microparsons_answers",
+    "SPLICE.score": "splice_answers",
+    "SPLICE.reportScoreAndState": "splice_answers",
+    "SPLICE.getState": "splice_answers",
 }
 
 
