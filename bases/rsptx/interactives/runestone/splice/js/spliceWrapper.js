@@ -30,11 +30,14 @@ export class SpliceWrapper extends RunestoneBase {
                 let location = this.getLocation(event);
                 let res = await this.getSavedState(location);
                 let state = res.detail.answer;
-                event.source.postMessage({
-                    message_id: event.data.message_id,
-                    subject: "SPLICE.getState.response",
-                    state: state,
-                });
+                event.source.postMessage(
+                    {
+                        message_id: event.data.message_id,
+                        subject: "SPLICE.getState.response",
+                        state: state,
+                    },
+                    "*"
+                );
             } else if (
                 event.origin === "https://www.myopenmath.com" &&
                 typeof event.data === "string" &&
