@@ -15,10 +15,7 @@ export class SpliceWrapper extends RunestoneBase {
             if (event.data.subject == "SPLICE.reportScoreAndState") {
                 this.handleScoreAndState(event);
             } else if (event.data.subject == "SPLICE.sendEvent") {
-                console.log("Got SPLICE.sendEvent");
-                console.log(event.data.location);
-                console.log(event.data.name);
-                console.log(event.data.data);
+                this.handleSpliceEvent(event);
             } else if (event.data.subject == "SPLICE.getState") {
                 console.log("Got SPLICE.getState");
                 console.log(event.data.location);
@@ -120,6 +117,18 @@ export class SpliceWrapper extends RunestoneBase {
         }
     }
 
+    handleSpliceEvent(event) {
+        console.log("Got SPLICE.sendEvent");
+        console.log(event.data.location);
+        console.log(event.data.name);
+        //console.log(event.data.data);
+        let location = this.getLocation(event);
+        this.logBookEvent({
+            event: event.data.subject,
+            div_id: location,
+            act: event.data.name,
+        });
+    }
     checkLocalStorage() {}
     setLocalStorage() {}
     restoreAnswers() {}
