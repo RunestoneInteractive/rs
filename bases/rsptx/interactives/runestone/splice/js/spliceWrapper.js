@@ -68,6 +68,7 @@ export class SpliceWrapper extends RunestoneBase {
             div_id: location,
             act: `score: ${event.data.score}`,
             score: event.data.score,
+            percent: event.data.score,
             correct: event.data.score == 1.0 ? true : false,
             answer: JSON.stringify(event.data.state),
         });
