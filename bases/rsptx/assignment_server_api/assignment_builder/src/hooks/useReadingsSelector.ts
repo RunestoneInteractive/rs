@@ -50,7 +50,7 @@ export const useReadingsSelector = () => {
   }
 
   const readingExercises = sortBy(
-    assignmentExercises.filter((ex) => !ex.reading_assignment),
+    assignmentExercises.filter((ex) => ex.reading_assignment),
     (exercise) => exercise.sorting_priority
   );
 
