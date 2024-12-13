@@ -11,13 +11,7 @@ import {
   CreateAssignmentValidationResponse,
   GetAssignmentsResponse
 } from "@/types/assignment";
-import {
-  Exercise,
-  GetExercisesResponse,
-  SearchExercisePayload,
-  SearchExercisesResponse,
-  UpdateAssignmentExercisePayload
-} from "@/types/exercises";
+import { Exercise, GetExercisesResponse, UpdateAssignmentExercisePayload } from "@/types/exercises";
 
 export const assignmentApi = createApi({
   reducerPath: "assignmentAPI",
@@ -164,6 +158,12 @@ export const assignmentApi = createApi({
         url: "/assignment/instructor/reorder_assignment_questions",
         body
       }),
+      invalidatesTags: (_, error) => {
+        if (!error) {
+          return [{ type: "Exercises" }];
+        }
+        return [];
+      },
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
           toast("Error reordering assignment exercise", {

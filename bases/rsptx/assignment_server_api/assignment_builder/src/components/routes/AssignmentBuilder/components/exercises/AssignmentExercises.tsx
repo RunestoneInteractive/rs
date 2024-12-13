@@ -1,4 +1,5 @@
 import { Loader } from "@components/ui/Loader";
+import { useReorderAssignmentExercisesMutation } from "@store/assignment/assignment.logic.api";
 import { exercisesActions, exercisesSelectors } from "@store/exercises/exercises.logic";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
@@ -11,6 +12,7 @@ import { AssignmentExercisesHeader } from "./AssignmentExercisesHeader";
 
 export const AssignmentExercises = () => {
   const dispatch = useDispatch();
+  const [reorderExercises] = useReorderAssignmentExercisesMutation();
   const { loading, error, assignmentExercises, refetch } = useExercisesSelector();
   const selectedExercises = useSelector(exercisesSelectors.getSelectedExercises);
 
@@ -47,12 +49,15 @@ export const AssignmentExercises = () => {
       selection={selectedExercises}
       selectionMode="multiple"
       onSelectionChange={(e) => setSelectedExercises(e.value as unknown as Exercise[])}
+      reorderableRows
+      onRowReorder={(e) => reorderExercises(e.value.map((exercise) => exercise.id))}
     >
       <Column selectionMode="multiple"></Column>
       <Column field="qnumber" header="qnumber"></Column>
       <Column field="autograde" header="autograde"></Column>
       <Column field="which_to_grade" header="which_to_grade"></Column>
       <Column field="points" header="points"></Column>
+      <Column rowReorder style={{ width: "3rem" }} />
     </DataTable>
   );
 };

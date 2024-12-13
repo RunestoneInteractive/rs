@@ -6,6 +6,7 @@ import {
 } from "@store/assignment/assignment.logic.api";
 import { readingsActions, readingsSelectors } from "@store/readings/readings.logic";
 import { useGetAvailableReadingsQuery } from "@store/readings/readings.logic.api";
+import sortBy from "lodash/sortBy";
 import { TreeNode } from "primereact/treenode";
 import { TreeTableEvent } from "primereact/treetable";
 import { useDispatch, useSelector } from "react-redux";
@@ -48,7 +49,10 @@ export const useReadingsSelector = () => {
     return { error: true, refetch };
   }
 
-  const readingExercises = assignmentExercises.filter((ex) => ex.reading_assignment);
+  const readingExercises = sortBy(
+    assignmentExercises.filter((ex) => !ex.reading_assignment),
+    (exercise) => exercise.sorting_priority
+  );
 
   const assignmentExercisesSubchapters = readingExercises.map(
     (assignmentExercise) => assignmentExercise.subchapter
