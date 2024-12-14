@@ -1,4 +1,5 @@
 import "./App.css";
+import { DialogContextProvider } from "@components/ui/DialogContext";
 import { ToastContextProvider } from "@components/ui/ToastContext";
 import { Menubar } from "primereact/menubar";
 import { Toaster } from "react-hot-toast";
@@ -142,14 +143,16 @@ function App() {
   return (
     <Router>
       <ToastContextProvider>
-        <Menubar model={items} start={start} />
-        <div className="layout-main-container">
-          <div className="layout-main">
-            <RouterProvider router={router} future={{ v7_startTransition: true }} />
+        <DialogContextProvider>
+          <Menubar style={{ position: "sticky", top: "0" }} model={items} start={start} />
+          <div className="layout-main-container">
+            <div className="layout-main">
+              <RouterProvider router={router} future={{ v7_startTransition: true }} />
+            </div>
           </div>
-        </div>
 
-        <Toaster toastOptions={{ duration: 3000 }} />
+          <Toaster toastOptions={{ duration: 3000 }} />
+        </DialogContextProvider>
       </ToastContextProvider>
     </Router>
   );
