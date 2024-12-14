@@ -4,30 +4,30 @@ import { Dialog } from "primereact/dialog";
 import { InputNumber } from "primereact/inputnumber";
 import { InputSwitch } from "primereact/inputswitch";
 import { ListBox } from "primereact/listbox";
+import { useState } from "react";
 import { Toaster } from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
 
 import { selectAllAssignments } from "../state/assignment/assignSlice";
 import { setSelected, selectSelectedAssignments } from "../state/assignment/assignSlice";
-import store from "../state/store";
 import {
   fetchClassRoster,
   selectRoster,
   selectSelectedStudents,
-  saveException,
+  saveException
 } from "../state/student/studentSlice";
 import { setSelectedStudents as setStudents } from "../state/student/studentSlice";
-
-store.dispatch(fetchClassRoster());
 
 export function ExceptionScheduler() {
   let students = useSelector(selectSelectedStudents);
   let assignments = useSelector(selectSelectedAssignments);
   const dispatch = useDispatch();
-  const [checked, setChecked] = React.useState(false);
-  const [tlMult, setTlMult] = React.useState(null);
-  const [extraDays, setExtraDays] = React.useState(null);
-  const [helpVisible, setHelpVisible] = React.useState(false);
+
+  dispatch(fetchClassRoster());
+  const [checked, setChecked] = useState(false);
+  const [tlMult, setTlMult] = useState(null);
+  const [extraDays, setExtraDays] = useState(null);
+  const [helpVisible, setHelpVisible] = useState(false);
   const saveAllExceptions = () => {
     for (let student of students) {
       if (assignments.length === 0) {
@@ -37,7 +37,7 @@ export function ExceptionScheduler() {
           due_date: extraDays,
           visible: checked,
           sid: student.username,
-          assignment_id: null,
+          assignment_id: null
         };
 
         dispatch(saveException(exception));
@@ -49,7 +49,7 @@ export function ExceptionScheduler() {
             due_date: extraDays,
             visible: checked,
             sid: student.username,
-            assignment_id: assignment.id,
+            assignment_id: assignment.id
           };
 
           dispatch(saveException(exception));
@@ -67,7 +67,7 @@ export function ExceptionScheduler() {
     borderRadius: "5px",
     marginBottom: "1rem",
     backgroundColor: "white",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.26)",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.26)"
   };
 
   return (
@@ -151,7 +151,7 @@ export function ExceptionScheduler() {
 function StudentPicker() {
   const dispatch = useDispatch();
   let students = useSelector(selectRoster);
-  const [selectedStudents, setSelectedStudents] = React.useState([]);
+  const [selectedStudents, setSelectedStudents] = useState([]);
 
   const handleChange = (e) => {
     setSelectedStudents(e.value);
@@ -185,7 +185,7 @@ const studentTemplate = (option) => {
 function AssignmentPicker() {
   const dispatch = useDispatch();
   let assignments = useSelector(selectAllAssignments);
-  const [selectedAssignments, setSelectedAssignments] = React.useState([]);
+  const [selectedAssignments, setSelectedAssignments] = useState([]);
 
   const handleChange = (e) => {
     setSelectedAssignments(e.value);
