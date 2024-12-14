@@ -151,7 +151,7 @@ async def log_book_event(
             if entry.act in ["start", "pause", "resume"]:
                 # We don't need these in the answer table but want the event to be timedExam.
                 create_answer_table = False
-        elif entry.event == "webwork" or entry.event == "hparsonsAnswer":
+        elif entry.event == "webwork" or entry.event == "hparsonsAnswer" or entry.event == "SPLICE.reportScoreAndState" :
             entry.answer = json.loads(useinfo_dict["answer"])
 
         if create_answer_table:
