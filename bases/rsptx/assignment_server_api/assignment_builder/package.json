@@ -5,12 +5,13 @@
   "type": "module",
   "engines": {
     "npm": ">=8.0.0",
-    "node": ">=^18.0.0"
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@handsontable/react": "^14.2.0",
     "@reduxjs/toolkit": "^2.2.1",
     "handsontable": "^14.2.0",
+    "lodash": "^4.17.21",
     "luxon": "^3.4.4",
     "primeflex": "^3.3.1",
     "primeicons": "^7.0.0",
@@ -20,9 +21,11 @@
     "react-bootstrap": "^2.10.0",
     "react-data-grid": "^7.0.0-beta.42",
     "react-dom": "^18.2.0",
+    "react-hook-form": "^7.53.2",
     "react-hot-toast": "^2.4.1",
     "react-redux": "^9.1.0",
-    "react-router-dom": "^6.22.3",
+    "react-router-dom": "^7.0.1",
+    "typesafe-actions": "^5.1.0",
     "web-vitals": "^2.1.4"
   },
   "proxy": "http://localhost",
@@ -51,6 +54,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.1",
     "@testing-library/user-event": "^14.5.2",
+    "@types/lodash": "^4.17.13",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
@@ -73,6 +77,7 @@
     "jsdom": "^25.0.1",
     "path": "^0.12.7",
     "prettier": "^3.3.3",
+    "sass-embedded": "^1.81.0",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
     "vite-plugin-checker": "^0.8.0",
