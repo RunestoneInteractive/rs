@@ -16,6 +16,7 @@ import sys
 import subprocess
 import logging
 import pathlib
+from typing import Optional
 
 from sqlalchemy import create_engine
 
@@ -90,56 +91,77 @@ celery.conf.broker_connection_retry_on_startup = True
 
 
 @celery.task(bind=True, name="clone_runestone_book")
-def clone_runestone_book(self, repo, bcname):
-    self.update_state(state="CLONING", meta={"current": "cloning"})
-    logger.debug(f"Running clone command for {repo}")
-    os.getcwd()
-    try:
-        res = subprocess.run(
-            ["git", "clone", repo, bcname], capture_output=True, cwd="/books"
-        )
-        outputlog = pathlib.Path("/books", bcname, "buildlog.txt")
-        with open(outputlog, "w") as olfile:
-            olfile.write(res.stdout)
-            olfile.write("\n====\n")
-            olfile.write(res.stderr)
-        if res.returncode != 0:
-            err = res.stderr.decode("utf8")
-            logger.debug(f"ERROR: {err}")
-            self.update_state(state="FAILED", meta={"current": err[:20]})
-            return False
-    except Exception as exc:
-        self.update_state(
-            state="FAILURE",
-            meta={
-                "exc_type": "RuntimeError",
-                "exc_message": str(exc),
-                "current": "git clone failed",
-            },
-        )
+def clone_runestone_book(self, book, url=None):
+    """
+    Clone a runestone book from github and update its repo_path in the library table.
 
-        return False
+    :param book: book name (basecourse)
+    :param url: Optional git repository URL. If not provided, defaults to RunestoneInteractive GitHub repo
+    :return: True if successful, False if clone fails or database update fails
+    """
+    if url is None:
+        url = f"https://github.com/RunestoneInteractive/{book}"
 
-    # check the name of the repo move the top level file
+    if not os.path.exists("/books"):
+        os.mkdir("/books")
+
     os.chdir("/books")
-    dirs = os.listdir()
-    if bcname not in dirs:
-        self.update_state(state="RENAMING", meta={"step": "clone"})
-        repo_parts = repo.split("/")
-        folder = repo_parts[-1].replace(".git", "").strip()
-        os.rename(folder, bcname)
-
-    # Add the base course to the database
+    res = subprocess.run(["git", "clone", url], capture_output=True)
+    if res.returncode != 0:
+        logger.error(f"git clone failed for {book}")
+        logger.error(res.stderr.decode())
+        return False
 
     return True
 
 
+def get_work_dir(book: str) -> str:
+    """
+    Get the working directory for a book, using repo_path from library table if available.
+
+    :param book: book name (basecourse)
+    :return: working directory path - either custom repo_path or default /books/{book}
+    """
+    repo_path = get_repo_path(book)
+    return repo_path if repo_path else f"/books/{book}"
+
+
+def get_repo_path(book: str) -> Optional[str]:
+    """
+    Get the repo_path for a book from the library table
+
+    :param book: book name (basecourse)
+    :return: repo_path or None if not found
+    """
+    engine = create_engine(config.dburl)
+    df = pd.read_sql_query(
+        """select repo_path from library where basecourse = %(cname)s""",
+        params=dict(cname=book),
+        con=engine,
+    )
+    if df.empty:
+        return None
+    return df.iloc[0]["repo_path"]
+
+
 def git_pull(self, book, source_path=None):
+    """
+    Pull latest version of a book from github.
+
+    :param self: celery task
+    :param book: book name (basecourse)
+    :param source_path: Path to the book source (default: /books/{book})
+    :return: True if successful
+    """
+    work_dir = get_work_dir(book)
+
+    logger.debug(f"work_dir = {work_dir}")
+
     res = subprocess.run(
-        ["git", "reset", "--hard", "HEAD"], capture_output=True, cwd=f"/books/{book}"
+        ["git", "reset", "--hard", "HEAD"], capture_output=True, cwd=work_dir
     )
     if res.returncode != 0:
-        outputlog = pathlib.Path("/books", book, "cli.log")
+        outputlog = pathlib.Path(work_dir, "cli.log")
         with open(outputlog, "a") as olfile:
             olfile.write(res.stdout.decode("utf8"))
             olfile.write("\n====\n")
@@ -154,10 +176,10 @@ def git_pull(self, book, source_path=None):
         )
         raise Ignore()
     res = subprocess.run(
-        ["git", "clean", "--force", "-d"], capture_output=True, cwd=f"/books/{book}"
+        ["git", "clean", "--force", "-d"], capture_output=True, cwd=work_dir
     )
     if res.returncode != 0:
-        outputlog = pathlib.Path("/books", book, "cli.log")
+        outputlog = pathlib.Path(work_dir, "cli.log")
         with open(outputlog, "a") as olfile:
             olfile.write(res.stdout.decode("utf8"))
             olfile.write("\n====\n")
@@ -174,10 +196,10 @@ def git_pull(self, book, source_path=None):
     res = subprocess.run(
         ["git", "pull", "--rebase", "--no-edit", "--strategy-option=theirs"],
         capture_output=True,
-        cwd=f"/books/{book}",
+        cwd=work_dir,
     )
     if res.returncode != 0:
-        outputlog = pathlib.Path("/books", book, "cli.log")
+        outputlog = pathlib.Path(work_dir, "cli.log")
         with open(outputlog, "a") as olfile:
             olfile.write(res.stdout.decode("utf8"))
             olfile.write("\n====\n")
@@ -195,50 +217,65 @@ def git_pull(self, book, source_path=None):
 
 @celery.task(bind=True, name="build_runestone_book")
 def build_runestone_book(self, book):
+    """
+    Build a runestone book using the runestone build tools.
+
+    :param self: celery task
+    :param book: book name (basecourse)
+    :return: True if build succeeds, False otherwise
+    """
     logger.debug(f"Building {book}")
     self.update_state(state="CHECKING", meta={"current": "pull latest"})
     git_pull(self, book)
     myclick = MyClick(self, "BUILDING")
     self.update_state(state="BUILDING", meta={"current": "running build"})
-    os.chdir(f"/books/{book}")
+
+    repo_path = get_work_dir(book)
+    os.chdir(repo_path)
+
     res = _build_runestone_book(config, book, click=myclick)
     if res:
         self.update_state(state="FINISHING", meta={"current": "changing permissions"})
     else:
         self.update_state(state="BUILDING", meta={"current": "Build failed -- see log"})
 
-    res = subprocess.run(
-        "chgrp -R www-data .", shell=True, capture_output=True, cwd=f"/books/{book}"
-    )
-    if res.returncode != 0:
-        return False
-    res = subprocess.run(
-        "chmod -R go+rw .", shell=True, capture_output=True, cwd=f"/books/{book}"
-    )
-    if res.returncode != 0:
+    try:
+        subprocess.run(["chgrp", "-R", "www-data", "."], check=True, cwd=repo_path)
+        subprocess.run(["chmod", "-R", "go+rw", "."], check=True, cwd=repo_path)
+    except subprocess.CalledProcessError as e:
+        self.update_state(
+            state="FAILURE",
+            meta={"exc_type": "RuntimeError", "exc_message": str(e)},
+        )
         return False
     self.update_state(state="SUCCESS", meta={"current": "build complete"})
     update_last_build(book)
-    # todo: replace with update_library_book (see crud.py) -- but it is async
     return True
 
 
 @celery.task(bind=True, name="build_ptx_book")
 def build_ptx_book(self, book, generate=False, target="runestone", source_path=None):
     """
-    Build a ptx book
+    Build a PreTeXt book using the PreTeXt build tools.
 
     :param self: celery task
-    :param book: book name
-    :return: True if successful
+    :param book: book name (basecourse)
+    :param generate: Whether to generate the book (default: False)
+    :param target: build target (default: 'runestone')
+    :param source_path: Path to the book source (default: /books/{book})
+    :return: True if build succeeds, False otherwise
     """
     if target is None:
         target = "runestone"
     logger.debug(f"Building {book} with target {target} at {source_path}")
+
+    work_dir = get_work_dir(book)
+
     if source_path:
-        base_path = pathlib.Path("/books", book, source_path)
+        base_path = pathlib.Path(work_dir, source_path)
     else:
-        base_path = pathlib.Path("/books", book)
+        base_path = pathlib.Path(work_dir)
+
     outputlog = pathlib.Path(base_path, "cli.log")
     start_time = datetime.datetime.now()
     with open(outputlog, "w") as olfile:
@@ -260,12 +297,12 @@ def build_ptx_book(self, book, generate=False, target="runestone", source_path=N
         return False
 
     res = subprocess.run(
-        "chgrp -R www-data .", shell=True, capture_output=True, cwd=f"/books/{book}"
+        "chgrp -R www-data .", shell=True, capture_output=True, cwd=work_dir
     )
     if res.returncode != 0:
         return False
     res = subprocess.run(
-        "chmod -R go+rw .", shell=True, capture_output=True, cwd=f"/books/{book}"
+        "chmod -R go+rw .", shell=True, capture_output=True, cwd=work_dir
     )
     if res.returncode != 0:
         return False
@@ -279,6 +316,13 @@ def build_ptx_book(self, book, generate=False, target="runestone", source_path=N
 # you will need to make sure to copy the key into /usr/src/app/
 @celery.task(bind=True, name="deploy_book")
 def deploy_book(self, book):
+    """
+    Deploy a book to the production server.
+
+    :param self: celery task
+    :param book: book name (basecourse)
+    :return: True if deployment succeeds, False otherwise
+    """
     logger.debug(f"Deploying {book}")
     user = "bmiller"
     self.update_state(state="STARTING", meta={"current": "pull latest"})
@@ -304,6 +348,14 @@ def deploy_book(self, book):
 
 @celery.task(bind=True, name="useinfo_to_csv")
 def useinfo_to_csv(self, classname, username):
+    """
+    Extract useinfo data from the database and save it to a CSV file.
+
+    :param self: celery task
+    :param classname: course name
+    :param username: username for the CSV file
+    :return: True if extraction succeeds, False otherwise
+    """
     os.chdir("/usr/src/app")
     dburl = os.environ.get("DEV_DBURL")
     eng = create_engine(dburl)
@@ -324,6 +376,14 @@ def useinfo_to_csv(self, classname, username):
 
 @celery.task(bind=True, name="code_to_csv")
 def code_to_csv(self, classname, username):
+    """
+    Extract code data from the database and save it to a CSV file.
+
+    :param self: celery task
+    :param classname: course name
+    :param username: username for the CSV file
+    :return: True if extraction succeeds, False otherwise
+    """
     os.chdir("/usr/src/app")
     dburl = os.environ.get("DEV_DBURL")
     eng = create_engine(dburl)
@@ -346,6 +406,13 @@ def code_to_csv(self, classname, username):
 
 @celery.task(bind=True, name="anonymize_data_dump")
 def anonymize_data_dump(self, **kwargs):
+    """
+    Anonymize data for a course and save it to a datashop file.
+
+    :param self: celery task
+    :param kwargs: keyword arguments for the anonymization process
+    :return: True if anonymization succeeds, False otherwise
+    """
     os.chdir("/usr/src/app")
     basecourse = kwargs["basecourse"]
     del kwargs["basecourse"]
@@ -380,10 +447,9 @@ def anonymize_data_dump(self, **kwargs):
 
 def update_last_build(book):
     """
-    Update the last build time for a book in the library table
+    Update the last build timestamp for a book by touching the build_success file.
 
-    :param book: book name
-    :return: None
+    :param book: book name (basecourse)
     """
     # check to see if build_success exists and if not create it
     if not os.path.exists(f"/books/{book}/build_success"):
@@ -394,10 +460,9 @@ def update_last_build(book):
 
 def update_last_sync(book):
     """
-    Update the last sync time for a book in the library table
+    Update the last sync timestamp for a book by touching the sync_success file.
 
-    :param book: book name
-    :return: None
+    :param book: book name (basecourse)
     """
     # check to see if sync_success exists and if not create it
     if not os.path.exists(f"/books/{book}/sync_success"):

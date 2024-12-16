@@ -36,10 +36,10 @@ export default class JUnitTestParser {
             td.classList.add("ac-feedback");
             if (match[match.length - 1] == "true") {
                 td.classList.add("ac-feedback-pass");
-                td.innerHTML = "Pass";
+                td.innerHTML = $.i18n("msg_activecode_passed");
             } else {
                 td.classList.add("ac-feedback-fail");
-                td.innerHTML = "Fail";
+                td.innerHTML = $.i18n("msg_activecode_failed");
             }
             tr.appendChild(td);
             tbl.appendChild(tr);

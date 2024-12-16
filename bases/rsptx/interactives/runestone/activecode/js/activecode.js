@@ -60,7 +60,6 @@ CodeMirror.commands.autocomplete = function (cm) {
 export class ActiveCode extends RunestoneBase {
     constructor(opts) {
         super(opts);
-        var suffStart;
         var orig = $(opts.orig).find("textarea")[0];
         this.containerDiv = opts.orig;
         this.useRunestoneServices = opts.useRunestoneServices;
@@ -120,17 +119,55 @@ export class ActiveCode extends RunestoneBase {
         if (this.includes) {
             this.includes = this.includes.split(/\s+/);
         }
-        let prefixEnd = this.code.indexOf("^^^^");
-        if (prefixEnd > -1) {
-            this.prefix = this.code.substring(0, prefixEnd);
-            this.code = this.code.substring(prefixEnd + 5);
+        // first check for some iotests at VERY end of code
+        // They will be a single line JSON object that comes after a line that says ===iotests===
+        let iotestsStart = this.code.indexOf("===iotests===");
+        if (iotestsStart > -1) {
+            let iotestText = this.code.substring(iotestsStart + 13);
+            this.iotests = JSON.parse(iotestText);
+            this.code = this.code.substring(0, iotestsStart);
         }
-        suffStart = this.code.indexOf("====");
-        if (suffStart > -1) {
-            // The +5 gets past the ====\n
-            this.suffix = this.code.substring(suffStart + 5);
+
+        // Handle prefix/suffixes
+        // ^^^^ = invisible prefix
+        // ^^^! = visible prefix
+        // ==== = invisible suffix
+        // ===! = visible suffix
+        // Tags may or may not have a trailing /n assume that if they do, it is to be removed.
+        // newline is standard in rst markup, but sometimes intentionally not emitted by pretext
+        let prefixMarker = this.code.match(/\^\^\^\^\^*/);  // regex to handle 5+ symbols which old code allowed
+        if (prefixMarker) {
+            let prefixEnd = prefixMarker.index;  //invisible suffix
+            let prefixLength = prefixMarker[0].length;
+            this.prefix = this.code.substring(0, prefixEnd);
+            let markerLength = this.code[prefixEnd + prefixLength] == "\n" ? prefixLength + 1 : prefixLength;
+            this.code = this.code.substring(prefixEnd + markerLength);
+        }
+        // If there are both invisible and visible prefixes, the invisible one must come first
+        let visiblePrefixEnd = this.code.indexOf("^^^!");
+        if (visiblePrefixEnd > -1) {
+            this.visiblePrefixEnd = visiblePrefixEnd;
+            let markerLength = this.code[visiblePrefixEnd + 4] == "\n" ? 5 : 4;
+            this.code = this.code.substring(0, visiblePrefixEnd) + this.code.substring(visiblePrefixEnd + markerLength);
+        }
+        // There may be both a visible and invisible (tests) suffix
+        // Currently assumed the visible one is first in the source so we can peel off the
+        // invisible one and leave visible one in place.
+        let suffixMarker = this.code.match(/=====*/);  // regex to handle 5+ symbols which old code allowed
+        if (suffixMarker) {
+            let suffStart = suffixMarker.index;  //invisible suffix
+            let suffLength = suffixMarker[0].length;
+            let markerLength = this.code[suffStart + suffLength] == "\n" ? suffLength + 1 : suffLength;
+            this.suffix = this.code.substring(suffStart + markerLength);
             this.code = this.code.substring(0, suffStart);
         }
+        let visibleSuffixStart = this.code.indexOf("===!");
+        if (visibleSuffixStart > -1) {
+            let markerLength = this.code[visibleSuffixStart + 4] == "\n" ? 5 : 4;
+            this.visibleSuffixLength = this.code.length - visibleSuffixStart - markerLength;
+            this.code = this.code.substring(0, visibleSuffixStart) + this.code.substring(visibleSuffixStart + markerLength);
+        }
+
         this.history = [this.code];
         this.createEditor();
         this.createOutput();
@@ -191,6 +228,12 @@ export class ActiveCode extends RunestoneBase {
         } else if (edmode === "octave" || edmode === "MATLAB") {
             edmode = "text/x-octave";
         }
+
+        // Conditionally add a gutter to the editor to show the locked prefix and suffix
+        let gutterList = [];
+        if(this.visiblePrefixEnd || this.visibleSuffixLength) {
+          gutterList = [{className: "CodeMirror-lock-markers", style: "width: 6px"}];
+        }
         var editor = CodeMirror(codeDiv, {
             value: this.code,
             lineNumbers: true,
@@ -198,12 +241,62 @@ export class ActiveCode extends RunestoneBase {
             indentUnit: 4,
             matchBrackets: true,
             autoMatchParens: true,
+            gutters: gutterList,
             extraKeys: {
                 Tab: "indentMore",
                 "Shift-Tab": "indentLess",
                 "Ctrl-Space": "autocomplete",
             },
         });
+
+        function makeLockMarker() {
+            // div with svg icon of a lock
+            var marker = document.createElement("div");
+            marker.innerHTML = `<div style="margin-top:0.2ex;"><svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="#5f6368"><path d="M263.72-96Q234-96 213-117.15T192-168v-384q0-29.7 21.15-50.85Q234.3-624 264-624h24v-96q0-79.68 56.23-135.84 56.22-56.16 136-56.16Q560-912 616-855.84q56 56.16 56 135.84v96h24q29.7 0 50.85 21.15Q768-581.7 768-552v384q0 29.7-21.16 50.85Q725.68-96 695.96-96H263.72Zm.28-72h432v-384H264v384Zm216.21-120Q510-288 531-309.21t21-51Q552-390 530.79-411t-51-21Q450-432 429-410.79t-21 51Q408-330 429.21-309t51 21ZM360-624h240v-96q0-50-35-85t-85-35q-50 0-85 35t-35 85v96Zm-96 456v-384 384Z"/></svg></div>`;
+            marker.setAttribute("title", "Locked");
+            return marker;
+        }
+
+        let setLockedRegions = () => {
+            if (this.visiblePrefixEnd) {
+                let lastLine = editor.posFromIndex(this.visiblePrefixEnd - 1).line;
+                for(let i = 0; i <= lastLine; i++) {
+                    editor.setGutterMarker(i, "CodeMirror-lock-markers", makeLockMarker());
+                }
+                let endPos = editor.posFromIndex(this.visiblePrefixEnd);
+                console.log("endPos", endPos)
+                editor.markText(
+                    { line: 0, ch: 0 },
+                    { line: endPos.line, ch: endPos.ch },
+                    { readOnly: true, atomic: false, inclusiveLeft: true, inclusiveRight: false }
+                );
+            }
+            if (this.visibleSuffixLength) {
+                let endIndex = editor.doc.getValue().length - this.visibleSuffixLength;
+                let endPos = editor.posFromIndex(endIndex);
+                let lastLine = editor.doc.lastLine();
+                for(let i = endPos.line; i <= lastLine; i++) {
+                    editor.setGutterMarker(i, "CodeMirror-lock-markers", makeLockMarker());
+                }
+                // include preceeding newline
+                let endPos2 = editor.posFromIndex(endIndex - 1);
+                editor.markText(
+                    { line: endPos2.line, ch: endPos2.ch },
+                    { line: editor.doc.lastLine() + 1 },
+                    { readOnly: true, atomic: false, inclusiveLeft: false, inclusiveRight: true }
+                );
+            }
+        }
+        setLockedRegions();
+
+        CodeMirror.on(editor, "change", (cm, obj,) => {
+            // setValue indicates scrubber switched history, need to reset locked regions
+            if(obj.origin === "setValue") {
+                editor.doc.clearGutter("CodeMirror-lock-markers");
+                setLockedRegions();
+            }
+        });
+
         // Make the editor resizable
         $(editor.getWrapperElement()).resizable({
             resize: function () {

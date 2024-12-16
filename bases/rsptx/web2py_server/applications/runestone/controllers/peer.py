@@ -45,11 +45,14 @@ def instructor():
         & (db.assignments.course == auth.user.course_id)
     ).select(orderby=~db.assignments.duedate)
 
+    course_attrs = getCourseAttributesDict(auth.user.course_id)
+
     return dict(
         course_id=auth.user.course_name,
         course=get_course_row(db.courses.ALL),
         assignments=assignments,
         is_instructor=True,
+        **course_attrs,
     )
 
 
@@ -74,7 +77,7 @@ def dashboard():
     current_question, done = _get_current_question(assignment_id, next)
     assignment = db(db.assignments.id == assignment_id).select().first()
     course = db(db.courses.course_name == auth.user.course_name).select().first()
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     if "latex_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
     db.useinfo.insert(
@@ -331,7 +334,7 @@ def student():
         & (db.assignments.visible == True)
     ).select(orderby=~db.assignments.duedate)
     course = db(db.courses.course_name == auth.user.course_name).select().first()
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     if "latext_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
 
@@ -355,7 +358,7 @@ def peer_question():
     current_question, done = _get_current_question(assignment_id, False)
     assignment = db(db.assignments.id == assignment_id).select().first()
     course = db(db.courses.course_name == auth.user.course_name).select().first()
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     if "latex_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
 
@@ -402,26 +405,40 @@ def make_pairs():
     peeps = df.sid.to_list()
     sid_ans = df.set_index("sid")["answer"].to_dict()
 
+    # If the instructor is in the list of students, remove them
     if auth.user.username in peeps:
         peeps.remove(auth.user.username)
+
+    # Shuffle the list of students
     random.shuffle(peeps)
+
+    # Create a list of groups
     group_list = []
     done = len(peeps) == 0
     while not done:
+        # Start a new group with one student
         group = [peeps.pop()]
+
+        # Try to add more students to the group
         for i in range(group_size - 1):
             try:
+                # Find a student with a different answer than the first student in the group
                 group.append(find_good_partner(group, peeps, sid_ans))
             except IndexError:
-                logger.debug("except")
+                # If no more students are left to add, stop
                 done = True
+        # If the group only has one student, add them to the previous group
         if len(group) == 1:
             group_list[-1].append(group[0])
         else:
+            # Otherwise add the group to the list of groups
             group_list.append(group)
+
+        # Stop if all students have been grouped
         if len(peeps) == 0:
             done = True
 
+    # Create a dictionary mapping each student to their group
     gdict = {}
     for group in group_list:
         for p in group:
@@ -429,6 +446,7 @@ def make_pairs():
             gl.remove(p)
             gdict[p] = gl
 
+    # Save the groups to the redis database
     for k, v in gdict.items():
         r.hset(f"partnerdb_{auth.user.course_name}", k, json.dumps(v))
     r.hset(f"{auth.user.course_name}_state", "mess_count", "0")
@@ -530,7 +548,7 @@ def peer_async():
 
     current_question, all_done = _get_numbered_question(assignment_id, qnum)
     course = db(db.courses.course_name == auth.user.course_name).select().first()
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     if "latex_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
 

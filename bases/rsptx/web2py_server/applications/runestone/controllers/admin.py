@@ -180,7 +180,7 @@ def assignments():
 
     # See `models/db_ebook.py` for course_attributes table
     set_latex_preamble(course.base_course)
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, base_course)
 
     return dict(
         coursename=auth.user.course_name,
@@ -195,6 +195,7 @@ def assignments():
         ptx_js_version=course_attrs.get("ptx_js_version", "0.33"),
         webwork_js_version=course_attrs.get("webwork_js_version", "2.18"),
         selected_assignment=selected_assignment,
+        default_language=course_attrs.get("default_language", "python"),
     )
 
 
@@ -206,7 +207,7 @@ def practice():
     response.title = "Practice"
     course = db(db.courses.id == auth.user.course_id).select().first()
     course_start_date = course.term_start_date
-
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     start_date = course_start_date + datetime.timedelta(days=13)
     end_date = start_date + datetime.timedelta(weeks=12)  # provide a reasonable default
     max_practice_days = 50
@@ -345,6 +346,7 @@ def practice():
             error_graded=error_graded,
             complete=already_exists,
             course=course,
+            default_language=course_attrs.get("default_language", "python"),
         )
     else:
         try:
@@ -461,6 +463,7 @@ def practice():
             complete=no_error,
             course=course,
             is_instructor=True,
+            default_language=course_attrs.get("default_language", "python"),
         )
 
 
@@ -613,7 +616,7 @@ def admin():
                 studentdict[row.user_id] = name
 
     course = db(db.courses.course_name == auth.user.course_name).select().first()
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
 
     instructor_course_list = db(
         (db.course_instructor.instructor == auth.user.id)
@@ -828,7 +831,7 @@ def grading():
             q_list.append(chapter_q.name)
         chapter_labels[row.chapter_label] = q_list
 
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, base_course)
 
     set_latex_preamble(base_course)
     return dict(
@@ -850,6 +853,7 @@ def grading():
         is_instructor=True,
         ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
         webwork_js_version=course_attrs.get("webwork_js_version", "2.17"),
+        default_language=course_attrs.get("default_language", "python"),
         course=course,
     )
 

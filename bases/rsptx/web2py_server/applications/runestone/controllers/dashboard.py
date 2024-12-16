@@ -117,6 +117,7 @@ def index():
             return redirect(URL("admin", "admin"))
 
     course = db(db.courses.id == auth.user.course_id).select().first()
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     assignments = db(db.assignments.course == course.id).select(
         db.assignments.ALL, orderby=db.assignments.name
     )
@@ -327,6 +328,7 @@ def index():
         recentactivity=recentactivity,
         dailyactivity=dailyactivity,
         origin=c_origin,
+        **course_attrs,
     )
 
 
@@ -463,7 +465,7 @@ def grades():
     assignments = db(db.assignments.course == course.id).select(
         db.assignments.ALL, orderby=(db.assignments.duedate, db.assignments.id)
     )
-    course_attrs = getCourseAttributesDict(course.id)
+    course_attrs = getCourseAttributesDict(course.id, course.base_course)
     # recalculate total points for each assignment in case the stored
     # total is out of sync.
     duedates = []
@@ -798,7 +800,6 @@ def subchapoverview():
         chapter_clause = f" and chapter = '{chap_labs[0]}'"
         chapter = chap_labs[0]
 
-    
     if request.vars.tablekind == "correctcount":
         return make_correct_count_table(chapters, chapter, thecourse, dburl, course)
 
@@ -843,8 +844,13 @@ def subchapoverview():
         logger.error(
             "Empty Dataframe after pivot for {} ".format(auth.user.course_name)
         )
-        session.flash = "Error: No interactive activities found for this chapter"
-        return redirect(URL("dashboard", "subchapoverview"))
+        return dict(
+            course_name=auth.user.course_name,
+            course_id=auth.user.course_name,
+            course=thecourse,
+            chapter_frame=chapters,
+            summary="{}",
+        )
 
     if request.vars.tablekind == "sccount":
         x = pt.to_dict()

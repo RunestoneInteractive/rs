@@ -172,5 +172,9 @@ window.MathJax = {
   eBookConfig.websocketUrl = "{{=settings.websocket_url}}" // web2py should set this in 1.py
   eBookConfig.enableDebug = true ? "{{=settings.debug}}" == "True" : false;
   eBookConfig.enableScratchAC = true;
-  eBookConfig.acDefaultLanguage = "python";
+  {{ if 'default_language' in globals(): }}
+    eBookConfig.acDefaultLanguage = "{{= default_language}}"
+  {{ else: }}
+    eBookConfig.acDefaultLanguage = "python"
+  {{ pass }}
 </script>
