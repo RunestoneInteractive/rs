@@ -785,6 +785,13 @@ async def get_grader(
     return await get_builder(request, user, response_class)
 
 
+@router.get("/builderV2")
+async def get_builderV2(
+    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+):
+    return await get_builder(request, user, response_class)
+
+
 @router.get("/except")
 async def get_except(
     request: Request, user=Depends(auth_manager), response_class=HTMLResponse

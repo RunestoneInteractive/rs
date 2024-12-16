@@ -116,6 +116,9 @@ EVENT2TABLE = {
     "timedExam": "timed_exam",
     "webwork": "webwork_answers",
     "hparsonsAnswer": "microparsons_answers",
+    "SPLICE.score": "splice_answers",
+    "SPLICE.reportScoreAndState": "splice_answers",
+    "SPLICE.getState": "splice_answers",
 }
 
 
@@ -1702,7 +1705,7 @@ async def fetch_questions_by_search_criteria(
     async with async_session() as session:
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
-        return [QuestionValidator.from_orm(q) for q in res.scalars()]
+        return [QuestionValidator.from_orm(q) for q in res.scalars().fetchall()]
 
 
 async def fetch_assignment_question(
@@ -2933,3 +2936,17 @@ async def create_deadline_exception(
         session.add(new_entry)
 
     return DeadlineExceptionValidator.from_orm(new_entry)
+
+
+async def get_repo_path(book: str) -> Optional[str]:
+    """
+    Get the repo_path for a book from the library table
+
+    :param book: book name (basecourse)
+    :return: repo_path or None if not found
+    """
+    async with async_session() as session:
+        query = select(Library.repo_path).where(Library.basecourse == book)
+        result = await session.execute(query)
+        repo_path = result.scalar()
+        return repo_path

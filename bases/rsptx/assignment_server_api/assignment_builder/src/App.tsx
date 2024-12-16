@@ -3,12 +3,7 @@ import { ToastContextProvider } from "@components/ui/ToastContext";
 import { Menubar } from "primereact/menubar";
 import { Toaster } from "react-hot-toast";
 import { useSelector } from "react-redux";
-import {
-  createBrowserRouter,
-  RouterProvider,
-  useSearchParams,
-  BrowserRouter as Router
-} from "react-router-dom";
+import { createBrowserRouter, RouterProvider, useSearchParams } from "react-router-dom";
 
 import { routerService } from "@/router";
 
@@ -101,6 +96,10 @@ function App() {
     createBrowserRouter(
       [
         {
+          path: "/",
+          element: <OldAssignmentBuilder />
+        },
+        {
           path: "/builderV2",
           async lazy() {
             let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
@@ -140,18 +139,16 @@ function App() {
   );
 
   return (
-    <Router>
-      <ToastContextProvider>
-        <Menubar model={items} start={start} />
-        <div className="layout-main-container">
-          <div className="layout-main">
-            <RouterProvider router={router} future={{ v7_startTransition: true }} />
-          </div>
+    <ToastContextProvider>
+      <Menubar model={items} start={start} />
+      <div className="layout-main-container">
+        <div className="layout-main">
+          <RouterProvider router={router} future={{ v7_startTransition: true }} />
         </div>
+      </div>
 
-        <Toaster toastOptions={{ duration: 3000 }} />
-      </ToastContextProvider>
-    </Router>
+      <Toaster toastOptions={{ duration: 3000 }} />
+    </ToastContextProvider>
   );
 }
 

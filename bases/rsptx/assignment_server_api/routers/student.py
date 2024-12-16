@@ -439,7 +439,7 @@ async def doAssignment(
     deadline = assignment.duedate
     if timezoneoffset:
         deadline = deadline + datetime.timedelta(hours=float(timezoneoffset))
-    assignment.duedate = assignment.duedate.strftime("%a %d, %b %Y %I:%m %p")
+    assignment.duedate = assignment.duedate.strftime("%a %d, %b %Y %I:%M %p")
     enforce_pastdue = False
     if assignment.enforce_due and timestamp > deadline:
         enforce_pastdue = True

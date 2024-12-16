@@ -105,6 +105,7 @@ rst_prolog = (
 # Set keep_warnings to true so that warnings show up in text
 #
 keep_warnings = True
+generate_component_labels=False
 
 # -- Options for HTML output ---------------------------------------------------
 

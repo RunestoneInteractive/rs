@@ -16,7 +16,7 @@ ARG wheel=rsmanage-2.0.0-py3-none-any.whl
 # The docker-compose command would look like this:
 
 # This is meant to be run
-# docker compose run rsmanage 
+# docker compose run rsmanage
 
 # set work directory
 WORKDIR /usr/src/app
@@ -30,6 +30,7 @@ ENV DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_de
 RUN pip install --upgrade pip
 RUN apt update
 RUN apt install -y rsync
+RUN apt install -y --no-install-recommends libpq-dev
 
 
 # copy project
