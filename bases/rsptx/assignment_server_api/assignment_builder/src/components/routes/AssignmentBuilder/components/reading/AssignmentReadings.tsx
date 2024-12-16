@@ -1,5 +1,6 @@
 import { AssignmentReadingsHeader } from "@components/routes/AssignmentBuilder/components/reading/AssignmentReadingsHeader";
 import { Loader } from "@components/ui/Loader";
+import { useReorderAssignmentExercisesMutation } from "@store/assignment/assignment.logic.api";
 import { readingsActions, readingsSelectors } from "@store/readings/readings.logic";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
@@ -12,6 +13,7 @@ export const AssignmentReadings = () => {
   const dispatch = useDispatch();
   const { loading, error, readingExercises, refetch } = useReadingsSelector();
   const selectedReadings = useSelector(readingsSelectors.getSelectedReadings);
+  const [reorderReadings] = useReorderAssignmentExercisesMutation();
 
   const setSelectedReadings = (readings: Exercise[]) => {
     dispatch(readingsActions.setSelectedReadings(readings));
@@ -46,6 +48,8 @@ export const AssignmentReadings = () => {
       selection={selectedReadings}
       selectionMode="multiple"
       onSelectionChange={(e) => setSelectedReadings(e.value as unknown as Exercise[])}
+      reorderableRows
+      onRowReorder={(e) => reorderReadings(e.value.map((reading) => reading.id))}
     >
       <Column selectionMode="multiple"></Column>
       <Column field="chapter" header="Chapter"></Column>
@@ -53,6 +57,7 @@ export const AssignmentReadings = () => {
       <Column field="numQuestions" header="Number of questions"></Column>
       <Column field="activities_required" header="Required"></Column>
       <Column field="points" header="Points"></Column>
+      <Column rowReorder style={{ width: "3rem" }} />
     </DataTable>
   );
 };
