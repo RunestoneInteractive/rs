@@ -3,7 +3,8 @@
 .layout-main-container {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    min-height: 95vh;
+    max-height: 95vh;
     justify-content: space-between;
     padding: 2rem 2rem 2rem 2rem;
     transition: margin-left variables.$transitionDuration;
