@@ -15,9 +15,9 @@ export const ChooseExercises = () => {
       selectionKeys={selectedKeys}
       onSelect={addExercises}
       onUnselect={removeExercisesFromAvailableExercises}
-      scrollable
       value={availableExercises}
       resizableColumns
+      className="table_sticky-header"
     >
       <Column
         style={{ width: "35%" }}

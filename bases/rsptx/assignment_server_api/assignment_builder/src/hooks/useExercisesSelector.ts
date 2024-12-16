@@ -1,3 +1,4 @@
+import { useToastContext } from "@components/ui/ToastContext";
 import { assignmentSelectors } from "@store/assignment/assignment.logic";
 import {
   useGetExercisesQuery,
@@ -18,6 +19,7 @@ export const useExercisesSelector = () => {
   const selectedAssignment = useSelector(assignmentSelectors.getSelectedAssignment);
   const selectedExercises = useSelector(exercisesSelectors.getSelectedExercises);
   const [removeExercisesPost] = useRemoveAssignmentExercisesMutation();
+  const { showToast } = useToastContext();
 
   const { addExerciseToAssignment } = useAddAssignmentExercise();
 
@@ -68,15 +70,27 @@ export const useExercisesSelector = () => {
     (assignmentExercise) => assignmentExercise.name
   );
 
-  const removeExercises = (toRemove: Array<{ id: number }>) => {
+  const removeExercises = async (toRemove: Array<{ id: number }>) => {
     const idsToRemove = toRemove.map((item) => item.id);
 
-    removeExercisesPost(idsToRemove);
-    dispatch(
-      exercisesActions.setSelectedExercises(
-        selectedExercises.filter((r) => !idsToRemove.includes(r.id))
-      )
-    );
+    if (!idsToRemove.length) {
+      return;
+    }
+
+    const { error } = await removeExercisesPost(idsToRemove);
+
+    if (!error) {
+      showToast({
+        severity: "info",
+        summary: "Success",
+        detail: `${idsToRemove.length} exercises successfully removed`
+      });
+      dispatch(
+        exercisesActions.setSelectedExercises(
+          selectedExercises.filter((r) => !idsToRemove.includes(r.id))
+        )
+      );
+    }
   };
 
   const getLeafNodes = (tree: TreeNode[]): TreeNode[] => {
@@ -100,10 +114,10 @@ export const useExercisesSelector = () => {
     return leaves;
   };
 
-  const removeExercisesFromAvailableExercises = ({ node }: TreeTableEvent) => {
+  const removeExercisesFromAvailableExercises = async ({ node }: TreeTableEvent) => {
     const leafs = getLeafNodes([node]).map((x) => x.data.id as unknown as number);
 
-    removeExercises(assignmentExercises.filter((ex) => leafs.includes(ex.question_id)));
+    await removeExercises(assignmentExercises.filter((ex) => leafs.includes(ex.question_id)));
   };
 
   const filterAvailableExercises = (nodes: TreeNode[], currentLevel: number = 0): TreeNode[] => {
@@ -126,14 +140,34 @@ export const useExercisesSelector = () => {
       return;
     }
 
-    const { data, children } = node;
+    let count = 0;
+    const promises: Promise<void>[] = [];
 
-    if (children) {
-      children.forEach((child) => addExercises({ node: child }));
-      return;
-    }
+    // eslint-disable-next-line @typescript-eslint/no-shadow
+    const processNode = ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
+      const { data, children } = node;
 
-    await addExerciseToAssignment([data]);
+      if (children) {
+        children.forEach((child) => processNode({ node: child }));
+        return;
+      }
+
+      const promise = addExerciseToAssignment([data]).then(() => {
+        count++;
+      });
+
+      promises.push(promise);
+    };
+
+    processNode({ node });
+
+    await Promise.all(promises);
+
+    showToast({
+      severity: "info",
+      summary: "Success",
+      detail: `${count} exercises successfully added`
+    });
   };
 
   const getSelectedKeys = (

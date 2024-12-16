@@ -59,11 +59,14 @@ export const SearchExercises = () => {
       sortField="name"
       sortOrder={1}
       removableSort
+      className="table_sticky-header"
       header={
-        <SearchExercisesHeader
-          selectedExercises={selectedExercises}
-          setSelectedExercises={setSelectedExercises}
-        />
+        !!selectedExercises.length && (
+          <SearchExercisesHeader
+            selectedExercises={selectedExercises}
+            setSelectedExercises={setSelectedExercises}
+          />
+        )
       }
     >
       <Column selectionMode="multiple"></Column>

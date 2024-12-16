@@ -28,15 +28,13 @@ export const SearchExercisesHeader = ({
         if (response.every((x) => !!x.data)) {
           showToast({
             severity: "info",
-            sticky: true,
             summary: "Success",
-            detail: "Exercise has been added!"
+            detail: `${selectedExercises.length} exercises successfully added`
           });
           setSelectedExercises([]);
         } else {
           showToast({
             severity: "error",
-            sticky: true,
             summary: "Error",
             detail: "Something went wrong. Please, try again"
           });
@@ -49,15 +47,13 @@ export const SearchExercisesHeader = ({
     <div className="flex flex-row justify-content-between pt-2 pb-2">
       <div>
         <ConfirmPopup />
-        {!!selectedExercises.length && (
-          <Button
-            onClick={onAddClick}
-            icon="pi pi-plus"
-            label={`Add ${selectedExercises.length} exercises`}
-            size="small"
-            severity="danger"
-          ></Button>
-        )}
+        <Button
+          onClick={onAddClick}
+          icon="pi pi-plus"
+          label={`Add ${selectedExercises.length} exercises`}
+          size="small"
+          severity="danger"
+        ></Button>
       </div>
     </div>
   );
