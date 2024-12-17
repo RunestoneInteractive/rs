@@ -84,7 +84,7 @@ export const ChooseExercises = () => {
       header={<ChooseExercisesHeader resetSelections={resetSelections} />}
     >
       <Column
-        style={{ width: "35%" }}
+        style={{ width: "45%" }}
         field="title"
         header="Select exercises"
         expander
@@ -93,9 +93,8 @@ export const ChooseExercises = () => {
         }}
       ></Column>
       <Column style={{ width: "20%" }} field="name" header="Name"></Column>
-      <Column style={{ width: "15%" }} field="qnumber" header="Question number"></Column>
       <Column
-        style={{ width: "15%" }}
+        style={{ width: "5rem" }}
         field="htmlsrc"
         header="Preview"
         body={({ data }: { data: Exercise }) => {
@@ -106,6 +105,7 @@ export const ChooseExercises = () => {
           return <ExercisePreviewModal htmlsrc={data.htmlsrc} />;
         }}
       ></Column>
+      <Column style={{ width: "15%" }} field="qnumber" header="Question number"></Column>
       <Column style={{ width: "15%" }} field="question_type" header="Question type"></Column>
     </TreeTable>
   );

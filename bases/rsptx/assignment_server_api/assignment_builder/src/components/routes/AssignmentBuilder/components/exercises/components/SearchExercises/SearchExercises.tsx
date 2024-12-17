@@ -95,6 +95,18 @@ export const SearchExercises = () => {
         filterElement={exerciseTypeFilter}
       ></Column>
       <Column
+        style={{ width: "5rem" }}
+        field="htmlsrc"
+        header="Preview"
+        body={(data: Exercise) => {
+          if (!data?.htmlsrc) {
+            return null;
+          }
+
+          return <ExercisePreviewModal htmlsrc={data.htmlsrc} />;
+        }}
+      ></Column>
+      <Column
         field="author"
         header="Author"
         sortable
@@ -119,17 +131,6 @@ export const SearchExercises = () => {
       ></Column>
       <Column field="qnumber" header="Question" sortable></Column>
       <Column field="topic" header="Topic" sortable></Column>
-      <Column
-        field="htmlsrc"
-        header="Preview"
-        body={(data: Exercise) => {
-          if (!data?.htmlsrc) {
-            return null;
-          }
-
-          return <ExercisePreviewModal htmlsrc={data.htmlsrc} />;
-        }}
-      ></Column>
     </DataTable>
   );
 };
