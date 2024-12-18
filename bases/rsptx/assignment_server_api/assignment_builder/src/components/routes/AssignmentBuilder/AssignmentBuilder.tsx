@@ -5,6 +5,7 @@ import {
   useCreateAssignmentMutation,
   useGetAssignmentsQuery
 } from "@store/assignment/assignment.logic.api";
+import { useGetAvailableReadingsQuery } from "@store/readings/readings.logic.api";
 import { InputSwitch } from "primereact/inputswitch";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -25,6 +26,12 @@ export const AssignmentBuilder = () => {
   const [createAssignment] = useCreateAssignmentMutation();
   const [selectedAssignmentName, setSelectedAssignmentName] = useState<string | undefined>();
   const { selectedAssignment, updateAssignment } = useSelectedAssignment();
+
+  useGetAvailableReadingsQuery({
+    skipreading: false,
+    from_source_only: true,
+    pages_only: false
+  });
 
   useEffect(() => {
     dispatch(

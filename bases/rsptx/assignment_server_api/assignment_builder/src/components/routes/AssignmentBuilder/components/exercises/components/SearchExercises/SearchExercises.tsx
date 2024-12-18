@@ -2,19 +2,28 @@ import { ExercisePreviewModal } from "@components/routes/AssignmentBuilder/compo
 import { SearchExercisesHeader } from "@components/routes/AssignmentBuilder/components/exercises/components/SearchExercises/SearchExercisesHeader";
 import { exerciseTypes } from "@components/routes/AssignmentBuilder/components/exercises/components/exerciseTypes";
 import { Loader } from "@components/ui/Loader";
+import {
+  searchExercisesActions,
+  searchExercisesSelectors
+} from "@store/searchExercises/searchExercises.logic";
 import { FilterMatchMode } from "primereact/api";
 import { Chip } from "primereact/chip";
 import { Column, ColumnFilterElementTemplateOptions } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import { Dropdown } from "primereact/dropdown";
-import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 import { useExerciseSearch } from "@/hooks/useExerciseSearch";
 import { Exercise } from "@/types/exercises";
 
 export const SearchExercises = () => {
   const { loading, error, exercises, refetch } = useExerciseSearch();
-  const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
+  const dispatch = useDispatch();
+  const selectedExercises = useSelector(searchExercisesSelectors.getSelectedExercises);
+
+  const setSelectedExercises = (ex: Exercise[]) => {
+    dispatch(searchExercisesActions.setSelectedExercises(ex));
+  };
 
   if (loading) {
     return <Loader />;
@@ -60,14 +69,7 @@ export const SearchExercises = () => {
       sortOrder={1}
       removableSort
       className="table_sticky-header"
-      header={
-        !!selectedExercises.length && (
-          <SearchExercisesHeader
-            selectedExercises={selectedExercises}
-            setSelectedExercises={setSelectedExercises}
-          />
-        )
-      }
+      header={!!selectedExercises.length && <SearchExercisesHeader />}
     >
       <Column selectionMode="multiple"></Column>
       <Column

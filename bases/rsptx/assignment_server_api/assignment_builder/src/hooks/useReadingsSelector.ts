@@ -6,7 +6,6 @@ import {
   useUpdateAssignmentExerciseMutation
 } from "@store/assignment/assignment.logic.api";
 import { readingsActions, readingsSelectors } from "@store/readings/readings.logic";
-import { useGetAvailableReadingsQuery } from "@store/readings/readings.logic.api";
 import sortBy from "lodash/sortBy";
 import { TreeNode } from "primereact/treenode";
 import { TreeTableEvent } from "primereact/treetable";
@@ -19,6 +18,7 @@ export const useReadingsSelector = () => {
   const [addReadingPost] = useUpdateAssignmentExerciseMutation();
   const [removeReadingsPost] = useRemoveAssignmentExercisesMutation();
   const { showToast } = useToastContext();
+  const availableReadings = useSelector(readingsSelectors.getAvailableReadings);
 
   const {
     isLoading: isExercisesLoading,
@@ -27,27 +27,15 @@ export const useReadingsSelector = () => {
     refetch: refetchExercises
   } = useGetExercisesQuery(selectedAssignment!.id);
 
-  const {
-    isLoading: isReadingsLoading,
-    isError: isReadingsError,
-    data: availableReadings,
-    refetch: refetchReadings
-  } = useGetAvailableReadingsQuery({
-    skipreading: false,
-    from_source_only: true,
-    pages_only: false
-  });
-
   const refetch = () => {
-    refetchReadings();
     refetchExercises();
   };
 
-  if (isExercisesLoading || isReadingsLoading) {
+  if (isExercisesLoading) {
     return { loading: true };
   }
 
-  if (!assignmentExercises || !availableReadings || isReadingsError || isExercisesError) {
+  if (!assignmentExercises || isExercisesError) {
     return { error: true, refetch };
   }
 
@@ -60,28 +48,12 @@ export const useReadingsSelector = () => {
     (assignmentExercise) => assignmentExercise.subchapter
   );
 
-  const removeChildrenWithoutTitleImmutable = (nodes: TreeNode[]): TreeNode[] => {
-    return nodes
-      .map((node) => {
-        const { children, ...rest } = node;
-
-        const filteredChildren = children
-          ? removeChildrenWithoutTitleImmutable(children).filter((child) => child.data?.title)
-          : [];
-
-        return filteredChildren.length > 0 ? { ...rest, children: filteredChildren } : { ...rest };
-      })
-      .filter((node) => node.data?.title);
-  };
-
-  const selectReadingsData = removeChildrenWithoutTitleImmutable(availableReadings);
-
   const subchapterSelectionKeys = assignmentExercisesSubchapters.map((subchapter) => [
     subchapter,
     { checked: true, partialChecked: false }
   ]);
 
-  const chapterSelectionKeys = selectReadingsData.map((chapter: TreeNode) => [
+  const chapterSelectionKeys = availableReadings.map((chapter: TreeNode) => [
     chapter.key,
     {
       checked: chapter.children!.every((child) =>
@@ -140,7 +112,7 @@ export const useReadingsSelector = () => {
     await Promise.all(promises);
 
     showToast({
-      severity: "info",
+      severity: "success",
       summary: "Success",
       detail: `${count} readings successfully added`
     });
@@ -153,7 +125,7 @@ export const useReadingsSelector = () => {
 
     if (!error) {
       showToast({
-        severity: "info",
+        severity: "success",
         summary: "Success",
         detail: `${idsToRemove.length} exercises successfully removed`
       });
@@ -184,7 +156,6 @@ export const useReadingsSelector = () => {
       ...Object.fromEntries(subchapterSelectionKeys),
       ...Object.fromEntries(chapterSelectionKeys)
     },
-    selectReadingsData,
     addReadings,
     removeReadings,
     removeReadingsFromAvailableReadings

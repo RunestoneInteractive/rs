@@ -1,23 +1,87 @@
+import { ChooseExercisesHeader } from "@components/routes/AssignmentBuilder/components/exercises/components/ChooseExercises/ChooseExercisesHeader";
 import { ExercisePreviewModal } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreviewModal";
+import {
+  chooseExercisesActions,
+  chooseExercisesSelectors
+} from "@store/chooseExercises/chooseExercises.logic";
+import { exercisesSelectors } from "@store/exercises/exercises.logic";
+import { differenceBy } from "lodash";
+import uniqBy from "lodash/uniqBy";
 import { Column } from "primereact/column";
-import { TreeTable } from "primereact/treetable";
+import { TreeTable, TreeTableEvent } from "primereact/treetable";
+import { useDispatch, useSelector } from "react-redux";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { Exercise } from "@/types/exercises";
+import { getLeafNodes, getSelectedKeys } from "@/utils/exercise";
 
 export const ChooseExercises = () => {
-  const { availableExercises, selectedKeys, addExercises, removeExercisesFromAvailableExercises } =
-    useExercisesSelector();
+  const dispatch = useDispatch();
+  const { assignmentExercises = [] } = useExercisesSelector();
+  const availableExercises = useSelector(exercisesSelectors.getAvailableExercises);
+
+  const selectedKeys = useSelector(chooseExercisesSelectors.getSelectedKeys);
+  const selectedExercises = useSelector(chooseExercisesSelectors.getSelectedExercises);
+
+  const updateState = (selEx: Exercise[]) => {
+    dispatch(chooseExercisesActions.setSelectedExercises(selEx));
+
+    dispatch(
+      chooseExercisesActions.setSelectedKeys({
+        ...selectedKeys,
+        ...getSelectedKeys(availableExercises, selEx)
+      })
+    );
+
+    dispatch(
+      chooseExercisesActions.setExercisesToAdd(
+        differenceBy(selEx, assignmentExercises, (ex) => ex.id)
+      )
+    );
+
+    dispatch(
+      chooseExercisesActions.setExercisesToRemove(
+        differenceBy(assignmentExercises, selEx, (ex) => ex.id)
+      )
+    );
+  };
+
+  const resetSelections = () => {
+    dispatch(
+      chooseExercisesActions.setSelectedKeys(
+        getSelectedKeys(availableExercises, assignmentExercises)
+      )
+    );
+    dispatch(chooseExercisesActions.setSelectedExercises(assignmentExercises));
+    dispatch(chooseExercisesActions.resetSelections());
+  };
+
+  const handleSelect = ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
+    const entriesToAdd = getLeafNodes([node]).map((x) => x.data as Exercise);
+    const updatedSelectedExercises = uniqBy([...selectedExercises, ...entriesToAdd], (n) => n.id);
+
+    updateState(updatedSelectedExercises);
+  };
+
+  const handleUnselect = ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
+    const entriesToRemove = getLeafNodes([node]).map((x) => x.data as Exercise);
+    const updatedSelectedExercises = selectedExercises.filter(
+      (x) => !entriesToRemove.some((y) => x.id === y.id)
+    );
+
+    updateState(updatedSelectedExercises);
+  };
 
   return (
     <TreeTable
       selectionMode="checkbox"
       selectionKeys={selectedKeys}
-      onSelect={addExercises}
-      onUnselect={removeExercisesFromAvailableExercises}
+      onSelect={handleSelect}
+      onUnselect={handleUnselect}
       value={availableExercises}
       resizableColumns
       className="table_sticky-header"
+      header={<ChooseExercisesHeader resetSelections={resetSelections} />}
     >
       <Column
         style={{ width: "35%" }}
