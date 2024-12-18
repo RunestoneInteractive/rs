@@ -1,3 +1,4 @@
+import sortBy from "lodash/sortBy";
 import { TreeNode } from "primereact/treenode";
 
 import { Exercise } from "@/types/exercises";
@@ -18,7 +19,7 @@ export const getLeafNodes = (tree: TreeNode[]): TreeNode[] => {
   const leaves: TreeNode[] = [];
 
   const traverse = (node: TreeNode) => {
-    if (!node.children || node.children.length === 0) {
+    if (!node.children) {
       leaves.push(node);
       return;
     }
@@ -119,4 +120,11 @@ export const removeChildrenWithoutTitleImmutable = (nodes: TreeNode[]): TreeNode
       return filteredChildren.length > 0 ? { ...rest, children: filteredChildren } : { ...rest };
     })
     .filter((node) => node.data?.title);
+};
+
+export const getExercisesWithoutReadings = (exercises: Exercise[]) => {
+  return sortBy(
+    exercises.filter((ex) => !ex.reading_assignment && ex.question_type !== "page"),
+    (exercise) => exercise.sorting_priority
+  );
 };

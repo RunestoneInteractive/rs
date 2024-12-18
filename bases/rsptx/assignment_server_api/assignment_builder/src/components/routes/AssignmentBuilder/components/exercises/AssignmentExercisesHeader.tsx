@@ -73,7 +73,7 @@ export const AssignmentExercisesHeader = () => {
             icon="pi pi-trash"
             label={`Remove ${selectedExercises.length} exercises`}
             size="small"
-            severity="success"
+            severity="danger"
           ></Button>
         )}
         {!selectedExercises.length && (

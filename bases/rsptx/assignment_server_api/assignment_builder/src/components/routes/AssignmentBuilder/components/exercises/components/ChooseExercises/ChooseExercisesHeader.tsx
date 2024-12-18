@@ -45,7 +45,7 @@ export const ChooseExercisesHeader = ({ resetSelections }: { resetSelections: Vo
             icon="pi pi-check"
             label="Choose exercises"
             size="small"
-            severity="success"
+            severity="warning"
           />
         )}
       </div>

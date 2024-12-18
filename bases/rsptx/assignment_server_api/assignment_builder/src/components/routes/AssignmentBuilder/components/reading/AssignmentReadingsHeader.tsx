@@ -72,7 +72,7 @@ export const AssignmentReadingsHeader = () => {
             icon="pi pi-trash"
             label={`Remove ${selectedReadings.length} readings`}
             size="small"
-            severity="success"
+            severity="danger"
           ></Button>
         )}
         {!selectedReadings.length && (

@@ -6,10 +6,10 @@ import {
 } from "@store/assignment/assignment.logic.api";
 import { exercisesActions, exercisesSelectors } from "@store/exercises/exercises.logic";
 import { readingsSelectors } from "@store/readings/readings.logic";
-import sortBy from "lodash/sortBy";
 import { useDispatch, useSelector } from "react-redux";
 
 import { Chapter } from "@/types/createExerciseForm";
+import { getExercisesWithoutReadings } from "@/utils/exercise";
 
 export const useExercisesSelector = () => {
   const dispatch = useDispatch();
@@ -26,10 +26,7 @@ export const useExercisesSelector = () => {
     refetch: refetchExercises
   } = useGetExercisesQuery(selectedAssignment!.id);
 
-  const assignmentExercises = sortBy(
-    exercises.filter((ex) => !ex.reading_assignment),
-    (exercise) => exercise.sorting_priority
-  );
+  const assignmentExercises = getExercisesWithoutReadings(exercises);
 
   const refetch = () => {
     refetchExercises();

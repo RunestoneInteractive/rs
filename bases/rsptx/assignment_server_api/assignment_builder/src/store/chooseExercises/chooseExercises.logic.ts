@@ -4,6 +4,7 @@ import { ActionType } from "typesafe-actions";
 import { RootState } from "@/state/store";
 import { Exercise } from "@/types/exercises";
 import { SelectedKey } from "@/types/treeNode";
+import { getExercisesWithoutReadings } from "@/utils/exercise";
 
 export interface ChooseExercisesState {
   selectedKeys: Record<string, SelectedKey>;
@@ -24,7 +25,7 @@ export const chooseExercisesSlice = createSlice({
   initialState: INITIAL_STATE,
   reducers: {
     setSelectedExercises: (state, action: PayloadAction<Exercise[]>) => {
-      state.selectedExercises = action.payload;
+      state.selectedExercises = getExercisesWithoutReadings(action.payload);
     },
     setExercisesToAdd: (state, action: PayloadAction<Exercise[]>) => {
       state.exercisesToAdd = action.payload;
