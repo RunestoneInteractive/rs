@@ -5,7 +5,7 @@ import { Button } from "primereact/button";
 import { ConfirmPopup, confirmPopup } from "primereact/confirmpopup";
 import { Dialog } from "primereact/dialog";
 import { MenuItem } from "primereact/menuitem";
-import { TabMenu } from "primereact/tabmenu";
+import { TabMenu, TabMenuTabChangeEvent } from "primereact/tabmenu";
 import { JSX, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 
@@ -33,6 +33,7 @@ export const AssignmentViewComponent = ({
 
 export const AddExerciseModal = () => {
   const dialogRef = useRef<Dialog>(null);
+  const tabMenuRef = useRef<TabMenu>(null);
   const [showDialog, setShowDialog] = useState(false);
   const modes: MenuItem[] = [
     { label: "Choose exercises from the book", id: "choose" },
@@ -45,21 +46,20 @@ export const AddExerciseModal = () => {
   const exercisesToRemove = useSelector(chooseExercisesSelectors.getExercisesToRemove);
   const selectedExercisesFromSearch = useSelector(searchExercisesSelectors.getSelectedExercises);
 
-  const hasAnyChanges =
-    !!exercisesToAdd.length || !!exercisesToRemove.length || !!selectedExercisesFromSearch.length;
+  const hasChooseExerciseChanges = !!exercisesToAdd.length || !!exercisesToRemove.length;
+  const hasSearchExerciseChanges = !!selectedExercisesFromSearch.length;
 
   const onCloseButtonClick = () => {
-    const toAddLength = exercisesToAdd.length + selectedExercisesFromSearch.length;
-    const addText = toAddLength ? `${toAddLength} exercises to add` : "";
-    const removeText = exercisesToRemove.length
-      ? `${exercisesToRemove.length} exercises to remove`
-      : "";
-    const conjunction = addText && removeText ? " and " : "";
+    if (mode === 0 && hasChooseExerciseChanges) {
+      const addText = exercisesToAdd.length ? `${exercisesToAdd.length} exercises to add` : "";
+      const removeText = exercisesToRemove.length
+        ? `${exercisesToRemove.length} exercises to remove`
+        : "";
+      const conjunction = addText && removeText ? " and " : "";
 
-    const popupText = `You have selected ${addText}${conjunction}${removeText}.
-Closing this modal will not add or remove any exercises. Close the dialog?`;
+      const popupText = `You have selected ${addText}${conjunction}${removeText}.
+      Closing this modal will not add/remove these exercises to the assignment. Close the dialog?`;
 
-    if (hasAnyChanges) {
       confirmPopup({
         style: {
           width: "30vw"
@@ -70,9 +70,27 @@ Closing this modal will not add or remove any exercises. Close the dialog?`;
         defaultFocus: "accept",
         accept: () => setShowDialog(false)
       });
-    } else {
-      setShowDialog(false);
+      return;
     }
+
+    if (mode === 1 && hasSearchExerciseChanges) {
+      const popupText = `You have selected ${selectedExercisesFromSearch.length} exercises to add. 
+      Closing this modal will not add these exercises to the assignment. Close the dialog?`;
+
+      confirmPopup({
+        style: {
+          width: "30vw"
+        },
+        target: dialogRef?.current?.getCloseButton(),
+        message: popupText,
+        icon: "pi pi-exclamation-triangle",
+        defaultFocus: "accept",
+        accept: () => setShowDialog(false)
+      });
+      return;
+    }
+
+    setShowDialog(false);
   };
 
   const handleClose = () => setShowDialog(false);
@@ -107,13 +125,60 @@ Closing this modal will not add or remove any exercises. Close the dialog?`;
     });
   };
 
+  const onTabChange = (e: TabMenuTabChangeEvent) => {
+    if (mode === 0 && hasChooseExerciseChanges) {
+      const addText = exercisesToAdd.length ? `${exercisesToAdd.length} exercises to add` : "";
+      const removeText = exercisesToRemove.length
+        ? `${exercisesToRemove.length} exercises to remove`
+        : "";
+      const conjunction = addText && removeText ? " and " : "";
+
+      const popupText = `You have selected ${addText}${conjunction}${removeText}.
+Switching tabs will not add/remove these exercises to the assignment. Do you still want to proceed?`;
+
+      confirmPopup({
+        style: {
+          width: "30vw"
+        },
+        target: tabMenuRef?.current?.getElement().querySelector<HTMLLIElement>("#choose")!,
+        message: popupText,
+        icon: "pi pi-exclamation-triangle",
+        defaultFocus: "accept",
+        accept: () => setMode(e.index)
+      });
+      return;
+    }
+
+    if (mode === 1 && hasSearchExerciseChanges) {
+      const popupText = `You have selected ${selectedExercisesFromSearch.length} exercises to add. 
+      Switching tabs will not add these exercises to the assignment. Do you still want to proceed?`;
+
+      confirmPopup({
+        style: {
+          width: "30vw"
+        },
+        target: tabMenuRef?.current?.getElement().querySelector<HTMLLIElement>("#search")!,
+        message: popupText,
+        icon: "pi pi-exclamation-triangle",
+        defaultFocus: "accept",
+        accept: () => setMode(e.index)
+      });
+      return;
+    }
+
+    setMode(e.index);
+  };
+
+  console.log(tabMenuRef?.current?.getElement().querySelector<HTMLLIElement>("#search"));
   return (
     <div>
       <Button type="button" label="Add Exercise" onClick={handleOpen} size="small" />
       <ConfirmPopup />
       <Dialog
         ref={dialogRef}
-        header={<TabMenu model={modes} activeIndex={mode} onTabChange={(e) => setMode(e.index)} />}
+        header={
+          <TabMenu ref={tabMenuRef} model={modes} activeIndex={mode} onTabChange={onTabChange} />
+        }
         visible={showDialog}
         style={{ width: "90vw" }}
         headerStyle={{ padding: "1rem 2rem" }}
