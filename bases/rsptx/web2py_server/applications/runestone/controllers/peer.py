@@ -77,7 +77,11 @@ def dashboard():
     current_question, done = _get_current_question(assignment_id, next)
     assignment = db(db.assignments.id == assignment_id).select().first()
     course = db(db.courses.course_name == auth.user.course_name).select().first()
+
     course_attrs = getCourseAttributesDict(course.id, course.base_course)
+    if "enable_ab" not in course_attrs:
+        course_attrs["enable_ab"] = False
+
     if "latex_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
     db.useinfo.insert(
@@ -387,12 +391,30 @@ def find_good_partner(group, peeps, answer_dict):
         return peeps.pop()
 
 
+def process_peep(p, peeps, target_list, other_list, in_person_groups, mode):
+    target_list.append(p)
+    peeps.remove(p)
+    other_peeps = find_set_containing_string(in_person_groups, p)
+    logger.debug(f"other_peeps = {other_peeps}")
+    # if no other peeps then this person must be put into a chat group not an in-person group
+    if not other_peeps and mode == "in_person":
+        other_list.append(p)
+        return
+    for op in other_peeps:
+        if op in peeps:
+            peeps.remove(op)
+            logger.debug(f"removed {op} from the peeps list")
+        if op not in target_list:
+            target_list.append(op)
+
+
 @auth.requires(
     lambda: verifyInstructorStatus(auth.user.course_id, auth.user),
     requires_login=True,
 )
 def make_pairs():
     response.headers["content-type"] = "application/json"
+    is_ab = request.vars.get("is_ab", False)
     div_id = request.vars.div_id
     df = _get_lastn_answers(1, div_id, auth.user.course_name, request.vars.start_time)
     group_size = int(request.vars.get("group_size", 2))
@@ -414,6 +436,37 @@ def make_pairs():
 
     # Create a list of groups
     group_list = []
+    done = len(peeps) == 0
+    if is_ab:
+        in_person_groups = _get_local_groups(auth.user.course_name)
+        peeps_in_person = []
+        peeps_in_chat = []
+
+        peep_queue = peeps[:]
+        while peep_queue:
+            p = peep_queue.pop()
+            if p in peeps_in_person or p in peeps_in_chat:
+                continue
+
+            if random.random() < 0.5:
+                logger.debug(f"adding {p} to the in_person list")
+                process_peep(
+                    p,
+                    peeps,
+                    peeps_in_person,
+                    peeps_in_chat,
+                    in_person_groups,
+                    "in_person",
+                )
+            else:
+                process_peep(
+                    p, peeps, peeps_in_chat, peeps_in_person, in_person_groups, "chat"
+                )
+
+        peeps = peeps_in_chat
+        # Now peeps contains only those who need to be paired up for chat
+        logger.debug(f"FINAL PEEPS IN CHAT = {peeps}")
+        logger.debug(f"FINAL PEEPS IN PERSON = {peeps_in_person}")
     done = len(peeps) == 0
     while not done:
         # Start a new group with one student
@@ -451,9 +504,53 @@ def make_pairs():
         r.hset(f"partnerdb_{auth.user.course_name}", k, json.dumps(v))
     r.hset(f"{auth.user.course_name}_state", "mess_count", "0")
     logger.info(f"DONE makeing pairs for {auth.user.course_name} {gdict}")
+    # todo: if we are doing AB testing then we need not broadcast or maybe broadcast,
+    # but with a way for individual students to know if they are in person or not
+    # maybe a in_persondb paralell to the partnerdb that can be sent like the enableChat
+    # which is not broadcast!
     _broadcast_peer_answers(sid_ans)
     logger.info(f"DONE broadcasting pair information")
+    # todo: broadcast the enableFaceChat message to the in-person chatters
+    if is_ab:
+        _broadcast_faceChat(peeps_in_person)
     return json.dumps("success")
+
+
+def find_set_containing_string(list_of_sets, target_string):
+    # iterating over all sets ensures that even if someone forgets to enter their group
+    # or someone accidentally leaves someone out of the group we will still find them
+    result_set = set()
+    for s in list_of_sets:
+        if target_string in s:
+            result_set |= s
+    return result_set
+
+
+def _get_local_groups(course_name):
+    query = f"""
+SELECT u1.*
+FROM useinfo u1
+JOIN (
+    SELECT sid, MAX(timestamp) AS last_entry
+    FROM useinfo
+    WHERE course_id = '{course_name}' and event = 'peergroup'
+    GROUP BY sid
+) u2 ON u1.sid = u2.sid AND u1.timestamp = u2.last_entry
+WHERE u1.course_id = '{course_name}' and u1.event = 'peergroup';
+"""
+    in_person_groups = []
+    res = db.executesql(query)
+    for row in res:
+        logger.debug(row)
+        # act is index 4
+        peeps = row[4].split(":")[1]
+        peeps = set(peeps.split(","))
+        # sid is index 2
+        if row[2] not in peeps:
+            peeps.add(row[2])
+        in_person_groups.append(peeps)
+
+    return in_person_groups
 
 
 def _broadcast_peer_answers(answers):
@@ -481,6 +578,28 @@ def _broadcast_peer_answers(answers):
             "message": "enableChat",
             "broadcast": False,
             "answer": json.dumps(pdict),
+            "course_name": auth.user.course_name,
+        }
+        r.publish("peermessages", json.dumps(mess))
+
+
+def _broadcast_faceChat(peeps):
+    """
+    Send the message to enable the face chat to the students in the peeps list
+    """
+
+    r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
+    for p in peeps:
+        # create a message from p1 to put into the publisher queue
+        # it seems odd to not have a to field in the message...
+        # but it is not necessary as the client can figure out how it is to
+        # based on who it is from.
+        mess = {
+            "type": "control",
+            "from": p,
+            "to": p,
+            "message": "enableFaceChat",
+            "broadcast": False,
             "course_name": auth.user.course_name,
         }
         r.publish("peermessages", json.dumps(mess))

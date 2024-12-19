@@ -246,7 +246,11 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
                         and data.get("to", None) == username
                     ):
                         await manager.send_personal_message(username, data)
-                    elif data["message"] != "enableChat" and username in partner_list:
+                    elif (
+                        data["message"] != "enableChat"
+                        and partner_list
+                        and username in partner_list
+                    ):
                         await manager.send_personal_message(username, data)
                         # log the message
                         # todo - we should not log messages that are 'control' messages
@@ -263,7 +267,14 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
                                 )
                             )
                     else:
-                        rslogger.info(f"{os.getpid()}: {mess_from=} is not {username}")
+                        if not partner_list:
+                            rslogger.info(
+                                f"PEERCOM {os.getpid()}: {mess_from=} has no partner list"
+                            )
+                        else:
+                            rslogger.info(
+                                f"PEERCOM {os.getpid()}: {mess_from=} is not {username}"
+                            )
 
             if wsres is not None:
                 rslogger.info(

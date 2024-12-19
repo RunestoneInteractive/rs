@@ -55,7 +55,9 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="allow"
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="allow",
     )
 
     google_ga: str = ""
@@ -80,10 +82,13 @@ class Settings(BaseSettings):
     #    a string.  The value will actually be ``BookServerConfig.development``` or whatever.
     #    Our style will be to compare against the Enum not the ``.name`` attribute.
     #
+
     server_config: str = "development"
 
-    # server_config is the master make sure everything else matches
-    book_server_config: BookServerConfig = server_config  # type: ignore
+    # server_config is the master make sure everything else matches it
+    # can be overriden from the Settings constructor. which we do using
+    # the server_config environment variable
+    book_server_config: BookServerConfig = BookServerConfig.development
 
     # Database setup: this must be an standard (synchronous) connection; for example:
     #
@@ -107,7 +112,7 @@ class Settings(BaseSettings):
             "development": self.dev_dburl,
             "test": self.test_dburl,
             "production": self.dburl,
-        }[self.book_server_config.value]
+        }[self.server_config]
 
     # Return the async equivalent of the URI from ``sync_database_url``.
     @property
@@ -200,4 +205,4 @@ class Settings(BaseSettings):
     jobe_server: str = "http://jobe"
 
 
-settings = Settings()
+settings = Settings(book_server_config=os.environ.get("SERVER_CONFIG", "development"))

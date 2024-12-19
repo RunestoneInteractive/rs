@@ -304,6 +304,10 @@ function warnAndStopVote(event) {
         butt.classList.replace("btn-info", "btn-secondary");
         document.querySelector("#makep").disabled = false;
         document.querySelector("#facechat").disabled = false;
+        let ab = document.querySelector("#makeabgroups");
+        if (ab) {
+            ab.disabled = false;
+        }
     } else {
         let butt = document.querySelector("#vote3");
         butt.classList.replace("btn-info", "btn-secondary");
@@ -315,7 +319,7 @@ function warnAndStopVote(event) {
     event.srcElement.disabled = true;
 }
 
-async function makePartners() {
+async function makePartners(event, is_ab) {
     // first make sure there are enough votes to make pairs
     if (answerCount < 2) {
         alert("Not enough votes to make groups");
@@ -328,6 +332,7 @@ async function makePartners() {
         div_id: currentQuestion,
         start_time: startTime, // set in dashboard.html when loaded
         group_size: gs,
+        is_ab: is_ab,
     };
     let jsheaders = new Headers({
         "Content-type": "application/json; charset=utf-8",
