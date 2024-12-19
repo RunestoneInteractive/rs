@@ -22,7 +22,9 @@ export const useExerciseSearch = () => {
     loading,
     error,
     exercises: exercises.filter(
-      (e) => !assignmentExercises.some((assignmentExercise) => assignmentExercise.id === e.id)
+      (e) =>
+        !assignmentExercises.some((assignmentExercise) => assignmentExercise.id === e.id) &&
+        e.question_type !== "page"
     ),
     refetch
   };

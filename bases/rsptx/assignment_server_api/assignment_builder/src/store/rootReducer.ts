@@ -1,10 +1,12 @@
 import { combineReducers } from "@reduxjs/toolkit";
 import { assignmentSlice } from "@store/assignment/assignment.logic";
 import { assignmentApi } from "@store/assignment/assignment.logic.api";
+import { chooseExercisesSlice } from "@store/chooseExercises/chooseExercises.logic";
 import { exercisesSlice } from "@store/exercises/exercises.logic";
 import { exercisesApi } from "@store/exercises/exercises.logic.api";
 import { readingsSlice } from "@store/readings/readings.logic";
 import { readingsApi } from "@store/readings/readings.logic.api";
+import { searchExercisesSlice } from "@store/searchExercises/searchExercises.logic";
 import { userSlice } from "@store/user/userLogic";
 import { StateType } from "typesafe-actions";
 
@@ -13,6 +15,8 @@ const reducersMap = {
   assignment: assignmentSlice.reducer,
   readings: readingsSlice.reducer,
   exercises: exercisesSlice.reducer,
+  chooseExercises: chooseExercisesSlice.reducer,
+  searchExercises: searchExercisesSlice.reducer,
   [assignmentApi.reducerPath]: assignmentApi.reducer,
   [readingsApi.reducerPath]: readingsApi.reducer,
   [exercisesApi.reducerPath]: exercisesApi.reducer
