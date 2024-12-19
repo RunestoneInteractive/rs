@@ -1,3 +1,4 @@
+import { ExercisePreviewModal } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreviewModal";
 import { Loader } from "@components/ui/Loader";
 import { useReorderAssignmentExercisesMutation } from "@store/assignment/assignment.logic.api";
 import { exercisesActions, exercisesSelectors } from "@store/exercises/exercises.logic";
@@ -54,6 +55,18 @@ export const AssignmentExercises = () => {
     >
       <Column selectionMode="multiple"></Column>
       <Column field="qnumber" header="qnumber"></Column>
+      <Column
+        style={{ width: "5rem" }}
+        field="htmlsrc"
+        header="Preview"
+        body={(data: Exercise) => {
+          if (!data?.htmlsrc) {
+            return null;
+          }
+
+          return <ExercisePreviewModal htmlsrc={data.htmlsrc} />;
+        }}
+      ></Column>
       <Column field="autograde" header="autograde"></Column>
       <Column field="which_to_grade" header="which_to_grade"></Column>
       <Column field="points" header="points"></Column>

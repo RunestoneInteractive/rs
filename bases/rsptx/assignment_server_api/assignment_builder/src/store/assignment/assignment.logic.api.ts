@@ -1,7 +1,9 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
+import { chooseExercisesActions } from "@store/chooseExercises/chooseExercises.logic";
 import { userActions } from "@store/user/userLogic";
 import toast from "react-hot-toast";
 
+import { RootState } from "@/state/store";
 import { baseQuery } from "@/store/baseQuery";
 import { DetailResponse, HttpStatusCode } from "@/types/api";
 import {
@@ -12,6 +14,7 @@ import {
   GetAssignmentsResponse
 } from "@/types/assignment";
 import { Exercise, GetExercisesResponse, UpdateAssignmentExercisePayload } from "@/types/exercises";
+import { getSelectedKeys } from "@/utils/exercise";
 
 export const assignmentApi = createApi({
   reducerPath: "assignmentAPI",
@@ -104,12 +107,24 @@ export const assignmentApi = createApi({
       transformResponse: (response: DetailResponse<GetExercisesResponse>) => {
         return response.detail.exercises;
       },
-      onQueryStarted: (_, { queryFulfilled }) => {
-        queryFulfilled.catch(() => {
-          toast("Unable to fetch exercises", {
-            icon: "🔥"
+      onQueryStarted: (_, { queryFulfilled, dispatch, getState }) => {
+        queryFulfilled
+          .then(({ data }) => {
+            const state = getState() as RootState;
+
+            dispatch(
+              chooseExercisesActions.setSelectedKeys(
+                getSelectedKeys(state.exercises.availableExercises, data)
+              )
+            );
+            dispatch(chooseExercisesActions.setSelectedExercises(data));
+            dispatch(chooseExercisesActions.resetSelections());
+          })
+          .catch(() => {
+            toast("Unable to fetch exercises", {
+              icon: "🔥"
+            });
           });
-        });
       }
     }),
     updateAssignmentExercise: build.mutation<void, UpdateAssignmentExercisePayload>({

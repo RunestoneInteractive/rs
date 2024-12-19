@@ -1,3 +1,4 @@
+import { useToastContext } from "@components/ui/ToastContext";
 import { assignmentSelectors } from "@store/assignment/assignment.logic";
 import {
   useGetExercisesQuery,
@@ -5,7 +6,6 @@ import {
   useUpdateAssignmentExerciseMutation
 } from "@store/assignment/assignment.logic.api";
 import { readingsActions, readingsSelectors } from "@store/readings/readings.logic";
-import { useGetAvailableReadingsQuery } from "@store/readings/readings.logic.api";
 import sortBy from "lodash/sortBy";
 import { TreeNode } from "primereact/treenode";
 import { TreeTableEvent } from "primereact/treetable";
@@ -17,6 +17,8 @@ export const useReadingsSelector = () => {
   const selectedAssignment = useSelector(assignmentSelectors.getSelectedAssignment);
   const [addReadingPost] = useUpdateAssignmentExerciseMutation();
   const [removeReadingsPost] = useRemoveAssignmentExercisesMutation();
+  const { showToast } = useToastContext();
+  const availableReadings = useSelector(readingsSelectors.getAvailableReadings);
 
   const {
     isLoading: isExercisesLoading,
@@ -25,27 +27,15 @@ export const useReadingsSelector = () => {
     refetch: refetchExercises
   } = useGetExercisesQuery(selectedAssignment!.id);
 
-  const {
-    isLoading: isReadingsLoading,
-    isError: isReadingsError,
-    data: availableReadings,
-    refetch: refetchReadings
-  } = useGetAvailableReadingsQuery({
-    skipreading: false,
-    from_source_only: true,
-    pages_only: false
-  });
-
   const refetch = () => {
-    refetchReadings();
     refetchExercises();
   };
 
-  if (isExercisesLoading || isReadingsLoading) {
+  if (isExercisesLoading) {
     return { loading: true };
   }
 
-  if (!assignmentExercises || !availableReadings || isReadingsError || isExercisesError) {
+  if (!assignmentExercises || isExercisesError) {
     return { error: true, refetch };
   }
 
@@ -58,28 +48,12 @@ export const useReadingsSelector = () => {
     (assignmentExercise) => assignmentExercise.subchapter
   );
 
-  const removeChildrenWithoutTitleImmutable = (nodes: TreeNode[]): TreeNode[] => {
-    return nodes
-      .map((node) => {
-        const { children, ...rest } = node;
-
-        const filteredChildren = children
-          ? removeChildrenWithoutTitleImmutable(children).filter((child) => child.data?.title)
-          : [];
-
-        return filteredChildren.length > 0 ? { ...rest, children: filteredChildren } : { ...rest };
-      })
-      .filter((node) => node.data?.title);
-  };
-
-  const selectReadingsData = removeChildrenWithoutTitleImmutable(availableReadings);
-
   const subchapterSelectionKeys = assignmentExercisesSubchapters.map((subchapter) => [
     subchapter,
     { checked: true, partialChecked: false }
   ]);
 
-  const chapterSelectionKeys = selectReadingsData.map((chapter: TreeNode) => [
+  const chapterSelectionKeys = availableReadings.map((chapter: TreeNode) => [
     chapter.key,
     {
       checked: chapter.children!.every((child) =>
@@ -91,61 +65,89 @@ export const useReadingsSelector = () => {
     }
   ]);
 
-  const addReadings = ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
+  const addReadings = async ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
     if (!selectedAssignment) {
       return;
     }
 
-    const { data, children } = node;
+    let count = 0;
+    const promises: Promise<void>[] = [];
 
-    if (children) {
-      children.forEach((child) => addReadings({ node: child }));
-      return;
-    }
+    // eslint-disable-next-line @typescript-eslint/no-shadow
+    const processNode = ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
+      const { data, children } = node;
 
-    const readingExercisesLength = readingExercises.length;
+      if (children) {
+        children.forEach((child) => processNode({ node: child }));
+        return;
+      }
 
-    addReadingPost({
-      assignment_id: selectedAssignment.id,
-      points: readingExercisesLength ? readingExercises[readingExercisesLength - 1].points : 1,
-      sorting_priority: readingExercisesLength,
-      reading_assignment: true,
-      autograde: "interaction",
-      which_to_grade: "best_answer",
-      activities_required: Math.round(data.numQuestions * 0.8),
-      required: !!Math.round(data.numQuestions * 0.8),
-      chapter: data.chapter,
-      id: data.id,
-      question_id: data.id,
-      num: data.num,
-      numQuestions: data.numQuestions,
-      subchapter: data.subchapter,
-      title: data.title
+      const readingExercisesLength = readingExercises.length;
+
+      const promise = addReadingPost({
+        assignment_id: selectedAssignment.id,
+        points: readingExercisesLength ? readingExercises[readingExercisesLength - 1].points : 1,
+        sorting_priority: readingExercisesLength + count,
+        reading_assignment: true,
+        autograde: "interaction",
+        which_to_grade: "best_answer",
+        activities_required: Math.round(data.numQuestions * 0.8),
+        required: !!Math.round(data.numQuestions * 0.8),
+        chapter: data.chapter,
+        id: data.id,
+        question_id: data.id,
+        num: data.num,
+        numQuestions: data.numQuestions,
+        subchapter: data.subchapter,
+        title: data.title
+      }).then(() => {
+        count++;
+      });
+
+      promises.push(promise);
+    };
+
+    processNode({ node });
+
+    await Promise.all(promises);
+
+    showToast({
+      severity: "success",
+      summary: "Success",
+      detail: `${count} readings successfully added`
     });
   };
 
-  const removeReadings = (toRemove: Array<{ id: number }>) => {
+  const removeReadings = async (toRemove: Array<{ id: number }>) => {
     const idsToRemove = toRemove.map((item) => item.id);
 
-    removeReadingsPost(idsToRemove);
-    dispatch(
-      readingsActions.setSelectedReadings(
-        selectedReadings.filter((r) => !idsToRemove.includes(r.id))
-      )
-    );
+    const { error } = await removeReadingsPost(idsToRemove);
+
+    if (!error) {
+      showToast({
+        severity: "success",
+        summary: "Success",
+        detail: `${idsToRemove.length} exercises successfully removed`
+      });
+      dispatch(
+        readingsActions.setSelectedReadings(
+          selectedReadings.filter((r) => !idsToRemove.includes(r.id))
+        )
+      );
+    }
   };
 
-  const removeReadingsFromAvailableReadings = ({ node }: TreeTableEvent) => {
+  const removeReadingsFromAvailableReadings = async ({ node }: TreeTableEvent) => {
     const { data, children } = node;
 
     if (children) {
       const ids = children.map((child) => Number(child.data.id));
 
-      removeReadings(assignmentExercises.filter((ex) => ids.includes(ex.question_id)));
+      await removeReadings(assignmentExercises.filter((ex) => ids.includes(ex.question_id)));
       return;
     }
 
-    removeReadings(assignmentExercises.filter((ex) => data.id === ex.question_id));
+    await removeReadings(assignmentExercises.filter((ex) => data.id === ex.question_id));
   };
 
   return {
@@ -154,7 +156,6 @@ export const useReadingsSelector = () => {
       ...Object.fromEntries(subchapterSelectionKeys),
       ...Object.fromEntries(chapterSelectionKeys)
     },
-    selectReadingsData,
     addReadings,
     removeReadings,
     removeReadingsFromAvailableReadings

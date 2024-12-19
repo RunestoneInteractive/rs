@@ -1,3 +1,4 @@
+import { useToastContext } from "@components/ui/ToastContext";
 import { assignmentSelectors } from "@store/assignment/assignment.logic";
 import {
   useGetExercisesQuery,
@@ -12,10 +13,15 @@ export const useAddAssignmentExercise = () => {
   const selectedAssignment = useSelector(assignmentSelectors.getSelectedAssignment);
   const { data: exercises = [] } = useGetExercisesQuery(selectedAssignment!.id);
   const [addExercisesPost] = useUpdateAssignmentExerciseMutation();
+  const { showToast } = useToastContext();
 
   const assignmentExercises = exercises.filter((ex) => !ex.reading_assignment);
 
   const addExerciseToAssignment = async (selectedExercises: Exercise[]) => {
+    if (!selectedExercises.length) {
+      return;
+    }
+
     const { points, autograde, which_to_grade, sorting_priority, reading_assignment } = last(
       assignmentExercises
     ) ?? {
@@ -41,6 +47,12 @@ export const useAddAssignmentExercise = () => {
         });
       })
     );
+
+    showToast({
+      severity: "success",
+      summary: "Success",
+      detail: `${selectedExercises.length} exercises successfully added`
+    });
 
     return response;
   };

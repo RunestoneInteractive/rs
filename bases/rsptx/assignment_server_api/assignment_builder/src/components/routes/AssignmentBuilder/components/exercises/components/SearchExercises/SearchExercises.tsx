@@ -2,19 +2,28 @@ import { ExercisePreviewModal } from "@components/routes/AssignmentBuilder/compo
 import { SearchExercisesHeader } from "@components/routes/AssignmentBuilder/components/exercises/components/SearchExercises/SearchExercisesHeader";
 import { exerciseTypes } from "@components/routes/AssignmentBuilder/components/exercises/components/exerciseTypes";
 import { Loader } from "@components/ui/Loader";
+import {
+  searchExercisesActions,
+  searchExercisesSelectors
+} from "@store/searchExercises/searchExercises.logic";
 import { FilterMatchMode } from "primereact/api";
 import { Chip } from "primereact/chip";
 import { Column, ColumnFilterElementTemplateOptions } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import { Dropdown } from "primereact/dropdown";
-import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 import { useExerciseSearch } from "@/hooks/useExerciseSearch";
 import { Exercise } from "@/types/exercises";
 
 export const SearchExercises = () => {
   const { loading, error, exercises, refetch } = useExerciseSearch();
-  const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
+  const dispatch = useDispatch();
+  const selectedExercises = useSelector(searchExercisesSelectors.getSelectedExercises);
+
+  const setSelectedExercises = (ex: Exercise[]) => {
+    dispatch(searchExercisesActions.setSelectedExercises(ex));
+  };
 
   if (loading) {
     return <Loader />;
@@ -59,12 +68,8 @@ export const SearchExercises = () => {
       sortField="name"
       sortOrder={1}
       removableSort
-      header={
-        <SearchExercisesHeader
-          selectedExercises={selectedExercises}
-          setSelectedExercises={setSelectedExercises}
-        />
-      }
+      className="table_sticky-header"
+      header={!!selectedExercises.length && <SearchExercisesHeader />}
     >
       <Column selectionMode="multiple"></Column>
       <Column
@@ -88,6 +93,18 @@ export const SearchExercises = () => {
         filterMenuStyle={{ width: "16rem" }}
         style={{ minWidth: "16rem" }}
         filterElement={exerciseTypeFilter}
+      ></Column>
+      <Column
+        style={{ width: "5rem" }}
+        field="htmlsrc"
+        header="Preview"
+        body={(data: Exercise) => {
+          if (!data?.htmlsrc) {
+            return null;
+          }
+
+          return <ExercisePreviewModal htmlsrc={data.htmlsrc} />;
+        }}
       ></Column>
       <Column
         field="author"
@@ -114,17 +131,6 @@ export const SearchExercises = () => {
       ></Column>
       <Column field="qnumber" header="Question" sortable></Column>
       <Column field="topic" header="Topic" sortable></Column>
-      <Column
-        field="htmlsrc"
-        header="Preview"
-        body={(data: Exercise) => {
-          if (!data?.htmlsrc) {
-            return null;
-          }
-
-          return <ExercisePreviewModal htmlsrc={data.htmlsrc} />;
-        }}
-      ></Column>
     </DataTable>
   );
 };

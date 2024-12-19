@@ -1,5 +1,7 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@store/baseQuery";
+import { exercisesActions } from "@store/exercises/exercises.logic";
+import { readingsActions } from "@store/readings/readings.logic";
 import { TreeNode } from "primereact/treenode";
 import toast from "react-hot-toast";
 
@@ -22,12 +24,17 @@ export const readingsApi = createApi({
       transformResponse: (response: DetailResponse<{ questions: TreeNode[] }>) => {
         return response.detail.questions;
       },
-      onQueryStarted: (_, { queryFulfilled }) => {
-        queryFulfilled.catch(() => {
-          toast("Error searching available readings", {
-            icon: "🔥"
+      onQueryStarted: (_, { queryFulfilled, dispatch }) => {
+        queryFulfilled
+          .then(({ data }) => {
+            dispatch(readingsActions.setAvailableReadings(data));
+            dispatch(exercisesActions.setAvailableExercises(data));
+          })
+          .catch(() => {
+            toast("Error searching available readings", {
+              icon: "🔥"
+            });
           });
-        });
       }
     })
   })

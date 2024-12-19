@@ -10,14 +10,22 @@ export const ExercisePreviewModal = ({ htmlsrc }: Pick<Exercise, "htmlsrc">) => 
   const [showModal, setShowModal] = useState(false);
 
   return (
-    <>
+    <div
+      style={{ width: "100%", height: "100%" }}
+      className="flex align-center justify-content-center"
+    >
       <Button
-        outlined
-        type="button"
-        label="Preview"
+        rounded
+        icon="pi pi-eye"
+        text
+        severity="secondary"
         onClick={() => setShowModal(true)}
-        size="small"
-      />
+        tooltip="Preview"
+        tooltipOptions={{
+          showDelay: 500
+        }}
+        size="large"
+      ></Button>
       <Dialog
         visible={showModal}
         modal
@@ -31,6 +39,6 @@ export const ExercisePreviewModal = ({ htmlsrc }: Pick<Exercise, "htmlsrc">) => 
       >
         <ExercisePreview htmlsrc={htmlsrc} />
       </Dialog>
-    </>
+    </div>
   );
 };
