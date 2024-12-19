@@ -16,15 +16,11 @@ type ButtonEvent = MouseEvent<HTMLButtonElement>;
 export const AssignmentReadingsHeader = () => {
   const dispatch = useDispatch();
   const { showDialog } = useDialogContext();
-  const {
-    selectReadingsData,
-    selectedKeys,
-    addReadings,
-    removeReadingsFromAvailableReadings,
-    removeReadings
-  } = useReadingsSelector();
+  const { selectedKeys, addReadings, removeReadingsFromAvailableReadings, removeReadings } =
+    useReadingsSelector();
   const overlayRef = useRef<OverlayPanel>(null);
   const selectedReadings = useSelector(readingsSelectors.getSelectedReadings);
+  const availableReadings = useSelector(readingsSelectors.getAvailableReadings);
 
   const setSelectedReadings = (readings: Exercise[]) => {
     dispatch(readingsActions.setSelectedReadings(readings));
@@ -109,7 +105,7 @@ export const AssignmentReadingsHeader = () => {
             onUnselect={removeReadingsFromAvailableReadings}
             scrollable
             scrollHeight="50vh"
-            value={selectReadingsData}
+            value={availableReadings}
           >
             <Column field="title" header="Select readings" expander></Column>
           </TreeTable>
