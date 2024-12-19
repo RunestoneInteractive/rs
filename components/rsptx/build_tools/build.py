@@ -82,7 +82,7 @@ def cli(config, verbose, all, core, service, clean):
     config.verbose = verbose
 
     if clean:
-        clean()
+        clean_all()
 
     if not service and not all:
         click.echo("No services specified, building core services")
@@ -162,7 +162,7 @@ def cli(config, verbose, all, core, service, clean):
     config.ym = ym
 
 
-def clean():
+def clean_all():
     console.print("Removing all containers and images...", style="bold")
     ret = subprocess.run(["docker", "system", "prune", "--force"], capture_output=True)
     if ret.returncode == 0:
