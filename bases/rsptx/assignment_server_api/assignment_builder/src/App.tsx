@@ -1,9 +1,12 @@
-import React from "react";
 import "./App.css";
+import { DialogContextProvider } from "@components/ui/DialogContext";
+import { ToastContextProvider } from "@components/ui/ToastContext";
 import { Menubar } from "primereact/menubar";
+import { Toaster } from "react-hot-toast";
 import { useSelector } from "react-redux";
-import { BrowserRouter, useSearchParams } from "react-router-dom";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, useSearchParams } from "react-router-dom";
+
+import { routerService } from "@/router";
 
 import { buildNavBar } from "./navUtils.js";
 import AssignmentEditor, { MoreOptions, AddQuestionTabGroup } from "./renderers/assignment.jsx";
@@ -13,13 +16,13 @@ import {
   problemColumnSpec,
   problemColumns,
   readingColumnSpec,
-  readingColumns,
+  readingColumns
 } from "./renderers/assignmentQuestion.jsx";
 import { AssignmentSummary } from "./renderers/assignmentSummary.jsx";
 import { ExceptionScheduler } from "./renderers/exceptionScheduler.jsx";
 import { selectIsAuthorized } from "./state/assignment/assignSlice.js";
 
-function AssignmentBuilder() {
+function OldAssignmentBuilder() {
   const [searchParams] = useSearchParams();
   let assignmentId = searchParams.get("assignment_id");
 
@@ -60,6 +63,7 @@ function AssignmentGrader() {
     </div>
   );
 }
+
 function App() {
   if (useSelector(selectIsAuthorized) === false) {
     return (
@@ -87,21 +91,67 @@ function App() {
   console.log("ENV: ", import.meta.env);
   const items = buildNavBar(window.eBookConfig);
 
-  const start = <img src="/staticAssets/RAIcon.png" height="30px" />;
+  const start = <img alt="" src="/staticAssets/RAIcon.png" height="30px" />;
+
+  const router = routerService.init(
+    createBrowserRouter(
+      [
+        {
+          path: "/",
+          element: <OldAssignmentBuilder />
+        },
+        {
+          path: "/builderV2",
+          async lazy() {
+            let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+            return { Component: AssignmentBuilder };
+          }
+        },
+        {
+          path: "/builder",
+          element: <OldAssignmentBuilder />
+        },
+        {
+          path: "/grader",
+          element: <AssignmentGrader />
+        },
+        {
+          path: "/admin",
+          element: <h1>Coming Soon</h1>
+        },
+        {
+          path: "/except",
+          element: <ExceptionScheduler />
+        }
+      ],
+      {
+        basename: import.meta.env.VITE_BASE_URL,
+        future: {
+          v7_relativeSplatPath: true,
+          v7_fetcherPersist: true,
+          v7_normalizeFormMethod: true,
+          v7_partialHydration: true,
+          v7_skipActionErrorRevalidation: true,
+          v7_startTransition: true
+        }
+      }
+    )
+  );
 
   return (
-    <>
-      <Menubar model={items} start={start} />
-      <BrowserRouter basename={import.meta.env.VITE_BASE_URL}>
-        <Routes>
-          <Route path="/" element={<AssignmentBuilder />} />
-          <Route path="/builder" element={<AssignmentBuilder />} />
-          <Route path="/grader" element={<AssignmentGrader />} />
-          <Route path="/admin" element={<h1>Coming Soon</h1>} />
-          <Route path="/except" element={<ExceptionScheduler />} />
-        </Routes>
-      </BrowserRouter>
-    </>
+    <ToastContextProvider>
+      <DialogContextProvider>
+        <Menubar style={{ position: "sticky", top: "0" }} model={items} start={start} />
+        <div className="layout-main-container">
+          <div className="layout-main">
+            <RouterProvider router={router} future={{ v7_startTransition: true }} />
+          </div>
+        </div>
+
+        <Toaster toastOptions={{ duration: 3000 }} />
+      </DialogContextProvider>
+    </ToastContextProvider>
   );
 }
 

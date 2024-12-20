@@ -1,0 +1,14 @@
+.table_sticky-header {
+
+  .p-treetable-wrapper {
+    max-height: 100rem;
+    overflow: visible;
+  }
+
+  .p-treetable-header,
+  .p-datatable-header {
+    z-index: 3;
+    position: sticky;
+    top: 0;
+  }
+}

@@ -347,7 +347,18 @@ function showDeadline() {
     var now = new Date();
     tzoff = now.getTimezoneOffset();
     dl.setHours(dl.getHours() + tzoff / 60);
-    $("#dl_disp").text(dl);
+    const options = {
+        weekday: 'short', 
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+    };
+
+    const formattedDate = dl.toLocaleString('en-US', options);
+    $("#dl_disp").text(formattedDate);
 
     return dl;
 }

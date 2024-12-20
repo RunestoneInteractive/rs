@@ -82,7 +82,7 @@ def cli(config, verbose, all, core, service, clean):
     config.verbose = verbose
 
     if clean:
-        clean()
+        clean_all()
 
     if not service and not all:
         click.echo("No services specified, building core services")
@@ -162,7 +162,7 @@ def cli(config, verbose, all, core, service, clean):
     config.ym = ym
 
 
-def clean():
+def clean_all():
     console.print("Removing all containers and images...", style="bold")
     ret = subprocess.run(["docker", "system", "prune", "--force"], capture_output=True)
     if ret.returncode == 0:
@@ -308,7 +308,7 @@ def env(config):
             """
             The following services [red]will not be started[/red] unless you use set your COMPOSE_PROFILES in .env
             [green]db, author, worker pgbouncer, nginx_dstart_dev[/green]
-            See the sample.env file for more information to set this variable. 
+            See the sample.env file for more information to set this variable.
             You can also use the --profile switch with docker compose to enable a specific profile.
             """,
             style="bold",
@@ -646,9 +646,9 @@ def checkdb(config):
 @pass_config
 def restart(config):
     """Restart the runestone docker services"""
-    profiles = os.environ.get("COMPOSE_PROFILES", "")
-    if profiles:
-        profiles = profiles.split(",")
+    profiles = []
+    profiles += [prof for prof in os.environ.get("COMPOSE_PROFILES", "").split(",")]
+    profiles = [prof for prof in profiles if prof]
     if config.all or config.core:
         console.print("Restarting all services...", style="bold")
         if config.all and "author" not in profiles:
