@@ -16,7 +16,7 @@ import RunestoneBase from "../../common/js/runestonebase.js";
 import "../css/dragndrop.less";
 import "./dragndrop-i18n.en.js";
 import "./dragndrop-i18n.pt-br.js";
-import "./DragDropTouch.js";
+//import "./DragDropTouch.js";
 
 export default class DragNDrop extends RunestoneBase {
     constructor(opts) {
@@ -44,38 +44,51 @@ export default class DragNDrop extends RunestoneBase {
     === Update variables ===
     ======================*/
     populate() {
-        for (var i = 0; i < this.origElem.childNodes.length; i++) {
-            if (
-                $(this.origElem.childNodes[i]).data("subcomponent") ===
-                "dropzone"
-            ) {
-                var tmp = $(this.origElem).find(
-                    `#${$(this.origElem.childNodes[i]).attr("for")}`
-                )[0];
-                var replaceSpan = document.createElement("span");
-                replaceSpan.innerHTML = tmp.innerHTML;
-                replaceSpan.id = this.divid + tmp.id;
-                $(replaceSpan).attr("draggable", "true");
-                $(replaceSpan).addClass("draggable-drag");
-                var otherReplaceSpan = document.createElement("span");
-                otherReplaceSpan.innerHTML =
-                    this.origElem.childNodes[i].innerHTML;
-                $(otherReplaceSpan).addClass("draggable-drop");
-                this.setEventListeners(replaceSpan, otherReplaceSpan);
-                var tmpArr = [];
-                tmpArr.push(replaceSpan);
-                tmpArr.push(otherReplaceSpan);
-                this.dragPairArray.push(tmpArr);
-            } else if (
-                $(this.origElem.childNodes[i]).data("subcomponent") ===
-                "question"
-            ) {
-                this.question = this.origElem.childNodes[i].innerHTML;
-            } else if (
-                $(this.origElem.childNodes[i]).data("subcomponent") ===
-                "feedback"
-            ) {
-                this.feedback = this.origElem.childNodes[i].innerHTML;
+        this.dropArray = [];
+        this.dragArray = [];
+        for (let element of this.origElem.querySelectorAll(
+            "[data-subcomponent='draggable']"
+        )) {
+            let replaceSpan = document.createElement("span");
+            replaceSpan.innerHTML = element.innerHTML;
+            replaceSpan.id = this.divid + element.id;
+            replaceSpan.setAttribute("draggable", "true");
+            replaceSpan.classList.add("draggable-drop");
+            replaceSpan.dataset.category = this.getCategory(element);
+            this.dragArray.push(replaceSpan);
+            this.setDragListeners(replaceSpan);
+        }
+        this.dragArray = shuffleArray(this.dragArray);
+        for (let element of this.origElem.querySelectorAll(
+            "[data-subcomponent='dropzone']"
+        )) {
+            let replaceSpan = document.createElement("span");
+            replaceSpan.innerHTML = element.innerHTML;
+            replaceSpan.id = this.divid + element.id;
+            replaceSpan.classList.add("draggable-drop");
+            replaceSpan.dataset.category = this.getCategory(element);
+            this.dropArray.push(replaceSpan);
+            this.setDropListeners(replaceSpan);
+        }
+        this.dropArray = shuffleArray(this.dropArray);
+        this.question = this.origElem.querySelector(
+            "[data-subcomponent='question']"
+        ).innerHTML;
+        this.feedback = this.origElem.querySelector(
+            "[data-subcomponent='feedback']"
+        ).innerHTML;
+    }
+
+    getCategory(elem) {
+        if (elem.dataset.category) {
+            return elem.dataset.category;
+        } else {
+            // if no category then use the for attribute or the id
+            // this is for backwards compatibility
+            if (elem.hasAttribute("for")) {
+                return elem.getAttribute("for");
+            } else {
+                return elem.id;
             }
         }
     }
@@ -86,17 +99,17 @@ export default class DragNDrop extends RunestoneBase {
     createNewElements() {
         this.containerDiv = document.createElement("div");
         this.containerDiv.id = this.divid;
-        $(this.containerDiv).addClass("draggable-container");
-        $(this.containerDiv).html(this.question);
+        this.containerDiv.classList.add("draggable-container");
+        this.containerDiv.innerHTML = this.question;
         this.containerDiv.appendChild(document.createElement("br"));
         this.dragDropWrapDiv = document.createElement("div"); // Holds the draggables/dropzones, prevents feedback from bleeding in
-        $(this.dragDropWrapDiv).css("display", "block");
+        this.dragDropWrapDiv.style.display = "block";
         this.containerDiv.appendChild(this.dragDropWrapDiv);
         this.draggableDiv = document.createElement("div");
-        $(this.draggableDiv).addClass("rsdraggable dragzone");
+        this.draggableDiv.classList.add("rsdraggable", "dragzone");
         this.addDragDivListeners();
         this.dropZoneDiv = document.createElement("div");
-        $(this.dropZoneDiv).addClass("rsdraggable");
+        this.dropZoneDiv.classList.add("rsdraggable");
         this.dragDropWrapDiv.appendChild(this.draggableDiv);
         this.dragDropWrapDiv.appendChild(this.dropZoneDiv);
         this.createButtons();
@@ -107,17 +120,18 @@ export default class DragNDrop extends RunestoneBase {
         self = this;
         self.queueMathJax(self.containerDiv);
     }
+
     finishSettingUp() {
         this.appendReplacementSpans();
         this.renderFeedbackDiv();
-        $(this.origElem).replaceWith(this.containerDiv);
+        this.origElem.parentNode.replaceChild(this.containerDiv, this.origElem);
         if (!this.hasStoredDropzones) {
-            this.minheight = $(this.draggableDiv).height();
+            this.minheight = this.draggableDiv.offsetHeight;
         }
         this.draggableDiv.style.minHeight = this.minheight.toString() + "px";
-        if ($(this.dropZoneDiv).height() > this.minheight) {
+        if (this.dropZoneDiv.offsetHeight > this.minheight) {
             this.dragDropWrapDiv.style.minHeight =
-                $(this.dropZoneDiv).height().toString() + "px";
+                this.dropZoneDiv.offsetHeight.toString() + "px";
         } else {
             this.dragDropWrapDiv.style.minHeight =
                 this.minheight.toString() + "px";
@@ -192,46 +206,15 @@ export default class DragNDrop extends RunestoneBase {
         this.containerDiv.appendChild(this.buttonDiv);
     }
     appendReplacementSpans() {
-        this.createIndexArray();
-        this.randomizeIndexArray();
-        for (let i = 0; i < this.dragPairArray.length; i++) {
-            if (this.hasStoredDropzones) {
-                if (
-                    $.inArray(this.indexArray[i][0], this.pregnantIndexArray) <
-                    0
-                ) {
-                    this.draggableDiv.appendChild(
-                        this.dragPairArray[this.indexArray[i]][0]
-                    );
-                }
-            } else {
-                this.draggableDiv.appendChild(
-                    this.dragPairArray[this.indexArray[i]][0]
-                );
-            }
+        // todo - there may be stored drops that we need to handle
+        for (let element of this.dragArray) {
+            this.draggableDiv.appendChild(element);
         }
-        if (this.random) {
-            this.randomizeIndexArray(); // shuffle index again
-        } else {
-            this.createIndexArray(); // reset default index
-        }
-        for (let i = 0; i < this.dragPairArray.length; i++) {
-            if (this.hasStoredDropzones) {
-                if (this.pregnantIndexArray[this.indexArray[i]] !== "-1") {
-                    this.dragPairArray[this.indexArray[i]][1].appendChild(
-                        this.dragPairArray[
-                            this.pregnantIndexArray[this.indexArray[i]]
-                        ][0]
-                    );
-                }
-            }
-            this.dropZoneDiv.appendChild(
-                this.dragPairArray[this.indexArray[i]][1]
-            );
+        for (let element of this.dropArray) {
+            this.dropZoneDiv.appendChild(element);
         }
     }
-    setEventListeners(dgSpan, dpSpan) {
-        // Adds HTML5 "drag and drop" UI functionality
+    setDragListeners(dgSpan) {
         let self = this;
         dgSpan.addEventListener("dragstart", function (ev) {
             ev.dataTransfer.setData("draggableID", ev.target.id);
@@ -256,6 +239,9 @@ export default class DragNDrop extends RunestoneBase {
                 }
             }.bind(this)
         );
+    }
+
+    setDropListeners(dpSpan) {
         dpSpan.addEventListener(
             "dragover",
             function (ev) {
@@ -301,6 +287,7 @@ export default class DragNDrop extends RunestoneBase {
             }.bind(this)
         );
     }
+
     renderFeedbackDiv() {
         if (!this.feedBackDiv) {
             this.feedBackDiv = document.createElement("div");
@@ -314,7 +301,7 @@ export default class DragNDrop extends RunestoneBase {
     =======================*/
     strangerDanger(testSpan) {
         // Returns true if the test span doesn't belong to this instance of DragNDrop
-        var strangerDanger = true;
+        var strangerDanger = false;
         for (var i = 0; i < this.dragPairArray.length; i++) {
             if (testSpan === this.dragPairArray[i][0]) {
                 strangerDanger = false;
@@ -324,6 +311,7 @@ export default class DragNDrop extends RunestoneBase {
     }
     hasNoDragChild(parent) {
         // Ensures that each dropZoneDiv can have only one draggable child
+        return true;
         var counter = 0;
         for (var i = 0; i < parent.childNodes.length; i++) {
             if ($(parent.childNodes[i]).attr("draggable") === "true") {
@@ -384,27 +372,46 @@ export default class DragNDrop extends RunestoneBase {
     /*===========================
     == Evaluation and feedback ==
     ===========================*/
+    getAllCategories() {
+        this.categories = [];
+        for (let droppable of this.dropZoneDiv.childNodes) {
+            this.categories.push(droppable.dataset.category);
+        }
+        return this.categories;
+    }
 
     checkCurrentAnswer() {
+        let categories = this.getAllCategories();
         this.correct = true;
         this.unansweredNum = 0;
         this.incorrectNum = 0;
-        this.dragNum = this.dragPairArray.length;
-        for (var i = 0; i < this.dragPairArray.length; i++) {
-            if (
-                !$(this.dragPairArray[i][1]).has(this.dragPairArray[i][0])
-                    .length
-            ) {
-                this.correct = false;
-                this.incorrectNum++;
-            }
-            if (this.hasNoDragChild(this.dragPairArray[i][1])) {
-                this.unansweredNum++;
-                this.incorrectNum -= 1;
+        this.correctNum = 0;
+        this.dragNum = this.draggableDiv.childNodes.length;
+        for (let response of this.dropZoneDiv.childNodes) {
+            for (let premise of Array.from(response.childNodes).filter(
+                (node) => node.nodeType !== Node.TEXT_NODE
+            )) {
+                if (premise.dataset.category == response.dataset.category) {
+                    this.correctNum++;
+                } else {
+                    this.incorrectNum++;
+                }
             }
         }
-        this.correctNum = this.dragNum - this.incorrectNum - this.unansweredNum;
-        this.percent = this.correctNum / this.dragPairArray.length;
+        for (let premise of Array.from(this.draggableDiv.childNodes).filter(
+            (node) => node.nodeType !== Node.TEXT_NODE
+        )) {
+            if (categories.indexOf(premise.dataset.category) == -1) {
+                this.correctNum++;
+            } else {
+                this.unansweredNum++;
+            }
+        }
+        this.percent = this.correctNum / this.dragArray.length;
+        console.log(this.percent, this.incorrectNum, this.unansweredNum);
+        if (this.percent < 1.0) {
+            this.correct = false;
+        }
         this.setLocalStorage({ correct: this.correct ? "T" : "F" });
     }
 
@@ -557,6 +564,16 @@ export default class DragNDrop extends RunestoneBase {
     }
 }
 
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        // Generate a random index between 0 and i
+        const j = Math.floor(Math.random() * (i + 1));
+        // Swap elements at indices i and j
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
 /*=================================
 == Find the custom HTML tags and ==
 ==   execute our code on them    ==
@@ -572,7 +589,9 @@ $(document).on("runestone:login-complete", function () {
             try {
                 window.componentMap[this.id] = new DragNDrop(opts);
             } catch (err) {
-                console.log(`Error rendering DragNDrop Problem ${this.id}`);
+                console.log(
+                    `Error rendering DragNDrop Problem ${this.id}: ${err}`
+                );
             }
         }
     });
