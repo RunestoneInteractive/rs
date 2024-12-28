@@ -46,7 +46,7 @@
     border: 1px solid lightgray;
     padding: 10px;
     margin-top: 5px;
-    cursor: move;
+    cursor: grab;
 }
 
 .draggable-feedback {
@@ -61,6 +61,7 @@
     border: 1px solid lightgray;
     padding: 10px;
     margin-top: 5px;
+    cursor: grab;
 }
 
 .draggable-container {
@@ -72,10 +73,11 @@
     background-color: #CCCCCC;
 }
 
-/* 
+/*
  * This is a hack to allow us to drop on the drop target when
  * the drop area contains mathjax or or other child elements.
 */
-.draggable-drop * {
+.draggable-drop .process-math, .draggable-drop .MathJax {
     pointer-events: none;
+    cursor: not-allowed;
 }

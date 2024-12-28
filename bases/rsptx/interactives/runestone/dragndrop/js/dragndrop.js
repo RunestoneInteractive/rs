@@ -68,7 +68,7 @@ export default class DragNDrop extends RunestoneBase {
             replaceSpan.id = element
                 .getAttribute("for")
                 .replace("drag", "drop");
-            replaceSpan.classList.add("draggable-drop");
+            replaceSpan.classList.add("draggable-drop", "drop-label");
             replaceSpan.dataset.category = this.getCategory(element);
             replaceSpan.dataset.parent_id = this.divid;
             this.dropArray.push(replaceSpan);
@@ -310,7 +310,8 @@ export default class DragNDrop extends RunestoneBase {
                 var draggedSpan = document.getElementById(data);
                 if (
                     $(ev.target).hasClass("draggable-drop") &&
-                    !this.strangerDanger(draggedSpan)
+                    !this.strangerDanger(draggedSpan) &&
+                    !this.dragArray.includes(ev.target) // don't drop on another premise!
                 ) {
                     // Make sure element isn't already there--prevents erros w/appending child
                     ev.target.appendChild(draggedSpan);
@@ -343,16 +344,26 @@ export default class DragNDrop extends RunestoneBase {
     == Reset button functionality ==
     ==============================*/
     resetDraggables() {
+        let resetList = [];
         for (let response of this.dropZoneDiv.childNodes) {
             response.classList.remove("drop-incorrect");
-            for (let premise of Array.from(response.childNodes).filter(
-                (node) => node.nodeType !== Node.TEXT_NODE
-            )) {
-                premise.draggable = true;
-                response.removeChild(premise);
-                this.draggableDiv.appendChild(premise);
+            for (let premise of response.childNodes) {
+                if (
+                    premise.nodeType !== Node.TEXT_NODE &&
+                    this.dragArray.includes(premise)
+                ) {
+                    resetList.push([response, premise]); // array of [response, premise];
+                }
             }
         }
+        for (let i = 0; i < resetList.length; i++) {
+            let response = resetList[i][0];
+            let premise = resetList[i][1];
+            premise.draggable = true;
+            response.removeChild(premise);
+            this.draggableDiv.appendChild(premise);
+        }
+
         this.answerState = {};
         this.feedBackDiv.style.display = "none";
     }
@@ -373,7 +384,7 @@ export default class DragNDrop extends RunestoneBase {
         this.unansweredNum = 0;
         this.incorrectNum = 0;
         this.correctNum = 0;
-        this.dragNum = this.draggableDiv.childNodes.length;
+        this.dragNum = this.dragArray.length;
         for (let response of this.dropZoneDiv.childNodes) {
             for (let premise of Array.from(response.childNodes).filter(
                 (node) => node.nodeType !== Node.TEXT_NODE
@@ -408,10 +419,12 @@ export default class DragNDrop extends RunestoneBase {
         for (let premise of Array.from(response.childNodes).filter(
             (node) => node.nodeType !== Node.TEXT_NODE
         )) {
-            if (premise.dataset.category != response.dataset.category) {
-                correct = false;
-            } else {
-                correctPlacements++;
+            if (this.dragArray.indexOf(premise) !== -1) {
+                if (premise.dataset.category != response.dataset.category) {
+                    correct = false;
+                } else {
+                    correctPlacements++;
+                }
             }
         }
         let catCount = 0;
@@ -530,10 +543,13 @@ export default class DragNDrop extends RunestoneBase {
             this.answerState = {};
             for (let response of this.dropZoneDiv.childNodes) {
                 this.answerState[response.id] = [];
-                for (let premise of Array.from(response.childNodes).filter(
-                    (node) => node.nodeType !== Node.TEXT_NODE
-                )) {
-                    this.answerState[response.id].push(premise.id);
+                for (let premise of response.childNodes) {
+                    if (
+                        premise.nodeType !== Node.TEXT_NODE &&
+                        this.dragArray.includes(premise)
+                    ) {
+                        this.answerState[response.id].push(premise.id);
+                    }
                 }
             }
         }
