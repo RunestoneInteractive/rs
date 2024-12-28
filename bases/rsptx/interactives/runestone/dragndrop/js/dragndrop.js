@@ -30,9 +30,8 @@ export default class DragNDrop extends RunestoneBase {
             this.random = true;
         }
         this.feedback = "";
-        this.dragPairArray = [];
         this.question = "";
-        this.populate(); // Populates this.dragPairArray, this.feedback and this.question
+        this.populate(); // Populates this.dropArray, this.dragArray, this.feedback and this.question
         this.createNewElements();
         this.caption = "Drag-N-Drop";
         this.addCaption("runestone");
@@ -40,6 +39,7 @@ export default class DragNDrop extends RunestoneBase {
             Prism.highlightAllUnder(this.containerDiv);
         }
     }
+
     /*======================
     === Update variables ===
     ======================*/
@@ -51,10 +51,11 @@ export default class DragNDrop extends RunestoneBase {
         )) {
             let replaceSpan = document.createElement("span");
             replaceSpan.innerHTML = element.innerHTML;
-            replaceSpan.id = this.divid + element.id;
+            replaceSpan.id = element.id;
             replaceSpan.setAttribute("draggable", "true");
             replaceSpan.classList.add("draggable-drop");
             replaceSpan.dataset.category = this.getCategory(element);
+            replaceSpan.dataset.parent_id = this.divid;
             this.dragArray.push(replaceSpan);
             this.setDragListeners(replaceSpan);
         }
@@ -64,13 +65,16 @@ export default class DragNDrop extends RunestoneBase {
         )) {
             let replaceSpan = document.createElement("span");
             replaceSpan.innerHTML = element.innerHTML;
-            replaceSpan.id = this.divid + element.id;
+            replaceSpan.id = element
+                .getAttribute("for")
+                .replace("drag", "drop");
             replaceSpan.classList.add("draggable-drop");
             replaceSpan.dataset.category = this.getCategory(element);
+            replaceSpan.dataset.parent_id = this.divid;
             this.dropArray.push(replaceSpan);
             this.setDropListeners(replaceSpan);
         }
-        this.dropArray = shuffleArray(this.dropArray);
+
         this.question = this.origElem.querySelector(
             "[data-subcomponent='question']"
         ).innerHTML;
@@ -207,13 +211,45 @@ export default class DragNDrop extends RunestoneBase {
     }
     appendReplacementSpans() {
         // todo - there may be stored drops that we need to handle
-        for (let element of this.dragArray) {
-            this.draggableDiv.appendChild(element);
-        }
-        for (let element of this.dropArray) {
-            this.dropZoneDiv.appendChild(element);
+        // if answerState is empty
+        if (
+            this.answerState === undefined ||
+            Object.keys(this.answerState).length === 0
+        ) {
+            this.answerState = {};
+            for (let element of this.dragArray) {
+                this.draggableDiv.appendChild(element);
+            }
+            for (let element of this.dropArray) {
+                this.dropZoneDiv.appendChild(element);
+            }
+        } else {
+            let placedPremises = [];
+            for (let response of this.dropArray) {
+                this.dropZoneDiv.appendChild(response);
+                if (this.answerState[response.id]) {
+                    for (let premise of this.answerState[response.id]) {
+                        placedPremises.push(premise);
+                        response.appendChild(this.findPremise(premise));
+                    }
+                }
+            }
+            for (let premise of this.dragArray) {
+                if (placedPremises.indexOf(premise.id) == -1) {
+                    this.draggableDiv.appendChild(premise);
+                }
+            }
         }
     }
+
+    findPremise(id) {
+        for (let premise of this.dragArray) {
+            if (premise.id == id) {
+                return premise;
+            }
+        }
+    }
+
     setDragListeners(dgSpan) {
         let self = this;
         dgSpan.addEventListener("dragstart", function (ev) {
@@ -230,7 +266,6 @@ export default class DragNDrop extends RunestoneBase {
                 var data = ev.dataTransfer.getData("draggableID");
                 var draggedSpan = document.getElementById(data);
                 if (
-                    this.hasNoDragChild(ev.target) &&
                     draggedSpan != ev.target &&
                     !this.strangerDanger(draggedSpan)
                 ) {
@@ -250,10 +285,7 @@ export default class DragNDrop extends RunestoneBase {
                 if ($(ev.target).hasClass("possibleDrop")) {
                     return;
                 }
-                if (
-                    $(ev.target).hasClass("draggable-drop") &&
-                    this.hasNoDragChild(ev.target)
-                ) {
+                if ($(ev.target).hasClass("draggable-drop")) {
                     $(ev.target).addClass("possibleDrop");
                 }
             }.bind(this)
@@ -278,7 +310,6 @@ export default class DragNDrop extends RunestoneBase {
                 var draggedSpan = document.getElementById(data);
                 if (
                     $(ev.target).hasClass("draggable-drop") &&
-                    this.hasNoDragChild(ev.target) &&
                     !this.strangerDanger(draggedSpan)
                 ) {
                     // Make sure element isn't already there--prevents erros w/appending child
@@ -299,74 +330,30 @@ export default class DragNDrop extends RunestoneBase {
     /*=======================
     == Auxiliary functions ==
     =======================*/
+    /* leaving the name as is, because it reminds me of Isaiah! */
     strangerDanger(testSpan) {
         // Returns true if the test span doesn't belong to this instance of DragNDrop
-        var strangerDanger = false;
-        for (var i = 0; i < this.dragPairArray.length; i++) {
-            if (testSpan === this.dragPairArray[i][0]) {
-                strangerDanger = false;
-            }
-        }
-        return strangerDanger;
-    }
-    hasNoDragChild(parent) {
-        // Ensures that each dropZoneDiv can have only one draggable child
-        return true;
-        var counter = 0;
-        for (var i = 0; i < parent.childNodes.length; i++) {
-            if ($(parent.childNodes[i]).attr("draggable") === "true") {
-                counter++;
-            }
-        }
-        if (counter >= 1) {
-            return false;
-        } else {
+        if (testSpan.dataset.parent_id != this.divid) {
             return true;
-        }
-    }
-    createIndexArray() {
-        this.indexArray = [];
-        for (var i = 0; i < this.dragPairArray.length; i++) {
-            this.indexArray.push(i);
-        }
-    }
-    randomizeIndexArray() {
-        // Shuffles around indices so the matchable elements aren't in a predictable order
-        var currentIndex = this.indexArray.length,
-            temporaryValue,
-            randomIndex;
-        // While there remain elements to shuffle...
-        while (currentIndex !== 0) {
-            // Pick a remaining element...
-            randomIndex = Math.floor(Math.random() * currentIndex);
-            currentIndex -= 1;
-            // And swap it with the current element.
-            temporaryValue = this.indexArray[currentIndex];
-            this.indexArray[currentIndex] = this.indexArray[randomIndex];
-            this.indexArray[randomIndex] = temporaryValue;
+        } else {
+            return false;
         }
     }
     /*==============================
     == Reset button functionality ==
     ==============================*/
     resetDraggables() {
-        for (var i = 0; i < this.dragPairArray.length; i++) {
-            for (
-                var j = 0;
-                j < this.dragPairArray[i][1].childNodes.length;
-                j++
-            ) {
-                if (
-                    $(this.dragPairArray[i][1].childNodes[j]).attr(
-                        "draggable"
-                    ) === "true"
-                ) {
-                    this.draggableDiv.appendChild(
-                        this.dragPairArray[i][1].childNodes[j]
-                    );
-                }
+        for (let response of this.dropZoneDiv.childNodes) {
+            response.classList.remove("drop-incorrect");
+            for (let premise of Array.from(response.childNodes).filter(
+                (node) => node.nodeType !== Node.TEXT_NODE
+            )) {
+                premise.draggable = true;
+                response.removeChild(premise);
+                this.draggableDiv.appendChild(premise);
             }
         }
+        this.answerState = {};
         this.feedBackDiv.style.display = "none";
     }
     /*===========================
@@ -374,8 +361,8 @@ export default class DragNDrop extends RunestoneBase {
     ===========================*/
     getAllCategories() {
         this.categories = [];
-        for (let droppable of this.dropZoneDiv.childNodes) {
-            this.categories.push(droppable.dataset.category);
+        for (let response of this.dropZoneDiv.childNodes) {
+            this.categories.push(response.dataset.category);
         }
         return this.categories;
     }
@@ -415,8 +402,28 @@ export default class DragNDrop extends RunestoneBase {
         this.setLocalStorage({ correct: this.correct ? "T" : "F" });
     }
 
+    isCorrectDrop(response) {
+        let correct = true;
+        let correctPlacements = 0;
+        for (let premise of Array.from(response.childNodes).filter(
+            (node) => node.nodeType !== Node.TEXT_NODE
+        )) {
+            if (premise.dataset.category != response.dataset.category) {
+                correct = false;
+            } else {
+                correctPlacements++;
+            }
+        }
+        let catCount = 0;
+        for (let premis of this.dragArray) {
+            if (premis.dataset.category == response.dataset.category) {
+                catCount++;
+            }
+        }
+        return correct && correctPlacements == catCount;
+    }
     async logCurrentAnswer(sid) {
-        let answer = this.pregnantIndexArray.join(";");
+        let answer = JSON.stringify(this.answerState);
         let data = {
             event: "dragNdrop",
             act: answer,
@@ -433,17 +440,13 @@ export default class DragNDrop extends RunestoneBase {
         await this.logBookEvent(data);
     }
     renderFeedback() {
-        for (var i = 0; i < this.dragPairArray.length; i++) {
-            if (
-                !$(this.dragPairArray[i][1]).has(this.dragPairArray[i][0])
-                    .length
-            ) {
-                $(this.dragPairArray[i][1]).addClass("drop-incorrect");
+        for (let response of this.dropZoneDiv.childNodes) {
+            if (this.isCorrectDrop(response)) {
+                response.classList.remove("drop-incorrect");
             } else {
-                $(this.dragPairArray[i][1]).removeClass("drop-incorrect");
+                response.classList.add("drop-incorrect");
             }
         }
-
         if (!this.feedBackDiv) {
             this.renderFeedbackDiv();
         }
@@ -477,9 +480,10 @@ export default class DragNDrop extends RunestoneBase {
         // Restore answers from storage retrieval done in RunestoneBase
         this.hasStoredDropzones = true;
         this.minheight = data.min_height;
-        this.pregnantIndexArray = data.answer.split(";");
+        this.answerState = JSON.parse(data.answer);
         this.finishSettingUp();
     }
+
     checkLocalStorage() {
         if (this.graderactive) {
             return;
@@ -502,10 +506,10 @@ export default class DragNDrop extends RunestoneBase {
                     this.finishSettingUp();
                     return;
                 }
-                this.pregnantIndexArray = storedObj.answer.split(";");
+                this.answerState = storedObj.answer;
                 if (this.useRunestoneServices) {
                     // store answer in database
-                    var answer = this.pregnantIndexArray.join(";");
+                    let answer = JSON.stringify(this.answerState);
                     this.logBookEvent({
                         event: "dragNdrop",
                         act: answer,
@@ -523,27 +527,20 @@ export default class DragNDrop extends RunestoneBase {
     setLocalStorage(data) {
         if (data.answer === undefined) {
             // If we didn't load from the server, we must generate the data
-            this.pregnantIndexArray = [];
-            for (var i = 0; i < this.dragPairArray.length; i++) {
-                if (!this.hasNoDragChild(this.dragPairArray[i][1])) {
-                    for (var j = 0; j < this.dragPairArray.length; j++) {
-                        if (
-                            $(this.dragPairArray[i][1]).has(
-                                this.dragPairArray[j][0]
-                            ).length
-                        ) {
-                            this.pregnantIndexArray.push(j);
-                        }
-                    }
-                } else {
-                    this.pregnantIndexArray.push(-1);
+            this.answerState = {};
+            for (let response of this.dropZoneDiv.childNodes) {
+                this.answerState[response.id] = [];
+                for (let premise of Array.from(response.childNodes).filter(
+                    (node) => node.nodeType !== Node.TEXT_NODE
+                )) {
+                    this.answerState[response.id].push(premise.id);
                 }
             }
         }
         var timeStamp = new Date();
         var correct = data.correct;
         var storageObj = {
-            answer: this.pregnantIndexArray.join(";"),
+            answer: this.answerState,
             min_height: this.minheight,
             timestamp: timeStamp,
             correct: correct,
@@ -556,10 +553,10 @@ export default class DragNDrop extends RunestoneBase {
 
     disableInteraction() {
         $(this.resetButton).hide();
-        for (var i = 0; i < this.dragPairArray.length; i++) {
+        for (var i = 0; i < this.dragArray.length; i++) {
             // No more dragging
-            $(this.dragPairArray[i][0]).attr("draggable", "false");
-            $(this.dragPairArray[i][0]).css("cursor", "initial");
+            this.dragArray[i].draggable = false;
+            this.dragArray[i].style.cursor = "initial";
         }
     }
 }
