@@ -69,7 +69,11 @@ export default class DragNDrop extends RunestoneBase {
             replaceSpan.id = element
                 .getAttribute("for")
                 .replace("drag", "drop");
-            replaceSpan.classList.add("draggable-drop", "drop-label", "response");
+            replaceSpan.classList.add(
+                "draggable-drop",
+                "drop-label",
+                "response"
+            );
             replaceSpan.dataset.category = this.getCategory(element);
             replaceSpan.dataset.parent_id = this.divid;
             this.dropArray.push(replaceSpan);
@@ -128,7 +132,7 @@ export default class DragNDrop extends RunestoneBase {
 
     finishSettingUp() {
         this.appendReplacementSpans();
-        this.renderFeedbackDiv();
+        this.createFeedbackDiv();
         this.origElem.parentNode.replaceChild(this.containerDiv, this.origElem);
         if (!this.hasStoredDropzones) {
             this.minheight = this.draggableDiv.offsetHeight;
@@ -148,10 +152,10 @@ export default class DragNDrop extends RunestoneBase {
             "dragover",
             function (ev) {
                 ev.preventDefault();
-                if ($(this.draggableDiv).hasClass("possibleDrop")) {
+                if (this.draggableDiv.classList.contains("possibleDrop")) {
                     return;
                 }
-                $(this.draggableDiv).addClass("possibleDrop");
+                this.draggableDiv.classList.add("possibleDrop");
             }.bind(this)
         );
         this.draggableDiv.addEventListener(
@@ -159,13 +163,13 @@ export default class DragNDrop extends RunestoneBase {
             function (ev) {
                 self.isAnswered = true;
                 ev.preventDefault();
-                if ($(this.draggableDiv).hasClass("possibleDrop")) {
-                    $(this.draggableDiv).removeClass("possibleDrop");
+                if (this.draggableDiv.classList.contains("possibleDrop")) {
+                    this.draggableDiv.classList.remove("possibleDrop");
                 }
                 var data = ev.dataTransfer.getData("draggableID");
                 var draggedSpan = document.getElementById(data);
                 if (
-                    !$(this.draggableDiv).has(draggedSpan).length &&
+                    !this.draggableDiv.contains(draggedSpan) &&
                     !this.strangerDanger(draggedSpan)
                 ) {
                     // Make sure element isn't already there--prevents erros w/appending child
@@ -176,10 +180,10 @@ export default class DragNDrop extends RunestoneBase {
         this.draggableDiv.addEventListener(
             "dragleave",
             function (e) {
-                if (!$(this.draggableDiv).hasClass("possibleDrop")) {
+                if (!this.draggableDiv.classList.contains("possibleDrop")) {
                     return;
                 }
-                $(this.draggableDiv).removeClass("possibleDrop");
+                this.draggableDiv.classList.remove("possibleDrop");
             }.bind(this)
         );
     }
@@ -321,7 +325,7 @@ export default class DragNDrop extends RunestoneBase {
         );
     }
 
-    renderFeedbackDiv() {
+    createFeedbackDiv() {
         if (!this.feedBackDiv) {
             this.feedBackDiv = document.createElement("div");
             this.feedBackDiv.id = this.divid + "_feedback";
@@ -386,10 +390,9 @@ export default class DragNDrop extends RunestoneBase {
         this.incorrectNum = 0;
         this.correctNum = 0;
         this.dragNum = this.dragArray.length;
+        let ivp = this.isValidPremis.bind(this);
         for (let response of this.dropZoneDiv.childNodes) {
-            for (let premise of Array.from(response.childNodes).filter(
-                (node) => node.nodeType !== Node.TEXT_NODE
-            )) {
+            for (let premise of Array.from(response.childNodes).filter(ivp)) {
                 if (premise.dataset.category == response.dataset.category) {
                     this.correctNum++;
                 } else {
@@ -436,6 +439,15 @@ export default class DragNDrop extends RunestoneBase {
         }
         return correct && correctPlacements == catCount;
     }
+
+    isValidPremis(premise) {
+        if (this.dragArray.includes(premise)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     async logCurrentAnswer(sid) {
         let answer = JSON.stringify(this.answerState);
         let data = {
@@ -462,7 +474,7 @@ export default class DragNDrop extends RunestoneBase {
             }
         }
         if (!this.feedBackDiv) {
-            this.renderFeedbackDiv();
+            this.createFeedbackDiv();
         }
         this.feedBackDiv.style.display = "block";
         if (this.correct) {
@@ -480,6 +492,7 @@ export default class DragNDrop extends RunestoneBase {
                 this.dragNum,
                 this.unansweredNum
             );
+            // this.feedback comes from the author (a hint maybe)
             $(this.feedBackDiv).html(msgIncorrect + " " + this.feedback);
             $(this.feedBackDiv).attr(
                 "class",
