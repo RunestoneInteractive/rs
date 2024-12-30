@@ -26,7 +26,7 @@ export default class DragNDrop extends RunestoneBase {
         this.divid = orig.id;
         this.useRunestoneServices = opts.useRunestoneServices;
         this.random = false;
-        if ($(this.origElem).is("[data-random]")) {
+        if (this.origElem.hasAttribute("data-random")) {
             this.random = true;
         }
         this.feedback = "";
@@ -191,11 +191,9 @@ export default class DragNDrop extends RunestoneBase {
         this.buttonDiv = document.createElement("div");
         this.submitButton = document.createElement("button"); // Check me button
         this.submitButton.textContent = $.i18n("msg_dragndrop_check_me");
-        $(this.submitButton).attr({
-            class: "btn btn-success drag-button",
-            name: "do answer",
-            type: "button",
-        });
+        this.submitButton.setAttribute("class", "btn btn-success drag-button");
+        this.submitButton.setAttribute("name", "do answer");
+        this.submitButton.setAttribute("type", "button");
         this.submitButton.onclick = function () {
             this.checkCurrentAnswer();
             this.renderFeedback();
@@ -203,10 +201,11 @@ export default class DragNDrop extends RunestoneBase {
         }.bind(this);
         this.resetButton = document.createElement("button"); // Check me button
         this.resetButton.textContent = $.i18n("msg_dragndrop_reset");
-        $(this.resetButton).attr({
-            class: "btn btn-default drag-button drag-reset",
-            name: "do answer",
-        });
+        this.resetButton.setAttribute(
+            "class",
+            "btn btn-default drag-button drag-reset"
+        );
+        this.resetButton.setAttribute("name", "do answer");
         this.resetButton.onclick = function () {
             this.resetDraggables();
         }.bind(this);
@@ -287,34 +286,34 @@ export default class DragNDrop extends RunestoneBase {
             function (ev) {
                 self.isAnswered = true;
                 ev.preventDefault();
-                if ($(ev.target).hasClass("possibleDrop")) {
+                if (ev.target.classList.contains("possibleDrop")) {
                     return;
                 }
-                if ($(ev.target).hasClass("draggable-drop")) {
-                    $(ev.target).addClass("possibleDrop");
+                if (ev.target.classList.contains("draggable-drop")) {
+                    ev.target.classList.add("possibleDrop");
                 }
             }.bind(this)
         );
         dpSpan.addEventListener("dragleave", function (ev) {
             self.isAnswered = true;
             ev.preventDefault();
-            if (!$(ev.target).hasClass("possibleDrop")) {
+            if (!ev.target.classList.contains("possibleDrop")) {
                 return;
             }
-            $(ev.target).removeClass("possibleDrop");
+            ev.target.classList.remove("possibleDrop");
         });
         dpSpan.addEventListener(
             "drop",
             function (ev) {
                 self.isAnswered = true;
                 ev.preventDefault();
-                if ($(ev.target).hasClass("possibleDrop")) {
-                    $(ev.target).removeClass("possibleDrop");
+                if (ev.target.classList.contains("possibleDrop")) {
+                    ev.target.classList.remove("possibleDrop");
                 }
                 var data = ev.dataTransfer.getData("draggableID");
                 var draggedSpan = document.getElementById(data);
                 if (
-                    $(ev.target).hasClass("draggable-drop") &&
+                    ev.target.classList.contains("draggable-drop") &&
                     !this.strangerDanger(draggedSpan) &&
                     !this.dragArray.includes(ev.target) // don't drop on another premise!
                 ) {
@@ -479,11 +478,8 @@ export default class DragNDrop extends RunestoneBase {
         this.feedBackDiv.style.display = "block";
         if (this.correct) {
             var msgCorrect = $.i18n("msg_dragndrop_correct_answer");
-            $(this.feedBackDiv).html(msgCorrect);
-            $(this.feedBackDiv).attr(
-                "class",
-                "alert alert-info draggable-feedback"
-            );
+            this.feedBackDiv.innerHTML = msgCorrect;
+            this.feedBackDiv.className = "alert alert-info draggable-feedback";
         } else {
             var msgIncorrect = $.i18n(
                 $.i18n("msg_dragndrop_incorrect_answer"),
@@ -493,11 +489,9 @@ export default class DragNDrop extends RunestoneBase {
                 this.unansweredNum
             );
             // this.feedback comes from the author (a hint maybe)
-            $(this.feedBackDiv).html(msgIncorrect + " " + this.feedback);
-            $(this.feedBackDiv).attr(
-                "class",
-                "alert alert-danger draggable-feedback"
-            );
+            this.feedBackDiv.innerHTML = msgIncorrect + " " + this.feedback;
+            this.feedBackDiv.className =
+                "alert alert-danger draggable-feedback";
         }
     }
     /*===================================
@@ -582,7 +576,7 @@ export default class DragNDrop extends RunestoneBase {
     }
 
     disableInteraction() {
-        $(this.resetButton).hide();
+        this.resetButton.style.display = "none";
         for (var i = 0; i < this.dragArray.length; i++) {
             // No more dragging
             this.dragArray[i].draggable = false;
@@ -605,19 +599,20 @@ function shuffleArray(array) {
 == Find the custom HTML tags and ==
 ==   execute our code on them    ==
 =================================*/
-$(document).on("runestone:login-complete", function () {
-    $("[data-component=dragndrop]").each(function (index) {
-        var opts = {
-            orig: this,
+document.addEventListener("runestone:login-complete", function () {
+    const elements = document.querySelectorAll("[data-component=dragndrop]");
+    elements.forEach((element) => {
+        const opts = {
+            orig: element,
             useRunestoneServices: eBookConfig.useRunestoneServices,
         };
-        if ($(this).closest("[data-component=timedAssessment]").length == 0) {
+        if (!element.closest("[data-component=timedAssessment]")) {
             // If this element exists within a timed component, don't render it here
             try {
-                window.componentMap[this.id] = new DragNDrop(opts);
+                window.componentMap[element.id] = new DragNDrop(opts);
             } catch (err) {
                 console.log(
-                    `Error rendering DragNDrop Problem ${this.id}: ${err}`
+                    `Error rendering DragNDrop Problem ${element.id}: ${err}`
                 );
             }
         }

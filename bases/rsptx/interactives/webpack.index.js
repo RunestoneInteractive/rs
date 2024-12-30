@@ -183,7 +183,7 @@ export function runestone_auto_import() {
     // Send the Runestone login complete event when all JS is loaded and the pre-login is also complete.
     Promise.all([pre_login_complete_promise, ...a]).then(function () {
         if (!document.body.dataset.reactInUse) {
-            $(document).trigger("runestone:login-complete");
+            document.dispatchEvent(new CustomEvent("runestone:login-complete"));
         }
     });
 }
