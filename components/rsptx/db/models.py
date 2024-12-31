@@ -28,11 +28,11 @@
 # Standard library
 # ----------------
 import re
-from typing import Dict, Type
+from typing import Dict, Type, List, Optional
 
 # Third-party imports
 # -------------------
-from pydantic import field_validator
+from pydantic import field_validator, BaseModel
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -1069,3 +1069,9 @@ class Web2pySessionRunestone(Base, IdMixin):
     modified_datetime = Column(DateTime)
     unique_key = Column(String(64))
     session_data = Column(LargeBinary)
+
+class UpdateAssignmentExercisesPayload(BaseModel):
+    isReading: bool
+    assignmentId: int
+    idsToAdd: Optional[List[int]] = None
+    idsToRemove: Optional[List[int]] = None

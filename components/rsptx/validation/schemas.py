@@ -230,6 +230,7 @@ class AssignmentIncoming(BaseModel):
     description: str
     points: int
     duedate: datetime
+    kind: str
 
 
 class QuestionIncoming(BaseModel):
