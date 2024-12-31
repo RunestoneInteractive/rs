@@ -58,6 +58,7 @@ from rsptx.validation.schemas import (
     SearchSpecification,
 )
 from rsptx.logging import rslogger
+from rsptx.analytics import log_this_function
 from .student import get_course_url
 
 # Routing
@@ -817,7 +818,7 @@ async def get_builder(
 ):
     # get the course
     course = await fetch_course(user.course_name)
-
+    await log_this_function(user)
     user_is_instructor = await is_instructor(request, user=user)
     if not user_is_instructor:
         return RedirectResponse(url="/")
@@ -862,6 +863,7 @@ async def get_grader(
 async def get_builderV2(
     request: Request, user=Depends(auth_manager), response_class=HTMLResponse
 ):
+    await log_this_function(user)
     return await get_builder(request, user, response_class)
 
 
