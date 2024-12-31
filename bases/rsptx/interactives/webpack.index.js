@@ -141,7 +141,11 @@ async function flushQueue() {
     });
     const flushed = await Promise.all(flushedPromise);
     try {
-        flushed.forEach((item) => item.resolve());
+        flushed.forEach(function (item) {
+            if (item) {
+                item.resolve();
+            }
+        });
     } catch (e) {
         console.error(e);
     }

@@ -9,7 +9,24 @@
 ===                7/6/15                ===
 ===              Brad MIller             ===
 ===                2/7/19                ===
+===               12/30/24               ===
 ==========================================*/
+
+/*
+ * Some terminology:
+ * - draggable: the element that is being dragged
+ * - dropzone: the element that is being dropped on
+ * - premise: the element that is being dragged
+ * - response: the element that is being dropped on
+ * - category: each premis and response have a category.  Several premises can have the same category
+ * and be dropped onto the same response.  If a premise has no response its category will not be in
+ * the list of categories.
+ *
+ * Key variables:
+ * - dragArray: an array of draggable elements
+ * - dropArray: an array of dropzone elements
+ * - categories: an array of all categories
+ */
 "use strict";
 
 import RunestoneBase from "../../common/js/runestonebase.js";
@@ -31,7 +48,7 @@ export default class DragNDrop extends RunestoneBase {
         }
         this.feedback = "";
         this.question = "";
-        this.populate(); // Populates this.dropArray, this.dragArray, this.feedback and this.question
+        this.populate(); // Populates this.responseArray, this.premiseArray, this.feedback and this.question
         this.createNewElements();
         this.caption = "Drag-N-Drop";
         this.addCaption("runestone");
@@ -44,8 +61,8 @@ export default class DragNDrop extends RunestoneBase {
     === Update variables ===
     ======================*/
     populate() {
-        this.dropArray = [];
-        this.dragArray = [];
+        this.responseArray = [];
+        this.premiseArray = [];
         for (let element of this.origElem.querySelectorAll(
             "[data-subcomponent='draggable']"
         )) {
@@ -57,10 +74,10 @@ export default class DragNDrop extends RunestoneBase {
             replaceSpan.classList.add("premise");
             replaceSpan.dataset.category = this.getCategory(element);
             replaceSpan.dataset.parent_id = this.divid;
-            this.dragArray.push(replaceSpan);
+            this.premiseArray.push(replaceSpan);
             this.setDragListeners(replaceSpan);
         }
-        this.dragArray = shuffleArray(this.dragArray);
+        this.premiseArray = shuffleArray(this.premiseArray);
         for (let element of this.origElem.querySelectorAll(
             "[data-subcomponent='dropzone']"
         )) {
@@ -76,7 +93,7 @@ export default class DragNDrop extends RunestoneBase {
             );
             replaceSpan.dataset.category = this.getCategory(element);
             replaceSpan.dataset.parent_id = this.divid;
-            this.dropArray.push(replaceSpan);
+            this.responseArray.push(replaceSpan);
             this.setDropListeners(replaceSpan);
         }
 
@@ -127,6 +144,7 @@ export default class DragNDrop extends RunestoneBase {
             this.finishSettingUp();
         }
         self = this;
+        this.ivp = this.isValidPremise.bind(this);
         self.queueMathJax(self.containerDiv);
     }
 
@@ -214,22 +232,20 @@ export default class DragNDrop extends RunestoneBase {
         this.containerDiv.appendChild(this.buttonDiv);
     }
     appendReplacementSpans() {
-        // todo - there may be stored drops that we need to handle
-        // if answerState is empty
         if (
             this.answerState === undefined ||
             Object.keys(this.answerState).length === 0
         ) {
             this.answerState = {};
-            for (let element of this.dragArray) {
+            for (let element of this.premiseArray) {
                 this.draggableDiv.appendChild(element);
             }
-            for (let element of this.dropArray) {
+            for (let element of this.responseArray) {
                 this.dropZoneDiv.appendChild(element);
             }
         } else {
             let placedPremises = [];
-            for (let response of this.dropArray) {
+            for (let response of this.responseArray) {
                 this.dropZoneDiv.appendChild(response);
                 if (this.answerState[response.id]) {
                     for (let premise of this.answerState[response.id]) {
@@ -238,7 +254,7 @@ export default class DragNDrop extends RunestoneBase {
                     }
                 }
             }
-            for (let premise of this.dragArray) {
+            for (let premise of this.premiseArray) {
                 if (placedPremises.indexOf(premise.id) == -1) {
                     this.draggableDiv.appendChild(premise);
                 }
@@ -247,7 +263,7 @@ export default class DragNDrop extends RunestoneBase {
     }
 
     findPremise(id) {
-        for (let premise of this.dragArray) {
+        for (let premise of this.premiseArray) {
             if (premise.id == id) {
                 return premise;
             }
@@ -315,7 +331,7 @@ export default class DragNDrop extends RunestoneBase {
                 if (
                     ev.target.classList.contains("draggable-drop") &&
                     !this.strangerDanger(draggedSpan) &&
-                    !this.dragArray.includes(ev.target) // don't drop on another premise!
+                    !this.premiseArray.includes(ev.target) // don't drop on another premise!
                 ) {
                     // Make sure element isn't already there--prevents erros w/appending child
                     ev.target.appendChild(draggedSpan);
@@ -348,26 +364,16 @@ export default class DragNDrop extends RunestoneBase {
     == Reset button functionality ==
     ==============================*/
     resetDraggables() {
-        let resetList = [];
-        for (let response of this.dropZoneDiv.childNodes) {
+        this.dropZoneDiv.innerHTML = "";
+        for (let response of this.responseArray) {
             response.classList.remove("drop-incorrect");
-            for (let premise of response.childNodes) {
-                if (
-                    premise.nodeType !== Node.TEXT_NODE &&
-                    this.dragArray.includes(premise)
-                ) {
-                    resetList.push([response, premise]); // array of [response, premise];
-                }
-            }
+            this.dropZoneDiv.appendChild(response);
         }
-        for (let i = 0; i < resetList.length; i++) {
-            let response = resetList[i][0];
-            let premise = resetList[i][1];
-            premise.draggable = true;
-            response.removeChild(premise);
+        this.draggableDiv.innerHTML = "";
+        shuffleArray(this.premiseArray);
+        for (let premise of this.premiseArray) {
             this.draggableDiv.appendChild(premise);
         }
-
         this.answerState = {};
         this.feedBackDiv.style.display = "none";
     }
@@ -388,10 +394,13 @@ export default class DragNDrop extends RunestoneBase {
         this.unansweredNum = 0;
         this.incorrectNum = 0;
         this.correctNum = 0;
-        this.dragNum = this.dragArray.length;
-        let ivp = this.isValidPremis.bind(this);
+        this.dragNum = this.premiseArray.length;
+
         for (let response of this.dropZoneDiv.childNodes) {
-            for (let premise of Array.from(response.childNodes).filter(ivp)) {
+            // ignore drop zone children that aren't premises
+            for (let premise of Array.from(response.childNodes).filter(
+                this.ivp
+            )) {
                 if (premise.dataset.category == response.dataset.category) {
                     this.correctNum++;
                 } else {
@@ -408,7 +417,7 @@ export default class DragNDrop extends RunestoneBase {
                 this.unansweredNum++;
             }
         }
-        this.percent = this.correctNum / this.dragArray.length;
+        this.percent = this.correctNum / this.premiseArray.length;
         console.log(this.percent, this.incorrectNum, this.unansweredNum);
         if (this.percent < 1.0) {
             this.correct = false;
@@ -417,21 +426,20 @@ export default class DragNDrop extends RunestoneBase {
     }
 
     isCorrectDrop(response) {
+        // Returns true if all premises in the response are in the correct category
+        // and all premises in the category are in the response
+        // used by renderFeedback
         let correct = true;
         let correctPlacements = 0;
-        for (let premise of Array.from(response.childNodes).filter(
-            (node) => node.nodeType !== Node.TEXT_NODE
-        )) {
-            if (this.dragArray.indexOf(premise) !== -1) {
-                if (premise.dataset.category != response.dataset.category) {
-                    correct = false;
-                } else {
-                    correctPlacements++;
-                }
+        for (let premise of Array.from(response.childNodes).filter(this.ivp)) {
+            if (premise.dataset.category != response.dataset.category) {
+                correct = false;
+            } else {
+                correctPlacements++;
             }
         }
         let catCount = 0;
-        for (let premis of this.dragArray) {
+        for (let premis of this.premiseArray) {
             if (premis.dataset.category == response.dataset.category) {
                 catCount++;
             }
@@ -439,8 +447,8 @@ export default class DragNDrop extends RunestoneBase {
         return correct && correctPlacements == catCount;
     }
 
-    isValidPremis(premise) {
-        if (this.dragArray.includes(premise)) {
+    isValidPremise(premise) {
+        if (this.premiseArray.includes(premise)) {
             return true;
         } else {
             return false;
@@ -554,7 +562,7 @@ export default class DragNDrop extends RunestoneBase {
                 for (let premise of response.childNodes) {
                     if (
                         premise.nodeType !== Node.TEXT_NODE &&
-                        this.dragArray.includes(premise)
+                        this.premiseArray.includes(premise)
                     ) {
                         this.answerState[response.id].push(premise.id);
                     }
@@ -577,10 +585,10 @@ export default class DragNDrop extends RunestoneBase {
 
     disableInteraction() {
         this.resetButton.style.display = "none";
-        for (var i = 0; i < this.dragArray.length; i++) {
+        for (var i = 0; i < this.premiseArray.length; i++) {
             // No more dragging
-            this.dragArray[i].draggable = false;
-            this.dragArray[i].style.cursor = "initial";
+            this.premiseArray[i].draggable = false;
+            this.premiseArray[i].style.cursor = "initial";
         }
     }
 }
