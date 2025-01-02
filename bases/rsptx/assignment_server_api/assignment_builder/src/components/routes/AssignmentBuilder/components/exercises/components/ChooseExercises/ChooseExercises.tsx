@@ -35,13 +35,13 @@ export const ChooseExercises = () => {
 
     dispatch(
       chooseExercisesActions.setExercisesToAdd(
-        differenceBy(selEx, assignmentExercises, (ex) => ex.id)
+        differenceBy(selEx, assignmentExercises, (ex) => ex.question_id || ex.id)
       )
     );
 
     dispatch(
       chooseExercisesActions.setExercisesToRemove(
-        differenceBy(assignmentExercises, selEx, (ex) => ex.id)
+        differenceBy(assignmentExercises, selEx, (ex) => ex.question_id || ex.id)
       )
     );
   };
@@ -58,15 +58,20 @@ export const ChooseExercises = () => {
 
   const handleSelect = ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
     const entriesToAdd = getLeafNodes([node]).map((x) => x.data as Exercise);
-    const updatedSelectedExercises = uniqBy([...selectedExercises, ...entriesToAdd], (n) => n.id);
+
+    const updatedSelectedExercises = uniqBy(
+      [...selectedExercises, ...entriesToAdd],
+      (n) => n.question_id || n.id
+    );
 
     updateState(updatedSelectedExercises);
   };
 
   const handleUnselect = ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
     const entriesToRemove = getLeafNodes([node]).map((x) => x.data as Exercise);
+
     const updatedSelectedExercises = selectedExercises.filter(
-      (x) => !entriesToRemove.some((y) => x.id === y.id)
+      (x) => !entriesToRemove.some((y) => x.question_id === y.id)
     );
 
     updateState(updatedSelectedExercises);

@@ -5,7 +5,7 @@ import { confirmPopup, ConfirmPopup } from "primereact/confirmpopup";
 import { MouseEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
-import { useExercisesSelector } from "@/hooks/useExercisesSelector";
+import { useUpdateAssignmentExercise } from "@/hooks/useUpdateAssignmentExercise";
 import { Exercise } from "@/types/exercises";
 
 import { AddExerciseModal } from "./AddExerciseModal";
@@ -13,7 +13,7 @@ import { AddExerciseModal } from "./AddExerciseModal";
 export const AssignmentExercisesHeader = () => {
   const dispatch = useDispatch();
   const { showDialog } = useDialogContext();
-  const { removeExercises } = useExercisesSelector();
+  const { updateAssignmentExercises } = useUpdateAssignmentExercise();
 
   const selectedExercises = useSelector(exercisesSelectors.getSelectedExercises);
 
@@ -27,9 +27,16 @@ export const AssignmentExercisesHeader = () => {
       message: `Are you sure you want to remove ${selectedExercises.length} exercises?`,
       icon: "pi pi-exclamation-triangle",
       defaultFocus: "accept",
-      accept: () => {
-        removeExercises?.(selectedExercises);
-        setSelectedExercises([]);
+      accept: async () => {
+        await updateAssignmentExercises(
+          {
+            idsToRemove: selectedExercises.map((x) => x.id),
+            isReading: false
+          },
+          () => {
+            setSelectedExercises([]);
+          }
+        );
       }
     });
   };

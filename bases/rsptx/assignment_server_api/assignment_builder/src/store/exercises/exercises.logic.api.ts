@@ -1,5 +1,5 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { assignmentApi } from "@store/assignment/assignment.logic.api";
+import { assignmentExerciseApi } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { baseQuery } from "@store/baseQuery";
 import toast from "react-hot-toast";
 
@@ -27,20 +27,16 @@ export const exercisesApi = createApi({
       transformResponse: (response: DetailResponse<{ id: number }>) => {
         return response.detail.id;
       },
-      onQueryStarted: (createExercisePayload, { queryFulfilled, dispatch, getState }) => {
+      onQueryStarted: (_, { queryFulfilled, dispatch, getState }) => {
         queryFulfilled
           .then((response) => {
             const state = getState() as RootState;
 
             dispatch(
-              assignmentApi.endpoints.createAssignmentExercise.initiate({
-                assignment_id: state.assignmentTemp.selectedAssignment?.id!,
-                autograde: null,
-                id: response.data,
-                points: createExercisePayload.points,
-                qnumber: createExercisePayload.name,
-                question_id: response.data,
-                which_to_grade: "best_answer"
+              assignmentExerciseApi.endpoints.updateAssignmentExercises.initiate({
+                idsToAdd: [response.data],
+                isReading: false,
+                assignmentId: state.assignmentTemp.selectedAssignmentId!
               })
             );
           })

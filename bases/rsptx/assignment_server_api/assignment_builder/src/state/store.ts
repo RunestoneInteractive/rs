@@ -1,11 +1,7 @@
-import {
-  combineReducers,
-  configureStore,
-  createListenerMiddleware,
-  isAnyOf
-} from "@reduxjs/toolkit";
-import { assignmentActions, assignmentSlice } from "@store/assignment/assignment.logic";
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
+import { assignmentSlice } from "@store/assignment/assignment.logic";
 import { assignmentApi } from "@store/assignment/assignment.logic.api.js";
+import { assignmentExerciseApi } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { chooseExercisesSlice } from "@store/chooseExercises/chooseExercises.logic";
 import { exercisesSlice } from "@store/exercises/exercises.logic";
 import { exercisesApi } from "@store/exercises/exercises.logic.api";
@@ -36,6 +32,7 @@ const reducersMap = {
   shortanswer: shortReducer,
   student: studentReducer,
   [assignmentApi.reducerPath]: assignmentApi.reducer,
+  [assignmentExerciseApi.reducerPath]: assignmentExerciseApi.reducer,
   assignmentTemp: assignmentSlice.reducer,
   user: userSlice.reducer,
   readings: readingsSlice.reducer,
@@ -48,26 +45,6 @@ const reducersMap = {
 
 export type RootState = StateType<typeof reducersMap>;
 
-const listenerMiddleware = createListenerMiddleware();
-
-listenerMiddleware.startListening({
-  matcher: isAnyOf(assignmentActions.setSelectedAssignment),
-  effect: async (_, api) => {
-    const debounceTime = 500;
-    const state = api.getState() as RootState;
-
-    const { selectedAssignment } = state.assignmentTemp;
-
-    api.cancelActiveListeners();
-
-    await api.delay(debounceTime);
-
-    if (!!selectedAssignment) {
-      await api.dispatch(assignmentApi.endpoints.updateAssignment.initiate(selectedAssignment));
-    }
-  }
-});
-
 export const setupStore = (preloadedState?: Partial<RootState>) => {
   return configureStore({
     reducer: combineReducers(reducersMap),
@@ -75,9 +52,9 @@ export const setupStore = (preloadedState?: Partial<RootState>) => {
     middleware: (getDefaultMiddleware) => {
       return getDefaultMiddleware({ serializableCheck: false }).concat(
         assignmentApi.middleware,
+        assignmentExerciseApi.middleware,
         readingsApi.middleware,
-        exercisesApi.middleware,
-        listenerMiddleware.middleware
+        exercisesApi.middleware
       );
     }
   });

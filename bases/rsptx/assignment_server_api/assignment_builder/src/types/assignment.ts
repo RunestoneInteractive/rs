@@ -1,3 +1,5 @@
+import { Control, UseFormGetValues, UseFormSetValue } from "react-hook-form";
+
 export type KindOfAssignment = "Regular" | "Peer" | "Timed";
 
 export type Assignment = {
@@ -49,6 +51,10 @@ export type GetAssignmentsResponse = {
   assignments: Assignment[];
 };
 
+export type GetAssignmentResponse = {
+  assignment: Assignment;
+};
+
 export type CreateAssignmentExercisePayload = {
   assignment_id: number;
   autograde: null;
@@ -57,4 +63,10 @@ export type CreateAssignmentExercisePayload = {
   qnumber: string;
   question_id: number;
   which_to_grade: "best_answer";
+};
+
+export type AssignmentFormProps = {
+  control: Control<Assignment>;
+  setValue: UseFormSetValue<Assignment>;
+  getValues: UseFormGetValues<Assignment>;
 };

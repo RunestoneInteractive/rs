@@ -109,3 +109,8 @@ export type UpdateAssignmentQuestionPayload = UpdateAssignmentReadingPayload & {
 export type UpdateAssignmentExercisePayload =
   | UpdateAssignmentReadingPayload
   | UpdateAssignmentQuestionPayload;
+
+export type UpdateAssignmentExercisesPayload =
+  | { isReading: boolean; assignmentId: number; idsToAdd: number[]; idsToRemove?: never }
+  | { isReading: boolean; assignmentId: number; idsToRemove: number[]; idsToAdd?: never }
+  | { isReading: boolean; assignmentId: number; idsToAdd: number[]; idsToRemove: number[] };

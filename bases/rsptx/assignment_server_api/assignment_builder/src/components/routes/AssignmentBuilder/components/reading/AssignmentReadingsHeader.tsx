@@ -4,23 +4,25 @@ import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { confirmPopup, ConfirmPopup } from "primereact/confirmpopup";
 import { OverlayPanel } from "primereact/overlaypanel";
-import { TreeTable } from "primereact/treetable";
+import { TreeTable, TreeTableEvent } from "primereact/treetable";
 import { useRef } from "react";
 import { MouseEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { useReadingsSelector } from "@/hooks/useReadingsSelector";
+import { useUpdateAssignmentExercise } from "@/hooks/useUpdateAssignmentExercise";
 import { Exercise } from "@/types/exercises";
+import { getLeafNodes } from "@/utils/exercise";
 
 type ButtonEvent = MouseEvent<HTMLButtonElement>;
 export const AssignmentReadingsHeader = () => {
   const dispatch = useDispatch();
   const { showDialog } = useDialogContext();
-  const { selectedKeys, addReadings, removeReadingsFromAvailableReadings, removeReadings } =
-    useReadingsSelector();
+  const { selectedKeys, readingExercises = [] } = useReadingsSelector();
   const overlayRef = useRef<OverlayPanel>(null);
   const selectedReadings = useSelector(readingsSelectors.getSelectedReadings);
   const availableReadings = useSelector(readingsSelectors.getAvailableReadings);
+  const { updateAssignmentExercises } = useUpdateAssignmentExercise();
 
   const setSelectedReadings = (readings: Exercise[]) => {
     dispatch(readingsActions.setSelectedReadings(readings));
@@ -36,9 +38,16 @@ export const AssignmentReadingsHeader = () => {
       message: `Are you sure you want to remove ${selectedReadings.length} readings?`,
       icon: "pi pi-exclamation-triangle",
       defaultFocus: "accept",
-      accept: () => {
-        removeReadings?.(selectedReadings);
-        setSelectedReadings([]);
+      accept: async () => {
+        await updateAssignmentExercises(
+          {
+            idsToRemove: selectedReadings.map((x) => x.id),
+            isReading: true
+          },
+          () => {
+            setSelectedReadings([]);
+          }
+        );
       }
     });
   };
@@ -59,6 +68,28 @@ export const AssignmentReadingsHeader = () => {
           interacting with them.
         </p>
       )
+    });
+  };
+
+  const onSelect = async ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
+    const entriesToAdd = getLeafNodes([node]).map((x) => x.data as Exercise);
+
+    await updateAssignmentExercises({
+      idsToAdd: entriesToAdd.map((x) => x.id),
+      isReading: true
+    });
+  };
+
+  const onUnselect = async ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
+    const entriesToRemove = getLeafNodes([node]).map((x) => x.data as Exercise);
+    const entriesIdsToRemove = entriesToRemove.map((x) => x.id);
+    const idsToRemove = readingExercises
+      .filter((ex) => entriesIdsToRemove.includes(ex.question_id))
+      .map((x) => x.id);
+
+    await updateAssignmentExercises({
+      idsToRemove,
+      isReading: true
     });
   };
 
@@ -101,8 +132,8 @@ export const AssignmentReadingsHeader = () => {
           <TreeTable
             selectionMode="checkbox"
             selectionKeys={selectedKeys}
-            onSelect={addReadings}
-            onUnselect={removeReadingsFromAvailableReadings}
+            onSelect={onSelect}
+            onUnselect={onUnselect}
             scrollable
             scrollHeight="50vh"
             value={availableReadings}

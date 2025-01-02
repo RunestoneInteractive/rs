@@ -2,15 +2,20 @@ import { MenuItem } from "primereact/menuitem";
 import { TabMenu } from "primereact/tabmenu";
 import { JSX, useState } from "react";
 
+import { AssignmentFormProps } from "@/types/assignment";
+
 import { AssignmentExercises } from "./exercises/AssignmentExercises";
 import { AssignmentGeneral } from "./general/AssignmentGeneral";
 import { AssignmentReadings } from "./reading/AssignmentReadings";
 
 type AssignmentViewMode = "general" | "reading" | "exercise";
 
-export const AssignmentViewComponent = ({ mode }: { mode: AssignmentViewMode }) => {
+export const AssignmentViewComponent = ({
+  mode,
+  ...restProps
+}: { mode: AssignmentViewMode } & AssignmentFormProps) => {
   const config: Record<AssignmentViewMode, JSX.Element> = {
-    general: <AssignmentGeneral />,
+    general: <AssignmentGeneral {...restProps} />,
     reading: <AssignmentReadings />,
     exercise: <AssignmentExercises />
   };
@@ -18,7 +23,7 @@ export const AssignmentViewComponent = ({ mode }: { mode: AssignmentViewMode }) 
   return config[mode];
 };
 
-export const AssignmentViewSelect = () => {
+export const AssignmentViewSelect = (props: AssignmentFormProps) => {
   const modes: MenuItem[] = [
     { label: "General settings", id: "general" },
     { label: "Readings", id: "reading" },
@@ -31,7 +36,7 @@ export const AssignmentViewSelect = () => {
       <div className="field col-12">
         <TabMenu model={modes} activeIndex={mode} onTabChange={(e) => setMode(e.index)} />
       </div>
-      <AssignmentViewComponent mode={modes[mode].id as AssignmentViewMode} />
+      <AssignmentViewComponent {...props} mode={modes[mode].id as AssignmentViewMode} />
     </>
   );
 };

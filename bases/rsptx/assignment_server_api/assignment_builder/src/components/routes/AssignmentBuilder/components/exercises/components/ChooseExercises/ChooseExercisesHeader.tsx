@@ -4,12 +4,10 @@ import { confirmPopup, ConfirmPopup } from "primereact/confirmpopup";
 import { MouseEvent } from "react";
 import { useSelector } from "react-redux";
 
-import { useAddAssignmentExercise } from "@/hooks/useAddAssignmentExercise";
-import { useExercisesSelector } from "@/hooks/useExercisesSelector";
+import { useUpdateAssignmentExercise } from "@/hooks/useUpdateAssignmentExercise";
 
 export const ChooseExercisesHeader = ({ resetSelections }: { resetSelections: VoidFunction }) => {
-  const { removeExercises } = useExercisesSelector();
-  const { addExerciseToAssignment } = useAddAssignmentExercise();
+  const { updateAssignmentExercises } = useUpdateAssignmentExercise();
 
   const exercisesToAdd = useSelector(chooseExercisesSelectors.getExercisesToAdd);
   const exercisesToRemove = useSelector(chooseExercisesSelectors.getExercisesToRemove);
@@ -27,8 +25,11 @@ export const ChooseExercisesHeader = ({ resetSelections }: { resetSelections: Vo
       icon: "pi pi-exclamation-triangle",
       defaultFocus: "accept",
       accept: async () => {
-        await addExerciseToAssignment(exercisesToAdd);
-        await removeExercises(exercisesToRemove);
+        await updateAssignmentExercises({
+          idsToAdd: exercisesToAdd.map((x) => x.id),
+          idsToRemove: exercisesToRemove.map((x) => x.id),
+          isReading: false
+        });
       }
     });
   };
