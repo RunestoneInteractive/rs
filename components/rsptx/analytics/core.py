@@ -10,7 +10,7 @@ async def log_this_function(
     # get the name of the current function
 
     # func = inspect.currentframe().f_code.co_name
-    if name is not None:
+    if name is None:
         caller_frame = inspect.stack()[1]
         func = caller_frame.function
     else:
