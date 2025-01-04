@@ -20,11 +20,38 @@ from runestone.server import get_dburl
 from rsptx.build_tools.core import update_library, populate_static, manifest_data_to_db
 from rsptx.cl_utils.core import load_project_dotenv
 
+
+def lets_exit(code=0):
+    click.echo(
+        click.style(
+            "The runestone command is deprecated.  You should convert your book to PreTeXt.",
+            fg="yellow",
+            bold=True,
+        ),
+        color=True,
+    )
+    sys.exit(code)
+
+
+def deprecation_warning():
+    click.echo(
+        click.style(
+            """The runestone command and RST extensions are deprecated.
+You should convert your book to PreTeXt.
+We will continue to add features to the interactive components, but
+you will only have access to them through PreTeXt.""",
+            fg="yellow",
+            bold=True,
+        ),
+        color=True,
+    )
+
+
 if len(sys.argv) == 2:
     if "--version" in sys.argv:
         version = importlib.metadata.version("runestone")
         print("Runestone version {}".format(version))
-        sys.exit()
+        lets_exit()
 
 load_project_dotenv()
 
@@ -39,7 +66,7 @@ def cli(version):
     if version:
         version = importlib.metadata.version("runestone")
         print("Runestone version {}".format(version))
-        sys.exit()
+        lets_exit()
 
 
 @cli.command()
@@ -175,7 +202,7 @@ def build(all, wd):
                 click.echo(
                     "you have run projects/interactives/build.py to generate this file"
                 )
-                sys.exit(-1)
+                lets_exit(-1)
     except ModuleNotFoundError:
         click.echo(
             "Error -- you are missing webpack_static_imports.json.  Please make sure"
@@ -184,7 +211,7 @@ def build(all, wd):
         click.echo(
             "In a development environment, execute npm run build in bases/rsptx/interactives"
         )
-        sys.exit(-1)
+        lets_exit(-1)
 
     version = importlib.metadata.version("runestone")
     print("Building with Runestone {}".format(version))
@@ -196,14 +223,14 @@ def build(all, wd):
     if pavement.options.build.template_args["basecourse"] != pavement.project_name:
         click.echo(
             click.style(
-                f"""Please update pavement.py so that basecourse ({pavement.options.build.template_args["basecourse"]}) 
+                f"""Please update pavement.py so that basecourse ({pavement.options.build.template_args["basecourse"]})
                             and project_name ({pavement.project_name}) match""",
                 fg="red",
             ),
             err=True,
             color=True,
         )
-        sys.exit(1)
+        lets_exit(1)
     with open(confpath / "conf.py", encoding="utf-8") as cf:
         ctext = cf.read()
         if not re.search(r"from runestone import.*(setup|script_files)", ctext):
@@ -222,7 +249,7 @@ def build(all, wd):
             click.echo(
                 "Change it to:\nfrom runestone import runestone_static_dirs, runestone_extensions, setup"
             )
-            sys.exit(1)
+            lets_exit(1)
 
     if not os.path.exists(pavement.options.build.builddir):
         os.makedirs(pavement.options.build.builddir)
@@ -243,6 +270,8 @@ def build(all, wd):
         if not course:
             course = pavement.options.template_args["course_id"]
         update_library(config, "", course, click, build_system="Runestone")
+
+    deprecation_warning()
 
 
 @cli.command(short_help="preview the book in a minimal server (NO API support)")
@@ -379,7 +408,7 @@ def rs2ptx(course, sourcedir, outdir):
     except Exception as e:
         click.echo("Could not read pavement.py file, aborting")
         click.echo(f"Details: {e}")
-        sys.exit(1)
+        lets_exit(1)
 
     if not course:
         if pavement.project_name:
@@ -499,7 +528,7 @@ def main(args=None):
         args = sys.argv[1:]
     if not args:
         print("""Usage: runestone help for a list of commands""")
-        sys.exit(0)
+        lets_exit(0)
     cli.add_command(init)
     cli.add_command(build)
     cli.add_command(serve)
@@ -523,4 +552,4 @@ def findProjectRoot():
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    lets_exit(main(sys.argv[1:]))
