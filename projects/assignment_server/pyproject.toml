@@ -6,39 +6,40 @@ authors = ['Brad Miller <bonelake@mac.com>']
 license = "MIT"
 
 packages = [
-    {include = "rsptx/auth", from = "../../components"},
-    {include = "rsptx/logging", from = "../../components"},
-    {include = "rsptx/db", from = "../../components"},
-    {include = "rsptx/validation", from = "../../components"},
-    {include = "rsptx/configuration", from = "../../components"},
-    {include = "rsptx/response_helpers", from = "../../components"},
-    {include = "rsptx/lp_sim_builder", from = "../../components"},
-    {include = "rsptx/grading_helpers", from = "../../components"},    
-    {include = "rsptx/templates", from = "../../components"},
-    {include = "rsptx/exceptions", from = "../../components"},
-    {include = "rsptx/assignment_server_api", from = "../../bases"},
+    { include = "rsptx/auth", from = "../../components" },
+    { include = "rsptx/logging", from = "../../components" },
+    { include = "rsptx/db", from = "../../components" },
+    { include = "rsptx/validation", from = "../../components" },
+    { include = "rsptx/configuration", from = "../../components" },
+    { include = "rsptx/response_helpers", from = "../../components" },
+    { include = "rsptx/lp_sim_builder", from = "../../components" },
+    { include = "rsptx/grading_helpers", from = "../../components" },
+    { include = "rsptx/templates", from = "../../components" },
+    { include = "rsptx/exceptions", from = "../../components" },
+    { include = "rsptx/analytics", from = "../../components" },
+    { include = "rsptx/assignment_server_api", from = "../../bases" },
 ]
 
 exclude = [
     "**/node_modules/*",
     "**/out/*",
-    "**/build/*", 
+    "**/build/*",
     "**/react/runestone/*",
     "**/public/runestone/*",
     "**/.ruff_cache/*",
 
-    ]
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
 aioredis = "^2.0.0"
 async-timeout = "^3.0.0"
-celery = {extras = ["redis"], version = "^5.0.0"}
+celery = { extras = ["redis"], version = "^5.0.0" }
 fastapi = "^0.103.0"
 # Per the `uvicorn docs <https://www.uvicorn.org/#quickstart>`_, install the standard (as opposed to minimal) uvicorn dependencies.
-uvicorn = {extras = ["standard"], version = "^0.17.0"}
+uvicorn = { extras = ["standard"], version = "^0.17.0" }
 # See the `poetry docs <https://python-poetry.org/docs/dependency-specification/#using-environment-markers>`_.
-gunicorn = {version = "^20.0.0", markers = "sys.platform != 'win32'"}
+gunicorn = { version = "^20.0.0", markers = "sys.platform != 'win32'" }
 Jinja2 = "<3.1.0"
 aiofiles = "^0.8.0"
 alembic = "^1.0.0"

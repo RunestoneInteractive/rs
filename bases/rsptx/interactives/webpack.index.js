@@ -50,7 +50,7 @@ import "./runestone/common/js/presenter_mode.js";
 import "./runestone/common/css/presenter_mode.less";
 import { renderOneComponent } from "./runestone/common/js/renderComponent.js";
 import RunestoneBase from "./runestone/common/js/runestonebase.js";
-import { SpliceWrapper } from "./runestone/splice/js/spliceWrapper.js"
+import { SpliceWrapper } from "./runestone/splice/js/spliceWrapper.js";
 
 // Dynamically loaded components
 // =============================
@@ -140,7 +140,15 @@ async function flushQueue() {
         }
     });
     const flushed = await Promise.all(flushedPromise);
-    flushed.forEach((item) => item.resolve());
+    try {
+        flushed.forEach(function (item) {
+            if (item) {
+                item.resolve();
+            }
+        });
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 // .. _dynamic import machinery:
@@ -179,7 +187,7 @@ export function runestone_auto_import() {
     // Send the Runestone login complete event when all JS is loaded and the pre-login is also complete.
     Promise.all([pre_login_complete_promise, ...a]).then(function () {
         if (!document.body.dataset.reactInUse) {
-            $(document).trigger("runestone:login-complete");
+            document.dispatchEvent(new CustomEvent("runestone:login-complete"));
         }
     });
 }
@@ -228,9 +236,6 @@ __webpack_public_path__ = script_src.substring(
     0,
     script_src.lastIndexOf("/") + 1
 );
-
-
-
 
 var splice = new SpliceWrapper();
 
