@@ -135,12 +135,15 @@ export class ActiveCode extends RunestoneBase {
         // ===! = visible suffix
         // Tags may or may not have a trailing /n assume that if they do, it is to be removed.
         // newline is standard in rst markup, but sometimes intentionally not emitted by pretext
-        let prefixMarker = this.code.match(/\^\^\^\^\^*/);  // regex to handle 5+ symbols which old code allowed
+        let prefixMarker = this.code.match(/\^\^\^\^\^*/); // regex to handle 5+ symbols which old code allowed
         if (prefixMarker) {
-            let prefixEnd = prefixMarker.index;  //invisible suffix
+            let prefixEnd = prefixMarker.index; //invisible suffix
             let prefixLength = prefixMarker[0].length;
             this.prefix = this.code.substring(0, prefixEnd);
-            let markerLength = this.code[prefixEnd + prefixLength] == "\n" ? prefixLength + 1 : prefixLength;
+            let markerLength =
+                this.code[prefixEnd + prefixLength] == "\n"
+                    ? prefixLength + 1
+                    : prefixLength;
             this.code = this.code.substring(prefixEnd + markerLength);
         }
         // If there are both invisible and visible prefixes, the invisible one must come first
@@ -148,24 +151,33 @@ export class ActiveCode extends RunestoneBase {
         if (visiblePrefixEnd > -1) {
             this.visiblePrefixEnd = visiblePrefixEnd;
             let markerLength = this.code[visiblePrefixEnd + 4] == "\n" ? 5 : 4;
-            this.code = this.code.substring(0, visiblePrefixEnd) + this.code.substring(visiblePrefixEnd + markerLength);
+            this.code =
+                this.code.substring(0, visiblePrefixEnd) +
+                this.code.substring(visiblePrefixEnd + markerLength);
         }
         // There may be both a visible and invisible (tests) suffix
         // Currently assumed the visible one is first in the source so we can peel off the
         // invisible one and leave visible one in place.
-        let suffixMarker = this.code.match(/=====*/);  // regex to handle 5+ symbols which old code allowed
+        let suffixMarker = this.code.match(/=====*/); // regex to handle 5+ symbols which old code allowed
         if (suffixMarker) {
-            let suffStart = suffixMarker.index;  //invisible suffix
+            let suffStart = suffixMarker.index; //invisible suffix
             let suffLength = suffixMarker[0].length;
-            let markerLength = this.code[suffStart + suffLength] == "\n" ? suffLength + 1 : suffLength;
+            let markerLength =
+                this.code[suffStart + suffLength] == "\n"
+                    ? suffLength + 1
+                    : suffLength;
             this.suffix = this.code.substring(suffStart + markerLength);
             this.code = this.code.substring(0, suffStart);
         }
         let visibleSuffixStart = this.code.indexOf("===!");
         if (visibleSuffixStart > -1) {
-            let markerLength = this.code[visibleSuffixStart + 4] == "\n" ? 5 : 4;
-            this.visibleSuffixLength = this.code.length - visibleSuffixStart - markerLength;
-            this.code = this.code.substring(0, visibleSuffixStart) + this.code.substring(visibleSuffixStart + markerLength);
+            let markerLength =
+                this.code[visibleSuffixStart + 4] == "\n" ? 5 : 4;
+            this.visibleSuffixLength =
+                this.code.length - visibleSuffixStart - markerLength;
+            this.code =
+                this.code.substring(0, visibleSuffixStart) +
+                this.code.substring(visibleSuffixStart + markerLength);
         }
 
         this.history = [this.code];
@@ -231,8 +243,10 @@ export class ActiveCode extends RunestoneBase {
 
         // Conditionally add a gutter to the editor to show the locked prefix and suffix
         let gutterList = [];
-        if(this.visiblePrefixEnd || this.visibleSuffixLength) {
-          gutterList = [{className: "CodeMirror-lock-markers", style: "width: 6px"}];
+        if (this.visiblePrefixEnd || this.visibleSuffixLength) {
+            gutterList = [
+                { className: "CodeMirror-lock-markers", style: "width: 6px" },
+            ];
         }
         var editor = CodeMirror(codeDiv, {
             value: this.code,
@@ -259,39 +273,60 @@ export class ActiveCode extends RunestoneBase {
 
         let setLockedRegions = () => {
             if (this.visiblePrefixEnd) {
-                let lastLine = editor.posFromIndex(this.visiblePrefixEnd - 1).line;
-                for(let i = 0; i <= lastLine; i++) {
-                    editor.setGutterMarker(i, "CodeMirror-lock-markers", makeLockMarker());
+                let lastLine = editor.posFromIndex(
+                    this.visiblePrefixEnd - 1
+                ).line;
+                for (let i = 0; i <= lastLine; i++) {
+                    editor.setGutterMarker(
+                        i,
+                        "CodeMirror-lock-markers",
+                        makeLockMarker()
+                    );
                 }
                 let endPos = editor.posFromIndex(this.visiblePrefixEnd);
-                console.log("endPos", endPos)
+                console.log("endPos", endPos);
                 editor.markText(
                     { line: 0, ch: 0 },
                     { line: endPos.line, ch: endPos.ch },
-                    { readOnly: true, atomic: false, inclusiveLeft: true, inclusiveRight: false }
+                    {
+                        readOnly: true,
+                        atomic: false,
+                        inclusiveLeft: true,
+                        inclusiveRight: false,
+                    }
                 );
             }
             if (this.visibleSuffixLength) {
-                let endIndex = editor.doc.getValue().length - this.visibleSuffixLength;
+                let endIndex =
+                    editor.doc.getValue().length - this.visibleSuffixLength;
                 let endPos = editor.posFromIndex(endIndex);
                 let lastLine = editor.doc.lastLine();
-                for(let i = endPos.line; i <= lastLine; i++) {
-                    editor.setGutterMarker(i, "CodeMirror-lock-markers", makeLockMarker());
+                for (let i = endPos.line; i <= lastLine; i++) {
+                    editor.setGutterMarker(
+                        i,
+                        "CodeMirror-lock-markers",
+                        makeLockMarker()
+                    );
                 }
                 // include preceeding newline
                 let endPos2 = editor.posFromIndex(endIndex - 1);
                 editor.markText(
                     { line: endPos2.line, ch: endPos2.ch },
                     { line: editor.doc.lastLine() + 1 },
-                    { readOnly: true, atomic: false, inclusiveLeft: false, inclusiveRight: true }
+                    {
+                        readOnly: true,
+                        atomic: false,
+                        inclusiveLeft: false,
+                        inclusiveRight: true,
+                    }
                 );
             }
-        }
+        };
         setLockedRegions();
 
-        CodeMirror.on(editor, "change", (cm, obj,) => {
+        CodeMirror.on(editor, "change", (cm, obj) => {
             // setValue indicates scrubber switched history, need to reset locked regions
-            if(obj.origin === "setValue") {
+            if (obj.origin === "setValue") {
                 editor.doc.clearGutter("CodeMirror-lock-markers");
                 setLockedRegions();
             }
@@ -341,7 +376,7 @@ export class ActiveCode extends RunestoneBase {
                 }
                 if (this.firstAfterRun) {
                     this.firstAfterRun = false;
-                    this.startEditTimeStamp = new Date()
+                    this.startEditTimeStamp = new Date();
                 }
                 editor.acEditEvent = true;
             }.bind(this)
@@ -353,15 +388,15 @@ export class ActiveCode extends RunestoneBase {
                 e.preventDefault();
             });
 
-            document.addEventListener('copy', function (e) {
+            document.addEventListener("copy", function (e) {
                 e.preventDefault();
             });
 
-            document.addEventListener('cut', function (e) {
+            document.addEventListener("cut", function (e) {
                 e.preventDefault();
             });
 
-            document.addEventListener('paste', function (e) {
+            document.addEventListener("paste", function (e) {
                 e.preventDefault();
             });
         }
@@ -599,10 +634,15 @@ export class ActiveCode extends RunestoneBase {
                 );
                 let post_promise = await fetch(request);
                 if (!post_promise.ok) {
-                    if (post_promise.status === 303 || post_promise.status === 404) {
+                    if (
+                        post_promise.status === 303 ||
+                        post_promise.status === 404
+                    ) {
                         alert("You must be logged in to share code");
                     } else {
-                        alert("Sharing Failed return status: ${post_promise.status}");
+                        alert(
+                            "Sharing Failed return status: ${post_promise.status}"
+                        );
                     }
                     return;
                 }
@@ -638,8 +678,8 @@ export class ActiveCode extends RunestoneBase {
                     if (!didAgree) {
                         didAgree = confirm(
                             "Pair Programming should only be used with the consent of your instructor." +
-                            "Your partner must be a registered member of the class and have agreed to pair with you." +
-                            "By clicking OK you certify that both of these conditions have been met."
+                                "Your partner must be a registered member of the class and have agreed to pair with you." +
+                                "By clicking OK you certify that both of these conditions have been met."
                         );
                         if (didAgree) {
                             localStorage.setItem("partnerAgree", "true");
@@ -682,13 +722,13 @@ export class ActiveCode extends RunestoneBase {
         $(butt).attr(
             "href",
             "http://" +
-            chatcodesServer +
-            "/new?" +
-            $.param({
-                topic: window.location.host + "-" + this.divid,
-                code: this.editor.getValue(),
-                lang: "Python",
-            })
+                chatcodesServer +
+                "/new?" +
+                $.param({
+                    topic: window.location.host + "-" + this.divid,
+                    code: this.editor.getValue(),
+                    lang: "Python",
+                })
         );
         this.chatButton = butt;
         chatBar.appendChild(butt);
@@ -890,6 +930,15 @@ export class ActiveCode extends RunestoneBase {
         $(lensDiv).css("display", "none");
         this.codelens = lensDiv;
         this.outerDiv.appendChild(lensDiv);
+        // Put the outer container for error messages in the dom
+        this.eContainer = document.createElement("div");
+        this.eContainer.setAttribute("aria-live", "polite");
+        this.eContainer.setAttribute("aria-atomic", "true");
+        this.eContainer.setAttribute("role", "log");
+        this.eContainer.className = "error alert alert-danger";
+        this.eContainer.id = this.divid + "_errinfo";
+        this.outerDiv.appendChild(this.eContainer);
+        this.eContainer.style.display = "none";
     }
 
     disableSaveLoad() {
@@ -905,7 +954,7 @@ export class ActiveCode extends RunestoneBase {
         if (this.historyScrubber) {
             lastCode = this.history[this.historyScrubber.value - 1];
         } else {
-            return 0
+            return 0;
         }
 
         // Compute the edit distance between the current code and the last code
@@ -930,7 +979,7 @@ export class ActiveCode extends RunestoneBase {
         if (this.historyScrubber) {
             lastCode = this.history[this.historyScrubber.value];
         } else {
-            return 0
+            return 0;
         }
 
         // Initialize a 2D array to store the edit distances
@@ -1135,17 +1184,14 @@ export class ActiveCode extends RunestoneBase {
         this.reformatButton.blur();
     }
 
-    toggleEditorVisibility() { }
+    toggleEditorVisibility() {}
 
     addErrorMessage(err) {
         // Add the error message
         this.errLastRun = true;
+        this.eContainer.style.display = "block";
+        this.eContainer.innerText = "hello world";
         var errHead = $("<h3>").html("Error");
-        this.eContainer = this.outerDiv.appendChild(
-            document.createElement("div")
-        );
-        this.eContainer.className = "error alert alert-danger";
-        this.eContainer.id = this.divid + "_errinfo";
         this.eContainer.appendChild(errHead[0]);
         var errText = this.eContainer.appendChild(
             document.createElement("pre")
@@ -1385,7 +1431,7 @@ Yet another is that there is an internal error.  The internal error message is: 
         if (
             this.historyScrubber &&
             this.history[$(this.historyScrubber).slider("value")] !=
-            this.editor.getValue()
+                this.editor.getValue()
         ) {
             saveCode = "True";
             this.history.push(this.editor.getValue());
@@ -1572,10 +1618,8 @@ Yet another is that there is an internal error.  The internal error message is: 
                 urdiv.innerHTML = "";
             }
         }
-        while ($(`#${this.divid}_errinfo`).length > 0) {
-            $(`#${this.divid}_errinfo`).remove();
-        }
-        //$(this.eContainer).remove();
+        this.eContainer.innerHTML = "";
+
         if (this.codelens) {
             this.codelens.style.display = "none";
         }
