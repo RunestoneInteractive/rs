@@ -32,6 +32,8 @@ ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
 RUN pip install --upgrade pip
 RUN apt update
 RUN apt install -y rsync
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+RUN apt-get install -y nodejs
 
 
 # copy project
