@@ -101,12 +101,29 @@ class WebWork extends RunestoneBase {
                 correctCount += 1;
             }
             // mostly grab original_student_ans, but grab student_value for MC exercises
-            let student_ans = ['Value (parserRadioButtons)', 'Value (PopUp)', 'Value (CheckboxList)'].includes(data.rh_result.answers[k].type)
-                ? data.rh_result.answers[k].student_value
-                : data.rh_result.answers[k].original_student_ans;
-            this.answerObj.answers[
-                k
-            ] = `${student_ans}`;
+            let student_ans;
+            if (
+                !("ww_version" in data) ||
+                data.ww_version.includes("2.16") ||
+                data.ww_version.includes("2.17") ||
+                data.ww_version.includes("2.18")
+            ) {
+                // Mostly grab original_student_ans, but grab student_value for MC exercises
+                student_ans = [
+                    "Value (parserRadioButtons)",
+                    "Value (PopUp)",
+                    "Value (CheckboxList)",
+                ].includes(data.rh_result.answers[k].type)
+                    ? data.rh_result.answers[k].student_value
+                    : data.rh_result.answers[k].original_student_ans;
+            } else {
+                // Literally get the input refs
+                // data.inputs_ref[k] will usually be a string, the @value of the answer input field that was submitted
+                // However in at least the case of checkboxes, data.inputs_ref[k] will be an array
+                // So however this is ultimately stored in the Runestone database should respect ans preserve this as an array, not stringified
+                student_ans = data.inputs_ref[k];
+            }
+            this.answerObj.answers[k] = student_ans;
             let mqKey = `MaThQuIlL_${k}`;
             this.answerObj.mqAnswers[mqKey] = data.inputs_ref[mqKey];
             actString += `actual:${student_ans}:expected:${data.rh_result.answers[k].correct_value}:`;
