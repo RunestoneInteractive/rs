@@ -26,6 +26,7 @@ import pytz
 # Third-party imports
 # -------------------
 from asyncpg.exceptions import UniqueViolationError
+from fastapi import status
 from fastapi.exceptions import HTTPException
 from pydal.validators import CRYPT
 from sqlalchemy import and_, distinct, func, update, or_
@@ -1468,6 +1469,100 @@ async def update_assignment_question(
 
     return AssignmentQuestionValidator.from_orm(new_assignment_question)
 
+async def update_assignment_exercises(payload: schemas.UpdateAssignmentExercisesPayload):
+    async with async_session() as session:
+        # Step 1: Get the current assignment data
+        assignment_query = select(Assignment).where(Assignment.id == payload.assignmentId)
+        assignment_result = await session.execute(assignment_query)
+        assignment = assignment_result.scalar_one_or_none()
+
+        if not assignment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Assignment with id {payload.assignmentId} not found"
+            )
+
+        # Step 2: Get the maximum sorting_priority considering isReading
+        query_max_priority = (
+            select(func.max(AssignmentQuestion.sorting_priority))
+            .where(
+                AssignmentQuestion.assignment_id == payload.assignmentId,
+                AssignmentQuestion.reading_assignment == payload.isReading
+            )
+        )
+        max_priority_result = await session.execute(query_max_priority)
+        max_sort_priority = max_priority_result.scalar() or 0  # If there are no records, start from 0
+
+        points_to_add = 0
+        points_to_remove = 0
+        new_questions = []
+
+        # Step 3: Create new records in AssignmentQuestion for idsToAdd (if any)
+        if payload.idsToAdd:
+            for i, question_id in enumerate(payload.idsToAdd, start=1):
+                # Assume we have a way to get the points for the question
+                question_points_query = select(Question.difficulty).where(Question.id == question_id)
+                question_points_result = await session.execute(question_points_query)
+                question_points = question_points_result.scalar() or 1  # If the question is not found, 1 point
+
+                new_question = AssignmentQuestion(
+                    assignment_id=payload.assignmentId,
+                    question_id=question_id,
+                    points=question_points,  # Use the points from the question
+                    timed=None,  # Leave as null
+                    autograde="interaction" if payload.isReading else "pct_correct",  # Depends on isReading
+                    which_to_grade="best_answer",
+                    reading_assignment=payload.isReading,
+                    sorting_priority=max_sort_priority + i,  # Increment from max_sort_priority
+                    activities_required=None,
+                )
+                new_questions.append(new_question)
+                points_to_add += question_points  # Increase by the number of points
+
+            # Add new records to the session
+            session.add_all(new_questions)
+
+        # Step 4: Remove records for idsToRemove (if any)
+        if payload.idsToRemove:
+            query_remove = (
+                select(AssignmentQuestion)
+                .where(
+                    AssignmentQuestion.assignment_id == payload.assignmentId,
+                    AssignmentQuestion.id.in_(payload.idsToRemove),
+                )
+            )
+            remove_result = await session.execute(query_remove)
+            questions_to_remove = remove_result.scalars().all()
+
+            # Calculate the total points for the questions to be removed
+            for question in questions_to_remove:
+                points_to_remove += question.points
+
+            # Remove records
+            query_delete = (
+                delete(AssignmentQuestion)
+                .where(
+                    AssignmentQuestion.assignment_id == payload.assignmentId,
+                    AssignmentQuestion.id.in_(payload.idsToRemove),
+                )
+            )
+            await session.execute(query_delete)
+
+        # Step 5: Update points in Assignment
+        assignment.points += points_to_add - points_to_remove
+        session.add(assignment)
+
+        # Step 6: Apply changes
+        await session.commit()
+
+        # Log the result
+        rslogger.debug(f"Added questions: {new_questions}")
+        rslogger.debug(f"Removed questions: {points_to_remove}")
+        return {
+            "added": len(payload.idsToAdd) if payload.idsToAdd else 0,
+            "removed": len(payload.idsToRemove) if payload.idsToRemove else 0,
+            "total_points": assignment.points,
+        }
 
 async def reorder_assignment_questions(question_ids: List[int]):
     """

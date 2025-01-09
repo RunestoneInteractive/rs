@@ -12,8 +12,7 @@
 # ----------------
 from datetime import datetime
 from dateutil.parser import isoparse
-from typing import Container, Optional, Type, Dict, Tuple, Any, Union
-
+from typing import Container, Optional, Type, Dict, Tuple, Any, Union, List
 # Third-party imports
 # -------------------
 from pydantic import (
@@ -230,6 +229,7 @@ class AssignmentIncoming(BaseModel):
     description: str
     points: int
     duedate: datetime
+    kind: str
 
 
 class QuestionIncoming(BaseModel):
@@ -281,3 +281,9 @@ class ReadingAssignmentSpec(BaseModel):
     assignment_id: int
     points: int
     name: str
+
+class UpdateAssignmentExercisesPayload(BaseModel):
+    isReading: bool
+    assignmentId: int
+    idsToAdd: Optional[List[int]] = None
+    idsToRemove: Optional[List[int]] = None

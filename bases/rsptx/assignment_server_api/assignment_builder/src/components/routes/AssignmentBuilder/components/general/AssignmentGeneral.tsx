@@ -2,16 +2,17 @@ import { Calendar } from "primereact/calendar";
 import { InputNumber } from "primereact/inputnumber";
 import { InputTextarea } from "primereact/inputtextarea";
 import { SelectButton } from "primereact/selectbutton";
+import { Controller } from "react-hook-form";
 
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
-import { KindOfAssignment } from "@/types/assignment";
+import { AssignmentFormProps, KindOfAssignment } from "@/types/assignment";
 import { convertDateToISO, convertISOStringToDate } from "@/utils/date";
 
 import { KindOfAssignmentOptions } from "./KindOfAssignmentOptions";
 type KindOfAssignmentOption = { label: string; value: KindOfAssignment };
 
-export const AssignmentGeneral = () => {
-  const { selectedAssignment, updateAssignment } = useSelectedAssignment();
+export const AssignmentGeneral = ({ control, setValue, getValues }: AssignmentFormProps) => {
+  const { selectedAssignment } = useSelectedAssignment();
 
   if (!selectedAssignment) {
     return null;
@@ -24,55 +25,60 @@ export const AssignmentGeneral = () => {
   ];
 
   return (
-    <>
+    <form style={{ display: "contents" }}>
       <div className="field col-12">
         <label htmlFor="description">Assignment Description</label>
-        <InputTextarea
-          id="description"
-          rows={2}
-          autoResize
-          maxLength={500}
-          value={selectedAssignment.description}
-          onChange={(e) => updateAssignment({ description: e.target.value })}
+        <Controller
+          name="description"
+          control={control}
+          render={({ field }) => (
+            <InputTextarea id="description" {...field} rows={2} autoResize maxLength={500} />
+          )}
         />
       </div>
       <div className="field col-12 md:col-6">
         <label htmlFor="duedate">Due</label>
-        <Calendar
-          dateFormat="dd/mm/yy"
-          showTime
-          hourFormat="12"
-          id="duedate"
-          selectionMode="single"
-          hideOnDateTimeSelect
-          stepMinute={5}
-          showIcon
-          value={convertISOStringToDate(selectedAssignment.duedate)}
-          onChange={(e) => e.value && updateAssignment({ duedate: convertDateToISO(e.value) })}
+        <Controller
+          name="duedate"
+          control={control}
+          render={({ field }) => (
+            <Calendar
+              dateFormat="dd/mm/yy"
+              showTime
+              hourFormat="12"
+              id="duedate"
+              {...field}
+              selectionMode="single"
+              hideOnDateTimeSelect
+              stepMinute={5}
+              showIcon
+              value={convertISOStringToDate(field.value)}
+              onChange={(e) => setValue("duedate", convertDateToISO(e.value!))}
+            />
+          )}
         />
       </div>
       <div className="field col-12 md:col-6">
         <label htmlFor="points">Points</label>
-        <InputNumber
-          id="points"
-          min={0}
-          value={selectedAssignment.points ?? 0}
-          onChange={(e) => updateAssignment({ points: e.value ?? 0 })}
+        <Controller
+          name="points"
+          control={control}
+          render={({ field }) => (
+            <InputNumber {...field} id="points" min={0} disabled value={field.value ?? 0} />
+          )}
         />
       </div>
       <div className="field col-12">
-        <label htmlFor="kindOfAssignment">What kind of Assignment?</label>
-        <SelectButton
-          id="kindOfAssignment"
-          value={selectedAssignment.kind}
-          onChange={(e) => {
-            updateAssignment({ kind: e.value });
-          }}
-          options={options}
-          optionLabel="label"
+        <label htmlFor="kind">What kind of Assignment?</label>
+        <Controller
+          name="kind"
+          control={control}
+          render={({ field }) => (
+            <SelectButton {...field} id="kind" options={options} optionLabel="label" />
+          )}
         />
       </div>
-      <KindOfAssignmentOptions />
-    </>
+      <KindOfAssignmentOptions control={control} setValue={setValue} getValues={getValues} />
+    </form>
   );
 };
