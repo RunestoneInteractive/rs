@@ -1,9 +1,10 @@
 import pathlib
 import pandas as pd
 
-from fastapi import APIRouter, Depends, Request, status, Form
+from fastapi import APIRouter, HTTPException, Depends, Request, status, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from functools import wraps
 from sqlalchemy import create_engine
 from pydantic import BaseModel
 from typing import List, Optional, Annotated
@@ -29,6 +30,7 @@ from rsptx.db.crud import (
     remove_assignment_questions,
     reorder_assignment_questions,
     update_assignment_question,
+    update_assignment_exercises,
     update_assignment,
     update_question,
     fetch_one_assignment,
@@ -53,6 +55,7 @@ from rsptx.validation.schemas import (
     AssignmentQuestionIncoming,
     QuestionIncoming,
     SearchSpecification,
+    UpdateAssignmentExercisesPayload,
 )
 from rsptx.logging import rslogger
 from rsptx.analytics import log_this_function
@@ -66,6 +69,66 @@ router = APIRouter(
     tags=["instructor"],
 )
 
+def instructor_role_required():
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # Extracting Request and User from kwargs
+            request = kwargs.get("request")
+            user = await auth_manager(request)
+
+            if not user or not getattr(user, "id", None) or not getattr(user, "course_id", None):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid user or missing attributes",
+                )
+
+            user_is_instructor = await is_instructor(request, user=user)
+            if not user_is_instructor:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User is not an instructor",
+                )
+
+            # Continue execution of the original function
+            return await func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+def with_course():
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # Extracting Request and User from kwargs
+            request = kwargs.get("request")
+            user = await auth_manager(request)
+
+            # Checking the presence of the user and course_name
+            if not user or not getattr(user, "course_name", None):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid user or missing course_name",
+                )
+
+            # Loading the course
+            course = await fetch_course(user.course_name)
+            if not course:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Course not found",
+                )
+
+            # Adding the course to kwargs
+            kwargs["course"] = course
+
+            # Executing the wrapped function
+            return await func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 @router.get("/reviewPeerAssignment")
 async def review_peer_assignment(
@@ -325,23 +388,40 @@ async def get_assignment_gb(
         },
     )
 
+@router.get("/assignments")
+@instructor_role_required()
+@with_course()
+async def get_assignments(
+    request: Request,
+    course=None,
+):
+    # todo: update fetch to only get new style??
+    assignments = await fetch_assignments(course.course_name, fetch_all=True)
+    rslogger.debug(f"Got assignments: {assignments} for {course.course_name}")
 
-@router.post("/new_assignment")
+    return make_json_response(
+        status=status.HTTP_200_OK, detail={"assignments": assignments}
+    )
+
+@router.get("/assignments/{assignment_id}")
+@instructor_role_required()
+async def get_assignment(request: Request, assignment_id: int):
+    # todo: update fetch to only get new style??
+    assignment = await fetch_one_assignment(assignment_id)
+    rslogger.debug(f"Got assignment: {assignment}")
+
+    return make_json_response(
+        status=status.HTTP_200_OK, detail={"assignment": assignment}
+    )
+
+@router.post("/assignments")
+@instructor_role_required()
+@with_course()
 async def new_assignment(
     request_data: AssignmentIncoming,
     request: Request,
-    user=Depends(auth_manager),
-    response_class=JSONResponse,
+    course=None,
 ):
-    # get the course
-    course = await fetch_course(user.course_name)
-
-    user_is_instructor = await is_instructor(request, user=user)
-    if not user_is_instructor:
-        return make_json_response(
-            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
-        )
-
     new_assignment = AssignmentValidator(
         **request_data.model_dump(),
         course=course.id,
@@ -368,19 +448,14 @@ async def new_assignment(
     )
 
 
-@router.post("/update_assignment")
+@router.put("/assignments/{assignment_id}")
+@instructor_role_required()
+@with_course()
 async def do_update_assignment(
     request: Request,
     request_data: AssignmentValidator,
-    user=Depends(auth_manager),
-    response_class=JSONResponse,
+    course=None,
 ):
-    user_is_instructor = await is_instructor(request, user=user)
-    if not user_is_instructor:
-        return make_json_response(
-            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
-        )
-    course = await fetch_course(user.course_name)
     request_data.course = course.id
     rslogger.debug(f"Updating assignment: {request_data}")
     if request_data.current_index is None:
@@ -514,28 +589,6 @@ async def new_assignment_question(
     )
 
 
-@router.get("/assignments")
-async def get_assignments(
-    request: Request, user=Depends(auth_manager), response_class=JSONResponse
-):
-    # get the course
-    course = await fetch_course(user.course_name)
-
-    user_is_instructor = await is_instructor(request, user=user)
-    if not user_is_instructor:
-        return make_json_response(
-            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
-        )
-
-    # todo: update fetch to only get new style??
-    assignments = await fetch_assignments(course.course_name, fetch_all=True)
-    rslogger.debug(f"Got assignments: {assignments} for {course.course_name}")
-
-    return make_json_response(
-        status=status.HTTP_200_OK, detail={"assignments": assignments}
-    )
-
-
 class AQRequest(BaseModel):
     assignment: int
 
@@ -623,6 +676,26 @@ async def up_assignment_question(
             detail=f"Error updating assignment question: {str(e)}",
         )
     return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
+
+@router.put("/assignment_exercises")
+@instructor_role_required()
+async def put_assignment_exercises(
+    request: Request,
+    request_data: UpdateAssignmentExercisesPayload,
+):
+    rslogger.debug(f"Received payload: {request_data.dict()}")
+    try:
+        exercises = await update_assignment_exercises(request_data)
+        return make_json_response(
+            status=status.HTTP_200_OK,
+            detail={"status": "success", "exercises": exercises}
+        )
+    except Exception as e:
+        rslogger.error(f"Error updating assignment exercises: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error updating assignment exercises: {str(e)}",
+        )
 
 
 @router.post("/remove_assignment_questions")

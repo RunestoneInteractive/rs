@@ -1,6 +1,6 @@
 import { AssignmentReadingsHeader } from "@components/routes/AssignmentBuilder/components/reading/AssignmentReadingsHeader";
 import { Loader } from "@components/ui/Loader";
-import { useReorderAssignmentExercisesMutation } from "@store/assignment/assignment.logic.api";
+import { useReorderAssignmentExercisesMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { readingsActions, readingsSelectors } from "@store/readings/readings.logic";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";

@@ -114,7 +114,7 @@ export const AddExerciseModal = () => {
           <Button
             className="p-button-sm flex"
             label="Add New Exercise"
-            severity="info"
+            severity="success"
             onClick={() => {
               handleOpen();
               clearToast();
@@ -169,7 +169,6 @@ Switching tabs will not add/remove these exercises to the assignment. Do you sti
     setMode(e.index);
   };
 
-  console.log(tabMenuRef?.current?.getElement().querySelector<HTMLLIElement>("#search"));
   return (
     <div>
       <Button type="button" label="Add Exercise" onClick={handleOpen} size="small" />
