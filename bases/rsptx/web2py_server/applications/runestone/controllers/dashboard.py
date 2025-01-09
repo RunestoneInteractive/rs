@@ -187,6 +187,8 @@ def index():
                 "not_attempted": stats[0],
                 "attemptedBy": stats[1] + stats[2] + stats[3],
             }
+        #problem_id is course_version_id, we want just the problem_id for use in the URL
+        entry['ptx_link_id'] = "_".join(entry['id'].split("_")[2:])
         questions.append(entry)
         logger.debug("ADDING QUESTION %s ", entry["chapter"])
 
