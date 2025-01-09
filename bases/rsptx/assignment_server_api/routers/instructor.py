@@ -49,13 +49,13 @@ from rsptx.db.models import (
     AssignmentQuestionValidator,
     AssignmentValidator,
     QuestionValidator,
-    UpdateAssignmentExercisesPayload,
 )
 from rsptx.validation.schemas import (
     AssignmentIncoming,
     AssignmentQuestionIncoming,
     QuestionIncoming,
     SearchSpecification,
+    UpdateAssignmentExercisesPayload,
 )
 from rsptx.logging import rslogger
 from rsptx.analytics import log_this_function

@@ -101,7 +101,6 @@ from rsptx.db.models import (
     UserSubChapterProgressValidator,
     UserTopicPractice,
     UserTopicPracticeValidator,
-    UpdateAssignmentExercisesPayload,
 )
 
 # Map from the ``event`` field of a ``LogItemIncoming`` to the database table used to store data associated with this event.
@@ -1470,7 +1469,7 @@ async def update_assignment_question(
 
     return AssignmentQuestionValidator.from_orm(new_assignment_question)
 
-async def update_assignment_exercises(payload: UpdateAssignmentExercisesPayload):
+async def update_assignment_exercises(payload: schemas.UpdateAssignmentExercisesPayload):
     async with async_session() as session:
         # Step 1: Get the current assignment data
         assignment_query = select(Assignment).where(Assignment.id == payload.assignmentId)
