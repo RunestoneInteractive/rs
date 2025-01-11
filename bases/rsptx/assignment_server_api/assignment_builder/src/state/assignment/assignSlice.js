@@ -55,7 +55,7 @@ export const fetchAssignments = createAsyncThunk(
       }
     }
     return data.detail;
-  },
+  }
 );
 
 /**
@@ -76,7 +76,7 @@ export const createAssignment = createAsyncThunk(
   async (assignData, { dispatch }) => {
     let jsheaders = new Headers({
       "Content-type": "application/json; charset=utf-8",
-      Accept: "application/json",
+      Accept: "application/json"
     });
     // make a date that is acceptable on the server
     let duedate = new Date(assignData.duedate);
@@ -87,14 +87,14 @@ export const createAssignment = createAsyncThunk(
       description: assignData.description,
       duedate: duedate,
       points: assignData.points,
-      kind: "quickcode",
+      kind: "quickcode"
     };
     let data = {
       body: JSON.stringify(body),
       headers: jsheaders,
-      method: "POST",
+      method: "POST"
     };
-    let resp = await fetch("/assignment/instructor/new_assignment", data);
+    let resp = await fetch("/assignment/instructor/assignments", data);
 
     if (!resp.ok) {
       console.warn("Error creating assignment");
@@ -119,7 +119,7 @@ export const createAssignment = createAsyncThunk(
         let result = await resp.json();
 
         toast(`Error ${result.detail[0].msg} for input ${result.detail[0].loc}`, {
-          duration: 5000,
+          duration: 5000
         });
       } else {
         let result = await resp.json();
@@ -127,7 +127,7 @@ export const createAssignment = createAsyncThunk(
         console.error(result.detail);
         toast("Error creating assignment", {
           icon: "🔥",
-          duration: 5000,
+          duration: 5000
         });
       }
 
@@ -141,7 +141,7 @@ export const createAssignment = createAsyncThunk(
     // todo: Add the assignment to the list of all_assignments
     assignData.id = result.detail.id;
     dispatch(addAssignment(assignData));
-  },
+  }
 );
 
 /**
@@ -158,9 +158,9 @@ export const fetchAssignmentQuestions = createAsyncThunk(
     const response = await fetch("/assignment/instructor/assignment_questions", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify({ assignment: assignmentId }),
+      body: JSON.stringify({ assignment: assignmentId })
     });
     const data = await response.json();
     let store = getState();
@@ -182,7 +182,7 @@ export const fetchAssignmentQuestions = createAsyncThunk(
     }
     dispatch(setSelectedNodes(selectedNodes));
     return data.detail;
-  },
+  }
 );
 
 /**
@@ -195,9 +195,9 @@ export const sendExercise = createAsyncThunk("assignment/sendExercise", async (e
   const response = await fetch("/assignment/instructor/update_assignment_question", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify(exercise),
+    body: JSON.stringify(exercise)
   });
   const data = await response.json();
 
@@ -218,14 +218,14 @@ export const sendDeleteExercises = createAsyncThunk(
     const response = await fetch("/assignment/instructor/remove_assignment_questions", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify(exercises),
+      body: JSON.stringify(exercises)
     });
     const data = await response.json();
 
     return data.detail;
-  },
+  }
 );
 
 /**
@@ -241,14 +241,14 @@ export const reorderAssignmentQuestions = createAsyncThunk(
     const response = await fetch("/assignment/instructor/reorder_assignment_questions", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify(exercises),
+      body: JSON.stringify(exercises)
     });
     const data = await response.json();
 
     return data.detail;
-  },
+  }
 );
 
 /**
@@ -263,12 +263,12 @@ export const sendAssignmentUpdate = createAsyncThunk(
   "assignment/sendAssignmentUpdate",
   // todo missing released, duedate, and from_source
   async (assignment) => {
-    const response = await fetch("/assignment/instructor/update_assignment", {
-      method: "POST",
+    const response = await fetch(`/assignment/instructor/assignments/${assignment.id}`, {
+      method: "PUT",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify(assignment),
+      body: JSON.stringify(assignment)
     });
 
     if (!response.ok) {
@@ -280,7 +280,7 @@ export const sendAssignmentUpdate = createAsyncThunk(
     const data = await response.json();
 
     return data.detail;
-  },
+  }
 );
 
 /**
@@ -296,14 +296,14 @@ export const searchForQuestions = createAsyncThunk(
     const response = await fetch("/assignment/instructor/search_questions", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify(searchData),
+      body: JSON.stringify(searchData)
     });
     const data = await response.json();
 
     return data.detail;
-  },
+  }
 );
 
 let cDate = new Date();
@@ -421,7 +421,7 @@ export const assignSlice = createSlice({
     question_count: 0,
     isAuthorized: true,
     released: false,
-    selectedAssignments: [],
+    selectedAssignments: []
   },
   reducers: {
     updateField: (state, action) => {
@@ -529,65 +529,69 @@ export const assignSlice = createSlice({
     },
     setSelected: (state, action) => {
       state.selectedAssignments = action.payload;
-    },
+    }
   },
   extraReducers(builder) {
     /* eslint-disable */
-        builder
-            .addCase(fetchAssignments.fulfilled, (state, action) => {
-                state.all_assignments = action.payload.assignments;
-            })
-            .addCase(fetchAssignments.rejected, (state, action) => {
-                console.warn("fetchAssignments rejected", action.error.message, action.error.stack);
-            })
-            .addCase(fetchAssignmentQuestions.fulfilled, (state, action) => {
-                for (let ex of action.payload.exercises) {
-                    ex.required = ex.activities_required;
-                }
-                state.exercises = action.payload.exercises;
-                let total = 0;
-                for (let ex of state.exercises) {
-                    total += ex.points;
-                }
-                state.points = total;
-                console.log("fetchAssignmentQuestions fulfilled");
-            })
-            .addCase(fetchAssignmentQuestions.rejected, (state, action) => {
-                console.warn("fetchAssignmentQuestions rejected", action.error.message, action.error.stack);
-            })
-            .addCase(sendDeleteExercises.fulfilled, (state, action) => {
-                console.log("senddeleteExercises fulfilled");
-            })
-            .addCase(sendDeleteExercises.rejected, (state, action) => {
-                console.warn("sendDeleteExercises rejected", action.error.message, action.error.stack);
-            })
-            .addCase(reorderAssignmentQuestions.fulfilled, (state, action) => {
-                console.log("reorderAssignmentQuestions fulfilled");
-            })
-            .addCase(reorderAssignmentQuestions.rejected, (state, action) => {
-                console.warn("reorderAssignmentQuestions rejected", action.error.message, action.error.stack);
-            })
-            .addCase(createAssignment.fulfilled, (state, action) => {
-                console.log("createAssignment fulfilled");
-            })
-            .addCase(createAssignment.rejected, (state, action) => {
-                console.warn("createAssignment rejected", action.error.message, action.error.stack);
-            })
-            .addCase(sendAssignmentUpdate.fulfilled, (state, action) => {
-                console.log("sendAssignmentUpdate fulfilled");
-            })
-            .addCase(sendAssignmentUpdate.rejected, (state, action) => {
-                console.warn("sendAssignmentUpdate rejected", action.error.message, action.error.stack);
-            })
-            .addCase(searchForQuestions.fulfilled, (state, action) => {
-                console.log("searchForQuestions fulfilled");
-                state.search_results = action.payload.questions;
-            })
-            .addCase(searchForQuestions.rejected, (state, action) => {
-                console.warn("searchForQuestions rejected", action.error.message, action.error.stack);
-            })
-        /* eslint-enable */
-  },
+    builder
+      .addCase(fetchAssignments.fulfilled, (state, action) => {
+        state.all_assignments = action.payload.assignments;
+      })
+      .addCase(fetchAssignments.rejected, (state, action) => {
+        console.warn("fetchAssignments rejected", action.error.message, action.error.stack);
+      })
+      .addCase(fetchAssignmentQuestions.fulfilled, (state, action) => {
+        for (let ex of action.payload.exercises) {
+          ex.required = ex.activities_required;
+        }
+        state.exercises = action.payload.exercises;
+        let total = 0;
+        for (let ex of state.exercises) {
+          total += ex.points;
+        }
+        state.points = total;
+        console.log("fetchAssignmentQuestions fulfilled");
+      })
+      .addCase(fetchAssignmentQuestions.rejected, (state, action) => {
+        console.warn("fetchAssignmentQuestions rejected", action.error.message, action.error.stack);
+      })
+      .addCase(sendDeleteExercises.fulfilled, (state, action) => {
+        console.log("senddeleteExercises fulfilled");
+      })
+      .addCase(sendDeleteExercises.rejected, (state, action) => {
+        console.warn("sendDeleteExercises rejected", action.error.message, action.error.stack);
+      })
+      .addCase(reorderAssignmentQuestions.fulfilled, (state, action) => {
+        console.log("reorderAssignmentQuestions fulfilled");
+      })
+      .addCase(reorderAssignmentQuestions.rejected, (state, action) => {
+        console.warn(
+          "reorderAssignmentQuestions rejected",
+          action.error.message,
+          action.error.stack
+        );
+      })
+      .addCase(createAssignment.fulfilled, (state, action) => {
+        console.log("createAssignment fulfilled");
+      })
+      .addCase(createAssignment.rejected, (state, action) => {
+        console.warn("createAssignment rejected", action.error.message, action.error.stack);
+      })
+      .addCase(sendAssignmentUpdate.fulfilled, (state, action) => {
+        console.log("sendAssignmentUpdate fulfilled");
+      })
+      .addCase(sendAssignmentUpdate.rejected, (state, action) => {
+        console.warn("sendAssignmentUpdate rejected", action.error.message, action.error.stack);
+      })
+      .addCase(searchForQuestions.fulfilled, (state, action) => {
+        console.log("searchForQuestions fulfilled");
+        state.search_results = action.payload.questions;
+      })
+      .addCase(searchForQuestions.rejected, (state, action) => {
+        console.warn("searchForQuestions rejected", action.error.message, action.error.stack);
+      });
+    /* eslint-enable */
+  }
 });
 
 // export the reducers
@@ -615,7 +619,7 @@ export const {
   updateExercise,
   updateField,
   setIsAuthorized,
-  setSelected,
+  setSelected
 } = assignSlice.actions;
 
 // The function below is called a selector and allows us to select a value from

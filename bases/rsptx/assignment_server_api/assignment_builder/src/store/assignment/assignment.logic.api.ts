@@ -1,26 +1,23 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { chooseExercisesActions } from "@store/chooseExercises/chooseExercises.logic";
+import { assignmentActions } from "@store/assignment/assignment.logic";
 import { userActions } from "@store/user/userLogic";
 import toast from "react-hot-toast";
 
-import { RootState } from "@/state/store";
 import { baseQuery } from "@/store/baseQuery";
 import { DetailResponse, HttpStatusCode } from "@/types/api";
 import {
   Assignment,
-  CreateAssignmentExercisePayload,
   CreateAssignmentPayload,
   CreateAssignmentValidationResponse,
+  GetAssignmentResponse,
   GetAssignmentsResponse
 } from "@/types/assignment";
-import { Exercise, GetExercisesResponse, UpdateAssignmentExercisePayload } from "@/types/exercises";
-import { getSelectedKeys } from "@/utils/exercise";
 
 export const assignmentApi = createApi({
   reducerPath: "assignmentAPI",
   keepUnusedDataFor: 60, //change to 0 for tests,
   baseQuery: baseQuery,
-  tagTypes: ["Assignments", "Exercises"],
+  tagTypes: ["Assignments", "Exercises", "Assignment"],
   endpoints: (build) => ({
     getAssignments: build.query<Assignment[], void>({
       query: () => ({
@@ -49,10 +46,38 @@ export const assignmentApi = createApi({
         });
       }
     }),
-    createAssignment: build.mutation<void, CreateAssignmentPayload>({
+    getAssignment: build.query<Assignment, number>({
+      query: (id: number) => ({
+        method: "GET",
+        url: `/assignment/instructor/assignments/${id}`
+      }),
+      keepUnusedDataFor: 0.1,
+      providesTags: ["Assignment"],
+      transformResponse: (response: DetailResponse<GetAssignmentResponse>) => {
+        return response.detail.assignment;
+      },
+      onQueryStarted: (_, { dispatch, queryFulfilled }) => {
+        queryFulfilled.catch((errorResponse) => {
+          const { status } = errorResponse.error as {
+            status: number;
+          };
+
+          if (status === HttpStatusCode.UNAUTHORIZED) {
+            toast("Unauthorized to fetch assignment");
+            dispatch(userActions.setIsAuthorized(false));
+            return;
+          }
+
+          toast("Unable to fetch assignment", {
+            icon: "🔥"
+          });
+        });
+      }
+    }),
+    createAssignment: build.mutation<DetailResponse<{ id: number }>, CreateAssignmentPayload>({
       query: (body) => ({
         method: "POST",
-        url: "/assignment/instructor/new_assignment",
+        url: "/assignment/instructor/assignments",
         body
       }),
       invalidatesTags: (_, error) => {
@@ -61,9 +86,10 @@ export const assignmentApi = createApi({
         }
         return [];
       },
-      onQueryStarted: (_, { queryFulfilled }) => {
+      onQueryStarted: (_, { queryFulfilled, dispatch }) => {
         queryFulfilled
-          .then(() => {
+          .then(({ data }) => {
+            dispatch(assignmentActions.setSelectedAssignmentId(data.detail.id));
             toast("Assignment created", { icon: "👍" });
           })
           .catch((errorResponse) => {
@@ -85,123 +111,13 @@ export const assignmentApi = createApi({
     }),
     updateAssignment: build.mutation<void, Assignment>({
       query: (body) => ({
-        method: "POST",
-        url: "/assignment/instructor/update_assignment",
+        method: "PUT",
+        url: `/assignment/instructor/assignments/${body.id}`,
         body
       }),
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
           toast("Error updating assignment", {
-            icon: "🔥"
-          });
-        });
-      }
-    }),
-    getExercises: build.query<Exercise[], number>({
-      query: (assignment) => ({
-        method: "POST",
-        url: "/assignment/instructor/assignment_questions",
-        body: { assignment }
-      }),
-      providesTags: ["Exercises"],
-      transformResponse: (response: DetailResponse<GetExercisesResponse>) => {
-        return response.detail.exercises;
-      },
-      onQueryStarted: (_, { queryFulfilled, dispatch, getState }) => {
-        queryFulfilled
-          .then(({ data }) => {
-            const state = getState() as RootState;
-
-            dispatch(
-              chooseExercisesActions.setSelectedKeys(
-                getSelectedKeys(state.exercises.availableExercises, data)
-              )
-            );
-            dispatch(chooseExercisesActions.setSelectedExercises(data));
-            dispatch(chooseExercisesActions.resetSelections());
-          })
-          .catch(() => {
-            toast("Unable to fetch exercises", {
-              icon: "🔥"
-            });
-          });
-      }
-    }),
-    updateAssignmentExercise: build.mutation<void, UpdateAssignmentExercisePayload>({
-      query: (body) => ({
-        method: "POST",
-        url: "/assignment/instructor/update_assignment_question",
-        body
-      }),
-      invalidatesTags: (_, error) => {
-        if (!error) {
-          return [{ type: "Exercises" }];
-        }
-        return [];
-      },
-      onQueryStarted: (_, { queryFulfilled }) => {
-        queryFulfilled.catch(() => {
-          toast("Error updating assignment exercise", {
-            icon: "🔥"
-          });
-        });
-      }
-    }),
-    removeAssignmentExercises: build.mutation<void, number[]>({
-      query: (body) => ({
-        method: "POST",
-        url: "/assignment/instructor/remove_assignment_questions",
-        body
-      }),
-      invalidatesTags: (_, error) => {
-        if (!error) {
-          return [{ type: "Exercises" }];
-        }
-        return [];
-      },
-      onQueryStarted: (_, { queryFulfilled }) => {
-        queryFulfilled.catch(() => {
-          toast("Error removing assignment exercise", {
-            icon: "🔥"
-          });
-        });
-      }
-    }),
-    reorderAssignmentExercises: build.mutation<void, number[]>({
-      query: (body) => ({
-        method: "POST",
-        url: "/assignment/instructor/reorder_assignment_questions",
-        body
-      }),
-      invalidatesTags: (_, error) => {
-        if (!error) {
-          return [{ type: "Exercises" }];
-        }
-        return [];
-      },
-      onQueryStarted: (_, { queryFulfilled }) => {
-        queryFulfilled.catch(() => {
-          toast("Error reordering assignment exercise", {
-            icon: "🔥"
-          });
-        });
-      }
-    }),
-    createAssignmentExercise: build.mutation<void, CreateAssignmentExercisePayload>({
-      query: (body) => ({
-        method: "POST",
-        url: "/assignment/instructor/new_assignment_q",
-        body
-      }),
-      invalidatesTags: (_, error) => {
-        if (!error) {
-          return [{ type: "Exercises" }];
-        }
-        return [];
-      },
-      onQueryStarted: (_, { queryFulfilled }) => {
-        queryFulfilled.catch(() => {
-          toast("Error creating assignment exercise", {
             icon: "🔥"
           });
         });
@@ -212,9 +128,7 @@ export const assignmentApi = createApi({
 
 export const {
   useGetAssignmentsQuery,
-  useCreateAssignmentMutation,
-  useGetExercisesQuery,
-  useUpdateAssignmentExerciseMutation,
-  useRemoveAssignmentExercisesMutation,
-  useReorderAssignmentExercisesMutation
+  useGetAssignmentQuery,
+  useUpdateAssignmentMutation,
+  useCreateAssignmentMutation
 } = assignmentApi;

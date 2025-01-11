@@ -53,6 +53,7 @@ import {
   setTimeLimit,
   setVisible
 } from "../state/assignment/assignSlice";
+import { store } from "../state/store";
 
 import { EditorContainer, EditorChooser } from "./editorModeChooser.jsx";
 
@@ -76,48 +77,48 @@ function diff(oldobj, newobj) {
 }
 let currentValue;
 
-// function handleChange() {
-//   // add a slight delay to prevent multiple updates
-//   setTimeout(() => {
-//     let previousValue = currentValue;
-//
-//     currentValue = select(store.getState());
-//
-//     if (currentValue && previousValue !== currentValue) {
-//       if (currentValue.id !== 0 && previousValue && previousValue.id !== 0) {
-//         let changes = diff(previousValue, currentValue);
-//         let keys = Object.keys(changes);
-//         let updateKeys = [
-//           "duedate",
-//           "points",
-//           "visible",
-//           "time_limit",
-//           "peer_async_visible",
-//           "is_peer",
-//           "is_timed",
-//           "nopause",
-//           "nofeedback",
-//           "description"
-//         ];
-//         let update = keys.filter((k) => updateKeys.includes(k));
-//
-//         if (update.length > 0 && keys.indexOf("id") === -1) {
-//           console.log(`updating assignment ${update}`);
-//           let toSend = structuredClone(currentValue);
-//
-//           delete toSend.all_assignments;
-//           delete toSend.exercises;
-//           store.dispatch(sendAssignmentUpdate(toSend));
-//           console.log("changes", changes);
-//         }
-//       }
-//     } else {
-//       //console.log("no changes")
-//     }
-//   }, 1500);
-// }
+function handleChange() {
+  // add a slight delay to prevent multiple updates
+  setTimeout(() => {
+    let previousValue = currentValue;
 
-//const unsubscribe = store.subscribe(handleChange); // eslint-disable-line
+    currentValue = select(store.getState());
+
+    if (currentValue && previousValue !== currentValue) {
+      if (currentValue.id !== 0 && previousValue && previousValue.id !== 0) {
+        let changes = diff(previousValue, currentValue);
+        let keys = Object.keys(changes);
+        let updateKeys = [
+          "duedate",
+          "points",
+          "visible",
+          "time_limit",
+          "peer_async_visible",
+          "is_peer",
+          "is_timed",
+          "nopause",
+          "nofeedback",
+          "description"
+        ];
+        let update = keys.filter((k) => updateKeys.includes(k));
+
+        if (update.length > 0 && keys.indexOf("id") === -1) {
+          console.log(`updating assignment ${update}`);
+          let toSend = structuredClone(currentValue);
+
+          delete toSend.all_assignments;
+          delete toSend.exercises;
+          store.dispatch(sendAssignmentUpdate(toSend));
+          console.log("changes", changes);
+        }
+      }
+    } else {
+      //console.log("no changes")
+    }
+  }, 1500);
+}
+
+const unsubscribe = store.subscribe(handleChange); // eslint-disable-line
 
 // The AssignmentEditor component is a form that allows the user to create or edit an assignment.
 // The form has fields for the name, description, due date, and total points.

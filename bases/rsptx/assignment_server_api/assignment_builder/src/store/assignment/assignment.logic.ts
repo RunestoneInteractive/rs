@@ -2,21 +2,22 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { ActionType } from "typesafe-actions";
 
 import { RootState } from "@/state/store";
-import { Assignment } from "@/types/assignment";
-import { Optional } from "@/types/common";
+import { Nullable } from "@/types/common";
 
 export interface AssignmentState {
-  selectedAssignment?: Assignment;
+  selectedAssignmentId: Nullable<number>;
 }
 
-const INITIAL_STATE: AssignmentState = {};
+const INITIAL_STATE: AssignmentState = {
+  selectedAssignmentId: null
+};
 
 export const assignmentSlice = createSlice({
   name: "assignment",
   initialState: INITIAL_STATE,
   reducers: {
-    setSelectedAssignment: (state, action: PayloadAction<Assignment | undefined>) => {
-      state.selectedAssignment = action.payload;
+    setSelectedAssignmentId: (state, action: PayloadAction<Nullable<number>>) => {
+      state.selectedAssignmentId = action.payload;
     }
   }
 });
@@ -24,7 +25,7 @@ export const assignmentSlice = createSlice({
 export const assignmentActions = assignmentSlice.actions;
 
 export const assignmentSelectors = {
-  getSelectedAssignment: (state: RootState): Optional<Assignment> =>
-    state.assignmentTemp.selectedAssignment
+  getSelectedAssignmentId: (state: RootState): Nullable<number> =>
+    state.assignmentTemp.selectedAssignmentId
 };
 export type AssignmentActions = ActionType<typeof assignmentActions>;

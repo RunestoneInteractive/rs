@@ -235,7 +235,7 @@ class FitbAnswers(Base, CorrectAnswerMixin):
 class DragndropAnswers(Base, CorrectAnswerMixin):
     __tablename__ = "dragndrop_answers"
     # See answer_. TODO: what is the format?
-    answer = Column(String(512), nullable=False)
+    answer = Column(Text, nullable=False)
     min_height = Column(Integer, nullable=False)
     __table_args__ = (Index("idx_div_sid_course_dd", "sid", "div_id", "course_name"),)
 
