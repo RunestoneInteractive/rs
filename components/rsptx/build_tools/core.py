@@ -146,6 +146,8 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         return False
     else:
         click.echo("Checking files")
+        if not target:
+            target = "runestone"
         # sets output_dir to `published/<course>`
         # and {"host-platform": "runestone"} in stringparams
         rs = check_project_ptx(course=course, target=target)
@@ -230,6 +232,8 @@ def check_project_ptx(click=click, course=None, target="runestone"):
 
     """
     proj = Project.parse("project.ptx")
+    if not target:
+        target = "runestone"
     target_name = target
     if proj.has_target(target_name) is False:
         if proj.has_target("web"):
@@ -237,10 +241,10 @@ def check_project_ptx(click=click, course=None, target="runestone"):
         elif proj.has_target("html"):
             target_name = "html"
         else:
-            click.echo("No runestone suitable targets in project.ptx")
+            click.echo(f"No {target} suitable targets in project.ptx")
             return False
         click.echo(
-            f"No runestone target in project.ptx, will adopt {target_name} target"
+            f"No {target} target in project.ptx, will adopt {target_name} target"
         )
 
     book_path = os.environ.get("BOOK_PATH", None)
