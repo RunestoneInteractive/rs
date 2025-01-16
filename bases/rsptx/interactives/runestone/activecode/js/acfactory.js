@@ -116,23 +116,23 @@ export default class ACFactory {
             stdin = `data-stdin="text for stdin"`;
         }
         const languageNames = {
-            'cpp': 'C++',
-            'c': 'C',
-            'html': 'HTML',
-            'htmlmixed': 'HTML',
-            'java': 'Java',
-            'javascript': 'JavaScript',
-            'js': 'JavaScript',
-            'octave': 'Octave',
-            'python': 'Python',
-            'py2': 'Python 2',
-            'python2': 'Python 2',
-            'py3': 'Python 3',
-            'py3anaconda': 'Python 3 with Anaconda',
-            'python3': 'Python 3',
-            'ruby': 'Ruby',
-            'sql': 'SQL',
-            'ts': 'TypeScript'
+            cpp: "C++",
+            c: "C",
+            html: "HTML",
+            htmlmixed: "HTML",
+            java: "Java",
+            javascript: "JavaScript",
+            js: "JavaScript",
+            octave: "Octave",
+            python: "Python",
+            py2: "Python 2",
+            python2: "Python 2",
+            py3: "Python 3",
+            py3anaconda: "Python 3 with Anaconda",
+            python3: "Python 3",
+            ruby: "Ruby",
+            sql: "SQL",
+            ts: "TypeScript",
         };
 
         // generate the HTML
@@ -141,12 +141,14 @@ export default class ACFactory {
                 <div class="modal-content">
                   <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title">Scratch ActiveCode (${languageNames[lang.toLowerCase()] || lang})</h4>
+                    <h4 class="modal-title">Scratch ActiveCode (${
+                        languageNames[lang.toLowerCase()] || lang
+                    })</h4>
                   </div>
                   <div class="modal-body">
                   <div data-component="activecode" id=${divid}>
                   <div id=${divid}_question class="ac_question"><p>Use this area for writing code or taking notes.</p></div>
-                  <textarea data-codelens="true" data-lang="${lang}" ${stdin}>
+                  <textarea data-codelens="true" data-lang="${lang}" ${stdin} aria-label="Scratch ActiveCode">
                   </textarea>
                   </div>
                   </div>
@@ -159,7 +161,7 @@ export default class ACFactory {
         el.on("shown.bs.modal", function () {
             // default lang isn't in dictionary of known programming languages
             if (!languageNames[lang.toLowerCase()]) {
-                alert(`${lang} is a known language. Please report this`)
+                alert(`${lang} is a known language. Please report this`);
             }
         });
         el.on("shown.bs.modal show.bs.modal", function () {
@@ -173,8 +175,39 @@ export default class ACFactory {
         if (!eBookConfig.enableScratchAC) return;
         var divid = "ac_modal_" + eBookConfig.scratchDiv;
         var div = $("#" + divid);
-        $(`#${eBookConfig.scratchDiv}`).removeClass("ac_section");
+        var realDiv = div[0];
+        realDiv.classList.remove("ac_section");
+        //div.style.display = (div.style.display === "none" || div.style.display === "") ? "block" : "none";
         div.modal("toggle");
+        const firstFocusableElement = realDiv.querySelector(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (firstFocusableElement) {
+            firstFocusableElement.focus();
+        }
+        const focusableElements = realDiv.querySelectorAll(
+            'input, button, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const lastFocusableElement =
+            focusableElements[focusableElements.length - 1];
+
+        realDiv.addEventListener("keydown", (event) => {
+            if (event.key === "Tab") {
+                if (event.shiftKey) {
+                    // Shift + Tab
+                    if (document.activeElement === firstFocusableElement) {
+                        event.preventDefault();
+                        lastFocusableElement.focus();
+                    }
+                } else {
+                    // Tab
+                    if (document.activeElement === lastFocusableElement) {
+                        event.preventDefault();
+                        firstFocusableElement.focus();
+                    }
+                }
+            }
+        });
     }
 }
 
@@ -195,7 +228,7 @@ $(document).on("runestone:login-complete", function () {
             } catch (err) {
                 console.error(`Error rendering Activecode Problem ${this.id}
                 Details: ${err}`);
-                console.error(err.stack)
+                console.error(err.stack);
             }
         }
     });
