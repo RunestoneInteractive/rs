@@ -896,7 +896,10 @@ export class ActiveCode extends RunestoneBase {
         this.outDiv = outDiv;
         this.output = document.createElement("pre");
         this.output.id = this.divid + "_stdout";
-        $(this.output).css("visibility", "hidden");
+        this.output.setAttribute("aria-live", "polite");
+        this.output.setAttribute("aria-atomic", "true");
+        this.output.setAttribute("role", "log");
+        this.output.innerHTML = "";
         $(this.output).css("max-height", "400px");
         $(this.output).css("overflow", "auto");
         this.graphics = document.createElement("div");
@@ -938,7 +941,7 @@ export class ActiveCode extends RunestoneBase {
         this.eContainer.className = "error alert alert-danger";
         this.eContainer.id = this.divid + "_errinfo";
         this.outerDiv.appendChild(this.eContainer);
-        this.eContainer.style.display = "none";
+        this.eContainer.style.display = "block";
     }
 
     disableSaveLoad() {
@@ -1317,7 +1320,6 @@ Yet another is that there is an internal error.  The internal error message is: 
     outputfun(text) {
         // bnm python 3
         if (this.outputLineCount > 1000) return;
-        $(this.output).css("visibility", "visible");
         text = text
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
