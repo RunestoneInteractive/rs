@@ -294,6 +294,7 @@ class Codelens(RunestoneIdDirective):
         url = f"{env.config.trace_url}/trace{lang}"
 
         tries = 0
+        r = None
         while tries < 5:
             try:
                 r = requests.post(url, data=dict(src=src), timeout=30)
@@ -311,7 +312,7 @@ class Codelens(RunestoneIdDirective):
                 tries += 1
                 time.sleep(random.random() * tries)
 
-            if r.status_code == 200:
+            if r and r.status_code == 200:
                 if lang == "java":
                     return r.text
                 else:
@@ -319,7 +320,9 @@ class Codelens(RunestoneIdDirective):
                     return res
             else:
                 tries += 1
-                self.error(f"Failed to get trace from server, status code: {r.status_code}")
+                self.error(
+                    f"Failed to get trace from server, status code: {r.status_code}"
+                )
                 time.sleep(random.random() * tries)
         if tries == 5:
             self.error("Failed to get trace from server after 5 tries")
