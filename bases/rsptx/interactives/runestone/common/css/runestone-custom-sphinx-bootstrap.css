@@ -506,6 +506,10 @@ h2 {
     background-color: var(--dangerAlerts);
 }
 
+.alert-success {
+    background-color: var(--successAlerts);
+}
+
 /* override the color styles applied by Skulpt to the unittest results divs */
 .unittest-results.alert-danger {
     background-color: var(--dangerAlerts) !important;
