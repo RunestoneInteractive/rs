@@ -1,5 +1,5 @@
 div.journal div.latexoutput {
-    background-color: #eeeeee;
+    background-color: var(--outerBackground, #eeeeee);
     padding: 1em;
     margin-bottom: 10px;
     border-radius: 5px;
