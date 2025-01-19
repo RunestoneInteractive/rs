@@ -27,7 +27,10 @@ class LibraryForm(StarletteForm):
     basecourse = StringField("Base Course or Document ID")
     build_system = StringField("Build System", [validators.AnyOf(["PTX", "Runestone"])])
     source_path = StringField("Source Path (relative to the root of repo)")
-    target = StringField("Target PreTeXt project target (if not runestone)")
+    target = StringField(
+        "Target PreTeXt project target (runestone)",
+        default="runestone",
+    )
     for_classes = BooleanField("Available for courses")
     is_visible = BooleanField("Visible to Everyone in Library")
     default_language = StringField(
