@@ -140,7 +140,7 @@ export default class ACFactory {
               <div class="modal-dialog scratch-ac-modal">
                 <div class="modal-content">
                   <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <button type="button" class="close first-focusable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     <h4 class="modal-title">Scratch ActiveCode (${
                         languageNames[lang.toLowerCase()] || lang
                     })</h4>
@@ -167,24 +167,13 @@ export default class ACFactory {
         el.on("shown.bs.modal show.bs.modal", function () {
             el.find(".CodeMirror").each(function (i, e) {
                 e.CodeMirror.refresh();
-                e.CodeMirror.focus();
+                // e.CodeMirror.focus(); // focus on the editor messes up a11y
             });
         });
-    }
-    static toggleScratchActivecode() {
-        if (!eBookConfig.enableScratchAC) return;
-        var divid = "ac_modal_" + eBookConfig.scratchDiv;
-        var div = $("#" + divid);
-        var realDiv = div[0];
-        realDiv.classList.remove("ac_section");
-        //div.style.display = (div.style.display === "none" || div.style.display === "") ? "block" : "none";
-        div.modal("toggle");
+        var realDiv = el[0];
         const firstFocusableElement = realDiv.querySelector(
             'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         );
-        if (firstFocusableElement) {
-            firstFocusableElement.focus();
-        }
         const focusableElements = realDiv.querySelectorAll(
             'input, button, select, textarea, [tabindex]:not([tabindex="-1"])'
         );
@@ -208,6 +197,27 @@ export default class ACFactory {
                 }
             }
         });
+
+        //todo intercept the close event and return focus to the pencil icon
+    }
+
+    static toggleScratchActivecode() {
+        if (!eBookConfig.enableScratchAC) return;
+        var divid = "ac_modal_" + eBookConfig.scratchDiv;
+        var div = $("#" + divid);
+        var realDiv = document.getElementById(divid);
+        realDiv.classList.remove("ac_section");
+        //div.style.display = (div.style.display === "none" || div.style.display === "") ? "block" : "none";
+        div.modal("toggle");
+        const firstFocusableElement = realDiv.querySelector(
+            '.first-focusable, button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        while (!isInViewport(firstFocusableElement)) {
+            if (firstFocusableElement) {
+                console.log(`focus on ${firstFocusableElement}`);
+                firstFocusableElement.focus();
+            }
+        }
     }
 }
 

@@ -899,7 +899,7 @@ export class ActiveCode extends RunestoneBase {
         this.output.setAttribute("aria-live", "polite");
         this.output.setAttribute("aria-atomic", "true");
         this.output.setAttribute("role", "log");
-        this.output.innerHTML = "";
+        this.output.innerHTML = "standard output";
         $(this.output).css("max-height", "400px");
         $(this.output).css("overflow", "auto");
         this.graphics = document.createElement("div");
@@ -940,8 +940,8 @@ export class ActiveCode extends RunestoneBase {
         this.eContainer.setAttribute("role", "log");
         this.eContainer.className = "error alert alert-danger";
         this.eContainer.id = this.divid + "_errinfo";
+        this.eContainer.style.display = "none";
         this.outerDiv.appendChild(this.eContainer);
-        this.eContainer.style.display = "block";
     }
 
     disableSaveLoad() {
@@ -1192,8 +1192,7 @@ export class ActiveCode extends RunestoneBase {
     addErrorMessage(err) {
         // Add the error message
         this.errLastRun = true;
-        this.eContainer.style.display = "block";
-        this.eContainer.innerText = "hello world";
+        console.log(err);
         var errHead = $("<h3>").html("Error");
         this.eContainer.appendChild(errHead[0]);
         var errText = this.eContainer.appendChild(
@@ -1233,6 +1232,9 @@ Yet another is that there is an internal error.  The internal error message is: 
         errFix.innerHTML = errorText[errName + "Fix"];
         var moreInfo = "../ErrorHelp/" + errName.toLowerCase() + ".html";
         //console.log("Runtime Error: " + err.toString());
+        timeOut = setTimeout(function () {
+            errFix.innerHTML += "<span>.</span>";
+        }, 100);
     }
     setTimeLimit(timer) {
         var timelimit = this.timelimit;
@@ -1587,6 +1589,11 @@ Yet another is that there is an internal error.  The internal error message is: 
         }
     }
 
+    showOutputs() {
+        this.output.style.display = "block";
+        this.output.innerText = "standard output";
+        this.eContainer.style.display = "block";
+    }
     /* runProg has several async elements to it.
      * 1. Skulpt runs the python program asynchronously
      * 2. The history is restored asynchronously
@@ -1599,6 +1606,7 @@ Yet another is that there is an internal error.  The internal error message is: 
      */
     async runProg(noUI, logResults) {
         console.log("starting runProg");
+        window.requestAnimationFrame(this.showOutputs.bind(this));
         stopExecution = false;
         this.outputLineCount = 0;
         if (typeof logResults === "undefined") {
