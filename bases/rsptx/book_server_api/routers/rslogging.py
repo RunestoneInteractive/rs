@@ -165,7 +165,7 @@ async def log_book_event(
 
             ans_idx = await create_answer_table_entry(valid_table, entry.event)
             rslogger.debug(ans_idx)
-        if entry.event != "timedExam":
+        if entry.event != "timedExam" and entry.event != "selectquestion":
             scoreSpec = await grade_submission(user, entry)
             response_dict.update(scoreSpec.dict())
 
