@@ -341,7 +341,7 @@ def _launch_assignment(
 ):
     assignment = (
         db(db.assignments.id == assignment_id)
-        .select(db.assignments.released, db.assignments.is_peer)
+        .select(db.assignments.released, db.assignments.is_peer, db.assignments.course)
         .first()
     )
     # If the assignment isn't valid, return instead of redirecting. The caller will report the error.
