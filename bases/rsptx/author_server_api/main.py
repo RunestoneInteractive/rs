@@ -120,6 +120,7 @@ async def create_book_entry(
         "is_visible": False,
         "for_classes": False,
         "repo_path": repo_path,
+        "target": "runestone",
     }
     await create_library_book(document_id, vals)
     await create_book_author(author, document_id)

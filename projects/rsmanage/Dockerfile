@@ -31,7 +31,8 @@ RUN pip install --upgrade pip
 RUN apt update
 RUN apt install -y rsync
 RUN apt install -y --no-install-recommends libpq-dev
-
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+RUN apt-get install -y nodejs
 
 # copy project
 COPY ./dist/$wheel /usr/src/app/$wheel

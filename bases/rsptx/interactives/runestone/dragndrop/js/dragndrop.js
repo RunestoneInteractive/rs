@@ -100,9 +100,12 @@ export default class DragNDrop extends RunestoneBase {
         this.question = this.origElem.querySelector(
             "[data-subcomponent='question']"
         ).innerHTML;
-        this.feedback = this.origElem.querySelector(
+        let feedback = this.origElem.querySelector(
             "[data-subcomponent='feedback']"
-        ).innerHTML;
+        );
+        if (feedback) {
+            this.feedback = feedback.innerHTML;
+        }
     }
 
     getCategory(elem) {

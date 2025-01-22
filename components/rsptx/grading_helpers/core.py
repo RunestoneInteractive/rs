@@ -49,6 +49,10 @@ async def grade_submission(
         submission.assignment_id,
         accommodation=accommodation,
     )
+
+    if submission.event == "selectquestion" and submission.act == "interaction":
+        return scoreSpec
+
     if scoreSpec.assigned:
         rslogger.debug(
             f"Scoring {submission.div_id} for {user.username} scoreSpec = {scoreSpec}"

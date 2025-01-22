@@ -4,7 +4,6 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Depends, Request, status, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from functools import wraps
 from sqlalchemy import create_engine
 from pydantic import BaseModel
 from typing import List, Optional, Annotated
@@ -51,6 +50,7 @@ from rsptx.db.models import (
     AssignmentValidator,
     QuestionValidator,
 )
+from rsptx.endpoint_validators import with_course, instructor_role_required
 from rsptx.validation.schemas import (
     AssignmentIncoming,
     AssignmentQuestionIncoming,
@@ -73,66 +73,6 @@ router = APIRouter(
     tags=["instructor"],
 )
 
-def instructor_role_required():
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            # Extracting Request and User from kwargs
-            request = kwargs.get("request")
-            user = await auth_manager(request)
-
-            if not user or not getattr(user, "id", None) or not getattr(user, "course_id", None):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid user or missing attributes",
-                )
-
-            user_is_instructor = await is_instructor(request, user=user)
-            if not user_is_instructor:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="User is not an instructor",
-                )
-
-            # Continue execution of the original function
-            return await func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-def with_course():
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            # Extracting Request and User from kwargs
-            request = kwargs.get("request")
-            user = await auth_manager(request)
-
-            # Checking the presence of the user and course_name
-            if not user or not getattr(user, "course_name", None):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid user or missing course_name",
-                )
-
-            # Loading the course
-            course = await fetch_course(user.course_name)
-            if not course:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Course not found",
-                )
-
-            # Adding the course to kwargs
-            kwargs["course"] = course
-
-            # Executing the wrapped function
-            return await func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 @router.get("/reviewPeerAssignment")
 async def review_peer_assignment(
@@ -392,6 +332,7 @@ async def get_assignment_gb(
         },
     )
 
+
 @router.get("/assignments")
 @instructor_role_required()
 @with_course()
@@ -407,6 +348,7 @@ async def get_assignments(
         status=status.HTTP_200_OK, detail={"assignments": assignments}
     )
 
+
 @router.get("/assignments/{assignment_id}")
 @instructor_role_required()
 async def get_assignment(request: Request, assignment_id: int):
@@ -417,6 +359,7 @@ async def get_assignment(request: Request, assignment_id: int):
     return make_json_response(
         status=status.HTTP_200_OK, detail={"assignment": assignment}
     )
+
 
 @router.post("/assignments")
 @instructor_role_required()
@@ -695,6 +638,7 @@ async def up_assignment_question(
         )
     return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
 
+
 @router.put("/assignment_exercises")
 @instructor_role_required()
 async def put_assignment_exercises(
@@ -706,7 +650,7 @@ async def put_assignment_exercises(
         exercises = await update_assignment_exercises(request_data)
         return make_json_response(
             status=status.HTTP_200_OK,
-            detail={"status": "success", "exercises": exercises}
+            detail={"status": "success", "exercises": exercises},
         )
     except Exception as e:
         rslogger.error(f"Error updating assignment exercises: {e}")
