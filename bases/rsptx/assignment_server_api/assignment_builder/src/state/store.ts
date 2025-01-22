@@ -3,6 +3,8 @@ import { assignmentSlice } from "@store/assignment/assignment.logic";
 import { assignmentApi } from "@store/assignment/assignment.logic.api.js";
 import { assignmentExerciseApi } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { chooseExercisesSlice } from "@store/chooseExercises/chooseExercises.logic";
+import { datasetSlice } from "@store/dataset/dataset.logic";
+import { datasetApi } from "@store/dataset/dataset.logic.api";
 import { exercisesSlice } from "@store/exercises/exercises.logic";
 import { exercisesApi } from "@store/exercises/exercises.logic.api";
 import { readingsSlice } from "@store/readings/readings.logic";
@@ -39,8 +41,10 @@ const reducersMap = {
   exercises: exercisesSlice.reducer,
   chooseExercises: chooseExercisesSlice.reducer,
   searchExercises: searchExercisesSlice.reducer,
+  dataset: datasetSlice.reducer,
   [readingsApi.reducerPath]: readingsApi.reducer,
-  [exercisesApi.reducerPath]: exercisesApi.reducer
+  [exercisesApi.reducerPath]: exercisesApi.reducer,
+  [datasetApi.reducerPath]: datasetApi.reducer
 };
 
 export type RootState = StateType<typeof reducersMap>;
@@ -54,7 +58,8 @@ export const setupStore = (preloadedState?: Partial<RootState>) => {
         assignmentApi.middleware,
         assignmentExerciseApi.middleware,
         readingsApi.middleware,
-        exercisesApi.middleware
+        exercisesApi.middleware,
+        datasetApi.middleware
       );
     }
   });

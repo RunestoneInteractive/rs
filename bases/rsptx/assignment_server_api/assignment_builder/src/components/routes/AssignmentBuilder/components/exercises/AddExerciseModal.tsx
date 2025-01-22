@@ -100,28 +100,32 @@ export const AddExerciseModal = () => {
     setShowDialog(true);
   };
 
+  const AddExerciseToast = () => {
+    return (
+      <div className="flex flex-column align-items-left" style={{ flex: "1" }}>
+        <div className="flex align-items-center gap-2">
+          <span className="text-900">Exercise has been created!</span>
+        </div>
+        <div className="font-medium my-3 text-900">Would you like to add a new one?</div>
+        <Button
+          className="p-button-sm flex"
+          label="Add New Exercise"
+          severity="success"
+          onClick={() => {
+            handleOpen();
+            clearToast();
+          }}
+        ></Button>
+      </div>
+    );
+  };
+
   const onExerciseAdd = () => {
     handleClose();
     showToast({
       severity: "success",
       sticky: true,
-      content: () => (
-        <div className="flex flex-column align-items-left" style={{ flex: "1" }}>
-          <div className="flex align-items-center gap-2">
-            <span className="text-900">Exercise has been created!</span>
-          </div>
-          <div className="font-medium my-3 text-900">Would you like to add a new one?</div>
-          <Button
-            className="p-button-sm flex"
-            label="Add New Exercise"
-            severity="success"
-            onClick={() => {
-              handleOpen();
-              clearToast();
-            }}
-          ></Button>
-        </div>
-      )
+      content: <AddExerciseToast />
     });
   };
 

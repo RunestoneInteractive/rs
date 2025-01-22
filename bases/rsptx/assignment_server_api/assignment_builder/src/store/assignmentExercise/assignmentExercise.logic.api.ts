@@ -51,10 +51,10 @@ export const assignmentExerciseApi = createApi({
           });
       }
     }),
-    updateAssignmentExercise: build.mutation<void, UpdateAssignmentExercisePayload>({
+    updateAssignmentQuestions: build.mutation<void, UpdateAssignmentExercisePayload[]>({
       query: (body) => ({
-        method: "POST",
-        url: "/assignment/instructor/update_assignment_question",
+        method: "PUT",
+        url: "/assignment/instructor/assignment_question/batch",
         body
       }),
       invalidatesTags: (_, error) => {
@@ -63,12 +63,24 @@ export const assignmentExerciseApi = createApi({
         }
         return [];
       },
-      onQueryStarted: (_, { queryFulfilled }) => {
-        queryFulfilled.catch(() => {
-          toast("Error updating assignment exercise", {
-            icon: "🔥"
+      onQueryStarted: (_, { queryFulfilled, dispatch, getState }) => {
+        queryFulfilled
+          .then(() => {
+            const state = getState() as RootState;
+
+            dispatch(assignmentApi.util.invalidateTags(["Assignment"]));
+
+            dispatch(
+              assignmentApi.endpoints.getAssignment.initiate(
+                state.assignmentTemp.selectedAssignmentId!
+              )
+            );
+          })
+          .catch(() => {
+            toast("Error updating assignment exercises", {
+              icon: "🔥"
+            });
           });
-        });
       }
     }),
     removeAssignmentExercises: build.mutation<void, number[]>({
@@ -161,7 +173,7 @@ export const assignmentExerciseApi = createApi({
 
 export const {
   useGetExercisesQuery,
-  useUpdateAssignmentExerciseMutation,
+  useUpdateAssignmentQuestionsMutation,
   useRemoveAssignmentExercisesMutation,
   useReorderAssignmentExercisesMutation,
   useUpdateAssignmentExercisesMutation

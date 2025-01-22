@@ -1394,20 +1394,36 @@ async def fetch_assignments(
 # write a function that fetches all Assignment objects given a course name
 async def fetch_one_assignment(assignment_id: int) -> AssignmentValidator:
     """
-    Fetch one Assignment object
+    Fetch one Assignment object with calculated total points for related exercises.
 
     :param assignment_id: int, the assignment id
 
     :return: AssignmentValidator
     """
-
-    query = select(Assignment).where(Assignment.id == assignment_id)
-
     async with async_session() as session:
-        res = await session.execute(query)
-        rslogger.debug(f"{res=}")
-        return AssignmentValidator.from_orm(res.scalars().first())
+        assignment_query = select(Assignment).where(Assignment.id == assignment_id)
+        assignment_result = await session.execute(assignment_query)
+        assignment = assignment_result.scalar_one_or_none()
 
+        if not assignment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Assignment with id {assignment_id} not found"
+            )
+
+        exercises_query = select(AssignmentQuestion).where(
+            AssignmentQuestion.assignment_id == assignment_id
+        )
+        exercises_result = await session.execute(exercises_query)
+        exercises = exercises_result.scalars().all()
+
+        total_points = sum(exercise.points for exercise in exercises)
+
+        assignment.points = total_points
+        session.add(assignment)
+        await session.commit()
+
+        return AssignmentValidator.from_orm(assignment)
 
 async def create_assignment(assignment: AssignmentValidator) -> AssignmentValidator:
     """
@@ -1456,6 +1472,25 @@ async def create_assignment_question(
 
     return AssignmentQuestionValidator.from_orm(new_assignment_question)
 
+async def update_multiple_assignment_questions(
+    exercises: list[AssignmentQuestionValidator],
+) -> list[AssignmentQuestionValidator]:
+    """
+    Update multiple AssignmentQuestion objects with the given data (exercises).
+
+    :param exercises: List of AssignmentQuestionValidator objects
+    :return: List of updated AssignmentQuestionValidator objects
+    """
+    async with async_session.begin() as session:
+        updated_questions = []
+        for exercise in exercises:
+            # Convert the input validator to a model instance
+            new_assignment_question = AssignmentQuestion(**exercise.dict())
+            # Merge the instance into the session to update or insert
+            merged_question = await session.merge(new_assignment_question)
+            updated_questions.append(AssignmentQuestionValidator.from_orm(merged_question))
+
+    return updated_questions
 
 async def update_assignment_question(
     assignmentQuestion: AssignmentQuestionValidator,

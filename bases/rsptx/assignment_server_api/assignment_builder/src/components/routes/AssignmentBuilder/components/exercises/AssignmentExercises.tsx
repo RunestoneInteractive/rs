@@ -1,24 +1,48 @@
 import { ExercisePreviewModal } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreviewModal";
+import { EditableCellFactory } from "@components/ui/EditableTable/EditableCellFactory";
+import { TableSelectionOverlay } from "@components/ui/EditableTable/TableOverlay";
 import { Loader } from "@components/ui/Loader";
 import { useReorderAssignmentExercisesMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { exercisesActions, exercisesSelectors } from "@store/exercises/exercises.logic";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
+import { useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
+import { useUpdateExercises } from "@/hooks/useUpdateExercises";
+import { Nullable } from "@/types/common";
+import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
 import { AssignmentExercisesHeader } from "./AssignmentExercisesHeader";
 
 export const AssignmentExercises = () => {
+  const dataTableRef = useRef<DataTable<Exercise[]>>(null);
   const dispatch = useDispatch();
   const [reorderExercises] = useReorderAssignmentExercisesMutation();
-  const { loading, error, assignmentExercises, refetch } = useExercisesSelector();
+  const { loading, error, assignmentExercises = [], refetch } = useExercisesSelector();
   const selectedExercises = useSelector(exercisesSelectors.getSelectedExercises);
+  const { handleChange } = useUpdateExercises();
+
+  const [startRowIndex, setStartRowIndex] = useState<Nullable<number>>(null);
+  const [draggingFieldName, setDraggingFieldName] =
+    useState<Nullable<DraggingExerciseColumns>>(null);
+
+  const handleMouseDown = (rowIndex: number, colKey: DraggingExerciseColumns) => {
+    setStartRowIndex(rowIndex);
+    setDraggingFieldName(colKey);
+  };
+
+  const handleMouseUp = () => {
+    setStartRowIndex(null);
+    setDraggingFieldName(null);
+  };
 
   const setSelectedExercises = (exercises: Exercise[]) => {
-    dispatch(exercisesActions.setSelectedExercises(exercises));
+    if (startRowIndex === null) {
+      dispatch(exercisesActions.setSelectedExercises(exercises));
+    }
   };
 
   if (loading) {
@@ -35,42 +59,97 @@ export const AssignmentExercises = () => {
   }
 
   return (
-    <DataTable
-      style={{ minWidth: "100%" }}
-      value={assignmentExercises}
-      sortMode="single"
-      sortField="chapter"
-      sortOrder={1}
-      scrollable
-      scrollHeight="500px"
-      size="small"
-      stripedRows
-      showGridlines
-      header={<AssignmentExercisesHeader />}
-      selection={selectedExercises}
-      selectionMode="multiple"
-      onSelectionChange={(e) => setSelectedExercises(e.value as unknown as Exercise[])}
-      reorderableRows
-      onRowReorder={(e) => reorderExercises(e.value.map((exercise) => exercise.id))}
-    >
-      <Column selectionMode="multiple"></Column>
-      <Column field="qnumber" header="qnumber"></Column>
-      <Column
-        style={{ width: "5rem" }}
-        field="htmlsrc"
-        header="Preview"
-        body={(data: Exercise) => {
-          if (!data?.htmlsrc) {
-            return null;
-          }
+    <>
+      <DataTable
+        style={{ minWidth: "100%", userSelect: "none" }}
+        value={assignmentExercises}
+        ref={dataTableRef}
+        scrollable
+        scrollHeight="400px"
+        size="small"
+        stripedRows
+        showGridlines
+        header={<AssignmentExercisesHeader />}
+        selection={selectedExercises}
+        selectionMode="checkbox"
+        onSelectionChange={(e) => setSelectedExercises(e.value as unknown as Exercise[])}
+        reorderableRows
+        onRowReorder={(e) => reorderExercises(e.value.map((exercise) => exercise.id))}
+      >
+        <Column selectionMode="multiple"></Column>
+        <Column field="qnumber" header="qnumber"></Column>
+        <Column
+          style={{ width: "5rem" }}
+          field="htmlsrc"
+          header="Preview"
+          body={(data: Exercise) => {
+            if (!data?.htmlsrc) {
+              return null;
+            }
 
-          return <ExercisePreviewModal htmlsrc={data.htmlsrc} />;
-        }}
-      ></Column>
-      <Column field="autograde" header="autograde"></Column>
-      <Column field="which_to_grade" header="which_to_grade"></Column>
-      <Column field="points" header="points"></Column>
-      <Column rowReorder style={{ width: "3rem" }} />
-    </DataTable>
+            return <ExercisePreviewModal htmlsrc={data.htmlsrc} />;
+          }}
+        ></Column>
+        <Column field="question_type" header="Question Type"></Column>
+        <Column
+          style={{ width: "12rem" }}
+          field="autograde"
+          header="autograde"
+          bodyStyle={{ padding: 0 }}
+          body={(rowData: Exercise, { rowIndex }) => (
+            <EditableCellFactory
+              fieldName="autograde"
+              rowIndex={rowIndex}
+              handleMouseDown={handleMouseDown}
+              handleChange={handleChange}
+              value={rowData.autograde}
+              questionType={rowData.question_type}
+              isDragging={startRowIndex !== null}
+            />
+          )}
+        ></Column>
+        <Column
+          field="which_to_grade"
+          header="which_to_grade"
+          style={{ width: "12rem" }}
+          bodyStyle={{ padding: 0 }}
+          body={(rowData: Exercise, { rowIndex }) => (
+            <EditableCellFactory
+              fieldName="which_to_grade"
+              rowIndex={rowIndex}
+              handleMouseDown={handleMouseDown}
+              handleChange={handleChange}
+              value={rowData.which_to_grade}
+              questionType={rowData.question_type}
+              isDragging={startRowIndex !== null}
+            />
+          )}
+        ></Column>
+        <Column
+          style={{ width: "10rem" }}
+          field="points"
+          header="points"
+          bodyStyle={{ padding: 0 }}
+          body={(rowData: Exercise, { rowIndex }) => (
+            <EditableCellFactory
+              fieldName="points"
+              rowIndex={rowIndex}
+              handleMouseDown={handleMouseDown}
+              handleChange={handleChange}
+              value={rowData.points}
+              questionType={rowData.question_type}
+              isDragging={startRowIndex !== null}
+            />
+          )}
+        ></Column>
+        <Column rowReorder style={{ width: "3rem" }} />
+      </DataTable>
+      <TableSelectionOverlay
+        startRowIndex={startRowIndex}
+        draggingFieldName={draggingFieldName}
+        tableRef={dataTableRef.current!}
+        handleMouseUp={handleMouseUp}
+      />
+    </>
   );
 };

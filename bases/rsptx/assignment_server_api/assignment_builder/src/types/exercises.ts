@@ -32,10 +32,6 @@ export type GetExercisesResponse = {
   exercises: Exercise[];
 };
 
-export type GetExercisesPayload = {
-  assignment: number;
-};
-
 export type SearchExercisePayload = {
   author: string;
   // TODO: Change endpoint to get boolean instead of string: RUN-15
@@ -65,50 +61,7 @@ export type CreateExercisesPayload = {
   points: number;
 };
 
-export type UpdateAssignmentReadingPayload = {
-  assignment_id: number;
-  points: number;
-  sorting_priority: number;
-  reading_assignment: boolean;
-  autograde: string;
-  which_to_grade: string;
-  activities_required: number;
-  required: boolean;
-  chapter: string;
-  id: number;
-  num: number;
-  numQuestions: number;
-  subchapter: string;
-  title: string;
-  question_id: number;
-};
-
-export type UpdateAssignmentQuestionPayload = UpdateAssignmentReadingPayload & {
-  author: string;
-  base_course: string;
-  description: string;
-  difficulty: number;
-  feedback: any;
-  from_source: boolean;
-  htmlsrc: string;
-  is_private: boolean;
-  mean_clicks_to_correct: any;
-  name: string;
-  optional: boolean;
-  owner: any;
-  pct_on_first: any;
-  practice: boolean;
-  qnumber: string;
-  question_json: any;
-  question_type: string;
-  review_flag: boolean;
-  tags: string;
-  topic: string;
-};
-
-export type UpdateAssignmentExercisePayload =
-  | UpdateAssignmentReadingPayload
-  | UpdateAssignmentQuestionPayload;
+export type UpdateAssignmentExercisePayload = Exercise;
 
 export type UpdateAssignmentExercisesPayload =
   | { isReading: boolean; assignmentId: number; idsToAdd: number[]; idsToRemove?: never }
