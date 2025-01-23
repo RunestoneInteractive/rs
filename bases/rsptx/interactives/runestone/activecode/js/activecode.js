@@ -217,10 +217,10 @@ export class ActiveCode extends RunestoneBase {
         var linkdiv = document.createElement("div");
         linkdiv.id = this.divid.replace(/_/g, "-").toLowerCase(); // :ref: changes _ to - so add this as a target
         var codeDiv = document.createElement("div");
-        $(codeDiv).addClass("ac_code_div");
+        codeDiv.classList.add("ac_code_div");
         this.codeDiv = codeDiv;
         this.outerDiv.lang = this.language;
-        $(this.origElem).replaceWith(this.outerDiv);
+        this.origElem.replaceWith(this.outerDiv);
         if (linkdiv.id !== this.divid) {
             // Don't want the 'extra' target if they match.
             this.outerDiv.appendChild(linkdiv);
@@ -678,8 +678,8 @@ export class ActiveCode extends RunestoneBase {
                     if (!didAgree) {
                         didAgree = confirm(
                             "Pair Programming should only be used with the consent of your instructor." +
-                                "Your partner must be a registered member of the class and have agreed to pair with you." +
-                                "By clicking OK you certify that both of these conditions have been met."
+                            "Your partner must be a registered member of the class and have agreed to pair with you." +
+                            "By clicking OK you certify that both of these conditions have been met."
                         );
                         if (didAgree) {
                             localStorage.setItem("partnerAgree", "true");
@@ -722,13 +722,13 @@ export class ActiveCode extends RunestoneBase {
         $(butt).attr(
             "href",
             "http://" +
-                chatcodesServer +
-                "/new?" +
-                $.param({
-                    topic: window.location.host + "-" + this.divid,
-                    code: this.editor.getValue(),
-                    lang: "Python",
-                })
+            chatcodesServer +
+            "/new?" +
+            $.param({
+                topic: window.location.host + "-" + this.divid,
+                code: this.editor.getValue(),
+                lang: "Python",
+            })
         );
         this.chatButton = butt;
         chatBar.appendChild(butt);
@@ -1187,7 +1187,7 @@ export class ActiveCode extends RunestoneBase {
         this.reformatButton.blur();
     }
 
-    toggleEditorVisibility() {}
+    toggleEditorVisibility() { }
 
     addErrorMessage(err) {
         // Add the error message
@@ -1435,7 +1435,7 @@ Yet another is that there is an internal error.  The internal error message is: 
         if (
             this.historyScrubber &&
             this.history[$(this.historyScrubber).slider("value")] !=
-                this.editor.getValue()
+            this.editor.getValue()
         ) {
             saveCode = "True";
             this.history.push(this.editor.getValue());
@@ -1736,6 +1736,20 @@ var languageExtensions = {
     sql: "sql",
     octave: "m",
 };
+
+export function isInViewport(element) {
+    const rect = element.getBoundingClientRect();
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <=
+        (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <=
+        (window.innerWidth || document.documentElement.clientWidth)
+    );
+}
+
+
 
 // Languages that get a "Reformat" button. Probably works fine for any curly
 // brace language but better not to add them until someone actually checks a

@@ -743,14 +743,6 @@ div.flash {
     color: #333;
 }
 
-.modal-body,
-.modal-content {
-    background-color: var(--background);
-}
-
-.modal-header .close {
-    color: var(--bodyFont);
-}
 
 .unittest-results-progress {
     width: 25%;

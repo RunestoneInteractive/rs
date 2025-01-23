@@ -37,7 +37,8 @@
 
 .ac_actions {
     display: flex;
-    flex-wrap: wrap;  /* wrap for smaller screens */
+    flex-wrap: wrap;
+    /* wrap for smaller screens */
     justify-content: center;
     margin-bottom: 10px;
 }
@@ -71,6 +72,7 @@
     display: none;
     background-color: inherit;
 }
+
 .ac_output pre {
     background-color: var(--ac-out-background);
 }
@@ -117,7 +119,7 @@
 .ac-feedback {
     border: 1px solid var(--componentBorderColor);
     padding: 3px;
-    background-color: var(--mainbackground,#fff);
+    background-color: var(--mainbackground, #fff);
 }
 
 .ac-feedback-pass {
@@ -130,8 +132,9 @@
     text-align: center;
 }
 
-.unittest-results tr:not(:first-of-type) td:first-of-type{
-    color: #111; /* deal with hardcoded light backgrounds in skulpt :( */
+.unittest-results tr:not(:first-of-type) td:first-of-type {
+    color: #111;
+    /* deal with hardcoded light backgrounds in skulpt :( */
 }
 
 .CodeMirror {
@@ -191,7 +194,47 @@
     font-weight: bold;
     font-size: 120%;
 }
+
 .unittest-results__percent {
     text-align: center;
     font-weight: bold;
+}
+
+.scratch-ac-modal {
+    display: none;
+    /* Hidden by default */
+    position: fixed;
+    /* Stay in place */
+    z-index: 200;
+    /* Sit on top */
+    left: 200px;
+    top: 200px;
+    width: 800px;
+    overflow: auto;
+    /* Enable scroll if needed */
+    padding: 20px;
+    border: 1px solid #888;
+    border-radius: 10px;
+    background-color: var(--background);
+}
+
+.scratch-ac-modal {
+    max-height: 90%;
+    overflow-y: scroll;
+}
+
+.ac-modal-body,
+.ac-modal-content {
+    background-color: var(--background);
+}
+
+.ac-modal-header .close {
+    color: var(--bodyFont);
+}
+
+.scratch-ac-modal .close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
 }

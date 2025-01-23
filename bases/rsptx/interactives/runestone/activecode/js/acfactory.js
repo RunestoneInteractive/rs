@@ -1,4 +1,4 @@
-import { ActiveCode } from "./activecode.js";
+import { ActiveCode, isInViewport } from "./activecode.js";
 import JSActiveCode from "./activecode_js.js";
 import HTMLActiveCode from "./activecode_html.js";
 import SQLActiveCode from "./activecode_sql.js";
@@ -136,16 +136,15 @@ export default class ACFactory {
         };
 
         // generate the HTML
-        var html = `<div class="ptx-runestone-container"><div id="ac_modal_${divid}" class="modal fade">
-              <div class="modal-dialog scratch-ac-modal">
-                <div class="modal-content">
-                  <div class="modal-header">
+        var html = `<div class="ptx-runestone-container">
+            <div id="ac_modal_${divid}" class="scratch-ac-modal">
+                <div class="ac-modal-content">
+                  <div class="ac-modal-header">
                     <button type="button" class="close first-focusable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title">Scratch ActiveCode (${
-                        languageNames[lang.toLowerCase()] || lang
-                    })</h4>
+                    <h4 class="ac-modal-title">Scratch ActiveCode (${languageNames[lang.toLowerCase()] || lang
+            })</h4>
                   </div>
-                  <div class="modal-body">
+                  <div class="ac-modal-body">
                   <div data-component="activecode" id=${divid}>
                   <div id=${divid}_question class="ac_question"><p>Use this area for writing code or taking notes.</p></div>
                   <textarea data-codelens="true" data-lang="${lang}" ${stdin} aria-label="Scratch ActiveCode">
@@ -153,29 +152,55 @@ export default class ACFactory {
                   </div>
                   </div>
                 </div>
-              </div>
             </div>
             </div>`;
-        var el = $(html);
-        $("body").append(el);
-        el.on("shown.bs.modal", function () {
-            // default lang isn't in dictionary of known programming languages
-            if (!languageNames[lang.toLowerCase()]) {
-                alert(`${lang} is a known language. Please report this`);
-            }
-        });
-        el.on("shown.bs.modal show.bs.modal", function () {
-            el.find(".CodeMirror").each(function (i, e) {
-                e.CodeMirror.refresh();
-                // e.CodeMirror.focus(); // focus on the editor messes up a11y
+        var el = document.createElement("div");
+        el.innerHTML = html;
+        document.body.appendChild(el);
+        let observable = document.getElementById("ac_modal_" + divid);
+        // when the modal becomes visible we want to refresh the CodeMirror editor to ensure
+        // that it is properly displayed.
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'style' || mutation.attributeName === 'class') {
+                    if (isInViewport(observable)) {
+                        observable.querySelectorAll(".CodeMirror").forEach(function (e) {
+                            e.CodeMirror.refresh();
+                        });
+                    }
+                }
             });
         });
-        var realDiv = el[0];
+
+        // Start observing the element for style changes
+        observer.observe(observable, {
+            attributes: true,
+            attributeFilter: ['style', 'class']
+        });
+
+        //todo intercept the close event and return focus to the pencil icon
+        let closeBtn = document.querySelector(".ac-modal-header button.close");
+        closeBtn.addEventListener("click", function () {
+            let popUp = document.getElementById("ac_modal_" + divid);
+            popUp.style.display = "none";
+            document.querySelector("button.activecode-toggle").focus();
+        });
+    }
+
+    // Note: this function is called from popScratchAC in webpack.index.js
+    // this happens after activecode.js is dynamically loaded.
+    static toggleScratchActivecode() {
+        if (!eBookConfig.enableScratchAC) return;
+        var divid = "ac_modal_" + eBookConfig.scratchDiv;
+        var realDiv = document.getElementById(divid);
+        realDiv.classList.remove("ac_section");
+        realDiv.style.display = (realDiv.style.display === "none" || realDiv.style.display === "") ? "block" : "none";
+
         const firstFocusableElement = realDiv.querySelector(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            '.first-focusable, button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         );
         const focusableElements = realDiv.querySelectorAll(
-            'input, button, select, textarea, [tabindex]:not([tabindex="-1"])'
+            '.first-focusable, input, button, select, textarea, [tabindex]:not([tabindex="-1"])'
         );
         const lastFocusableElement =
             focusableElements[focusableElements.length - 1];
@@ -195,28 +220,19 @@ export default class ACFactory {
                         firstFocusableElement.focus();
                     }
                 }
+            } else {
+                if (event.key === "Escape") {
+                    realDiv.style.display = "none";
+                    document.querySelector("button.activecode-toggle").focus();
+                }
             }
         });
 
-        //todo intercept the close event and return focus to the pencil icon
-    }
 
-    static toggleScratchActivecode() {
-        if (!eBookConfig.enableScratchAC) return;
-        var divid = "ac_modal_" + eBookConfig.scratchDiv;
-        var div = $("#" + divid);
-        var realDiv = document.getElementById(divid);
-        realDiv.classList.remove("ac_section");
-        //div.style.display = (div.style.display === "none" || div.style.display === "") ? "block" : "none";
-        div.modal("toggle");
-        const firstFocusableElement = realDiv.querySelector(
-            '.first-focusable, button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        while (!isInViewport(firstFocusableElement)) {
-            if (firstFocusableElement) {
-                console.log(`focus on ${firstFocusableElement}`);
-                firstFocusableElement.focus();
-            }
+
+        if (firstFocusableElement) {
+            console.log(`focus on ${firstFocusableElement}`);
+            firstFocusableElement.focus();
         }
     }
 }
