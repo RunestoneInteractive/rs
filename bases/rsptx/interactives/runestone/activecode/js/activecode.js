@@ -218,6 +218,7 @@ export class ActiveCode extends RunestoneBase {
         linkdiv.id = this.divid.replace(/_/g, "-").toLowerCase(); // :ref: changes _ to - so add this as a target
         var codeDiv = document.createElement("div");
         codeDiv.classList.add("ac_code_div");
+        codeDiv.setAttribute("aria-label", "CodeMirror Editor");
         this.codeDiv = codeDiv;
         this.outerDiv.lang = this.language;
         this.origElem.replaceWith(this.outerDiv);
