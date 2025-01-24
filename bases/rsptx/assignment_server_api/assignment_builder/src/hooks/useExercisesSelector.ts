@@ -65,7 +65,7 @@ export const useExercisesSelector = () => {
 
   const chapters: Array<Chapter> = availableExercises.map((node) => {
     return {
-      key: node.key as string,
+      value: node.key as string,
       label: node.data.title as string
     };
   });

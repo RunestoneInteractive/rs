@@ -1,7 +1,7 @@
 import { ExercisePreviewModal } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreviewModal";
 import { SearchExercisesHeader } from "@components/routes/AssignmentBuilder/components/exercises/components/SearchExercises/SearchExercisesHeader";
-import { exerciseTypes } from "@components/routes/AssignmentBuilder/components/exercises/components/exerciseTypes";
 import { Loader } from "@components/ui/Loader";
+import { datasetSelectors } from "@store/dataset/dataset.logic";
 import {
   searchExercisesActions,
   searchExercisesSelectors
@@ -18,6 +18,7 @@ import { Exercise } from "@/types/exercises";
 
 export const SearchExercises = () => {
   const { loading, error, exercises, refetch } = useExerciseSearch();
+  const exerciseTypes = useSelector(datasetSelectors.getQuestionTypeOptions);
   const dispatch = useDispatch();
   const selectedExercises = useSelector(searchExercisesSelectors.getSelectedExercises);
 
@@ -38,17 +39,21 @@ export const SearchExercises = () => {
     );
   }
 
+  const displayExerciseType = (value: string) => {
+    return exerciseTypes.find((t) => t.value === value)?.label || value;
+  };
+
   const exerciseTypeFilter = (options: ColumnFilterElementTemplateOptions) => {
+    console.log(options);
     return (
       <Dropdown
         id="exerciseTypeFilter"
         options={exerciseTypes}
         placeholder="Select exercise type"
         optionLabel="label"
-        value={exerciseTypes.find((x) => x.key === options.value)}
+        value={options.value}
         onChange={(e) => {
-          console.log(e.value);
-          options.filterCallback(e.value.key);
+          options.filterCallback(e.value);
         }}
       />
     );
@@ -87,6 +92,7 @@ export const SearchExercises = () => {
         header="Question Type"
         sortable
         filter
+        body={(data: Exercise) => displayExerciseType(data.question_type)}
         showFilterOperator={false}
         showFilterMenuOptions={false}
         showFilterMatchModes={false}

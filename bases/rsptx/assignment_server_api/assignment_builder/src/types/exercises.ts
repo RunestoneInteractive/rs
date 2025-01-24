@@ -1,3 +1,5 @@
+import { Choice } from "@/types/createExerciseForm";
+
 export type Exercise = {
   id: number;
   assignment_id: number;
@@ -16,17 +18,30 @@ export type Exercise = {
   base_course: string;
   htmlsrc: string;
   question_type: string;
-  question_json: {
-    statement: string;
-    attachment: boolean;
-  };
+  question_json: string;
   owner: string;
   tags: string;
   num: number;
   numQuestions: number;
   required: boolean;
   title: string;
+  topic: string;
+  difficulty: number;
+  author: string;
 };
+
+export type QuestionJSON = Partial<{
+  prefix_code: string;
+  starter_code: string;
+  suffix_code: string;
+  instructions: string;
+  language: string;
+  attachment: boolean;
+  statement: string;
+  optionList: Choice[];
+}>;
+
+export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;
 
 export type GetExercisesResponse = {
   exercises: Exercise[];
@@ -44,8 +59,6 @@ export type SearchExercisesResponse = {
   questions: Exercise[];
 };
 
-export type ExerciseType = "activecode" | "mchoice" | "shortanswer";
-
 export type CreateExercisesPayload = {
   author: string;
   autograde: null;
@@ -54,11 +67,19 @@ export type CreateExercisesPayload = {
   htmlsrc: string;
   name: string;
   question_json: string;
-  question_type: ExerciseType;
+  question_type: string;
   source: "This question was written in the web interface";
   tags: string;
   topic: string;
   points: number;
+};
+
+export const supportedExerciseTypesToEdit = ["activecode", "mchoice", "shortanswer"] as const;
+
+export type ExerciseType = (typeof supportedExerciseTypesToEdit)[number];
+
+export const isExerciseType = (value: any): value is ExerciseType => {
+  return supportedExerciseTypesToEdit.includes(value);
 };
 
 export type UpdateAssignmentExercisePayload = Exercise;

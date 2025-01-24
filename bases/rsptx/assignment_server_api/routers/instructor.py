@@ -62,6 +62,8 @@ from rsptx.logging import rslogger
 from rsptx.analytics import log_this_function
 from rsptx.data_types.which_to_grade import WhichToGradeOptions
 from rsptx.data_types.autograde import AutogradeOptions
+from rsptx.data_types.language import LanguageOptions
+from rsptx.data_types.question_type import QuestionType
 
 from .student import get_course_url
 
@@ -1002,4 +1004,16 @@ async def get_which_to_grade_options(request: Request):
 @instructor_role_required()
 async def get_autograde_options(request: Request):
     options = [option.to_dict() for option in AutogradeOptions]
+    return JSONResponse(content=options, status_code=status.HTTP_200_OK)
+
+@router.get("/language_options")
+@instructor_role_required()
+async def get_language_options(request: Request):
+    options = [option.to_dict() for option in LanguageOptions]
+    return JSONResponse(content=options, status_code=status.HTTP_200_OK)
+
+@router.get("/question_type_options")
+@instructor_role_required()
+async def get_language_options(request: Request):
+    options = [option.to_dict() for option in QuestionType]
     return JSONResponse(content=options, status_code=status.HTTP_200_OK)

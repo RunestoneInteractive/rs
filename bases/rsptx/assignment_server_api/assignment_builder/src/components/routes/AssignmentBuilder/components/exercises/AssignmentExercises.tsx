@@ -1,3 +1,4 @@
+import { EditExercise } from "@components/routes/AssignmentBuilder/components/exercises/components/EditExercise/EditExercise";
 import { ExercisePreviewModal } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreviewModal";
 import { EditableCellFactory } from "@components/ui/EditableTable/EditableCellFactory";
 import { TableSelectionOverlay } from "@components/ui/EditableTable/TableOverlay";
@@ -77,9 +78,14 @@ export const AssignmentExercises = () => {
         onRowReorder={(e) => reorderExercises(e.value.map((exercise) => exercise.id))}
       >
         <Column selectionMode="multiple"></Column>
+        <Column
+          style={{ width: "3rem" }}
+          header="Edit"
+          body={(data: Exercise) => <EditExercise exercise={data} />}
+        ></Column>
         <Column field="qnumber" header="qnumber"></Column>
         <Column
-          style={{ width: "5rem" }}
+          style={{ width: "3rem" }}
           field="htmlsrc"
           header="Preview"
           body={(data: Exercise) => {

@@ -7,6 +7,8 @@ import {
 } from "@store/assignment/assignment.logic.api";
 import {
   useGetAutoGradeOptionsQuery,
+  useGetLanguageOptionsQuery,
+  useGetQuestionTypeOptionsQuery,
   useGetWhichToGradeOptionsQuery
 } from "@store/dataset/dataset.logic.api";
 import { useGetAvailableReadingsQuery } from "@store/readings/readings.logic.api";
@@ -29,6 +31,8 @@ export const AssignmentBuilder = () => {
 
   useGetAutoGradeOptionsQuery();
   useGetWhichToGradeOptionsQuery();
+  useGetLanguageOptionsQuery();
+  useGetQuestionTypeOptionsQuery();
   useGetAvailableReadingsQuery({
     skipreading: false,
     from_source_only: true,

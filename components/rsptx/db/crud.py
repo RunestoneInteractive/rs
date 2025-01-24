@@ -102,6 +102,8 @@ from rsptx.db.models import (
     UserTopicPractice,
     UserTopicPracticeValidator,
 )
+from rsptx.data_types.which_to_grade import WhichToGradeOptions
+from rsptx.data_types.autograde import AutogradeOptions
 
 # Map from the ``event`` field of a ``LogItemIncoming`` to the database table used to store data associated with this event.
 EVENT2TABLE = {
@@ -1481,14 +1483,77 @@ async def update_multiple_assignment_questions(
     :param exercises: List of AssignmentQuestionValidator objects
     :return: List of updated AssignmentQuestionValidator objects
     """
+    def is_valid_option(option, question_type, options_enum):
+        """
+        Check if the given option is valid for the specified question type.
+
+        :param option: Option to validate (e.g., which_to_grade or autograde).
+        :param question_type: QuestionType of the exercise.
+        :param options_enum: Enum class (e.g., WhichToGradeOptions or AutogradeOptions).
+        :return: True if valid, False otherwise.
+        """
+        for enum_option in options_enum:
+            if enum_option.value[0] == option:
+                supported_types = [qt.value_only() for qt in enum_option.value[2]]
+                return question_type in supported_types
+        return False
+
     async with async_session.begin() as session:
         updated_questions = []
+
+        # Preload all necessary data to minimize database queries
+        exercise_ids = [exercise.id for exercise in exercises]
+        question_ids = [exercise.question_id for exercise in exercises]
+
+        existing_questions_query = select(AssignmentQuestion).where(AssignmentQuestion.id.in_(exercise_ids))
+        existing_questions_result = await session.execute(existing_questions_query)
+        existing_questions = {q.id: q for q in existing_questions_result.scalars()}
+
+        questions_query = select(Question).where(Question.id.in_(question_ids))
+        questions_result = await session.execute(questions_query)
+        questions = {q.id: q for q in questions_result.scalars()}
+
         for exercise in exercises:
-            # Convert the input validator to a model instance
-            new_assignment_question = AssignmentQuestion(**exercise.dict())
-            # Merge the instance into the session to update or insert
-            merged_question = await session.merge(new_assignment_question)
-            updated_questions.append(AssignmentQuestionValidator.from_orm(merged_question))
+            existing_question = existing_questions.get(exercise.id)
+
+            if not existing_question:
+                continue
+
+            question = questions.get(exercise.question_id)
+
+            if not question:
+                continue
+
+            question_type = question.question_type  # Access question_type from the related question
+
+            exercise_dict = exercise.dict()
+
+            # Validate and update which_to_grade
+            if not is_valid_option(
+                exercise_dict.get("which_to_grade"),
+                question_type,
+                WhichToGradeOptions
+            ):
+                exercise_dict["which_to_grade"] = existing_question.which_to_grade
+
+            # Validate and update autograde
+            if not is_valid_option(
+                exercise_dict.get("autograde"),
+                question_type,
+                AutogradeOptions
+            ):
+                exercise_dict["autograde"] = existing_question.autograde
+
+            # Update the existing question with validated data
+            for field, value in exercise_dict.items():
+                setattr(existing_question, field, value)
+
+            # Add the updated question to the session
+            session.add(existing_question)
+
+            updated_questions.append(AssignmentQuestionValidator.from_orm(existing_question))
+
+        await session.commit()
 
     return updated_questions
 

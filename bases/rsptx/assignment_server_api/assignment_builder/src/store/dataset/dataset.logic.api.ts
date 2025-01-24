@@ -41,8 +41,45 @@ export const datasetApi = createApi({
           });
         });
       }
+    }),
+    getLanguageOptions: build.query<TableDropdownOption[], void>({
+      query: () => ({
+        method: "GET",
+        url: "/assignment/instructor/language_options"
+      }),
+      onQueryStarted: (_, { queryFulfilled, dispatch }) => {
+        queryFulfilled.then((response) => {
+          dispatch(datasetActions.setLanguageOptions(response.data));
+        });
+        queryFulfilled.catch(() => {
+          toast("Error getting language options", {
+            icon: "🔥"
+          });
+        });
+      }
+    }),
+    getQuestionTypeOptions: build.query<TableDropdownOption[], void>({
+      query: () => ({
+        method: "GET",
+        url: "/assignment/instructor/question_type_options"
+      }),
+      onQueryStarted: (_, { queryFulfilled, dispatch }) => {
+        queryFulfilled.then((response) => {
+          dispatch(datasetActions.setQuestionTypeOptions(response.data));
+        });
+        queryFulfilled.catch(() => {
+          toast("Error getting question type options", {
+            icon: "🔥"
+          });
+        });
+      }
     })
   })
 });
 
-export const { useGetWhichToGradeOptionsQuery, useGetAutoGradeOptionsQuery } = datasetApi;
+export const {
+  useGetWhichToGradeOptionsQuery,
+  useGetAutoGradeOptionsQuery,
+  useGetLanguageOptionsQuery,
+  useGetQuestionTypeOptionsQuery
+} = datasetApi;

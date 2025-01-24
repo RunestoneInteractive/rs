@@ -7,11 +7,15 @@ import { TableDropdownOption } from "@/types/dataset";
 export interface DatasetState {
   whichToGradeOptions: TableDropdownOption[];
   autoGradeOptions: TableDropdownOption[];
+  languageOptions: TableDropdownOption[];
+  questionTypeOptions: TableDropdownOption[];
 }
 
 const INITIAL_STATE: DatasetState = {
   whichToGradeOptions: [],
-  autoGradeOptions: []
+  autoGradeOptions: [],
+  languageOptions: [],
+  questionTypeOptions: []
 };
 
 export const datasetSlice = createSlice({
@@ -23,6 +27,12 @@ export const datasetSlice = createSlice({
     },
     setAutoGradeOptions: (state, action: PayloadAction<TableDropdownOption[]>) => {
       state.autoGradeOptions = action.payload;
+    },
+    setLanguageOptions: (state, action: PayloadAction<TableDropdownOption[]>) => {
+      state.languageOptions = action.payload;
+    },
+    setQuestionTypeOptions: (state, action: PayloadAction<TableDropdownOption[]>) => {
+      state.questionTypeOptions = action.payload;
     }
   }
 });
@@ -33,5 +43,7 @@ export type DatasetActions = ActionType<typeof datasetActions>;
 
 export const datasetSelectors = {
   getWhichToGradeOptions: (state: RootState) => state.dataset.whichToGradeOptions,
-  getAutoGradeOptions: (state: RootState) => state.dataset.autoGradeOptions
+  getAutoGradeOptions: (state: RootState) => state.dataset.autoGradeOptions,
+  getLanguageOptions: (state: RootState) => state.dataset.languageOptions,
+  getQuestionTypeOptions: (state: RootState) => state.dataset.questionTypeOptions
 };
