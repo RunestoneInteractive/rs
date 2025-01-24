@@ -897,10 +897,11 @@ export class ActiveCode extends RunestoneBase {
         this.outDiv = outDiv;
         this.output = document.createElement("pre");
         this.output.id = this.divid + "_stdout";
+        this.output.setAttribute("aria-label", "Output");
         this.output.setAttribute("aria-live", "polite");
         this.output.setAttribute("aria-atomic", "true");
         this.output.setAttribute("role", "log");
-        this.output.innerHTML = "standard output";
+        this.output.innerHTML = "";
         $(this.output).css("max-height", "400px");
         $(this.output).css("overflow", "auto");
         this.graphics = document.createElement("div");
@@ -1592,7 +1593,7 @@ Yet another is that there is an internal error.  The internal error message is: 
 
     showOutputs() {
         this.output.style.display = "block";
-        this.output.innerText = "standard output";
+        this.output.innerHTML = "";
         this.eContainer.style.display = "block";
     }
     /* runProg has several async elements to it.
