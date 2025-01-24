@@ -95,6 +95,10 @@ $(document).on("runestone:login-complete", function () {
     if (typeof allTraceData !== "undefined") {
         for (let divid in allTraceData) {
             let cl = document.getElementById(divid);
+            if (cl === null) {
+                console.log(`Could not find element with id ${divid}`);
+                return;
+            }
             let lang = $(cl).data("params").lang;
             try {
                 if (divid in window.allTraceData) {
