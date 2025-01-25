@@ -145,10 +145,6 @@ body {
     background-color: var(--outerBackground);
 }
 
-pre {
-    margin: 0 0 1em;
-}
-
 h5 {
     font-weight: bold;
     padding: 10px 0;
@@ -1220,3 +1216,8 @@ details.ptx-footnote {
     display: inline;
 }
 /* ---------------------------------------------------------- */
+
+.handsontable td, .handsontable th {
+    background-color: var(--content-background, #fff);
+    color: var(--bodyFont, #000);
+}

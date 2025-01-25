@@ -340,7 +340,11 @@ export class ActiveCode extends RunestoneBase {
                 editor.refresh();
             },
         });
-        // give the user a visual cue that they have changed but not saved
+        editor.on("keydown", (cm, event) => {
+            // give the user a visual cue that they have changed but not saved
+            editor.getWrapperElement().style.borderTopColor = "#b43232";
+            editor.getWrapperElement().style.borderBottomColor = "#b43232";
+        });
         editor.on(
             "change",
             function (ev) {
@@ -359,14 +363,6 @@ export class ActiveCode extends RunestoneBase {
                         console.log("Fake change event, skipping the log");
                         return;
                     }
-                    $(editor.getWrapperElement()).css(
-                        "border-top",
-                        "2px solid #b43232"
-                    );
-                    $(editor.getWrapperElement()).css(
-                        "border-bottom",
-                        "2px solid #b43232"
-                    );
                     this.isAnswered = true;
                     // the first time the student types in the write-code box
                     this.logBookEvent({
@@ -428,6 +424,11 @@ export class ActiveCode extends RunestoneBase {
     async runButtonHandler() {
         // Disable the run button until the run is finished.
         this.runButton.disabled = true;
+
+        //reset the css that indicates editor needs saving
+        this.editor.getWrapperElement().style.borderTopColor = null;
+        this.editor.getWrapperElement().style.borderBottomColor = null;
+
         try {
             await this.runProg();
         } catch (e) {
@@ -1234,9 +1235,11 @@ Yet another is that there is an internal error.  The internal error message is: 
         errFix.innerHTML = errorText[errName + "Fix"];
         var moreInfo = "../ErrorHelp/" + errName.toLowerCase() + ".html";
         //console.log("Runtime Error: " + err.toString());
-        timeOut = setTimeout(function () {
-            errFix.innerHTML += "<span>.</span>";
-        }, 100);
+
+        // No idea why this is here... already a . at the end of most messages.
+        // timeOut = setTimeout(function () {
+        //     errFix.innerHTML += "<span>.</span>";
+        // }, 100);
     }
     setTimeLimit(timer) {
         var timelimit = this.timelimit;
@@ -1556,6 +1559,16 @@ Yet another is that there is an internal error.  The internal error message is: 
                 $(tmp).show();
             } else {
                 let urDivid = this.divid + "_unit_results";
+                
+                // clean up skulpt hardcoded colors:
+                const urResults = document.getElementById(urDivid);
+                const rowHeaders = urResults.querySelectorAll("tr > td:first-child");
+                for (const rh of rowHeaders) {
+                    let pass = rh.style.backgroundColor === "rgb(131, 211, 130)";
+                    rh.style.backgroundColor = null;
+                    rh.classList.add(pass ? "ac-feedback-pass" : "ac-feedback-fail");
+                }
+
                 if (
                     $(this.outerDiv).find(`#${urDivid}`).length == 0 &&
                     $(this.outerDiv).find(`#${urDivid}_offscreen_unit_results`)
@@ -1593,8 +1606,11 @@ Yet another is that there is an internal error.  The internal error message is: 
 
     showOutputs() {
         this.output.style.display = "block";
-        this.output.innerHTML = "";
-        this.eContainer.style.display = "block";
+        this.output.innerText = "standard output";
+        if(this.eContainer.innerHTML == "")
+            this.eContainer.style.display = "none";
+        else
+            this.eContainer.style.display = "block";
     }
     /* runProg has several async elements to it.
      * 1. Skulpt runs the python program asynchronously
@@ -1709,6 +1725,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             }
             this.errinfo = err.toString();
             this.addErrorMessage(err);
+            this.showOutputs(); // update in case there are now errors to display
         } finally {
             $(this.runButton).removeAttr("disabled");
             this.firstAfterRun = true;
