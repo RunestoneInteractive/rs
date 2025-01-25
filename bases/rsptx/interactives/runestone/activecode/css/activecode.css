@@ -37,7 +37,8 @@
 
 .ac_actions {
     display: flex;
-    flex-wrap: wrap;  /* wrap for smaller screens */
+    flex-wrap: wrap;
+    /* wrap for smaller screens */
     justify-content: center;
     margin-bottom: 10px;
 }
@@ -61,8 +62,11 @@
 }
 
 .unittest-results {
-    margin-left: 20px;
     margin-bottom: 20px;
+}
+
+.unittest-results table {
+    width: 100%;
 }
 
 .ac_output {
@@ -71,12 +75,15 @@
     display: none;
     background-color: inherit;
 }
+
 .ac_output pre {
     background-color: var(--ac-out-background);
 }
 
-.python_check_results pre {
-    background-color: #f5f5f5;
+.python_check_results pre,
+.ac_section .error pre,
+.ac-modal-body .error pre {
+    background-color: var(--content-background, #fefefe);
 }
 
 .ac_caption {
@@ -117,21 +124,17 @@
 .ac-feedback {
     border: 1px solid var(--componentBorderColor);
     padding: 3px;
-    background-color: var(--mainbackground,#fff);
+    background-color: var(--content-background,#fff);
 }
 
 .ac-feedback-pass {
-    background-color: rgb(131, 211, 130);
+    background-color: var(--ac-passed);
     text-align: center;
 }
 
 .ac-feedback-fail {
-    background-color: rgb(222, 142, 150);
+    background-color: var(--ac-failed);
     text-align: center;
-}
-
-.unittest-results tr:not(:first-of-type) td:first-of-type{
-    color: #111; /* deal with hardcoded light backgrounds in skulpt :( */
 }
 
 .CodeMirror {
@@ -143,27 +146,18 @@
     background-color: var(--ac-out-background);
     padding: 10px;
     border-radius: 6px;
-    margin-bottom: 10px;
-}
-
-.ac_sql_result_success {
-    background-color: transparent;
-    color: green;
-    border: 0px;
-    padding: 0px;
     margin-top: 10px;
     margin-bottom: 10px;
-    min-height: 0px !important;
 }
 
+.ac_sql_result_success,
 .ac_sql_result_failure {
-    background-color: transparent;
-    color: red;
     border: 0px;
     padding: 0px;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    min-height: 0px !important;
+}
+
+.ac_sql_result_failure pre {
+    background: var(--dangerAlerts);
 }
 
 .codelens {
@@ -191,7 +185,47 @@
     font-weight: bold;
     font-size: 120%;
 }
+
 .unittest-results__percent {
     text-align: center;
     font-weight: bold;
+}
+
+.scratch-ac-modal {
+    display: none;
+    /* Hidden by default */
+    position: fixed;
+    /* Stay in place */
+    z-index: 200;
+    /* Sit on top */
+    left: 200px;
+    top: 200px;
+    width: 800px;
+    overflow: auto;
+    /* Enable scroll if needed */
+    padding: 20px;
+    border: 1px solid #888;
+    border-radius: 10px;
+    background-color: var(--background);
+}
+
+.scratch-ac-modal {
+    max-height: 90%;
+    overflow-y: scroll;
+}
+
+.ac-modal-body,
+.ac-modal-content {
+    background-color: var(--background);
+}
+
+.ac-modal-header .close {
+    color: var(--bodyFont);
+}
+
+.scratch-ac-modal .close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
 }

@@ -234,8 +234,8 @@ export default class SQLActiveCode extends ActiveCode {
             } else {
                 let messageBox = document.createElement("pre");
                 messageBox.textContent = r.message;
-                messageBox.setAttribute("class", "ac_sql_result_failure");
                 section.appendChild(messageBox);
+                section.classList.add("ac_sql_result_failure");
             }
         }
 

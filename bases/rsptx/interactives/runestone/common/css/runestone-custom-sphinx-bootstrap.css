@@ -10,7 +10,7 @@
     --navbarFont: #707070;
     --navbarFontHover: #000000;
     --alerts: #d9edf7;
-    --completionButton: #ffaa2b;
+    --completionButton: #f19711;
     --completionButtonHover: #ff9f19;
     --admonition: #fcf8e3;
     --admonitionBorder: #fbeed5;
@@ -143,10 +143,6 @@ body {
     counter-reset: rscomponent;
     padding-top: 60px;
     background-color: var(--outerBackground);
-}
-
-pre {
-    margin: 0 0 1em;
 }
 
 h5 {
@@ -726,6 +722,8 @@ div.flash {
 /* Modal dialog styles (scratch activecode, compare me, etc) */
 .scratch-ac-modal {
     width: 90%;
+    max-height: 90%;
+    overflow-y: scroll;
 }
 
 .compare-modal .progress {
@@ -741,14 +739,6 @@ div.flash {
     color: #333;
 }
 
-.modal-body,
-.modal-content {
-    background-color: var(--background);
-}
-
-.modal-header .close {
-    color: var(--bodyFont);
-}
 
 .unittest-results-progress {
     width: 25%;
@@ -879,7 +869,7 @@ div.flash {
     margin-bottom: 15px;
     padding-left: 70px;
     padding-right: 70px;
-    color: #ffffff;
+    color: var(--completionButtonText);
     font-weight: bold;
 }
 
@@ -895,8 +885,9 @@ div.flash {
 }
 
 .buttonConfirmCompletion {
-    background-color: #50d392;
+    background-color: #377e22;
     border-color: #3dc682;
+    color: #ffffff !important;
 }
 
 .buttonConfirmCompletion:hover {
@@ -1225,3 +1216,8 @@ details.ptx-footnote {
     display: inline;
 }
 /* ---------------------------------------------------------- */
+
+.handsontable td, .handsontable th {
+    background-color: var(--content-background, #fff);
+    color: var(--bodyFont, #000);
+}

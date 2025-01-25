@@ -135,12 +135,15 @@ export class ActiveCode extends RunestoneBase {
         // ===! = visible suffix
         // Tags may or may not have a trailing /n assume that if they do, it is to be removed.
         // newline is standard in rst markup, but sometimes intentionally not emitted by pretext
-        let prefixMarker = this.code.match(/\^\^\^\^\^*/);  // regex to handle 5+ symbols which old code allowed
+        let prefixMarker = this.code.match(/\^\^\^\^\^*/); // regex to handle 5+ symbols which old code allowed
         if (prefixMarker) {
-            let prefixEnd = prefixMarker.index;  //invisible suffix
+            let prefixEnd = prefixMarker.index; //invisible suffix
             let prefixLength = prefixMarker[0].length;
             this.prefix = this.code.substring(0, prefixEnd);
-            let markerLength = this.code[prefixEnd + prefixLength] == "\n" ? prefixLength + 1 : prefixLength;
+            let markerLength =
+                this.code[prefixEnd + prefixLength] == "\n"
+                    ? prefixLength + 1
+                    : prefixLength;
             this.code = this.code.substring(prefixEnd + markerLength);
         }
         // If there are both invisible and visible prefixes, the invisible one must come first
@@ -148,24 +151,33 @@ export class ActiveCode extends RunestoneBase {
         if (visiblePrefixEnd > -1) {
             this.visiblePrefixEnd = visiblePrefixEnd;
             let markerLength = this.code[visiblePrefixEnd + 4] == "\n" ? 5 : 4;
-            this.code = this.code.substring(0, visiblePrefixEnd) + this.code.substring(visiblePrefixEnd + markerLength);
+            this.code =
+                this.code.substring(0, visiblePrefixEnd) +
+                this.code.substring(visiblePrefixEnd + markerLength);
         }
         // There may be both a visible and invisible (tests) suffix
         // Currently assumed the visible one is first in the source so we can peel off the
         // invisible one and leave visible one in place.
-        let suffixMarker = this.code.match(/=====*/);  // regex to handle 5+ symbols which old code allowed
+        let suffixMarker = this.code.match(/=====*/); // regex to handle 5+ symbols which old code allowed
         if (suffixMarker) {
-            let suffStart = suffixMarker.index;  //invisible suffix
+            let suffStart = suffixMarker.index; //invisible suffix
             let suffLength = suffixMarker[0].length;
-            let markerLength = this.code[suffStart + suffLength] == "\n" ? suffLength + 1 : suffLength;
+            let markerLength =
+                this.code[suffStart + suffLength] == "\n"
+                    ? suffLength + 1
+                    : suffLength;
             this.suffix = this.code.substring(suffStart + markerLength);
             this.code = this.code.substring(0, suffStart);
         }
         let visibleSuffixStart = this.code.indexOf("===!");
         if (visibleSuffixStart > -1) {
-            let markerLength = this.code[visibleSuffixStart + 4] == "\n" ? 5 : 4;
-            this.visibleSuffixLength = this.code.length - visibleSuffixStart - markerLength;
-            this.code = this.code.substring(0, visibleSuffixStart) + this.code.substring(visibleSuffixStart + markerLength);
+            let markerLength =
+                this.code[visibleSuffixStart + 4] == "\n" ? 5 : 4;
+            this.visibleSuffixLength =
+                this.code.length - visibleSuffixStart - markerLength;
+            this.code =
+                this.code.substring(0, visibleSuffixStart) +
+                this.code.substring(visibleSuffixStart + markerLength);
         }
 
         this.history = [this.code];
@@ -205,10 +217,11 @@ export class ActiveCode extends RunestoneBase {
         var linkdiv = document.createElement("div");
         linkdiv.id = this.divid.replace(/_/g, "-").toLowerCase(); // :ref: changes _ to - so add this as a target
         var codeDiv = document.createElement("div");
-        $(codeDiv).addClass("ac_code_div");
+        codeDiv.classList.add("ac_code_div");
+        codeDiv.setAttribute("aria-label", "CodeMirror Editor");
         this.codeDiv = codeDiv;
         this.outerDiv.lang = this.language;
-        $(this.origElem).replaceWith(this.outerDiv);
+        this.origElem.replaceWith(this.outerDiv);
         if (linkdiv.id !== this.divid) {
             // Don't want the 'extra' target if they match.
             this.outerDiv.appendChild(linkdiv);
@@ -231,8 +244,10 @@ export class ActiveCode extends RunestoneBase {
 
         // Conditionally add a gutter to the editor to show the locked prefix and suffix
         let gutterList = [];
-        if(this.visiblePrefixEnd || this.visibleSuffixLength) {
-          gutterList = [{className: "CodeMirror-lock-markers", style: "width: 6px"}];
+        if (this.visiblePrefixEnd || this.visibleSuffixLength) {
+            gutterList = [
+                { className: "CodeMirror-lock-markers", style: "width: 6px" },
+            ];
         }
         var editor = CodeMirror(codeDiv, {
             value: this.code,
@@ -259,39 +274,60 @@ export class ActiveCode extends RunestoneBase {
 
         let setLockedRegions = () => {
             if (this.visiblePrefixEnd) {
-                let lastLine = editor.posFromIndex(this.visiblePrefixEnd - 1).line;
-                for(let i = 0; i <= lastLine; i++) {
-                    editor.setGutterMarker(i, "CodeMirror-lock-markers", makeLockMarker());
+                let lastLine = editor.posFromIndex(
+                    this.visiblePrefixEnd - 1
+                ).line;
+                for (let i = 0; i <= lastLine; i++) {
+                    editor.setGutterMarker(
+                        i,
+                        "CodeMirror-lock-markers",
+                        makeLockMarker()
+                    );
                 }
                 let endPos = editor.posFromIndex(this.visiblePrefixEnd);
-                console.log("endPos", endPos)
+                console.log("endPos", endPos);
                 editor.markText(
                     { line: 0, ch: 0 },
                     { line: endPos.line, ch: endPos.ch },
-                    { readOnly: true, atomic: false, inclusiveLeft: true, inclusiveRight: false }
+                    {
+                        readOnly: true,
+                        atomic: false,
+                        inclusiveLeft: true,
+                        inclusiveRight: false,
+                    }
                 );
             }
             if (this.visibleSuffixLength) {
-                let endIndex = editor.doc.getValue().length - this.visibleSuffixLength;
+                let endIndex =
+                    editor.doc.getValue().length - this.visibleSuffixLength;
                 let endPos = editor.posFromIndex(endIndex);
                 let lastLine = editor.doc.lastLine();
-                for(let i = endPos.line; i <= lastLine; i++) {
-                    editor.setGutterMarker(i, "CodeMirror-lock-markers", makeLockMarker());
+                for (let i = endPos.line; i <= lastLine; i++) {
+                    editor.setGutterMarker(
+                        i,
+                        "CodeMirror-lock-markers",
+                        makeLockMarker()
+                    );
                 }
                 // include preceeding newline
                 let endPos2 = editor.posFromIndex(endIndex - 1);
                 editor.markText(
                     { line: endPos2.line, ch: endPos2.ch },
                     { line: editor.doc.lastLine() + 1 },
-                    { readOnly: true, atomic: false, inclusiveLeft: false, inclusiveRight: true }
+                    {
+                        readOnly: true,
+                        atomic: false,
+                        inclusiveLeft: false,
+                        inclusiveRight: true,
+                    }
                 );
             }
-        }
+        };
         setLockedRegions();
 
-        CodeMirror.on(editor, "change", (cm, obj,) => {
+        CodeMirror.on(editor, "change", (cm, obj) => {
             // setValue indicates scrubber switched history, need to reset locked regions
-            if(obj.origin === "setValue") {
+            if (obj.origin === "setValue") {
                 editor.doc.clearGutter("CodeMirror-lock-markers");
                 setLockedRegions();
             }
@@ -304,7 +340,11 @@ export class ActiveCode extends RunestoneBase {
                 editor.refresh();
             },
         });
-        // give the user a visual cue that they have changed but not saved
+        editor.on("keydown", (cm, event) => {
+            // give the user a visual cue that they have changed but not saved
+            editor.getWrapperElement().style.borderTopColor = "#b43232";
+            editor.getWrapperElement().style.borderBottomColor = "#b43232";
+        });
         editor.on(
             "change",
             function (ev) {
@@ -323,14 +363,6 @@ export class ActiveCode extends RunestoneBase {
                         console.log("Fake change event, skipping the log");
                         return;
                     }
-                    $(editor.getWrapperElement()).css(
-                        "border-top",
-                        "2px solid #b43232"
-                    );
-                    $(editor.getWrapperElement()).css(
-                        "border-bottom",
-                        "2px solid #b43232"
-                    );
                     this.isAnswered = true;
                     // the first time the student types in the write-code box
                     this.logBookEvent({
@@ -341,7 +373,7 @@ export class ActiveCode extends RunestoneBase {
                 }
                 if (this.firstAfterRun) {
                     this.firstAfterRun = false;
-                    this.startEditTimeStamp = new Date()
+                    this.startEditTimeStamp = new Date();
                 }
                 editor.acEditEvent = true;
             }.bind(this)
@@ -353,15 +385,15 @@ export class ActiveCode extends RunestoneBase {
                 e.preventDefault();
             });
 
-            document.addEventListener('copy', function (e) {
+            document.addEventListener("copy", function (e) {
                 e.preventDefault();
             });
 
-            document.addEventListener('cut', function (e) {
+            document.addEventListener("cut", function (e) {
                 e.preventDefault();
             });
 
-            document.addEventListener('paste', function (e) {
+            document.addEventListener("paste", function (e) {
                 e.preventDefault();
             });
         }
@@ -392,6 +424,11 @@ export class ActiveCode extends RunestoneBase {
     async runButtonHandler() {
         // Disable the run button until the run is finished.
         this.runButton.disabled = true;
+
+        //reset the css that indicates editor needs saving
+        this.editor.getWrapperElement().style.borderTopColor = null;
+        this.editor.getWrapperElement().style.borderBottomColor = null;
+
         try {
             await this.runProg();
         } catch (e) {
@@ -599,10 +636,15 @@ export class ActiveCode extends RunestoneBase {
                 );
                 let post_promise = await fetch(request);
                 if (!post_promise.ok) {
-                    if (post_promise.status === 303 || post_promise.status === 404) {
+                    if (
+                        post_promise.status === 303 ||
+                        post_promise.status === 404
+                    ) {
                         alert("You must be logged in to share code");
                     } else {
-                        alert("Sharing Failed return status: ${post_promise.status}");
+                        alert(
+                            "Sharing Failed return status: ${post_promise.status}"
+                        );
                     }
                     return;
                 }
@@ -856,7 +898,11 @@ export class ActiveCode extends RunestoneBase {
         this.outDiv = outDiv;
         this.output = document.createElement("pre");
         this.output.id = this.divid + "_stdout";
-        $(this.output).css("visibility", "hidden");
+        this.output.setAttribute("aria-label", "Output");
+        this.output.setAttribute("aria-live", "polite");
+        this.output.setAttribute("aria-atomic", "true");
+        this.output.setAttribute("role", "log");
+        this.output.innerHTML = "";
         $(this.output).css("max-height", "400px");
         $(this.output).css("overflow", "auto");
         this.graphics = document.createElement("div");
@@ -890,6 +936,15 @@ export class ActiveCode extends RunestoneBase {
         $(lensDiv).css("display", "none");
         this.codelens = lensDiv;
         this.outerDiv.appendChild(lensDiv);
+        // Put the outer container for error messages in the dom
+        this.eContainer = document.createElement("div");
+        this.eContainer.setAttribute("aria-live", "polite");
+        this.eContainer.setAttribute("aria-atomic", "true");
+        this.eContainer.setAttribute("role", "log");
+        this.eContainer.className = "error alert alert-danger";
+        this.eContainer.id = this.divid + "_errinfo";
+        this.eContainer.style.display = "none";
+        this.outerDiv.appendChild(this.eContainer);
     }
 
     disableSaveLoad() {
@@ -905,7 +960,7 @@ export class ActiveCode extends RunestoneBase {
         if (this.historyScrubber) {
             lastCode = this.history[this.historyScrubber.value - 1];
         } else {
-            return 0
+            return 0;
         }
 
         // Compute the edit distance between the current code and the last code
@@ -930,7 +985,7 @@ export class ActiveCode extends RunestoneBase {
         if (this.historyScrubber) {
             lastCode = this.history[this.historyScrubber.value];
         } else {
-            return 0
+            return 0;
         }
 
         // Initialize a 2D array to store the edit distances
@@ -1140,12 +1195,8 @@ export class ActiveCode extends RunestoneBase {
     addErrorMessage(err) {
         // Add the error message
         this.errLastRun = true;
+        console.log(err);
         var errHead = $("<h3>").html("Error");
-        this.eContainer = this.outerDiv.appendChild(
-            document.createElement("div")
-        );
-        this.eContainer.className = "error alert alert-danger";
-        this.eContainer.id = this.divid + "_errinfo";
         this.eContainer.appendChild(errHead[0]);
         var errText = this.eContainer.appendChild(
             document.createElement("pre")
@@ -1184,6 +1235,11 @@ Yet another is that there is an internal error.  The internal error message is: 
         errFix.innerHTML = errorText[errName + "Fix"];
         var moreInfo = "../ErrorHelp/" + errName.toLowerCase() + ".html";
         //console.log("Runtime Error: " + err.toString());
+
+        // No idea why this is here... already a . at the end of most messages.
+        // timeOut = setTimeout(function () {
+        //     errFix.innerHTML += "<span>.</span>";
+        // }, 100);
     }
     setTimeLimit(timer) {
         var timelimit = this.timelimit;
@@ -1271,7 +1327,6 @@ Yet another is that there is an internal error.  The internal error message is: 
     outputfun(text) {
         // bnm python 3
         if (this.outputLineCount > 1000) return;
-        $(this.output).css("visibility", "visible");
         text = text
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
@@ -1504,6 +1559,16 @@ Yet another is that there is an internal error.  The internal error message is: 
                 $(tmp).show();
             } else {
                 let urDivid = this.divid + "_unit_results";
+
+                // clean up skulpt hardcoded colors:
+                const urResults = document.getElementById(urDivid);
+                const rowHeaders = urResults.querySelectorAll("tr > td:first-child");
+                for (const rh of rowHeaders) {
+                    let pass = rh.style.backgroundColor === "rgb(131, 211, 130)";
+                    rh.style.backgroundColor = null;
+                    rh.classList.add(pass ? "ac-feedback-pass" : "ac-feedback-fail");
+                }
+
                 if (
                     $(this.outerDiv).find(`#${urDivid}`).length == 0 &&
                     $(this.outerDiv).find(`#${urDivid}_offscreen_unit_results`)
@@ -1539,6 +1604,14 @@ Yet another is that there is an internal error.  The internal error message is: 
         }
     }
 
+    showOutputs() {
+        this.output.style.display = "block";
+        this.output.innerText = "";
+        if (this.eContainer.innerHTML == "")
+            this.eContainer.style.display = "none";
+        else
+            this.eContainer.style.display = "block";
+    }
     /* runProg has several async elements to it.
      * 1. Skulpt runs the python program asynchronously
      * 2. The history is restored asynchronously
@@ -1551,6 +1624,7 @@ Yet another is that there is an internal error.  The internal error message is: 
      */
     async runProg(noUI, logResults) {
         console.log("starting runProg");
+        window.requestAnimationFrame(this.showOutputs.bind(this));
         stopExecution = false;
         this.outputLineCount = 0;
         if (typeof logResults === "undefined") {
@@ -1572,10 +1646,8 @@ Yet another is that there is an internal error.  The internal error message is: 
                 urdiv.innerHTML = "";
             }
         }
-        while ($(`#${this.divid}_errinfo`).length > 0) {
-            $(`#${this.divid}_errinfo`).remove();
-        }
-        //$(this.eContainer).remove();
+        this.eContainer.innerHTML = "";
+
         if (this.codelens) {
             this.codelens.style.display = "none";
         }
@@ -1653,6 +1725,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             }
             this.errinfo = err.toString();
             this.addErrorMessage(err);
+            this.showOutputs(); // update in case there are now errors to display
         } finally {
             $(this.runButton).removeAttr("disabled");
             this.firstAfterRun = true;
@@ -1682,6 +1755,20 @@ var languageExtensions = {
     sql: "sql",
     octave: "m",
 };
+
+export function isInViewport(element) {
+    const rect = element.getBoundingClientRect();
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <=
+        (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <=
+        (window.innerWidth || document.documentElement.clientWidth)
+    );
+}
+
+
 
 // Languages that get a "Reformat" button. Probably works fine for any curly
 // brace language but better not to add them until someone actually checks a

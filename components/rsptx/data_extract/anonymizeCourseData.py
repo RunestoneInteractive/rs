@@ -304,7 +304,7 @@ class Anonymizer:
     def anonymize_ratepeer(self, row):
         if row.event == "ratepeer":
             act_parts = row.act.split(":")
-            act_parts[0] = str(self.user_map[act_parts[0]])
+            act_parts[0] = str(self.user_map.get(act_parts[0], "Anonymous"))
             return ":".join(act_parts)
         else:
             return row.act
@@ -391,8 +391,8 @@ class Anonymizer:
             ]
         else:
             code_withnames["anon_code"] = ""
-            code_withnames["course_name_y"] = ""            
-            
+            code_withnames["course_name_y"] = ""
+
         useinfo["sid"] = useinfo.sid.map(lambda x: self.user_map.get(x, "REMOVEME"))
         useinfo["course_id"] = useinfo.course_id.map(lambda x: self.course_map.get(x))
         useinfo["base_course"] = useinfo.course_id.map(

@@ -28,10 +28,10 @@ import "./runestone/common/js/jquery_i18n/jquery.i18n.messagestore.js";
 import "./runestone/common/js/jquery_i18n/jquery.i18n.parser.js";
 import "./runestone/common/js/jquery_i18n/jquery.i18n.language.js";
 
-// Bootstrap -- comment out for React instructor UI
+// Bootstrap - not needed for pxx development
 import "bootstrap/dist/js/bootstrap.js";
-// comment out for overhaul
-//import "bootstrap/dist/css/bootstrap.css";
+
+// common styles come from here
 import "./ptxrs-bootstrap.less";
 import "./runestone/common/project_template/_templates/plugin_layouts/sphinx_bootstrap/static/bootstrap-sphinx.js";
 
@@ -227,7 +227,9 @@ async function popupScratchAC() {
             window.componentMap[divid].enableSaveLoad();
         }
     }
-    window.ACFactory.toggleScratchActivecode();
+    setTimeout(() => {
+        window.ACFactory.toggleScratchActivecode();
+    }, 100);
 }
 
 // Set the directory containing this script as the `path <https://webpack.js.org/guides/public-path/#on-the-fly>`_ for all webpacked scripts.
