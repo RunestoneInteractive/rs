@@ -1559,7 +1559,7 @@ Yet another is that there is an internal error.  The internal error message is: 
                 $(tmp).show();
             } else {
                 let urDivid = this.divid + "_unit_results";
-                
+
                 // clean up skulpt hardcoded colors:
                 const urResults = document.getElementById(urDivid);
                 const rowHeaders = urResults.querySelectorAll("tr > td:first-child");
@@ -1606,8 +1606,8 @@ Yet another is that there is an internal error.  The internal error message is: 
 
     showOutputs() {
         this.output.style.display = "block";
-        this.output.innerText = "standard output";
-        if(this.eContainer.innerHTML == "")
+        this.output.innerText = "";
+        if (this.eContainer.innerHTML == "")
             this.eContainer.style.display = "none";
         else
             this.eContainer.style.display = "block";
