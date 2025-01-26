@@ -2,43 +2,33 @@ import { EditExercise } from "@components/routes/AssignmentBuilder/components/ex
 import { ExercisePreviewModal } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreviewModal";
 import { EditableCellFactory } from "@components/ui/EditableTable/EditableCellFactory";
 import { TableSelectionOverlay } from "@components/ui/EditableTable/TableOverlay";
+import { withDragLogic, WithDragLogicProps } from "@components/ui/EditableTable/hoc/withDragLogic";
 import { Loader } from "@components/ui/Loader";
 import { useReorderAssignmentExercisesMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { exercisesActions, exercisesSelectors } from "@store/exercises/exercises.logic";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { useUpdateExercises } from "@/hooks/useUpdateExercises";
-import { Nullable } from "@/types/common";
-import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
 import { AssignmentExercisesHeader } from "./AssignmentExercisesHeader";
 
-export const AssignmentExercises = () => {
+const AssignmentExercisesComponent = ({
+  startRowIndex,
+  draggingFieldName,
+  handleMouseDown,
+  handleMouseUp
+}: WithDragLogicProps) => {
   const dataTableRef = useRef<DataTable<Exercise[]>>(null);
   const dispatch = useDispatch();
   const [reorderExercises] = useReorderAssignmentExercisesMutation();
   const { loading, error, assignmentExercises = [], refetch } = useExercisesSelector();
   const selectedExercises = useSelector(exercisesSelectors.getSelectedExercises);
   const { handleChange } = useUpdateExercises();
-
-  const [startRowIndex, setStartRowIndex] = useState<Nullable<number>>(null);
-  const [draggingFieldName, setDraggingFieldName] =
-    useState<Nullable<DraggingExerciseColumns>>(null);
-
-  const handleMouseDown = (rowIndex: number, colKey: DraggingExerciseColumns) => {
-    setStartRowIndex(rowIndex);
-    setDraggingFieldName(colKey);
-  };
-
-  const handleMouseUp = () => {
-    setStartRowIndex(null);
-    setDraggingFieldName(null);
-  };
 
   const setSelectedExercises = (exercises: Exercise[]) => {
     if (startRowIndex === null) {
@@ -159,3 +149,5 @@ export const AssignmentExercises = () => {
     </>
   );
 };
+
+export const AssignmentExercises = withDragLogic(AssignmentExercisesComponent);
