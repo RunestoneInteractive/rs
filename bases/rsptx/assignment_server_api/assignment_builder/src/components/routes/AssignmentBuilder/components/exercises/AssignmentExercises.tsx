@@ -12,7 +12,6 @@ import { useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
-import { useUpdateExercises } from "@/hooks/useUpdateExercises";
 import { Exercise } from "@/types/exercises";
 
 import { AssignmentExercisesHeader } from "./AssignmentExercisesHeader";
@@ -21,14 +20,14 @@ const AssignmentExercisesComponent = ({
   startRowIndex,
   draggingFieldName,
   handleMouseDown,
-  handleMouseUp
+  handleMouseUp,
+  handleChange
 }: WithDragLogicProps) => {
   const dataTableRef = useRef<DataTable<Exercise[]>>(null);
   const dispatch = useDispatch();
   const [reorderExercises] = useReorderAssignmentExercisesMutation();
   const { loading, error, assignmentExercises = [], refetch } = useExercisesSelector();
   const selectedExercises = useSelector(exercisesSelectors.getSelectedExercises);
-  const { handleChange } = useUpdateExercises();
 
   const setSelectedExercises = (exercises: Exercise[]) => {
     if (startRowIndex === null) {
