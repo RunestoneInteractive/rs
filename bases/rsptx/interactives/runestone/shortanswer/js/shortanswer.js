@@ -32,6 +32,7 @@ export default class ShortAnswer extends RunestoneBase {
             if ($(this.origElem).is("[data-mathjax]")) {
                 this.mathjax = true;
             }
+            this.mathjax = true;
             if ($(this.origElem).is("[data-attachment]")) {
                 this.attachment = true;
             }
