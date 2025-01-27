@@ -17,7 +17,7 @@ export const KindOfAssignmentOptions = ({ control, setValue, getValues }: Assign
     Regular: () => {
       return (
         <div className="field col-12">
-          <label>No additional options</label>
+          <span className="label mb-0">No additional options</span>
         </div>
       );
     },

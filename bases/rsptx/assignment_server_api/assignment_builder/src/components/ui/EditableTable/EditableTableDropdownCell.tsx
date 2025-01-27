@@ -1,4 +1,5 @@
 import { Dropdown, DropdownChangeEvent } from "primereact/dropdown";
+import { useState } from "react";
 
 import { useTableDropdownOptions } from "@/hooks/useTableDropdownOptions";
 import {
@@ -14,17 +15,20 @@ export const EditableTableDropdownCell = ({
   questionType,
   rowIndex
 }: EditableCellProps<DraggingExerciseDropdownColumns>) => {
+  const [dropdownValue, setDropdownValue] = useState(value);
   const { [fieldName]: options } = useTableDropdownOptions(questionType);
 
   const onChange = (event: DropdownChangeEvent) => {
+    setDropdownValue(event.value);
     handleChange(rowIndex, fieldName, event.value);
   };
 
   return (
     <Dropdown
       className="editable-table-dropdown"
-      id={fieldName}
-      value={value}
+      id={`${fieldName}-${rowIndex}`}
+      name={`${fieldName}-${rowIndex}`}
+      value={dropdownValue}
       onChange={onChange}
       options={options}
       optionLabel="label"

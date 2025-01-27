@@ -33,7 +33,8 @@ export const EditableTableInputNumberCell = ({
   return (
     <InputNumber
       className="editable-table-input"
-      id={fieldName}
+      id={`${fieldName}-${rowIndex}`}
+      name={`${fieldName}-${rowIndex}`}
       min={0}
       value={cellValue as number}
       onChange={(e) => setCellValue(e.value ?? 0)}
