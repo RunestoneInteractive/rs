@@ -1,5 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { assignmentApi } from "@store/assignment/assignment.logic.api";
+import { assignmentExerciseActions } from "@store/assignmentExercise/assignmentExercise.logic";
 import { baseQuery } from "@store/baseQuery";
 import { chooseExercisesActions } from "@store/chooseExercises/chooseExercises.logic";
 import toast from "react-hot-toast";
@@ -36,6 +37,7 @@ export const assignmentExerciseApi = createApi({
           .then(({ data }) => {
             const state = getState() as RootState;
 
+            dispatch(assignmentExerciseActions.setAssignmentExercises(data));
             dispatch(
               chooseExercisesActions.setSelectedKeys(
                 getSelectedKeys(state.exercises.availableExercises, data)
