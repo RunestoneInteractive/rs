@@ -11,6 +11,10 @@ import { Chip } from "primereact/chip";
 import { Column, ColumnFilterElementTemplateOptions } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import { Dropdown } from "primereact/dropdown";
+import { IconField } from "primereact/iconfield";
+import { InputIcon } from "primereact/inputicon";
+import { InputText } from "primereact/inputtext";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { useExerciseSearch } from "@/hooks/useExerciseSearch";
@@ -21,6 +25,25 @@ export const SearchExercises = () => {
   const exerciseTypes = useSelector(datasetSelectors.getQuestionTypeOptions);
   const dispatch = useDispatch();
   const selectedExercises = useSelector(searchExercisesSelectors.getSelectedExercises);
+
+  const [filters, setFilters] = useState({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    question_type: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    author: { value: null, matchMode: FilterMatchMode.CONTAINS }
+  });
+  const [globalFilterValue, setGlobalFilterValue] = useState("");
+
+  const onGlobalFilterChange = (e: any) => {
+    const value = e.target.value;
+    // eslint-disable-next-line no-underscore-dangle
+    let _filters = { ...filters };
+
+    _filters.global.value = value;
+
+    setFilters(_filters);
+    setGlobalFilterValue(value);
+  };
 
   const setSelectedExercises = (ex: Exercise[]) => {
     dispatch(searchExercisesActions.setSelectedExercises(ex));
@@ -59,6 +82,24 @@ export const SearchExercises = () => {
     );
   };
 
+  const renderHeader = () => {
+    return (
+      <div className="flex justify-content-between align-items-center">
+        <div>{!!selectedExercises.length && <SearchExercisesHeader />}</div>
+        <IconField iconPosition="left">
+          <InputIcon className="pi pi-search" />
+          <InputText
+            value={globalFilterValue}
+            onChange={onGlobalFilterChange}
+            placeholder="Search by question text"
+          />
+        </IconField>
+      </div>
+    );
+  };
+
+  const header = renderHeader();
+
   return (
     <DataTable
       value={exercises}
@@ -74,7 +115,15 @@ export const SearchExercises = () => {
       sortOrder={1}
       removableSort
       className="table_sticky-header"
-      header={!!selectedExercises.length && <SearchExercisesHeader />}
+      header={header}
+      filters={filters}
+      globalFilterFields={[
+        "question_json.statement",
+        "question_json.instructions",
+        "question_json.prefix_code",
+        "question_json.starter_code",
+        "question_json.suffix_code"
+      ]}
     >
       <Column selectionMode="multiple"></Column>
       <Column
@@ -117,6 +166,7 @@ export const SearchExercises = () => {
         header="Author"
         sortable
         filter
+        filterMatchMode={FilterMatchMode.CONTAINS}
         showFilterOperator={false}
         showFilterMenuOptions={false}
         showFilterMatchModes={false}
