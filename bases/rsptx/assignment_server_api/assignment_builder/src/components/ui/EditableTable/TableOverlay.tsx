@@ -1,3 +1,4 @@
+import { useToastContext } from "@components/ui/ToastContext";
 import { useUpdateAssignmentQuestionsMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { DataTable } from "primereact/datatable";
 import { FC, useCallback, useEffect, useState } from "react";
@@ -20,12 +21,13 @@ export const TableSelectionOverlay: FC<TableSelectionOverlayProps> = ({
   handleMouseUp,
   tableRef
 }) => {
+  const { showToast } = useToastContext();
   const [updateExercises] = useUpdateAssignmentQuestionsMutation();
   const { assignmentExercises = [] } = useExercisesSelector();
   const [endRowIndex, setEndRowIndex] = useState<Nullable<number>>(null);
 
   const handleMouseUpEvent = useCallback(
-    (event: any) => {
+    async (event: any) => {
       event.stopPropagation();
       event.preventDefault();
       if (draggingFieldName !== null && startRowIndex !== null && endRowIndex !== null) {
@@ -48,7 +50,21 @@ export const TableSelectionOverlay: FC<TableSelectionOverlayProps> = ({
         }
 
         if (!!exToUpdate.length) {
-          updateExercises(exToUpdate);
+          const { error } = await updateExercises(exToUpdate);
+
+          if (!error) {
+            showToast({
+              severity: "success",
+              summary: "Success",
+              detail: "Exercises updated successfully"
+            });
+          } else {
+            showToast({
+              severity: "error",
+              summary: "Error",
+              detail: "Failed to update exercises"
+            });
+          }
         }
       }
       handleMouseUp();
@@ -59,6 +75,7 @@ export const TableSelectionOverlay: FC<TableSelectionOverlayProps> = ({
       draggingFieldName,
       endRowIndex,
       handleMouseUp,
+      showToast,
       startRowIndex,
       updateExercises
     ]

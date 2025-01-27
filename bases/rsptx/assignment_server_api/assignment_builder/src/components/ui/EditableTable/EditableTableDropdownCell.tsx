@@ -26,7 +26,7 @@ export const EditableTableDropdownCell = ({
   return (
     <Dropdown
       className="editable-table-dropdown"
-      id={`${fieldName}-${rowIndex}`}
+      id={fieldName}
       name={`${fieldName}-${rowIndex}`}
       value={dropdownValue}
       onChange={onChange}
