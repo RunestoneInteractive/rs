@@ -102,6 +102,7 @@ export const SearchExercises = () => {
 
   return (
     <DataTable
+      style={{ height: "75vh" }}
       value={exercises}
       sortMode="single"
       scrollable
