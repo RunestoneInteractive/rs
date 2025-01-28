@@ -1,3 +1,5 @@
+import { EditDropdownValueHeader } from "@components/routes/AssignmentBuilder/components/exercises/components/EditAllExercises/EditDropdownValueHeader";
+import { EditInputValueHeader } from "@components/routes/AssignmentBuilder/components/exercises/components/EditAllExercises/EditInputValueHeader";
 import { ExercisePreviewModal } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreviewModal";
 import { EditableCellFactory } from "@components/ui/EditableTable/EditableCellFactory";
 import { TableSelectionOverlay } from "@components/ui/EditableTable/TableOverlay";
@@ -89,7 +91,9 @@ const AssignmentExercisesComponent = ({
         <Column
           style={{ width: "12rem" }}
           field="autograde"
-          header="autograde"
+          header={() => (
+            <EditDropdownValueHeader field="autograde" label="Autograde" defaultValue="" />
+          )}
           bodyStyle={{ padding: 0 }}
           body={(rowData: Exercise, { rowIndex }) => (
             <EditableCellFactory
@@ -105,7 +109,13 @@ const AssignmentExercisesComponent = ({
         ></Column>
         <Column
           field="which_to_grade"
-          header="which_to_grade"
+          header={() => (
+            <EditDropdownValueHeader
+              field="which_to_grade"
+              label="Which To Grade"
+              defaultValue=""
+            />
+          )}
           style={{ width: "12rem" }}
           bodyStyle={{ padding: 0 }}
           body={(rowData: Exercise, { rowIndex }) => (
@@ -123,7 +133,7 @@ const AssignmentExercisesComponent = ({
         <Column
           style={{ width: "10rem" }}
           field="points"
-          header="points"
+          header={() => <EditInputValueHeader field="points" label="Points" defaultValue={0} />}
           bodyStyle={{ padding: 0 }}
           body={(rowData: Exercise, { rowIndex }) => (
             <EditableCellFactory

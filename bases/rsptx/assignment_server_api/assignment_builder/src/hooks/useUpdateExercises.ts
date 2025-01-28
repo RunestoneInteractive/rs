@@ -14,6 +14,10 @@ export const useUpdateExercises = () => {
 
   const handleChange = useCallback(
     async (rowIndex: number, fieldName: DraggingExerciseColumns, value: string | number) => {
+      if (value === assignmentExercises[rowIndex][fieldName]) {
+        return;
+      }
+
       const updatedExercise: Exercise = {
         ...assignmentExercises[rowIndex],
         [fieldName]: value
