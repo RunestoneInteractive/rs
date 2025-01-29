@@ -16,7 +16,7 @@ export const CreateShortAnswerExercise = ({
       <div className="field col-12 md:col-9 pt-4">
         <span className="p-float-label">
           <Controller
-            name="questionPrompt"
+            name="statement"
             control={control}
             rules={{
               required: "Question prompt is required",
@@ -25,36 +25,34 @@ export const CreateShortAnswerExercise = ({
             }}
             render={({ field }) => (
               <InputTextarea
-                id="questionPrompt"
+                id="statement"
                 {...field}
                 rows={3}
                 autoResize
                 maxLength={10000}
                 placeholder=" "
-                className={errors.questionPrompt ? "p-invalid" : ""}
+                className={errors.statement ? "p-invalid" : ""}
               />
             )}
           />
-          <label htmlFor="questionPrompt">Question Prompt</label>
+          <label htmlFor="statement">Question Prompt</label>
         </span>
-        {errors.questionPrompt && (
-          <small className="p-error">{errors.questionPrompt.message}</small>
-        )}
+        {errors.statement && <small className="p-error">{errors.statement.message}</small>}
       </div>
 
       {/* Allow Attachments */}
       <div className="field col-12 md:col-3 pt-4">
         <Controller
-          name="allowAttachments"
+          name="attachment"
           control={control}
           render={({ field }) => (
             <div className="flex align-items-center flex-shrink-1 gap-1">
               <InputSwitch
-                id="allowAttachments"
-                checked={field.value}
-                onChange={(e) => setValue("allowAttachments", e.value)}
+                id="attachment"
+                checked={field.value ?? false}
+                onChange={(e) => setValue("attachment", e.value)}
               />
-              <label htmlFor="allowAttachments" className="p-ml-2">
+              <label htmlFor="attachment" className="p-ml-2">
                 Allow Attachments
               </label>
             </div>

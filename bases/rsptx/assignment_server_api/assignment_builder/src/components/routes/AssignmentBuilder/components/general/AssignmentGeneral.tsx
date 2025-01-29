@@ -37,7 +37,7 @@ export const AssignmentGeneral = ({ control, setValue, getValues }: AssignmentFo
         />
       </div>
       <div className="field col-12 md:col-6">
-        <label htmlFor="duedate">Due</label>
+        <span className="inline-block mb-2">Due</span>
         <Controller
           name="duedate"
           control={control}
@@ -59,7 +59,7 @@ export const AssignmentGeneral = ({ control, setValue, getValues }: AssignmentFo
         />
       </div>
       <div className="field col-12 md:col-6">
-        <label htmlFor="points">Points</label>
+        <span className="inline-block mb-2">Points</span>
         <Controller
           name="points"
           control={control}
@@ -69,7 +69,7 @@ export const AssignmentGeneral = ({ control, setValue, getValues }: AssignmentFo
         />
       </div>
       <div className="field col-12">
-        <label htmlFor="kind">What kind of Assignment?</label>
+        <span className="inline-block mb-2">What kind of Assignment?</span>
         <Controller
           name="kind"
           control={control}
