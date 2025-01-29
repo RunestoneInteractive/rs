@@ -102,6 +102,7 @@ export class ActiveCode extends RunestoneBase {
         this.timestamps = ["Original"];
         this.autorun = $(orig).data("autorun");
         this.outputLineCount = 0;
+        this.outputLines = [];
         if (this.chatcodes && eBookConfig.enable_chatcodes) {
             if (!socket) {
                 socket = new WebSocket("wss://" + chatcodesServer);
@@ -1605,8 +1606,14 @@ Yet another is that there is an internal error.  The internal error message is: 
     }
 
     showOutputs() {
-        this.output.style.display = "block";
-        this.output.innerText = "";
+        if (this.output.style.display == "none" || this.output.style.display == "") {
+            this.output.style.display = "block";
+            console.log("block output")
+        }
+        if (this.runCount == 0) {
+            this.output.innerHTML = ""
+            console.log("init innerhtml")
+        }
         if (this.eContainer.innerHTML == "")
             this.eContainer.style.display = "none";
         else
@@ -1624,9 +1631,11 @@ Yet another is that there is an internal error.  The internal error message is: 
      */
     async runProg(noUI, logResults) {
         console.log("starting runProg");
+        this.output.innerHTML = "";
         window.requestAnimationFrame(this.showOutputs.bind(this));
         stopExecution = false;
         this.outputLineCount = 0;
+        this.outputLines = [];
         if (typeof logResults === "undefined") {
             this.logResults = true;
         } else {
