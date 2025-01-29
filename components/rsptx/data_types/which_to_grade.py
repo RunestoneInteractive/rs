@@ -5,7 +5,7 @@ class WhichToGradeOptions(Enum):
     FIRST_ANSWER = ("first_answer", "First answer", QuestionType.all_types())
     LAST_ANSWER = ("last_answer", "Last answer", QuestionType.all_types())
     BEST_ANSWER = ("best_answer", "Best answer", QuestionType.all_types())
-    ALL_ANSWER = ("all_answer", "All answers", [QuestionType.MCHOICE])
+    ALL_ANSWER = ("all_answer", "All peer votes", [QuestionType.MCHOICE])
 
     def to_dict(self):
         return {

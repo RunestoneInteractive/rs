@@ -82,15 +82,12 @@ export function withEditAllExercises<T, P extends WithEditAllExercisesProps<T>>(
               />
             </div>
             <div className="flex flex-row justify-content-around align-items-center w-full">
-              <Button
-                outlined
-                size="small"
-                icon="pi pi-times"
-                rounded
-                severity="danger"
-                onClick={toggleOverlay}
-              />
-              <Button outlined size="small" icon="pi pi-check" rounded onClick={handleSubmit} />
+              <Button size="small" severity="danger" onClick={toggleOverlay}>
+                Cancel
+              </Button>
+              <Button size="small" onClick={handleSubmit}>
+                Submit
+              </Button>
             </div>
           </div>
         </OverlayPanel>

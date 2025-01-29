@@ -118,15 +118,10 @@ export const SearchExercises = () => {
       className="table_sticky-header"
       header={header}
       filters={filters}
-      globalFilterFields={[
-        "question_json.statement",
-        "question_json.instructions",
-        "question_json.prefix_code",
-        "question_json.starter_code",
-        "question_json.suffix_code"
-      ]}
+      globalFilterFields={["question_json.statement"]}
     >
       <Column selectionMode="multiple"></Column>
+      <Column field="qnumber" header="Question" sortable></Column>
       <Column
         style={{ width: "14rem" }}
         field="name"
@@ -136,6 +131,11 @@ export const SearchExercises = () => {
         showFilterOperator={false}
         showFilterMenuOptions={false}
         filterMatchMode={FilterMatchMode.CONTAINS}
+      ></Column>
+      <Column
+        style={{ maxWidth: "10rem" }}
+        field="question_json.statement"
+        header="Statement"
       ></Column>
       <Column
         field="question_type"
@@ -186,7 +186,6 @@ export const SearchExercises = () => {
           );
         }}
       ></Column>
-      <Column field="qnumber" header="Question" sortable></Column>
       <Column field="topic" header="Topic" sortable></Column>
     </DataTable>
   );
