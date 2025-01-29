@@ -56,6 +56,8 @@ export const AutoComplete = (props: AutoCompleteProps) => {
       onChange={(e) => setSearchValue(e.value)}
       onSelect={onSelect}
       dropdown
+      id="name"
+      name="name"
     />
   );
 };

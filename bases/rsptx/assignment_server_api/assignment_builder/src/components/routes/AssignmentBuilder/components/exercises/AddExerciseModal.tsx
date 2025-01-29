@@ -1,5 +1,6 @@
 import { useToastContext } from "@components/ui/ToastContext";
 import { chooseExercisesSelectors } from "@store/chooseExercises/chooseExercises.logic";
+import { useCreateNewExerciseMutation } from "@store/exercises/exercises.logic.api";
 import { searchExercisesSelectors } from "@store/searchExercises/searchExercises.logic";
 import { Button } from "primereact/button";
 import { ConfirmPopup, confirmPopup } from "primereact/confirmpopup";
@@ -9,6 +10,9 @@ import { TabMenu, TabMenuTabChangeEvent } from "primereact/tabmenu";
 import { JSX, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 
+import { CreateExerciseFormType } from "@/types/exercises";
+import { buildQuestionJson } from "@/utils/questionJson";
+
 import { ChooseExercises } from "./components/ChooseExercises/ChooseExercises";
 import { CreateExercise } from "./components/CreateExercise/CreateExercise";
 import { SearchExercises } from "./components/SearchExercises/SearchExercises";
@@ -17,21 +21,22 @@ type AddExerciseViewMode = "choose" | "search" | "create";
 
 export const AssignmentViewComponent = ({
   mode,
-  onExerciseAdd
+  onFormSubmit
 }: {
   mode: AddExerciseViewMode;
-  onExerciseAdd: VoidFunction;
+  onFormSubmit: (data: CreateExerciseFormType) => Promise<void>;
 }) => {
   const config: Record<AddExerciseViewMode, JSX.Element> = {
     choose: <ChooseExercises />,
     search: <SearchExercises />,
-    create: <CreateExercise onExerciseAdd={onExerciseAdd} />
+    create: <CreateExercise onFormSubmit={onFormSubmit} />
   };
 
   return config[mode];
 };
 
 export const AddExerciseModal = () => {
+  const [createNewExercise] = useCreateNewExerciseMutation();
   const dialogRef = useRef<Dialog>(null);
   const tabMenuRef = useRef<TabMenu>(null);
   const [showDialog, setShowDialog] = useState(false);
@@ -100,29 +105,54 @@ export const AddExerciseModal = () => {
     setShowDialog(true);
   };
 
+  const AddExerciseToast = () => {
+    return (
+      <div className="flex flex-column align-items-left" style={{ flex: "1" }}>
+        <div className="flex align-items-center gap-2">
+          <span className="text-900">Exercise has been created!</span>
+        </div>
+        <div className="font-medium my-3 text-900">Would you like to add a new one?</div>
+        <Button
+          className="p-button-sm flex"
+          label="Add New Exercise"
+          severity="success"
+          onClick={() => {
+            handleOpen();
+            clearToast();
+          }}
+        ></Button>
+      </div>
+    );
+  };
+
   const onExerciseAdd = () => {
     handleClose();
     showToast({
       severity: "success",
       sticky: true,
-      content: () => (
-        <div className="flex flex-column align-items-left" style={{ flex: "1" }}>
-          <div className="flex align-items-center gap-2">
-            <span className="text-900">Exercise has been created!</span>
-          </div>
-          <div className="font-medium my-3 text-900">Would you like to add a new one?</div>
-          <Button
-            className="p-button-sm flex"
-            label="Add New Exercise"
-            severity="success"
-            onClick={() => {
-              handleOpen();
-              clearToast();
-            }}
-          ></Button>
-        </div>
-      )
+      content: <AddExerciseToast />
     });
+  };
+
+  const onFormSubmit = async (data: CreateExerciseFormType) => {
+    const response = await createNewExercise({
+      author: data.author,
+      autograde: null,
+      chapter: data.chapter,
+      difficulty: data.difficulty,
+      htmlsrc: "",
+      name: data.name,
+      question_json: buildQuestionJson(data),
+      question_type: data.question_type,
+      source: "This question was written in the web interface",
+      tags: data.tags,
+      topic: data.topic,
+      points: data.points
+    });
+
+    if (response.data) {
+      onExerciseAdd();
+    }
   };
 
   const onTabChange = (e: TabMenuTabChangeEvent) => {
@@ -186,7 +216,7 @@ Switching tabs will not add/remove these exercises to the assignment. Do you sti
         onHide={onCloseButtonClick}
       >
         <AssignmentViewComponent
-          onExerciseAdd={onExerciseAdd}
+          onFormSubmit={onFormSubmit}
           mode={modes[mode].id as AddExerciseViewMode}
         />
       </Dialog>

@@ -1,4 +1,5 @@
 import { useToastContext } from "@components/ui/ToastContext";
+import { assignmentExerciseSelectors } from "@store/assignmentExercise/assignmentExercise.logic";
 import {
   useGetExercisesQuery,
   useRemoveAssignmentExercisesMutation
@@ -18,11 +19,11 @@ export const useExercisesSelector = () => {
   const [removeExercisesPost] = useRemoveAssignmentExercisesMutation();
   const { showToast } = useToastContext();
   const availableExercises = useSelector(readingsSelectors.getAvailableReadings);
+  const exercises = useSelector(assignmentExerciseSelectors.getAssignmentExercises);
 
   const {
     isLoading: isExercisesLoading,
     isError: isExercisesError,
-    data: exercises = [],
     refetch: refetchExercises
   } = useGetExercisesQuery(selectedAssignment!.id);
 
@@ -65,7 +66,7 @@ export const useExercisesSelector = () => {
 
   const chapters: Array<Chapter> = availableExercises.map((node) => {
     return {
-      key: node.key as string,
+      value: node.key as string,
       label: node.data.title as string
     };
   });

@@ -15,7 +15,7 @@
     "luxon": "^3.4.4",
     "primeflex": "^3.3.1",
     "primeicons": "^7.0.0",
-    "primereact": "^10.5.1",
+    "primereact": "10.8.4",
     "prismjs": "^1.29.0",
     "react": "^18.2.0",
     "react-bootstrap": "^2.10.0",
@@ -25,6 +25,7 @@
     "react-hot-toast": "^2.4.1",
     "react-redux": "^9.1.0",
     "react-router-dom": "^7.0.1",
+    "reselect": "^5.1.1",
     "typesafe-actions": "^5.1.0",
     "web-vitals": "^2.1.4"
   },

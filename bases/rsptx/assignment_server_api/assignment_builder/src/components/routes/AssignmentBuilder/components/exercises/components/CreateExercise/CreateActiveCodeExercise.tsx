@@ -1,19 +1,13 @@
+import { datasetSelectors } from "@store/dataset/dataset.logic";
 import { Dropdown } from "primereact/dropdown";
 import { InputTextarea } from "primereact/inputtextarea";
 import { Controller } from "react-hook-form";
+import { useSelector } from "react-redux";
 
 import { CreateExerciseFormProps } from "@/types/createExerciseForm";
 
 export const CreateActiveCodeExercise = ({ control, errors }: CreateExerciseFormProps) => {
-  const languageOptions = [
-    { key: "python", label: "Python (in browser)" },
-    { key: "java", label: "Java" },
-    { key: "cpp", label: "C++" },
-    { key: "c", label: "C" },
-    { key: "javascript", label: "Javascript" },
-    { key: "html", label: "HTML" },
-    { key: "sql", label: "SQL" }
-  ];
+  const languageOptions = useSelector(datasetSelectors.getLanguageOptions);
 
   return (
     <>
@@ -67,77 +61,73 @@ export const CreateActiveCodeExercise = ({ control, errors }: CreateExerciseForm
       <div className="field col-12 md:col-6 pt-4">
         <span className="p-float-label">
           <Controller
-            name="hiddenPrefixCode"
+            name="prefix_code"
             control={control}
             rules={{ required: "Hidden Prefix Code is required" }}
             render={({ field, fieldState }) => (
               <>
                 <InputTextarea
-                  id="hiddenPrefixCode"
+                  id="prefix_code"
                   {...field}
                   autoResize
                   rows={4}
                   placeholder="Enter Assignment prefix code"
                   className={fieldState.invalid ? "p-invalid" : ""}
                 />
-                <label htmlFor="hiddenPrefixCode">Hidden Prefix Code</label>
+                <label htmlFor="prefix_code">Hidden Prefix Code</label>
               </>
             )}
           />
         </span>
-        {errors.hiddenPrefixCode && (
-          <small className="p-error">{errors.hiddenPrefixCode.message}</small>
-        )}
+        {errors.prefix_code && <small className="p-error">{errors.prefix_code.message}</small>}
       </div>
 
       <div className="field col-12 md:col-6 pt-4">
         <span className="p-float-label">
           <Controller
-            name="starterCode"
+            name="starter_code"
             control={control}
             rules={{ required: "Starter Code is required" }}
             render={({ field, fieldState }) => (
               <>
                 <InputTextarea
-                  id="starterCode"
+                  id="starter_code"
                   {...field}
                   autoResize
                   rows={4}
                   placeholder="Enter Assignment starter code"
                   className={fieldState.invalid ? "p-invalid" : ""}
                 />
-                <label htmlFor="starterCode">Starter Code</label>
+                <label htmlFor="starter_code">Starter Code</label>
               </>
             )}
           />
         </span>
-        {errors.starterCode && <small className="p-error">{errors.starterCode.message}</small>}
+        {errors.starter_code && <small className="p-error">{errors.starter_code.message}</small>}
       </div>
 
       <div className="field col-12 md:col-6 pt-4">
         <span className="p-float-label">
           <Controller
-            name="hiddenSuffixCode"
+            name="suffix_code"
             control={control}
             rules={{ required: "Hidden Suffix Code is required" }}
             render={({ field, fieldState }) => (
               <>
                 <InputTextarea
-                  id="hiddenSuffixCode"
+                  id="suffix_code"
                   {...field}
                   autoResize
                   rows={4}
                   placeholder="Enter Assignment suffix(unit test) code"
                   className={fieldState.invalid ? "p-invalid" : ""}
                 />
-                <label htmlFor="hiddenSuffixCode">Hidden Suffix(Test) Code</label>
+                <label htmlFor="suffix_code">Hidden Suffix(Test) Code</label>
               </>
             )}
           />
         </span>
-        {errors.hiddenSuffixCode && (
-          <small className="p-error">{errors.hiddenSuffixCode.message}</small>
-        )}
+        {errors.suffix_code && <small className="p-error">{errors.suffix_code.message}</small>}
       </div>
     </>
   );

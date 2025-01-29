@@ -1,6 +1,6 @@
+import { assignmentExerciseSelectors } from "@store/assignmentExercise/assignmentExercise.logic";
 import { useGetExercisesQuery } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { readingsSelectors } from "@store/readings/readings.logic";
-import sortBy from "lodash/sortBy";
 import { TreeNode } from "primereact/treenode";
 import { useSelector } from "react-redux";
 
@@ -9,6 +9,7 @@ import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 export const useReadingsSelector = () => {
   const { selectedAssignment } = useSelectedAssignment();
   const availableReadings = useSelector(readingsSelectors.getAvailableReadings);
+  const readingExercises = useSelector(assignmentExerciseSelectors.getAssignmentReadings);
 
   const {
     isLoading: isExercisesLoading,
@@ -28,11 +29,6 @@ export const useReadingsSelector = () => {
   if (!assignmentExercises || isExercisesError) {
     return { error: true, refetch };
   }
-
-  const readingExercises = sortBy(
-    assignmentExercises.filter((ex) => ex.reading_assignment),
-    (exercise) => exercise.sorting_priority
-  );
 
   const assignmentExercisesSubchapters = readingExercises.map(
     (assignmentExercise) => assignmentExercise.subchapter

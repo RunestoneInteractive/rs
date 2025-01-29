@@ -5,6 +5,12 @@ import {
   useCreateAssignmentMutation,
   useGetAssignmentsQuery
 } from "@store/assignment/assignment.logic.api";
+import {
+  useGetAutoGradeOptionsQuery,
+  useGetLanguageOptionsQuery,
+  useGetQuestionTypeOptionsQuery,
+  useGetWhichToGradeOptionsQuery
+} from "@store/dataset/dataset.logic.api";
 import { useGetAvailableReadingsQuery } from "@store/readings/readings.logic.api";
 import { InputSwitch } from "primereact/inputswitch";
 import { useEffect, useRef } from "react";
@@ -23,6 +29,10 @@ export const AssignmentBuilder = () => {
   const [createAssignment] = useCreateAssignmentMutation();
   const { selectedAssignment, updateAssignment } = useSelectedAssignment();
 
+  useGetAutoGradeOptionsQuery();
+  useGetWhichToGradeOptionsQuery();
+  useGetLanguageOptionsQuery();
+  useGetQuestionTypeOptionsQuery();
   useGetAvailableReadingsQuery({
     skipreading: false,
     from_source_only: true,
@@ -43,7 +53,7 @@ export const AssignmentBuilder = () => {
   }, [selectedAssignment, reset]);
 
   useEffect(() => {
-    const { unsubscribe } = watch((formValues, { name }) => {
+    const { unsubscribe } = watch((formValues) => {
       if (isResetRef.current) {
         isResetRef.current = false;
 
@@ -87,10 +97,9 @@ export const AssignmentBuilder = () => {
         <h3>Assignment Builder</h3>
         <div className="p-fluid formgrid grid">
           <div className={`field col-12 md:col-${selectedAssignment ? 9 : 12}`}>
-            <label htmlFor="name">Assignment Name</label>
+            <span className="inline-block mb-2">Assignment Name</span>
             <AutoComplete
               className="field"
-              id="name"
               suggestions={assignments.map((assignment) => assignment.name)}
               placeholder="Enter or select assignment name... start typing"
               defaultOption={createNewOption}
@@ -102,16 +111,14 @@ export const AssignmentBuilder = () => {
               <form style={{ display: "contents" }}>
                 <div style={{ paddingTop: "0.5rem" }} className="field col-12 md:col-3  flex">
                   <div className="flex align-items-center flex-shrink-1 gap-1">
-                    <label className="label mb-0" htmlFor="visible">
-                      Visible to Students
-                    </label>
+                    <span className="label mb-0">Visible to Students</span>
                     <Controller
                       name="visible"
                       control={control}
                       render={({ field }) => (
                         <InputSwitch
                           className="flex-shrink-0"
-                          id="visible"
+                          name="visible"
                           checked={field.value}
                           onChange={({ value }) => setValue("visible", value)}
                         />

@@ -17,6 +17,7 @@ packages = [
     { include = "rsptx/templates", from = "../../components" },
     { include = "rsptx/exceptions", from = "../../components" },
     { include = "rsptx/analytics", from = "../../components" },
+    { include = "rsptx/data_types", from = "../../components" },
     { include = "rsptx/endpoint_validators", from = "../../components" },
     { include = "rsptx/assignment_server_api", from = "../../bases" },
 ]
