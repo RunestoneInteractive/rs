@@ -13,11 +13,12 @@ packages = [
     { include = "rsptx/logging", from = "../../components"},
     { include = "rsptx/validation", from = "../../components"},
     { include = "rsptx/response_helpers", from = "../../components"},
+    { include = "rsptx/data_types", from = "../../components" },
 ]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-fastapi = "^0.96.0"
+fastapi = "^0.103.0"
 uvicorn = "^0.22.0"
 sqlalchemy = "^1.4.0"
 psycopg2-binary = "^2.9.6"
@@ -27,6 +28,8 @@ greenlet = "^2.0.2"
 python-dateutil = "^2.8.2"
 pyhumps = "^3.8.0"
 pydal = "^20230521.1"
+pydantic-settings = "^2.0.3"
+pytz = "^2024.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

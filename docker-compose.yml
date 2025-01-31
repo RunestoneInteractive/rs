@@ -380,3 +380,27 @@ services:
       db:
         condition: service_started
         required: false
+
+  library:
+    build:
+      context: ./projects/library_server
+      dockerfile: Dockerfile
+    image: library
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    container_name: library
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ${BOOK_PATH}:/usr/books
+
+    environment:
+      - BOOK_PATH=/usr/books
+      - SERVER_CONFIG=${SERVER_CONFIG}
+      - RUNESTONE_PATH=/usr/src/app
+      - REDIS_URI=redis://redis:6379/0
+      # Note: host.docker.internal refers back to the host so we can just use a local instance
+      # of postgresql
+      - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      - DOCKER_COMPOSE=1
