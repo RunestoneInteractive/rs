@@ -29,6 +29,7 @@ from rsptx.db.crud import (
     remove_assignment_questions,
     reorder_assignment_questions,
     update_assignment_question,
+    update_multiple_assignment_questions,
     update_assignment_exercises,
     update_assignment,
     update_question,
@@ -59,6 +60,11 @@ from rsptx.validation.schemas import (
 )
 from rsptx.logging import rslogger
 from rsptx.analytics import log_this_function
+from rsptx.data_types.which_to_grade import WhichToGradeOptions
+from rsptx.data_types.autograde import AutogradeOptions
+from rsptx.data_types.language import LanguageOptions
+from rsptx.data_types.question_type import QuestionType
+
 from .student import get_course_url
 
 # Routing
@@ -592,22 +598,36 @@ async def get_assignment_questions(
 
     return make_json_response(status=status.HTTP_200_OK, detail={"exercises": qlist})
 
+@router.put("/assignment_question/batch")
+@instructor_role_required()
+@with_course()
+async def assignment_questions_batch(
+    request: Request,
+    request_data: list[AssignmentQuestionValidator],
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+    course = None,
+):
+    try:
+        await update_multiple_assignment_questions(request_data)
+    except Exception as e:
+        rslogger.error(f"Error updating assignment questions: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error updating assignment questions: {str(e)}",
+        )
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
 
-@router.post("/update_assignment_question")
+@router.put("/assignment_question")
+@instructor_role_required()
+@with_course()
 async def up_assignment_question(
     request: Request,
     request_data: AssignmentQuestionValidator,
     user=Depends(auth_manager),
     response_class=JSONResponse,
+    course=None,
 ):
-    # get the course
-    course = await fetch_course(user.course_name)
-
-    user_is_instructor = await is_instructor(request, user=user)
-    if not user_is_instructor:
-        return make_json_response(
-            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
-        )
     try:
         await update_assignment_question(
             AssignmentQuestionValidator(**request_data.model_dump())
@@ -972,3 +992,28 @@ async def save_exception(
         )
     else:
         return make_json_response(status=status.HTTP_200_OK, detail={"success": True})
+
+@router.get("/which_to_grade_options")
+@instructor_role_required()
+async def get_which_to_grade_options(request: Request):
+    options = [option.to_dict() for option in WhichToGradeOptions]
+    return JSONResponse(content=options, status_code=status.HTTP_200_OK)
+
+
+@router.get("/autograde_options")
+@instructor_role_required()
+async def get_autograde_options(request: Request):
+    options = [option.to_dict() for option in AutogradeOptions]
+    return JSONResponse(content=options, status_code=status.HTTP_200_OK)
+
+@router.get("/language_options")
+@instructor_role_required()
+async def get_language_options(request: Request):
+    options = [option.to_dict() for option in LanguageOptions]
+    return JSONResponse(content=options, status_code=status.HTTP_200_OK)
+
+@router.get("/question_type_options")
+@instructor_role_required()
+async def get_language_options(request: Request):
+    options = [option.to_dict() for option in QuestionType]
+    return JSONResponse(content=options, status_code=status.HTTP_200_OK)

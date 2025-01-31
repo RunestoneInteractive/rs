@@ -12,3 +12,40 @@
     top: 0;
   }
 }
+
+.editable-table-cell {
+  .editable-table-input,
+  .editable-table-dropdown,
+  .p-inputnumber-input {
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    user-select: none !important;
+    &::selection { color: currentColor }
+  }
+
+  .p-focus  {
+    box-shadow: none
+  }
+
+  .p-inputtext:enabled:focus {
+    box-shadow: 0 0 0 0.1rem #bfdbfe;
+  }
+
+  .editable-table-cell__drag-icon {
+    right: 0;
+    bottom: 0;
+    margin: -1rem;
+    padding: .5rem;
+    cursor: move;
+    background-color: transparent;
+    border-radius: 50%;
+    color: var(--primary-color);
+  }
+}
+
+.icon-button-sm {
+  padding: 0;
+  width: 24px;
+  height: 24px;
+}

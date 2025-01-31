@@ -196,17 +196,18 @@ export default class ACFactory {
         realDiv.classList.remove("ac_section");
         realDiv.style.display = (realDiv.style.display === "none" || realDiv.style.display === "") ? "block" : "none";
 
-        const firstFocusableElement = realDiv.querySelector(
-            '.first-focusable, button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        const focusableElements = realDiv.querySelectorAll(
-            '.first-focusable, input, button, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        const lastFocusableElement =
+        const selectors = '.first-focusable, button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+        let firstFocusableElement = realDiv.querySelector(selectors);
+        let focusableElements = realDiv.querySelectorAll(selectors);
+        let lastFocusableElement =
             focusableElements[focusableElements.length - 1];
 
         realDiv.addEventListener("keydown", (event) => {
             if (event.key === "Tab") {
+                firstFocusableElement = realDiv.querySelector(selectors);
+                focusableElements = realDiv.querySelectorAll(selectors);
+                lastFocusableElement =
+                    focusableElements[focusableElements.length - 1];
                 if (event.shiftKey) {
                     // Shift + Tab
                     if (document.activeElement === firstFocusableElement) {

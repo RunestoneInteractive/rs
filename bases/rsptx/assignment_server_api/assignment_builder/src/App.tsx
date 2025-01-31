@@ -101,7 +101,7 @@ function App() {
           element: <OldAssignmentBuilder />
         },
         {
-          path: "/builderV2",
+          path: "/builder",
           async lazy() {
             let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
 
@@ -109,7 +109,7 @@ function App() {
           }
         },
         {
-          path: "/builder",
+          path: "/builderV2",
           element: <OldAssignmentBuilder />
         },
         {

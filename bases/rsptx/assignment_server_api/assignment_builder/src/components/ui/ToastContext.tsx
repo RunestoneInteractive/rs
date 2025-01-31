@@ -16,7 +16,9 @@ export const ToastContextProvider = ({ children }: { children: ReactNode }) => {
 
   const showToast = (options: ToastMessage) => {
     if (!toastRef.current) return;
-    toastRef.current.show(options);
+    const life = options.life ?? 1000;
+
+    toastRef.current.show({ ...options, life });
   };
 
   const clearToast = () => {

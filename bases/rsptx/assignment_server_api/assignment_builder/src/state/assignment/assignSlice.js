@@ -192,8 +192,8 @@ export const fetchAssignmentQuestions = createAsyncThunk(
  * @memberof AssignmentEditor
  */
 export const sendExercise = createAsyncThunk("assignment/sendExercise", async (exercise) => {
-  const response = await fetch("/assignment/instructor/update_assignment_question", {
-    method: "POST",
+  const response = await fetch("/assignment/instructor/assignment_question", {
+    method: "PUT",
     headers: {
       "Content-Type": "application/json"
     },

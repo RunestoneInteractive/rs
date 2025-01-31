@@ -40,7 +40,7 @@ export const SearchExercisesHeader = () => {
   };
 
   return (
-    <div className="flex flex-row justify-content-between pt-2 pb-2">
+    <div className="flex flex-row justify-content-between">
       <div>
         <ConfirmPopup />
         <Button

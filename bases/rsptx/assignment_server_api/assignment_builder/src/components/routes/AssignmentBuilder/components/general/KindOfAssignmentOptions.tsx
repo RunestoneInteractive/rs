@@ -17,7 +17,7 @@ export const KindOfAssignmentOptions = ({ control, setValue, getValues }: Assign
     Regular: () => {
       return (
         <div className="field col-12">
-          <label>No additional options</label>
+          <span className="label mb-0">No additional options</span>
         </div>
       );
     },
@@ -25,16 +25,14 @@ export const KindOfAssignmentOptions = ({ control, setValue, getValues }: Assign
       return (
         <div className="field col-3 md:col-3 flex">
           <div className="flex align-items-center flex-shrink-1 gap-1">
-            <label className="label mb-0" htmlFor="peer_async_visible">
-              Show Async Peer
-            </label>
+            <span className="label mb-0">Show Async Peer</span>
             <Controller
               name="peer_async_visible"
               control={control}
               render={({ field }) => (
                 <InputSwitch
                   className="flex-shrink-0"
-                  id="peer_async_visible"
+                  name="peer_async_visible"
                   checked={field.value}
                   onChange={(e) => setValue("peer_async_visible", e.value)}
                 />
@@ -71,16 +69,14 @@ export const KindOfAssignmentOptions = ({ control, setValue, getValues }: Assign
           </div>
           <div className="field col-6 md:col-2  flex">
             <div className="flex align-items-center flex-shrink-1 gap-1">
-              <label className="label mb-0" htmlFor="nofeedback">
-                Allow Feedback
-              </label>
+              <span className="label mb-0">Allow Feedback</span>
               <Controller
                 name="nofeedback"
                 control={control}
                 render={({ field }) => (
                   <InputSwitch
                     className="flex-shrink-0"
-                    id="nofeedback"
+                    name="nofeedback"
                     checked={!field.value}
                     onChange={(e) => setValue("nofeedback", !e.value)}
                   />
@@ -90,16 +86,14 @@ export const KindOfAssignmentOptions = ({ control, setValue, getValues }: Assign
           </div>
           <div className="field col-6 md:col-2  flex">
             <div className="flex align-items-center flex-shrink-1 gap-1">
-              <label className="label mb-0" htmlFor="nopause">
-                Allow Pause
-              </label>
+              <span className="label mb-0">Allow Pause</span>
               <Controller
                 name="nopause"
                 control={control}
                 render={({ field }) => (
                   <InputSwitch
                     className="flex-shrink-0"
-                    id="nopause"
+                    name="nopause"
                     checked={!field.value}
                     onChange={(e) => setValue("nopause", !e.value)}
                   />

@@ -40,7 +40,7 @@ export const AssignmentReadings = () => {
       sortField="chapter"
       sortOrder={1}
       scrollable
-      scrollHeight="500px"
+      scrollHeight="400px"
       size="small"
       stripedRows
       showGridlines
