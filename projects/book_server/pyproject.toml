@@ -18,6 +18,7 @@ packages = [
     { include = "rsptx/exceptions", from = "../../components" },
     { include = "rsptx/book_server_api", from = "../../bases" },
     { include = "rsptx/practice", from = "../../components" },
+    { include = "rsptx/data_types", from = "../../components" },
 ]
 
 

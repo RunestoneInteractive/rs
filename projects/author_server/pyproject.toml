@@ -19,6 +19,7 @@ packages = [
     { include = "rsptx/build_tools", from = "../../components" },
     { include = "rsptx/templates", from = "../../components" },
     { include = "rsptx/author_server_api", from = "../../bases" },
+    { include = "rsptx/data_types", from = "../../components" },
 ]
 
 exclude = [
