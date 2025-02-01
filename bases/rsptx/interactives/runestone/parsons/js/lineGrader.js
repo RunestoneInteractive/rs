@@ -97,11 +97,14 @@ export default class LineBasedGrader {
     }
 
     checkCorrectIndentation(solutionLines, answerLines) {
+        if(!this.problem.usesIndentation())
+            return true;
+
         this.indentLeft = [];
         this.indentRight = [];
         let loopLimit = Math.min(solutionLines.length, answerLines.length);
         for (let i = 0; i < loopLimit; i++) {
-            if (answerLines[i].viewIndent() < answerLines[i].indent) {
+            if (answerLines[i].viewIndent() < solutionLines[i].indent) {
                 this.indentRight.push(answerLines[i]);
             } else if (answerLines[i].viewIndent() > solutionLines[i].indent) {
                 this.indentLeft.push(answerLines[i]);
