@@ -202,6 +202,7 @@
     clear: both;
     float: left;
     background-color: transparent;
+    white-space: pre;
 }
 
 .parsons .block p {
