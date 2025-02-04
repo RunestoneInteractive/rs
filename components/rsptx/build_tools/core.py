@@ -27,7 +27,7 @@ import click
 import lxml.etree as ET
 from lxml import ElementInclude
 import pretext
-from pretext.project import Project
+import pretext.project
 
 # import xml.etree.ElementTree as ET
 
@@ -40,6 +40,7 @@ from rsptx.logging import rslogger
 from runestone.server import get_dburl
 from rsptx.db.models import Library, LibraryValidator
 from rsptx.response_helpers.core import canonical_utcnow
+import pdb
 
 rslogger.setLevel("WARNING")
 
@@ -155,13 +156,14 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
             return False
 
         logger = logging.getLogger("ptxlogger")
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.DEBUG)
         string_io_handler = StringIOHandler()
         logger.addHandler(string_io_handler)
         click.echo("Building the book")
-        rs.build()  # build the book, generating assets as needed
 
-        with open("cli.log", "a") as olfile:
+        rs.build()  # build the book, generating assets as needed
+        log_path = Path(os.environ.get("BOOK_PATH")) / rs.output_dir / "cli.log"
+        with open(log_path, "a") as olfile:
             olfile.write(string_io_handler.getvalue())
 
         book_path = (
@@ -231,7 +233,7 @@ def check_project_ptx(click=click, course=None, target="runestone"):
     6. Set target output to document-id
 
     """
-    proj = Project.parse("project.ptx")
+    proj = pretext.project.Project.parse("project.ptx")
     if not target:
         target = "runestone"
     target_name = target

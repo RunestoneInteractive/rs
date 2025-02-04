@@ -270,12 +270,12 @@ def build_ptx_book(self, book, generate=False, target="runestone", source_path=N
     logger.debug(f"Building {book} with target {target} at {source_path}")
 
     work_dir = get_work_dir(book)
-
+    logger.debug(f"work_dir = {work_dir}")
     if source_path:
         base_path = pathlib.Path(work_dir, source_path)
     else:
         base_path = pathlib.Path(work_dir)
-
+    logger.debug(f"base_path = {base_path}")
     outputlog = pathlib.Path(base_path, "cli.log")
     start_time = datetime.datetime.now()
     with open(outputlog, "w") as olfile:
