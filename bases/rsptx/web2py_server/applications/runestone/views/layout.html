@@ -35,7 +35,8 @@
         </script>
 
     </head>
-    <body>
+    <body class="sphinxrs">
+        <a class="assistive" href="#rst-content">Skip to main content</a>
         {{ block navbar }}
         <!-- Begin navbar -->
         <div id="navbar" class="navbar navbar-default navbar-fixed-top" role="navigation">
@@ -200,7 +201,7 @@
         <!-- End navbar -->
         {{ end }}
         <!-- begin body content -->
-        <div class="container">
+        <div class="container sphinxrs" id="rst-content">
             {{include}}
         </div>
         <!-- end body content -->
@@ -208,17 +209,15 @@
         <!-- begin footer -->
         <footer class="footer" style="margin-top:20px;">
             <div class="container">
-                <p class="pull-right">
-                    {{ if auth.user: }}
-                        <span class='loggedinuser'>{{=auth.user.email}}</span> | <a href="#">Back to top</a>
-                    {{ else: }}
-                        <span class='loggedinuser'>Not logged in</span> | <a href="#">Back to top</a>
-                    {{ pass }}
-                </p>
                 <p>
                     &copy; Copyright {{=request.now.year}} Runestone Academy Ltd
                     {{ if settings.academy_mode: }}
                         &emsp; ● <a href="/{{=request.application}}/default/privacy">Privacy Policy</a> &emsp; ●  <a href="/{{=request.application}}/default/terms">Terms of Service</a>
+                    {{ pass }}
+                    {{ if auth.user: }}
+                        <span class='loggedinuser'>{{=auth.user.email}}</span> | <a href="#">Back to top</a>
+                    {{ else: }}
+                        <span class='loggedinuser'>Not logged in</span> | <a href="#">Back to top</a>
                     {{ pass }}
                 </p>
             </div>
