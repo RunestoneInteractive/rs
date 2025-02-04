@@ -28,6 +28,7 @@ import lxml.etree as ET
 from lxml import ElementInclude
 import pretext
 from pretext.project import Project
+from pretext.utils import is_earlier_version
 
 # import xml.etree.ElementTree as ET
 
@@ -185,7 +186,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         # Fetch and copy the runestone components release as advertised by the manifest
         # - Use wget to get all the js files and put them in _static
         # Beginning with 2.6.1 PreTeXt populates the _static folder with the latest
-        if pretext.VERSION < "2.6.1":
+        if is_earlier_version(pretext.VERSION, "2.6.1"):
             click.echo("populating with the latest runestone files")
             populate_static(config, mpath, course)
         # update the library page
