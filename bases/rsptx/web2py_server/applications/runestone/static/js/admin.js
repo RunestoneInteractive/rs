@@ -30,7 +30,12 @@ function gradeIndividualItem() {
     }
 
     $(rightSideDiv)[0].style.visibility = "visible";
-    rightSideDiv.html(""); //empty it out
+    rightSideDiv.css({
+        "z-index": "1050",
+        "position": "relative",
+        "overflow": "auto",
+        "max-height": "90vh"
+    }).html(""); //empty it out
     rightSideDiv.html(`<div id='filterqs'
     style="
     width: 60%;
