@@ -418,8 +418,14 @@ def wheel(config):
                         lock_stat = os.stat("poetry.lock")
                         if toml_stat.st_mtime > lock_stat.st_mtime:
                             res = subprocess.run(
-                                ["poetry", "lock", "--no-update"], capture_output=True
+                                ["poetry", "--version"], capture_output=True
                             )
+                            # poetry 2.0 removed the --no-update flag (it is the default)
+                            lock_opts = ["poetry", "lock"]
+                            if "version 1" in res.stdout.decode(stdout_err_encoding):
+                                lock_opts.append("--no-update")
+
+                            res = subprocess.run(lock_opts, capture_output=True)
                             if res.returncode != 0:
                                 status[proj] = (
                                     f"[red]Fail[/red] probable dependency conflict see {projdir}/build.log"
