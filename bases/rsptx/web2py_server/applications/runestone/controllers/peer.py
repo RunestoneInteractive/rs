@@ -379,6 +379,10 @@ def peer_question():
 def find_good_partner(group, peeps, answer_dict):
     # try to find a partner with a different answer than the first group member
     logger.debug(f"here {group}, {peeps}, {answer_dict}")
+    # the student did not answer this question
+    if group[0] not in answer_dict:
+        logger.error(f"student {group[0]} did not answer")
+        return peeps.pop()
     ans = answer_dict[group[0]]
     i = 0
     while i < len(peeps) and answer_dict[peeps[i]] == ans:
@@ -442,7 +446,7 @@ def make_pairs():
         peeps_in_person = []
         peeps_in_chat = []
 
-        peep_queue = peeps[:]
+        peep_queue = [p for p in peeps if p in sid_ans]
         while peep_queue:
             p = peep_queue.pop()
             if p in peeps_in_person or p in peeps_in_chat:
