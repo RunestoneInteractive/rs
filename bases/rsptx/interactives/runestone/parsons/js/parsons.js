@@ -92,9 +92,6 @@ export default class Parsons extends RunestoneBase {
         this.addCaption("runestone");
         // Check the server for an answer to complete things
         this.checkServer("parsons", true);
-        if (typeof Prism !== "undefined") {
-            Prism.highlightAllUnder(this.containerDiv);
-        }
         this.runnableDiv = null;
     }
     // Based on the data-fields in the original HTML, initialize options
@@ -444,9 +441,21 @@ export default class Parsons extends RunestoneBase {
             $(this.outerDiv).addClass("runestone-sphinx");
             document.body.appendChild(this.outerDiv);
         }
-        if (this.options.prettifyLanguage !== "") {
+
+        // only do prettify if prism is not loaded
+        if (this.options.prettifyLanguage !== "" && typeof Prism === "undefined") {
             prettyPrint();
         }
+
+        const lang = this.options["language"];
+        if (lang && typeof Prism !== "undefined") {
+            const codeEls = this.containerDiv.querySelectorAll("code");
+            for (const el of codeEls) {
+                el.classList.add(`language-${lang}`);
+            }
+            Prism.highlightAllUnder(this.containerDiv);
+        }
+
         for (let i = 0; i < this.lines.length; i++) {
             this.lines[i].initializeWidth();
         }
