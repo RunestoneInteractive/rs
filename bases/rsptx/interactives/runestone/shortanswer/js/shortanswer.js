@@ -70,9 +70,6 @@ export default class ShortAnswer extends RunestoneBase {
         this.jOptionsDiv = document.createElement("div");
         $(this.jOptionsDiv).addClass("journal-options");
         this.jInputDiv.appendChild(this.jOptionsDiv);
-        this.jLabel = document.createElement("label");
-        $(this.jLabel).addClass("radio-inline");
-        this.jOptionsDiv.appendChild(this.jLabel);
         this.jTextArea = document.createElement("textarea");
         let self = this;
         this.jTextArea.onchange = function () {
@@ -85,7 +82,7 @@ export default class ShortAnswer extends RunestoneBase {
         $(this.jTextArea).addClass("form-control");
         this.jTextArea.rows = 4;
         this.jTextArea.cols = 50;
-        this.jLabel.appendChild(this.jTextArea);
+        this.jOptionsDiv.appendChild(this.jTextArea);
         this.jTextArea.onchange = function () {
             this.isAnswered = true;
             if (this.isTimed) {
