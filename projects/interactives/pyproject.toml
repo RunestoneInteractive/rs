@@ -34,7 +34,7 @@ license = "GPL"
 name = "runestone"
 readme = "README.rst"
 repository = "https://github.com/RunestoneInteractive/rs"
-version = "7.5.6"
+version = "7.5.7"
 
 # See https://python-poetry.org/docs/pyproject/#include-and-exclude.
 include = [
@@ -91,6 +91,7 @@ packages = [
     { include = "rsptx/cl_utils", from = "../../components" },
     { include = "rsptx/build_tools", from = "../../components" },
     { include = "rsptx/response_helpers", from = "../../components" },
+    { include = "rsptx/data_types", from = "../../components" },
     # runestone is different because we want to expose runestone as a namespace, not
     # rsptx.interactives.runestone
     { include = "runestone", from = "../../bases/rsptx/interactives" },
