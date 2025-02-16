@@ -456,10 +456,10 @@ def populate_static(config, mpath: Path, course: str, click=click):
         # remove the old files, but keep the lunr-pretext-search-index.js file if it exists
         for f in os.listdir(sdir):
             try:
-                if "lunr-pretext" not in f:
+                if "lunr-pretext" not in f and Path(sdir, f).is_file():
                     os.remove(sdir / f)
             except Exception:
-                click.echo(f"ERROR - could not delete {f}")
+                click.echo(f"ERROR - could not delete {sdir} / {f}")
         # call wget non-verbose, recursive, no parents, no hostname, no directoy copy files to sdir
         # trailing slash is important or otherwise you will end up with everything below runestone
         res = subprocess.call(
