@@ -59,7 +59,7 @@ def runestone_static_dirs():
 # -----------------------
 # Users can call this to get a list of all extensions provided by runestone
 # normally this is just used by the `conf.py` file for building a runestone book
-deprecated_extensions = ["matrixeq", "webgldemo"]
+deprecated_extensions = ["matrixeq", "webgldemo", "lp", "accessibility"]
 
 
 def runestone_extensions():
