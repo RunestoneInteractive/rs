@@ -163,6 +163,8 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
 
         rs.build()  # build the book, generating assets as needed
         log_path = Path(os.environ.get("BOOK_PATH")) / rs.output_dir / "cli.log"
+        if not log_path.parent.exists():
+            log_path.parent.mkdir(parents=True, exist_ok=True)
         with open(log_path, "a") as olfile:
             olfile.write(string_io_handler.getvalue())
 
