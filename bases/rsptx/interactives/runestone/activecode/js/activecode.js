@@ -258,6 +258,7 @@ export class ActiveCode extends RunestoneBase {
             matchBrackets: true,
             autoMatchParens: true,
             gutters: gutterList,
+            screenReaderLabel: "ActiveCode Editor",
             extraKeys: {
                 Tab: "indentMore",
                 "Shift-Tab": "indentLess",
