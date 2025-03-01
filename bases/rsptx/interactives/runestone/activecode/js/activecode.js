@@ -221,14 +221,13 @@ export class ActiveCode extends RunestoneBase {
         codeDiv.classList.add("ac_code_div");
         codeDiv.setAttribute("aria-label", "CodeMirror Editor");
         this.codeDiv = codeDiv;
-        this.outerDiv.lang = this.language;
         this.origElem.replaceWith(this.outerDiv);
         if (linkdiv.id !== this.divid) {
             // Don't want the 'extra' target if they match.
             this.outerDiv.appendChild(linkdiv);
         }
         this.outerDiv.appendChild(codeDiv);
-        var edmode = this.outerDiv.lang;
+        var edmode = this.language;
         if (edmode === "sql") {
             edmode = "text/x-sql";
         } else if (edmode === "java") {
