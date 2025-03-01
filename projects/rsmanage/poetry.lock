@@ -2626,14 +2626,14 @@ pyee = "12.0.0"
 
 [[package]]
 name = "pretext"
-version = "2.13.5"
+version = "2.14.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0.0,>=3.8.5"
 groups = ["main", "dev"]
 files = [
-    {file = "pretext-2.13.5-py3-none-any.whl", hash = "sha256:6e1144a9984cbe3732cbc8378366b16a68fdd91e3e97bd1513a0d4d33e168c24"},
-    {file = "pretext-2.13.5.tar.gz", hash = "sha256:854bd40dda2bc03e634379e2b642487bf00ee34feb6f718148dfb5fdde57776f"},
+    {file = "pretext-2.14.0-py3-none-any.whl", hash = "sha256:314dbaef80cd4797967c83d0cbabfc6c80462ff00530de92b09c2ee4db291bde"},
+    {file = "pretext-2.14.0.tar.gz", hash = "sha256:f71e7bcf0e1a8d60c6f8cef110b4e1b98cb91e19844e419fa69cc80e97fb443b"},
 ]
 
 [package.dependencies]
@@ -3635,7 +3635,7 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.5.9"
+version = "7.5.10"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
