@@ -20,9 +20,15 @@ else:
 with pushd("../../bases/rsptx/interactives"):
     subprocess.run(["npm", "install"], check=True)
     if "--dev" in sys.argv:
+        debug = False
         if "--to" in sys.argv:
             book = sys.argv[sys.argv.index("--to") + 1]
             static_path = f"{os.environ['BOOK_PATH']}/{book}/published/{book}/_static"
+            debug = True
+        elif "--static" in sys.argv:
+            static_path = sys.argv[sys.argv.index("--static") + 1]
+            debug = True
+        if debug:
             print("Building to:", static_path)
             subprocess.run(
                 ["npm", "run", "build", "--", "--env", f"builddir={static_path}"],
