@@ -202,6 +202,7 @@
     clear: both;
     float: left;
     background-color: transparent;
+    white-space: pre;
 }
 
 .parsons .block p {
@@ -344,4 +345,9 @@
 
 #timed_Test .pagination {
     margin: 5px 0;
+}
+
+/* override red from bootstrap <code> */
+.parsons .block code {
+    color: black;
 }

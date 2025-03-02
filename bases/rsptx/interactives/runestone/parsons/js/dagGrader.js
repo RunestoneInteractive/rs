@@ -92,25 +92,24 @@ export default class DAGGrader extends LineBasedGrader {
     return indices;
   }
 
-  checkCorrectIndentation(solutionLines, answerLines) {
+  checkCorrectIndentation() {
+      if(!this.problem.usesIndentation())
+          return true;
+
       this.indentLeft = [];
       this.indentRight = [];
-
-      let indentationByTag = {};
-      for (let i = 0; i < solutionLines.length; i++) {
-        const line = solutionLines[i];
-        indentationByTag[line.tag] = line.indent;
+      // For dag problems, only check the indentation of each block in the problem
+      for (const block of this.problem.blocks) {
+          const curIndent = block.indent;
+          const expectedIndent = block.solutionIndent();
+          // If missmatch, add first line of block to the correct indent list for
+          // UI updating
+          if (curIndent < expectedIndent)
+              this.indentRight.push(block.lines[0]);
+          else if (curIndent > expectedIndent)
+              this.indentLeft.push(block.lines[0]);
       }
-
-      let loopLimit = Math.min(solutionLines.length, answerLines.length);
-      for (let i = 0; i < loopLimit; i++) {
-          let solutionIndent = indentationByTag[answerLines[i].tag];
-          if (answerLines[i].viewIndent() < solutionIndent) {
-              this.indentRight.push(answerLines[i]);
-          } else if (answerLines[i].viewIndent() > solutionIndent) {
-              this.indentLeft.push(answerLines[i]);
-          }
-      }
+      
       this.incorrectIndents =
           this.indentLeft.length + this.indentRight.length;
 

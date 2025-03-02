@@ -92,9 +92,6 @@ export default class Parsons extends RunestoneBase {
         this.addCaption("runestone");
         // Check the server for an answer to complete things
         this.checkServer("parsons", true);
-        if (typeof Prism !== "undefined") {
-            Prism.highlightAllUnder(this.containerDiv);
-        }
         this.runnableDiv = null;
     }
     // Based on the data-fields in the original HTML, initialize options
@@ -201,11 +198,6 @@ export default class Parsons extends RunestoneBase {
             "aria-describedby",
             this.counterId + "-sourceTip"
         );
-        // set the source width to its max value.  This allows the blocks to be created
-        // at their "natural" size. As long as that is smaller than the max.
-        // This allows us to use sensible functions to determine the correct heights
-        // and widths for the drag and drop areas.
-        this.sourceArea.style.width = "425px"; // The max it will be resized later.
         this.sourceRegionDiv.appendChild(this.sourceArea);
         this.answerRegionDiv = document.createElement("div");
         this.answerRegionDiv.id = this.counterId + "-answerRegion";
@@ -449,12 +441,39 @@ export default class Parsons extends RunestoneBase {
             $(this.outerDiv).addClass("runestone-sphinx");
             document.body.appendChild(this.outerDiv);
         }
-        if (this.options.prettifyLanguage !== "") {
+
+        // only do prettify if prism is not loaded
+        if (this.options.prettifyLanguage !== "" && typeof Prism === "undefined") {
             prettyPrint();
         }
+
+        const lang = this.options["language"];
+        if (lang && typeof Prism !== "undefined") {
+            const codeEls = this.containerDiv.querySelectorAll("code");
+            for (const el of codeEls) {
+                el.classList.add(`language-${lang}`);
+            }
+            Prism.highlightAllUnder(this.containerDiv);
+        }
+
         for (let i = 0; i < this.lines.length; i++) {
             this.lines[i].initializeWidth();
         }
+
+        // Set the source width to its max value.  This allows the blocks to be created
+        // at their "natural" size. As long as that is smaller than the max.
+        // This allows us to use sensible functions to determine the correct heights
+        // and widths for the drag and drop areas.
+        // Like most of the sizing, this is a bit of a hack.
+        const availableWidth = this.outerDiv.offsetWidth;
+        const answerIndentSpace = this.options.pixelsPerIndent * this.indent;
+        const marginFudge = 80;  // margins, padding, etc...
+        let maxSourceAreaWidth = (availableWidth - answerIndentSpace - marginFudge) / 2;
+        if (this.options.numbered != undefined) {
+            maxSourceAreaWidth -= 25;
+        }
+        this.sourceArea.style.width = maxSourceAreaWidth + "px"; // likely reduced later
+
         // Layout the areas
         var areaWidth, areaHeight;
         // Establish the width and height of the droppable areas
@@ -469,7 +488,7 @@ export default class Parsons extends RunestoneBase {
         // item is a jQuery object
         // outerHeight can be unreliable if elements are not yet visible
         // outerHeight will return bad results if MathJax has not rendered the math
-        areaWidth = 300;
+        areaWidth = 0;
         let self = this;
         maxFunction = async function (item) {
             if (

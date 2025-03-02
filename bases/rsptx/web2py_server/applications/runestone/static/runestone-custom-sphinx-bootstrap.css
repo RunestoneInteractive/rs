@@ -187,10 +187,11 @@ input[type="button"].btn.btn-sm {
 }
 
 
- /* Fix search menu button */
- .dropdown-menu .input-group .input-group-btn button.btn {
-     font-size: 14px;
- }
+/* Fix search menu button */
+.dropdown-menu .input-group .input-group-btn button.btn {
+    font-size: 14px;
+}
+
 .btn {
     margin: 5px 0;
 }
@@ -686,3 +687,25 @@ div.hidden-content {
     font-style: italic;
     color: blue;
 }
+
+
+/* styling for accessibility */
+body.sphinxrs>a.assistive {
+    padding: 6px;
+    position: absolute;
+    top: -40px;
+    left: 0px;
+    color: white;
+    border-right: 1px solid white;
+    border-bottom: 1px solid white;
+    border-bottom-right-radius: 8px;
+    background: transparent;
+    z-index: 10000;
+}
+
+body.sphinxrs>a.assistive:focus {
+    top: 0px;
+    background: #BF1722;
+    outline: 0;
+    transition: top .1s ease-in, background .5s linear;
+}   

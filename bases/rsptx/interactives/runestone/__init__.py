@@ -16,7 +16,6 @@ from .groupsub import GroupSubmission
 from .hparsons import HParsonsDirective
 from .khanex import Khanex
 from .selectquestion import SelectQuestion
-from .matrixeq import MatrixEq
 from .mchoice import MChoice, QuestionNumber
 from .meta import Meta
 from .parsons import ParsonsProblem
@@ -50,12 +49,8 @@ def runestone_static_dirs():
     module_static_js = [os.path.join(basedir, "dist")]
     module_static_js.append(os.path.join(basedir, "animation", "js"))
     module_static_js.append(os.path.join(basedir, "codelens", "js"))
-    module_static_js.append(os.path.join(basedir, "webgldemo", "js"))
-    module_static_js.append(os.path.join(basedir, "matrixeq", "js"))
     module_static_css = []
     module_static_css.append(os.path.join(basedir, "accessibility", "css"))
-    module_static_css.append(os.path.join(basedir, "webgldemo", "css"))
-    module_static_css.append(os.path.join(basedir, "matrixeq", "css"))
     module_static_css.append(os.path.join(basedir, "lp", "css"))
     return module_static_js + module_static_css + CodeChat.CodeToRest.html_static_path()
 
@@ -64,10 +59,15 @@ def runestone_static_dirs():
 # -----------------------
 # Users can call this to get a list of all extensions provided by runestone
 # normally this is just used by the `conf.py` file for building a runestone book
+deprecated_extensions = ["matrixeq", "webgldemo", "lp", "accessibility"]
+
+
 def runestone_extensions():
     basedir = os.path.dirname(__file__)
     module_paths = [
-        x for x in os.listdir(basedir) if os.path.isdir(os.path.join(basedir, x))
+        x
+        for x in os.listdir(basedir)
+        if os.path.isdir(os.path.join(basedir, x)) and x not in deprecated_extensions
     ]
     modules = [
         "runestone.{}".format(x)

@@ -1,3 +1,11 @@
 .ptx-runestone-container,.runestone-sphinx {
     @import (less) url("./parsons.css");
+
+}
+
+/* make entire block background match background of code */
+:root.dark-mode {
+    .ptx-runestone-container .parsons .block:has(code[class*=language-]) {
+            background: hsl(0, 0%, 8%);
+    }
 }
