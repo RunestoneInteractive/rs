@@ -26,7 +26,7 @@ from pydantic import (
     Json,
 )
 from humps import camelize  # type: ignore
-from typing_extensions import Annotated
+from typing_extensions import Annotated, TypedDict
 
 # Local application imports
 # -------------------------
@@ -230,6 +230,10 @@ class AssignmentIncoming(BaseModel):
     points: int
     duedate: datetime
     kind: str
+    time_limit: Optional[int] = 60
+    nofeedback: Optional[bool] = False
+    nopause: Optional[bool] = False
+    peer_async_visible: Optional[bool] = True
 
 
 class QuestionIncoming(BaseModel):
@@ -287,3 +291,33 @@ class UpdateAssignmentExercisesPayload(BaseModel):
     assignmentId: int
     idsToAdd: Optional[List[int]] = None
     idsToRemove: Optional[List[int]] = None
+
+class AssignmentQuestionUpdateDict(TypedDict, total=False):
+    # AssignmentQuestion fields
+    id: int
+    assignment_id: int
+    question_id: int
+    points: int
+    timed: Optional[bool]
+    autograde: str
+    which_to_grade: str
+    reading_assignment: Optional[bool]
+    sorting_priority: int
+    activities_required: Optional[int]
+    
+    # Question fields
+    name: Optional[str]
+    source: Optional[str]
+    question_type: Optional[str]
+    htmlsrc: Optional[str]
+    question_json: Optional[Json]
+    chapter: Optional[str]
+    subchapter: Optional[str]
+    author: Optional[str]
+    topic: Optional[str]
+    feedback: Optional[str]
+    difficulty: Optional[float]
+    tags: Optional[str]
+    
+    # Owner field for permission checking
+    owner: Optional[str]

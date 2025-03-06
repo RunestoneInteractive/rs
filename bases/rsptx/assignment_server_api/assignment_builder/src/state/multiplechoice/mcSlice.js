@@ -9,7 +9,7 @@ export const mcSlice = createSlice({
   name: "multiplechoice",
   initialState: {
     statement: "",
-    optionList: [{ choice: "", feedback: "", correct: false }],
+    optionList: [{ choice: "", feedback: "", correct: false }]
   },
   reducers: {
     /**
@@ -60,8 +60,8 @@ export const mcSlice = createSlice({
     setMCFields: (state, action) => {
       state.statement = action.payload.statement;
       state.optionList = action.payload.optionList;
-    },
-  },
+    }
+  }
 });
 
 export const {
@@ -71,7 +71,7 @@ export const {
   updateOption,
   setOptionList,
   setStatement,
-  setMCFields,
+  setMCFields
 } = mcSlice.actions;
 
 export const selectStatement = (state) => state.multiplechoice.statement;

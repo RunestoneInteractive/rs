@@ -6,20 +6,20 @@ import { createSlice } from "@reduxjs/toolkit";
 const componentOptions = [
   { title: "ActiveCode", value: "activecode" },
   { title: "Multiple Choice", value: "mchoice" },
-  { title: "Short Answer", value: "shortanswer" },
+  { title: "Short Answer", value: "shortanswer" }
 ];
 
 const editorSlice = createSlice({
   name: "componentEditor",
   initialState: {
     component: null,
-    componentOptions: componentOptions,
+    componentOptions: componentOptions
   },
   reducers: {
     setComponent: (state, action) => {
       state.component = action.payload;
-    },
-  },
+    }
+  }
 });
 
 export const { setComponent } = editorSlice.actions;

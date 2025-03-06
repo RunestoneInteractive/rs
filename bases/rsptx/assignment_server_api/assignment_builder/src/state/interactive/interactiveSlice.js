@@ -31,7 +31,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
       preview_src = createMCQTemplate(
         store.interactive.uniqueId,
         store.multiplechoice.statement,
-        store.multiplechoice.optionList,
+        store.multiplechoice.optionList
       );
     } else {
       preview_src = store.interactive.preview_src;
@@ -48,7 +48,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
     let questionType = store.interactive.question_type;
     let jsheaders = new Headers({
       "Content-type": "application/json; charset=utf-8",
-      Accept: "application/json",
+      Accept: "application/json"
     });
     // Now add the question
     // these names match the database columns
@@ -62,7 +62,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
       author: store.interactive.author,
       difficulty: store.interactive.difficulty,
       topic: store.interactive.topic,
-      tags: store.interactive.tags,
+      tags: store.interactive.tags
     };
 
     if (editonly) {
@@ -80,7 +80,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
     let data = {
       body: JSON.stringify(body),
       headers: jsheaders,
-      method: "POST",
+      method: "POST"
     };
     let resp;
 
@@ -110,7 +110,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
     let aqBody = {
       assignment_id: assignmentId,
       question_id: questionId,
-      points: store.interactive.qpoints,
+      points: store.interactive.qpoints
     };
     let allEx = store.assignment.exercises;
     let clen = allEx.length;
@@ -130,7 +130,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
     data = {
       body: JSON.stringify(aqBody),
       headers: jsheaders,
-      method: "POST",
+      method: "POST"
     };
     resp = await fetch("/assignment/instructor/new_assignment_q", data);
     result = await resp.json();
@@ -138,7 +138,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
       console.log("Question added to assignment");
       toast("Question added to assignment", { icon: "👍" });
     }
-  },
+  }
 );
 const today = new Date();
 const date =
@@ -161,7 +161,7 @@ const interactiveSlice = createSlice({
     preview_src: "",
     question_json: {},
     topic: "",
-    difficulty: 3,
+    difficulty: 3
   },
   reducers: {
     setUniqueId: (state, action) => {
@@ -218,7 +218,7 @@ const interactiveSlice = createSlice({
     },
     setDBId: (state, action) => {
       state.id = action.payload;
-    },
+    }
   },
   extraReducers(builder) {
     /* eslint-disable */
@@ -230,7 +230,7 @@ const interactiveSlice = createSlice({
         console.log('Question save failed', action.error.message);
       });
     /* eslint-enable */
-  },
+  }
 });
 
 export const {
@@ -246,7 +246,7 @@ export const {
   setQuestionJson,
   setTopic,
   setDifficulty,
-  setDBId,
+  setDBId
 } = interactiveSlice.actions;
 
 export const selectUniqueId = (state) => state.interactive.uniqueId;

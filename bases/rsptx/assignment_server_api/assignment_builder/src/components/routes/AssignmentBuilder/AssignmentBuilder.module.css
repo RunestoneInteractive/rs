@@ -1,0 +1,840 @@
+.root {
+  height: 100%;
+  width: 100%;
+}
+
+.container {
+  padding: 2rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--surface-ground);
+}
+
+.table {
+  flex: 1;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.table :global(.p-datatable-wrapper) {
+  border-radius: 8px;
+}
+
+.table :global(.p-datatable-header) {
+  background: #fff;
+  border: none;
+  padding: 1rem;
+}
+
+.table :global(.p-datatable-thead > tr > th) {
+  background: var(--surface-50);
+  border-color: var(--surface-200);
+  color: var(--surface-600);
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+.table :global(.p-datatable-tbody > tr) {
+  height: 48px;
+}
+
+.table :global(.p-datatable-tbody > tr > td) {
+  padding: 0.5rem 1rem;
+  border-color: var(--surface-200);
+  font-size: 0.875rem;
+}
+
+.table :global(.p-datatable-tbody > tr:hover) {
+  background: var(--surface-50);
+}
+
+/* Column specific styles */
+.nameColumn {
+  min-width: 250px;
+}
+
+.nameCell {
+  display: flex;
+  align-items: center;
+}
+
+.nameText {
+  color: var(--surface-900);
+  font-weight: 500;
+}
+
+.typeColumn {
+  width: 120px;
+}
+
+.typeCell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.typeTag {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+/* Type-specific tag colors */
+.poll {
+  background: var(--primary-100);
+  color: var(--primary-700);
+}
+
+.quiz {
+  background: var(--green-100);
+  color: var(--green-700);
+}
+
+.coding {
+  background: var(--cyan-100);
+  color: var(--cyan-700);
+}
+
+.dueDateColumn {
+  width: 120px;
+}
+
+.dueDateCell {
+  display: flex;
+  align-items: center;
+}
+
+.dueDateText {
+  color: var(--surface-700);
+}
+
+.pointsColumn {
+  width: 100px;
+}
+
+.pointsCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pointsText {
+  color: var(--surface-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.visibilityColumn {
+  width: 80px;
+}
+
+.smallSwitch {
+  transform: scale(0.8);
+}
+
+.actionsColumn {
+  width: 100px;
+}
+
+/* Button styles */
+.table :global(.p-button.p-button-text) {
+  padding: 0.4rem;
+  width: 2rem;
+  height: 2rem;
+}
+
+.table :global(.p-button.p-button-text:hover) {
+  background: var(--surface-100);
+}
+
+.table :global(.p-button.p-button-text .p-button-icon) {
+  font-size: 1rem;
+}
+
+/* Empty state */
+.table :global(.p-datatable-emptymessage td) {
+  text-align: center;
+  color: var(--surface-500);
+  padding: 3rem 1rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  height: calc(100vh - 60px);
+  background: var(--surface-ground);
+  transition: grid-template-columns 0.3s ease;
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+.layout.collapsed {
+  grid-template-columns: 64px 1fr;
+}
+
+.sidebar {
+  background: var(--surface-card);
+  border-right: 1px solid var(--surface-border);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  transition: all 0.3s ease;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+.sidebar.collapsed {
+  padding: 1rem;
+}
+
+.sidebar > *:not(.header) {
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.tableHeader {
+  padding: 1rem 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.header h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--surface-900);
+  margin: 0;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.header .title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.3s ease;
+}
+
+.collapsed .title {
+  opacity: 0;
+  width: 0;
+  margin: 0;
+}
+
+.navigationTree {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.navigationItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  color: var(--text-color-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: left;
+  position: relative;
+}
+
+.navigationItem.collapsed {
+  padding: 0.75rem;
+  justify-content: center;
+}
+
+.navigationItem:hover {
+  background: var(--surface-hover);
+  color: var(--text-color);
+}
+
+.navigationItem.active {
+  background: var(--primary-50);
+  color: var(--primary-color);
+}
+
+.navigationIcon {
+  font-size: 1rem;
+  min-width: 1rem;
+}
+
+.collapseButton {
+  width: 2rem !important;
+  height: 2rem !important;
+  padding: 0.25rem !important;
+}
+
+.collapseButton:focus {
+  box-shadow: 0 0 0 0.1rem var(--primary-200) !important;
+}
+
+.hidden {
+  display: none;
+}
+
+.mainContent {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface-ground);
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.mainContentInner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.card {
+  background: var(--surface-card);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+}
+
+.formField {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 78px;
+}
+
+.formField:last-child {
+  margin-bottom: 0;
+}
+
+.formField label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-color);
+  text-align: left;
+  height: 21px;
+  line-height: 21px;
+}
+
+.formField input[type="text"],
+.formField textarea,
+.formField :global(.p-inputtext),
+.formField :global(.p-inputtextarea),
+.formField :global(.p-calendar),
+.formField :global(.p-inputnumber),
+.formField :global(.p-selectbutton) {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.formFields {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.formField input[type="text"]:focus,
+.formField textarea:focus,
+.formField :global(.p-inputtext:focus),
+.formField :global(.p-inputtextarea:focus) {
+  outline: none;
+  box-shadow: none;
+}
+
+.formField :global(.p-inputtext:enabled:focus) {
+  box-shadow: none;
+}
+
+.formField textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.formFieldRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.breadcrumbSeparator {
+  color: var(--text-color-secondary);
+  font-size: 0.75rem;
+}
+
+.exerciseList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.exerciseItem {
+  padding: 1rem;
+  background: var(--surface-section);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--surface-border);
+  transition: all 0.2s ease;
+}
+
+.exerciseItem:hover {
+  background: var(--surface-hover);
+  border-color: var(--primary-color);
+}
+
+.exerciseItem h4 {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--surface-900);
+}
+
+.exerciseItem small {
+  display: block;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .layout.collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    bottom: 0;
+    width: 300px;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar.active {
+    display: block;
+    transform: translateX(0);
+  }
+
+  .mainContent {
+    height: 100%;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .mainContent {
+    padding: 1rem;
+  }
+
+  .formFieldRow {
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+.wizardStepContent {
+  flex: 1;
+  overflow-y: auto;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.wizardActions {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--surface-border);
+}
+
+.wizardActions :global(.p-button) {
+  min-width: 120px;
+  font-weight: 500;
+}
+
+.editView {
+  display: flex;
+  height: 100%;
+}
+
+.assignmentList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.assignmentItem {
+  padding: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.assignmentItem:hover {
+  background-color: #f3f4f6;
+}
+
+.assignmentItem.selected {
+  background-color: var(--primary-50);
+  color: var(--primary-color);
+}
+
+.mainContent {
+  flex: 1;
+}
+
+.formField small.p-text-secondary {
+  color: #667085;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.typeCards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-top: 2px;
+  padding-bottom: 4px;
+}
+
+.typeCard {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid var(--surface-border);
+  background-color: var(--surface-card);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.75rem;
+  height: auto;
+  min-height: 80px;
+}
+
+.typeCard :global(.p-card-content) {
+  padding: 0;
+}
+
+.typeCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary-color);
+  background-color: var(--surface-hover);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.typeCard.selected {
+  background-color: var(--primary-50);
+  border-color: var(--primary-color);
+}
+
+.typeCardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.typeCardIcon {
+  font-size: 1.25rem;
+  color: var(--primary-color);
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-50);
+  border-radius: 6px;
+}
+
+.typeCard h3 {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.typeCard p {
+  margin: 0;
+  color: var(--text-color-secondary);
+  font-size: 0.813rem;
+  line-height: 1.3;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.typeSettings {
+  background-color: var(--surface-ground);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: 1px solid var(--surface-border);
+}
+
+.typeSettings h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-color);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.typeSettings.noOptions {
+  padding: 0.75rem;
+  color: var(--text-color-secondary);
+  font-size: 0.813rem;
+  border: none;
+  background: none;
+}
+
+.typeSettings .formFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.typeSettings .formField {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 0;
+  gap: 0.75rem;
+  width: auto;
+  min-height: auto;
+}
+
+.typeSettings .formField label {
+  margin: 0;
+  white-space: nowrap;
+  font-size: 0.813rem;
+  font-weight: 500;
+  color: var(--text-color);
+  height: auto;
+  line-height: normal;
+}
+
+/* Make inputs and buttons more compact */
+.typeSettings :global(.p-inputnumber) {
+  width: 100px !important;
+}
+
+.typeSettings :global(.p-inputnumber-input) {
+  padding: 0.375rem !important;
+  font-size: 0.813rem !important;
+  height: 32px !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.typeSettings :global(.p-inputnumber-button-group) {
+  height: 32px !important;
+}
+
+.typeSettings :global(.p-inputnumber-button) {
+  width: 32px !important;
+  height: 16px !important;
+  padding: 0 !important;
+}
+
+.typeSettings :global(.p-inputnumber-button-up) {
+  border-top-right-radius: 6px !important;
+  border-bottom: none !important;
+}
+
+.typeSettings :global(.p-inputnumber-button-down) {
+  border-bottom-right-radius: 6px !important;
+}
+
+.typeSettings :global(.p-inputnumber-button .p-button-icon) {
+  font-size: 0.75rem !important;
+}
+
+.typeSettings :global(.p-selectbutton) {
+  display: inline-flex;
+  height: 32px;
+}
+
+.typeSettings :global(.p-selectbutton .p-button) {
+  padding: 0 0.75rem !important;
+  font-size: 0.813rem !important;
+  height: 32px !important;
+  min-width: 48px !important;
+  font-weight: 500;
+}
+
+.typeSettings :global(.p-selectbutton .p-button.p-highlight) {
+  background: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
+
+.typeSettings .formField small.p-text-secondary {
+  margin: 0;
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+
+.formField:last-child {
+  margin-bottom: 0;
+}
+
+.formField :global(.p-selectbutton) {
+  display: inline-flex;
+}
+
+.formField :global(.p-selectbutton .p-button) {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.formField :global(.p-inputnumber-input) {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.formField small.p-text-secondary {
+  font-size: 0.875rem;
+  margin-left: 0.75rem;
+  color: var(--text-color-secondary);
+}
+
+.wizard {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px);
+  gap: 2rem;
+  align-items: center;
+}
+
+.wizard :global(.p-steps) {
+  width: 900px;
+  margin-top: 1rem;
+}
+
+.wizard :global(.p-steps .p-steps-item) {
+  flex: 1;
+}
+
+.wizard :global(.p-steps .p-steps-item:before) {
+  margin-top: -4px;
+}
+
+.wizard :global(.p-steps .p-steps-item .p-menuitem-link) {
+  background: transparent;
+}
+
+.wizard :global(.p-steps .p-steps-item.p-highlight .p-steps-number) {
+  background: var(--primary-color);
+  color: var(--primary-color-text);
+}
+
+.wizardStep {
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  width: 900px;
+  height: 600px;
+}
+
+.wizardStep h2 {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-color);
+  font-size: 1.5rem;
+  font-weight: 600;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--surface-ground);
+  padding: 1.5rem 1.5rem 0;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+@media screen and (max-width: 768px) {
+  .editView {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .typeCards {
+    grid-template-columns: 1fr;
+  }
+
+  .typeCard {
+    max-width: 100%;
+  }
+
+  .wizardStep {
+    width: 100%;
+    height: auto;
+    min-height: 600px;
+  }
+} 
