@@ -2232,6 +2232,8 @@ def save_assignment():
         d_str = request.vars["due"]
         format_str = "%Y/%m/%d %H:%M"
         due = datetime.datetime.strptime(d_str, format_str)
+        # todo:  add timezone support - due is in the browsers local timezone we want to store in utc
+
     except Exception:
         logger.error("Bad Date format for assignment: {}".format(d_str))
         due = datetime.datetime.utcnow() + datetime.timedelta(7)
