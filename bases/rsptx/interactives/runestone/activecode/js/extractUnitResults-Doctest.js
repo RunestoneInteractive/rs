@@ -16,34 +16,46 @@
 
 export default class DoctestTestParser {
     constructor(output, parentId) {
+        const sep = "===============================================================================";
 
-        let [pre, testDetails, report] = output.split("===============================================================================");
+        // Split the output into the program output, the test output, and the test results
+        // If all tests pass, there are no testDetails
+        let parts = output.split(sep);
+
+        let pre, testDetails, report;
+        if (parts.length > 2) {
+            pre = parts[0];
+            testDetails = parts[1];
+            report = parts[2];
+        } else {
+            pre = parts[0];
+            testDetails = "";
+            report = parts[1];
+        }
 
         // Produce the output that we will display to the user - their output and the test output
         let cleanedOutput = "\n";
-        let programOutLines = pre.split("\n").slice(2);
-        if (programOutLines.length > 0 ) {
-            cleanedOutput = "Program output:\n";
-            for (let line of programOutLines) {
-                cleanedOutput += line + "\n";
-            }
+        let programOutLines = pre.split("\n").slice(2);  // Trim doxygen cruft
+        cleanedOutput = "Program output:\n";
+        for (let line of programOutLines) {
+            cleanedOutput += line + "\n";
         }
+        cleanedOutput += sep + "\n";
 
-        let testOutputLines = testDetails.split("\n");
-        if(testOutputLines.length > 0) {
+        // If there are test details, add them to the output
+        if (testDetails.trim() != "") {
+            let testOutputLines = testDetails.split("\n");
             cleanedOutput += "Test messages:";
             for (let line of testOutputLines) {
                 cleanedOutput += line + "\n";
             }
+            cleanedOutput += sep + "\n";
         }
 
-
         let reportLines = report.split("\n");
-        if(reportLines.length > 0) {
-            cleanedOutput += "Test results:";
-            for (let line of reportLines) {
-                cleanedOutput += line + "\n";
-            }
+        cleanedOutput += "Test results:";
+        for (let line of reportLines) {
+            cleanedOutput += line + "\n";
         }
 
         cleanedOutput = cleanedOutput.trim();
