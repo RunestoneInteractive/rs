@@ -344,8 +344,7 @@ function sendLTI_Grade() {
 function showDeadline() {
     var dl = new Date(assignment_deadlines[getSelectedItem("assignment")]);
     // Need to update deadline by timezone
-    var now = new Date();
-    tzoff = now.getTimezoneOffset();
+    tzoff = dl.getTimezoneOffset();
     dl.setHours(dl.getHours() + tzoff / 60);
     const options = {
         weekday: 'short', 
