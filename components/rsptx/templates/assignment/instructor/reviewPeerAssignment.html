@@ -79,7 +79,7 @@ Review Peer Assignment
             {% for q in questions %}
                 <div class="row question-row" id="question-{{ loop.index }}" style="display: none;">
                     <div class="question-controls mb-3">
-                        <h2>Question {{ loop.index }}</h2>
+                        <h2>Question {{ loop.index }} of {{ questions|length }}</h2>
                         {% if questions|length > 1 %}
                             <div class="row" style="text-align: center;">
                                 <button id="prev-btn-{{ loop.index }}" class="btn btn-primary" onclick="showPreviousQuestion()">Previous</button>
