@@ -6,3 +6,7 @@
 .runestone label pre {
     font-weight: normal;
 }
+
+.runestone fieldset legend {
+    font-size: small;
+}

@@ -144,10 +144,19 @@ export default class MultipleChoice extends RunestoneBase {
             action: "",
             onsubmit: "return false;",
         });
+        this.optsFieldSet = document.createElement("fieldset")
+        this.optsForm.appendChild(this.optsFieldSet);
         // generate form options
         this.renderMCFormOpts();
         this.renderMCFormButtons();
         // Append the form to the container
+        let legend = document.createElement("legend");
+        if (this.multipleanswers) {
+            legend.textContent = "Choose all that apply";
+        } else {
+            legend.textContent = "Choose one";
+        }
+        this.optsFieldSet.appendChild(legend);
         this.containerDiv.appendChild(this.optsForm);
     }
 
@@ -168,7 +177,7 @@ export default class MultipleChoice extends RunestoneBase {
             this.randomizeAnswers();
         }
         let self = this;
-        let answerFunc = function() {
+        let answerFunc = function () {
             self.isAnswered = true;
         };
         for (var j = 0; j < this.answerList.length; j++) {
@@ -197,8 +206,8 @@ export default class MultipleChoice extends RunestoneBase {
 
             this.optionArray.push(optObj);
             // add the option to the form
-            this.optsForm.appendChild(label);
-            this.optsForm.appendChild(document.createElement("br"));
+            this.optsFieldSet.appendChild(label);
+            this.optsFieldSet.appendChild(document.createElement("br"));
         }
     }
 
@@ -215,7 +224,7 @@ export default class MultipleChoice extends RunestoneBase {
         if (this.multipleanswers) {
             this.submitButton.addEventListener(
                 "click",
-                function() {
+                function () {
                     this.processMCMASubmission(true);
                 }.bind(this),
                 false
@@ -223,7 +232,7 @@ export default class MultipleChoice extends RunestoneBase {
         } else {
             this.submitButton.addEventListener(
                 "click",
-                function(ev) {
+                function (ev) {
                     ev.preventDefault();
                     this.processMCMFSubmission(true);
                 }.bind(this),
@@ -243,7 +252,7 @@ export default class MultipleChoice extends RunestoneBase {
             this.compareButton.textContent = "Compare me";
             this.compareButton.addEventListener(
                 "click",
-                function() {
+                function () {
                     this.compareAnswers(this.divid);
                 }.bind(this),
                 false
@@ -406,9 +415,8 @@ export default class MultipleChoice extends RunestoneBase {
             if (buttonObjs[i].checked) {
                 given = buttonObjs[i].value;
                 this.givenArray.push(given);
-                this.feedbackString += `<li value="${i + 1}">${
-                    this.feedbackList[i]
-                }</li>`;
+                this.feedbackString += `<li value="${i + 1}">${this.feedbackList[i]
+                    }</li>`;
                 this.givenlog += given + ",";
                 this.singlefeedback = this.feedbackList[i];
             }
@@ -701,8 +709,8 @@ export default class MultipleChoice extends RunestoneBase {
 == Find the custom HTML tags and ==
 ==   execute our code on them    ==
 =================================*/
-$(document).on("runestone:login-complete", function() {
-    $("[data-component=multiplechoice]").each(function(index) {
+$(document).on("runestone:login-complete", function () {
+    $("[data-component=multiplechoice]").each(function (index) {
         // MC
         var opts = {
             orig: this,
