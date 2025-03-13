@@ -2,14 +2,14 @@
 
 [[package]]
 name = "aiosqlite"
-version = "0.16.1"
+version = "0.17.0"
 description = "asyncio bridge to the standard sqlite3 module"
 optional = false
 python-versions = ">=3.6"
 groups = ["main", "dev"]
 files = [
-    {file = "aiosqlite-0.16.1-py3-none-any.whl", hash = "sha256:1df802815bb1e08a26c06d5ea9df589bcb8eec56e5f3378103b0f9b223c6703c"},
-    {file = "aiosqlite-0.16.1.tar.gz", hash = "sha256:2e915463164efa65b60fd1901aceca829b6090082f03082618afca6fb9c8fdf7"},
+    {file = "aiosqlite-0.17.0-py3-none-any.whl", hash = "sha256:6c49dc6d3405929b1d08eeccc72306d3677503cc5e5e43771efc1e00232e8231"},
+    {file = "aiosqlite-0.17.0.tar.gz", hash = "sha256:f0e6acc24bc4864149267ac82fb46dfb3be4455f99fe21df82609cc6e6baee51"},
 ]
 
 [package.dependencies]
@@ -3635,7 +3635,7 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.5.10"
+version = "7.5.11"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
@@ -3644,7 +3644,7 @@ files = []
 develop = true
 
 [package.dependencies]
-aiosqlite = "^0.16.0"
+aiosqlite = "^0.17.0"
 asyncpg = "^0.28.0"
 click = "~8"
 CodeChat = "1.9.3"
