@@ -144,6 +144,7 @@ export default class MultipleChoice extends RunestoneBase {
             action: "",
             onsubmit: "return false;",
         });
+        // Add fieldset and legend for accessibility
         this.optsFieldSet = document.createElement("fieldset")
         this.optsForm.appendChild(this.optsFieldSet);
         // generate form options
