@@ -46,6 +46,7 @@
             <div class="container">
                 <div class="navbar-header">
                     <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+                    <!-- Wave / a11y testing does not like this but it will go away with web2py -->
                     <button type='button' class='navbar-toggle' data-toggle="collapse" data-target=".navbar-ex1-collapse">
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
@@ -53,9 +54,9 @@
                     </button>
                     <div>
                        {{ if settings.lti_only_mode: }}
-                            <a class="brand-logo" style='background: transparent url("{{=URL('static', 'images/RAIcon.png')}}") no-repeat 0px 0px;'">&nbsp;</a>
+                            <a class="brand-logo" style='background: transparent url("{{=URL('static', 'images/RAIcon.png')}}") no-repeat 0px 0px;'"><span aria-label="runestone" aria-hidden="true" class="visuallyhidden">Runestone</span></a>
                         {{ else: }}
-                            <a class="brand-logo" style='background: transparent url("{{=URL('static', 'images/RAIcon.png')}}") no-repeat 0px 0px;' href="{{=URL('default', 'user/login')}}">&nbsp; </a>
+                            <a class="brand-logo" style='background: transparent url("{{=URL('static', 'images/RAIcon.png')}}") no-repeat 0px 0px;' href="{{=URL('default', 'user/login')}}"><span aria-label="runestone" aria-hidden="true" class="visuallyhidden">Runestone</span> </a>
                         {{ pass }}
                     </div>
                 </div>
@@ -76,10 +77,11 @@
                               <li style="width: 240px;">
                                 <form class="navbar-search" style="margin:10px;" action="{{ =get_course_url('search.html') }}" method="get">
                                   <div class="input-group">
-                                    <input type="text" class="form-control" name="q" placeholder="Search this book" />
+                                    <label for="booksearch">Search</label>
+                                    <input id="booksearch" type="text" class="form-control" name="q" placeholder="Search this book" />
                                     <span class="input-group-btn">
                                       <button class="btn btn-primary" style="margin:0;" type="submit">
-                                        <i class="glyphicon glyphicon-search"></i>
+                                        <i class="glyphicon glyphicon-search"><span aria-label="Search Book" class="visuallyhidden">Search Book</span></i>
                                       </button>
                                     </span>
                                   </div><!-- /input-group -->
@@ -93,7 +95,7 @@
                         <!-- user account dropdown -->
                         <li class="dropdown">
                             <a class="dropdown-toggle" href="#" data-toggle="dropdown">
-                                <i class="glyphicon glyphicon-user" style="opacity:0.9;"></i>
+                                <i class="glyphicon glyphicon-user" style="opacity:0.9;"><span aria-label="User Menu" class="visuallyhidden">Scratch Activecode</span></i>
                             </a>
                             <ul class="dropdown-menu user-menu">
                                 {{ if auth.user: }}
@@ -158,7 +160,7 @@
                             <!-- help menu dropdown -->
                             <li class="dropdown">
                                 <a class="dropdown-toggle" href="#" data-toggle="dropdown">
-                                <i class="glyphicon glyphicon-question-sign" style="opacity:0.9;"></i>
+                                <i class="glyphicon glyphicon-question-sign" style="opacity:0.9;"><span aria-label="Help Menu" class="visuallyhidden">Scratch Activecode</span></i>
                                 </a>
                                 <ul class="dropdown-menu user-menu">
                                     <li><a href='https://blog.runestone.academy/pages/faq.html'>FAQ</a></li>

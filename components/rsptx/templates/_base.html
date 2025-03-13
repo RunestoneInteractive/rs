@@ -16,7 +16,7 @@
 
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="utf-8" />
         <title>{% block title %}Runestone Academy{% endblock %}</title>
@@ -45,7 +45,7 @@
     <body>
         <nav class="navbar navbar-expand-sm sticky-top navbar-light bg-light">
         <!-- logo -- back to xxx  -- create course                    user scratch help -->
-        <a class="navbar-brand" href="https://runestone.academy"><img src="/staticAssets/RAIcon.png" height="30px"/></a>
+        <a class="navbar-brand" href="https://runestone.academy"><img src="/staticAssets/RAIcon.png" height="30px" alt="Runestone Logo"/></a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
           </button>
@@ -53,7 +53,7 @@
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
               {% if not student_page or is_instructor %}
-              <li class="nav-item active">
+              <li class="nav-item">
                 <a class="nav-link" href="/ns/books/published/{{ course.course_name }}/index.html">Back to {% block backTo %}{{ course.course_name }}{% endblock %} <span class="sr-only">(current)</span></a>
               </li>
               <li class="nav-item">
