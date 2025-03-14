@@ -205,6 +205,10 @@
     white-space: pre;
 }
 
+.parsons .sortable-code code:empty {
+    height: 1.25em; /* force some height for empty lines */
+}
+
 .parsons .block p {
     margin: 0;
 }
