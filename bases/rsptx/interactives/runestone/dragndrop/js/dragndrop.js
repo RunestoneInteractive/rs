@@ -105,6 +105,8 @@ export default class DragNDrop extends RunestoneBase {
         );
         if (feedback) {
             this.feedback = feedback.innerHTML;
+            this.feedback.setAttribute("aria-live", "polite");
+            this.feedback.setAttribute("role", "status");
         }
     }
 
@@ -379,6 +381,8 @@ export default class DragNDrop extends RunestoneBase {
         if (!this.feedBackDiv) {
             this.feedBackDiv = document.createElement("div");
             this.feedBackDiv.id = this.divid + "_feedback";
+            this.feedback.setAttribute("aria-live", "polite");
+            this.feedback.setAttribute("role", "status");
             this.containerDiv.appendChild(document.createElement("br"));
             this.containerDiv.appendChild(this.feedBackDiv);
         }

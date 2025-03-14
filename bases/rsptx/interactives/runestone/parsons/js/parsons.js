@@ -260,6 +260,8 @@ export default class Parsons extends RunestoneBase {
         }
         this.messageDiv = document.createElement("div");
         this.messageDiv.id = this.counterId + "-message";
+        this.messageDiv.setAttribute("aria-live", "polite");
+        this.messageDiv.setAttribute("role", "status");
         this.parsonsControlDiv.appendChild(this.messageDiv);
         $(this.messageDiv).hide();
         $(this.origElem).replaceWith(this.outerDiv);
