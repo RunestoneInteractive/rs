@@ -344,36 +344,39 @@ export default class Parsons extends RunestoneBase {
             } else {
                 var split = [textBlock];
             }
+
             for (var j = 0; j < split.length; j++) {
                 var code = split[j];
-                // discard blank rows
-                if (!/^\s*$/.test(code)) {
-                    var line = new ParsonsLine(
-                        this,
-                        code,
-                        options["displaymath"]
-                    );
-                    lines.push(line);
-                    if (options["paired"]) {
-                        line.distractor = true;
-                        line.paired = true;
-                        line.distractHelptext = distractHelptext;
-                    } else if (options["distractor"]) {
-                        line.distractor = true;
-                        line.paired = false;
-                        line.distractHelptext = distractHelptext;
-                    } else {
-                        line.distractor = false;
-                        line.paired = false;
-                        if (this.options.grader === "dag") {
-                            line.tag = tag;
-                            line.depends = depends;
-                        }
-                        solution.push(line);
+                let isBlank = /^\s*$/.test(code);
+                // discard up to one blank leading or trailing line
+                if (isBlank && (j == 0 || j == split.length - 1)) {
+                    continue;
+                }
+                var line = new ParsonsLine(
+                    this,
+                    code,
+                    options["displaymath"]
+                );
+                lines.push(line);
+                if (options["paired"]) {
+                    line.distractor = true;
+                    line.paired = true;
+                    line.distractHelptext = distractHelptext;
+                } else if (options["distractor"]) {
+                    line.distractor = true;
+                    line.paired = false;
+                    line.distractHelptext = distractHelptext;
+                } else {
+                    line.distractor = false;
+                    line.paired = false;
+                    if (this.options.grader === "dag") {
+                        line.tag = tag;
+                        line.depends = depends;
                     }
-                    if ($.inArray(line.indent, indents) == -1) {
-                        indents.push(line.indent);
-                    }
+                    solution.push(line);
+                }
+                if ($.inArray(line.indent, indents) == -1) {
+                    indents.push(line.indent);
                 }
             }
             if (lines.length > 0) {
