@@ -151,7 +151,7 @@ function connect(event) {
                     for (const key in adict) {
                         let currAnswer = adict[key];
                         let newpeer = document.createElement("p");
-                        newpeer.innerHTML = `${key} answered ${currAnswer}`;
+                        newpeer.innerHTML = `${key}: <strong>${currAnswer}</strong>`;
                         peerlist.appendChild(newpeer);
                         let peeropt = document.createElement("option");
                         peeropt.value = key;

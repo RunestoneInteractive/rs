@@ -4,6 +4,122 @@
 {{include '_sphinx_static_files.html'}}
 {{end}}
 
+<!-- TODO: Figure out where to put this CSS code -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+    #peer-question-student-interface {
+        margin-right: 0px;
+        margin-left: 0px;
+        padding-right: 15px;
+    }
+
+    #discussion_panel {
+        margin: 20px 0;
+        background: #FBFBFB;
+        border: 0.5px solid #C7CDD1;
+        border-radius: 12px;
+        box-shadow: 0px 20px 24px 0px rgba(17, 17, 17, 0.06);
+        padding-left: 0px;
+        padding-right: 0px;
+    }
+
+    #discussion-panel-heading {
+        font-size: 22px;
+        font-weight: 500;
+        padding: 12px 24px;
+        background: #FBFBFB;
+        border: 1px solid #C7CDD1;
+        border-radius: 12px 12px 0px 0px;
+        box-shadow: 0px 2px 2px 0px rgba(17, 17, 17, 0.06);
+    }
+
+    #discussion-panel-heading p {
+        margin: 0;
+    }
+
+    #discussion-panel-peer-votes {
+        border-bottom: 1px solid #C7CDD1;
+        padding: 16px 24px;
+    }
+
+    #discussion-panel-peer-votes-content {
+        border-radius: 12px;
+        border: 2px solid #C7CDD1;
+        background: #FFFFFF;
+        padding: 16px 32px;
+    }
+
+    #discussion-panel-peer-votes-content p {
+        margin: 0;
+        line-height: 28px;
+    }
+
+    #discussion-panel-peer-votes-content #peerlist {
+        margin-bottom: 8px;
+    }
+
+    #discussion-panel-messages {
+        padding: 16px 24px;
+    }
+
+    #discussion-panel-messages #messages {
+        margin: 0;
+        padding-left: 0;
+    }
+
+    #discussion-panel-messages #messages li {
+        margin-bottom: 8px;
+    }
+
+    #discussion-panel-messages #messages .outgoing-mess + .incoming-mess,
+    #discussion-panel-messages #messages .incoming-mess + .outgoing-mess {
+        margin-bottom: 16px;
+    }
+
+    #discussion-panel-messages #messages li:last-child {
+        margin-bottom: 0;
+    }
+
+    #discussion-panel-messages #messages .outgoing-mess {
+        font-style: normal;
+        color: #333;
+        text-align: right;
+    }
+
+    #discussion-panel-messages #messages .incoming-mess {
+        font-style: normal;
+        color: #333;
+        text-align: left;
+    }
+
+    #peer-message-box {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        border-radius: 12px;
+        border: 2px solid #C7CDD1;
+        background: #FFFFFF;
+        padding: 8px 16px;
+        margin-top: 10px;
+        gap: 16px;
+    }
+
+    #peer-message-box input {
+        width: 100%;
+        border: none;
+    }
+
+    #sendpeermsg {
+        font-size: 24px;
+    }
+
+    #peer-rating {
+        display: none;
+    }
+</style>
+
 <script>
     eBookConfig.peer = true;
     var assignment_id = {{=assignment_id}};
@@ -25,28 +141,45 @@
     </div>
 </div>
 
-<div class="row">
+<div class="row" id="peer-question-student-interface">
     <div class='oneq col-md-6 runestone-sphinx'>
         {{=XML(current_question['htmlsrc'])}}
     </div>
     <div id="discussion_panel" class='col-md-6' style="display: none">
-        <p>Your answer <span id="first_answer"></span></p>
-        <div id="peerlist">
-        </div>
-        <p>Please discuss the answers with your group members</p>
-        <div>
-            <ul id="messages" class="conversation">
 
-            </ul>
+        <div id="discussion-panel-heading">
+            <p class="discussion-panel-heading">PI Text Chat</p>
         </div>
 
-        <textarea id="messageText" rows="6" style="width: 350px;">
-</textarea>
-        <div class="text-center" style="width: 350px;">
-        <button id="sendpeermsg" type="button" onclick="sendMessage()">Send</button>
+        <div id="discussion-panel-peer-votes">
+            <div id="discussion-panel-peer-votes-content">
+                <p><strong>Here is what everyone answered:</strong></p>
+                <div id="peerlist">
+                    <p>You: <strong><span id="first_answer"></span></strong></p>
+                </div>
+                <p><strong>Please discuss your answers now :)</strong></p>
+            </div>
         </div>
+
+        <div id="discussion-panel-messages">
+            <ul id="messages" class="conversation"></ul>
+
+            <div id="peer-message-box">
+                <!-- <textarea id="messageText" rows="6" style="width: 350px;"></textarea> -->
+                <input type="text" id="messageText" placeholder="Type your explanation here...">
+                <span
+                    id="sendpeermsg"
+                    class="bi bi-arrow-up-circle-fill"
+                    onclick="sendMessage()"
+                    aria-label="Send message"
+                >
+                </span>
+                <!-- <button id="sendpeermsg" type="button" onclick="sendMessage()">Send</button> -->
+            </div>
+        </div>
+
         <form>
-            <div class="form-group">
+            <div class="form-group" id="peer-rating">
                 Please provide a confidential rating of <select id="peersel" name="peercel"></select>
                 peer's explanation<br />
                 <input class="form-check-input ratingradio" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="poor" onclick="ratePeer(this)">
