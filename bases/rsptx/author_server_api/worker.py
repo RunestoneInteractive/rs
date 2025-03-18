@@ -278,8 +278,21 @@ def build_ptx_book(self, book, generate=False, target="runestone", source_path=N
     logger.debug(f"base_path = {base_path}")
     outputlog = pathlib.Path(base_path, "cli.log")
     start_time = datetime.datetime.now()
-    with open(outputlog, "w") as olfile:
-        olfile.write(f"Starting build on {start_time}\n")
+    try:
+        with open(outputlog, "w") as olfile:
+            olfile.write(f"Starting build on {start_time}\n")
+    except Exception as e:
+        logger.error(f"Failed to write to log file: {str(e)}")
+        logger.error(f"Absolute path to log file: {outputlog.absolute()}")
+        self.update_state(
+            state="FAILURE",
+            meta={
+                "exc_type": "RuntimeError",
+                "exc_message": str(e),
+                "current": "Failed to write to log file",
+            },
+        )
+        return False
     self.update_state(state="CHECKING", meta={"current": "pull latest"})
     git_pull(self, book)
 
