@@ -1616,10 +1616,6 @@ Yet another is that there is an internal error.  The internal error message is: 
             this.output.innerHTML = ""
             console.log("init innerhtml")
         }
-        if (this.eContainer.innerHTML == "")
-            this.eContainer.style.visibility = "hidden"; // updated to use 'hidden' for visibility";
-        else
-            this.eContainer.style.visibility = "visible";
     }
     /* runProg has several async elements to it.
      * 1. Skulpt runs the python program asynchronously
@@ -1658,6 +1654,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             }
         }
         this.eContainer.innerHTML = "";
+        this.eContainer.style.visibility = "hidden";
 
         if (this.codelens) {
             this.codelens.style.display = "none";

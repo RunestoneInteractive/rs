@@ -105,8 +105,6 @@ export default class DragNDrop extends RunestoneBase {
         );
         if (feedback) {
             this.feedback = feedback.innerHTML;
-            this.feedback.setAttribute("aria-live", "polite");
-            this.feedback.setAttribute("role", "status");
         }
     }
 
@@ -381,8 +379,8 @@ export default class DragNDrop extends RunestoneBase {
         if (!this.feedBackDiv) {
             this.feedBackDiv = document.createElement("div");
             this.feedBackDiv.id = this.divid + "_feedback";
-            this.feedback.setAttribute("aria-live", "polite");
-            this.feedback.setAttribute("role", "status");
+            this.feedBackDiv.setAttribute("aria-live", "polite");
+            this.feedBackDiv.setAttribute("role", "status");
             this.containerDiv.appendChild(document.createElement("br"));
             this.containerDiv.appendChild(this.feedBackDiv);
         }
@@ -419,6 +417,7 @@ export default class DragNDrop extends RunestoneBase {
         this.minheight = this.draggableDiv.offsetHeight;
         this.dragDropWrapDiv.style.minHeight =
             this.minheight.toString() + "px";
+        this.feedBackDiv.style.visibility = "hidden";
     }
     /*===========================
     == Evaluation and feedback ==
@@ -528,11 +527,14 @@ export default class DragNDrop extends RunestoneBase {
         if (!this.feedBackDiv) {
             this.createFeedbackDiv();
         }
-        this.feedBackDiv.style.display = "block";
+        this.feedBackDiv.style.visibility = "visible";
         if (this.correct) {
             var msgCorrect = $.i18n("msg_dragndrop_correct_answer");
-            this.feedBackDiv.innerHTML = msgCorrect;
+            setTimeout(() => {
+                this.feedBackDiv.innerHTML = msgCorrect;
+            }, 10);
             this.feedBackDiv.className = "alert alert-info draggable-feedback";
+
         } else {
             var msgIncorrect = $.i18n(
                 $.i18n("msg_dragndrop_incorrect_answer"),
@@ -542,7 +544,9 @@ export default class DragNDrop extends RunestoneBase {
                 this.unansweredNum
             );
             // this.feedback comes from the author (a hint maybe)
-            this.feedBackDiv.innerHTML = msgIncorrect + " " + this.feedback;
+            setTimeout(() => {
+                this.feedBackDiv.innerHTML = msgIncorrect + " " + this.feedback;
+            }, 10);
             this.feedBackDiv.className =
                 "alert alert-danger draggable-feedback";
         }
