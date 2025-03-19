@@ -342,6 +342,16 @@ def deploy_book(self, book):
     numServers = int(os.environ["NUM_SERVERS"].strip())
 
     for i in range(1, numServers + 1):
+        command = f"ssh -oStrictHostKeyChecking=no server{i} 'mkdir -p ~/books/{book}/published{book}'"
+        res = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+        )
+        if res.returncode != 0:
+            logger.debug(res.stdout)
+            logger.debug(res.stderr)
+            return False
         command = f"rsync -e 'ssh -oStrictHostKeyChecking=no'  --exclude '__pycache__' -P -rzc /books/{book}/published/{book} {user}@server{i}:~/books/{book}/published --copy-links --delete"
         logger.debug(command)
         self.update_state(state="DEPLOYING", meta={"current": f"server{i}"})
