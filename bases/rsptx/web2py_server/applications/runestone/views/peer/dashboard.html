@@ -49,36 +49,36 @@
             >
                 Stop Vote 1
             </button>
-        <div id="chat-modality">
-            <button
-                type="button"
-                id="makep"
-                class="btn btn-info"
-                onclick="makePartners(event,false)"
-                disabled
-            >
-                Enable Text Chat
-            </button>
-            <button
-                type="button"
-                id="facechat"
-                class="btn btn-info"
-                onclick="enableFaceChat(event)"
-                disabled
-            >
-            Enable in-person Chat
-            </button>
-            {{ if enable_ab: }}   
-            <button
-                type="button"
-                id="makeabgroups"
-                class="btn btn-info"
-                onclick="makePartners(event, true)"
-                disabled
-            >
-                Run AB Experiment
-            </button>
-        </div>
+            <div id="chat-modality">
+                <button
+                    type="button"
+                    id="makep"
+                    class="btn btn-info"
+                    onclick="makePartners(event,false)"
+                    disabled
+                >
+                    Enable Text Chat
+                </button>
+                <button
+                    type="button"
+                    id="facechat"
+                    class="btn btn-info"
+                    onclick="enableFaceChat(event)"
+                    disabled
+                >
+                Enable in-person Chat
+                </button>
+                {{ if enable_ab: }}
+                <button
+                    type="button"
+                    id="makeabgroups"
+                    class="btn btn-info"
+                    onclick="makePartners(event, true)"
+                    disabled
+                >
+                    Run AB Experiment
+                </button>
+            </div>
             {{ pass }}
             <button
                 type="button"
@@ -125,8 +125,8 @@
                 class="btn btn-info"
                 onclick="sendLtiScores(event)"
                 disabled
-                >
-            Send LTI Scores
+            >
+                Send LTI Scores
             </button>
             {{ pass }}
         </form>

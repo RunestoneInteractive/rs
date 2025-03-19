@@ -34,12 +34,25 @@ function connect(event) {
                 // Create sender element
                 var sender = document.createElement("div");
                 sender.classList.add("sender");
+
+                // Create sender initials element
+                var sender_initials = document.createElement("div");
+                sender_initials.classList.add("sender-initials");
                 let initials = mess.from
                     .split(" ") // Split name into parts
                     .map(name => name.charAt(0)) // Get the first letter of each part
                     .join("") // Join initials together
                     .toUpperCase(); // Convert to uppercase
-                sender.textContent = initials;
+                sender_initials.textContent = initials;
+
+                // Create sender name element
+                var sender_name = document.createElement("div");
+                sender_name.classList.add("sender-name");
+                sender_name.textContent = mess.from;
+
+                // Append sender initials and name to sender
+                sender.appendChild(sender_initials);
+                sender.appendChild(sender_name);
 
                 // Create message content element
                 var content = document.createElement("div");
@@ -313,12 +326,25 @@ async function sendMessage(event) {
         // Create sender element
         var sender = document.createElement("div");
         sender.classList.add("sender");
+
+        // Create sender initials element
+        var sender_initials = document.createElement("div");
+        sender_initials.classList.add("sender-initials");
         let initials = user
             .split(" ") // Split name into parts
             .map(name => name.charAt(0)) // Get the first letter of each part
             .join("") // Join initials together
             .toUpperCase(); // Convert to uppercase
-        sender.textContent = initials;
+        sender_initials.textContent = initials;
+
+        // Create sender name element
+        var sender_name = document.createElement("div");
+        sender_name.classList.add("sender-name");
+        sender_name.textContent = user;
+
+        // Append sender initials and name to sender
+        sender.appendChild(sender_initials);
+        sender.appendChild(sender_name);
 
         // Create message content element
         var content = document.createElement("div");

@@ -86,30 +86,40 @@
 
     #discussion-panel-messages #messages .outgoing-mess, #discussion-panel-messages #messages .incoming-mess {
         display: flex;
-        align-items: center;
+        flex-direction: column;
         font-style: normal;
         color: #333;
         gap: 4px;
     }
 
     #discussion-panel-messages #messages .outgoing-mess {
-        justify-content: right;
+        align-items: end;
     }
 
     #discussion-panel-messages #messages .incoming-mess {
-        justify-content: left;
+        align-items: start;
     }
 
     #discussion-panel-messages #messages .sender {
+        display: flex;
+        font-size: 10px;
+        gap: 8px;
+        align-items: center;
+    }
+
+    #discussion-panel-messages #messages .sender-initials {
         display: flex;
         background: #777777;
         height: 24px;
         width: 24px;
         border-radius: 50%;
-        color: #FFFFFF;
         align-items: center;
         justify-content: center;
-        font-size: 10px;
+        color: #FFFFFF;
+    }
+
+    #discussion-panel-messages #messages .sender-name {
+        font-weight: 700;
     }
 
     #discussion-panel-messages #messages .content {
@@ -117,13 +127,11 @@
         padding: 8px 16px;
     }
 
-    #discussion-panel-messages #messages .outgoing-mess .sender {
+    #discussion-panel-messages #messages .outgoing-mess .sender-initials {
         order: 2;
-
     }
 
     #discussion-panel-messages #messages .outgoing-mess .content {
-        order: 1;
         background: rgba(215, 241, 249, 0.60);
     }
 
