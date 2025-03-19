@@ -65,31 +65,70 @@
     #discussion-panel-messages #messages {
         margin: 0;
         padding-left: 0;
+        min-height: 25vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: end;
     }
 
-    #discussion-panel-messages #messages li {
-        margin-bottom: 8px;
+    #discussion-panel-messages #messages > div {
+        margin-top: 8px;
     }
 
     #discussion-panel-messages #messages .outgoing-mess + .incoming-mess,
     #discussion-panel-messages #messages .incoming-mess + .outgoing-mess {
-        margin-bottom: 16px;
+        margin-top: 16px;
     }
 
-    #discussion-panel-messages #messages li:last-child {
-        margin-bottom: 0;
+    #discussion-panel-messages #messages > div:first-child {
+        margin-top: 0;
+    }
+
+    #discussion-panel-messages #messages .outgoing-mess, #discussion-panel-messages #messages .incoming-mess {
+        display: flex;
+        align-items: center;
+        font-style: normal;
+        color: #333;
+        gap: 4px;
     }
 
     #discussion-panel-messages #messages .outgoing-mess {
-        font-style: normal;
-        color: #333;
-        text-align: right;
+        justify-content: right;
     }
 
     #discussion-panel-messages #messages .incoming-mess {
-        font-style: normal;
-        color: #333;
-        text-align: left;
+        justify-content: left;
+    }
+
+    #discussion-panel-messages #messages .sender {
+        display: flex;
+        background: #777777;
+        height: 24px;
+        width: 24px;
+        border-radius: 50%;
+        color: #FFFFFF;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+    }
+
+    #discussion-panel-messages #messages .content {
+        border-radius: 15px;
+        padding: 8px 16px;
+    }
+
+    #discussion-panel-messages #messages .outgoing-mess .sender {
+        order: 2;
+
+    }
+
+    #discussion-panel-messages #messages .outgoing-mess .content {
+        order: 1;
+        background: rgba(215, 241, 249, 0.60);
+    }
+
+    #discussion-panel-messages #messages .incoming-mess .content {
+        background: rgba(255, 255, 215, 0.60);
     }
 
     #peer-message-box {
@@ -113,6 +152,12 @@
 
     #sendpeermsg {
         font-size: 24px;
+        cursor: pointer;
+    }
+
+    #sendpeermsg.disabled {
+        pointer-events: none;
+        opacity: 0.5;
     }
 
     #peer-rating {
@@ -148,7 +193,7 @@
     <div id="discussion_panel" class='col-md-6' style="display: none">
 
         <div id="discussion-panel-heading">
-            <p class="discussion-panel-heading">PI Text Chat</p>
+            <p class="discussion-panel-heading">Peer Text Chat</p>
         </div>
 
         <div id="discussion-panel-peer-votes">
@@ -169,7 +214,7 @@
                 <input type="text" id="messageText" placeholder="Type your explanation here...">
                 <span
                     id="sendpeermsg"
-                    class="bi bi-arrow-up-circle-fill"
+                    class="bi bi-arrow-up-circle-fill disabled"
                     onclick="sendMessage()"
                     aria-label="Send message"
                 >
