@@ -428,6 +428,8 @@ def make_pairs():
 
     logger.debug(f"STARTING to make pairs for {auth.user.course_name}")
     done = False
+    # all peeps who answered peeps who didn't answer are filtered in
+    # _get_lastn_answers
     peeps = df.sid.to_list()
     sid_ans = df.set_index("sid")["answer"].to_dict()
 
@@ -466,8 +468,8 @@ def make_pairs():
                 process_peep(
                     p, peeps, peeps_in_chat, peeps_in_person, in_person_groups, "chat"
                 )
-
-        peeps = peeps_in_chat
+        # need to ensure that these peeps have answered the question
+        peeps = [p for p in peeps_in_chat if p in sid_ans]
         # Now peeps contains only those who need to be paired up for chat
         logger.debug(f"FINAL PEEPS IN CHAT = {peeps}")
         logger.debug(f"FINAL PEEPS IN PERSON = {peeps_in_person}")
