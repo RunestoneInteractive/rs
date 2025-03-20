@@ -42,6 +42,7 @@ from rsptx.db.crud import (
     create_user_course_entry,
     delete_user,
     fetch_all_course_attributes,
+    fetch_assignments,
     fetch_course,
     fetch_courses_for_user,
     fetch_course_instructors,
@@ -935,7 +936,50 @@ def db(config):
     """
     sys.exit(subprocess.run(["pgcli", f"{config.dburl.replace('+asyncpg', '')}"]))
 
+@cli.command()
+@click.argument("course_name", default=None)
+@click.argument("assignment_name", default=None)
+@click.option("--sid", default=None)
+@pass_config
+async def showanswers(config, course_name, assignment_name, sid):
+    """
+    Show students answers for a given assignment
 
+    """
+    course_name = course_name or click.prompt("Name of the course ")
+
+    res = await fetch_course(course_name)
+    if res:
+        click.echo(f"Course ID: {res.id}")
+    else:
+        print("Sorry, that course does not exist")
+        sys.exit(-1)
+
+    assigns = await fetch_assignments(res.course_name)
+    current_assignment = None
+    for assign in assigns:
+        if assign.name == assignment_name:
+            current_assignment = assign
+            break
+    if current_assignment is None:
+        print("Sorry, that assignment does not exist")
+        sys.exit(-1)
+    engine = create_engine(config.dburl.replace("+asyncpg", ""))
+    if sid:
+        sid = f"and useinfo.sid = '{sid}'"
+    else:
+        sid = ""
+    res = engine.execute(f"""
+    select useinfo.timestamp as ts,name,sid,event,act from assignment_questions 
+        join questions ON questions.id = assignment_questions.question_id 
+        join useinfo on questions.name = useinfo.div_id 
+        where assignment_id = {assign.id} {sid if sid else ""}
+        order by useinfo.timestamp
+                   """
+                   )
+    for row in res:
+        print(f"{row.ts} {row.sid:<15} {row.name:<40} {row.event:<10} {row.act:<30}")
+    
 #
 # Utility Functions Below here
 #
