@@ -389,8 +389,10 @@ async def build(config, clone, ptx, gen, manifest, course):
     res = await fetch_course(course)
     if not res:
         click.echo(
-            f"Error:  The course {course} must already exist in the database -- use rsmanage addcourse",
-            color="red",
+            click.style(
+                f"Error:  The course {course} must already exist in the database -- use rsmanage addcourse",
+                fg="red",
+            ),
         )
         exit(1)
 
@@ -688,12 +690,12 @@ async def addeditor(config, username, basecourse):
     if res:
         userid = res.id
     else:
-        click.echo("Sorry, that user does not exist", color="red")
+        click.echo(click.style("Sorry, that user does not exist", fg="red"))
         sys.exit(-1)
 
     res = await fetch_course(basecourse)
     if not res:
-        click.echo("Sorry, that base course does not exist", color="red")
+        click.echo(click.style("Sorry, that base course does not exist", fg="red"))
         sys.exit(-1)
 
     # if needed insert a row into auth_membership
@@ -702,24 +704,31 @@ async def addeditor(config, username, basecourse):
         role = res.id
     else:
         click.echo(
-            "Sorry, your system does not have the editor role setup -- this is bad",
-            color="red",
+            click.style(
+                "Sorry, your system does not have the editor role setup -- this is bad",
+                fg="red",
+            ),
         )
         sys.exit(-1)
 
     if not is_editor(userid):
         await create_membership(role, userid)
-        click.echo(f"made {username} an editor", color="green")
+        click.echo(click.style(f"made {username} an editor", fg="green"))
     else:
-        click.echo(f"{username} is already an editor", color="red")
+        click.echo(click.style(f"{username} is already an editor", fg="red"))
 
     try:
         await create_editor_for_basecourse(userid, basecourse)
     except Exception:
-        click.echo("could not add {username} as editor - They probably already are")
+        click.echo(
+            click.style(
+                f"could not add {username} as editor - They probably already are",
+                fg="red",
+            )
+        )
         sys.exit(-1)
 
-    click.echo(f"made {username} an editor for {basecourse}", color="green")
+    click.echo(click.style(f"made {username} an editor for {basecourse}", fg="green"))
 
 
 @cli.command()
@@ -936,6 +945,7 @@ def db(config):
     """
     sys.exit(subprocess.run(["pgcli", f"{config.dburl.replace('+asyncpg', '')}"]))
 
+
 @cli.command()
 @click.argument("course_name", default=None)
 @click.argument("assignment_name", default=None)
@@ -973,23 +983,32 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
         sid = f"and useinfo.sid = '{sid}'"
     else:
         sid = ""
-    res = engine.execute(f"""
+    res = engine.execute(
+        f"""
     select useinfo.timestamp as ts,name,sid,event,act from assignment_questions 
         join questions ON questions.id = assignment_questions.question_id 
         join useinfo on questions.name = useinfo.div_id 
         where assignment_id = {assign.id} {sid if sid else ""}
         order by sid, useinfo.timestamp
                    """
-                   )
+    )
     click.echo(f"Assignment Due: {current_assignment.duedate}")
 
     dd = datetime.timedelta(hours=int(timezone))
     for row in res:
         if (row.ts + dd) > current_assignment.duedate:
-            click.echo(f"> {row.ts} {row.sid:<15} {row.name:<40} {row.event:<10} {row.act:<30}", color="red")
+            click.echo(
+                click.style(
+                    f"> {row.ts} {row.sid:<15} {row.name:<40} {row.event:<10} {row.act:<30}",
+                    fg="red",
+                )
+            )
         else:
-            click.echo(f"< {row.ts} {row.sid:<15} {row.name:<40} {row.event:<10} {row.act:<30}")
-    
+            click.echo(
+                f"< {row.ts} {row.sid:<15} {row.name:<40} {row.event:<10} {row.act:<30}"
+            )
+
+
 #
 # Utility Functions Below here
 #
