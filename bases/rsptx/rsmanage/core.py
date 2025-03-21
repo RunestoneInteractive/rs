@@ -940,8 +940,9 @@ def db(config):
 @click.argument("course_name", default=None)
 @click.argument("assignment_name", default=None)
 @click.option("--sid", default=None)
+@click.option("-t", "--timezone", default=0)
 @pass_config
-async def showanswers(config, course_name, assignment_name, sid):
+async def showanswers(config, course_name, assignment_name, sid, timezone):
     """
     Show students answers for a given assignment
 
@@ -977,11 +978,17 @@ async def showanswers(config, course_name, assignment_name, sid):
         join questions ON questions.id = assignment_questions.question_id 
         join useinfo on questions.name = useinfo.div_id 
         where assignment_id = {assign.id} {sid if sid else ""}
-        order by useinfo.timestamp
+        order by sid, useinfo.timestamp
                    """
                    )
+    click.echo(f"Assignment Due: {current_assignment.duedate}")
+
+    dd = datetime.timedelta(hours=int(timezone))
     for row in res:
-        print(f"{row.ts} {row.sid:<15} {row.name:<40} {row.event:<10} {row.act:<30}")
+        if (row.ts + dd) > current_assignment.duedate:
+            click.echo(f"> {row.ts} {row.sid:<15} {row.name:<40} {row.event:<10} {row.act:<30}", color="red")
+        else:
+            click.echo(f"< {row.ts} {row.sid:<15} {row.name:<40} {row.event:<10} {row.act:<30}")
     
 #
 # Utility Functions Below here
