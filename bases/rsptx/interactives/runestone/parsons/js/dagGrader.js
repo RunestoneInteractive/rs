@@ -100,6 +100,10 @@ export default class DAGGrader extends LineBasedGrader {
       this.indentRight = [];
       // For dag problems, only check the indentation of each block in the problem
       for (const block of this.problem.blocks) {
+          // Skip distractor blocks
+          if (block.isDistractor())
+              continue;
+
           const curIndent = block.indent;
           const expectedIndent = block.solutionIndent();
           // If missmatch, add first line of block to the correct indent list for
