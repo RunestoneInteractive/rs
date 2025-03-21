@@ -952,7 +952,7 @@ async def showanswers(config, course_name, assignment_name, sid):
     if res:
         click.echo(f"Course ID: {res.id}")
     else:
-        print("Sorry, that course does not exist")
+        click.echo("Sorry, that course does not exist")
         sys.exit(-1)
 
     assigns = await fetch_assignments(res.course_name)
@@ -962,7 +962,10 @@ async def showanswers(config, course_name, assignment_name, sid):
             current_assignment = assign
             break
     if current_assignment is None:
-        print("Sorry, that assignment does not exist")
+        click.echo("Sorry, that assignment does not exist")
+        click.echo("Here are the available assignments:")
+        for assign in assigns:
+            click.echo(f"{assign.name}")
         sys.exit(-1)
     engine = create_engine(config.dburl.replace("+asyncpg", ""))
     if sid:
