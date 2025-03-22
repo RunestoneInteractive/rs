@@ -123,7 +123,7 @@ jupyter-sphinx = "<0.5"
 jupyterlab = "^4.2.4"
 scikit-learn = "^1.5.1"
 ipyleaflet = "^0.19.2"
-aiosqlite = "^0.17.0"
+aiosqlite = ">=0.18.0"
 
 # Development dependencies
 # ========================
