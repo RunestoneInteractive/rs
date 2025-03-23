@@ -166,6 +166,7 @@ export default class DragNDrop extends RunestoneBase {
             this.dragDropWrapDiv.style.minHeight =
                 this.minheight.toString() + "px";
         }
+        this.adjustDragDropWidths();
     }
     addDragDivListeners() {
         let self = this;
@@ -343,6 +344,22 @@ export default class DragNDrop extends RunestoneBase {
         );
     }
 
+    adjustDragDropWidths() {
+        // Temporarily reset width to auto for accurate measurement
+        this.draggableDiv.style.width = 'auto';
+        this.dropZoneDiv.style.width = 'auto';
+    
+        const dragzoneWidth = this.draggableDiv.offsetWidth;
+        const totalWidth = this.dragDropWrapDiv.offsetWidth;
+    
+        let dragzonePercent = (dragzoneWidth / totalWidth) * 100;
+        dragzonePercent = Math.max(28, Math.min(dragzonePercent, 48));
+        const dropzonePercent = 100 - dragzonePercent - 2; // account for 2% padding
+    
+        this.draggableDiv.style.width = `${dragzonePercent}%`;
+        this.dropZoneDiv.style.width = `${dropzonePercent}%`;
+    }
+
     createFeedbackDiv() {
         if (!this.feedBackDiv) {
             this.feedBackDiv = document.createElement("div");
@@ -379,6 +396,7 @@ export default class DragNDrop extends RunestoneBase {
         }
         this.answerState = {};
         this.feedBackDiv.style.display = "none";
+        this.adjustDragDropWidths();
     }
     /*===========================
     == Evaluation and feedback ==
