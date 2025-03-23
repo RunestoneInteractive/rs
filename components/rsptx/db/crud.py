@@ -18,7 +18,7 @@ import datetime
 import hashlib
 import json
 from collections import namedtuple
-from typing import Dict, List, Optional, Tuple, Any, Container, Type, Union
+from typing import Dict, List, Optional, Tuple, Any
 import textwrap
 import traceback
 import pytz
@@ -1451,7 +1451,7 @@ async def update_assignment(assignment: AssignmentValidator) -> None:
     """
     assignment_updates = assignment.dict()
     assignment_updates["current_index"] = 0
-    del assignment_updates["id"]  # Remove id as it's used in the where clause
+    del assignment_updates["id"]
 
     stmt = (
         update(Assignment)
@@ -1531,7 +1531,6 @@ async def update_multiple_assignment_questions(
 
             question_type = question.question_type  # Access question_type from the related question
 
-            # Словари уже имеют метод .copy(), а не .model_dump()
             exercise_dict = exercise.copy()
 
             # Validate and update which_to_grade
