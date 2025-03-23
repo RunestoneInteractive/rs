@@ -157,7 +157,6 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
             return False
 
         logger = logging.getLogger("ptxlogger")
-        logger.setLevel(logging.DEBUG)
         string_io_handler = StringIOHandler()
         logger.addHandler(string_io_handler)
         click.echo("Building the book")
