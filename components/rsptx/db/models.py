@@ -32,7 +32,7 @@ from typing import Dict, Type
 
 # Third-party imports
 # -------------------
-from pydantic import field_validator
+from pydantic import field_validator, BaseModel
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -158,7 +158,7 @@ class Useinfo(Base, IdMixin):
     ##sub_chapter = Column(String, unique=False, index=False)
 
 
-UseinfoValidation = sqlalchemy_to_pydantic(Useinfo)
+UseinfoValidation: Type[BaseModel] = sqlalchemy_to_pydantic(Useinfo)
 
 
 # Answers to specific question types

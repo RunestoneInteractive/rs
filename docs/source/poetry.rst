@@ -19,6 +19,11 @@ your copy of poetry. Do the following from a command prompt:
 1. ``poetry self add poetry-polylith-plugin``
 2. ``poetry self add poetry-multiproject-plugin``
 3. ``poetry self add poetry-dotenv-plugin``
+4. ``poetry self add poetry-plugin-shell``
+
+Note that before version 2.0 of poetry the ``shell`` subcommand was built in to poetry, but
+after 2.0 it was moved to a plugin. If you have an earlier version of poetry, you can skip step 4.
+The poetry project recommends using something like ``eval $(poetry env activate)`` instead of the ``poetry shell`` command.  I have not experimented with that enough to recommend it for our project.
 
 .. warning::
 

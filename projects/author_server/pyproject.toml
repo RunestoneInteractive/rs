@@ -19,6 +19,7 @@ packages = [
     { include = "rsptx/build_tools", from = "../../components" },
     { include = "rsptx/templates", from = "../../components" },
     { include = "rsptx/author_server_api", from = "../../bases" },
+    { include = "rsptx/data_types", from = "../../components" },
 ]
 
 exclude = [
@@ -36,7 +37,7 @@ pytest = "^7.1.2"
 redis = "^4.3.4"
 requests = "^2.28.1"
 uvicorn = "^0.18.2"
-pretext = "^2.8.2"
+pretext = "^2.13.0"
 SQLAlchemy = "^1.4.39"
 psycopg2-binary = "^2.9.3"
 fastapi-login = "^1.8.0"

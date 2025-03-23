@@ -28,7 +28,8 @@ export default class ACFactory {
             }
         }
         if (lang === undefined) {
-            lang = $(opts.orig).find("[data-lang]").data("lang");
+            let dataElem = opts.orig.querySelector("[data-lang]");
+            lang = dataElem ? dataElem.dataset.lang : undefined;
         }
         if (opts.timed == true) {
             if (lang === "python") {
@@ -70,14 +71,13 @@ export default class ACFactory {
     }
     // used by web2py controller(s)
     static addActiveCodeToDiv(outerdivid, acdivid, sid, initialcode, language) {
-        var thepre, newac;
         var acdiv = document.getElementById(acdivid);
-        $(acdiv).empty();
-        thepre = document.createElement("textarea");
+        acdiv.innerHTML = "";
+        var thepre = document.createElement("textarea");
         thepre["data-component"] = "activecode";
         thepre.id = outerdivid;
-        $(thepre).data("lang", language);
-        $(acdiv).append(thepre);
+        thepre.dataset.lang = language;
+        acdiv.appendChild(thepre);
         var opts = {
             orig: thepre,
             useRunestoneServices: true,
@@ -86,7 +86,7 @@ export default class ACFactory {
             sid: sid,
             graderactive: true,
         };
-        newac = ACFactory.createActiveCode(thepre, language, addopts);
+        var newac = ACFactory.createActiveCode(thepre, language, addopts);
         var savediv = newac.divid;
         newac.divid = savediv;
         newac.editor.setSize(500, 300);
@@ -242,25 +242,20 @@ export default class ACFactory {
 // Page Initialization
 //
 
-$(document).on("runestone:login-complete", function () {
+document.addEventListener("runestone:login-complete", function () {
     ACFactory.createScratchActivecode();
-    $("[data-component=activecode]").each(function () {
-        if ($(this).closest("[data-component=timedAssessment]").length == 0) {
-            // If this element exists within a timed component, don't render it here
+    document.querySelectorAll("[data-component='activecode']").forEach(function (element) {
+        if (element.closest("[data-component='timedAssessment']") === null) {
             try {
-                window.componentMap[this.id] = ACFactory.createActiveCode(
-                    this,
-                    $(this).find("textarea").data("lang")
-                );
+                let textArea = element.querySelector("textarea");
+                window.componentMap[element.id] = ACFactory.createActiveCode(element, textArea ? textArea.dataset.lang : null);
             } catch (err) {
-                console.error(`Error rendering Activecode Problem ${this.id}
+                console.error(`Error rendering Activecode Problem ${element.id}
                 Details: ${err}`);
                 console.error(err.stack);
             }
         }
     });
-    // The componentMap can have any component, not all of them have a disableSaveLoad
-    // method or an enableSaveLoad method.  So we need to check for that before calling it.
     if (loggedout) {
         for (let k in window.componentMap) {
             if (window.componentMap[k].disableSaveLoad) {
@@ -289,14 +284,14 @@ window.ACFactory = ACFactory;
 // figure out the login/logout status of the user.  Sometimes its immediate, and sometimes its
 // long.  So to be safe we'll do it both ways..
 var loggedout;
-$(document).on("runestone:logout", function () {
+document.addEventListener("runestone:logout", function () {
     loggedout = true;
 });
-$(document).on("runestone:logout", function () {
+document.addEventListener("runestone:logout", function () {
     for (let k in window.componentMap) {
         if (
             window.componentMap.hasOwnProperty(k) &&
-            window.componentMap.attributes["data-component"] == "activecode"
+            window.componentMap[k].attributes["data-component"] == "activecode"
         ) {
             window.componentMap[k].disableSaveLoad();
         }

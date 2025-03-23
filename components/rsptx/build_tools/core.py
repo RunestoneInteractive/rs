@@ -27,7 +27,8 @@ import click
 import lxml.etree as ET
 from lxml import ElementInclude
 import pretext
-from pretext.project import Project
+from pretext.utils import is_earlier_version
+import pretext.project
 
 # import xml.etree.ElementTree as ET
 
@@ -40,6 +41,7 @@ from rsptx.logging import rslogger
 from runestone.server import get_dburl
 from rsptx.db.models import Library, LibraryValidator
 from rsptx.response_helpers.core import canonical_utcnow
+import pdb
 
 rslogger.setLevel("WARNING")
 
@@ -155,13 +157,16 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
             return False
 
         logger = logging.getLogger("ptxlogger")
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.DEBUG)
         string_io_handler = StringIOHandler()
         logger.addHandler(string_io_handler)
         click.echo("Building the book")
-        rs.build()  # build the book, generating assets as needed
 
-        with open("cli.log", "a") as olfile:
+        rs.build()  # build the book, generating assets as needed
+        log_path = Path(os.environ.get("BOOK_PATH")) / rs.output_dir / "cli.log"
+        if not log_path.parent.exists():
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "a") as olfile:
             olfile.write(string_io_handler.getvalue())
 
         book_path = (
@@ -185,7 +190,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         # Fetch and copy the runestone components release as advertised by the manifest
         # - Use wget to get all the js files and put them in _static
         # Beginning with 2.6.1 PreTeXt populates the _static folder with the latest
-        if pretext.VERSION < "2.6.1":
+        if is_earlier_version(pretext.VERSION, "2.6.1"):
             click.echo("populating with the latest runestone files")
             populate_static(config, mpath, course)
         # update the library page
@@ -231,7 +236,7 @@ def check_project_ptx(click=click, course=None, target="runestone"):
     6. Set target output to document-id
 
     """
-    proj = Project.parse("project.ptx")
+    proj = pretext.project.Project.parse("project.ptx")
     if not target:
         target = "runestone"
     target_name = target
@@ -454,10 +459,10 @@ def populate_static(config, mpath: Path, course: str, click=click):
         # remove the old files, but keep the lunr-pretext-search-index.js file if it exists
         for f in os.listdir(sdir):
             try:
-                if "lunr-pretext" not in f:
+                if "lunr-pretext" not in f and Path(sdir, f).is_file():
                     os.remove(sdir / f)
             except Exception:
-                click.echo(f"ERROR - could not delete {f}")
+                click.echo(f"ERROR - could not delete {sdir} / {f}")
         # call wget non-verbose, recursive, no parents, no hostname, no directoy copy files to sdir
         # trailing slash is important or otherwise you will end up with everything below runestone
         res = subprocess.call(

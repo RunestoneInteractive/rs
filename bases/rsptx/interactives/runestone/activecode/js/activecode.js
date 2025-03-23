@@ -221,14 +221,13 @@ export class ActiveCode extends RunestoneBase {
         codeDiv.classList.add("ac_code_div");
         codeDiv.setAttribute("aria-label", "CodeMirror Editor");
         this.codeDiv = codeDiv;
-        this.outerDiv.lang = this.language;
         this.origElem.replaceWith(this.outerDiv);
         if (linkdiv.id !== this.divid) {
             // Don't want the 'extra' target if they match.
             this.outerDiv.appendChild(linkdiv);
         }
         this.outerDiv.appendChild(codeDiv);
-        var edmode = this.outerDiv.lang;
+        var edmode = this.language;
         if (edmode === "sql") {
             edmode = "text/x-sql";
         } else if (edmode === "java") {
@@ -258,6 +257,7 @@ export class ActiveCode extends RunestoneBase {
             matchBrackets: true,
             autoMatchParens: true,
             gutters: gutterList,
+            screenReaderLabel: "ActiveCode Editor",
             extraKeys: {
                 Tab: "indentMore",
                 "Shift-Tab": "indentLess",
@@ -859,6 +859,8 @@ export class ActiveCode extends RunestoneBase {
         $(scrubber).on("slide", this.slideit.bind(this));
         $(scrubber).on("slidechange", this.slideit.bind(this));
         scrubberDiv.appendChild(scrubber);
+        // Add aria-label to the otherwise empty <a> child for scrubber:
+        scrubber.childNodes[0].setAttribute("aria-label", "History slider")
         scrubberDiv.appendChild(this.timestampP);
         // If there is a deadline set then position the scrubber at the last submission
         // prior to the deadline
@@ -1801,6 +1803,8 @@ errorText.TokenError = $.i18n("msg_activecode_token_error");
 errorText.TokenErrorFix = $.i18n("msg_activecode_token_error_fix");
 errorText.TimeLimitError = $.i18n("msg_activecode_time_limit_error");
 errorText.TimeLimitErrorFix = $.i18n("msg_activecode_time_limit_error_fix");
+errorText.TimeoutError = $.i18n("msg_activecode_time_limit_error");
+errorText.TimeoutErrorFix = $.i18n("msg_activecode_time_limit_error_fix");
 errorText.Error = $.i18n("msg_activecode_general_error");
 errorText.ErrorFix = $.i18n("msg_activecode_general_error_fix");
 errorText.SyntaxError = $.i18n("msg_activecode_syntax_error");

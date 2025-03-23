@@ -233,7 +233,12 @@ export default class LiveCode extends ActiveCode {
                     // check to see if file is in db
                     content = this.fileReader(fileName);
                 } else {
-                    content = file.textContent;
+                    // if file element is editable textarea, file.value is defined and has the current contents
+                    // otherwise rely on static contents
+                    if(file.value)
+                        content = file.value;
+                    else
+                        content = file.textContent;
                     // may be undefined at this point if file is an image
                 }
                 if (fileExtension === "jar") {

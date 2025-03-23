@@ -15,6 +15,7 @@ packages = [
     { include = "rsptx/logging", from = "../../components" },
     { include = "rsptx/rsmanage", from = "../../bases" },
     { include = "rsptx/data_extract", from = "../../components" },
+    { include = "rsptx/data_types", from = "../../components" },
 ]
 
 [tool.poetry.dependencies]

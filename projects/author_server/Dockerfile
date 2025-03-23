@@ -1,6 +1,6 @@
 # pull official base image
 #FROM python:3.10-bullseye
-FROM latex_base:latest
+FROM latex_base:important
 
 LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
 

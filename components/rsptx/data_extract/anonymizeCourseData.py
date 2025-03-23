@@ -641,7 +641,13 @@ class Anonymizer:
         ]
 
     def write_datashop(self, path="./"):
-        p = pathlib.Path(path, f"{self.BASECOURSE}_datashop.tab.zip")
+        now = datetime.datetime.now()
+        formatted_date = now.strftime("%Y-%m-%d-%H-%M")
+        if len(self.COURSE_LIST) == 1:
+            fname = f"{self.COURSE_LIST[0]}_datashop_{formatted_date}.tab.zip"
+        else:
+            fname = f"{self.BASECOURSE}_datashop_{formatted_date}.tab.zip"
+        p = pathlib.Path(path, fname)
         self.datashop.to_csv(
             p,
             sep="\t",

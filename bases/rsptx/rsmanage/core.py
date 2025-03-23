@@ -42,6 +42,7 @@ from rsptx.db.crud import (
     create_user_course_entry,
     delete_user,
     fetch_all_course_attributes,
+    fetch_assignments,
     fetch_course,
     fetch_courses_for_user,
     fetch_course_instructors,
@@ -388,8 +389,10 @@ async def build(config, clone, ptx, gen, manifest, course):
     res = await fetch_course(course)
     if not res:
         click.echo(
-            f"Error:  The course {course} must already exist in the database -- use rsmanage addcourse",
-            color="red",
+            click.style(
+                f"Error:  The course {course} must already exist in the database -- use rsmanage addcourse",
+                fg="red",
+            ),
         )
         exit(1)
 
@@ -687,12 +690,12 @@ async def addeditor(config, username, basecourse):
     if res:
         userid = res.id
     else:
-        click.echo("Sorry, that user does not exist", color="red")
+        click.echo(click.style("Sorry, that user does not exist", fg="red"))
         sys.exit(-1)
 
     res = await fetch_course(basecourse)
     if not res:
-        click.echo("Sorry, that base course does not exist", color="red")
+        click.echo(click.style("Sorry, that base course does not exist", fg="red"))
         sys.exit(-1)
 
     # if needed insert a row into auth_membership
@@ -701,24 +704,31 @@ async def addeditor(config, username, basecourse):
         role = res.id
     else:
         click.echo(
-            "Sorry, your system does not have the editor role setup -- this is bad",
-            color="red",
+            click.style(
+                "Sorry, your system does not have the editor role setup -- this is bad",
+                fg="red",
+            ),
         )
         sys.exit(-1)
 
     if not is_editor(userid):
         await create_membership(role, userid)
-        click.echo(f"made {username} an editor", color="green")
+        click.echo(click.style(f"made {username} an editor", fg="green"))
     else:
-        click.echo(f"{username} is already an editor", color="red")
+        click.echo(click.style(f"{username} is already an editor", fg="red"))
 
     try:
         await create_editor_for_basecourse(userid, basecourse)
     except Exception:
-        click.echo("could not add {username} as editor - They probably already are")
+        click.echo(
+            click.style(
+                f"could not add {username} as editor - They probably already are",
+                fg="red",
+            )
+        )
         sys.exit(-1)
 
-    click.echo(f"made {username} an editor for {basecourse}", color="green")
+    click.echo(click.style(f"made {username} an editor for {basecourse}", fg="green"))
 
 
 @cli.command()
@@ -934,6 +944,69 @@ def db(config):
     Connect to the database based on the current configuration
     """
     sys.exit(subprocess.run(["pgcli", f"{config.dburl.replace('+asyncpg', '')}"]))
+
+
+@cli.command()
+@click.argument("course_name", default=None)
+@click.argument("assignment_name", default=None)
+@click.option("--sid", default=None)
+@click.option("-t", "--timezone", default=0)
+@pass_config
+async def showanswers(config, course_name, assignment_name, sid, timezone):
+    """
+    Show students answers for a given assignment
+
+    """
+    course_name = course_name or click.prompt("Name of the course ")
+
+    res = await fetch_course(course_name)
+    if res:
+        click.echo(f"Course ID: {res.id}")
+    else:
+        click.echo("Sorry, that course does not exist")
+        sys.exit(-1)
+
+    assigns = await fetch_assignments(res.course_name)
+    current_assignment = None
+    for assign in assigns:
+        if assign.name == assignment_name:
+            current_assignment = assign
+            break
+    if current_assignment is None:
+        click.echo("Sorry, that assignment does not exist")
+        click.echo("Here are the available assignments:")
+        for assign in assigns:
+            click.echo(f"{assign.name}")
+        sys.exit(-1)
+    engine = create_engine(config.dburl.replace("+asyncpg", ""))
+    if sid:
+        sid = f"and useinfo.sid = '{sid}'"
+    else:
+        sid = ""
+    res = engine.execute(
+        f"""
+    select useinfo.timestamp as ts,name,sid,event,act from assignment_questions 
+        join questions ON questions.id = assignment_questions.question_id 
+        join useinfo on questions.name = useinfo.div_id 
+        where assignment_id = {assign.id} {sid if sid else ""}
+        order by sid, useinfo.timestamp
+                   """
+    )
+    click.echo(f"Assignment Due: {current_assignment.duedate}")
+
+    dd = datetime.timedelta(hours=int(timezone))
+    for row in res:
+        if (row.ts + dd) > current_assignment.duedate:
+            click.echo(
+                click.style(
+                    f"> {row.ts} {row.sid:<15} {row.name:<40} {row.event:<10} {row.act:<30}",
+                    fg="red",
+                )
+            )
+        else:
+            click.echo(
+                f"< {row.ts} {row.sid:<15} {row.name:<40} {row.event:<10} {row.act:<30}"
+            )
 
 
 #

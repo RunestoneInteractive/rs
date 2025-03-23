@@ -202,6 +202,11 @@
     clear: both;
     float: left;
     background-color: transparent;
+    white-space: pre;
+}
+
+.parsons .sortable-code code:empty {
+    height: 1.25em; /* force some height for empty lines */
 }
 
 .parsons .block p {
@@ -344,4 +349,9 @@
 
 #timed_Test .pagination {
     margin: 5px 0;
+}
+
+/* override red from bootstrap <code> */
+.parsons .block code {
+    color: black;
 }

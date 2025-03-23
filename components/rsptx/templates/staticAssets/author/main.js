@@ -62,7 +62,7 @@ function buildTask(bcname) {
         });
 }
 
-function buildPTXTask() {}
+function buildPTXTask() { }
 
 // see checkDB in main.py
 async function checkDB(el) {
@@ -363,7 +363,7 @@ function updateDlList(res, kind) {
             li.appendChild(a);
             dlList.appendChild(li);
         } else {
-            if (f.indexOf(courseName) >= 0) {
+            if (kind === "logfiles" && f.indexOf(courseName) >= 0) {
                 let mt = document.getElementById(`${f}_mtime`);
                 let now = new Date();
                 mt.innerHTML = "Today " + now.toLocaleTimeString();

@@ -57,7 +57,7 @@ def sqlalchemy_to_pydantic(
     base: Type[BaseModel] = BaseModelNone,
     # SQLAlchemy fields to exclude from the resulting schema, provided as a sequence of field names. Ignore the id field by default.
     exclude: Container[str] = tuple(),
-):
+) -> Type[BaseModel]:
     # If provided an ORM model, get the underlying Table object.
     db_model = getattr(db_model, "__table__", db_model)
 

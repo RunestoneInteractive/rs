@@ -379,6 +379,10 @@ def peer_question():
 def find_good_partner(group, peeps, answer_dict):
     # try to find a partner with a different answer than the first group member
     logger.debug(f"here {group}, {peeps}, {answer_dict}")
+    # the student did not answer this question
+    if group[0] not in answer_dict:
+        logger.error(f"student {group[0]} did not answer")
+        return peeps.pop()
     ans = answer_dict[group[0]]
     i = 0
     while i < len(peeps) and answer_dict[peeps[i]] == ans:
@@ -424,6 +428,8 @@ def make_pairs():
 
     logger.debug(f"STARTING to make pairs for {auth.user.course_name}")
     done = False
+    # all peeps who answered peeps who didn't answer are filtered in
+    # _get_lastn_answers
     peeps = df.sid.to_list()
     sid_ans = df.set_index("sid")["answer"].to_dict()
 
@@ -442,7 +448,7 @@ def make_pairs():
         peeps_in_person = []
         peeps_in_chat = []
 
-        peep_queue = peeps[:]
+        peep_queue = [p for p in peeps if p in sid_ans]
         while peep_queue:
             p = peep_queue.pop()
             if p in peeps_in_person or p in peeps_in_chat:
@@ -462,8 +468,8 @@ def make_pairs():
                 process_peep(
                     p, peeps, peeps_in_chat, peeps_in_person, in_person_groups, "chat"
                 )
-
-        peeps = peeps_in_chat
+        # need to ensure that these peeps have answered the question
+        peeps = [p for p in peeps_in_chat if p in sid_ans]
         # Now peeps contains only those who need to be paired up for chat
         logger.debug(f"FINAL PEEPS IN CHAT = {peeps}")
         logger.debug(f"FINAL PEEPS IN PERSON = {peeps_in_person}")

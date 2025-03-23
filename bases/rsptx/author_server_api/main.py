@@ -522,7 +522,9 @@ async def dump_code(payload=Body(...), user=Depends(auth_manager)):
 @app.get("/author/dlsAvailable/{kind}", status_code=201)
 async def check_downloads(request: Request, kind: str, user=Depends(auth_manager)):
     # kind will be either logfiles or datashop
-    lf_path = pathlib.Path("downloads", "logfiles", user.username)
+    if kind == "":
+        kind = "datashop"
+    lf_path = pathlib.Path("downloads", kind, user.username)
     logger.debug(f"WORKING DIR = {lf_path}")
     if lf_path.exists():
         ready_files = [x.name for x in lf_path.iterdir()]

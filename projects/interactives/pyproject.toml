@@ -34,24 +34,24 @@ license = "GPL"
 name = "runestone"
 readme = "README.rst"
 repository = "https://github.com/RunestoneInteractive/rs"
-version = "7.5.4"
+version = "7.5.12"
 
 # See https://python-poetry.org/docs/pyproject/#include-and-exclude.
 include = [
-    "README.md",
-    # Webpacked output.
-    "runestone/dist/*",
-    #../../bases/rsptx/interactives/ Some of the Runestone Components doesn't use webpack; they still need raw JS/CSS available. See ``runestone_static_dirs()``.
-    "runestone/animation/js/*",
-    "runestone/codelens/js/*",
-    "runestone/webgldemo/js/*",
-    "runestone/matrixeq/js/*",
-    "runestone/accessibility/css/*",
-    "runestone/webgldemo/css/*",
-    "runestone/matrixeq/css/*",
-    "runestone/lp/css/*",
-    # We need to include the templates used by Sphinx.
-    "runestone/common/project_template/**/*",
+    { path = "README.md", format=["sdist", "wheel"]},
+    # Webpacked output
+    { path = "runestone/dist/*", format=["sdist", "wheel"]},
+    #../../bases/rsptx/interactives/ Some of the Runestone Components doesn't use webpack; they still need raw JS/CSS available. See ``runestone_static_dirs()``
+    { path = "runestone/animation/js/*", format=["sdist", "wheel"]},
+    { path = "runestone/codelens/js/*", format=["sdist", "wheel"]},
+    { path = "runestone/webgldemo/js/*", format=["sdist", "wheel"]},
+    { path = "runestone/matrixeq/js/*", format=["sdist", "wheel"]},
+    { path = "runestone/accessibility/css/*", format=["sdist", "wheel"]},
+    { path = "runestone/webgldemo/css/*", format=["sdist", "wheel"]},
+    { path = "runestone/matrixeq/css/*", format=["sdist", "wheel"]},
+    { path = "runestone/lp/css/*", format=["sdist", "wheel"]},
+    # We need to include the templates used by Sphinx
+    { path = "runestone/common/project_template/**/*", format=["sdist", "wheel"]},
 ]
 
 # The includes above override these.
@@ -91,6 +91,7 @@ packages = [
     { include = "rsptx/cl_utils", from = "../../components" },
     { include = "rsptx/build_tools", from = "../../components" },
     { include = "rsptx/response_helpers", from = "../../components" },
+    { include = "rsptx/data_types", from = "../../components" },
     # runestone is different because we want to expose runestone as a namespace, not
     # rsptx.interactives.runestone
     { include = "runestone", from = "../../bases/rsptx/interactives" },
@@ -122,7 +123,7 @@ jupyter-sphinx = "<0.5"
 jupyterlab = "^4.2.4"
 scikit-learn = "^1.5.1"
 ipyleaflet = "^0.19.2"
-
+aiosqlite = ">=0.18.0"
 
 # Development dependencies
 # ========================
