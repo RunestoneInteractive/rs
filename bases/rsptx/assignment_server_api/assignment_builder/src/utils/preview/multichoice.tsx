@@ -20,7 +20,13 @@ export const generateMultiChoicePreview = (
 
   return `
     <div class="runestone ">
-        <ul data-component="multiplechoice" data-question_label="${questionName}" data-multipleanswers="${multipleAnswers}"  id="question1_2"  style="visibility: hidden;">
+        <ul 
+            data-component="multiplechoice" 
+            data-question_label="${questionName}" 
+            data-multipleanswers="${multipleAnswers}"  
+            id="question1_2"  
+            style="visibility: hidden;"
+        >
     <p>${questionTitle}</p>
 ${optionsHTML}
     </ul>

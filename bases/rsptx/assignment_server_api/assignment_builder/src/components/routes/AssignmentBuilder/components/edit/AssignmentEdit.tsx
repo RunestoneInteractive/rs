@@ -1,3 +1,4 @@
+import styles from "@components/routes/AssignmentBuilder/AssignmentBuilder.module.css";
 import { AssignmentExercises } from "@components/routes/AssignmentBuilder/components/exercises/AssignmentExercisesList";
 import classNames from "classnames";
 import { Button } from "primereact/button";
@@ -11,7 +12,6 @@ import { Control, Controller } from "react-hook-form";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
 import { convertDateToISO, convertISOStringToDate } from "@/utils/date";
 
-import styles from "../../AssignmentBuilder.module.css";
 import { AssignmentReadings } from "../reading/AssignmentReadings";
 
 interface AssignmentEditProps {

@@ -9,6 +9,7 @@ import { CreateExerciseFormType, Option } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
 import { generateMultiChoicePreview } from "@/utils/preview/multichoice";
 
+/* eslint-disable-next-line */
 import styles from "../../shared/styles/CreateExercise.module.css";
 
 import { MultiChoiceExerciseSettings } from "./MultiChoiceExerciseSettings";
@@ -241,7 +242,7 @@ export const MultiChoiceExercise = ({
       console.error("Error generating preview:", error);
       return "<div>Error generating preview</div>";
     }
-  }, [formData.statement, formData.optionList]);
+  }, [formData.statement, formData.optionList, formData.name]);
 
   // Handle save
   const handleSave = useCallback(async () => {

@@ -1,3 +1,4 @@
+import { MathExtension } from "@aarkue/tiptap-math-extension";
 import { TipTapImage } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Plugins/Image";
 import FontFamily from "@tiptap/extension-font-family";
 import Highlight from "@tiptap/extension-highlight";
@@ -12,9 +13,9 @@ import Underline from "@tiptap/extension-underline";
 import Youtube from "@tiptap/extension-youtube";
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import "tippy.js/dist/tippy.css";
 import { useEffect } from "react";
-import { MathExtension } from "@aarkue/tiptap-math-extension";
+
+import "tippy.js/dist/tippy.css";
 import "katex/dist/katex.min.css";
 
 import styles from "./Editor.module.css";
@@ -121,6 +122,7 @@ export const Editor = ({ content, onChange, onFocus }: PollEditorProps) => {
           if (node.type.name === "heading") {
             return `Heading ${node.attrs.level}`;
           }
+          /* eslint-disable-next-line */
           return 'Press "/" for commands...';
         },
         includeChildren: true
@@ -139,8 +141,8 @@ export const Editor = ({ content, onChange, onFocus }: PollEditorProps) => {
       })
     ],
     content,
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+    onUpdate: ({ editor: uEditor }) => {
+      onChange(uEditor.getHTML());
     },
     onFocus: () => {
       onFocus?.();

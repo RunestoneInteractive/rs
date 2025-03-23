@@ -1,8 +1,7 @@
+import { PollType } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/types/PollTypes";
 import { ExercisePreview } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreview";
 
 import { generatePollPreview } from "@/utils/preview/poll";
-
-import { PollType } from "../../types/PollTypes";
 
 export interface PollPreviewProps {
   question: string;

@@ -144,9 +144,7 @@ const SortableOption = ({
                 checked={!!option.correct}
                 onChange={(e) => handleCorrectChange(e.checked ?? false)}
               />
-              <label htmlFor={`correct-${option.id}`} className={styles.checkboxLabel}>
-                Correct
-              </label>
+              <label className={styles.checkboxLabel}>Correct</label>
             </div>
 
             <Button

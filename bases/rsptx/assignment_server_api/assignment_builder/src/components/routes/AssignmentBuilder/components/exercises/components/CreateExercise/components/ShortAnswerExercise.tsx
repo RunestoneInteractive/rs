@@ -67,7 +67,7 @@ export const ShortAnswerExercise: FC<ExerciseComponentProps> = (props) => {
     >
       <div className="flex flex-column gap-4">
         <div className="flex flex-column gap-2">
-          <label htmlFor="acceptableAnswers">Acceptable Answers</label>
+          <label>Acceptable Answers</label>
           <div className="flex gap-2">
             <InputText
               id="acceptableAnswers"
@@ -91,7 +91,7 @@ export const ShortAnswerExercise: FC<ExerciseComponentProps> = (props) => {
         </div>
 
         <div className="flex flex-column gap-2">
-          <label htmlFor="minLength">Minimum Length</label>
+          <label>Minimum Length</label>
           <InputNumber
             id="minLength"
             value={minLength}
@@ -102,7 +102,7 @@ export const ShortAnswerExercise: FC<ExerciseComponentProps> = (props) => {
         </div>
 
         <div className="flex flex-column gap-2">
-          <label htmlFor="maxLength">Maximum Length (optional)</label>
+          <label>Maximum Length (optional)</label>
           <InputNumber
             id="maxLength"
             value={maxLength}
@@ -118,9 +118,7 @@ export const ShortAnswerExercise: FC<ExerciseComponentProps> = (props) => {
             checked={caseSensitive}
             onChange={(e) => setCaseSensitive(e.checked ?? false)}
           />
-          <label htmlFor="caseSensitive" className="ml-2">
-            Case Sensitive
-          </label>
+          <label className="ml-2">Case Sensitive</label>
         </div>
       </div>
     </BaseExerciseForm>

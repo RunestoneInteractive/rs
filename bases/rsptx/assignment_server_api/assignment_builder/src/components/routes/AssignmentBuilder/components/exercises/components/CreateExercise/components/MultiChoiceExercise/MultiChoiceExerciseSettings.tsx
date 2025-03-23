@@ -1,3 +1,4 @@
+import styles from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/shared/styles/CreateExerciseSettings.module.css";
 import { Chips } from "primereact/chips";
 import { Dropdown } from "primereact/dropdown";
 import { InputNumber } from "primereact/inputnumber";
@@ -7,8 +8,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { CreateExerciseFormType } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
-
-import styles from "../../shared/styles/CreateExerciseSettings.module.css";
 
 interface MultiChoiceExerciseSettingsProps {
   initialData: Partial<CreateExerciseFormType>;

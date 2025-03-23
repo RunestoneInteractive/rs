@@ -1,5 +1,6 @@
 import { SCALE_CONFIG } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/constants";
 import { BaseExerciseProps } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/types/ExerciseTypes";
+import { PollType } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/types/PollTypes";
 import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
 import { Button } from "primereact/button";
 import { Steps } from "primereact/steps";
@@ -10,6 +11,7 @@ import { CreateExerciseFormType, Option } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
 import { generatePollPreview } from "@/utils/preview/poll";
 
+/* eslint-disable-next-line */
 import styles from "../../shared/styles/CreateExercise.module.css";
 
 import { PollExerciseSettings } from "./PollExerciseSettings";
@@ -30,8 +32,6 @@ const POLL_STEPS = [
 export interface PollOption extends Option {
   id: string;
 }
-
-export type PollType = "options" | "scale";
 
 // Create a type for step validation
 type StepValidation = Record<number, boolean>;
@@ -328,7 +328,7 @@ export const PollExercise: FC<BaseExerciseProps> = ({
       console.error("Error generating preview:", error);
       return "<div>Error generating preview</div>";
     }
-  }, [formData.statement, formData.optionList, pollType]);
+  }, [formData.optionList, formData.statement, formData.name, pollType]);
 
   // Handle save
   const handleSave = useCallback(async () => {

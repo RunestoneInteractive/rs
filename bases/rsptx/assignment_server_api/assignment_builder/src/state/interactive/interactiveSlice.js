@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * @file interactiveSlice.js
  * @summary This file defines a slice for the active code editor
@@ -224,10 +225,10 @@ const interactiveSlice = createSlice({
     /* eslint-disable */
     builder
       .addCase(saveAssignmentQuestion.fulfilled, (state, action) => {
-        console.log('Question saved');
+        console.log("Question saved");
       })
       .addCase(saveAssignmentQuestion.rejected, (state, action) => {
-        console.log('Question save failed', action.error.message);
+        console.log("Question save failed", action.error.message);
       });
     /* eslint-enable */
   }

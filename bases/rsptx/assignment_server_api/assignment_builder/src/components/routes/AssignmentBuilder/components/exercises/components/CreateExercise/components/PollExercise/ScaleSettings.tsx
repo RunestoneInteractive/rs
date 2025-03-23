@@ -1,8 +1,7 @@
+import { SCALE_CONFIG } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/constants";
 import { InputNumber } from "primereact/inputnumber";
 import { classNames } from "primereact/utils";
 import { useCallback } from "react";
-
-import { SCALE_CONFIG } from "../../constants";
 
 import styles from "./ScaleSettings.module.css";
 
@@ -40,9 +39,7 @@ export const ScaleSettings = ({ value, onChange }: ScaleSettingsProps) => {
 
       <div className={styles.controls}>
         <div className={styles.inputContainer}>
-          <label htmlFor="scaleValue" className={styles.label}>
-            Maximum Scale Value:
-          </label>
+          <label className={styles.label}>Maximum Scale Value:</label>
           <div className={styles.inputWrapper}>
             <InputNumber
               id="scaleValue"

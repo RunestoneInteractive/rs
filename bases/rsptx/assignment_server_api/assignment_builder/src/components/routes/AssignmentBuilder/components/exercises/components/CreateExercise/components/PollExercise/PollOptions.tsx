@@ -1,4 +1,6 @@
+import styles from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/shared/styles/CreateExerciseOptions.module.css";
 import { PollOption } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/types/PollTypes";
+import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
 import {
   DndContext,
   closestCenter,
@@ -18,9 +20,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "primereact/button";
 import { useCallback } from "react";
-
-import { Editor } from "../../../TipTap/Editor";
-import styles from "../../shared/styles/CreateExerciseOptions.module.css";
 
 // Helper function to check if TipTap content is truly empty
 export const isTipTapContentEmpty = (content: string): boolean => {

@@ -1,7 +1,6 @@
+import styles from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/shared/styles/CreateExercise.module.css";
+import { PollType } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/types/PollTypes";
 import { useCallback } from "react";
-
-import styles from "../../shared/styles/CreateExercise.module.css";
-import { PollType } from "../../types/PollTypes";
 
 interface PollTypeSelectorProps {
   value: PollType;

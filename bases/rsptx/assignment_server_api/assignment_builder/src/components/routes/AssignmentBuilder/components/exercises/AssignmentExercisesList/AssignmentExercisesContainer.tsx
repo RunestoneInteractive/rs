@@ -1,3 +1,4 @@
+import styles from "@components/routes/AssignmentBuilder/AssignmentBuilder.module.css";
 import { ChooseExercises } from "@components/routes/AssignmentBuilder/components/exercises/components/ChooseExercises/ChooseExercises";
 import { SearchExercises } from "@components/routes/AssignmentBuilder/components/exercises/components/SearchExercises/SearchExercises";
 import { Loader } from "@components/ui/Loader";
@@ -9,8 +10,6 @@ import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { useUpdateAssignmentExercise } from "@/hooks/useUpdateAssignmentExercise";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
-
-import styles from "../../../AssignmentBuilder.module.css";
 
 import { CreateView } from "./CreateView";
 import { EditView } from "./EditView";

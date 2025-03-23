@@ -1,3 +1,4 @@
+import styles from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/shared/styles/CreateExerciseSettings.module.css";
 import { Chips } from "primereact/chips";
 import { Dropdown } from "primereact/dropdown";
 import { InputNumber } from "primereact/inputnumber";
@@ -6,8 +7,6 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { createExerciseId } from "@/utils/exercise";
-
-import styles from "../../shared/styles/CreateExerciseSettings.module.css";
 
 interface PollExerciseSettingsProps {
   onSettingsChange: (settings: PollExerciseSettings) => void;
@@ -86,7 +85,7 @@ export const PollExerciseSettings = ({
                     className={`w-full ${showValidation && nameError ? styles.requiredField : ""}`}
                     onChange={(e) => updateSetting("name", e.target.value)}
                   />
-                  <label htmlFor="name">Exercise Name*</label>
+                  <label>Exercise Name*</label>
                 </span>
                 {showValidation && nameError && (
                   <small className={styles.errorMessage}>Name is required</small>
@@ -103,7 +102,7 @@ export const PollExerciseSettings = ({
                     className={`w-full ${showValidation && chapterError ? styles.requiredField : ""}`}
                     onChange={(e) => updateSetting("chapter", e.value)}
                   />
-                  <label htmlFor="chapter">Chapter*</label>
+                  <label>Chapter*</label>
                 </span>
                 {showValidation && chapterError && (
                   <small className={styles.errorMessage}>Chapter is required</small>
@@ -118,7 +117,7 @@ export const PollExerciseSettings = ({
                     className="w-full"
                     onChange={(e) => updateSetting("topic", e.target.value)}
                   />
-                  <label htmlFor="topic">Topic</label>
+                  <label>Topic</label>
                 </span>
               </div>
             </div>
@@ -133,7 +132,7 @@ export const PollExerciseSettings = ({
                     className="w-full"
                     onChange={(e) => updateSetting("author", e.target.value)}
                   />
-                  <label htmlFor="author">Author</label>
+                  <label>Author</label>
                 </span>
               </div>
 
@@ -147,7 +146,7 @@ export const PollExerciseSettings = ({
                     className={`w-full ${showValidation && pointsError ? styles.requiredField : ""}`}
                     onValueChange={(e) => updateSetting("points", e.value !== null ? e.value : 1)}
                   />
-                  <label htmlFor="points">Points*</label>
+                  <label>Points*</label>
                 </span>
                 {showValidation && pointsError && (
                   <small className={styles.errorMessage}>Points must be greater than 0</small>
@@ -166,7 +165,7 @@ export const PollExerciseSettings = ({
                       updateSetting("difficulty", e.value !== null ? e.value : 3)
                     }
                   />
-                  <label htmlFor="difficulty">Difficulty</label>
+                  <label>Difficulty</label>
                 </span>
               </div>
             </div>
@@ -184,7 +183,7 @@ export const PollExerciseSettings = ({
                     addOnBlur
                     max={10}
                   />
-                  <label htmlFor="tags">Tags</label>
+                  <label>Tags</label>
                 </span>
               </div>
             </div>
