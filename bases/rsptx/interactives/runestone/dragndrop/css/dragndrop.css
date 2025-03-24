@@ -9,8 +9,6 @@
     font-family: monospace;
     font-size: 120%;
     padding-bottom: 10px;
-    min-width: 48%;
-    max-width: 48%;
     border: 1px solid var(--componentBorderColor, #efefff);
     box-sizing: border-box;
 }
