@@ -342,7 +342,7 @@ def deploy_book(self, book):
     numServers = int(os.environ["NUM_SERVERS"].strip())
 
     for i in range(1, numServers + 1):
-        command = f"ssh -oStrictHostKeyChecking=no server{i} 'mkdir -p ~/books/{book}/published{book}'"
+        command = f"ssh -oStrictHostKeyChecking=no {user}@server{i} 'mkdir -p ~/books/{book}/published{book}'"
         res = subprocess.run(
             command,
             shell=True,
