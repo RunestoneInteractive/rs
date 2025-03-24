@@ -1,4 +1,4 @@
-import { ExerciseComponentProps } from "../types/ExerciseTypes";
+import { ExerciseComponentProps } from "../../types/ExerciseTypes";
 
 export const ParsonsExercise = ({}: ExerciseComponentProps) => {
   return <></>;
