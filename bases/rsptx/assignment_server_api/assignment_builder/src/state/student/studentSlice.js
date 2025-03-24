@@ -9,11 +9,11 @@ export const fetchClassRoster = createAsyncThunk(
   async () => {
     let jsheaders = new Headers({
       "Content-type": "application/json; charset=utf-8",
-      Accept: "application/json",
+      Accept: "application/json"
     });
     let data = {
       headers: jsheaders,
-      method: "GET",
+      method: "GET"
     };
     let resp = await fetch("/assignment/instructor/course_roster", data);
 
@@ -21,7 +21,7 @@ export const fetchClassRoster = createAsyncThunk(
       console.warn("Error fetching student roster");
       toast("Error fetching students", {
         icon: "🔥",
-        duration: 5000,
+        duration: 5000
       });
 
       return;
@@ -35,25 +35,25 @@ export const fetchClassRoster = createAsyncThunk(
       console.log("students fetched");
       return result.detail.students;
     }
-  },
+  }
 );
 
 export const saveException = createAsyncThunk("student/saveException", async (exception) => {
   let jsheaders = new Headers({
     "Content-type": "application/json; charset=utf-8",
-    Accept: "application/json",
+    Accept: "application/json"
   });
   let data = {
     body: JSON.stringify(exception),
     headers: jsheaders,
-    method: "POST",
+    method: "POST"
   };
   let resp = await fetch("/assignment/instructor/save_exception", data);
 
   if (!resp.ok) {
     console.warn("Error saving exception");
     toast("Error saving exception", {
-      icon: "🔥",
+      icon: "🔥"
     });
     return;
   }
@@ -70,7 +70,7 @@ export const studentSlice = createSlice({
   name: "student",
   initialState: {
     roster: [],
-    selectedStudents: [],
+    selectedStudents: []
   },
   reducers: {
     setRoster: (state, action) => {
@@ -78,7 +78,7 @@ export const studentSlice = createSlice({
     },
     setSelectedStudents: (state, action) => {
       state.selectedStudents = action.payload;
-    },
+    }
   },
   extraReducers(builder) {
     builder
@@ -88,7 +88,7 @@ export const studentSlice = createSlice({
       .addCase(fetchClassRoster.rejected, (state, action) => {
         console.warn("Fetching Roster failed", action.error.message);
       });
-  },
+  }
 });
 
 export const { setRoster, setSelectedStudents } = studentSlice.actions;

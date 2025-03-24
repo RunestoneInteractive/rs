@@ -22,6 +22,9 @@ import { AssignmentSummary } from "./renderers/assignmentSummary.jsx";
 import { ExceptionScheduler } from "./renderers/exceptionScheduler.jsx";
 import { selectIsAuthorized } from "./state/assignment/assignSlice.js";
 
+import "@fortawesome/fontawesome-free/css/all.min.css";
+import "katex/dist/katex.min.css";
+
 function OldAssignmentBuilder() {
   const [searchParams] = useSearchParams();
   let assignmentId = searchParams.get("assignment_id");
@@ -142,9 +145,22 @@ function App() {
   return (
     <ToastContextProvider>
       <DialogContextProvider>
-        <Menubar style={{ position: "sticky", top: "0" }} model={items} start={start} />
-        <div className="layout-main-container">
-          <div className="layout-main">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100vh",
+            overflow: "hidden"
+          }}
+        >
+          <Menubar style={{ flexShrink: 0 }} model={items} start={start} />
+          <div
+            style={{
+              flex: "1 1 auto",
+              overflow: "auto",
+              height: "100%"
+            }}
+          >
             <RouterProvider router={router} future={{ v7_startTransition: true }} />
           </div>
         </div>

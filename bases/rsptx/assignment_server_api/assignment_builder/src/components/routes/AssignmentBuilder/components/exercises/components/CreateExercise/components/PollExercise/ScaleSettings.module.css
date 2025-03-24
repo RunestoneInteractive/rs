@@ -1,0 +1,174 @@
+.scaleSettingsContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0 auto;
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.header {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.title {
+  color: #0f172a;
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.description {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.inputContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 1.5rem;
+  gap: 0.75rem;
+}
+
+.label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #334155;
+  text-align: center;
+}
+
+.inputWrapper {
+  width: 100px;
+  position: relative;
+}
+
+.inputWrapper :global(.p-inputnumber) {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.inputWrapper :global(.p-inputnumber-input) {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  padding: 0.6rem 0.25rem;
+  font-size: 1.1rem;
+  color: #334155;
+  text-align: center;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  background-color: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.inputWrapper :global(.p-inputnumber-input:focus) {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.inputWrapper :global(.p-inputnumber-button-up),
+.inputWrapper :global(.p-inputnumber-button-down) {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0.15rem;
+}
+
+.inputWrapper :global(.p-inputnumber-button-up) {
+  margin-right: -2px;
+}
+
+.inputWrapper :global(.p-inputnumber-button-down) {
+  margin-left: -2px;
+}
+
+.inputWrapper :global(.p-inputnumber-button:hover) {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.inputWrapper :global(.p-inputnumber-button:active) {
+  background: #cbd5e1;
+  transform: translateY(1px);
+}
+
+.inputWrapper :global(.p-inputnumber-button-icon) {
+  font-size: 0.7rem;
+}
+
+.presets {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.presetButton {
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.presetButton:hover {
+  background: #e2e8f0;
+  transform: translateY(-1px);
+}
+
+.presetButton.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.helpText {
+  margin-top: 1.5rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+  background: rgba(59, 130, 246, 0.08);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media screen and (max-width: 640px) {
+  .inputWrapper {
+    width: 120px;
+  }
+  
+  .presets {
+    gap: 0.4rem;
+  }
+} 

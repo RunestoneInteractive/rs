@@ -2,10 +2,10 @@ import { Control, FieldErrors, UseFormSetValue, UseFormWatch } from "react-hook-
 
 import { CreateExerciseFormType } from "@/types/exercises";
 
-export interface Choice {
+export interface Option {
   choice: string;
-  feedback: string;
-  correct: boolean;
+  feedback?: string;
+  correct?: boolean;
 }
 
 export type Chapter = { value: string; label: string };

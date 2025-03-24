@@ -5,7 +5,7 @@ import { render } from "@testing-library/react";
 import App from "./App";
 
 vi.mock("react-redux", () => ({
-  useSelector: () => false,
+  useSelector: () => false
 }));
 
 describe("App", () => {

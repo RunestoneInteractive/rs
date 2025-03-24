@@ -1,4 +1,23 @@
-import { Choice } from "@/types/createExerciseForm";
+export const supportedExerciseTypesToEdit = ["mchoice", "poll"];
+
+export const supportedExerciseTypes = [
+  "mchoice",
+  "parsons",
+  "activecode",
+  "fillintheblank",
+  "dragndrop",
+  "clickablearea",
+  "poll",
+  "shortanswer"
+] as const;
+
+export type ExerciseType = (typeof supportedExerciseTypes)[number];
+
+export interface Option {
+  choice: string;
+  feedback?: string;
+  correct?: boolean;
+}
 
 export type Exercise = {
   id: number;
@@ -28,6 +47,7 @@ export type Exercise = {
   topic: string;
   difficulty: number;
   author: string;
+  description: string;
 };
 
 export type QuestionJSON = Partial<{
@@ -38,7 +58,7 @@ export type QuestionJSON = Partial<{
   language: string;
   attachment: boolean;
   statement: string;
-  optionList: Choice[];
+  optionList: Option[];
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;
@@ -73,10 +93,6 @@ export type CreateExercisesPayload = {
   topic: string;
   points: number;
 };
-
-export const supportedExerciseTypesToEdit = ["activecode", "mchoice", "shortanswer"] as const;
-
-export type ExerciseType = (typeof supportedExerciseTypesToEdit)[number];
 
 export const isExerciseType = (value: any): value is ExerciseType => {
   return supportedExerciseTypesToEdit.includes(value);

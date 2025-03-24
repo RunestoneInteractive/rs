@@ -1,8 +1,10 @@
-export const safeJsonParse = <T>(str: string) => {
-  try {
-    const jsonValue: T = JSON.parse(str);
+export const safeJsonParse = <T>(value: string | object): T | undefined => {
+  if (typeof value === "object" && value !== null) {
+    return value as T;
+  }
 
-    return jsonValue;
+  try {
+    return JSON.parse(value) as T;
   } catch {
     return undefined;
   }
