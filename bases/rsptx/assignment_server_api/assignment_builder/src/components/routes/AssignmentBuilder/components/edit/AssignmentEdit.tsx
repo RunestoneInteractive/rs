@@ -72,39 +72,45 @@ export const AssignmentEdit = ({
           />
         </div>
         <div className={styles.navigationTree}>
-          <button
+          <Button
             className={classNames(styles.navigationItem, {
               [styles.active]: activeTab === "basic",
               [styles.collapsed]: isCollapsed
             })}
             onClick={() => onTabChange("basic")}
-            title={isCollapsed ? "Basic Info" : undefined}
+            tooltip="Basic Info"
+            tooltipOptions={{ position: "right", showDelay: 150, hideDelay: 0 }}
+            text
           >
             <i className={classNames("pi pi-file", styles.navigationIcon)} />
             <span className={classNames({ [styles.hidden]: isCollapsed })}>Basic Info</span>
-          </button>
-          <button
+          </Button>
+          <Button
             className={classNames(styles.navigationItem, {
               [styles.active]: activeTab === "readings",
               [styles.collapsed]: isCollapsed
             })}
             onClick={() => onTabChange("readings")}
-            title={isCollapsed ? "Readings" : undefined}
+            tooltip="Readings"
+            tooltipOptions={{ position: "right", showDelay: 150, hideDelay: 0 }}
+            text
           >
             <i className={classNames("pi pi-book", styles.navigationIcon)} />
             <span className={classNames({ [styles.hidden]: isCollapsed })}>Readings</span>
-          </button>
-          <button
+          </Button>
+          <Button
             className={classNames(styles.navigationItem, {
               [styles.active]: activeTab === "exercises",
               [styles.collapsed]: isCollapsed
             })}
             onClick={() => onTabChange("exercises")}
-            title={isCollapsed ? "Exercises" : undefined}
+            tooltip="Exercises"
+            tooltipOptions={{ position: "right", showDelay: 150, hideDelay: 0 }}
+            text
           >
             <i className={classNames("pi pi-list", styles.navigationIcon)} />
             <span className={classNames({ [styles.hidden]: isCollapsed })}>Exercises</span>
-          </button>
+          </Button>
         </div>
       </div>
       <div className={styles.mainContent}>

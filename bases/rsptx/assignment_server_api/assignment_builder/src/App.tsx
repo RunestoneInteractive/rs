@@ -153,7 +153,7 @@ function App() {
             overflow: "hidden"
           }}
         >
-          <Menubar style={{ flexShrink: 0 }} model={items} start={start} />
+          <Menubar style={{ flexShrink: 0, flexWrap: "nowrap" }} model={items} start={start} />
           <div
             style={{
               flex: "1 1 auto",

@@ -252,7 +252,7 @@
 
 .questionEditor :global(.ProseMirror) {
   padding: 1.25rem;
-  min-height: 200px;
+  min-height: 200px !important;
   outline: none;
   font-size: 1rem;
   line-height: 1.6;

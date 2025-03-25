@@ -29,29 +29,6 @@ export interface OptionWithId extends Option {
   id: string;
 }
 
-// Helper function to check if TipTap content is empty
-export const isTipTapContentEmpty = (content: string): boolean => {
-  if (!content || !content.trim()) return true;
-
-  // Check if content is only empty paragraph or just whitespace
-  if (content === "<p></p>" || content === "<p> </p>") return true;
-
-  // Check for YouTube embeds
-  if (content.includes("<div data-youtube-video") || content.includes("iframe")) {
-    return false;
-  }
-
-  // Check for images
-  if (content.includes("<img")) {
-    return false;
-  }
-
-  // Remove all HTML tags and check if there's any content left
-  const textContent = content.replace(/<[^>]*>/g, "").trim();
-
-  return textContent === "";
-};
-
 interface SortableOptionProps {
   option: OptionWithId;
   index: number;
@@ -61,14 +38,7 @@ interface SortableOptionProps {
   showValidation: boolean;
 }
 
-const SortableOption = ({
-  option,
-  index,
-  onUpdate,
-  onRemove,
-  totalOptions,
-  showValidation
-}: SortableOptionProps) => {
+const SortableOption = ({ option, onUpdate, onRemove, totalOptions }: SortableOptionProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: option.id
   });
@@ -99,8 +69,6 @@ const SortableOption = ({
     },
     [option.id, onUpdate]
   );
-
-  const isEmpty = isTipTapContentEmpty(option.choice);
 
   return (
     <div

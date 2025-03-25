@@ -1,4 +1,4 @@
-export const supportedExerciseTypesToEdit = ["mchoice", "poll"];
+export const supportedExerciseTypesToEdit = ["mchoice", "poll", "shortanswer"];
 
 export const supportedExerciseTypes = [
   "mchoice",

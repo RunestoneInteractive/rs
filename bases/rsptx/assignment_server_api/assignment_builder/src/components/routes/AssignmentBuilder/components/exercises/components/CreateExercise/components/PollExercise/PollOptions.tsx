@@ -1,5 +1,6 @@
 import styles from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/shared/styles/CreateExerciseOptions.module.css";
 import { PollOption } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/types/PollTypes";
+import { isTipTapContentEmpty } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/utils/validation";
 import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
 import {
   DndContext,
@@ -20,29 +21,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "primereact/button";
 import { useCallback } from "react";
-
-// Helper function to check if TipTap content is truly empty
-export const isTipTapContentEmpty = (content: string): boolean => {
-  if (!content || !content.trim()) return true;
-
-  // Check for empty paragraph tag patterns
-  if (content === "<p></p>" || content === "<p> </p>") return true;
-
-  // Check for YouTube embeds
-  if (content.includes("<div data-youtube-video") || content.includes("iframe")) {
-    return false;
-  }
-
-  // Check for images
-  if (content.includes("<img")) {
-    return false;
-  }
-
-  // Remove all HTML tags and check if there's any content left
-  const textContent = content.replace(/<[^>]*>/g, "").trim();
-
-  return textContent === "";
-};
 
 interface PollOptionItemProps {
   option: PollOption;
