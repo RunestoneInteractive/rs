@@ -148,7 +148,10 @@ export default class DragNDrop extends RunestoneBase {
         }
         self = this;
         this.ivp = this.isValidPremise.bind(this);
-        self.queueMathJax(self.containerDiv);
+        // Ensure MathJax has completed before adjusting the zone widths
+        self.queueMathJax(self.containerDiv).then(() => {
+            this.adjustDragDropWidths();
+        });
     }
 
     finishSettingUp() {
@@ -343,6 +346,19 @@ export default class DragNDrop extends RunestoneBase {
         );
     }
 
+    adjustDragDropWidths() {
+        // Ensure MathJax has completed when calling this method
+        const dragzoneWidth = this.draggableDiv.offsetWidth;
+        const totalWidth = this.dragDropWrapDiv.offsetWidth;
+
+        let dragzonePercent = Math.ceil((dragzoneWidth / totalWidth) * 100);
+        dragzonePercent = Math.max(28, Math.min(dragzonePercent, 48));
+        const dropzonePercent = 100 - dragzonePercent - 4; // 4 accounts for zone padding
+
+        this.draggableDiv.style.width = `${dragzonePercent}%`;
+        this.dropZoneDiv.style.width = `${dropzonePercent}%`;
+    }
+
     createFeedbackDiv() {
         if (!this.feedBackDiv) {
             this.feedBackDiv = document.createElement("div");
@@ -379,6 +395,10 @@ export default class DragNDrop extends RunestoneBase {
         }
         this.answerState = {};
         this.feedBackDiv.style.display = "none";
+        // Ensure MathJax has completed before adjusting the zone widths
+        self.queueMathJax(self.containerDiv).then(() => {
+            self.adjustDragDropWidths();
+        });
     }
     /*===========================
     == Evaluation and feedback ==
