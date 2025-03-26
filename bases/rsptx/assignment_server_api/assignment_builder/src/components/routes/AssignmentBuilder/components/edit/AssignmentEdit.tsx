@@ -1,4 +1,5 @@
 import styles from "@components/routes/AssignmentBuilder/AssignmentBuilder.module.css";
+import { ErrorState } from "@components/routes/AssignmentBuilder/components/ErrorState/ErrorState";
 import { AssignmentExercises } from "@components/routes/AssignmentBuilder/components/exercises/AssignmentExercisesList";
 import classNames from "classnames";
 import { Button } from "primereact/button";
@@ -6,9 +7,11 @@ import { Calendar } from "primereact/calendar";
 import { InputNumber } from "primereact/inputnumber";
 import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
+import { ProgressSpinner } from "primereact/progressspinner";
 import { SelectButton } from "primereact/selectbutton";
 import { Control, Controller } from "react-hook-form";
 
+import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
 import { convertDateToISO, convertISOStringToDate } from "@/utils/date";
 
@@ -55,6 +58,28 @@ export const AssignmentEdit = ({
   onTypeSelect,
   watch
 }: AssignmentEditProps) => {
+  const { isExercisesError, isExercisesLoading } = useExercisesSelector();
+
+  if (isExercisesError) {
+    return (
+      <div className="flex flex-column">
+        <ErrorState
+          title="Unable to Load Assignment"
+          //eslint-disable-next-line max-len
+          message="We couldn't load your assignment data. This might be due to a temporary issue or network problem. Please try refreshing the pages."
+        />
+      </div>
+    );
+  }
+
+  if (isExercisesLoading) {
+    return (
+      <div className="flex flex-columnw h-screen align-items-center justify-center">
+        <ProgressSpinner />
+      </div>
+    );
+  }
+
   return (
     <div className={classNames(styles.layout, { [styles.collapsed]: isCollapsed })}>
       <div className={classNames(styles.sidebar, { [styles.collapsed]: isCollapsed })}>
