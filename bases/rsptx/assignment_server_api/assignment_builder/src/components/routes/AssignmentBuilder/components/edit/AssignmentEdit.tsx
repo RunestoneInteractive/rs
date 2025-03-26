@@ -66,7 +66,7 @@ export const AssignmentEdit = ({
         <ErrorState
           title="Unable to Load Assignment"
           //eslint-disable-next-line max-len
-          message="We couldn't load your assignment data. This might be due to a temporary issue or network problem. Please try refreshing the pages."
+          message="We couldn't load your assignment data. This might be due to a temporary issue or network problem. Please try refreshing the page."
         />
       </div>
     );
