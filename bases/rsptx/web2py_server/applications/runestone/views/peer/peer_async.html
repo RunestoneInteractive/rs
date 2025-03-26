@@ -3,6 +3,32 @@
 {{include '_sphinx_static_files.html'}}
 {{end}}
 
+<!-- TODO: Figure out where to put this CSS code -->
+<style>
+    #asyncPeerDiscussion {
+        display: none;
+    }
+
+    .peer-question-student-interface {
+        margin-right: 0px;
+        margin-left: 0px;
+        padding-right: 15px;
+    }
+
+    #explanation-panel {
+        margin: 20px 0;
+        padding-left: 0px;
+        padding-right: 0px;
+    }
+
+    #explanation-panel #messageText {
+        width: 100%;
+        border-radius: 12px;
+        padding: 8px;
+    }
+
+</style>
+
 <script>
     eBookConfig.peer = true;
     eBookConfig.peerMode = "async";
@@ -12,7 +38,7 @@
     \( {{=XML(latex_macros)}} \)
  </div>
 
-<h2>Peer Instruction Question (After Class)</h2>
+<h2>Peer Instruction (After Class): {{=assignment_name}}</h2>
 <div id="imessage">
     <p>This page is meant for you to use <i>after</i> the inclass peer instruction is over.
         <ol>
@@ -24,41 +50,42 @@
     </p>
 </div>
 
-<div class="row">
+<div class="row peer-question-student-interface">
     {{ if all_done == "false": }}
-    <div class="oneq col-md-6 runestone-sphinx">
-    {{=XML(current_question['htmlsrc'])}}</div>
+        <div class="oneq col-md-6 runestone-sphinx">
+            {{=XML(current_question['htmlsrc'])}}
+        </div>
     {{ else: }}
-    <div class="oneq col-md-6">
-        <h3>Congratulations, you have completed this assignment!</h3>
-    </div>
+        <div class="oneq col-md-6">
+            <h3>Congratulations, you have completed this assignment!</h3>
+        </div>
     {{ pass }}
     {{ if all_done == "false": }}
-    <div class="col-md-6">
-        <p>
-            Please provide an explanation for why you answered
-            <span id="current_answer">__</span>
-        </p>
-        <textarea id="messageText" rows="6" cols="80"> </textarea> <br />
-        <button type="button" onclick="showPeerEnableVote2()">Submit</button>
-        <div>
-            <h4>A discussion for you to consider</h4>
-            <p id="peerName"></p>
-            <p id="peerJust"></p>
-            <p id="nextStep"></p>
+        <div id="explanation-panel" class="col-md-6">
+            <p>
+                Please provide an explanation for why you answered:
+                <span id="current_answer">__</span>
+            </p>
+            <textarea id="messageText" rows="6" cols="80"> </textarea> <br />
+            <button id="async-sendexplanation" class="btn btn-info" type="button" disabled onclick="showPeerEnableVote2()">Submit</button>
+            <div>
+                <h4 id="asyncPeerDiscussion">A discussion for you to consider</h4>
+                <p id="peerName"></p>
+                <p id="peerJust"></p>
+                <p id="nextStep"></p>
+            </div>
         </div>
-    </div>
     {{pass}}
 </div>
 
 {{ if all_done == "false": }}
-<div>
-    <form action="/peer/peer_async">
-        <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
-        <input type="hidden" name="question_num" value="{{=nextQnum}}" />
-        <button type="submit" onclick="return checkVoteCount()" style="float: right; margin-bottom: 20px;">Next Question</button>
-    </form>
-</div>
+    <div id="async-next-question">
+        <form action="/peer/peer_async">
+            <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
+            <input type="hidden" name="question_num" value="{{=nextQnum}}" />
+            <button class="btn btn-info" type="submit" onclick="return checkVoteCount()" style="float: right; margin-bottom: 20px;">Next Question</button>
+        </form>
+    </div>
 {{ pass }}
 <script src="/runestone/static/js/peer.js?v={{=request.peer_mtime}}"></script>
 <script>

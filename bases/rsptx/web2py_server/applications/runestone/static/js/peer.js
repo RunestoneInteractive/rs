@@ -618,10 +618,14 @@ async function showPeerEnableVote2() {
     peerNameEl.innerHTML = res;
     let peerEl = document.getElementById("peerJust");
     peerEl.innerHTML = peerMess;
+    let asyncPeerDiscussion = document.getElementById("asyncPeerDiscussion");
+    asyncPeerDiscussion.style.display = "block";
     let nextStep = document.getElementById("nextStep");
     nextStep.innerHTML =
         "Please Answer the question again.  Even if you do not wish to change your answer.  After answering click the button to go on to the next question.";
     nextStep.style.color = "red";
+    let sendExplanation = document.getElementById("async-sendexplanation");
+    sendExplanation.disabled = true;
     let cq = document.getElementById(`${currentQuestion}_feedback`);
     cq.style.display = "none";
 
@@ -696,14 +700,25 @@ async function setupPeerGroup() {
 $(function () {
     let tinput = document.getElementById("messageText");
     let sendButton = document.getElementById("sendpeermsg");
+    let sendExplanation = document.getElementById("async-sendexplanation");
 
-    if (tinput && sendButton) {
+    if (tinput && (sendButton || sendExplanation)) {
         tinput.addEventListener("input", function () {
             let message = this.value.trim();
             if (message !== "") {
-                sendButton.classList.remove("disabled");
+                if (sendButton) {
+                    sendButton.classList.remove("disabled");
+                }
+                else if (sendExplanation) {
+                    sendExplanation.disabled = false;
+                }
             } else {
-                sendButton.classList.add("disabled");
+                if (sendButton) {
+                    sendButton.classList.add("disabled");
+                }
+                else if (sendExplanation) {
+                    sendExplanation.disabled = true;
+                }
             }
         });
 
