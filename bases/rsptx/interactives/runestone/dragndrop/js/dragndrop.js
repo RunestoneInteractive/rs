@@ -396,8 +396,8 @@ export default class DragNDrop extends RunestoneBase {
         this.answerState = {};
         this.feedBackDiv.style.display = "none";
         // Ensure MathJax has completed before adjusting the zone widths
-        self.queueMathJax(self.containerDiv).then(() => {
-            self.adjustDragDropWidths();
+        this.queueMathJax(this.containerDiv).then(() => {
+            this.adjustDragDropWidths();
         });
     }
     /*===========================
