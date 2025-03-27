@@ -90,6 +90,10 @@ if sys.argv[1:] == ["--publish"]:
             ],
             check=True,
         )
+        # tag the release in the repo
+        subprocess.run(
+            ["git", "tag", f"components_{VERSION}"], check=True
+        )
         print("Moving release to jsdist")
         subprocess.run(
             " ".join(["mv", f"dist-{VERSION}.tgz", "../jsdist"]), check=True, shell=True

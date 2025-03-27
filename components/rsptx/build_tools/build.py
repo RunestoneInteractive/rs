@@ -548,6 +548,13 @@ def push(config):
                 ["poetry", "version", new_version], capture_output=True, check=True
             )
             console.out("Version updated, don't forget to commit the change.")
+            # add a git tag for the new version
+            subprocess.run(
+                ["git", "tag", f"v{new_version}"], capture_output=True, check=True
+            )
+            subprocess.run(
+                ["git", "push", "--tags"], capture_output=True, check=True
+            )
             config.version = new_version
 
     console.print("Pushing docker images to Docker Hub...", style="bold")
