@@ -345,12 +345,17 @@ export default class DragNDrop extends RunestoneBase {
                     // Make sure element isn't already there--prevents erros w/appending child
                     ev.target.appendChild(draggedSpan);
                 }
+                this.queueMathJax(this.containerDiv).then(() => {
+                    this.adjustDragDropWidths();
+                });
             }.bind(this)
         );
     }
 
     adjustDragDropWidths() {
-        // Ensure MathJax has completed when calling this method
+        // Temporarily minimize the dragzone width to the content
+        this.draggableDiv.style.width = "fit-content";
+        
         const dragzoneWidth = this.draggableDiv.offsetWidth;
         const totalWidth = this.dragDropWrapDiv.offsetWidth;
 
@@ -404,6 +409,9 @@ export default class DragNDrop extends RunestoneBase {
         // Ensure MathJax has completed before adjusting the zone widths
         this.queueMathJax(this.containerDiv).then(() => {
             this.adjustDragDropWidths();
+            this.minheight = this.draggableDiv.offsetHeight;
+            this.dragDropWrapDiv.style.minHeight =
+                this.minheight.toString() + "px";
         });
     }
     /*===========================
