@@ -988,11 +988,13 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
     select useinfo.timestamp as ts,name,sid,event,act from assignment_questions 
         join questions ON questions.id = assignment_questions.question_id 
         join useinfo on questions.name = useinfo.div_id 
-        where assignment_id = {assign.id} {sid if sid else ""}
+        where assignment_id = {current_assignment.id} {sid if sid else ""}
         order by sid, useinfo.timestamp
                    """
     )
-    click.echo(f"Assignment Due: {current_assignment.duedate}")
+    click.echo(
+        f"Assignment ({current_assignment.id}) Due: {current_assignment.duedate}"
+    )
 
     dd = datetime.timedelta(hours=int(timezone))
     for row in res:
