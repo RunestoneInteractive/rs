@@ -959,14 +959,14 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
     """
     course_name = course_name or click.prompt("Name of the course ")
 
-    res = await fetch_course(course_name)
-    if res:
-        click.echo(f"Course ID: {res.id}")
+    course = await fetch_course(course_name)
+    if course:
+        click.echo(f"Course ID: {course.id}")
     else:
         click.echo("Sorry, that course does not exist")
         sys.exit(-1)
 
-    assigns = await fetch_assignments(res.course_name)
+    assigns = await fetch_assignments(course.course_name)
     current_assignment = None
     for assign in assigns:
         if assign.name == assignment_name:
@@ -983,6 +983,17 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
         sid = f"and useinfo.sid = '{sid}'"
     else:
         sid = ""
+    
+    aqs = engine.execute(
+        f"select question_id, reading_assignment from assignment_questions where assignment_id = {current_assignment.id}"
+    )
+    has_readings = False
+    qlist = []
+    for q in aqs:
+        if q.reading_assignment:
+            has_readings = True
+            qlist.append(q.question_id)
+
     res = engine.execute(
         f"""
     select useinfo.timestamp as ts,name,sid,event,act from assignment_questions 
@@ -1010,6 +1021,42 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
                 f"< {row.ts} {row.sid:<15} {row.name:<40} {row.event:<10} {row.act:<30}"
             )
 
+    if has_readings:
+        click.echo("\n\nReading Assignment Questions")
+        qres = engine.execute(f"""
+        select chapter, subchapter from questions where id in ({','.join([str(q) for q in qlist])})
+        """
+    )
+        div_ids = []
+        for row in qres:
+            alist = engine.execute(
+                f"""
+                select name from questions where chapter = '{row.chapter}' and subchapter = '{row.subchapter}' and base_course = '{course.base_course}' and id not in ({','.join([str(q) for q in qlist])})
+                """
+            )
+            for a in alist:
+                div_ids.append(a.name)
+        if div_ids:
+            res = engine.execute(
+                f"""
+    select useinfo.timestamp as ts,div_id,sid,event,act 
+    from useinfo 
+    where div_id in ({','.join([f"'{d}'" for d in div_ids])}) {sid} and course_id = '{course.course_name}' 
+    order by sid, useinfo.timestamp
+                """
+            )
+        for row in res:
+            if (row.ts + dd) > current_assignment.duedate:
+                click.echo(
+                    click.style(
+                        f"> {row.ts} {row.sid:<15} {row.div_id:<40} {row.event:<10} {row.act:<30}",
+                        fg="red",
+                    )
+                )
+            else:
+                click.echo(
+                    f"< {row.ts} {row.sid:<15} {row.div_id:<40} {row.event:<10} {row.act:<30}"
+                )   
 
 #
 # Utility Functions Below here
