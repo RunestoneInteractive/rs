@@ -220,6 +220,7 @@ export default class DragNDrop extends RunestoneBase {
     }
     createButtons() {
         this.buttonDiv = document.createElement("div");
+        this.buttonDiv.classList.add("dnd-button-container");
         this.submitButton = document.createElement("button"); // Check me button
         this.submitButton.textContent = $.i18n("msg_dragndrop_check_me");
         this.submitButton.setAttribute("class", "btn btn-success drag-button");
