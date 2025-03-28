@@ -1,18 +1,25 @@
 .rsdraggable {
-    margin-left: 2%;
+    margin-left: 1%;
+    margin-right: 1%;
     margin-top: 5px;
-    display:inline;
-    float:left;
+    display: inline;
+    float: left;
     text-align: left;
     vertical-align: top;
     background-color: var(--questionBgColor, #efefff);
     font-family: monospace;
     font-size: 120%;
     padding-bottom: 10px;
-    min-width: 48%;
-    max-width: 48%;
+    min-width: 28%;
     border: 1px solid var(--componentBorderColor, #efefff);
     box-sizing: border-box;
+}
+
+.dnd-button-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 1em;
 }
 
 .drag-button {
@@ -77,7 +84,8 @@
  * This is a hack to allow us to drop on the drop target when
  * the drop area contains mathjax or or other child elements.
 */
-.draggable-drop .process-math, .draggable-drop .MathJax {
+.draggable-drop .process-math,
+.draggable-drop .MathJax {
     pointer-events: none;
     cursor: not-allowed;
 }
