@@ -2,7 +2,8 @@ import { TableDropdownOption } from "@/types/dataset";
 import { CreateExerciseFormType, QuestionJSON } from "@/types/exercises";
 
 export const buildQuestionJson = (data: CreateExerciseFormType) => {
-  return JSON.stringify({
+  // Create the question JSON object based on question type
+  const questionObject = {
     ...(data.question_type === "activecode" && {
       prefix_code: data.prefix_code,
       starter_code: data.starter_code,
@@ -17,8 +18,15 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
     ...(data.question_type === "mchoice" && {
       statement: data.statement,
       optionList: data.optionList
+    }),
+    ...(data.question_type === "poll" && {
+      statement: data.statement,
+      optionList: data.optionList
     })
-  });
+  };
+
+  // Ensure we return a JSON string
+  return JSON.stringify(questionObject);
 };
 
 export const getDefaultQuestionJson = (languageOptions: TableDropdownOption[]) => ({
@@ -44,6 +52,7 @@ export const mergeQuestionJsonWithDefaults = (
   return {
     ...defaultQuestionJson,
     ...questionJson,
-    optionList: questionJson?.optionList ?? defaultQuestionJson.optionList
+    optionList: questionJson?.optionList ?? defaultQuestionJson.optionList,
+    statement: questionJson?.statement ?? defaultQuestionJson.statement
   };
 };

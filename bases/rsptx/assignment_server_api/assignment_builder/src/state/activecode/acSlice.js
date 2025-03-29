@@ -46,7 +46,7 @@ export const acSlice = createSlice({
     statement: "",
     prefix_code: "",
     starter_code: "",
-    suffix_code: "",
+    suffix_code: ""
   },
   reducers: {
     /**
@@ -118,8 +118,8 @@ export const acSlice = createSlice({
       state.prefix_code = action.payload.prefix_code;
       state.starter_code = action.payload.starter_code;
       state.suffix_code = action.payload.suffix_code;
-    },
-  },
+    }
+  }
 });
 
 export const { updateField, setChapter, setACFields } = acSlice.actions;

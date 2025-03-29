@@ -57,6 +57,7 @@ from rsptx.validation.schemas import (
     QuestionIncoming,
     SearchSpecification,
     UpdateAssignmentExercisesPayload,
+    AssignmentQuestionUpdateDict,
 )
 from rsptx.logging import rslogger
 from rsptx.analytics import log_this_function
@@ -379,8 +380,7 @@ async def new_assignment(
         from_source=False,
         is_peer=False,
         current_index=0,
-        enforce_due=False,
-        peer_async_visible=False,
+        enforce_due=False
     )
     try:
         res = await create_assignment(new_assignment)
@@ -592,6 +592,9 @@ async def get_assignment_questions(
         aq["question_json"] = q["question_json"]
         aq["owner"] = q["owner"]
         aq["tags"] = q["tags"]
+        aq["topic"] = q["topic"]
+        aq["author"] = q["author"]
+        aq["difficulty"] = q["difficulty"]
         qlist.append(aq)
 
     rslogger.debug(f"qlist: {qlist}")
@@ -603,11 +606,16 @@ async def get_assignment_questions(
 @with_course()
 async def assignment_questions_batch(
     request: Request,
-    request_data: list[AssignmentQuestionValidator],
+    request_data: list[AssignmentQuestionUpdateDict],
     user=Depends(auth_manager),
     response_class=JSONResponse,
     course = None,
 ):
+    """
+    Update multiple assignment questions and their associated questions in batch.
+    The request_data is validated to ensure it contains required fields from both
+    AssignmentQuestionValidator and QuestionValidator.
+    """
     try:
         await update_multiple_assignment_questions(request_data)
     except Exception as e:
@@ -993,6 +1001,7 @@ async def save_exception(
     else:
         return make_json_response(status=status.HTTP_200_OK, detail={"success": True})
 
+
 @router.get("/which_to_grade_options")
 @instructor_role_required()
 async def get_which_to_grade_options(request: Request):
@@ -1006,11 +1015,13 @@ async def get_autograde_options(request: Request):
     options = [option.to_dict() for option in AutogradeOptions]
     return JSONResponse(content=options, status_code=status.HTTP_200_OK)
 
+
 @router.get("/language_options")
 @instructor_role_required()
 async def get_language_options(request: Request):
     options = [option.to_dict() for option in LanguageOptions]
     return JSONResponse(content=options, status_code=status.HTTP_200_OK)
+
 
 @router.get("/question_type_options")
 @instructor_role_required()
