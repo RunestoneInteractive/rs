@@ -22,7 +22,8 @@ from typing import Dict, List, Optional, Tuple, Any
 import textwrap
 import traceback
 import pytz
-from typing_extensions import TypedDict
+from typing import Any, Dict, List, Optional, Tuple
+from sqlalchemy import select, func, and_, or_, not_, desc, asc, String, Text, Unicode, UnicodeText
 
 # Third-party imports
 # -------------------
@@ -1930,8 +1931,10 @@ async def fetch_questions_by_search_criteria(
         )
     if criteria.question_type:
         where_criteria.append(Question.question_type == criteria.question_type)
+
     if criteria.author:
         where_criteria.append(Question.author.regexp_match(criteria.author, flags="i"))
+
     if criteria.base_course:
         where_criteria.append(Question.base_course == criteria.base_course)
 
@@ -1945,6 +1948,103 @@ async def fetch_questions_by_search_criteria(
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return [QuestionValidator.from_orm(q) for q in res.scalars().fetchall()]
+
+async def search_exercises(
+    criteria: schemas.ExercisesSearchRequest,
+) -> dict:
+    """
+    Smart search for exercises with pagination, filtering, and sorting.
+    
+    :param criteria: Search parameters including filters, pagination, and sorting
+    :return: Dictionary with search results and pagination metadata
+    """
+    # Base query
+    query = select(Question).where(Question.question_type != "page")
+    
+    # If assignment_id is provided, exclude already attached exercises
+    if criteria.assignment_id is not None:
+        assigned_questions = select(AssignmentQuestion.question_id).where(
+            AssignmentQuestion.assignment_id == criteria.assignment_id
+        ).scalar_subquery()
+        query = query.where(Question.id.not_in(assigned_questions))
+    
+    # Process filters
+    if criteria.filters:
+        for field, filter_data in criteria.filters.items():
+            if not filter_data:
+                continue
+                
+            # Get filter value and mode
+            filter_value = filter_data.get("value")
+            filter_mode = filter_data.get("matchMode", "contains")
+            
+            # Skip empty filter values
+            if filter_value is None or filter_value == "":
+                continue
+                
+            # Process global search (search in multiple fields)
+            if field == "global":
+                search_fields = ["name", "author", "topic", "tags"]
+                or_conditions = []
+                
+                for search_field in search_fields:
+                    if hasattr(Question, search_field):
+                        column = getattr(Question, search_field)
+                        or_conditions.append(column.ilike(f"%{filter_value}%"))
+                                
+                if or_conditions:
+                    query = query.where(or_(*or_conditions))
+                    
+            # Process specific field filters
+            elif hasattr(Question, field):
+                column = getattr(Question, field)
+
+                if filter_value is not None:
+                    if filter_mode == "contains":
+                        query = query.where(column.ilike(f"%{filter_value}%"))
+                    elif filter_mode == "equals":
+                        query = query.where(column == filter_value)
+                    elif filter_mode == "startsWith":
+                        query = query.where(column.ilike(f"{filter_value}%"))
+                    elif filter_mode == "endsWith":
+                        query = query.where(column.ilike(f"%{filter_value}"))
+                    elif filter_mode == "notContains":
+                        query = query.where(not_(column.ilike(f"%{filter_value}%")))
+                    elif filter_mode == "notEquals":
+                        query = query.where(column != filter_value)
+                    elif filter_mode == "in" and isinstance(filter_value, list) and len(filter_value) > 0:
+                        query = query.where(column.in_(filter_value))
+    
+    # Apply sorting
+    if criteria.sorting and criteria.sorting.get("field"):
+        field = criteria.sorting["field"]
+        order = criteria.sorting.get("order", 1)  # 1 for ascending, -1 for descending
+        
+        if hasattr(Question, field):
+            column = getattr(Question, field)
+            query = query.order_by(asc(column) if order == 1 else desc(column))
+    
+    # Count total results (before pagination)
+    count_query = select(func.count()).select_from(query.subquery())
+    
+    # Apply pagination
+    query = query.offset(criteria.page * criteria.limit).limit(criteria.limit)
+    
+    # Execute queries
+    async with async_session() as session:
+        total_count = (await session.execute(count_query)).scalar()
+        result = await session.execute(query)
+        exercises = [QuestionValidator.from_orm(row) for row in result.scalars().fetchall()]
+        
+        return {
+            "exercises": exercises,
+            "pagination": {
+                "total": total_count,
+                "page": criteria.page,
+                "limit": criteria.limit,
+                "pages": (total_count + criteria.limit - 1) // criteria.limit
+            }
+        }
 
 
 async def fetch_assignment_question(

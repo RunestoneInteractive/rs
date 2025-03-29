@@ -1,3 +1,5 @@
+import { FilterMatchMode } from "primereact/api";
+
 export const supportedExerciseTypesToEdit = ["mchoice", "poll", "shortanswer"];
 
 export const supportedExerciseTypes = [
@@ -67,14 +69,6 @@ export type GetExercisesResponse = {
   exercises: Exercise[];
 };
 
-export type SearchExercisePayload = {
-  author: string;
-  // TODO: Change endpoint to get boolean instead of string: RUN-15
-  base_course: "true" | "false";
-  question_type: string;
-  source_regex: string;
-};
-
 export type SearchExercisesResponse = {
   questions: Exercise[];
 };
@@ -104,3 +98,43 @@ export type UpdateAssignmentExercisesPayload =
   | { isReading: boolean; assignmentId: number; idsToAdd: number[]; idsToRemove?: never }
   | { isReading: boolean; assignmentId: number; idsToRemove: number[]; idsToAdd?: never }
   | { isReading: boolean; assignmentId: number; idsToAdd: number[]; idsToRemove: number[] };
+
+// Define filter value structure
+export type FilterValue = {
+  value: string | number | boolean | string[] | any[];
+  mode: FilterMatchMode;
+};
+
+// Improved types for smart exercise search
+export type ExercisesSearchRequest = {
+  // Base course handling
+  use_base_course: boolean;
+
+  // Assignment ID to filter out already assigned exercises
+  assignment_id?: number;
+
+  // Pagination
+  page: number;
+  limit: number;
+
+  // Sorting
+  sorting: {
+    field: string;
+    order: number; // 1 for ascending, -1 for descending
+  };
+
+  // Filters with explicit modes instead of pattern matching
+  filters: Record<string, FilterValue | FilterValue[] | null>;
+};
+
+export type PaginationMetadata = {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+};
+
+export type ExercisesSearchResponse = {
+  exercises: Exercise[];
+  pagination: PaginationMetadata;
+};

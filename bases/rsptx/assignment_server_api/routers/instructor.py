@@ -35,6 +35,7 @@ from rsptx.db.crud import (
     update_question,
     fetch_one_assignment,
     get_peer_votes,
+    search_exercises,
 )
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
@@ -58,6 +59,7 @@ from rsptx.validation.schemas import (
     SearchSpecification,
     UpdateAssignmentExercisesPayload,
     AssignmentQuestionUpdateDict,
+    ExercisesSearchRequest,
 )
 from rsptx.logging import rslogger
 from rsptx.analytics import log_this_function
@@ -747,6 +749,46 @@ async def fetch_chooser_data(
     )
     return make_json_response(status=status.HTTP_200_OK, detail={"questions": res})
 
+@router.post("/exercises/search")
+@instructor_role_required()
+@with_course()
+async def search_exercises_endpoint(
+    request: Request,
+    search_request: ExercisesSearchRequest,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+    course=None,
+):
+    """
+    Smart search for exercises with pagination, filtering, and sorting.
+    
+    - Uses consolidated filters object for all filter types including text search
+    - Supports base_course flag to automatically use the current course's base course
+    - Flexible sorting options
+    - Advanced pagination
+    """
+    # Set base course if flag is enabled
+    if search_request.use_base_course:
+        search_request.base_course = course.base_course
+    
+    # Perform exercise search
+    result = await search_exercises(search_request)
+    
+    # Convert timestamps to strings for JSON
+    exercises = []
+    for exercise in result["exercises"]:
+        exercise_dict = exercise.model_dump()
+        if hasattr(exercise, "timestamp") and exercise.timestamp:
+            exercise_dict["timestamp"] = exercise.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        exercises.append(exercise_dict)
+    
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "exercises": exercises,
+            "pagination": result["pagination"]
+        }
+    )
 
 @router.post("/search_questions")
 async def search_questions(
@@ -764,11 +806,6 @@ async def search_questions(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
 
-    if request_data.source_regex:
-        words = request_data.source_regex.replace(",", " ")
-        words = request_data.source_regex.split()
-        request_data.source_regex = ".*(" + "|".join(words) + ").*"
-        request_data.author = ".*" + request_data.author + ".*"
     if request_data.base_course == "true":
         request_data.base_course = course.base_course
     else:

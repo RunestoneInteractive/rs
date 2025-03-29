@@ -265,6 +265,31 @@ class SearchSpecification(BaseModel):
     author: Optional[str] = None
     tag_list: Optional[str] = None
     base_course: Optional[str] = None
+    assignment_id: Optional[int] = None
+
+
+class ExercisesSearchRequest(BaseModel):
+    """Request model for searching exercises with pagination and filtering"""
+    # Base course flag - when true, uses current course's base_course
+    use_base_course: bool = True
+    base_course: Optional[str] = None
+    
+    # Assignment ID to filter out already assigned exercises
+    assignment_id: Optional[int] = None
+
+    # Pagination
+    page: int = 0
+    limit: int = 20
+    
+    # Sorting
+    sorting: Dict[str, Any] = Field(
+        default_factory=lambda: {"field": "name", "order": 1}
+    )
+    
+    # Filters - consolidated JSON object for all filter types
+    # Supports array values for multi-selection and match modes with field_matchMode pattern
+    # Example: { "question_type": ["mchoice", "activecode"], "question_type_matchMode": "equals" }
+    filters: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ScoringSpecification(BaseModel):

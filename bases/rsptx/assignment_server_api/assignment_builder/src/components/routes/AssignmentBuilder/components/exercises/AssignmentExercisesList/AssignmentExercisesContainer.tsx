@@ -1,6 +1,6 @@
 import styles from "@components/routes/AssignmentBuilder/AssignmentBuilder.module.css";
 import { ChooseExercises } from "@components/routes/AssignmentBuilder/components/exercises/components/ChooseExercises/ChooseExercises";
-import { SearchExercises } from "@components/routes/AssignmentBuilder/components/exercises/components/SearchExercises/SearchExercises";
+import { SmartSearchExercises } from "@components/routes/AssignmentBuilder/components/exercises/components/SearchExercises/SmartSearchExercises";
 import { Loader } from "@components/ui/Loader";
 import { exercisesActions, exercisesSelectors } from "@store/exercises/exercises.logic";
 import { useState } from "react";
@@ -117,7 +117,7 @@ export const AssignmentExercisesContainer = ({
 
       {viewMode === "browse" && <ChooseExercises />}
 
-      {viewMode === "search" && <SearchExercises />}
+      {viewMode === "search" && <SmartSearchExercises />}
 
       {viewMode === "create" && (
         <CreateView
