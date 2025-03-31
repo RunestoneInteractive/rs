@@ -197,9 +197,12 @@ export class ActiveCode extends RunestoneBase {
             this.codeCoachList.push(new PyflakesCoach());
         }
 
+        // Why is this necessary???
         setTimeout(
             function () {
                 this.editor.refresh();
+                // need to regen locked decoration
+                this.setLockedRegions();
             }.bind(this),
             1000
         );
@@ -246,7 +249,7 @@ export class ActiveCode extends RunestoneBase {
         let gutterList = [];
         if (this.visiblePrefixEnd || this.visibleSuffixLength) {
             gutterList = [
-                { className: "CodeMirror-lock-markers", style: "width: 6px" },
+                { className: "CodeMirror-lock-markers", style: "width: 16px" },
             ];
         }
         var editor = CodeMirror(codeDiv, {
@@ -265,80 +268,21 @@ export class ActiveCode extends RunestoneBase {
             },
         });
 
-        function makeLockMarker() {
-            // div with svg icon of a lock
-            var marker = document.createElement("div");
-            marker.innerHTML = `<div style="margin-top:0.2ex;"><svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="#5f6368"><path d="M263.72-96Q234-96 213-117.15T192-168v-384q0-29.7 21.15-50.85Q234.3-624 264-624h24v-96q0-79.68 56.23-135.84 56.22-56.16 136-56.16Q560-912 616-855.84q56 56.16 56 135.84v96h24q29.7 0 50.85 21.15Q768-581.7 768-552v384q0 29.7-21.16 50.85Q725.68-96 695.96-96H263.72Zm.28-72h432v-384H264v384Zm216.21-120Q510-288 531-309.21t21-51Q552-390 530.79-411t-51-21Q450-432 429-410.79t-21 51Q408-330 429.21-309t51 21ZM360-624h240v-96q0-50-35-85t-85-35q-50 0-85 35t-35 85v96Zm-96 456v-384 384Z"/></svg></div>`;
-            marker.setAttribute("title", "Locked");
-            return marker;
-        }
-
-        let setLockedRegions = () => {
-            if (this.visiblePrefixEnd) {
-                let lastLine = editor.posFromIndex(
-                    this.visiblePrefixEnd - 1
-                ).line;
-                for (let i = 0; i <= lastLine; i++) {
-                    editor.setGutterMarker(
-                        i,
-                        "CodeMirror-lock-markers",
-                        makeLockMarker()
-                    );
-                }
-                let endPos = editor.posFromIndex(this.visiblePrefixEnd);
-                console.log("endPos", endPos);
-                editor.markText(
-                    { line: 0, ch: 0 },
-                    { line: endPos.line, ch: endPos.ch },
-                    {
-                        readOnly: true,
-                        atomic: false,
-                        inclusiveLeft: true,
-                        inclusiveRight: false,
-                    }
-                );
-            }
-            if (this.visibleSuffixLength) {
-                let endIndex =
-                    editor.doc.getValue().length - this.visibleSuffixLength;
-                let endPos = editor.posFromIndex(endIndex);
-                let lastLine = editor.doc.lastLine();
-                for (let i = endPos.line; i <= lastLine; i++) {
-                    editor.setGutterMarker(
-                        i,
-                        "CodeMirror-lock-markers",
-                        makeLockMarker()
-                    );
-                }
-                // include preceeding newline
-                let endPos2 = editor.posFromIndex(endIndex - 1);
-                editor.markText(
-                    { line: endPos2.line, ch: endPos2.ch },
-                    { line: editor.doc.lastLine() + 1 },
-                    {
-                        readOnly: true,
-                        atomic: false,
-                        inclusiveLeft: false,
-                        inclusiveRight: true,
-                    }
-                );
-            }
-        };
-        setLockedRegions();
-
         CodeMirror.on(editor, "change", (cm, obj) => {
             // setValue indicates scrubber switched history, need to reset locked regions
             if (obj.origin === "setValue") {
                 editor.doc.clearGutter("CodeMirror-lock-markers");
-                setLockedRegions();
+                this.setLockedRegions();
             }
         });
 
         // Make the editor resizable
+        let ac = this;
         $(editor.getWrapperElement()).resizable({
             resize: function () {
                 editor.setSize($(this).width(), $(this).height());
                 editor.refresh();
+                ac.setLockedRegions();
             },
         });
         editor.on("keydown", (cm, event) => {
@@ -421,10 +365,78 @@ export class ActiveCode extends RunestoneBase {
         // force an initial height for the container. Without this scrollbar does not appear
         // height is that required by the linediv plus a little padding
         editor.getWrapperElement().style.height = (editor.display.lineDiv.clientHeight + 10) + 'px';
+
+        // lock down code prefix/suffix
+        this.setLockedRegions();
+
         if (this.hidecode) {
             $(this.codeDiv).css("display", "none");
         }
     }
+
+
+    async setLockedRegions() {
+        function decorateLines(start, end) {
+            let lines = this.containerDiv.querySelectorAll(".CodeMirror-code > div");
+            for (let i = start; i <= end; i++) {
+                // addLineClass looks like the way this "should" be done
+                // codemirror appears to remove the line and insert a modified one
+                // causing a lot of rerendering. Can slow page load down substantially
+                //this.editor.addLineClass(i, "behind", "CodeMirror__locked-line");
+                // So manually just go add a class:
+                lines[i].classList.add("CodeMirror__locked-line");
+                // downside is that this is not preserved on editor.refresh()
+                // so setLockedRegions() must be called again
+            }
+            let midLine = Math.floor((start + end) / 2);
+            var marker = document.createElement("div");
+            marker.className = "CodeMirror__gutter-locked-marker";
+            this.editor.setGutterMarker(midLine, "CodeMirror-lock-markers", marker);
+        }
+
+        this.containerDiv.querySelectorAll(".CodeMirror-code > div").forEach(
+            (line) => {
+                line.classList.remove("CodeMirror__locked-line");
+            }
+        ); 
+
+        if (this.visiblePrefixEnd) {
+            let lastLine = this.editor.posFromIndex(
+                this.visiblePrefixEnd - 1
+            ).line;
+            decorateLines.call(this, 0, lastLine);
+            let endPos = this.editor.posFromIndex(this.visiblePrefixEnd);
+            this.editor.markText(
+                { line: 0, ch: 0 },
+                { line: endPos.line, ch: endPos.ch },
+                {
+                    readOnly: true,
+                    atomic: false,
+                    inclusiveLeft: true,
+                    inclusiveRight: false,
+                }
+            );
+        }
+        if (this.visibleSuffixLength) {
+            let endIndex =
+                this.editor.doc.getValue().length - this.visibleSuffixLength;
+            let endPos = this.editor.posFromIndex(endIndex);
+            let lastLine = this.editor.doc.lastLine();
+            decorateLines.call(this, endPos.line, lastLine);
+            // include preceeding newline
+            let endPos2 = this.editor.posFromIndex(endIndex - 1);
+            this.editor.markText(
+                { line: endPos2.line, ch: endPos2.ch },
+                { line: this.editor.doc.lastLine() + 1 },
+                {
+                    readOnly: true,
+                    atomic: false,
+                    inclusiveLeft: false,
+                    inclusiveRight: true,
+                }
+            );
+        }
+    };
 
     async runButtonHandler() {
         // Disable the run button until the run is finished.
@@ -841,6 +853,7 @@ export class ActiveCode extends RunestoneBase {
         this.timestampP = document.createElement("span");
         this.slideit = function (ev, el) {
             this.editor.setValue(this.history[$(scrubber).slider("value")]);
+            this.setLockedRegions();
             var curVal = this.timestamps[$(scrubber).slider("value")];
             let pos = $(scrubber).slider("value");
             let outOf = this.history.length;
@@ -881,10 +894,12 @@ export class ActiveCode extends RunestoneBase {
             i = i - 1;
             scrubber.value = Math.max(i, 0);
             this.editor.setValue(this.history[scrubber.value]);
+            this.setLockedRegions();
             $(scrubber).slider("value", scrubber.value);
         } else if (pos_last) {
             scrubber.value = this.history.length - 1;
             this.editor.setValue(this.history[scrubber.value]);
+            this.setLockedRegions();
         } else {
             scrubber.value = 0;
         }
@@ -1462,7 +1477,9 @@ Yet another is that there is an internal error.  The internal error message is: 
                 "value",
                 this.history.length - 1
             );
-            this.slideit(null);
+            // is this needed? changing value in previous statement
+            // already triggers slideit function
+            //this.slideit(null);
         } else {
             saveCode = "False";
         }
