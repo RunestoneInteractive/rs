@@ -152,8 +152,9 @@ export class ActiveCode extends RunestoneBase {
         if (visiblePrefixEnd > -1) {
             this.visiblePrefixEnd = visiblePrefixEnd;
             let markerLength = this.code[visiblePrefixEnd + 4] == "\n" ? 5 : 4;
+            this.visiblePrefix = this.code.substring(0, visiblePrefixEnd);
             this.code =
-                this.code.substring(0, visiblePrefixEnd) +
+                this.visiblePrefix +
                 this.code.substring(visiblePrefixEnd + markerLength);
         }
         // There may be both a visible and invisible (tests) suffix
@@ -176,12 +177,14 @@ export class ActiveCode extends RunestoneBase {
                 this.code[visibleSuffixStart + 4] == "\n" ? 5 : 4;
             this.visibleSuffixLength =
                 this.code.length - visibleSuffixStart - markerLength;
+            this.visibleSuffix = this.code.substring(visibleSuffixStart + markerLength);
             this.code =
                 this.code.substring(0, visibleSuffixStart) +
-                this.code.substring(visibleSuffixStart + markerLength);
+                this.visibleSuffix;
         }
+        let baseCode = this.trimLockedCode(this.code);
+        this.history = [baseCode];
 
-        this.history = [this.code];
         this.createEditor();
         this.createOutput();
         this.createControls();
@@ -852,7 +855,9 @@ export class ActiveCode extends RunestoneBase {
         var scrubber = document.createElement("div");
         this.timestampP = document.createElement("span");
         this.slideit = function (ev, el) {
-            this.editor.setValue(this.history[$(scrubber).slider("value")]);
+            let submittedCode = this.history[$(scrubber).slider("value")];
+            let code = this.readdLockedCode(submittedCode);
+            this.editor.setValue(code);
             this.setLockedRegions();
             var curVal = this.timestamps[$(scrubber).slider("value")];
             let pos = $(scrubber).slider("value");
@@ -893,12 +898,16 @@ export class ActiveCode extends RunestoneBase {
             }
             i = i - 1;
             scrubber.value = Math.max(i, 0);
-            this.editor.setValue(this.history[scrubber.value]);
+            let submittedCode = this.history[scrubber.value];
+            let code = this.readdLockedCode(submittedCode);
+            this.editor.setValue(code);
             this.setLockedRegions();
             $(scrubber).slider("value", scrubber.value);
         } else if (pos_last) {
             scrubber.value = this.history.length - 1;
-            this.editor.setValue(this.history[scrubber.value]);
+            let submittedCode = this.history[scrubber.value];
+            let code = this.readdLockedCode(submittedCode);
+            this.editor.setValue(code);
             this.setLockedRegions();
         } else {
             scrubber.value = 0;
@@ -1426,6 +1435,23 @@ Yet another is that there is an internal error.  The internal error message is: 
         }
     }
 
+    trimLockedCode(code) {
+        // remove any visible prefix and suffix code to leave just user editable code
+        let visPrefixLength = this.visiblePrefix ? this.visiblePrefix.length : 0;
+        let visSuffixLength = this.visibleSuffix ? this.visibleSuffix.length : 0;
+        if (visSuffixLength > 0)
+            code = code.slice(visPrefixLength, -visSuffixLength);
+        else
+            code = code.slice(visPrefixLength);
+        return code;
+    }
+
+    readdLockedCode(code) {
+        // add back the visible prefix and suffix code
+        code = (this.visiblePrefix || "") + code + (this.visibleSuffix || "");
+        return code;
+    }
+
     async buildProg(useSuffix) {
         // assemble code from prefix, suffix, and editor for running.
         var pretext;
@@ -1459,13 +1485,14 @@ Yet another is that there is an internal error.  The internal error message is: 
         if (this.historyScrubber === null && !this.autorun) {
             await this.addHistoryScrubber();
         }
+        let userCode = this.trimLockedCode(this.editor.getValue());
         if (
             this.historyScrubber &&
             this.history[$(this.historyScrubber).slider("value")] !=
-            this.editor.getValue()
+            userCode
         ) {
             saveCode = "True";
-            this.history.push(this.editor.getValue());
+            this.history.push(userCode);
             this.timestamps.push(new Date().toLocaleString());
             $(this.historyScrubber).slider(
                 "option",
@@ -1499,9 +1526,10 @@ Yet another is that there is an internal error.  The internal error message is: 
 
     // the sid parameter is optional and is used for group submissions
     async logCurrentAnswer(sid) {
+        let submittedCode = this.trimLockedCode(this.editor.getValue());
         let data = {
             div_id: this.divid,
-            code: this.editor.getValue(),
+            code: submittedCode,
             language: this.language,
             errinfo: this.errinfo || "",
             to_save: this.saveCode || "F",
