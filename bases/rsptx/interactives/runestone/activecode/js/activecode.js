@@ -417,6 +417,10 @@ export class ActiveCode extends RunestoneBase {
             }
         });
         this.editor = editor;
+
+        // force an initial height for the container. Without this scrollbar does not appear
+        // height is that required by the linediv plus a little padding
+        editor.getWrapperElement().style.height = (editor.display.lineDiv.clientHeight + 10) + 'px';
         if (this.hidecode) {
             $(this.codeDiv).css("display", "none");
         }
