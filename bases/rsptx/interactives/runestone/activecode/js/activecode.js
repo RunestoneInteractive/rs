@@ -946,7 +946,7 @@ export class ActiveCode extends RunestoneBase {
         this.eContainer.setAttribute("role", "log");
         this.eContainer.className = "error alert alert-danger";
         this.eContainer.id = this.divid + "_errinfo";
-        this.eContainer.style.display = "none";
+        this.eContainer.style.visibility = "hidden";
         this.outerDiv.appendChild(this.eContainer);
     }
 
@@ -1616,10 +1616,6 @@ Yet another is that there is an internal error.  The internal error message is: 
             this.output.innerHTML = ""
             console.log("init innerhtml")
         }
-        if (this.eContainer.innerHTML == "")
-            this.eContainer.style.display = "none";
-        else
-            this.eContainer.style.display = "block";
     }
     /* runProg has several async elements to it.
      * 1. Skulpt runs the python program asynchronously
@@ -1658,6 +1654,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             }
         }
         this.eContainer.innerHTML = "";
+        this.eContainer.style.visibility = "hidden";
 
         if (this.codelens) {
             this.codelens.style.display = "none";
@@ -1695,10 +1692,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             $(this.runButton).attr("disabled", "disabled");
             $(this.historyScrubber).off("slidechange");
             $(this.historyScrubber).slider("disable");
-            $(this.outDiv).show({
-                duration: 700,
-                queue: false,
-            });
+            this.outDiv.style.visibility = "visible";
         }
         try {
             await Sk.misceval.asyncToPromise(
@@ -1735,8 +1729,11 @@ Yet another is that there is an internal error.  The internal error message is: 
                 $(this.historyScrubber).slider("enable");
             }
             this.errinfo = err.toString();
-            this.addErrorMessage(err);
-            this.showOutputs(); // update in case there are now errors to display
+            this.eContainer.style.visibility = "visible";
+            setTimeout(() => {
+                this.addErrorMessage(err);
+            }, 10);
+            //this.showOutputs(); // update in case there are now errors to display
         } finally {
             $(this.runButton).removeAttr("disabled");
             this.firstAfterRun = true;
