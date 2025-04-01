@@ -86,6 +86,18 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install and use more recent gcc and g++
+RUN apt-get update && \
+    apt-get --no-install-recommends install -yq \
+        software-properties-common \
+        gnupg-agent
+RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
+RUN apt-get update && \
+    apt-get install -y gcc-13 && \
+    apt-get install -y g++-13 && \
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 60 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 60
+
 # Fix catch.hpp (use the one from catch2)
 RUN rm -f /usr/include/catch.hpp && ln -s /usr/include/catch2/catch.hpp /usr/include/catch.hpp
 
