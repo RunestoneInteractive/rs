@@ -74,14 +74,16 @@ services:
       - host.docker.internal:host-gateway
     ports:
       - 8111:8111
+
     command: uvicorn rsptx.book_server_api.main:app --host 0.0.0.0 --port 8111
     #command: tail -f /var/log/lastlog
     restart: always
     logging:
-      driver: "json-file"
+      driver: "fluentd"
       options:
-        max-size: "1024m"
-        max-file: "3"
+        fluentd-address: host.docker.internal:24224
+        tag: runestone.book_server
+
     volumes:
       - ${BOOK_PATH}:/usr/books
 
