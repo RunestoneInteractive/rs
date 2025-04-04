@@ -14,18 +14,22 @@ files = [
 
 [[package]]
 name = "aiosqlite"
-version = "0.16.1"
+version = "0.21.0"
 description = "asyncio bridge to the standard sqlite3 module"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "aiosqlite-0.16.1-py3-none-any.whl", hash = "sha256:1df802815bb1e08a26c06d5ea9df589bcb8eec56e5f3378103b0f9b223c6703c"},
-    {file = "aiosqlite-0.16.1.tar.gz", hash = "sha256:2e915463164efa65b60fd1901aceca829b6090082f03082618afca6fb9c8fdf7"},
+    {file = "aiosqlite-0.21.0-py3-none-any.whl", hash = "sha256:2549cf4057f95f53dcba16f2b64e8e2791d7e1adedb13197dd8ed77bb226d7d0"},
+    {file = "aiosqlite-0.21.0.tar.gz", hash = "sha256:131bb8056daa3bc875608c631c678cda73922a2d4ba8aec373b19f18c17e7aa3"},
 ]
 
 [package.dependencies]
-typing_extensions = ">=3.7.2"
+typing_extensions = ">=4.0"
+
+[package.extras]
+dev = ["attribution (==1.7.1)", "black (==24.3.0)", "build (>=1.2)", "coverage[toml] (==7.6.10)", "flake8 (==7.0.0)", "flake8-bugbear (==24.12.12)", "flit (==3.10.1)", "mypy (==1.14.1)", "ufmt (==2.5.1)", "usort (==1.0.8.post1)"]
+docs = ["sphinx (==8.1.3)", "sphinx-mdinclude (==0.6.1)"]
 
 [[package]]
 name = "alabaster"
@@ -797,6 +801,21 @@ files = [
     {file = "cogapp-3.4.1-py3-none-any.whl", hash = "sha256:1daba7b6c8bb23b733c64833de7aa3a42476c05afba19cff937e1b522216859d"},
     {file = "cogapp-3.4.1.tar.gz", hash = "sha256:a806d5db9e318a1a2d3fce988008179168e7db13e5e55b19b79763f9bb9d2982"},
 ]
+
+[[package]]
+name = "coloraide"
+version = "4.5.1"
+description = "A color library for Python."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "coloraide-4.5.1-py3-none-any.whl", hash = "sha256:5ddfbf72f1caab610f7654019fcd00899e037d086392cb9d76e9c4f278fff36b"},
+    {file = "coloraide-4.5.1.tar.gz", hash = "sha256:d80e84ab7b09ac3665ebeab9783f8aa9a51fe2bb9ea4eb561ca100d3793a21c8"},
+]
+
+[package.dependencies]
+typing-extensions = {version = "*", markers = "python_version < \"3.11\""}
 
 [[package]]
 name = "colorama"
@@ -2739,19 +2758,20 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "pretext"
-version = "2.14.0"
+version = "2.15.2"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0.0,>=3.8.5"
 groups = ["main"]
 files = [
-    {file = "pretext-2.14.0-py3-none-any.whl", hash = "sha256:314dbaef80cd4797967c83d0cbabfc6c80462ff00530de92b09c2ee4db291bde"},
-    {file = "pretext-2.14.0.tar.gz", hash = "sha256:f71e7bcf0e1a8d60c6f8cef110b4e1b98cb91e19844e419fa69cc80e97fb443b"},
+    {file = "pretext-2.15.2-py3-none-any.whl", hash = "sha256:bff2742670795cf2ef0e863f33db8163bde3a69ffa6be5a8ff81a9bc4c69910b"},
+    {file = "pretext-2.15.2.tar.gz", hash = "sha256:c80e14bf75bc98e4c2617acaa895c719a937cbd40d764c2a736f47a96de084c9"},
 ]
 
 [package.dependencies]
 click = ">=8,<9"
 click-log = ">=0.4,<0.5"
+coloraide = ">=4,<5"
 ghp-import = ">=2,<3"
 GitPython = ">=3,<4"
 jinja2 = ">=3,<4"
@@ -2761,7 +2781,7 @@ plastex = ">=3,<4"
 playwright = ">=1,<2"
 psutil = ">=7,<8"
 pydantic-xml = ">=2"
-pyMuPDF = ">=1.23,<2.0"
+pyMuPDF = ">=1.24,<2.0"
 PyPDF2 = ">=2.5,<2.6"
 qrcode = ">=7,<8"
 requests = ">=2,<3"
@@ -3760,18 +3780,18 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.5.10"
+version = "7.5.13"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "<4.0.0,>=3.10.0"
 groups = ["main"]
 files = [
-    {file = "runestone-7.5.10-py3-none-any.whl", hash = "sha256:a439e3a1e2440b9a01ca138b7ffd6719ac71014a9fade03693d681b227427a98"},
-    {file = "runestone-7.5.10.tar.gz", hash = "sha256:766c0096ef93c545cdb4c29fddd1f7a0bc3e022f32e2e810e2aa60ff3cd2b9e3"},
+    {file = "runestone-7.5.13-py3-none-any.whl", hash = "sha256:7725e2096b8078ab1ed9dbc25ef168d16d4ad0a0ffa7ebf50c12956df453daa6"},
+    {file = "runestone-7.5.13.tar.gz", hash = "sha256:028c70e30538024a4f755bcefbbd3a369a09bd912ea4e278cc374e36687e64a6"},
 ]
 
 [package.dependencies]
-aiosqlite = ">=0.16.0,<0.17.0"
+aiosqlite = ">=0.18.0"
 asyncpg = ">=0.28.0,<0.29.0"
 click = ">=8,<9"
 CodeChat = "1.9.3"
