@@ -273,6 +273,15 @@ export const SmartSearchExercises = () => {
               headerClassName={styles.selectionColumnHeader}
             />
 
+            {/* Preview */}
+            <Column
+              headerStyle={{ width: "4rem" }}
+              style={{ width: "4rem" }}
+              body={renderPreview}
+              frozen={true}
+              className="preview-column"
+            />
+
             {/* Question number */}
             <Column
               field="qnumber"
@@ -348,15 +357,6 @@ export const SmartSearchExercises = () => {
               showFilterMenu={true}
               filterMenuStyle={{ width: "15rem" }}
               className="topic-column"
-            />
-
-            {/* Preview */}
-            <Column
-              headerStyle={{ width: "4rem" }}
-              style={{ width: "4rem" }}
-              body={renderPreview}
-              frozen={true}
-              className="preview-column"
             />
           </DataTable>
         )}
