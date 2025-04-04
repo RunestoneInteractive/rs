@@ -260,8 +260,10 @@ export default class Parsons extends RunestoneBase {
         }
         this.messageDiv = document.createElement("div");
         this.messageDiv.id = this.counterId + "-message";
+        this.messageDiv.setAttribute("aria-live", "polite");
+        this.messageDiv.setAttribute("role", "status");
         this.parsonsControlDiv.appendChild(this.messageDiv);
-        $(this.messageDiv).hide();
+        this.messageDiv.style.visibility = "hidden";
         $(this.origElem).replaceWith(this.outerDiv);
         $(this.outerDiv).closest(".sqcontainer").css("max-width", "none");
         if (this.outerDiv) {
@@ -1418,22 +1420,26 @@ export default class Parsons extends RunestoneBase {
 
         if (this.grade === "correct") {
             answerArea.addClass("correct");
-            feedbackArea.fadeIn(100);
+            this.messageDiv.style.visibility = "visible";
             feedbackArea.attr("class", "alert alert-info");
             let message = this.checkCount > 1
                 ? $.i18n("msg_parson_correct", this.checkCount)
                 : $.i18n("msg_parson_correct_first_try");
             if (this.options.runnable)
                 message += " " + $.i18n("msg_parson_correct_runnable");
-            feedbackArea.html(message);
+            setTimeout(() => {
+                feedbackArea.html(message);
+            }, 10);
         }
 
         if (this.grade === "incorrectTooShort") {
             // too little code
             answerArea.addClass("incorrect");
-            feedbackArea.fadeIn(500);
+            this.messageDiv.style.visibility = "visible";
             feedbackArea.attr("class", "alert alert-danger");
-            feedbackArea.html($.i18n("msg_parson_too_short"));
+            setTimeout(() => {
+                feedbackArea.html($.i18n("msg_parson_too_short"));
+            }, 10);
         }
 
         if (this.grade === "incorrectIndent") {
@@ -1452,13 +1458,15 @@ export default class Parsons extends RunestoneBase {
                     $(block.view).addClass("indentRight");
                 }
             }
-            feedbackArea.fadeIn(500);
+            this.messageDiv.style.visibility = "visible";
             feedbackArea.attr("class", "alert alert-danger");
-            if (incorrectBlocks.length == 1) {
-                feedbackArea.html($.i18n("msg_parson_wrong_indent"));
-            } else {
-                feedbackArea.html($.i18n("msg_parson_wrong_indents"));
-            }
+            setTimeout(() => {
+                if (incorrectBlocks.length == 1) {
+                    feedbackArea.html($.i18n("msg_parson_wrong_indent"));
+                } else {
+                    feedbackArea.html($.i18n("msg_parson_wrong_indents"));
+                }
+            }, 10);
         }
 
         if (this.grade === "incorrectMoveBlocks") {
@@ -1484,14 +1492,16 @@ export default class Parsons extends RunestoneBase {
                 notInSolution.push(inSolution[lisIndexes[i]]);
             }
             answerArea.addClass("incorrect");
-            feedbackArea.fadeIn(500);
+            this.messageDiv.style.visibility = "visible";
             feedbackArea.attr("class", "alert alert-danger");
             if (this.showfeedback === true) {
                 for (let i = 0; i < notInSolution.length; i++) {
                     $(notInSolution[i].view).addClass("incorrectPosition");
                 }
             }
-            feedbackArea.html($.i18n("msg_parson_wrong_order"));
+            setTimeout(() => {
+                feedbackArea.html($.i18n("msg_parson_wrong_order"));
+            }, 10);
         }
     }
 
@@ -1594,9 +1604,11 @@ export default class Parsons extends RunestoneBase {
     removeDistractor(block) {
         // Alert the user to what is happening
         var feedbackArea = $(this.messageDiv);
-        feedbackArea.fadeIn(500);
+        this.messageDiv.style.visibility = "visible";
         feedbackArea.attr("class", "alert alert-info");
-        feedbackArea.html($.i18n("msg_parson_not_solution"));
+        setTimeout(() => {
+            feedbackArea.html($.i18n("msg_parson_not_solution"));
+        }, 10);
         // Stop ability to select
         if (block.lines[0].distractHelptext) {
             block.view.setAttribute("data-toggle", "tooltip");
@@ -1701,9 +1713,11 @@ export default class Parsons extends RunestoneBase {
     removeIndentation() {
         // Alert the user to what is happening
         var feedbackArea = $(this.messageDiv);
-        feedbackArea.fadeIn(500);
+        this.messageDiv.style.visibility = "visible";
         feedbackArea.attr("class", "alert alert-info");
-        feedbackArea.html($.i18n("msg_parson_provided_indent"));
+        setTimeout(() => {
+            feedbackArea.html($.i18n("msg_parson_provided_indent"));
+        }, 10);
         // Move and resize blocks
         var blockWidth = 200;
         for (var i = 0; i < this.lines.length; i++) {
@@ -1894,9 +1908,11 @@ export default class Parsons extends RunestoneBase {
 
         // Alert the user to what is happening
         var feedbackArea = $(this.messageDiv);
-        feedbackArea.fadeIn(500);
+        this.messageDiv.style.visibility = "visible";
         feedbackArea.attr("class", "alert alert-info");
-        feedbackArea.html($.i18n("msg_parson_combined_blocks"));
+        setTimeout(() => {
+            feedbackArea.html($.i18n("msg_parson_combined_blocks"));
+        }, 10);
         var block1 = null;
         var block2 = null;
 
@@ -2153,7 +2169,7 @@ export default class Parsons extends RunestoneBase {
                 "correctPosition incorrectPosition indentLeft indentRight"
             );
         }
-        $(this.messageDiv).hide();
+        this.messageDiv.style.visibility = "hidden";
     }
     // Disable the interface
     async disableInteraction() {

@@ -24,7 +24,7 @@
     max-width: 100%;
     overflow: auto;
     white-space: pre;
-    height: 30em;
+    max-height: 30em;
     border: 1px solid var(--componentBorderColor);
     font-size: 90%;
 }

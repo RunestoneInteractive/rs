@@ -399,12 +399,13 @@ div.container {
     clear: both;
 }
 
-.CodeMirror-scroll {
-    /* this allows CM elements to be resized to (almost) any
-     * height while still relying on max-height (which keeps
-     * the CM editors to no more than the size needed
-     * unless resized) */
-    max-height: 60em;
+.CodeMirror {
+    /* calculated height is designed so editor panel
+     * will fit on screen (with space for navbar and
+     * controls). user should not have to scroll both
+     * page and editor panel. */
+    max-height: calc(100vh - 180px);
+    min-height: 100px;
     min-width: 30em;
 }
 
