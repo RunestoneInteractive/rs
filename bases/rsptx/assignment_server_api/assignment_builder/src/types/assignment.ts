@@ -36,7 +36,11 @@ export type CreateAssignmentPayload = {
   description: string;
   duedate: string;
   points: number;
-  kind: "Regular";
+  kind: KindOfAssignment;
+  time_limit: number | null;
+  nofeedback: boolean;
+  nopause: boolean;
+  peer_async_visible: boolean;
 };
 
 export type CreateAssignmentValidationResponse = [

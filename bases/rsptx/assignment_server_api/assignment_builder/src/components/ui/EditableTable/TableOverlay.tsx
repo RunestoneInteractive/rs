@@ -44,6 +44,7 @@ export const TableSelectionOverlay: FC<TableSelectionOverlayProps> = ({
           ) {
             exToUpdate.push({
               ...assignmentExercises[i],
+              question_json: JSON.stringify(assignmentExercises[i].question_json),
               [draggingFieldName]: draggingValue
             });
           }
@@ -112,12 +113,13 @@ export const TableSelectionOverlay: FC<TableSelectionOverlayProps> = ({
 
     window.addEventListener("mouseup", handleMouseUpEvent);
 
-    const tableRect = tableRef.getTable().getBoundingClientRect();
+    const tableRect = tableRef.getElement().getBoundingClientRect();
     const isRowVisible = (row: HTMLElement) => {
       const rowRect = row.getBoundingClientRect();
 
       return (
-        rowRect.bottom > tableRect.top && rowRect.top < tableRect.bottom // Проверяем, пересекается ли строка с видимой областью таблицы
+        rowRect.top - rowRect.height > tableRect.top &&
+        rowRect.top + rowRect.height < tableRect.bottom
       );
     };
 
@@ -164,7 +166,10 @@ export const TableSelectionOverlay: FC<TableSelectionOverlayProps> = ({
   const bottomRow = rows[Math.max(startRowIndex, endRowIndex)] as HTMLElement;
 
   const topCell = topRow.children[columnIndex] as HTMLElement;
+
   const bottomCell = bottomRow.children[columnIndex] as HTMLElement;
+
+  const tableRect = tableRef.getElement().getBoundingClientRect();
 
   const { top, left } = topCell.getBoundingClientRect();
 
@@ -173,8 +178,8 @@ export const TableSelectionOverlay: FC<TableSelectionOverlayProps> = ({
       className="table-overlay"
       style={{
         position: "absolute",
-        top: top + window.scrollY,
-        left: left + window.scrollX,
+        top: top - tableRect.top + window.scrollY,
+        left: left - tableRect.left + window.scrollX,
         width: topCell.offsetWidth,
         height: bottomCell.offsetTop + bottomCell.offsetHeight - topCell.offsetTop,
         border: "2px solid var(--primary-color)",

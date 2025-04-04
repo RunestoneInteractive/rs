@@ -9,7 +9,7 @@
   .p-datatable-header {
     z-index: 3;
     position: sticky;
-    top: 0;
+    top: -25px;
   }
 }
 
@@ -21,6 +21,7 @@
     background: transparent;
     border: none;
     user-select: none !important;
+    width: 100%;
     &::selection { color: currentColor }
   }
 
@@ -48,4 +49,26 @@
   padding: 0;
   width: 24px;
   height: 24px;
+}
+
+.preview-container {
+  background-color: var(--componentBgColor);
+  border-color: var(--componentBorderColor);
+  border-radius: 10px;
+  border-style: solid;
+  clear: both;
+  margin-bottom: 20px;
+  margin-top: 20px;
+  padding: 10px;
+
+  figure {
+    width: 300px;
+  }
+}
+
+.assignmentExercise_row {
+  td {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
 }

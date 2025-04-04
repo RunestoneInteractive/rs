@@ -30,6 +30,7 @@ export function withEditAllExercises<T, P extends WithEditAllExercisesProps<T>>(
     const handleSubmit = async () => {
       const exercises = assignmentExercises.map((ex) => ({
         ...ex,
+        question_json: JSON.stringify(ex.question_json),
         [props.field]: value
       }));
       const { error } = await updateExercises(exercises);

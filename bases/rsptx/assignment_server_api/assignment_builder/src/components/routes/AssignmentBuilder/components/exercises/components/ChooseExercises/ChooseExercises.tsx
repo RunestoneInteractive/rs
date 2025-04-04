@@ -107,7 +107,12 @@ export const ChooseExercises = () => {
             return null;
           }
 
-          return <ExercisePreviewModal htmlsrc={data.htmlsrc} />;
+          return (
+            <ExercisePreviewModal
+              htmlsrc={data.htmlsrc}
+              triggerButton={<i className="pi pi-eye" style={{ cursor: "pointer" }} />}
+            />
+          );
         }}
       ></Column>
       <Column style={{ width: "15%" }} field="qnumber" header="Question number"></Column>

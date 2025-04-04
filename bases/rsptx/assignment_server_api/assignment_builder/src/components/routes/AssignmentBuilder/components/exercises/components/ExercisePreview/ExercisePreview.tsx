@@ -1,3 +1,5 @@
+import { MathJaxWrapper } from "@components/routes/AssignmentBuilder/MathJaxWrapper";
+import { MathJax } from "better-react-mathjax";
 import { useEffect, useReducer, useRef } from "react";
 
 import { renderRunestoneComponent } from "@/componentFuncs";
@@ -16,8 +18,12 @@ export const ExercisePreview = ({ htmlsrc }: Pick<Exercise, "htmlsrc">) => {
   }, [htmlsrc]);
 
   return (
-    <div className="ptx-runestone-container">
-      <div ref={ref}></div>
-    </div>
+    <MathJaxWrapper>
+      <MathJax>
+        <div className="ptx-runestone-container">
+          <div ref={ref}></div>
+        </div>
+      </MathJax>
+    </MathJaxWrapper>
   );
 };

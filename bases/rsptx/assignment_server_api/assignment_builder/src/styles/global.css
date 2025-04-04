@@ -1,0 +1,21 @@
+.p-input-icon-left {
+  position: relative;
+  display: inline-flex;
+  width: 100%;
+}
+
+.p-input-icon-left > i:first-of-type {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 0.75rem;
+  color: var(--text-color-secondary);
+  z-index: 1;
+  font-size: 1rem;
+  margin-top: -1px;
+}
+
+.p-input-icon-left > .p-inputtext {
+  padding-left: 2.5rem !important;
+  width: 100%;
+} 

@@ -5,13 +5,13 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 export const previewSlice = createSlice({
   name: "preview",
   initialState: {
-    code: "",
+    code: ""
   },
   reducers: {
     setCode: (state, action) => {
       state.code = action.payload;
-    },
-  },
+    }
+  }
 });
 
 // export our reducer actions

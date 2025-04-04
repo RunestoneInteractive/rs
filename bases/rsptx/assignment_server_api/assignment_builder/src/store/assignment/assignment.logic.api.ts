@@ -115,6 +115,12 @@ export const assignmentApi = createApi({
         url: `/assignment/instructor/assignments/${body.id}`,
         body
       }),
+      invalidatesTags: (_, error) => {
+        if (!error) {
+          return [{ type: "Assignments" }, { type: "Assignment" }];
+        }
+        return [];
+      },
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
           toast("Error updating assignment", {

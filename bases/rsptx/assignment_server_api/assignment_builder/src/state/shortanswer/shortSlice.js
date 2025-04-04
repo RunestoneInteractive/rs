@@ -9,7 +9,7 @@ export const shortSlice = createSlice({
   name: "shortanswer",
   initialState: {
     statement: "",
-    attachment: false,
+    attachment: false
   },
   reducers: {
     /**
@@ -33,8 +33,8 @@ export const shortSlice = createSlice({
     },
     setAttachment: (state, action) => {
       state.attachment = action.payload;
-    },
-  },
+    }
+  }
 });
 
 export const { updateField, setStatement, setAttachment } = shortSlice.actions;
