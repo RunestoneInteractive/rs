@@ -401,7 +401,7 @@ export class ActiveCode extends RunestoneBase {
             (line) => {
                 line.classList.remove("CodeMirror__locked-line");
             }
-        ); 
+        );
 
         if (this.visiblePrefixEnd) {
             let lastLine = this.editor.posFromIndex(
@@ -1656,16 +1656,6 @@ Yet another is that there is an internal error.  The internal error message is: 
         }
     }
 
-    showOutputs() {
-        if (this.output.style.display == "none" || this.output.style.display == "") {
-            this.output.style.display = "block";
-            console.log("block output")
-        }
-        if (this.runCount == 0) {
-            this.output.innerHTML = ""
-            console.log("init innerhtml")
-        }
-    }
     /* runProg has several async elements to it.
      * 1. Skulpt runs the python program asynchronously
      * 2. The history is restored asynchronously
@@ -1679,7 +1669,6 @@ Yet another is that there is an internal error.  The internal error message is: 
     async runProg(noUI, logResults) {
         console.log("starting runProg");
         this.output.innerHTML = "";
-        window.requestAnimationFrame(this.showOutputs.bind(this));
         stopExecution = false;
         this.outputLineCount = 0;
         this.outputLines = [];
@@ -1782,7 +1771,6 @@ Yet another is that there is an internal error.  The internal error message is: 
             setTimeout(() => {
                 this.addErrorMessage(err);
             }, 10);
-            //this.showOutputs(); // update in case there are now errors to display
         } finally {
             $(this.runButton).removeAttr("disabled");
             this.firstAfterRun = true;
