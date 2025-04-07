@@ -271,12 +271,11 @@ export class ActiveCode extends RunestoneBase {
             },
         });
 
-        CodeMirror.on(editor, "change", (cm, obj) => {
-            // setValue indicates scrubber switched history, need to reset locked regions
-            if (obj.origin === "setValue") {
-                editor.doc.clearGutter("CodeMirror-lock-markers");
+        // Handle hidden codemirror (in tab) coming into view
+        CodeMirror.on(editor, "refresh", (cm) => {
+            window.requestAnimationFrame(() => {
                 this.setLockedRegions();
-            }
+            });
         });
 
         // Make the editor resizable
@@ -367,7 +366,14 @@ export class ActiveCode extends RunestoneBase {
 
         // force an initial height for the container. Without this scrollbar does not appear
         // height is that required by the linediv plus a little padding
-        editor.getWrapperElement().style.height = (editor.display.lineDiv.clientHeight + 10) + 'px';
+        if (editor.display.lineDiv.clientHeight > 0)
+            editor.getWrapperElement().style.height = (editor.display.lineDiv.clientHeight + 10) + 'px';
+        else {
+            // if the editor is hidden (in tab) then lineDiv has no clientHeight
+            // so guess based on number of lines
+            const numLines = editor.getValue().split("\n").length + 1;
+            editor.setSize(null, (numLines + 1) + "lh");
+        }
 
         // lock down code prefix/suffix
         this.setLockedRegions();
@@ -386,8 +392,9 @@ export class ActiveCode extends RunestoneBase {
                 // codemirror appears to remove the line and insert a modified one
                 // causing a lot of rerendering. Can slow page load down substantially
                 //this.editor.addLineClass(i, "behind", "CodeMirror__locked-line");
-                // So manually just go add a class:
-                lines[i].classList.add("CodeMirror__locked-line");
+                // So manually just go add a class after verifying component is rendered
+                if (lines[i])
+                    lines[i].classList.add("CodeMirror__locked-line");
                 // downside is that this is not preserved on editor.refresh()
                 // so setLockedRegions() must be called again
             }
