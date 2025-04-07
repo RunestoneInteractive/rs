@@ -275,6 +275,8 @@ export class ActiveCode extends RunestoneBase {
         CodeMirror.on(editor, "refresh", (cm) => {
             window.requestAnimationFrame(() => {
                 this.setLockedRegions();
+                // make sure vscrollbar does not overlap the resize handle
+                editor.display.scrollbars.vert.style.bottom =  "16px";
             });
         });
 
@@ -284,7 +286,6 @@ export class ActiveCode extends RunestoneBase {
             resize: function () {
                 editor.setSize($(this).width(), $(this).height());
                 editor.refresh();
-                ac.setLockedRegions();
             },
         });
         editor.on("keydown", (cm, event) => {
