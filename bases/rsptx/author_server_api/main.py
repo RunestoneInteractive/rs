@@ -439,10 +439,14 @@ async def check_db(payload=Body(...)):
 async def new_course(payload=Body(...), user=Depends(auth_manager)):
     base_course = payload["bcname"]
     github_url = payload["github"]
+    repo_path = payload["repo_path"]
     logger.debug(f"Got {base_course} and {github_url}")
 
     gh_parts = github_url.split("/")
-    repo_path = gh_parts[-1].replace(".git", "")
+    if not repo_path:
+        repo_path = gh_parts[-1].replace(".git", "")
+    if not repo_path.startswith("/books/"):
+        repo_path = "/books/" + repo_path
     logger.debug(f"repo_path = {repo_path}")
 
     if "DEV_DBURL" not in os.environ:

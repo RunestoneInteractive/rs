@@ -101,8 +101,11 @@
         <input id="bcname" type="text" name="bcname" onchange="checkDB(this)" />
         <br />
         <label for="gitrepo">Github Repo URL</label>
-        <input id="gitrepo" type="text" name="githubrepo" /> (Must use https url
+        <input id="gitrepo" type="text" name="githubrepo" /> (Must use <code>https</code> url
         not ssh)
+        <br />
+        <label for="repo_path"><strong>OR</strong> Path to existing repo</label>
+        <input id="repo_path" type="text" name="repo_path" /> (<code>/books/existingRepo</code>)
         <div class="taskbox">
             <button
                 id="addcoursebutton"
