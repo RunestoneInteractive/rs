@@ -3780,14 +3780,14 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.5.13"
+version = "7.5.14"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "<4.0.0,>=3.10.0"
 groups = ["main"]
 files = [
-    {file = "runestone-7.5.13-py3-none-any.whl", hash = "sha256:7725e2096b8078ab1ed9dbc25ef168d16d4ad0a0ffa7ebf50c12956df453daa6"},
-    {file = "runestone-7.5.13.tar.gz", hash = "sha256:028c70e30538024a4f755bcefbbd3a369a09bd912ea4e278cc374e36687e64a6"},
+    {file = "runestone-7.5.14-py3-none-any.whl", hash = "sha256:e01b0c0e202fce963cec8c780ed2fed0562c55a24a7aace5f714fb5e41fa6083"},
+    {file = "runestone-7.5.14.tar.gz", hash = "sha256:84a18c5446aa6822e7ad02e533ca7e0057bfa4090af89b2f37bd91081a6eb550"},
 ]
 
 [package.dependencies]
