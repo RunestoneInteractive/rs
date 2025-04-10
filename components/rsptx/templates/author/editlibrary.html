@@ -15,4 +15,16 @@
 
 <p>Note: The Available for courses checkbox will make your course visible on the create a custom course page.  The Visible to Everyone in Library will make it available to browse in the library.  If the home page for your course is not index.html you can change it on Main page.</p>
 <p>Once you have changed something here, modifying the conf.py file will not update the meta data.</p>
+<h2>Reusing a repository</h2>
+<p>If you are reusing an existing repository for a second book, this is possible but you need to get the configuration right.
+Each book built from a single pretext source tree will need its own <code>document-id</code> and will need its own <code>target</code>.  
+The first book is probably fine to use the github repo.  But the second book will need to have the <code>Repo Path</code> configured correctly.
+If the <code>project.ptx</code> file is not in the root folder of the repository then you need to fill in the <code>Path to project.ptx</code> accordingly.
+Consult the PreTeXt guide for more detail.
+</p>
+<p>
+The path to the existing repo should be <code>/books/&lt;github_repo_name&gt;</code>  <strong>Note</strong> if your <code>document-id</code> does not match your github repo name then you need to set this in order to get your book to build.
+</p>
+<p>These are all advanced options, so please consult the PreTeXt guide or ask for help to make sure you get set up properly</p>
+
 {% endblock %}

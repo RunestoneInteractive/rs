@@ -25,21 +25,26 @@ class LibraryForm(StarletteForm):
         description="Look at the library page to see the existing list of sections.  Please try to use one of those.  Note do not add the Textbooks: to the end.",
     )
     basecourse = StringField("Base Course or Document ID")
-    build_system = StringField("Build System", [validators.AnyOf(["PTX", "Runestone"])])
-    source_path = StringField("Source Path (relative to the root of repo)")
-    target = StringField(
-        "Target PreTeXt project target (runestone)",
-        default="runestone",
-    )
+    social_url = StringField("Social URL")
     for_classes = BooleanField("Available for courses")
     is_visible = BooleanField("Visible to Everyone in Library")
+
+    build_system = StringField(
+        "Build System (PTX or Runestone)",
+        [validators.AnyOf(["PTX", "Runestone"])],
+        default="PTX",
+    )
+    source_path = StringField("Path to project.ptx file (relative to the root of repo)")
+    target = StringField(
+        "PreTeXt project target (runestone)",
+        default="runestone",
+    )
     default_language = StringField(
         "Default Programming Language (for scratch activecode)"
     )
     github_url = StringField("Github URL")
+    repo_path = StringField("Path to an existing repo")
     main_page = StringField("Main page")
-    social_url = StringField("Social URL")
-    repo_path = StringField("Repo Path")
 
     # last_build = DateTimeField("Last Build") - no reason to update this manually
 
