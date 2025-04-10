@@ -749,9 +749,12 @@ async def get_course_origin(base_course):
 
 # auth_user
 # ---------
-async def fetch_user(user_name: str) -> AuthUserValidator:
+async def fetch_user(user_name: str, fallback_to_registration: bool = False) -> AuthUserValidator:
     """
     Retrieve a user by their username (user_name)
+
+    fallback_to_registration is for LTI logins to match existing instructor accounts.
+    If user_name is not found, try to find the user by their registration_id (initial email).
 
     :param user_name: str, the username of the user
     :return: AuthUserValidator, the AuthUserValidator object representing the user
@@ -760,6 +763,10 @@ async def fetch_user(user_name: str) -> AuthUserValidator:
     async with async_session() as session:
         res = await session.execute(query)
         user = res.scalars().one_or_none()
+        if not user and fallback_to_registration:
+            fallback_query = select(AuthUser).where(AuthUser.registration_id == user_name)
+            res = await session.execute(fallback_query)
+            user = res.scalars().one_or_none()
     return AuthUserValidator.from_orm(user)
 
 
@@ -952,15 +959,26 @@ async def fetch_course_instructors(
 async def create_instructor_course_entry(iid: int, cid: int) -> CourseInstructor:
     """
     Create a new CourseInstructor entry with the given instructor id (iid) and course id (cid)
+    Sanity checks to make sure that the instructor is not already associated with the course
 
     :param iid: int, the id of the instructor
     :param cid: int, the id of the course
     :return: CourseInstructor, the newly created CourseInstructor object
     """
-    nci = CourseInstructor(course=cid, instructor=iid)
+
     async with async_session.begin() as session:
-        session.add(nci)
-    return nci
+        res = await session.execute(
+            select(CourseInstructor)
+            .where(
+                (CourseInstructor.course == cid) &
+                (CourseInstructor.instructor == iid)
+            )
+        )
+        ci = res.scalars().first()
+        if ci is None:
+            ci = CourseInstructor(course=cid, instructor=iid)
+            session.add(ci)
+    return ci
 
 
 async def fetch_course_students(course_id: int) -> List[AuthUserValidator]:
