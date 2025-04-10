@@ -35,6 +35,7 @@ from rsptx.db.crud import (
     update_question,
     fetch_one_assignment,
     get_peer_votes,
+    search_exercises,
 )
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
@@ -57,6 +58,8 @@ from rsptx.validation.schemas import (
     QuestionIncoming,
     SearchSpecification,
     UpdateAssignmentExercisesPayload,
+    AssignmentQuestionUpdateDict,
+    ExercisesSearchRequest,
 )
 from rsptx.logging import rslogger
 from rsptx.analytics import log_this_function
@@ -379,8 +382,7 @@ async def new_assignment(
         from_source=False,
         is_peer=False,
         current_index=0,
-        enforce_due=False,
-        peer_async_visible=False,
+        enforce_due=False
     )
     try:
         res = await create_assignment(new_assignment)
@@ -592,6 +594,9 @@ async def get_assignment_questions(
         aq["question_json"] = q["question_json"]
         aq["owner"] = q["owner"]
         aq["tags"] = q["tags"]
+        aq["topic"] = q["topic"]
+        aq["author"] = q["author"]
+        aq["difficulty"] = q["difficulty"]
         qlist.append(aq)
 
     rslogger.debug(f"qlist: {qlist}")
@@ -603,11 +608,16 @@ async def get_assignment_questions(
 @with_course()
 async def assignment_questions_batch(
     request: Request,
-    request_data: list[AssignmentQuestionValidator],
+    request_data: list[AssignmentQuestionUpdateDict],
     user=Depends(auth_manager),
     response_class=JSONResponse,
     course = None,
 ):
+    """
+    Update multiple assignment questions and their associated questions in batch.
+    The request_data is validated to ensure it contains required fields from both
+    AssignmentQuestionValidator and QuestionValidator.
+    """
     try:
         await update_multiple_assignment_questions(request_data)
     except Exception as e:
@@ -739,6 +749,46 @@ async def fetch_chooser_data(
     )
     return make_json_response(status=status.HTTP_200_OK, detail={"questions": res})
 
+@router.post("/exercises/search")
+@instructor_role_required()
+@with_course()
+async def search_exercises_endpoint(
+    request: Request,
+    search_request: ExercisesSearchRequest,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+    course=None,
+):
+    """
+    Smart search for exercises with pagination, filtering, and sorting.
+    
+    - Uses consolidated filters object for all filter types including text search
+    - Supports base_course flag to automatically use the current course's base course
+    - Flexible sorting options
+    - Advanced pagination
+    """
+    # Set base course if flag is enabled
+    if search_request.use_base_course:
+        search_request.base_course = course.base_course
+    
+    # Perform exercise search
+    result = await search_exercises(search_request)
+    
+    # Convert timestamps to strings for JSON
+    exercises = []
+    for exercise in result["exercises"]:
+        exercise_dict = exercise.model_dump()
+        if hasattr(exercise, "timestamp") and exercise.timestamp:
+            exercise_dict["timestamp"] = exercise.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        exercises.append(exercise_dict)
+    
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "exercises": exercises,
+            "pagination": result["pagination"]
+        }
+    )
 
 @router.post("/search_questions")
 async def search_questions(
@@ -756,11 +806,6 @@ async def search_questions(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
 
-    if request_data.source_regex:
-        words = request_data.source_regex.replace(",", " ")
-        words = request_data.source_regex.split()
-        request_data.source_regex = ".*(" + "|".join(words) + ").*"
-        request_data.author = ".*" + request_data.author + ".*"
     if request_data.base_course == "true":
         request_data.base_course = course.base_course
     else:
@@ -993,6 +1038,7 @@ async def save_exception(
     else:
         return make_json_response(status=status.HTTP_200_OK, detail={"success": True})
 
+
 @router.get("/which_to_grade_options")
 @instructor_role_required()
 async def get_which_to_grade_options(request: Request):
@@ -1006,11 +1052,13 @@ async def get_autograde_options(request: Request):
     options = [option.to_dict() for option in AutogradeOptions]
     return JSONResponse(content=options, status_code=status.HTTP_200_OK)
 
+
 @router.get("/language_options")
 @instructor_role_required()
 async def get_language_options(request: Request):
     options = [option.to_dict() for option in LanguageOptions]
     return JSONResponse(content=options, status_code=status.HTTP_200_OK)
+
 
 @router.get("/question_type_options")
 @instructor_role_required()

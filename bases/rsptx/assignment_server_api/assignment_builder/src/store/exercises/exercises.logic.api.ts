@@ -7,9 +7,8 @@ import { RootState } from "@/state/store";
 import { DetailResponse } from "@/types/api";
 import {
   CreateExercisesPayload,
-  Exercise,
-  SearchExercisePayload,
-  SearchExercisesResponse
+  ExercisesSearchRequest,
+  ExercisesSearchResponse
 } from "@/types/exercises";
 
 export const exercisesApi = createApi({
@@ -47,14 +46,22 @@ export const exercisesApi = createApi({
           });
       }
     }),
-    searchExercises: build.query<Exercise[], SearchExercisePayload>({
-      query: (body) => ({
+    searchExercisesSmart: build.query<ExercisesSearchResponse, ExercisesSearchRequest>({
+      query: (params) => ({
         method: "POST",
-        url: "/assignment/instructor/search_questions",
-        body
+        url: "/assignment/instructor/exercises/search",
+        body: params
       }),
-      transformResponse: (response: DetailResponse<SearchExercisesResponse>) => {
-        return response.detail.questions;
+      transformResponse: (response: DetailResponse<ExercisesSearchResponse>) => {
+        return {
+          exercises: response.detail.exercises || [],
+          pagination: response.detail.pagination || {
+            total: 0,
+            page: 0,
+            limit: 20,
+            pages: 0
+          }
+        };
       },
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
@@ -67,4 +74,4 @@ export const exercisesApi = createApi({
   })
 });
 
-export const { useCreateNewExerciseMutation, useSearchExercisesQuery } = exercisesApi;
+export const { useCreateNewExerciseMutation, useSearchExercisesSmartQuery } = exercisesApi;

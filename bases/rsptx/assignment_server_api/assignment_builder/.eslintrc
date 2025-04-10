@@ -42,18 +42,7 @@
     "import/no-extraneous-dependencies": "off",
     "import/no-unresolved": "off",
     "import/extensions": "off",
-    "no-restricted-imports": [
-      "error",
-      {
-        "patterns": ["../../*"],
-        "paths": [
-          {
-            "name": "react",
-            "importNames": ["default"]
-          }
-        ]
-      }
-    ],
+    "no-restricted-imports": "off",
     "import/order": [
       "warn",
       {

@@ -1,0 +1,625 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 50vh;
+}
+
+.fixedHeightContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+}
+
+.topControls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background-color: var(--surface-card);
+  border-radius: 0.375rem 0.375rem 0 0;
+  border: 1px solid var(--surface-border);
+  border-bottom: none;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.selectedExercisesHeader {
+  margin-bottom: 0.5rem;
+}
+
+.searchAndFilters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.searchField {
+  flex: 2;
+}
+
+.typeFilter {
+  flex: 1;
+  min-width: 12.5rem;
+}
+
+.statusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.5rem;
+  background-color: var(--surface-section);
+  border-top: 1px solid var(--surface-border);
+  position: relative;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: fit-content;
+}
+
+.noSelectionText {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  font-style: italic;
+}
+
+.addButton, .clearButton {
+  white-space: nowrap;
+  font-size: 0.8rem !important;
+}
+
+.addButton:global(.p-button) {
+  padding: 0.25rem 0.65rem !important;
+}
+
+.clearButton:global(.p-button) {
+  padding: 0.25rem 0.65rem !important;
+}
+
+.paginationContainer {
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  max-width: 100%;
+  margin-left: auto;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.paginationInfo {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+.paginationControls {
+  font-size: 0.875rem;
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.paginationControls :global(.p-paginator-page),
+.paginationControls :global(.p-paginator-first),
+.paginationControls :global(.p-paginator-prev),
+.paginationControls :global(.p-paginator-next),
+.paginationControls :global(.p-paginator-last) {
+  border-radius: 0.25rem;
+  margin: 0 0.1rem;
+}
+
+.paginationControls :global(.p-paginator-page:not(.p-highlight):hover),
+.paginationControls :global(.p-paginator-first:hover),
+.paginationControls :global(.p-paginator-prev:hover),
+.paginationControls :global(.p-paginator-next:hover),
+.paginationControls :global(.p-paginator-last:hover) {
+  background-color: var(--surface-hover);
+  color: var(--text-color);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.loadingIndicatorFixed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.tableWrapper {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  border: 1px solid var(--surface-border);
+  border-radius: 0 0 0.375rem 0.375rem;
+  min-height: 30vh;
+  height: calc(100% - 12rem);
+}
+
+.table {
+  height: 100%;
+}
+
+.table :global(.p-datatable-wrapper) {
+  height: 100%;
+  overflow: visible;
+}
+
+.table :global(.p-datatable-scrollable-body) {
+  overflow-y: auto !important;
+  max-height: none !important;
+}
+
+.table :global(.p-column-header-content) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ellipsisText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.tagContainer {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  overflow: hidden;
+}
+
+.tag {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  height: auto;
+  white-space: nowrap;
+}
+
+.moreTags {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--surface-hover);
+  color: var(--text-color-secondary);
+  border-radius: 1rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.filterHeader {
+  width: 100%;
+  padding: 0.5rem;
+}
+
+.placeholder {
+  background: linear-gradient(90deg, 
+    var(--surface-hover) 25%, 
+    var(--surface-ground) 37%, 
+    var(--surface-hover) 63%);
+  background-size: 400% 100%;
+  animation: placeholderAnimation 1.5s ease infinite;
+  border-radius: 0.1875rem;
+}
+
+@keyframes placeholderAnimation {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+.emptyMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-color-secondary);
+}
+
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.initialLoadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 1rem;
+}
+
+.loadingText {
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+}
+
+/* Styles for virtual scrolling */
+:global(.p-datatable-wrapper) {
+  position: relative;
+}
+
+:global(.p-datatable-scrollable .p-datatable-thead) {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Compact table styles */
+:global(.p-datatable.p-datatable-sm .p-datatable-header) {
+  padding: 0.5rem;
+}
+
+:global(.p-datatable.p-datatable-sm .p-datatable-thead > tr > th) {
+  padding: 0.5rem 0.5rem;
+}
+
+:global(.p-datatable.p-datatable-sm .p-datatable-tbody > tr > td) {
+  padding: 0.25rem 0.5rem;
+}
+
+.customFilterHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  width: 100%;
+}
+
+.filterInputWrapper {
+  width: 100%;
+}
+
+.filterTypeSelector {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--text-color-secondary);
+  font-size: 1rem;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding-left: 2.5rem !important;
+}
+
+.searchInput:focus {
+  box-shadow: 0 0 0 0.125rem var(--primary-200);
+  border-color: var(--primary-400);
+}
+
+/* Table column widths for responsive design */
+/* They will be overridden by inline styles for the table, but provide defaults for all viewports */
+:global(.p-datatable) :global(.selection-column) {
+  width: 3rem !important;
+  max-width: 3rem !important;
+}
+
+:global(.p-datatable) :global(.number-column) {
+  width: 7rem !important;
+  max-width: 7rem !important;
+}
+
+:global(.p-datatable) :global(.name-column) {
+  width: 20rem !important;
+}
+
+:global(.p-datatable) :global(.type-column) {
+  width: 10rem !important;
+}
+
+:global(.p-datatable) :global(.author-column) {
+  width: 12rem !important;
+}
+
+:global(.p-datatable) :global(.tags-column) {
+  width: 15rem !important;
+}
+
+:global(.p-datatable) :global(.topic-column) {
+  width: 15rem !important;
+}
+
+:global(.p-datatable) :global(.preview-column) {
+  width: 4rem !important;
+  max-width: 4rem !important;
+}
+
+/* Responsive styles for smaller screens */
+@media screen and (max-width: 64rem) { /* 1024px */
+  .topControls {
+    padding: 0.25rem;
+    gap: 0.125rem;
+  }
+
+  .searchAndFilters {
+    flex-direction: row;
+    gap: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .searchField {
+    flex: 3;
+    min-width: 8rem;
+  }
+  
+  .typeFilter {
+    flex: 2;
+    min-width: 6rem;
+  }
+  
+  .statusBar {
+    padding: 0.25rem;
+    min-height: auto;
+    row-gap: 0.25rem;
+  }
+
+  .actionButtons {
+    gap: 0.35rem;
+  }
+  
+  .addButton:global(.p-button), .clearButton:global(.p-button) {
+    padding: 0.2rem 0.5rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .addButton:global(.p-button) .p-button-icon,
+  .clearButton:global(.p-button) .p-button-icon {
+    font-size: 0.75rem;
+  }
+  
+  .noSelectionText {
+    font-size: 0.75rem;
+  }
+  
+  .paginationContainer {
+    gap: 0.25rem;
+  }
+
+  .paginationInfo {
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+  
+  .paginationControls {
+    font-size: 0.75rem;
+  }
+  
+  .paginationControls :global(.p-paginator-page),
+  .paginationControls :global(.p-paginator-first),
+  .paginationControls :global(.p-paginator-prev),
+  .paginationControls :global(.p-paginator-next),
+  .paginationControls :global(.p-paginator-last) {
+    min-width: 1.5rem;
+    height: 1.5rem;
+    font-size: 0.75rem;
+  }
+
+  :global(.p-paginator .p-dropdown) {
+    height: 1.5rem;
+    font-size: 0.75rem;
+  }
+
+  :global(.p-dropdown-panel .p-dropdown-items .p-dropdown-item) {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .loadingIndicatorFixed {
+    position: static;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  
+  .tableWrapper {
+    overflow-x: auto;
+    height: calc(100% - 8rem);
+  }
+  
+  .tagContainer .tag:nth-child(n+2) {
+    display: none;
+  }
+  
+  /* Override column widths for smaller screens */
+  :global(.p-datatable) :global(.number-column) {
+    width: 4rem !important;
+    max-width: 4rem !important;
+  }
+  
+  :global(.p-datatable) :global(.name-column) {
+    width: 12rem !important;
+  }
+  
+  :global(.p-datatable) :global(.type-column) {
+    width: 7rem !important;
+  }
+  
+  :global(.p-datatable) :global(.author-column) {
+    width: 8rem !important;
+  }
+  
+  :global(.p-datatable) :global(.tags-column) {
+    width: 8rem !important;
+  }
+  
+  :global(.p-datatable) :global(.topic-column) {
+    width: 8rem !important;
+  }
+}
+
+/* For very small screens below 768px */
+@media screen and (max-width: 48rem) {
+  .topControls {
+    gap: 0.125rem;
+  }
+
+  .searchAndFilters {
+    gap: 0.125rem;
+  }
+
+  .statusBar {
+    flex-wrap: wrap;
+  }
+
+  .actionButtons {
+    flex-wrap: nowrap;
+    width: 100%;
+    margin-bottom: 0.25rem;
+    justify-content: flex-start;
+  }
+
+  .addButton:global(.p-button), .clearButton:global(.p-button) {
+    padding: 0.15rem 0.35rem !important;
+  }
+
+  .paginationContainer {
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0;
+  }
+
+  .paginationInfo {
+    font-size: 0.7rem;
+  }
+
+  :global(.p-paginator .p-paginator-pages) {
+    display: none;
+  }
+
+  .tableWrapper {
+    height: calc(100% - 6rem);
+  }
+
+  :global(.p-datatable) :global(.author-column),
+  :global(.p-datatable) :global(.tags-column),
+  :global(.p-datatable) :global(.topic-column) {
+    display: none !important;
+  }
+}
+
+/* Styles for paginator */
+:global(.p-paginator) {
+  padding: 0.25rem;
+  border-width: 0;
+  font-size: 0.875rem;
+}
+
+:global(.p-paginator .p-paginator-pages .p-paginator-page) {
+  min-width: 2rem;
+  height: 2rem;
+}
+
+:global(.p-paginator .p-paginator-first),
+:global(.p-paginator .p-paginator-prev),
+:global(.p-paginator .p-paginator-next),
+:global(.p-paginator .p-paginator-last) {
+  min-width: 2rem;
+  height: 2rem;
+}
+
+:global(.p-paginator .p-dropdown) {
+  height: 2rem;
+}
+
+:global(.p-paginator .p-dropdown .p-dropdown-label) {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+:global(.p-paginator .p-paginator-pages .p-paginator-page.p-highlight) {
+  background-color: var(--primary-color);
+  color: var(--primary-color-text);
+  border-radius: 0.25rem;
+}
+
+:global(.p-paginator-bottom) {
+  border-top: 1px solid var(--surface-border);
+}
+
+.selectionColumnHeader {
+  vertical-align: middle;
+  text-align: center;
+}
+
+.selectionColumnHeader :global(.p-checkbox.p-component) {
+  display: none;
+}
+
+.column:global(.p-selection-column) {
+  text-align: center !important;
+}
+
+.column:global(.p-selection-column) :global(.p-checkbox) {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.addSelectedButton {
+  margin: 0 !important;
+  height: 31px !important;
+  width: 31px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  font-size: 0.75rem !important;
+  background-color: var(--green-500) !important;
+  color: white !important;
+  transition: background-color 0.2s !important;
+}
+
+.addSelectedButton:hover {
+  background-color: var(--green-600) !important;
+}
+
+.buttonCount {
+  font-size: 0.75rem;
+  font-weight: bold;
+  position: relative;
+  top: -0.0625rem;
+}
+
+.selectionBadge {
+  font-size: 0.6875rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  line-height: 1.25rem;
+  border-radius: 0.625rem;
+  background-color: var(--primary-color);
+  color: var(--primary-color-text);
+} 

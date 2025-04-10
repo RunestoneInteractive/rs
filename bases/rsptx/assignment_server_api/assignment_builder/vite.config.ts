@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import path from "path";
 
 export default defineConfig(({ mode }: { mode: string }) => {
   let basedir = "/";
@@ -15,20 +16,20 @@ export default defineConfig(({ mode }: { mode: string }) => {
     server: {
       proxy: {
         "/ns": "http://localhost",
-
         "/assignment": "http://localhost"
       }
     },
-    // base: "/assignment/react/", // this changes the base for dev as well as prod :-(
-    // see:  https://vitejs.dev/config/ to conditionalize this
     base: basedir,
     resolve: {
       alias: {
-        "@": "/src",
-        "@store": "/src/store",
-        "@components": "/src/components"
+        "@": path.resolve(__dirname, "./src"),
+        "@store": path.resolve(__dirname, "./src/store"),
+        "@components": path.resolve(__dirname, "./src/components")
       }
     },
-    plugins: [react()]
+    plugins: [react()],
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'quill']
+    }
   };
 });

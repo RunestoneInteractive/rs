@@ -20,12 +20,12 @@ export const fetchChooserData = createAsyncThunk(
   async (incoming) => {
     let jsheaders = new Headers({
       "Content-type": "application/json; charset=utf-8",
-      Accept: "application/json",
+      Accept: "application/json"
     });
     let data = {
       body: JSON.stringify(incoming),
       headers: jsheaders,
-      method: "POST",
+      method: "POST"
     };
     let resp = await fetch("/assignment/instructor/fetch_chooser_data", data);
 
@@ -52,12 +52,12 @@ export const fetchChooserData = createAsyncThunk(
         let result = await resp.json();
 
         toast(`Error ${result.detail[0].msg} for input ${result.detail[0].loc}`, {
-          duration: 5000,
+          duration: 5000
         });
       } else {
         toast("Error fetching questions", {
           icon: "🔥",
-          duration: 5000,
+          duration: 5000
         });
       }
 
@@ -69,7 +69,7 @@ export const fetchChooserData = createAsyncThunk(
       console.log("data fetched");
       return result.detail;
     }
-  },
+  }
 );
 
 // create a slice for ActiveCodeEditor
@@ -91,7 +91,7 @@ export const epSlice = createSlice({
     nodes: [],
     selectedNodes: {},
     readingNodes: [],
-    selectedReadingNodes: {},
+    selectedReadingNodes: {}
   },
   reducers: {
     // todo -- this should have a keys for chapter and subchapter to insert the new node
@@ -121,7 +121,7 @@ export const epSlice = createSlice({
       for (let key of action.payload) {
         delete state.selectedNodes[key];
       }
-    },
+    }
   },
   extraReducers(builder) {
     builder
@@ -133,7 +133,7 @@ export const epSlice = createSlice({
       .addCase(fetchChooserData.rejected, (state, action) => {
         console.warn("Fetching Questions failed", action.error.message);
       });
-  },
+  }
 });
 
 export const { addExercise, setSelectedNodes, unSelectNode, setSelectedReadingNodes } =
@@ -158,7 +158,7 @@ export const allChapters = createSelector(chooserNodes, (allNodes) => {
   let chapterList = allNodes.map((node) => {
     return {
       chapter: node.key,
-      title: node.data.title,
+      title: node.data.title
     };
   });
 
