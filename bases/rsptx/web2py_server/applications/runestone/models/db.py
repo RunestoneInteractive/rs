@@ -82,9 +82,7 @@ else:
 # is required.  The Content Request launch also works in an iframe.
 if "https" in settings.server_type:
     session.secure()
-    if settings.lti_iframes is True:
-        session.samesite("None")
-
+    session.samesite("None")
 
 # This seems like it should allow us to share the session cookie across subdomains.
 # and seems to work for every browser except for Safari
@@ -688,6 +686,9 @@ def _create_access_token(data: dict, expires=None, scopes=None) -> bytes:
         response.cookies["access_token"] = encoded_jwt
         response.cookies["access_token"]["expires"] = 24 * 3600 * 105  # 15 weeks
         response.cookies["access_token"]["path"] = "/"
+        response.cookies["access_token"]["httponly"] = True
+        response.cookies["access_token"]["samesite"] = "None"
+        response.cookies["access_token"]["secure"] = True
         if "LOAD_BALANCER_HOST" in os.environ:
             response.cookies["access_token"]["domain"] = os.environ[
                 "LOAD_BALANCER_HOST"
