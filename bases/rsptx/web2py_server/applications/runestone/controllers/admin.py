@@ -1776,6 +1776,7 @@ def releasegrades():
         logger.error(ex)
         return "ERROR"
 
+    # this is now redundant as we send lti as we grade
     if released:
         # send lti grades
         assignment = _get_assignment(assignmentid)
