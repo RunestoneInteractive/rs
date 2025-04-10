@@ -241,6 +241,19 @@ async def get_peer_votes(div_id: str, course_name: str, voting_stage: int):
         return {"acts": []}
 
 
+async def get_book_chapters(course_name: str) -> List[ChapterValidator]:
+    """
+    Retrieve all chapters for a given course (course_name)
+    
+    :param course_name: str, the name of the course
+    :return: List[ChapterValidator], a list of ChapterValidator objects representing the chapters
+    """
+    query = select(Chapter).where(Chapter.course_id == course_name).order_by(Chapter.chapter_num)
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [ChapterValidator.from_orm(x) for x in res.scalars().fetchall()]
+
+
 async def fetch_chapter_for_subchapter(subchapter: str, base_course: str) -> str:
     """
     Used for pretext books where the subchapter is unique across the book
@@ -260,6 +273,27 @@ async def fetch_chapter_for_subchapter(subchapter: str, base_course: str) -> str
     async with async_session() as session:
         chapter_label = await session.execute(query)
         return chapter_label.scalars().first()
+    
+
+async def get_book_subchapters(course_name: str) -> List[SubChapterValidator]:
+    """
+    Retrieve all subchapters for a given course (course_name)
+    
+    :param course_name: str, the name of the course
+    :return: List[SubChapterValidator], a list of SubChapterValidator objects
+    """
+    query = (
+        select(SubChapter)
+        .join(Chapter)
+        .where(
+            (Chapter.course_id == course_name) & (SubChapter.chapter_id == Chapter.id)
+        )
+        .order_by(Chapter.chapter_num, SubChapter.sub_chapter_num)
+    )
+    async with async_session() as session:
+        print(query)
+        res = await session.execute(query)
+        return [SubChapterValidator.from_orm(x) for x in res.scalars().fetchall()]
 
 
 async def fetch_page_activity_counts(
@@ -551,6 +585,23 @@ async def create_course(course_info: CoursesValidator) -> None:
         session.add(new_course)
     return new_course
 
+async def user_in_course(
+    user_id: int, course_id: int
+) -> bool:
+    """
+    Return true if given user is in indicated course
+
+    :param user_id: int, the user id
+    :param course_id: the id of the course
+    :return: True / False
+    """
+    query = select(func.count(UserCourse.course_id)).where(
+        and_(UserCourse.user_id == user_id, UserCourse.course_id == course_id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        res_count = res.scalars().fetchall()[0]
+        return res_count != 0
 
 async def fetch_courses_for_user(
     user_id: int, course_id: Optional[int] = None
@@ -1849,7 +1900,23 @@ async def fetch_all_assignment_stats(
         return [GradeValidator.from_orm(a) for a in res.scalars()]
 
 
-# write a function that given a userid and a courseid fetches a Grade object from the database
+async def fetch_all_grades_for_assignment(
+    assignment_id: int,
+) -> list[GradeValidator]:
+    """
+    Fetch all grades for the given assignment id (assignment_id)
+    
+    :param assignment_id: int, the id of the assignment
+    :return: List[GradeValidator], a list of GradeValidator objects
+    """
+    query = select(Grade).where(Grade.assignment == assignment_id)
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        return [GradeValidator.from_orm(a) for a in res.scalars()]
+
+
 async def fetch_grade(userid: int, assignmentid: int) -> Optional[GradeValidator]:
     """
     Fetch the Grade object for the given user and assignment.
