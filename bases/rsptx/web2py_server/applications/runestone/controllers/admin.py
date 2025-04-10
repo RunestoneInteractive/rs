@@ -32,6 +32,7 @@ import altair as alt
 
 from rs_practice import _get_qualified_questions
 
+from rsptx.db.crud import fetch_lti_version
 logger = logging.getLogger(settings.logger)
 logger.setLevel(settings.log_level)
 
@@ -648,6 +649,9 @@ def admin():
     else:
         consumer = ""
         secret = ""
+
+    lti_version = fetch_lti_version(course.id)
+
     # valid exams to show are:
     # Exams the instructor has created for their course
     # Or exams embedded in the base course.  Embedded exams will have from_source
@@ -694,6 +698,7 @@ def admin():
         motd=motd,
         consumer=consumer,
         secret=secret,
+        lti_version=lti_version,
         examlist=exams,
         is_instructor=True,
         **course_attrs,
@@ -833,6 +838,8 @@ def grading():
 
     course_attrs = getCourseAttributesDict(course.id, base_course)
 
+    is_lti_course = asyncio.get_event_loop().run_until_complete(fetch_lti_version(course.id)) != None
+
     set_latex_preamble(base_course)
     return dict(
         assignmentinfo=json.dumps(assignments),
@@ -846,6 +853,7 @@ def grading():
         sendLTIGradeURL=URL("assignments", "send_assignment_score_via_LTI"),
         getCourseStudentsURL=URL("admin", "course_students"),
         get_assignment_release_statesURL=URL("admin", "get_assignment_release_states"),
+        is_lti_course=is_lti_course,
         course_id=auth.user.course_name,
         assignmentids=json.dumps(assignmentids),
         assignment_deadlines=json.dumps(assignment_deadlines),

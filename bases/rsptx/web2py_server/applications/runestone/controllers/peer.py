@@ -10,6 +10,7 @@
 #
 # Standard library
 # ----------------
+import asyncio
 import json
 import logging
 import os
@@ -21,6 +22,7 @@ import altair as alt
 import pandas as pd
 import redis
 from dateutil.parser import parse
+from rsptx.db.crud import fetch_lti_version
 from rs_grading import _try_to_send_lti_grade
 
 logger = logging.getLogger(settings.logger)
@@ -92,7 +94,9 @@ def dashboard():
         act="start_question",
         timestamp=datetime.datetime.utcnow(),
     )
-    is_lti = db(db.course_lti_map.course_id == auth.user.course_id).count() > 0
+    
+    is_lti = asyncio.get_event_loop().run_until_complete(fetch_lti_version(auth.user.course_id)) != None
+
     print("is_lti", is_lti)
     r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
     r.hset(f"{auth.user.course_name}_state", "mess_count", "0")

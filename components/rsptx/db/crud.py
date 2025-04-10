@@ -3163,22 +3163,25 @@ async def did_send_messages(sid: str, div_id: str, course_name: str) -> bool:
             return False
 
 
-async def uses_lti(course_id: int) -> bool:
+async def fetch_lti_version(course_id: int) -> str:
     """
-    Check if a course uses LTI.
+    Check if a course uses LTI 1.1, 1.3 or none
 
     :param course_id: int, the id of the course
-    :return: bool, whether the course uses LTI
+    :return: str for LTI version (1.1 or 1.3) or None
     """
     query = select(CourseLtiMap).where(CourseLtiMap.course_id == course_id)
+    query2 = select(Lti1p3Course).where(Lti1p3Course.rs_course_id == course_id)
     async with async_session() as session:
         res = await session.execute(query)
-        # check the number of rows in res
-
         if len(res.all()) > 0:
-            return True
+            return "1.1"
 
-    return False
+        res2 = await session.execute(query2)
+        if len(res2.all()) > 0:
+            return "1.3"
+
+        return None
 
 
 async def create_lti_course(course_id: int, lti_id: str) -> CourseLtiMap:

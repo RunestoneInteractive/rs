@@ -1106,6 +1106,7 @@ def _try_to_send_lti_grade(student_row_num, assignment_id):
                 return True
 
 
+# Sends lti1.1 grade, not 1.3
 def send_lti_grade(
     assignment_points, score, consumer, secret, outcome_url, result_sourcedid
 ):
@@ -1129,6 +1130,7 @@ def send_lti_grade(
     return pct
 
 
+# Sends lti1.1 grade, not 1.3
 def send_lti_grades(assignment_id, assignment_points, course_id, lti_record, db):
     # logger.debug("sending lti grades")
     student_rows = _get_students(course_id=course_id, db=db)
