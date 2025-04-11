@@ -3,26 +3,43 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Dynamic Connector</title>
+    <title>Concept Connector</title>
     <style>
         * {
             box-sizing: border-box;
         }
 
         body {
-            margin: 0;
-            height: 100vh;
-            display: flex;
             font-family: sans-serif;
-            overflow: hidden;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h2 {
+            margin-bottom: 0.5em;
+        }
+
+        #interactive-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            position: relative;
         }
 
         #workspace {
-            flex: 1;
             display: flex;
             justify-content: space-between;
-            position: relative;
             padding: 0 60px;
+            position: relative;
+            max-width: 1000px;
+            width: 600px;
+
+            /* Added height property */
+            min-height: 300px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
 
         #left-column,
@@ -30,14 +47,11 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            /* ✅ Vertical centering */
             align-items: center;
             gap: 12px;
             padding: 10px;
             position: relative;
             z-index: 1;
-            min-height: 100vh;
-            /* ✅ So they take up full vertical space */
         }
 
         .box {
@@ -57,14 +71,22 @@
             white-space: nowrap;
         }
 
+        .box:focus {
+            outline: 3px solid #3498db;
+        }
+
+        .box.selected {
+            outline: 3px dashed #27ae60;
+        }
+
         #connector-svg {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
+            width: 100vw;
+            height: 100vh;
             pointer-events: none;
+            z-index: 0;
         }
 
         .line {
@@ -75,17 +97,13 @@
         }
 
         #connection-model {
-            width: 240px;
-            background: #f9f9f9;
-            border-left: 1px solid #ccc;
+            max-width: 800px;
+            margin: 20px auto;
             padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 6px;
             font-size: 14px;
-            overflow-y: auto;
-        }
-
-        #connection-model h3 {
-            margin-top: 0;
-            font-size: 16px;
         }
 
         .conn-entry {
@@ -94,42 +112,57 @@
         }
 
         button {
-            margin-top: 10px;
-            padding: 6px 10px;
+            display: block;
+            margin: 1rem auto 0;
+            font-size: 1rem;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s ease-in-out;
         }
 
-        .box:focus {
-            outline: 3px solid #3498db;
+        button:hover {
+            background: #2980b9;
         }
 
-        .box.selected {
-            outline: 3px dashed #27ae60;
-        }
-
-        .runestone {
-            width: 600px;
-            max-width: 50%;
+        #aria-live {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
         }
     </style>
 </head>
 
 <body>
 
-    <div id="workspace">
-        <div id="left-column"></div>
-        <svg id="connector-svg"></svg>
-        <div id="right-column"></div>
-    </div>
+    <h2>Connect the Concepts</h2>
+    <p>Match each concept on the left with its correct description on the right. Use your mouse or keyboard (Tab +
+        Enter).</p>
 
+    <div id="interactive-container">
+        <div id="workspace">
+            <div id="left-column"></div>
+            <svg id="connector-svg"></svg>
+            <div id="right-column"></div>
+        </div>
+    </div>
 
     <div id="connection-model">
-        <h3>Connections</h3>
         <div id="conn-list"></div>
         <button onclick="gradeConnections()">Grade</button>
+        <button onclick="resetConnections()">Reset</button>
     </div>
 
-    <script>
+    <div id="aria-live" aria-live="polite" aria-atomic="true"></div>
 
+    <!-- Your app logic -->
+    <script>
         const boxData = {
             left: [
                 { id: "a", label: "Gravity" },
@@ -152,6 +185,7 @@
         const rightColumn = document.getElementById('right-column');
         const svg = document.getElementById('connector-svg');
         const connList = document.getElementById('conn-list');
+        const ariaLive = document.getElementById('aria-live');
         const connections = [];
         const allBoxes = [];
 
@@ -230,9 +264,8 @@
             connections.push({ fromBox, toBox, line });
             updateConnectionModel();
 
-            const live = document.getElementById('aria-live');
-            if (live) {
-                live.textContent = `Connected ${fromBox.textContent} to ${toBox.textContent}`;
+            if (ariaLive) {
+                ariaLive.textContent = `Connected ${fromBox.textContent} to ${toBox.textContent}`;
             }
         }
 
@@ -306,7 +339,26 @@
             connList.appendChild(scoreLine);
         }
 
-        // Box setup
+        function resetConnections() {
+            // Remove all SVG lines
+            connections.forEach(conn => {
+                if (conn.line && conn.line.parentNode === svg) {
+                    svg.removeChild(conn.line);
+                }
+            });
+
+            // Clear internal array
+            connections.length = 0;
+
+            // Update connection display
+            updateConnectionModel();
+
+            // Optional: Clear live feedback
+            if (ariaLive) {
+                ariaLive.textContent = "All connections have been cleared.";
+            }
+        }
+        // Setup boxes
         boxData.left.forEach(({ id, label }) => {
             const box = createBox(id, label, "drag");
             leftColumn.appendChild(box);
@@ -321,6 +373,8 @@
 
         // Keyboard selection
         let selectedBox = null;
+        let startBox = null;
+        let tempLine = null;
 
         allBoxes.forEach(box => {
             box.addEventListener("mousedown", e => {
@@ -398,10 +452,9 @@
                 conn.line.setAttribute("y2", to.y);
             });
         });
-
     </script>
-    <!-- for aria live announcements on making connections -->
-    <div id="aria-live" style="position:absolute; left:-9999px;" aria-live="polite" aria-atomic="true"></div>
+
+
 </body>
 
 </html>
