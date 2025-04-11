@@ -3,19 +3,50 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Drag to Connect (Left → Right)</title>
+    <title>Dynamic Connector</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
-            padding: 0;
-            font-family: sans-serif;
-            display: flex;
             height: 100vh;
+            display: flex;
+            font-family: sans-serif;
             overflow: hidden;
         }
 
         #workspace {
             flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        #left-column,
+        #right-column {
+            width: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .box {
+            width: 100px;
+            height: 50px;
+            background: #f1c40f;
+            border: 2px solid #e67e22;
+            border-radius: 8px;
+            text-align: center;
+            line-height: 50px;
+            font-weight: bold;
+            user-select: none;
+            cursor: pointer;
             position: relative;
         }
 
@@ -29,86 +60,15 @@
             z-index: 0;
         }
 
-        .box {
-            position: absolute;
-            width: 100px;
-            height: 50px;
-            background: #f1c40f;
-            border: 2px solid #e67e22;
-            border-radius: 8px;
-            text-align: center;
-            line-height: 50px;
-            font-weight: bold;
-            user-select: none;
+        .line {
+            stroke: black;
+            stroke-width: 2;
             cursor: pointer;
-        }
-
-        /* Draggables on the left */
-        #box1 {
-            top: 100px;
-            left: 50px;
-        }
-
-        #box2 {
-            top: 200px;
-            left: 50px;
-        }
-
-        /* Droppables on the right */
-        #box3 {
-            top: 80px;
-            left: calc(100% - 150px);
-        }
-
-        #box4 {
-            top: 180px;
-            left: calc(100% - 150px);
-        }
-
-        #box5 {
-            top: 280px;
-            left: calc(100% - 150px);
-        }
-
-        /* Left side boxes (draggables) */
-        #boxA {
-            top: 80px;
-            left: 50px;
-        }
-
-        #boxB {
-            top: 180px;
-            left: 50px;
-        }
-
-        #boxC {
-            top: 280px;
-            left: 50px;
-        }
-
-        /* Right side boxes (droppables) */
-        #boxD {
-            top: 60px;
-            left: calc(100% - 150px);
-        }
-
-        #boxE {
-            top: 160px;
-            left: calc(100% - 150px);
-        }
-
-        #boxF {
-            top: 260px;
-            left: calc(100% - 150px);
-        }
-
-        #boxG {
-            top: 360px;
-            left: calc(100% - 150px);
+            pointer-events: auto;
         }
 
         #connection-model {
-            width: 220px;
+            width: 240px;
             background: #f9f9f9;
             border-left: 1px solid #ccc;
             padding: 10px;
@@ -126,11 +86,9 @@
             font-family: monospace;
         }
 
-        .line {
-            stroke: black;
-            stroke-width: 2;
-            cursor: pointer;
-            pointer-events: auto;
+        button {
+            margin-top: 10px;
+            padding: 6px 10px;
         }
     </style>
 </head>
@@ -138,18 +96,9 @@
 <body>
 
     <div id="workspace">
+        <div id="left-column"></div>
         <svg id="connector-svg"></svg>
-
-        <!-- Left side (Draggables) -->
-        <div id="boxA" class="box" data-name="A" data-role="drag">A</div>
-        <div id="boxB" class="box" data-name="B" data-role="drag">B</div>
-        <div id="boxC" class="box" data-name="C" data-role="drag">C</div>
-
-        <!-- Right side (Droppables) -->
-        <div id="boxD" class="box" data-name="D" data-role="drop">D</div>
-        <div id="boxE" class="box" data-name="E" data-role="drop">E</div>
-        <div id="boxF" class="box" data-name="F" data-role="drop">F</div>
-        <div id="boxG" class="box" data-name="G" data-role="drop">G</div>
+        <div id="right-column"></div>
     </div>
 
     <div id="connection-model">
@@ -159,11 +108,47 @@
     </div>
 
     <script>
-        const boxes = document.querySelectorAll('.box');
+        const leftColumn = document.getElementById('left-column');
+        const rightColumn = document.getElementById('right-column');
         const svg = document.getElementById('connector-svg');
         const connList = document.getElementById('conn-list');
         const connections = [];
 
+        // 🧠 Define correct answers
+        const correctAnswers = [
+            ["A", "E"],
+            ["A", "F"],
+            ["B", "D"]
+        ];
+
+        // 🚀 Dynamically generate boxes
+        const leftNames = ["A", "B", "C"]; // add up to 10
+        const rightNames = ["D", "E", "F", "G"]; // add up to 10
+
+        function createBox(name, role) {
+            const div = document.createElement('div');
+            div.className = 'box';
+            div.dataset.name = name;
+            div.dataset.role = role;
+            div.textContent = name;
+            return div;
+        }
+
+        const allBoxes = [];
+
+        leftNames.forEach(name => {
+            const box = createBox(name, "drag");
+            leftColumn.appendChild(box);
+            allBoxes.push(box);
+        });
+
+        rightNames.forEach(name => {
+            const box = createBox(name, "drop");
+            rightColumn.appendChild(box);
+            allBoxes.push(box);
+        });
+
+        // 🔗 Connection logic
         let startBox = null;
         let tempLine = null;
 
@@ -200,7 +185,6 @@
             const fromRole = fromBox.dataset.role;
             const toRole = toBox.dataset.role;
 
-            // Prevent same-role connections
             if (fromRole === toRole) {
                 alert("You can only connect a draggable to a droppable.");
                 return;
@@ -211,7 +195,6 @@
             const from = getCenter(fromBox);
             const to = getCenter(toBox);
             const line = createLineElement(from.x, from.y, to.x, to.y);
-
             line.fromBox = fromBox;
             line.toBox = toBox;
 
@@ -219,6 +202,7 @@
             connections.push({ fromBox, toBox, line });
             updateConnectionModel();
         }
+
         function isConnected(a, b) {
             return connections.some(conn =>
                 (conn.fromBox === a && conn.toBox === b) ||
@@ -241,7 +225,7 @@
                 tempLine = null;
             }
 
-            const endBox = Array.from(boxes).find(box =>
+            const endBox = allBoxes.find(box =>
                 box.contains(e.target) && box !== startBox
             );
 
@@ -254,8 +238,7 @@
             document.removeEventListener("mouseup", finishConnection);
         }
 
-        boxes.forEach(box => {
-            // Only allow Ctrl+Click to start a connection
+        allBoxes.forEach(box => {
             box.addEventListener("mousedown", e => {
                 if (e.ctrlKey || e.metaKey) {
                     e.preventDefault();
@@ -273,34 +256,16 @@
         });
 
         function updateConnectionModel() {
-            connList.innerHTML = '';
+            connList.innerHTML = "<strong>Connections:</strong><br>";
             connections.forEach(conn => {
                 const fromName = conn.fromBox.dataset.name;
                 const toName = conn.toBox.dataset.name;
-
-                const entry = document.createElement('div');
-                entry.className = 'conn-entry';
-                entry.textContent = `${fromName} → ${toName}`;
-                connList.appendChild(entry);
+                const line = document.createElement('div');
+                line.className = 'conn-entry';
+                line.textContent = `${fromName} → ${toName}`;
+                connList.appendChild(line);
             });
         }
-
-        window.addEventListener("resize", () => {
-            connections.forEach(conn => {
-                const from = getCenter(conn.fromBox);
-                const to = getCenter(conn.toBox);
-                conn.line.setAttribute("x1", from.x);
-                conn.line.setAttribute("y1", from.y);
-                conn.line.setAttribute("x2", to.x);
-                conn.line.setAttribute("y2", to.y);
-            });
-        });
-        // Define correct answers (from → to)
-        const correctAnswers = [
-            ["A", "E"],
-            ["A", "F"],
-            ["B", "D"]
-        ];
 
         function gradeConnections() {
             const actual = connections.map(conn => {
@@ -318,16 +283,13 @@
                 results.push({ expected, correct: found });
             });
 
-            // Detect extra/incorrect connections
             const extraConnections = actual.filter(actualConn =>
                 !correctAnswers.some(expected =>
                     expected[0] === actualConn[0] && expected[1] === actualConn[1]
                 )
             );
 
-            // Show results in the sidebar
             connList.innerHTML = "<strong>Grading:</strong><br>";
-
             let correctCount = 0;
 
             results.forEach(r => {
@@ -351,12 +313,23 @@
                 });
             }
 
-            // Final score
             const scorePercent = Math.round((correctCount / correctAnswers.length) * 100);
             const scoreLine = document.createElement('div');
             scoreLine.innerHTML = `<br><strong>Score: ${scorePercent}%</strong>`;
             connList.appendChild(scoreLine);
-        }    </script>
+        }
+
+        window.addEventListener("resize", () => {
+            connections.forEach(conn => {
+                const from = getCenter(conn.fromBox);
+                const to = getCenter(conn.toBox);
+                conn.line.setAttribute("x1", from.x);
+                conn.line.setAttribute("y1", from.y);
+                conn.line.setAttribute("x2", to.x);
+                conn.line.setAttribute("y2", to.y);
+            });
+        });
+    </script>
 
 </body>
 
