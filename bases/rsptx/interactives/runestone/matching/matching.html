@@ -20,34 +20,41 @@
         #workspace {
             flex: 1;
             display: flex;
+            justify-content: space-between;
             position: relative;
+            padding: 0 60px;
         }
 
         #left-column,
         #right-column {
-            width: 150px;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            /* ✅ Vertical centering */
             align-items: center;
             gap: 12px;
             padding: 10px;
             position: relative;
             z-index: 1;
+            min-height: 100vh;
+            /* ✅ So they take up full vertical space */
         }
 
         .box {
-            width: 100px;
-            height: 50px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 120px;
+            padding: 10px 14px;
+            min-height: 50px;
             background: #f1c40f;
             border: 2px solid #e67e22;
             border-radius: 8px;
             text-align: center;
-            line-height: 50px;
             font-weight: bold;
             user-select: none;
             cursor: pointer;
-            position: relative;
+            white-space: nowrap;
         }
 
         #connector-svg {
@@ -56,8 +63,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
             z-index: 0;
+            pointer-events: none;
         }
 
         .line {
@@ -98,6 +105,11 @@
         .box.selected {
             outline: 3px dashed #27ae60;
         }
+
+        .runestone {
+            width: 600px;
+            max-width: 50%;
+        }
     </style>
 </head>
 
@@ -109,6 +121,7 @@
         <div id="right-column"></div>
     </div>
 
+
     <div id="connection-model">
         <h3>Connections</h3>
         <div id="conn-list"></div>
@@ -116,52 +129,48 @@
     </div>
 
     <script>
+
+        const boxData = {
+            left: [
+                { id: "a", label: "Gravity" },
+                { id: "b", label: "The Moon" },
+                { id: "c", label: "A Black Hole" }
+            ],
+            right: [
+                { id: "d", label: "A force that pulls" },
+                { id: "e", label: "Orbits Earth" },
+                { id: "f", label: "Nothing escapes" }
+            ],
+            correctAnswers: [
+                ["a", "d"],
+                ["b", "e"],
+                ["c", "f"]
+            ]
+        };
+
         const leftColumn = document.getElementById('left-column');
         const rightColumn = document.getElementById('right-column');
         const svg = document.getElementById('connector-svg');
         const connList = document.getElementById('conn-list');
         const connections = [];
+        const allBoxes = [];
 
-        // 🧠 Define correct answers
-        const correctAnswers = [
-            ["A", "E"],
-            ["A", "F"],
-            ["B", "D"]
-        ];
-
-        // 🚀 Dynamically generate boxes
-        const leftNames = ["A", "B", "C"]; // add up to 10
-        const rightNames = ["D", "E", "F", "G"]; // add up to 10
-
-        function createBox(name, role) {
+        function createBox(id, label, role) {
             const div = document.createElement('div');
             div.className = 'box';
-            div.dataset.name = name;
+            div.dataset.id = id;
             div.dataset.role = role;
-            div.textContent = name;
+            div.textContent = label;
             div.tabIndex = 0;
-            div.setAttribute('role', 'button'); // behaves like an interactive element
-            div.setAttribute('aria-label', `${role === "drag" ? "Draggable" : "Droppable"} box ${name}`);
+            div.setAttribute('role', 'button');
+            div.setAttribute('aria-label', `${role === "drag" ? "Draggable" : "Droppable"}: ${label}`);
             return div;
         }
 
-        const allBoxes = [];
-
-        leftNames.forEach(name => {
-            const box = createBox(name, "drag");
-            leftColumn.appendChild(box);
-            allBoxes.push(box);
-        });
-
-        rightNames.forEach(name => {
-            const box = createBox(name, "drop");
-            rightColumn.appendChild(box);
-            allBoxes.push(box);
-        });
-
-        // 🔗 Connection logic
-        let startBox = null;
-        let tempLine = null;
+        function getLabelById(id) {
+            const item = [...boxData.left, ...boxData.right].find(box => box.id === id);
+            return item ? item.label : id;
+        }
 
         function getCenter(el) {
             const rect = el.getBoundingClientRect();
@@ -192,6 +201,13 @@
             return line;
         }
 
+        function isConnected(a, b) {
+            return connections.some(conn =>
+                (conn.fromBox === a && conn.toBox === b) ||
+                (conn.fromBox === b && conn.toBox === a)
+            );
+        }
+
         function createPermanentLine(fromBox, toBox) {
             const fromRole = fromBox.dataset.role;
             const toRole = toBox.dataset.role;
@@ -206,22 +222,143 @@
             const from = getCenter(fromBox);
             const to = getCenter(toBox);
             const line = createLineElement(from.x, from.y, to.x, to.y);
+
             line.fromBox = fromBox;
             line.toBox = toBox;
 
             svg.appendChild(line);
             connections.push({ fromBox, toBox, line });
             updateConnectionModel();
-            document.getElementById('aria-live').textContent =
-                `Connected ${fromBox.dataset.name} to ${toBox.dataset.name}`;
+
+            const live = document.getElementById('aria-live');
+            if (live) {
+                live.textContent = `Connected ${fromBox.textContent} to ${toBox.textContent}`;
+            }
         }
 
-        function isConnected(a, b) {
-            return connections.some(conn =>
-                (conn.fromBox === a && conn.toBox === b) ||
-                (conn.fromBox === b && conn.toBox === a)
-            );
+        function updateConnectionModel() {
+            connList.innerHTML = "<strong>Connections:</strong><br>";
+            connections.forEach(conn => {
+                const fromLabel = conn.fromBox.textContent;
+                const toLabel = conn.toBox.textContent;
+                const line = document.createElement('div');
+                line.className = 'conn-entry';
+                line.textContent = `${fromLabel} → ${toLabel}`;
+                connList.appendChild(line);
+            });
         }
+
+        function gradeConnections() {
+            const actual = connections.map(conn => [
+                conn.fromBox.dataset.id,
+                conn.toBox.dataset.id
+            ]);
+
+            const results = [];
+
+            boxData.correctAnswers.forEach(expected => {
+                const found = actual.some(actualConn =>
+                    actualConn[0] === expected[0] && actualConn[1] === expected[1]
+                );
+                results.push({ expected, correct: found });
+            });
+
+            const extraConnections = actual.filter(actualConn =>
+                !boxData.correctAnswers.some(expected =>
+                    expected[0] === actualConn[0] && expected[1] === actualConn[1]
+                )
+            );
+
+            connList.innerHTML = "<strong>Grading:</strong><br>";
+            let correctCount = 0;
+
+            results.forEach(r => {
+                const [fromId, toId] = r.expected;
+                const fromLabel = getLabelById(fromId);
+                const toLabel = getLabelById(toId);
+
+                const line = document.createElement('div');
+                line.className = 'conn-entry';
+                line.textContent = `${fromLabel} → ${toLabel} ${r.correct ? "✅" : "❌"}`;
+                connList.appendChild(line);
+
+                if (r.correct) correctCount++;
+            });
+
+            if (extraConnections.length > 0) {
+                const extraHeader = document.createElement('div');
+                extraHeader.innerHTML = `<br><strong>Extra/Incorrect:</strong>`;
+                connList.appendChild(extraHeader);
+
+                extraConnections.forEach(([fromId, toId]) => {
+                    const fromLabel = getLabelById(fromId);
+                    const toLabel = getLabelById(toId);
+                    const line = document.createElement('div');
+                    line.className = 'conn-entry';
+                    line.textContent = `${fromLabel} → ${toLabel} ❌`;
+                    connList.appendChild(line);
+                });
+            }
+
+            const scorePercent = Math.round((correctCount / boxData.correctAnswers.length) * 100);
+            const scoreLine = document.createElement('div');
+            scoreLine.innerHTML = `<br><strong>Score: ${scorePercent}%</strong>`;
+            connList.appendChild(scoreLine);
+        }
+
+        // Box setup
+        boxData.left.forEach(({ id, label }) => {
+            const box = createBox(id, label, "drag");
+            leftColumn.appendChild(box);
+            allBoxes.push(box);
+        });
+
+        boxData.right.forEach(({ id, label }) => {
+            const box = createBox(id, label, "drop");
+            rightColumn.appendChild(box);
+            allBoxes.push(box);
+        });
+
+        // Keyboard selection
+        let selectedBox = null;
+
+        allBoxes.forEach(box => {
+            box.addEventListener("mousedown", e => {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    startBox = box;
+                    const from = getCenter(startBox);
+                    tempLine = createLineElement(from.x, from.y, from.x, from.y);
+                    tempLine.setAttribute("stroke", "gray");
+                    tempLine.setAttribute("stroke-dasharray", "4");
+                    svg.appendChild(tempLine);
+
+                    document.addEventListener("mousemove", updateTempLine);
+                    document.addEventListener("mouseup", finishConnection);
+                }
+            });
+
+            box.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (!selectedBox) {
+                        selectedBox = box;
+                        box.classList.add("selected");
+                    } else {
+                        if (box !== selectedBox) {
+                            createPermanentLine(selectedBox, box);
+                        }
+                        selectedBox.classList.remove("selected");
+                        selectedBox = null;
+
+                        const currentIndex = allBoxes.indexOf(box);
+                        const next = allBoxes[currentIndex + 1];
+                        if (next) next.focus();
+                        else allBoxes[0].focus();
+                    }
+                }
+            });
+        });
 
         function updateTempLine(e) {
             if (!startBox || !tempLine) return;
@@ -251,113 +388,6 @@
             document.removeEventListener("mouseup", finishConnection);
         }
 
-        let selectedBox = null;
-
-        allBoxes.forEach(box => {
-            // Ctrl+Mouse drag remains
-            box.addEventListener("mousedown", e => {
-                if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    startBox = box;
-                    const from = getCenter(startBox);
-                    tempLine = createLineElement(from.x, from.y, from.x, from.y);
-                    tempLine.setAttribute("stroke", "gray");
-                    tempLine.setAttribute("stroke-dasharray", "4");
-                    svg.appendChild(tempLine);
-
-                    document.addEventListener("mousemove", updateTempLine);
-                    document.addEventListener("mouseup", finishConnection);
-                }
-            });
-
-            // ✅ Keyboard: Enter key selection
-            box.addEventListener("keydown", (e) => {
-                if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (!selectedBox) {
-                        // First box selected
-                        selectedBox = box;
-                        box.classList.add("selected");
-                    } else {
-                        if (box !== selectedBox) {
-                            createPermanentLine(selectedBox, box);
-                        }
-                        selectedBox.classList.remove("selected");
-                        selectedBox = null;
-
-                        // Auto-focus logic: move to next logical target
-                        const currentIndex = allBoxes.indexOf(box);
-                        const next = allBoxes[currentIndex + 1];
-                        if (next) next.focus();
-                        else allBoxes[0].focus(); // wrap around
-                    }
-                }
-            });
-        });
-        function updateConnectionModel() {
-            connList.innerHTML = "<strong>Connections:</strong><br>";
-            connections.forEach(conn => {
-                const fromName = conn.fromBox.dataset.name;
-                const toName = conn.toBox.dataset.name;
-                const line = document.createElement('div');
-                line.className = 'conn-entry';
-                line.textContent = `${fromName} → ${toName}`;
-                connList.appendChild(line);
-            });
-        }
-
-        function gradeConnections() {
-            const actual = connections.map(conn => {
-                const from = conn.fromBox.dataset.name;
-                const to = conn.toBox.dataset.name;
-                return [from, to];
-            });
-
-            const results = [];
-
-            correctAnswers.forEach(expected => {
-                const found = actual.some(actualConn =>
-                    actualConn[0] === expected[0] && actualConn[1] === expected[1]
-                );
-                results.push({ expected, correct: found });
-            });
-
-            const extraConnections = actual.filter(actualConn =>
-                !correctAnswers.some(expected =>
-                    expected[0] === actualConn[0] && expected[1] === actualConn[1]
-                )
-            );
-
-            connList.innerHTML = "<strong>Grading:</strong><br>";
-            let correctCount = 0;
-
-            results.forEach(r => {
-                const line = document.createElement('div');
-                line.className = 'conn-entry';
-                line.textContent = `${r.expected[0]} → ${r.expected[1]} ${r.correct ? "✅" : "❌"}`;
-                connList.appendChild(line);
-                if (r.correct) correctCount++;
-            });
-
-            if (extraConnections.length > 0) {
-                const extraHeader = document.createElement('div');
-                extraHeader.innerHTML = `<br><strong>Extra/Incorrect:</strong>`;
-                connList.appendChild(extraHeader);
-
-                extraConnections.forEach(extra => {
-                    const line = document.createElement('div');
-                    line.className = 'conn-entry';
-                    line.textContent = `${extra[0]} → ${extra[1]} ❌`;
-                    connList.appendChild(line);
-                });
-            }
-
-            const scorePercent = Math.round((correctCount / correctAnswers.length) * 100);
-            const scoreLine = document.createElement('div');
-            scoreLine.innerHTML = `<br><strong>Score: ${scorePercent}%</strong>`;
-            connList.appendChild(scoreLine);
-        }
-
         window.addEventListener("resize", () => {
             connections.forEach(conn => {
                 const from = getCenter(conn.fromBox);
@@ -368,6 +398,7 @@
                 conn.line.setAttribute("y2", to.y);
             });
         });
+
     </script>
     <!-- for aria live announcements on making connections -->
     <div id="aria-live" style="position:absolute; left:-9999px;" aria-live="polite" aria-atomic="true"></div>
