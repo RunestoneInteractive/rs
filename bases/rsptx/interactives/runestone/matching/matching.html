@@ -94,6 +94,17 @@
             stroke-width: 2;
             cursor: pointer;
             pointer-events: auto;
+            transition: stroke 0.2s ease, stroke-width 0.2s ease;
+        }
+
+        .line.faded {
+            stroke: #ccc;
+            stroke-width: 1;
+        }
+
+        .line.highlighted {
+            stroke: #e74c3c;
+            stroke-width: 3;
         }
 
         #connection-model {
@@ -329,7 +340,7 @@
                     const line = document.createElement('div');
                     line.className = 'conn-entry';
                     line.textContent = `${fromLabel} → ${toLabel} ❌`;
-                    connList.appendChild(line);
+                    connList.appendChild(line);                    
                 });
             }
 
@@ -411,6 +422,23 @@
                         else allBoxes[0].focus();
                     }
                 }
+            });
+            box.addEventListener("mouseenter", () => {
+                connections.forEach(conn => {
+                    if (conn.fromBox === box || conn.toBox === box) {
+                        conn.line.classList.add("highlighted");
+                        conn.line.classList.remove("faded");
+                    } else {
+                        conn.line.classList.add("faded");
+                        conn.line.classList.remove("highlighted");
+                    }
+                });
+            });
+
+            box.addEventListener("mouseleave", () => {
+                connections.forEach(conn => {
+                    conn.line.classList.remove("highlighted", "faded");
+                });
             });
         });
 
