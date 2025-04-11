@@ -325,8 +325,6 @@
                 line.className = 'conn-entry';
                 line.textContent = `${fromLabel} → ${toLabel} ${r.correct ? "✅" : "❌"}`;
                 connList.appendChild(line);
-
-                if (r.correct) correctCount++;
             });
 
             if (extraConnections.length > 0) {
@@ -340,11 +338,19 @@
                     const line = document.createElement('div');
                     line.className = 'conn-entry';
                     line.textContent = `${fromLabel} → ${toLabel} ❌`;
-                    connList.appendChild(line);                    
+                    connList.appendChild(line);
                 });
             }
 
-            const scorePercent = Math.round((correctCount / boxData.correctAnswers.length) * 100);
+            const totalGiven = actual.length;
+            correctCount = results.filter(r => r.correct).length;
+
+            let scorePercent = Math.round((correctCount / boxData.correctAnswers.length) * 100);
+
+            if (totalGiven > 0 && totalGiven > boxData.correctAnswers.length) {
+                scorePercent = Math.round((correctCount / totalGiven) * 100);
+            } 
+
             const scoreLine = document.createElement('div');
             scoreLine.innerHTML = `<br><strong>Score: ${scorePercent}%</strong>`;
             connList.appendChild(scoreLine);
