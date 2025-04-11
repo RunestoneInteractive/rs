@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Drag to Connect (Left → Right)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #workspace {
+            flex: 1;
+            position: relative;
+        }
+
+        #connector-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .box {
+            position: absolute;
+            width: 100px;
+            height: 50px;
+            background: #f1c40f;
+            border: 2px solid #e67e22;
+            border-radius: 8px;
+            text-align: center;
+            line-height: 50px;
+            font-weight: bold;
+            user-select: none;
+            cursor: pointer;
+        }
+
+        /* Draggables on the left */
+        #box1 {
+            top: 100px;
+            left: 50px;
+        }
+
+        #box2 {
+            top: 200px;
+            left: 50px;
+        }
+
+        /* Droppables on the right */
+        #box3 {
+            top: 80px;
+            left: calc(100% - 150px);
+        }
+
+        #box4 {
+            top: 180px;
+            left: calc(100% - 150px);
+        }
+
+        #box5 {
+            top: 280px;
+            left: calc(100% - 150px);
+        }
+
+        /* Left side boxes (draggables) */
+        #boxA {
+            top: 80px;
+            left: 50px;
+        }
+
+        #boxB {
+            top: 180px;
+            left: 50px;
+        }
+
+        #boxC {
+            top: 280px;
+            left: 50px;
+        }
+
+        /* Right side boxes (droppables) */
+        #boxD {
+            top: 60px;
+            left: calc(100% - 150px);
+        }
+
+        #boxE {
+            top: 160px;
+            left: calc(100% - 150px);
+        }
+
+        #boxF {
+            top: 260px;
+            left: calc(100% - 150px);
+        }
+
+        #boxG {
+            top: 360px;
+            left: calc(100% - 150px);
+        }
+
+        #connection-model {
+            width: 220px;
+            background: #f9f9f9;
+            border-left: 1px solid #ccc;
+            padding: 10px;
+            font-size: 14px;
+            overflow-y: auto;
+        }
+
+        #connection-model h3 {
+            margin-top: 0;
+            font-size: 16px;
+        }
+
+        .conn-entry {
+            margin: 4px 0;
+            font-family: monospace;
+        }
+
+        .line {
+            stroke: black;
+            stroke-width: 2;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="workspace">
+        <svg id="connector-svg"></svg>
+
+        <!-- Left side (Draggables) -->
+        <div id="boxA" class="box" data-name="A" data-role="drag">A</div>
+        <div id="boxB" class="box" data-name="B" data-role="drag">B</div>
+        <div id="boxC" class="box" data-name="C" data-role="drag">C</div>
+
+        <!-- Right side (Droppables) -->
+        <div id="boxD" class="box" data-name="D" data-role="drop">D</div>
+        <div id="boxE" class="box" data-name="E" data-role="drop">E</div>
+        <div id="boxF" class="box" data-name="F" data-role="drop">F</div>
+        <div id="boxG" class="box" data-name="G" data-role="drop">G</div>
+    </div>
+
+    <div id="connection-model">
+        <h3>Connections</h3>
+        <div id="conn-list"></div>
+        <button onclick="gradeConnections()">Grade</button>
+    </div>
+
+    <script>
+        const boxes = document.querySelectorAll('.box');
+        const svg = document.getElementById('connector-svg');
+        const connList = document.getElementById('conn-list');
+        const connections = [];
+
+        let startBox = null;
+        let tempLine = null;
+
+        function getCenter(el) {
+            const rect = el.getBoundingClientRect();
+            return {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2
+            };
+        }
+
+        function createLineElement(x1, y1, x2, y2) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("class", "line");
+
+            line.addEventListener("click", () => {
+                svg.removeChild(line);
+                const index = connections.findIndex(conn =>
+                    (conn.fromBox === line.fromBox && conn.toBox === line.toBox) ||
+                    (conn.fromBox === line.toBox && conn.toBox === line.fromBox)
+                );
+                if (index !== -1) connections.splice(index, 1);
+                updateConnectionModel();
+            });
+
+            return line;
+        }
+
+        function createPermanentLine(fromBox, toBox) {
+            const fromRole = fromBox.dataset.role;
+            const toRole = toBox.dataset.role;
+
+            // Prevent same-role connections
+            if (fromRole === toRole) {
+                alert("You can only connect a draggable to a droppable.");
+                return;
+            }
+
+            if (isConnected(fromBox, toBox)) return;
+
+            const from = getCenter(fromBox);
+            const to = getCenter(toBox);
+            const line = createLineElement(from.x, from.y, to.x, to.y);
+
+            line.fromBox = fromBox;
+            line.toBox = toBox;
+
+            svg.appendChild(line);
+            connections.push({ fromBox, toBox, line });
+            updateConnectionModel();
+        }
+        function isConnected(a, b) {
+            return connections.some(conn =>
+                (conn.fromBox === a && conn.toBox === b) ||
+                (conn.fromBox === b && conn.toBox === a)
+            );
+        }
+
+        function updateTempLine(e) {
+            if (!startBox || !tempLine) return;
+            const from = getCenter(startBox);
+            tempLine.setAttribute("x1", from.x);
+            tempLine.setAttribute("y1", from.y);
+            tempLine.setAttribute("x2", e.clientX);
+            tempLine.setAttribute("y2", e.clientY);
+        }
+
+        function finishConnection(e) {
+            if (tempLine) {
+                svg.removeChild(tempLine);
+                tempLine = null;
+            }
+
+            const endBox = Array.from(boxes).find(box =>
+                box.contains(e.target) && box !== startBox
+            );
+
+            if (startBox && endBox) {
+                createPermanentLine(startBox, endBox);
+            }
+
+            startBox = null;
+            document.removeEventListener("mousemove", updateTempLine);
+            document.removeEventListener("mouseup", finishConnection);
+        }
+
+        boxes.forEach(box => {
+            // Only allow Ctrl+Click to start a connection
+            box.addEventListener("mousedown", e => {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    startBox = box;
+                    const from = getCenter(startBox);
+                    tempLine = createLineElement(from.x, from.y, from.x, from.y);
+                    tempLine.setAttribute("stroke", "gray");
+                    tempLine.setAttribute("stroke-dasharray", "4");
+                    svg.appendChild(tempLine);
+
+                    document.addEventListener("mousemove", updateTempLine);
+                    document.addEventListener("mouseup", finishConnection);
+                }
+            });
+        });
+
+        function updateConnectionModel() {
+            connList.innerHTML = '';
+            connections.forEach(conn => {
+                const fromName = conn.fromBox.dataset.name;
+                const toName = conn.toBox.dataset.name;
+
+                const entry = document.createElement('div');
+                entry.className = 'conn-entry';
+                entry.textContent = `${fromName} → ${toName}`;
+                connList.appendChild(entry);
+            });
+        }
+
+        window.addEventListener("resize", () => {
+            connections.forEach(conn => {
+                const from = getCenter(conn.fromBox);
+                const to = getCenter(conn.toBox);
+                conn.line.setAttribute("x1", from.x);
+                conn.line.setAttribute("y1", from.y);
+                conn.line.setAttribute("x2", to.x);
+                conn.line.setAttribute("y2", to.y);
+            });
+        });
+        // Define correct answers (from → to)
+        const correctAnswers = [
+            ["A", "E"],
+            ["A", "F"],
+            ["B", "D"]
+        ];
+
+        function gradeConnections() {
+            const actual = connections.map(conn => {
+                const from = conn.fromBox.dataset.name;
+                const to = conn.toBox.dataset.name;
+                return [from, to];
+            });
+
+            const results = [];
+
+            correctAnswers.forEach(expected => {
+                const found = actual.some(actualConn =>
+                    actualConn[0] === expected[0] && actualConn[1] === expected[1]
+                );
+                results.push({ expected, correct: found });
+            });
+
+            // Detect extra/incorrect connections
+            const extraConnections = actual.filter(actualConn =>
+                !correctAnswers.some(expected =>
+                    expected[0] === actualConn[0] && expected[1] === actualConn[1]
+                )
+            );
+
+            // Show results in the sidebar
+            connList.innerHTML = "<strong>Grading:</strong><br>";
+
+            let correctCount = 0;
+
+            results.forEach(r => {
+                const line = document.createElement('div');
+                line.className = 'conn-entry';
+                line.textContent = `${r.expected[0]} → ${r.expected[1]} ${r.correct ? "✅" : "❌"}`;
+                connList.appendChild(line);
+                if (r.correct) correctCount++;
+            });
+
+            if (extraConnections.length > 0) {
+                const extraHeader = document.createElement('div');
+                extraHeader.innerHTML = `<br><strong>Extra/Incorrect:</strong>`;
+                connList.appendChild(extraHeader);
+
+                extraConnections.forEach(extra => {
+                    const line = document.createElement('div');
+                    line.className = 'conn-entry';
+                    line.textContent = `${extra[0]} → ${extra[1]} ❌`;
+                    connList.appendChild(line);
+                });
+            }
+
+            // Final score
+            const scorePercent = Math.round((correctCount / correctAnswers.length) * 100);
+            const scoreLine = document.createElement('div');
+            scoreLine.innerHTML = `<br><strong>Score: ${scorePercent}%</strong>`;
+            connList.appendChild(scoreLine);
+        }    </script>
+
+</body>
+
+</html>
