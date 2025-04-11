@@ -100,18 +100,19 @@ async function addCourse() {
     let repo_path = document.querySelector("#repo_path");
     if (repo_path) {
         repo_path = repo_path.value;
-        if (! repo_path.startsWith("/books/")) {
+        if (!repo_path.startsWith("/books/")) {
             repo_path = "/books/" + repo_path;
-    } 
-    if (!repo.value && !repo_path) {
-        alert("You must provide either a github url or path to a local repo");
-        return;
-    }
-    if (repo.value && repo_path) {
-        alert(
-            "You must provide either a github url or path to a local repo, not both"
-        );
-        return;
+        }
+        if (!repo.value && !repo_path) {
+            alert("You must provide either a github url or path to a local repo");
+            return;
+        }
+        if (repo.value && repo_path) {
+            alert(
+                "You must provide either a github url or path to a local repo, not both"
+            );
+            return;
+        }
     }
     let response = await fetch("/author/add_course", {
         method: "POST",
@@ -128,7 +129,7 @@ async function addCourse() {
             cloneTask();
         } else if (repo_path) {
             // redirect to the /author/editlibrary page
-            window.location.href = `/author/editlibrary/${bcname.value}`; 
+            window.location.href = `/author/editlibrary/${bcname.value}`;
 
         }
         // if clone fails we should remove from db? - maybe add a remove button?
@@ -153,6 +154,7 @@ async function addCourse() {
         }, 1000);
     }
 }
+
 
 function deployTask(bcname) {
     fetch("/author/deployBook", {
