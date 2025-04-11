@@ -90,6 +90,14 @@
             margin-top: 10px;
             padding: 6px 10px;
         }
+
+        .box:focus {
+            outline: 3px solid #3498db;
+        }
+
+        .box.selected {
+            outline: 3px dashed #27ae60;
+        }
     </style>
 </head>
 
@@ -131,6 +139,7 @@
             div.dataset.name = name;
             div.dataset.role = role;
             div.textContent = name;
+            div.tabIndex = 0;
             return div;
         }
 
@@ -238,7 +247,10 @@
             document.removeEventListener("mouseup", finishConnection);
         }
 
+        let selectedBox = null;
+
         allBoxes.forEach(box => {
+            // Ctrl+Mouse drag remains
             box.addEventListener("mousedown", e => {
                 if (e.ctrlKey || e.metaKey) {
                     e.preventDefault();
@@ -253,8 +265,25 @@
                     document.addEventListener("mouseup", finishConnection);
                 }
             });
-        });
 
+            // ✅ Keyboard: Enter key selection
+            box.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (!selectedBox) {
+                        // First box selected
+                        selectedBox = box;
+                        box.classList.add("selected");
+                    } else {
+                        if (box !== selectedBox) {
+                            createPermanentLine(selectedBox, box);
+                        }
+                        selectedBox.classList.remove("selected");
+                        selectedBox = null;
+                    }
+                }
+            });
+        });
         function updateConnectionModel() {
             connList.innerHTML = "<strong>Connections:</strong><br>";
             connections.forEach(conn => {
