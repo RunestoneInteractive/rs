@@ -200,6 +200,14 @@
         const connections = [];
         const allBoxes = [];
 
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
         function createBox(id, label, role) {
             const div = document.createElement('div');
             div.className = 'box';
@@ -314,7 +322,6 @@
             );
 
             connList.innerHTML = "<strong>Grading:</strong><br>";
-            let correctCount = 0;
 
             results.forEach(r => {
                 const [fromId, toId] = r.expected;
@@ -342,16 +349,31 @@
                 });
             }
 
-            const totalGiven = actual.length;
-            correctCount = results.filter(r => r.correct).length;
+            const correctAnswers = boxData.correctAnswers;
+            const totalExpected = correctAnswers.length;
 
-            let scorePercent = Math.round((correctCount / boxData.correctAnswers.length) * 100);
 
-            if (totalGiven > 0 && totalGiven > boxData.correctAnswers.length) {
-                scorePercent = Math.round((correctCount / totalGiven) * 100);
-            } 
+            // Which correct answers were matched
+            const correctMatches = correctAnswers.filter(expected =>
+                actual.some(given =>
+                    given[0] === expected[0] && given[1] === expected[1]
+                )
+            );
 
-            const scoreLine = document.createElement('div');
+            // Connections that were NOT in the answer key
+            const incorrectConnections = actual.filter(given =>
+                !correctAnswers.some(expected =>
+                    expected[0] === given[0] && expected[1] === given[1]
+                )
+            );
+
+            const correctCount = correctMatches.length;
+            const incorrectCount = incorrectConnections.length;
+            const missingCount = totalExpected - correctCount;
+
+            const denominator = correctCount + incorrectCount + missingCount;
+
+            let scorePercent = denominator === 0 ? 0 : Math.round((correctCount / denominator) * 100); const scoreLine = document.createElement('div');
             scoreLine.innerHTML = `<br><strong>Score: ${scorePercent}%</strong>`;
             connList.appendChild(scoreLine);
         }
@@ -376,6 +398,8 @@
             }
         }
         // Setup boxes
+        shuffle(boxData.left);
+        shuffle(boxData.right);
         boxData.left.forEach(({ id, label }) => {
             const box = createBox(id, label, "drag");
             leftColumn.appendChild(box);
