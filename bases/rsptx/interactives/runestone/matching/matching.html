@@ -140,6 +140,8 @@
             div.dataset.role = role;
             div.textContent = name;
             div.tabIndex = 0;
+            div.setAttribute('role', 'button'); // behaves like an interactive element
+            div.setAttribute('aria-label', `${role === "drag" ? "Draggable" : "Droppable"} box ${name}`);
             return div;
         }
 
@@ -210,6 +212,8 @@
             svg.appendChild(line);
             connections.push({ fromBox, toBox, line });
             updateConnectionModel();
+            document.getElementById('aria-live').textContent =
+                `Connected ${fromBox.dataset.name} to ${toBox.dataset.name}`;
         }
 
         function isConnected(a, b) {
@@ -280,6 +284,12 @@
                         }
                         selectedBox.classList.remove("selected");
                         selectedBox = null;
+
+                        // Auto-focus logic: move to next logical target
+                        const currentIndex = allBoxes.indexOf(box);
+                        const next = allBoxes[currentIndex + 1];
+                        if (next) next.focus();
+                        else allBoxes[0].focus(); // wrap around
                     }
                 }
             });
@@ -359,7 +369,8 @@
             });
         });
     </script>
-
+    <!-- for aria live announcements on making connections -->
+    <div id="aria-live" style="position:absolute; left:-9999px;" aria-live="polite" aria-atomic="true"></div>
 </body>
 
 </html>
