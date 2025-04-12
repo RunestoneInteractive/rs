@@ -41,9 +41,6 @@ export const validateCommonFields = (formData: {
   if (formData.difficulty === undefined) {
     errors.push("Difficulty is required");
   }
-  if (isTipTapContentEmpty(formData.statement || "")) {
-    errors.push("Question is required");
-  }
 
   return errors;
 };

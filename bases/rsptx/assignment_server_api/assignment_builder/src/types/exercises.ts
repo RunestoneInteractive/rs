@@ -1,6 +1,6 @@
 import { FilterMatchMode } from "primereact/api";
 
-export const supportedExerciseTypesToEdit = ["mchoice", "poll", "shortanswer"];
+export const supportedExerciseTypesToEdit = ["mchoice", "poll", "shortanswer", "activecode"];
 
 export const supportedExerciseTypes = [
   "mchoice",

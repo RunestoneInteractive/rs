@@ -18,6 +18,7 @@
     "@fortawesome/free-regular-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@handsontable/react": "^14.2.0",
+    "@monaco-editor/react": "^4.7.0",
     "@reduxjs/toolkit": "^2.2.1",
     "@tiptap/core": "^2.11.5",
     "@tiptap/extension-bubble-menu": "^2.11.5",

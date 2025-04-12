@@ -1,6 +1,3 @@
-import { Fragment } from "react";
-import { renderToString } from "react-dom/server";
-
 export const generatePollPreview = (
   questionTitle: string,
   options: string[],
@@ -38,7 +35,7 @@ ${optionsHTML}
 
     return `
 <div class="runestone ">
-<ul data-component="poll" id="qstudent" class='' data-results='instructor' data-question_label="${questionName}" >
+<ul data-component="poll" id="ps-poll-${questionName}" data-comment class='' data-results='preview' data-question_label="${questionName}" >
 ${questionTitle}
 ${optionsHTML}
 </ul></div>`;
