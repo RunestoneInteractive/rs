@@ -19,31 +19,23 @@
             margin-bottom: 0.5em;
         }
 
-        #interactive-container {
-            display: flex;
-            justify-content: center;
-            margin: 20px 0;
-            position: relative;
+        /* Main wrapper for each matching component */
+        [data-component="matching"] {
+            margin: 2rem 0;
         }
 
-        #workspace {
+        .matching-workspace {
             display: flex;
             justify-content: space-between;
-            padding: 0 60px;
             position: relative;
+            padding: 0 60px;
             max-width: 1000px;
-            width: 600px;
-
-            /* Added height property */
-            min-height: 300px;
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 12px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            margin: 0 auto 1rem;
         }
 
-        #left-column,
-        #right-column {
+        .left-column,
+        .right-column {
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -69,6 +61,11 @@
             user-select: none;
             cursor: pointer;
             white-space: nowrap;
+            text-align: center;
+        }
+
+        .box mjx-container {
+            font-size: 1em;
         }
 
         .box:focus {
@@ -79,12 +76,12 @@
             outline: 3px dashed #27ae60;
         }
 
-        #connector-svg {
-            position: fixed;
+        .connector-svg {
+            position: absolute;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             pointer-events: none;
             z-index: 0;
         }
@@ -97,7 +94,12 @@
             transition: stroke 0.2s ease, stroke-width 0.2s ease;
         }
 
-        .line.faded {
+        .line.correct {
+            stroke: green;
+            stroke-width: 3;
+        }
+
+        .line.incorrect {
             stroke: #ccc;
             stroke-width: 1;
         }
@@ -107,19 +109,14 @@
             stroke-width: 3;
         }
 
-        .line.correct {
-            stroke: #18e4d1;
-            stroke-width: 3;
-        }
-
-        .line.incorrect {
+        .line.faded {
             stroke: #ccc;
             stroke-width: 1;
         }
 
-        #connection-model {
+        .conn-list {
             max-width: 800px;
-            margin: 20px auto;
+            margin: 0 auto 1rem;
             padding: 10px;
             background: #f9f9f9;
             border: 1px solid #ccc;
@@ -133,8 +130,8 @@
         }
 
         button {
-            display: block;
-            margin: 1rem auto 0;
+            display: inline-block;
+            margin: 0.5rem;
             font-size: 1rem;
             padding: 8px 16px;
             border: none;
@@ -149,7 +146,7 @@
             background: #2980b9;
         }
 
-        #aria-live {
+        .aria-live {
             position: absolute;
             left: -9999px;
             top: auto;
@@ -173,356 +170,356 @@
     <p>Match each concept on the left with its correct description on the right. Use your mouse or keyboard (Tab +
         Enter).</p>
 
-    <div id="interactive-container">
-        <div id="workspace">
-            <div id="left-column"></div>
-            <svg id="connector-svg"></svg>
-            <div id="right-column"></div>
+    <div data-component="matching" id="matching-velocity1">
+        <div class="matching-workspace">
+            <div class="left-column"></div>
+            <svg class="connector-svg"></svg>
+            <div class="right-column"></div>
         </div>
+        <div class="conn-list"></div>
+        <button class="grade-button">Grade</button>
+        <button class="reset-button">Reset</button>
+        <div class="aria-live" aria-live="polite" aria-atomic="true"></div>
+        <script type="application/json">
+              {
+                "left": [{ "id": "a", "label": "Energy: $E = mc^2$" },
+                        { "id": "b", "label": "Kinetic energy: $KE = \\frac{1}{2}mv^2$" },
+                        { "id": "c", "label": "Potential energy: $PE = mgh$" }],
+                "right": [{ "id": "x", "label": "Mass-energy equivalence" },
+                        { "id": "y", "label": "Energy of motion" },
+                        { "id": "z", "label": "Energy due to position" }],
+                "correctAnswers": [["a", "x"], ["b", "y"], ["c", "z"]]
+              }
+            </script>
     </div>
 
-    <div id="connection-model">
-        <div id="conn-list"></div>
-        <button onclick="gradeConnections()">Grade</button>
-        <button onclick="resetConnections()">Reset</button>
+    <div data-component="matching" id="matching-velocity2">
+        <div class="matching-workspace">
+            <div class="left-column"></div>
+            <svg class="connector-svg"></svg>
+            <div class="right-column"></div>
+        </div>
+        <div class="conn-list"></div>
+        <button class="grade-button">Grade</button>
+        <button class="reset-button">Reset</button>
+        <div class="aria-live" aria-live="polite" aria-atomic="true"></div>
+        <script type="application/json">
+              {
+                "left": [{ "id": "a1", "label": "Energy: $E = mc^2$" },
+                        { "id": "b1", "label": "Kinetic energy: $KE = \\frac{1}{2}mv^2$" },
+                        { "id": "c1", "label": "Potential energy: $PE = mgh$" }],
+                "right": [{ "id": "x1", "label": "Mass-energy equivalence" },
+                        { "id": "y1", "label": "Energy of motion" },
+                        { "id": "z1", "label": "Energy due to position" }],
+                "correctAnswers": [["a1", "x1"], ["b1", "y1"], ["c1", "z1"]]
+              }
+            </script>
     </div>
 
     <div id="aria-live" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Your app logic -->
     <script>
-        const boxData = {
-            left: [
-                { id: "a", label: "<i>Gravity</i>" },
-                { id: "b", label: "The Moon" },
-                { id: "c", label: "A Black Hole" }
-            ],
-            right: [
-                { id: "d", label: "A force that pulls" },
-                { id: "e", label: "Orbits Earth" },
-                { id: "f", label: "Nothing escapes &nbsp; \\(e = m c^2\\)" }
-            ],
-            correctAnswers: [
-                ["a", "d"],
-                ["b", "e"],
-                ["c", "f"]
-            ]
-        };
+        class MatchingProblem {
+            constructor(container, boxData) {
+                this.container = container;
+                this.boxData = boxData;
+                this.workspace = container.querySelector('.matching-workspace');
+                this.leftColumn = container.querySelector('.left-column');
+                this.rightColumn = container.querySelector('.right-column');
+                this.svg = container.querySelector('.connector-svg');
+                this.connList = container.querySelector('.conn-list');
+                this.ariaLive = container.querySelector('.aria-live');
 
-        const leftColumn = document.getElementById('left-column');
-        const rightColumn = document.getElementById('right-column');
-        const svg = document.getElementById('connector-svg');
-        const connList = document.getElementById('conn-list');
-        const ariaLive = document.getElementById('aria-live');
-        const connections = [];
-        const allBoxes = [];
+                this.connections = [];
+                this.allBoxes = [];
+                this.selectedBox = null;
+                this.startBox = null;
+                this.tempLine = null;
 
-        function shuffle(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-
-        function createBox(id, label, role) {
-            const div = document.createElement('div');
-            div.className = 'box';
-            div.dataset.id = id;
-            div.dataset.role = role;
-            div.innerHTML = label;
-            div.tabIndex = 0;
-            div.setAttribute('role', 'button');
-            div.setAttribute('aria-label', `${role === "drag" ? "Draggable" : "Droppable"}: ${label}`);
-            return div;
-        }
-
-        function getLabelById(id) {
-            const item = [...boxData.left, ...boxData.right].find(box => box.id === id);
-            return item ? item.label : id;
-        }
-
-        function getCenter(el) {
-            const rect = el.getBoundingClientRect();
-            return {
-                x: rect.left + rect.width / 2,
-                y: rect.top + rect.height / 2
-            };
-        }
-
-        function createLineElement(x1, y1, x2, y2) {
-            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            line.setAttribute("x1", x1);
-            line.setAttribute("y1", y1);
-            line.setAttribute("x2", x2);
-            line.setAttribute("y2", y2);
-            line.setAttribute("class", "line");
-
-            line.addEventListener("click", () => {
-                svg.removeChild(line);
-                const index = connections.findIndex(conn =>
-                    (conn.fromBox === line.fromBox && conn.toBox === line.toBox) ||
-                    (conn.fromBox === line.toBox && conn.toBox === line.fromBox)
-                );
-                if (index !== -1) connections.splice(index, 1);
-                updateConnectionModel();
-            });
-
-            return line;
-        }
-
-        function isConnected(a, b) {
-            return connections.some(conn =>
-                (conn.fromBox === a && conn.toBox === b) ||
-                (conn.fromBox === b && conn.toBox === a)
-            );
-        }
-
-        function createPermanentLine(fromBox, toBox) {
-            const fromRole = fromBox.dataset.role;
-            const toRole = toBox.dataset.role;
-
-            if (fromRole === toRole) {
-                alert("You can only connect a draggable to a droppable.");
-                return;
+                this.init();
             }
 
-            if (isConnected(fromBox, toBox)) return;
+            init() {
+                this.shuffle(this.boxData.left);
+                this.shuffle(this.boxData.right);
 
-            const from = getCenter(fromBox);
-            const to = getCenter(toBox);
-            const line = createLineElement(from.x, from.y, to.x, to.y);
+                this.renderBoxes();
+                this.attachEvents();
 
-            line.fromBox = fromBox;
-            line.toBox = toBox;
-
-            svg.appendChild(line);
-            connections.push({ fromBox, toBox, line });
-            updateConnectionModel();
-
-            if (ariaLive) {
-                ariaLive.textContent = `Connected ${fromBox.textContent} to ${toBox.textContent}`;
-            }
-        }
-
-        function updateConnectionModel() {
-            connList.innerHTML = "<strong>Connections:</strong><br>";
-            connections.forEach(conn => {
-                const fromLabel = conn.fromBox.textContent;
-                const toLabel = conn.toBox.textContent;
-                const line = document.createElement('div');
-                line.className = 'conn-entry';
-                line.textContent = `${fromLabel} → ${toLabel}`;
-                connList.appendChild(line);
-            });
-        }
-
-        function gradeConnections() {
-            const actual = connections.map(conn => [
-                conn.fromBox.dataset.id,
-                conn.toBox.dataset.id
-            ]);
-
-            const results = [];
-
-            boxData.correctAnswers.forEach(expected => {
-                const found = actual.some(actualConn =>
-                    actualConn[0] === expected[0] && actualConn[1] === expected[1]
-                );
-                results.push({ expected, correct: found });
-            });
-
-            const extraConnections = actual.filter(actualConn =>
-                !boxData.correctAnswers.some(expected =>
-                    expected[0] === actualConn[0] && expected[1] === actualConn[1]
-                )
-            );
-
-            connList.innerHTML = "<strong>Grading:</strong><br>";
-
-
-
-            const correctAnswers = boxData.correctAnswers;
-            const totalExpected = correctAnswers.length;
-
-
-            // Which correct answers were matched
-            const correctMatches = correctAnswers.filter(expected =>
-                actual.some(given =>
-                    given[0] === expected[0] && given[1] === expected[1]
-                )
-            );
-
-            // Connections that were NOT in the answer key
-            const incorrectConnections = actual.filter(given =>
-                !correctAnswers.some(expected =>
-                    expected[0] === given[0] && expected[1] === given[1]
-                )
-            );
-
-            const correctCount = correctMatches.length;
-            const incorrectCount = incorrectConnections.length;
-            const missingCount = totalExpected - correctCount;
-
-            const denominator = correctCount + incorrectCount + missingCount;
-
-            let scorePercent = denominator === 0 ? 0 : Math.round((correctCount / denominator) * 100); const scoreLine = document.createElement('div');
-
-            // ✅ Style each line visually
-            connections.forEach(conn => {
-                const idPair = [conn.fromBox.dataset.id, conn.toBox.dataset.id];
-                const isCorrect = correctAnswers.some(expected =>
-                    expected[0] === idPair[0] && expected[1] === idPair[1]
-                );
-
-                conn.line.classList.remove("correct", "incorrect");
-                conn.line.classList.add(isCorrect ? "correct" : "incorrect");
-            });
-
-            scoreLine.innerHTML = `<br><strong>Score: ${scorePercent}%</strong>`;
-            connList.appendChild(scoreLine);
-        }
-
-        function resetConnections() {
-            // Remove all SVG lines
-            connections.forEach(conn => {
-                if (conn.line && conn.line.parentNode === svg) {
-                    svg.removeChild(conn.line);
+                if (window.MathJax && MathJax.typesetPromise) {
+                    MathJax.typesetPromise();
                 }
-            });
-
-            // Clear internal array
-            connections.length = 0;
-
-            // Update connection display
-            updateConnectionModel();
-
-            // Optional: Clear live feedback
-            if (ariaLive) {
-                ariaLive.textContent = "All connections have been cleared.";
             }
-        }
-        // Setup boxes
-        shuffle(boxData.left);
-        shuffle(boxData.right);
-        boxData.left.forEach(({ id, label }) => {
-            const box = createBox(id, label, "drag");
-            leftColumn.appendChild(box);
-            allBoxes.push(box);
-        });
 
-        boxData.right.forEach(({ id, label }) => {
-            const box = createBox(id, label, "drop");
-            rightColumn.appendChild(box);
-            allBoxes.push(box);
-        });
-
-
-        // ✅ Tell MathJax to render everything
-        if (window.MathJax && MathJax.typesetPromise) {
-            MathJax.typesetPromise();
-        }
-        // Keyboard selection
-        let selectedBox = null;
-        let startBox = null;
-        let tempLine = null;
-
-        allBoxes.forEach(box => {
-            box.addEventListener("mousedown", e => {
-                if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    startBox = box;
-                    const from = getCenter(startBox);
-                    tempLine = createLineElement(from.x, from.y, from.x, from.y);
-                    tempLine.setAttribute("stroke", "gray");
-                    tempLine.setAttribute("stroke-dasharray", "4");
-                    svg.appendChild(tempLine);
-
-                    document.addEventListener("mousemove", updateTempLine);
-                    document.addEventListener("mouseup", finishConnection);
+            shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
                 }
-            });
+                return array;
+            }
 
-            box.addEventListener("keydown", (e) => {
-                if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (!selectedBox) {
-                        selectedBox = box;
-                        box.classList.add("selected");
-                    } else {
-                        if (box !== selectedBox) {
-                            createPermanentLine(selectedBox, box);
+            renderBoxes() {
+                this.boxData.left.forEach(({ id, label }) => {
+                    const box = this.createBox(id, label, "drag");
+                    this.leftColumn.appendChild(box);
+                    this.allBoxes.push(box);
+                });
+
+                this.boxData.right.forEach(({ id, label }) => {
+                    const box = this.createBox(id, label, "drop");
+                    this.rightColumn.appendChild(box);
+                    this.allBoxes.push(box);
+                });
+            }
+
+            createBox(id, label, role) {
+                const div = document.createElement('div');
+                div.className = 'box';
+                div.dataset.id = id;
+                div.dataset.role = role;
+                div.innerHTML = label;
+                div.tabIndex = 0;
+                div.setAttribute('role', 'button');
+                div.setAttribute('aria-label', `${role === "drag" ? "Draggable" : "Droppable"}: ${label}`);
+                return div;
+            }
+
+            getCenter(el) {
+                const elRect = el.getBoundingClientRect();
+                const containerRect = this.workspace.getBoundingClientRect();
+                return {
+                    x: elRect.left - containerRect.left + elRect.width / 2,
+                    y: elRect.top - containerRect.top + elRect.height / 2
+                };
+            }
+            createLineElement(x1, y1, x2, y2) {
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", x1);
+                line.setAttribute("y1", y1);
+                line.setAttribute("x2", x2);
+                line.setAttribute("y2", y2);
+                line.setAttribute("class", "line");
+
+                line.addEventListener("click", () => {
+                    this.svg.removeChild(line);
+                    const index = this.connections.findIndex(conn =>
+                        (conn.fromBox === line.fromBox && conn.toBox === line.toBox) ||
+                        (conn.fromBox === line.toBox && conn.toBox === line.fromBox)
+                    );
+                    if (index !== -1) this.connections.splice(index, 1);
+                    this.updateConnectionModel();
+                });
+
+                return line;
+            }
+
+            isConnected(a, b) {
+                return this.connections.some(conn =>
+                    (conn.fromBox === a && conn.toBox === b) ||
+                    (conn.fromBox === b && conn.toBox === a)
+                );
+            }
+
+            createPermanentLine(fromBox, toBox) {
+                const fromRole = fromBox.dataset.role;
+                const toRole = toBox.dataset.role;
+
+                if (fromRole === toRole) {
+                    alert("You can only connect a draggable to a droppable.");
+                    return;
+                }
+
+                if (this.isConnected(fromBox, toBox)) return;
+
+                const from = this.getCenter(fromBox);
+                const to = this.getCenter(toBox);
+                const line = this.createLineElement(from.x, from.y, to.x, to.y);
+
+                line.fromBox = fromBox;
+                line.toBox = toBox;
+
+                this.svg.appendChild(line);
+                this.connections.push({ fromBox, toBox, line });
+                this.updateConnectionModel();
+
+                if (this.ariaLive) {
+                    this.ariaLive.textContent = `Connected ${fromBox.textContent} to ${toBox.textContent}`;
+                }
+            }
+
+            updateConnectionModel() {
+                this.connList.innerHTML = "<strong>Connections:</strong><br>";
+                this.connections.forEach(conn => {
+                    const fromLabel = conn.fromBox.textContent;
+                    const toLabel = conn.toBox.textContent;
+                    const line = document.createElement('div');
+                    line.className = 'conn-entry';
+                    line.textContent = `${fromLabel} → ${toLabel}`;
+                    this.connList.appendChild(line);
+                });
+            }
+
+            gradeConnections() {
+                const correctAnswers = this.boxData.correctAnswers;
+                const actual = this.connections.map(conn => [
+                    conn.fromBox.dataset.id,
+                    conn.toBox.dataset.id
+                ]);
+
+                const correctMatches = correctAnswers.filter(expected =>
+                    actual.some(given => given[0] === expected[0] && given[1] === expected[1])
+                );
+
+                const incorrectConnections = actual.filter(given =>
+                    !correctAnswers.some(expected => expected[0] === given[0] && expected[1] === given[1])
+                );
+
+                const correctCount = correctMatches.length;
+                const incorrectCount = incorrectConnections.length;
+                const missingCount = correctAnswers.length - correctCount;
+                const denominator = correctCount + incorrectCount + missingCount;
+                const scorePercent = denominator === 0 ? 0 : Math.max(0, Math.min(100, Math.round((correctCount / denominator) * 100)));
+
+                this.connections.forEach(conn => {
+                    const idPair = [conn.fromBox.dataset.id, conn.toBox.dataset.id];
+                    const isCorrect = correctAnswers.some(expected =>
+                        expected[0] === idPair[0] && expected[1] === idPair[1]
+                    );
+                    conn.line.classList.remove("correct", "incorrect");
+                    conn.line.classList.add(isCorrect ? "correct" : "incorrect");
+                });
+
+                this.connList.innerHTML = `<strong>Score: ${scorePercent}%</strong>`;
+            }
+
+            resetConnections() {
+                this.connections.forEach(conn => {
+                    if (conn.line && conn.line.parentNode === this.svg) {
+                        this.svg.removeChild(conn.line);
+                    }
+                });
+                this.connections.length = 0;
+                this.updateConnectionModel();
+                if (this.ariaLive) this.ariaLive.textContent = "All connections have been cleared.";
+            }
+
+            attachEvents() {
+                this.allBoxes.forEach(box => {
+                    box.addEventListener("mousedown", e => {
+                        if (e.ctrlKey || e.metaKey) {
+                            e.preventDefault();
+                            this.startBox = box;
+                            const from = this.getCenter(this.startBox);
+                            this.tempLine = this.createLineElement(from.x, from.y, from.x, from.y);
+                            this.tempLine.setAttribute("stroke", "gray");
+                            this.tempLine.setAttribute("stroke-dasharray", "4");
+                            this.svg.appendChild(this.tempLine);
+
+                            document.addEventListener("mousemove", this.updateTempLine);
+                            document.addEventListener("mouseup", this.finishConnection);
                         }
-                        selectedBox.classList.remove("selected");
-                        selectedBox = null;
+                    });
 
-                        const currentIndex = allBoxes.indexOf(box);
-                        const next = allBoxes[currentIndex + 1];
-                        if (next) next.focus();
-                        else allBoxes[0].focus();
+                    box.addEventListener("keydown", e => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (!this.selectedBox) {
+                                this.selectedBox = box;
+                                box.classList.add("selected");
+                            } else {
+                                if (box !== this.selectedBox) this.createPermanentLine(this.selectedBox, box);
+                                this.selectedBox.classList.remove("selected");
+                                this.selectedBox = null;
+                                const currentIndex = this.allBoxes.indexOf(box);
+                                const next = this.allBoxes[currentIndex + 1];
+                                if (next) next.focus();
+                                else this.allBoxes[0].focus();
+                            }
+                        }
+                    });
+
+                    box.addEventListener("mouseenter", () => {
+                        this.connections.forEach(conn => {
+                            if (conn.fromBox === box || conn.toBox === box) {
+                                conn.line.classList.add("highlighted");
+                                conn.line.classList.remove("faded");
+                            } else {
+                                conn.line.classList.add("faded");
+                                conn.line.classList.remove("highlighted");
+                            }
+                        });
+                    });
+
+                    box.addEventListener("mouseleave", () => {
+                        this.connections.forEach(conn => {
+                            conn.line.classList.remove("highlighted", "faded");
+                        });
+                    });
+                });
+
+                const gradeBtn = this.container.querySelector('.grade-button');
+                const resetBtn = this.container.querySelector('.reset-button');
+                if (gradeBtn) gradeBtn.addEventListener('click', () => this.gradeConnections());
+                if (resetBtn) resetBtn.addEventListener('click', () => this.resetConnections());
+
+                window.addEventListener("resize", () => {
+                    this.connections.forEach(conn => {
+                        const from = this.getCenter(conn.fromBox);
+                        const to = this.getCenter(conn.toBox);
+                        conn.line.setAttribute("x1", from.x);
+                        conn.line.setAttribute("y1", from.y);
+                        conn.line.setAttribute("x2", to.x);
+                        conn.line.setAttribute("y2", to.y);
+                    });
+                });
+            }
+
+            updateTempLine = (e) => {
+                if (!this.startBox || !this.tempLine) return;
+                const from = this.getCenter(this.startBox);
+                this.tempLine.setAttribute("x1", from.x);
+                this.tempLine.setAttribute("y1", from.y);
+                const containerRect = this.workspace.getBoundingClientRect();
+                const x = e.clientX - containerRect.left;
+                const y = e.clientY - containerRect.top;
+
+                this.tempLine.setAttribute("x2", x);
+                this.tempLine.setAttribute("y2", y);
+            };
+
+            finishConnection = (e) => {
+                if (this.tempLine) {
+                    this.svg.removeChild(this.tempLine);
+                    this.tempLine = null;
+                }
+
+                const endBox = this.allBoxes.find(box => box.contains(e.target) && box !== this.startBox);
+                if (this.startBox && endBox) this.createPermanentLine(this.startBox, endBox);
+
+                this.startBox = null;
+                document.removeEventListener("mousemove", this.updateTempLine);
+                document.removeEventListener("mouseup", this.finishConnection);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('[data-component="matching"]').forEach(container => {
+                const script = container.querySelector('script[type="application/json"]');
+                if (script) {
+                    try {
+                        const boxData = JSON.parse(script.textContent);
+                        new MatchingProblem(container, boxData);
+                    } catch (err) {
+                        console.error("Failed to parse boxData JSON:", err);
                     }
                 }
-            });
-            box.addEventListener("mouseenter", () => {
-                connections.forEach(conn => {
-                    conn.line.classList.remove("incorrect");
-                    conn.line.classList.remove("correct");
-                    if (conn.fromBox === box || conn.toBox === box) {
-                        conn.line.classList.add("highlighted");
-                        conn.line.classList.remove("faded");
-                    } else {
-                        conn.line.classList.add("faded");
-                        conn.line.classList.remove("highlighted");
-                    }
-                });
-            });
-
-            box.addEventListener("mouseleave", () => {
-                connections.forEach(conn => {
-                    conn.line.classList.remove("highlighted", "faded");
-                });
-            });
-        });
-
-        function updateTempLine(e) {
-            if (!startBox || !tempLine) return;
-            const from = getCenter(startBox);
-            tempLine.setAttribute("x1", from.x);
-            tempLine.setAttribute("y1", from.y);
-            tempLine.setAttribute("x2", e.clientX);
-            tempLine.setAttribute("y2", e.clientY);
-        }
-
-        function finishConnection(e) {
-            if (tempLine) {
-                svg.removeChild(tempLine);
-                tempLine = null;
-            }
-
-            const endBox = allBoxes.find(box =>
-                box.contains(e.target) && box !== startBox
-            );
-
-            if (startBox && endBox) {
-                createPermanentLine(startBox, endBox);
-            }
-
-            startBox = null;
-            document.removeEventListener("mousemove", updateTempLine);
-            document.removeEventListener("mouseup", finishConnection);
-        }
-
-        window.addEventListener("resize", () => {
-            connections.forEach(conn => {
-                const from = getCenter(conn.fromBox);
-                const to = getCenter(conn.toBox);
-                conn.line.setAttribute("x1", from.x);
-                conn.line.setAttribute("y1", from.y);
-                conn.line.setAttribute("x2", to.x);
-                conn.line.setAttribute("y2", to.y);
             });
         });
     </script>
+
+
 
 
 </body>
