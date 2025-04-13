@@ -1,0 +1,10 @@
+export { ExerciseFactory } from "./ExerciseFactory";
+export { BaseExerciseForm } from "./BaseExerciseForm";
+export { ParsonsExercise } from "./ParsonsExercise/ParsonsExercise";
+export { ActiveCodeExercise } from "./ActiveCodeExercise/ActiveCodeExercise";
+export { FillInTheBlankExercise } from "./FillInTheBlankExercise/FillInTheBlankExercise";
+export { DragAndDropExercise } from "./DragAndDropExercise/DragAndDropExercise";
+export { ClickableAreaExercise } from "./ClickableAreaExercise/ClickableAreaExercise";
+export * from "./PollExercise/PollExercise";
+export { ShortAnswerExercise } from "./ShortAnswerExercise/ShortAnswerExercise";
+export * from "./MultiChoiceExercise";

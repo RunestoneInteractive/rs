@@ -1,0 +1,172 @@
+.poll-editor {
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 64px; /* Space for fixed toolbar */
+}
+
+.toolbar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e9ecef;
+  transition: transform 0.3s ease;
+}
+
+.toolbar-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 1rem;
+}
+
+.toolbar-context {
+  font-size: 0.875rem;
+  color: var(--primary-color);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.option-card {
+  transition: all 0.2s ease-in-out;
+  border: 2px solid transparent;
+  background: #fff;
+}
+
+.option-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.option-card.dragging {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-color);
+  transform: scale(1.02);
+}
+
+.drag-handle {
+  cursor: grab;
+  padding: 8px;
+  border-radius: 4px;
+  color: #6c757d;
+  transition: all 0.2s ease;
+}
+
+.drag-handle:hover {
+  background: #f8f9fa;
+  color: #000;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  background: #e9ecef;
+}
+
+.question-section {
+  margin-bottom: 2rem;
+  position: relative;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.question-section.active,
+.option-container.active {
+  background: rgba(var(--primary-color-rgb), 0.04);
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.1);
+}
+
+.options-section {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.option-container {
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.option-container.dragging {
+  transform: scale(1.02);
+}
+
+.option-editor {
+  width: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.option-editor :global(.ProseMirror) {
+  min-height: 100px;
+  padding: 12px;
+  border-radius: 6px;
+  background: #f8f9fa;
+  transition: background-color 0.2s ease;
+}
+
+.option-editor :global(.ProseMirror:focus) {
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--primary-color);
+}
+
+.option-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.option-number {
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-right: 8px;
+}
+
+.error-message {
+  color: var(--red-500);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.error-message i {
+  font-size: 1rem;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.option-container {
+  animation: slideIn 0.3s ease-out;
+}
+
+@media (max-width: 768px) {
+  .poll-editor {
+    padding-top: 80px;
+  }
+  
+  .toolbar-container {
+    padding: 4px 0;
+  }
+  
+  .toolbar-content {
+    padding: 4px 8px;
+  }
+} 

@@ -1,0 +1,45 @@
+.commandList {
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 3px 6px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  padding: 4px;
+  width: 280px;
+}
+
+.commandItem {
+  align-items: center;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: #0f172a;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  text-align: left;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.commandItem:hover,
+.commandItem[data-selected="true"] {
+  background: #f1f5f9;
+}
+
+.commandItem i {
+  color: #64748b;
+  font-size: 1rem;
+  width: 24px;
+}
+
+.commandTitle {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.commandDescription {
+  color: #64748b;
+  font-size: 0.75rem;
+} 

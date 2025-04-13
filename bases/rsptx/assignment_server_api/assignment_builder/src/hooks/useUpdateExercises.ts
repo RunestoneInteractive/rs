@@ -20,6 +20,7 @@ export const useUpdateExercises = () => {
 
       const updatedExercise: Exercise = {
         ...assignmentExercises[rowIndex],
+        question_json: JSON.stringify(assignmentExercises[rowIndex].question_json),
         [fieldName]: value
       };
 
