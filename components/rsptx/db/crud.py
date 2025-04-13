@@ -22,6 +22,8 @@ from typing import Dict, List, Optional, Tuple, Any
 import textwrap
 import traceback
 import pytz
+from typing import Any, Dict, List, Optional, Tuple
+from sqlalchemy import select, func, and_, or_, not_, desc, asc, String, Text, Unicode, UnicodeText
 
 # Third-party imports
 # -------------------
@@ -36,6 +38,9 @@ from sqlalchemy.orm import aliased
 from starlette.requests import Request
 
 from rsptx.validation import schemas
+from rsptx.validation.schemas import (
+    AssignmentQuestionUpdateDict,
+)
 
 # Local application imports
 # -------------------------
@@ -1448,7 +1453,6 @@ async def update_assignment(assignment: AssignmentValidator) -> None:
     assignment_updates = assignment.dict()
     assignment_updates["current_index"] = 0
     del assignment_updates["id"]
-    del assignment_updates["name"]
 
     stmt = (
         update(Assignment)
@@ -1475,12 +1479,14 @@ async def create_assignment_question(
     return AssignmentQuestionValidator.from_orm(new_assignment_question)
 
 async def update_multiple_assignment_questions(
-    exercises: list[AssignmentQuestionValidator],
+    exercises: List[AssignmentQuestionUpdateDict],
 ) -> list[AssignmentQuestionValidator]:
     """
     Update multiple AssignmentQuestion objects with the given data (exercises).
+    Also updates the Question table for fields like question_json, htmlsrc, chapter, subchapter, 
+    author, autograde, topic, feedback, name, difficulty, and tags if the user is the owner.
 
-    :param exercises: List of AssignmentQuestionValidator objects
+    :param exercises: List of dictionaries with fields from both AssignmentQuestionValidator and QuestionValidator
     :return: List of updated AssignmentQuestionValidator objects
     """
     def is_valid_option(option, question_type, options_enum):
@@ -1502,8 +1508,8 @@ async def update_multiple_assignment_questions(
         updated_questions = []
 
         # Preload all necessary data to minimize database queries
-        exercise_ids = [exercise.id for exercise in exercises]
-        question_ids = [exercise.question_id for exercise in exercises]
+        exercise_ids = [exercise.get('id') for exercise in exercises]
+        question_ids = [exercise.get('question_id') for exercise in exercises]
 
         existing_questions_query = select(AssignmentQuestion).where(AssignmentQuestion.id.in_(exercise_ids))
         existing_questions_result = await session.execute(existing_questions_query)
@@ -1514,19 +1520,19 @@ async def update_multiple_assignment_questions(
         questions = {q.id: q for q in questions_result.scalars()}
 
         for exercise in exercises:
-            existing_question = existing_questions.get(exercise.id)
+            existing_question = existing_questions.get(exercise.get('id'))
 
             if not existing_question:
                 continue
 
-            question = questions.get(exercise.question_id)
+            question = questions.get(exercise.get('question_id'))
 
             if not question:
                 continue
 
             question_type = question.question_type  # Access question_type from the related question
 
-            exercise_dict = exercise.dict()
+            exercise_dict = exercise.copy()
 
             # Validate and update which_to_grade
             if not is_valid_option(
@@ -1544,12 +1550,51 @@ async def update_multiple_assignment_questions(
             ):
                 exercise_dict["autograde"] = existing_question.autograde
 
+            # Extract AssignmentQuestion fields and exclude Question fields
+            aq_fields = {
+                k: v for k, v in exercise_dict.items() 
+                if k in AssignmentQuestionValidator.__annotations__
+            }
+            
             # Update the existing question with validated data
-            for field, value in exercise_dict.items():
+            for field, value in aq_fields.items():
                 setattr(existing_question, field, value)
 
             # Add the updated question to the session
             session.add(existing_question)
+            
+            # Update the Question table if the user is the owner
+            if exercise.get('owner') == question.owner:
+                question_updates = {}
+                
+                # List of fields to check and update in the Question table
+                editable_fields = [
+                    "question_json", 
+                    "htmlsrc", 
+                    "chapter", 
+                    "subchapter", 
+                    "author", 
+                    "autograde", 
+                    "topic", 
+                    "feedback", 
+                    "name", 
+                    "difficulty", 
+                    "tags"
+                ]
+                
+                # Check if any of the editable fields have changed
+                for field in editable_fields:
+                    if field in exercise_dict and exercise_dict[field] is not None and exercise_dict[field] != getattr(question, field, None):
+                        question_updates[field] = exercise_dict[field]
+                
+                # If there are updates to apply to the Question table
+                if question_updates:
+                    # Update the Question record
+                    for field, value in question_updates.items():
+                        setattr(question, field, value)
+                    
+                    # Add the updated question to the session
+                    session.add(question)
 
             updated_questions.append(AssignmentQuestionValidator.from_orm(existing_question))
 
@@ -1886,8 +1931,10 @@ async def fetch_questions_by_search_criteria(
         )
     if criteria.question_type:
         where_criteria.append(Question.question_type == criteria.question_type)
+
     if criteria.author:
         where_criteria.append(Question.author.regexp_match(criteria.author, flags="i"))
+
     if criteria.base_course:
         where_criteria.append(Question.base_course == criteria.base_course)
 
@@ -1901,6 +1948,103 @@ async def fetch_questions_by_search_criteria(
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return [QuestionValidator.from_orm(q) for q in res.scalars().fetchall()]
+
+async def search_exercises(
+    criteria: schemas.ExercisesSearchRequest,
+) -> dict:
+    """
+    Smart search for exercises with pagination, filtering, and sorting.
+    
+    :param criteria: Search parameters including filters, pagination, and sorting
+    :return: Dictionary with search results and pagination metadata
+    """
+    # Base query
+    query = select(Question).where(Question.question_type != "page")
+    
+    # If assignment_id is provided, exclude already attached exercises
+    if criteria.assignment_id is not None:
+        assigned_questions = select(AssignmentQuestion.question_id).where(
+            AssignmentQuestion.assignment_id == criteria.assignment_id
+        ).scalar_subquery()
+        query = query.where(Question.id.not_in(assigned_questions))
+    
+    # Process filters
+    if criteria.filters:
+        for field, filter_data in criteria.filters.items():
+            if not filter_data:
+                continue
+                
+            # Get filter value and mode
+            filter_value = filter_data.get("value")
+            filter_mode = filter_data.get("matchMode", "contains")
+            
+            # Skip empty filter values
+            if filter_value is None or filter_value == "":
+                continue
+                
+            # Process global search (search in multiple fields)
+            if field == "global":
+                search_fields = ["name", "author", "topic", "tags"]
+                or_conditions = []
+                
+                for search_field in search_fields:
+                    if hasattr(Question, search_field):
+                        column = getattr(Question, search_field)
+                        or_conditions.append(column.ilike(f"%{filter_value}%"))
+                                
+                if or_conditions:
+                    query = query.where(or_(*or_conditions))
+                    
+            # Process specific field filters
+            elif hasattr(Question, field):
+                column = getattr(Question, field)
+
+                if filter_value is not None:
+                    if filter_mode == "contains":
+                        query = query.where(column.ilike(f"%{filter_value}%"))
+                    elif filter_mode == "equals":
+                        query = query.where(column == filter_value)
+                    elif filter_mode == "startsWith":
+                        query = query.where(column.ilike(f"{filter_value}%"))
+                    elif filter_mode == "endsWith":
+                        query = query.where(column.ilike(f"%{filter_value}"))
+                    elif filter_mode == "notContains":
+                        query = query.where(not_(column.ilike(f"%{filter_value}%")))
+                    elif filter_mode == "notEquals":
+                        query = query.where(column != filter_value)
+                    elif filter_mode == "in" and isinstance(filter_value, list) and len(filter_value) > 0:
+                        query = query.where(column.in_(filter_value))
+    
+    # Apply sorting
+    if criteria.sorting and criteria.sorting.get("field"):
+        field = criteria.sorting["field"]
+        order = criteria.sorting.get("order", 1)  # 1 for ascending, -1 for descending
+        
+        if hasattr(Question, field):
+            column = getattr(Question, field)
+            query = query.order_by(asc(column) if order == 1 else desc(column))
+    
+    # Count total results (before pagination)
+    count_query = select(func.count()).select_from(query.subquery())
+    
+    # Apply pagination
+    query = query.offset(criteria.page * criteria.limit).limit(criteria.limit)
+    
+    # Execute queries
+    async with async_session() as session:
+        total_count = (await session.execute(count_query)).scalar()
+        result = await session.execute(query)
+        exercises = [QuestionValidator.from_orm(row) for row in result.scalars().fetchall()]
+        
+        return {
+            "exercises": exercises,
+            "pagination": {
+                "total": total_count,
+                "page": criteria.page,
+                "limit": criteria.limit,
+                "pages": (total_count + criteria.limit - 1) // criteria.limit
+            }
+        }
 
 
 async def fetch_assignment_question(

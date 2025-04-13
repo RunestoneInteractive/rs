@@ -3,7 +3,7 @@
 // TODO: remove document.querySelector dependency
 export async function renderRunestoneComponent(
   previewRef, // This is a React ref object
-  moreOpts,
+  moreOpts
 ) {
   /**
    *  The HTML template for the component is in the innerHTML of the
@@ -23,7 +23,7 @@ export async function renderRunestoneComponent(
 
   previewRef.current.innerHTML = previewRef.current.innerHTML.replace(
     patt,
-    `${window.eBookConfig.app}/books/published/${window.eBookConfig.basecourse}/_images`,
+    `${window.eBookConfig.app}/books/published/${window.eBookConfig.basecourse}/_images`
   );
 
   if (typeof window.componentMap === "undefined") {
@@ -100,7 +100,7 @@ export function createActiveCodeTemplate(
   language,
   prefix_code,
   starter_code,
-  suffix_code,
+  suffix_code
 ) {
   var preview_src = `
 <div class="ptx-runestone-container">
