@@ -32,7 +32,7 @@ from rsptx.db.crud import (
     fetch_all_assignment_stats,
     fetch_grade,
     upsert_grade,
-    uses_lti,
+    fetch_lti_version,
     fetch_course,
     fetch_all_course_attributes,
     fetch_deadline_exception,
@@ -82,9 +82,7 @@ async def get_assignments(
 
     sid = user.username
     course = await fetch_course(user.course_name)
-    is_lti_course = False
-    if course and await uses_lti(course.id):
-        is_lti_course = True
+    is_lti1p1_course = await fetch_lti_version(course.id) == "1.1"
     templates = Jinja2Templates(directory=template_folder)
     user_is_instructor = await is_instructor(request, user=user)
     # fetch all assignments, we will filter them using the deadline_exception data
@@ -112,7 +110,7 @@ async def get_assignments(
             "request": request,
             "is_instructor": user_is_instructor,
             "student_page": True,
-            "lti": is_lti_course,
+            "lti1p1": is_lti1p1_course,
         },
     )
 

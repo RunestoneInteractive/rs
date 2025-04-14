@@ -30,7 +30,7 @@ from rsptx.db.crud import (
     fetch_last_page,
     fetch_library_book,
     update_user,
-    uses_lti,
+    fetch_lti_version,
 )
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import make_json_response
@@ -74,9 +74,8 @@ async def index(request: Request, user=Depends(auth_manager)):
         last_page_url = row.last_page_url
     else:
         last_page_url = None
-    is_lti_course = False
-    if course and await uses_lti(course.id):
-        is_lti_course = True
+
+    is_lti1p1_course = await fetch_lti_version(course.id) == "1.1"
     course_list = await fetch_courses_for_user(user.id)
     course_list.sort(key=lambda x: x.id, reverse=True)
     user_is_instructor = await is_instructor(request)
@@ -111,7 +110,7 @@ async def index(request: Request, user=Depends(auth_manager)):
             "course_list": course_list,
             "is_instructor": user_is_instructor,
             "has_discussion_group": any([book.social_url for book in books]),
-            "lti": is_lti_course,
+            "lti1p1": is_lti1p1_course,
         },
     )
 

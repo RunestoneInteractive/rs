@@ -318,35 +318,80 @@
     <div id="SetupLTI" class="tab-pane fade">
         <div class="col-md-8">
             <h2 style="text-align: center">LTI Configuration</h2>
-            <p>LTI is <strong>Community Supported!</strong> It works but you need to know how to configure things on your own LMS.
-               There is strong evidence that LTI works on Canvas, Sakai, Moodle, and Desire2Learn.
-               Please <a href="https://guide.runestone.academy/managing-your-course.html#lti_integration" rel="noopener noreferrer" target="_blank">Read the docs <span class="glyphicon glyphicon-link"></span></a>  first,
+
+            <p>LTI is <strong>Community Supported!</strong> It works with various LMS platforms (Canvas, Sakai, Moodle, and Desire2Learn) but you need to know how to configure things on your own LMS. There are two different LTI configurations available. LTI 1.1 (traditonal) and LTI 1.3. LTI1.1 can be configured by the instructor. LTI 1.3 requires the LMS admin to configure the tool, but is more secure and has more features.</p>
+
+            <p>Please <a href="https://guide.runestone.academy/managing-your-course.html#lti_integration" rel="noopener noreferrer" target="_blank">Read the docs <span class="glyphicon glyphicon-link"></span></a>  first,
             then feel free to ask for help on the <code>#lti_community_support</code> channel on Discord. If you have it working on another
             LMS please helps us out and contribute to the docs so that others can benefit.</p>
-            <p>To launch lti on Runestone use <code>https://runestone.academy/runestone/lti</code></p>
-            <div class="col-sm-8 col-md-8">
-                <button
-                    id="create_lti"
-                    onclick="generateLTIKeys();"
-                    class="btn btn-primary"
-                    {{ if consumer: }}
-                    disabled
-                    {{ pass }}
-                    >Create LTI Key and Secret</button>
-                <table style="width: 500px">
-                <tr><td>Consumer Key:</td> <td><span id="ckey_value">{{=consumer}}</span></td></tr>
-                <tr><td>Secret:</td> <td><div id="secret_value" class="collapse">{{=secret}}</div></td></tr>
-                <tr><td></td><td><a href="#secret_value" class="btn btn-default btn-small" data-toggle="collapse">Show Secret</a></td></tr>
-                </table>
-            </div>
 
-            <button id="delete_lti"
+            <hr style="border-top-width: 5px;">
+
+            <h3 class="mt-5">LTI 1.1 Integration</h3>
+            <p>To launch lti on Runestone use <code>https://runestone.academy/runestone/lti</code></p>
+            <p>You will need to generate a key and secret that will be used to comminicate with the LMS. (See <a href="https://guide.runestone.academy/managing-your-course.html#lti_integration" rel="noopener noreferrer" target="_blank">the docs <span class="glyphicon glyphicon-link"></span></a>)</p>
+            <div>
+                <button
+                id="create_lti"
+                onclick="generateLTIKeys();"
+                class="btn btn-primary"
+                {{ if consumer: }}
+                disabled
+                {{ pass }}
+                >Create LTI Key and Secret</button>
+                <button id="delete_lti"
                 onclick="deleteLTIKeys()"
                 class="btn btn-primary"
                 {{ if not consumer: }}
                 disabled
                 {{ pass }}
-                >Remove LTI Key and Secret</button>
+                >Remove LTI Key and secret</button>
+                <button href="#secret_value" class="btn btn-default" data-toggle="collapse">Show Secret</button>
+            </div>
+            <table style="width:100%">
+                <tr><th>Consumer Key:</th> <td><span id="ckey_value">{{=consumer}}</span> <a onclick="copyElementToClipboard('ckey_value')"><span class="glyphicon glyphicon-copy"></span></a></td></tr>
+                <tr><th>Secret:</th> <td><div id="secret_value" class="collapse">{{=secret}}</div> <a onclick="copyElementToClipboard('secret_value')"><span class="glyphicon glyphicon-copy"></span></a></td></tr>
+                </td><td>
+            </table>
+
+            <hr style="border-top-width: 5px;">
+            <h3 class="mt-5">LTI 1.3 Integration</h3>
+
+            <p>Your LMS administrator will need to configure Runestone as a tool available on your LMS. This will only need to happen one time for your LMS. Once it is configured you can use the tool in any course you have on Runestone. Point them to <a href="https://guide.runestone.academy/managing-your-course.html#lti1p3_integration" rel="noopener noreferrer" target="_blank">the Runestone LTI 1.3 documentation <span class="glyphicon glyphicon-link"></span></a>. (This means this integration is NOT available if you are using the free Canvas for Teachers or some other hosted LMS that does not have a system administrator you can contact.)</p>
+
+            <p>Each Runestone course can only be linked to ONE LMS course via LTI1.3. You can use multiple different Runestone courses (to make use of multiple books) in one LMS course. If you need to disassociate this Runestone course from any LTI links, you can do so by clicking the button below. Doing so will NOT delete any assignments or grades in the LMS, but will remove the link between the two systems. You can even relink the course to the same LMS course later if you need to.
+            </p>
+
+            <div>
+                <button
+                id="delete_lti1p3"
+                onclick="deleteLTI1p3();"
+                class="btn btn-primary"
+                >Remove LTI 1.3 Association</button>
+            </div>
+            
+            <h4 class="mt-5">LTI 1.3 Options</h4>
+
+            <div class="settingsbox">
+                <input type="checkbox" id="ignore_lti_dates"
+                {{ if ignore_lti_dates: }}
+                  checked
+                {{ pass }}
+                onchange="updateCourse(this,'ignore_lti_dates')">
+                <label for="ignore_lti_dates">Ignore LTI1.3 Date Changes</label>
+                <div><em>(Runestone will try to update assignment due dates Check to disable automatic updates of assignment due dates from LMS assignment settings.)</em></div>
+            </div>
+
+            <div class="settingsbox">
+                <input type="checkbox" id="no_lti_auto_grade_update"
+                {{ if no_lti_auto_grade_update: }}
+                  checked
+                {{ pass }}
+                onchange="updateCourse(this,'no_lti_auto_grade_update')">
+                <label for="no_lti_auto_grade_update">Do not auto update LTI grades</label>
+                <div><em>(Runestone will try to update assignment scores in your LMS any time a student completes a problem if that assignment's grades are set to released. Check this to disable this behavior and only sync grades when you trigger it from the grading page.)</em></div>
+            </div>
+
 
         </div>
     </div>

@@ -9,6 +9,7 @@
   eBookConfig.calcTotalsURL = '{{=calcTotalsURL}}';
   eBookConfig.setTotalURL = '{{=setTotalURL}}';
   eBookConfig.sendLTIGradeURL = '{{=sendLTIGradeURL}}';
+  eBookConfig.is_lti_course = '{{=is_lti_course}}';
   eBookConfig.getCourseStudentsURL = '{{=getCourseStudentsURL}}';
   eBookConfig.get_assignment_release_statesURL = '{{=get_assignment_release_statesURL}}';
   eBookConfig.course = '{{=course_id}}';
@@ -30,6 +31,9 @@
         <select onchange="updateQuestionList();" class="form-control" id="chaporassignselector" style="display:none;"></select>
         <span id="releasestate" style="color: red;"></span>
         <button id="releasebutton" style="text-align: center; visibility: hidden;" class="btn btn-primary btn-sm" onclick="toggle_release_grades();">Release Grades</button>
+        {{if is_lti_course :}}
+        <button id="push-lti-btn" style="text-align: center; visibility: hidden;" class="btn btn-primary btn-sm" onclick="push_lti_grades();">Push Grades to LTI</button>
+        {{pass}}
       </div>
 
       <div>
@@ -79,8 +83,8 @@
           <input id="manual-total-score" type="text" class="form-control" value="" />
           <input type="submit" value="Save Manual Total" class="btn btn-default" style="margin-top: 5px;" />
         </form>
-        {{if settings.lti_only_mode:}}
-          <button id="send_lti_grade" style="text-align: center;" class="list-group-item btn btn-success" onclick="sendLTI_Grade();">Release Grade to LMS</button>
+        {{if is_lti_course:}}
+          <button id="send_lti_grade" style="text-align: center;" class="list-group-item btn btn-success" onclick="sendLTI_Grade();">Push Grade to LMS</button>
         {{pass}}
       </div>
     </div>
@@ -343,6 +347,7 @@ $("#allstudentcb").click(function(){
        $("#studentselector").trigger("change");
    }
 });
+
 
 </script>
 

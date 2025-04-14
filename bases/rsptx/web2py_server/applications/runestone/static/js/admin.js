@@ -1226,6 +1226,7 @@ function createAssignment(form) {
         return;
     }
     $("#assign_visible").prop("checked", true);
+    $("#grades_released").prop("checked", true);
     data = {
         name: name,
         duplicate: duplicateSource,
@@ -1406,6 +1407,11 @@ function update_assignment(form) {
     } else {
         data.visible = "F";
     }
+    if (form.grades_released.checked) {
+        data.grades_released = "T";
+    } else {
+        data.grades_released = "F";
+    }
     if (form.enforce_due.checked) {
         data.enforce_due = "F";
     } else {
@@ -1492,6 +1498,7 @@ function assignmentInfo() {
             $("#assignment_description").val(assignmentData.description);
             $("#readings-threshold").val(assignmentData.threshold);
             $("#assign_visible").val(assignmentData.visible);
+            $("#grades_released").val(assignmentData.grades_released);
             $("#date_enforce").val(assignmentData.enforce_due);
             $("#assign_is_timed").val(assignmentData.is_timed);
             $("#timelimit").val(assignmentData.time_limit);
@@ -1503,6 +1510,11 @@ function assignmentInfo() {
                 $("#assign_visible").prop("checked", true);
             } else {
                 $("#assign_visible").prop("checked", false);
+            }
+            if (assignmentData.grades_released === true) {
+                $("#grades_released").prop("checked", true);
+            } else {
+                $("#grades_released").prop("checked", false);
             }
             if (assignmentData.enforce_due === true) {
                 $("#date_enforce").prop("checked", false);
@@ -2325,11 +2337,14 @@ function set_release_button() {
 
     // change the release button appropriately
     var release_button = $("#releasebutton");
+    var push_lti_btn = $("#push-lti-btn");
     if (assignment == null) {
         //hide the release grades button
         release_button.css("visibility", "hidden");
+        push_lti_btn.css("visibility", "hidden");
     } else {
         release_button.css("visibility", "visible");
+        push_lti_btn.css("visibility", "visible");
         // see whether grades are currently live for this assignment
         get_assignment_release_states();
         var release_state = assignment_release_states[assignment];
@@ -2403,6 +2418,36 @@ function toggle_release_grades() {
     }
 }
 
+function push_lti_grades() {
+    var col1 = document.getElementById("gradingoption1");
+    var col1val = col1.options[col1.selectedIndex].value;
+    var assignment = null;
+
+    if (col1val == "assignment") {
+        var assignmentcolumn = document.getElementById("chaporassignselector");
+        if (assignmentcolumn.selectedIndex != -1) {
+            assignment = assignmentcolumn.options[assignmentcolumn.selectedIndex].value;
+        } else {
+            alert("Please choose an assignment first");
+        }
+    }
+
+    var assignmentid = assignmentids[assignment];
+    let data = {
+        assignmentid: assignmentid,
+        courseid: eBookConfig.course,
+    };
+    jQuery.post(
+        "/runestone/admin/push_lti_grades",
+        data,
+        function (mess, stat, w) {
+            alert(
+                `${mess} Grades are now hidden from students for ${assignment}`
+            );
+        }
+    );
+}
+
 function copyAssignments() {
     let selectedCourse = document.getElementById("courseSelection").value;
     let selectedAssignment = document.getElementById("assignmentsDropdown");
@@ -2429,7 +2474,9 @@ function updateCourse(widget, attr) {
         attr == "downloads_enabled" ||
         attr == "allow_pairs" ||
         attr == "enable_compare_me" ||
-        attr == "show_points"
+        attr == "show_points" ||
+        attr == "ignore_lti_dates" ||
+        attr == "no_lti_auto_grade_update"
     ) {
         data[attr] = widget.checked;
     }
@@ -2613,6 +2660,17 @@ function deleteLTIKeys() {
                 $("#delete_lti").prop("disabled", true);
             } else {
                 alert("Failed to delete keys");
+            }
+        });
+    }
+}
+
+function deleteLTI1p3() {
+    let res = confirm("Really delete the LTI1.3 association?");
+    if (res) {
+        $.getJSON("/admin/lti1p3/remove-association", {}, function (data) {
+            if (!data.detail.status == "success") {
+                alert("Failed to diassociate LTI1.3");
             }
         });
     }

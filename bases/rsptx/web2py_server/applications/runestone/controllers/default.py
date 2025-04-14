@@ -7,8 +7,10 @@ from six.moves.urllib.parse import unquote
 from six.moves.urllib.error import HTTPError
 import logging
 import subprocess
+import jwt
 
 from gluon.restricted import RestrictedError
+from gluon.http import HTTP
 from stripe_form import StripeForm
 
 logger = logging.getLogger(settings.logger)
@@ -178,6 +180,36 @@ def payment():
     html = form.xml().replace('"payment-errors error hidden"', '"payment-errors error"')
     return dict(html=html, payment_success=None)
 
+
+def w2py_login():
+    """
+    Allows external services (like fastapi based services) to login a user by username
+    expects a jwt encoded token in the request.vars["token"] field (encoded using the jwt_secret)
+    that should have a registration_id field with the registration_id to use for the web2py user
+    """
+    logger.debug("Generating web2py token")
+    token = request.vars["token"]
+    print(token)
+    try:
+        if not token:
+            err = "No token provided to w2py_login"
+            raise Exception(err)
+
+        decoded = jwt.decode(token, settings.jwt_secret, "HS256")
+        if not decoded:
+            err = "Invalid token provided to w2py_login"
+            raise Exception(err)
+
+        user = db(db.auth_user.registration_id == decoded["registration_id"]).select().first()
+        if not user:
+            err = "Unkonwn user in token provided to w2py_login"
+            raise Exception(err)
+
+        auth.login_user(user)
+        return "User logged in"
+    except Exception as e:
+        logger.error(f"Error in w2py_login: {e}")
+        raise HTTP(400, err)
 
 def index():
     #    print("REFERER = ", request.env.http_referer)

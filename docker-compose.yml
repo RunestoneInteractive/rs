@@ -109,6 +109,8 @@ services:
       - SPACES_KEY=${SPACES_KEY}
       - SPACES_SECRET=${SPACES_SECRET}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
+      - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
 
     depends_on:
       redis:
@@ -168,6 +170,8 @@ services:
       - SPACES_SECRET=${SPACES_SECRET}
       - GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
+      - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
     depends_on:
       redis:
         condition: service_started
@@ -242,6 +246,8 @@ services:
       context: ./
       dockerfile: projects/nginx/Dockerfile
     image: ghcr.io/runestoneinteractive/rs-nginx
+    extra_hosts:
+      - host.docker.internal:host-gateway
     restart: always
     logging:
       driver: "json-file"
@@ -264,6 +270,9 @@ services:
       assignment:
         condition: service_started
         required: true
+      admin:
+        condition: service_started
+        required: false
       author:
         condition: service_started
         required: false
@@ -380,3 +389,35 @@ services:
       db:
         condition: service_started
         required: false
+
+  admin:
+    build:
+      context: ./projects/admin_server
+      dockerfile: Dockerfile
+    image: admin
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    container_name: admin
+    restart: unless-stopped
+    ports:
+      - "8115:8115"
+    volumes:
+      - ${BOOK_PATH}:/usr/books
+
+    environment:
+      - BOOK_PATH=/usr/books
+      - SERVER_CONFIG=${SERVER_CONFIG}
+      - RUNESTONE_PATH=/usr/src/app
+      - RUNESTONE_HOST=${RUNESTONE_HOST}
+      - REDIS_URI=redis://redis:6379/0
+      # Note: host.docker.internal refers back to the host so we can just use a local instance
+      # of postgresql
+      - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      - DOCKER_COMPOSE=1
+      - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
+      - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
+
+    depends_on:
+      redis:
+        condition: service_started
+        required: true

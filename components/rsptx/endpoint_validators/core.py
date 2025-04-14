@@ -32,7 +32,7 @@ def instructor_role_required():
             if not user_is_instructor:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="User is not an instructor",
+                    detail=f"User {user.username} is not an instructor in this runestone course.",
                 )
             # Pass the resolved user along if it is in kwargs
             if "user" in kwargs:

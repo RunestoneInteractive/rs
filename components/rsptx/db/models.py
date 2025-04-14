@@ -28,7 +28,8 @@
 # Standard library
 # ----------------
 import re
-from typing import Dict, Type
+from typing import Dict, Type, List
+import uuid
 
 # Third-party imports
 # -------------------
@@ -50,7 +51,9 @@ from sqlalchemy import (
     CHAR,
 )
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.sql.schema import UniqueConstraint
+from sqlalchemy.orm import relationship
 
 # Local application imports
 # -------------------------
@@ -126,6 +129,22 @@ def register_answer_table(
 # Always name a table's ID field the same way.
 class IdMixin:
     id = Column(Integer, primary_key=True)
+
+
+# DictableMixin - allows easy conversion of a SQLAlchemy model to a dictionary
+class DictableMixin:
+    def from_dict(self, data: dict):
+        for key, value in data.items():
+            if key != "id":
+                setattr(self, key, value)
+
+    def update_from_dict(self, data: dict):
+        for key, value in data.items():
+            if key != "id":
+                setattr(self, key, value)
+    
+    def dict(self):
+        return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
 
 
 # Useinfo
@@ -866,6 +885,126 @@ class Payment(Base, IdMixin):
         ForeignKey("user_courses.id", ondelete="CASCADE"), nullable=False
     )
     charge_id = Column(String(255), nullable=False)
+
+#-----------------------------------------------------------------------
+# LTI 1.3
+
+class Lti1p3Conf(Base, IdMixin, DictableMixin):
+    """"
+    Configuration for an LTI 1.3 platform host. May be shared across
+    multiple deployments.
+    """
+    __tablename__ = "lti1p3_configs"
+    __tableargs__ = (
+        Index('issuer_client_id_idx', 'issuer', 'client_id', unique=True)
+    )
+    # Identifier for the LMS platform
+    issuer = Column(String(512))
+    # Identifier for the client (Runestone) on the LMS platform
+    client_id = Column(String(512))
+    # Service endpoint URLs
+    auth_login_url = Column(String(512))
+    auth_token_url = Column(String(512))
+    key_set_url = Column(String(512))
+    # Audience for the token - LMS can specify "authorization_server" different from the token url
+    token_audience = Column(String(512))
+    # Info about the LMS platform
+    product_family_code = Column(String(512))
+    version = Column(String(512))
+
+Lti1p3ConfValidator = sqlalchemy_to_pydantic(Lti1p3Conf)
+
+
+class Lti1p3Course(Base, IdMixin, DictableMixin):
+    """"
+    Data associating a use of a Runestone course with an LMS.
+    Potentially many-to-one. 
+    
+    A single LMS course might be associated with multiple RS courses 
+    (to use multiple books in the course of a term).
+
+    A RS course should ONLY be associated with a single LMS course.
+
+    On a particular host (LMS) there may or may not be multiple deployments
+    of a tool (Runestone) depending on the model the host is using:
+    https://www.imsglobal.org/spec/lti/v1p3#tool-deployment
+
+    So, we are storing necessary deployment info for each course without
+    trying to dedpulicate.
+    """
+    __tablename__ = "lti1p3_courses"
+    rs_course_id = Column(
+        ForeignKey("courses.id", ondelete="CASCADE"), nullable=False
+    )
+    # lti information for LMS is associated
+    lti1p3_config_id = Column(
+        ForeignKey("lti1p3_configs.id", ondelete="CASCADE"), nullable=False
+    )
+    lti1p3_course_id = Column(String(512), nullable=False)
+    course_name = Column(String(512))
+
+    # identifier used by LMS to identify LTI1.3 deployment associated with this course
+    deployment_id = Column(String(512), nullable=False)
+
+    # Most recently seen lineitems URL - is unique to each course
+    lineitems_url = Column(String(512))
+    # Uncertain if name service URL is unique to LTI configuration or deployment, so store it here
+    name_service_url = Column(String(512))
+
+    # Allow attaching the course object
+    lti_config = relationship("Lti1p3Conf")
+    # Allow attaching the runestone course object
+    rs_course = relationship("Courses")
+
+Lti1p3CourseValidator = sqlalchemy_to_pydantic(Lti1p3Course)
+
+class Lti1p3User(Base, IdMixin, DictableMixin):
+    """
+    Runestone to LTI 1.3 user mapping.
+
+    Although in general, a user in Runestone is likely to be associated
+    with a single LTI user, it is possible that a user in Runestone (defined by institution
+    email) is associated with multiple LTI users across multiple deployments.
+
+    So, each user mapping is associated with a particular lti1p3 course (RS<-->LMS mapping)
+    """
+    __tablename__ = "lti1p3_users"
+    rs_user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False)
+    lti1p3_course_id = Column(
+        ForeignKey("lti1p3_courses.id", ondelete="CASCADE"), nullable=False
+    )
+    lti_user_id = Column(String(512), nullable=False)
+
+    # Allow for attaching the RS user object to the LTI user record
+    rs_user = relationship("AuthUser")
+
+Lti1p3UserValidator = sqlalchemy_to_pydantic(Lti1p3User)
+
+class Lti1p3Assignment(Base, IdMixin, DictableMixin):
+    """
+    Runestone to LMS assignment ("lineitem") mapping. A RS assignment may be associated with
+    multiple LTI assignments if there are multiple LMS courses attached to one RS course.
+    """
+    __tablename__ = "lti1p3_assignments"
+    rs_assignment_id = Column(
+        ForeignKey("assignments.id", ondelete="CASCADE"), nullable=False
+    )
+    # id of assignment (lineitem) in the LMS
+    lti_lineitem_id = Column(String(512), nullable=False)
+    # In case of one->many, will need to know course LMS assignment is associated with
+    lti1p3_course_id = Column(
+        ForeignKey("lti1p3_courses.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Allow attaching the course to the assignment
+    lti1p3_course = relationship("Lti1p3Course")
+    # Allow attaching RS assignment to the LTI assignment record
+    rs_assignment = relationship("Assignment")
+
+Lti1p3AssignmentValidator = sqlalchemy_to_pydantic(Lti1p3Assignment)
+
+# /LTI 1.3
+#-----------------------------------------------------------------------
 
 
 # Tracking Errors in a multi server configuration

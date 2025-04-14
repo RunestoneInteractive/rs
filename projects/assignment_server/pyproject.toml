@@ -20,6 +20,7 @@ packages = [
     { include = "rsptx/data_types", from = "../../components" },
     { include = "rsptx/endpoint_validators", from = "../../components" },
     { include = "rsptx/assignment_server_api", from = "../../bases" },
+    { include = "rsptx/lti1p3", from = "../../components" },
 ]
 
 exclude = [
@@ -35,7 +36,8 @@ exclude = [
 [tool.poetry.dependencies]
 python = "^3.10"
 aioredis = "^2.0.0"
-async-timeout = "^3.0.0"
+aiohttp = "^3.11.11"
+async-timeout = "^4.0.0"
 celery = { extras = ["redis"], version = "^5.0.0" }
 fastapi = "^0.103.0"
 # Per the `uvicorn docs <https://www.uvicorn.org/#quickstart>`_, install the standard (as opposed to minimal) uvicorn dependencies.
@@ -43,6 +45,7 @@ uvicorn = { extras = ["standard"], version = "^0.17.0" }
 # See the `poetry docs <https://python-poetry.org/docs/dependency-specification/#using-environment-markers>`_.
 gunicorn = { version = "^20.0.0", markers = "sys.platform != 'win32'" }
 Jinja2 = "<3.1.0"
+jwcrypto = "^1.5.6"
 aiofiles = "^0.8.0"
 alembic = "^1.0.0"
 python-dateutil = "^2.0.0"
@@ -63,6 +66,7 @@ pyflakes = "^3.0.1"
 pandas = "^1.0.0"
 psycopg2-binary = "^2.9.7"
 pydantic-settings = "^2.0.3"
+pyjwt = "^2.0.0"
 numpy = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]

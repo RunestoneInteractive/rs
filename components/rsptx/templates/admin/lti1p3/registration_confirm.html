@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Runestone LTI Confirmation</title>
+    </head>
+
+    <body>
+        <h1>Runestone LTI Confirmation</h1>
+        <p>{{message}}</p>
+        <button id="close_btn">Close</button>
+        <script>
+          document.getElementById('close_btn').addEventListener('click', () => {
+            (window.opener || window.parent).postMessage({subject:'org.imsglobal.lti.close'}, '*');
+          });
+        </script>
+    </body>
+</html>
