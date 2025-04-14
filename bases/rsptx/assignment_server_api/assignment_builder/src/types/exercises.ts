@@ -1,10 +1,17 @@
 import { FilterMatchMode } from "primereact/api";
 
-export const supportedExerciseTypesToEdit = ["mchoice", "poll", "shortanswer", "activecode"];
+export const supportedExerciseTypesToEdit = [
+  "mchoice",
+  "poll",
+  "shortanswer",
+  "activecode",
+  "dragndrop",
+  "parsonsprob"
+];
 
 export const supportedExerciseTypes = [
   "mchoice",
-  "parsons",
+  "parsonsprob",
   "activecode",
   "fillintheblank",
   "dragndrop",
@@ -61,6 +68,9 @@ export type QuestionJSON = Partial<{
   attachment: boolean;
   statement: string;
   optionList: Option[];
+  leftColumnBlocks: { id: string; content: string }[];
+  rightColumnBlocks: { id: string; content: string }[];
+  connections: { id: string; sourceId: string; targetId: string }[];
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;

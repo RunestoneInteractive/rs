@@ -1,13 +1,14 @@
 import { ExerciseComponentProps } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/types/ExerciseTypes";
-import { FC, useCallback, useMemo } from "react";
+import { FC } from "react";
 
 import { CreateExerciseFormType } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
 import { generateActiveCodePreview } from "@/utils/preview/activeCode";
 
+import { ACTIVE_CODE_STEP_VALIDATORS } from "../../config/stepConfigs";
 import { useBaseExercise } from "../../hooks/useBaseExercise";
+import { useExerciseStepNavigation } from "../../hooks/useExerciseStepNavigation";
 import { ExerciseLayout } from "../../shared/ExerciseLayout";
-import styles from "../../shared/styles/CreateExercise.module.css";
 import { validateCommonFields } from "../../utils/validation";
 
 import { ActiveCodeExerciseSettings } from "./ActiveCodeExerciseSettings";
@@ -52,9 +53,9 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
 const generatePreview = (data: Partial<CreateExerciseFormType>): string => {
   return generateActiveCodePreview(
     data.instructions || "",
-    data.starter_code || "",
     data.language || "python",
     data.prefix_code || "",
+    data.starter_code || "",
     data.suffix_code || "",
     data.name || ""
   );
@@ -68,55 +69,27 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
   onFormReset,
   isEdit = false
 }) => {
-  // Validation for steps
-  const validateStep = useCallback((step: number, data: Partial<CreateExerciseFormType>) => {
-    switch (step) {
-      case 0: // Language
-        return Boolean(data.language);
-      case 1: // Instructions
-        return Boolean(data.instructions?.trim());
-      case 2: // Hidden Prefix Code
-        return true; // Optional
-      case 3: // Starter Code
-        return Boolean(data.starter_code !== undefined);
-      case 4: // Hidden Suffix Code
-        return true; // Optional
-      case 5: // Settings
-        return Boolean(
-          data.name?.trim() &&
-            data.chapter &&
-            data.points !== undefined &&
-            data.points > 0 &&
-            data.difficulty !== undefined
-        );
-      case 6: // Preview
-        return true; // Preview is always valid
-      default:
-        return false;
-    }
-  }, []);
-
   const {
     formData,
     activeStep,
     isSaving,
-    stepsVisited,
-    questionInteracted,
-    settingsInteracted,
     updateFormData,
     handleSettingsChange,
     isCurrentStepValid,
     goToNextStep,
     goToPrevStep,
-    handleSave,
-    setStepsVisited,
+    handleSave: baseHandleSave,
     setActiveStep
   } = useBaseExercise({
     initialData,
     steps: ACTIVE_CODE_STEPS,
     exerciseType: "activecode",
     generatePreview,
-    validateStep,
+    validateStep: (step, data) => {
+      const errors = ACTIVE_CODE_STEP_VALIDATORS[step](data);
+
+      return errors.length === 0;
+    },
     validateForm: validateCommonFields,
     getDefaultFormData,
     onSave: onSave as (data: Partial<CreateExerciseFormType>) => Promise<void>,
@@ -126,19 +99,20 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
     isEdit
   });
 
-  // Calculate step validity
-  const stepsValidity = useMemo(() => {
-    return ACTIVE_CODE_STEPS.map((_, index) => validateStep(index, formData));
-  }, [formData, validateStep]);
-
-  const handleStepSelect = (index: number) => {
-    if (index < activeStep) {
-      setActiveStep(index);
-    } else if (stepsValidity[activeStep]) {
-      setActiveStep(index);
-    }
-    setStepsVisited({ ...stepsVisited, [activeStep]: true });
-  };
+  // Use our centralized navigation and validation hook
+  const { validation, handleNext, handleStepSelect, handleSave, stepsValidity } =
+    useExerciseStepNavigation({
+      data: formData,
+      activeStep,
+      setActiveStep,
+      stepValidators: ACTIVE_CODE_STEP_VALIDATORS,
+      goToNextStep,
+      goToPrevStep,
+      steps: ACTIVE_CODE_STEPS,
+      handleBaseSave: baseHandleSave,
+      generateHtmlSrc: generatePreview,
+      updateFormData
+    });
 
   // Render step content
   const renderStepContent = () => {
@@ -148,7 +122,6 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
           <LanguageSelector
             language={formData.language || ""}
             onChange={(language: string) => updateFormData("language", language)}
-            showValidation={stepsVisited[0] || questionInteracted}
           />
         );
 
@@ -157,7 +130,6 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
           <InstructionsEditor
             instructions={formData.instructions || ""}
             onChange={(instructions: string) => updateFormData("instructions", instructions)}
-            showValidation={stepsVisited[1] || questionInteracted}
           />
         );
 
@@ -176,7 +148,6 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
             starterCode={formData.starter_code || ""}
             onChange={(code: string) => updateFormData("starter_code", code)}
             language={formData.language || "python"}
-            showValidation={stepsVisited[3] || questionInteracted}
           />
         );
 
@@ -190,30 +161,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
         );
 
       case 5: // Settings
-        return (
-          <>
-            <ActiveCodeExerciseSettings
-              formData={formData}
-              onChange={handleSettingsChange}
-              showValidation={stepsVisited[5] || settingsInteracted}
-            />
-            {(stepsVisited[5] || settingsInteracted) &&
-              (!formData.name?.trim() ||
-                !formData.chapter ||
-                formData.points === undefined ||
-                formData.points <= 0 ||
-                formData.difficulty === undefined) && (
-                <div className={styles.validationError}>
-                  {!formData.name?.trim() && <div>Exercise name is required</div>}
-                  {!formData.chapter && <div>Chapter is required</div>}
-                  {(formData.points === undefined || formData.points <= 0) && (
-                    <div>Points must be greater than 0</div>
-                  )}
-                  {formData.difficulty === undefined && <div>Difficulty is required</div>}
-                </div>
-              )}
-          </>
-        );
+        return <ActiveCodeExerciseSettings formData={formData} onChange={handleSettingsChange} />;
 
       case 6: // Preview
         return (
@@ -235,6 +183,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
   return (
     <ExerciseLayout
       title="Active Code Exercise"
+      exerciseType="activecode"
       isEdit={isEdit}
       steps={ACTIVE_CODE_STEPS}
       activeStep={activeStep}
@@ -243,9 +192,10 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
       stepsValidity={stepsValidity}
       onCancel={onCancel}
       onBack={goToPrevStep}
-      onNext={goToNextStep}
+      onNext={handleNext}
       onSave={handleSave}
       onStepSelect={handleStepSelect}
+      validation={validation}
     >
       {renderStepContent()}
     </ExerciseLayout>

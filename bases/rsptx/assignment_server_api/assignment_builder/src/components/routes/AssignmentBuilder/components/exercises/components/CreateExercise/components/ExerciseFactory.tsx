@@ -17,7 +17,7 @@ export const ExerciseFactory: FC<ExerciseComponentProps> = (props) => {
   switch (props.type) {
     case "mchoice":
       return <MultiChoiceExercise {...props} />;
-    case "parsons":
+    case "parsonsprob":
       return <ParsonsExercise {...props} />;
     case "activecode":
       return <ActiveCodeExercise {...props} />;

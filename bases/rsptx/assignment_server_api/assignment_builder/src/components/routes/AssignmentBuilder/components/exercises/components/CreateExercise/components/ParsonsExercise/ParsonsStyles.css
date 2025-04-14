@@ -1,0 +1,107 @@
+/* Стили для кастомизации Monaco Editor в Parsons упражнениях */
+
+.parsons-editor {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  max-width: 100% !important;
+}
+  
+/* Стили для textarea на маленьких экранах */
+.parsons-editor-textarea {
+  width: 100%;
+  position: relative;
+}
+
+.parsons-editor-textarea textarea {
+  width: 100%;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 4px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* Стили для Monaco Editor */
+.parsons-editor .monaco-editor,
+.parsons-editor .monaco-editor-background,
+.parsons-editor .monaco-editor .overflow-guard,
+.parsons-editor .monaco-editor .editor-scrollable {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Контент редактора */
+.parsons-editor .monaco-editor .lines-content,
+.parsons-editor .monaco-editor .view-lines,
+.parsons-editor .monaco-editor .monaco-editor-background {
+  width: 100% !important;
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+}
+
+/* Строки кода */
+.parsons-editor .monaco-editor .view-line {
+  width: 100% !important;
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+  white-space: pre-wrap !important;
+}
+
+/* Содержимое строк */
+.parsons-editor .monaco-editor .view-line span {
+  word-break: break-all !important;
+  max-width: 100% !important;
+}
+
+/* Скрыть полосы прокрутки */
+.parsons-editor .monaco-editor .scrollbar {
+  display: none !important;
+}
+
+/* Скрыть линии-направляющие */
+.parsons-editor .monaco-editor .lines-content .cigr,
+.parsons-editor .monaco-editor .lines-content .cigra {
+  display: none !important;
+}
+
+/* Скрыть все маркеры и декорации */
+.parsons-editor .monaco-editor .margin-view-overlays,
+.parsons-editor .monaco-editor .margin {
+  display: none !important;
+  width: 0 !important;
+}
+
+/* Убрать обводку при фокусе */
+.parsons-editor .monaco-editor .monaco-editor-background,
+.parsons-editor .monaco-editor .margin-view-overlays {
+  background-color: transparent !important;
+}
+
+/* Подстроить отступы контента */
+.parsons-editor .monaco-editor .view-lines {
+  width: 100% !important; /* Обеспечиваем полную ширину для строк */
+}
+
+/* Скрыть курсор, когда редактор не в фокусе */
+.parsons-editor .monaco-editor:not(.focused) .cursor {
+  display: none !important;
+}
+
+/* Скрыть различные линии и границы */
+.parsons-editor .monaco-editor .decorationsOverviewRuler {
+  display: none !important;
+}
+
+/* Убрать все границы и тени */
+.parsons-editor .monaco-editor,
+.parsons-editor .monaco-editor-background,
+.parsons-editor .monaco-editor .inputarea,
+.parsons-editor .monaco-editor .editor-widget {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+} 

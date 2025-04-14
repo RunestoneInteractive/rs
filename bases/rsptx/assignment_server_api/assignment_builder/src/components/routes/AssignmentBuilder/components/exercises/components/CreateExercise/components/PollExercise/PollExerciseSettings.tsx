@@ -1,27 +1,19 @@
 import { FC } from "react";
 
-import { BaseExerciseSettings, ExerciseSettings } from "../../shared/ExerciseSettings";
+import { CreateExerciseFormType } from "@/types/exercises";
 
-export interface PollExerciseSettings extends BaseExerciseSettings {}
+import {
+  BaseExerciseSettings,
+  BaseExerciseSettingsContent
+} from "../../shared/BaseExerciseSettingsContent";
+
+export type PollExerciseSettings = BaseExerciseSettings;
 
 interface PollExerciseSettingsProps {
-  onSettingsChange: (settings: PollExerciseSettings) => void;
-  initialData?: Partial<PollExerciseSettings>;
-  showValidation?: boolean;
+  initialData: Partial<CreateExerciseFormType>;
+  onChange: (settings: Partial<CreateExerciseFormType>) => void;
 }
 
-export const PollExerciseSettings: FC<PollExerciseSettingsProps> = ({
-  onSettingsChange,
-  initialData,
-  showValidation = true
-}) => {
-  return (
-    <ExerciseSettings<PollExerciseSettings>
-      initialData={initialData}
-      onSettingsChange={onSettingsChange}
-      showValidation={showValidation}
-      title="Poll Exercise Settings"
-      description="Configure the settings for your poll exercise"
-    />
-  );
+export const PollExerciseSettings: FC<PollExerciseSettingsProps> = ({ initialData, onChange }) => {
+  return <BaseExerciseSettingsContent initialData={initialData} onSettingsChange={onChange} />;
 };

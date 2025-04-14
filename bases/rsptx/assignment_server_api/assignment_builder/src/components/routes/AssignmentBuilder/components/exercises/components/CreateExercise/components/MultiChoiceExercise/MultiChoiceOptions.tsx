@@ -35,7 +35,6 @@ interface SortableOptionProps {
   onUpdate: (id: string, updates: Partial<OptionWithId>) => void;
   onRemove: (id: string) => void;
   totalOptions: number;
-  showValidation: boolean;
 }
 
 const SortableOption = ({ option, onUpdate, onRemove, totalOptions }: SortableOptionProps) => {
@@ -136,14 +135,9 @@ const SortableOption = ({ option, onUpdate, onRemove, totalOptions }: SortableOp
 interface MultiChoiceOptionsProps {
   options: OptionWithId[];
   onChange: (options: OptionWithId[]) => void;
-  showValidation: boolean;
 }
 
-export const MultiChoiceOptions = ({
-  options,
-  onChange,
-  showValidation
-}: MultiChoiceOptionsProps) => {
+export const MultiChoiceOptions = ({ options, onChange }: MultiChoiceOptionsProps) => {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -188,16 +182,17 @@ export const MultiChoiceOptions = ({
   };
 
   return (
-    <div className={styles.optionsContainer}>
+    <div className={styles.optionsContainer} style={{ margin: "-2rem" }}>
       <div className={styles.optionsHeader}>
-        <h3>Answer Options</h3>
-        <Button
-          label="Add Option"
-          icon="pi pi-plus"
-          className={styles.addButton}
-          onClick={handleAddOption}
-          aria-label="Add new answer option"
-        />
+        <div className="flex justify-content-end w-full">
+          <Button
+            label="Add Option"
+            icon="pi pi-plus"
+            className={styles.addButton}
+            onClick={handleAddOption}
+            aria-label="Add new answer option"
+          />
+        </div>
       </div>
 
       <div className={styles.optionsContent}>
@@ -215,7 +210,6 @@ export const MultiChoiceOptions = ({
                   onUpdate={handleUpdateOption}
                   onRemove={handleRemoveOption}
                   totalOptions={options.length}
-                  showValidation={showValidation}
                 />
               ))}
             </div>
