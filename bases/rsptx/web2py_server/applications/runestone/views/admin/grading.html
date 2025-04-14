@@ -28,8 +28,19 @@
         </select>
 
         <select onchange="updateQuestionList();" class="form-control" id="chaporassignselector" style="display:none;"></select>
-        <span id="releasestate" style="color: red;"></span>
-        <button id="releasebutton" style="text-align: center; visibility: hidden;" class="btn btn-primary btn-sm" onclick="toggle_release_grades();">Release Grades</button>
+      </div>
+
+      <div>
+        <input id="enforceDeadline" 
+          type="checkbox" 
+          name="enforceDeadline" 
+          value="enforceDeadline" 
+          class="big-checkbox" 
+          onchange="gradeSelectedStudent();"
+          checked />
+        <label for="enforceDeadline">Only See/check work submitted before</label>
+        <div id="dl_disp">the deadline</div>
+        <!-- todo add an onchange to this that may or may not call gradeSelectedStudent and/or gradeIndiidualItem -->
       </div>
 
       <div>
@@ -53,11 +64,6 @@
 
       <div id="autogradingform" style="text-align: center; visibility: hidden;">
         <form>
-          <fieldset>
-            <input id="enforceDeadline" type="checkbox" name="enforceDeadline" value="enforceDeadline" class="big-checkbox" checked />
-            <label for="enforceDeadline">Only check work submitted before</label>
-            <span id="dl_disp"></span>
-          </fieldset>
           <input id="autogradesubmit" type="submit" class="btn btn-primary" value="Autograde and Display Totals" />
           <!--<button id="autogradebutton"  class="list-group-item" onclick="function(event){event.preventDefault(); autoGrade(event);}">Autograde</button>-->
         </form>
@@ -67,8 +73,6 @@
       <div>
         <div id="gradingprogresstitle"></div>
         <div id="autogradingprogress" style="max-height: 100px; overflow: auto;"></div>
-        <div id="gradingsummarytitle"></div>
-        <div id="autogradingsummary"></div>
       </div>
     <div id="assignmentTotalform" style="text-align: center; visibility: hidden; background-color: rgba(219,103,14,.71); margin: 10px; padding: 5px; border-radius: 10px;">
         <strong>Override student score for whole assignment.</strong>
@@ -134,7 +138,12 @@
       </div>
     </div>
   </div>
-
+  <div class="row col-xs-12">
+    <div id="gradingsummarytitle"></div>
+    <div id="autogradingsummary"></div>
+    <span id="releasestate" style="color: red;"></span>
+    <button id="releasebutton" style="text-align: center; visibility: hidden;" class="btn btn-primary btn-sm" onclick="toggle_release_grades();">Release Grades</button>
+  </div>
   <div class="row assigment_table_buttons" style="display: none">
     <div class="col-xs-12">
       <button class="btn btn-primary" type="button" onclick="$('#assignment_table_all').css('visibility', 'visible')">
