@@ -41,12 +41,15 @@ function gradeIndividualItem() {
         <option value="nofilter">Show All</option>
         <option value="filterto0">Show questions with a score of 0 or None</option>
         <option value="filterto1">Show questions with a non-zero score</option>
+        <option value="filterto2">Show questions with partial credit</option>
+        <option value="filterto3">Show questions with full credit</option>
     </select>
     `);
     let rsd = document.querySelector("#filterSelect");
     rsd.addEventListener("change", function () {
         let gPanels = document.querySelectorAll(".loading");
         for (let panel of gPanels) {
+            let maxPoints = parseInt(panel.querySelector(".problem_points_span").innerText.split(/:/)[1]);
             let v = panel
                 .querySelector("#gradingform")
                 .querySelector("#input-grade").value;
@@ -58,6 +61,18 @@ function gradeIndividualItem() {
                 }
             } else if (rsd.value == "filterto1") {
                 if (v > 0) {
+                    panel.style.display = "block";
+                } else {
+                    panel.style.display = "none";
+                }
+            } else if (rsd.value == "filterto2") {
+                if (v > 0 && v < maxPoints) {
+                    panel.style.display = "block";
+                } else {
+                    panel.style.display = "none";
+                }
+            } else if (rsd.value == "filterto3") {
+                if (v == maxPoints) {
                     panel.style.display = "block";
                 } else {
                     panel.style.display = "none";
@@ -457,7 +472,7 @@ function createGradingPanel(element, acid, studentId, multiGrader) {
             currPoints = question_points[currAssign][data.acid];
         }
         jQuery("#rightTitle", rightDiv).html(
-            `${data.name} <em>${data.acid}</em> <span>Points: ${currPoints} </span>`
+            `${data.name} <em>${data.acid}</em> <span class="problem_points_span">Points: ${currPoints} </span>`
         );
 
         if (data.file_includes) {
