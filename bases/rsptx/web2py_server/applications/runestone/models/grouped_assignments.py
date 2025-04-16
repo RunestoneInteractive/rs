@@ -28,6 +28,7 @@ db.define_table(
     Field("nofeedback", "boolean"),
     Field("nopause", "boolean"),
     Field("peer_async_visible", "boolean", default=False),
+    Field("kind", "string", default="Regular"),
     format="%(name)s",
     migrate=bookserver_owned("assignments"),
 )
