@@ -127,6 +127,14 @@ export default class HParsons extends RunestoneBase {
         InitMicroParsons(props);
         this.hparsonsInput = $(this.outerDiv).find("micro-parsons")[0];
         this.renderMathInBlocks();
+        // Change "code" to "answer" in parsons direction for non-code languages
+        if (this.language === undefined || this.language === "math") {
+            this.outerDiv.querySelectorAll(".hparsons-tip").forEach(el => {
+                if (el.textContent.includes("our code")) {
+                    el.textContent = el.textContent.replace("our code", "our answer");
+                }
+            });
+        }
     }
 
     createOutput() {
@@ -189,6 +197,19 @@ export default class HParsons extends RunestoneBase {
         }, 0);
     }
 
+    /*
+        This function performs a simulated "correct answer" ordering using the
+        correct block indices specified in `this.blockAnswer`. It looks ahead 
+        at the rendered content from the MicroParsons widget to build:
+        - this.simulatedSolution: an array of correctly ordered rendered strings
+        - this.microParsonToRaw: a Map that links rendered HTML (from MicroParsons) 
+          to their original raw `<m>` source strings from PreTeXt
+
+        This is called after MathJax renders the math blocks to ensure the mapping
+        is built from the final, visible DOM state. It is needed for grading 
+        math-mode Parsons problems, where rendered symbols (e.g., “\(\alpha\)”) must
+        be matched against author-defined symbolic content.
+    */
     simulateSolution() {
         if (
             this.simulatedSolution.length > 0 &&
