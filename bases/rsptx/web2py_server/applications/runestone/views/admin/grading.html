@@ -67,6 +67,7 @@
           <input id="autogradesubmit" type="submit" class="btn btn-primary" value="Score Questions and Update Totals" />
           <!--<button id="autogradebutton"  class="list-group-item" onclick="function(event){event.preventDefault(); autoGrade(event);}">Autograde</button>-->
         </form>
+        <button class="btn btn-info" type="button" onclick="downloadSubmissions()">Download submissions</button>
 
       </div>
 
@@ -152,7 +153,6 @@
       <button class="btn btn-primary" type="button" onclick="$('#assignment_table_all').css('visibility', 'visible')">
         Assignment table (beta)
       </button>
-      <button class="btn btn-primary" type="button" onclick="downloadSubmissions()">Download submissions</button>
       <script src="../static/js/assignment_table.js"></script>
       <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet">
       <script src="../static/js/select2.multi-checkboxes.js"></script>
