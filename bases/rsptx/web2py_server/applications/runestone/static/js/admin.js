@@ -715,6 +715,19 @@ function updateQuestionList() {
     questionSelector.style.visibility = "visible";
 }
 
+function downloadSubmissions() {
+    var chapAssignSelector = document.getElementById("chaporassignselector");
+    if (chapAssignSelector.selectedIndex > -1) {
+        col1val = chapAssignSelector.options[chapAssignSelector.selectedIndex].value;
+        let assignmentId = assignmentids[col1val];
+        if (assignmentId) {
+            window.location.href = `/assignment/instructor/download_assignment/${assignmentId}`;
+        } else {
+            alert("No assignment selected");
+        }
+    }
+}
+
 function gradeSelectedStudent() {
     var selectedStudent = document.getElementById("studentselector");
 
