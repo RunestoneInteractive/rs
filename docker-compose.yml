@@ -330,6 +330,7 @@ services:
       - $HOME/downloads:/usr/src/app/downloads
     environment:
       - SERVER_CONFIG=${SERVER_CONFIG}
+      - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
