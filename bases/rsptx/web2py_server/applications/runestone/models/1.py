@@ -90,3 +90,7 @@ settings.spaces_secret = os.environ.get("SPACES_SECRET", "")
 settings.region = "nyc3"
 
 settings.use_master_author = os.environ.get("USE_MASTER_AUTHOR", False)
+if settings.use_master_author == "False":
+    settings.use_master_author = False
+elif settings.use_master_author == "True":
+    settings.use_master_author = True
