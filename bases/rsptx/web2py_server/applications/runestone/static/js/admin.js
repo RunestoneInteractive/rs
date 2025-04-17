@@ -155,24 +155,8 @@ function autoGrade() {
     // todo -- check the number of selected
     let allq = document.getElementById("allquestioncb").checked;
     let alls = document.getElementById("allstudentcb").checked;
-    if (!(allq && alls)) {
-        let qs = $("#questionselector").select2("val");
-        if (qs && qs.length > 1) {
-            alert(
-                "Autograding does not work with multiple selections.  Leave blank to grade all questions.  You may select 1 question."
-            );
-            $("#autogradesubmit").prop("disabled", false);
-            return;
-        }
-        let ss = $("#studentselector").select2("val");
-        if (ss && ss.length > 1) {
-            alert(
-                "Autograding does not work with multiple selections.  Leave blank to grade all students. You may select 1 student."
-            );
-            $("#autogradesubmit").prop("disabled", false);
-            return;
-        }
-    }
+    let qs = $("#questionselector").select2("val");
+    let ss = $("#studentselector").select2("val");
     if (allq && alls) {
         studentID = null;
         question = null;
@@ -192,19 +176,29 @@ function autoGrade() {
         success: function (retdata) {
             $("#assignmentTotalform").css("visibility", "hidden");
             if (question != null || studentID != null) {
-                alert(retdata.message);
+                console.log(retdata.message);
             }
         },
     };
 
-    if (assignment != null && question === null && studentID == null) {
+    if (assignment != null) {
         (async function (students, ajax_params) {
             // Grade each student provided.
-            let student_array = Object.keys(students);
+            let student_array;
+            if (ss.length > 0) {
+
+                student_array = ss;
+            } else {
+                student_array = Object.keys(students);
+            }
             let total = 0;
             $("#gradingprogresstitle").html("<h3>Grading in Progress</h3>");
             $("#autogradingprogress").html("");
             $("#autogradingprogress").css("border", "1px solid");
+            if (qs.length > 0) {
+                // If questions are selected, add them to the params.
+                ajax_params.data.question = qs.join(":::");
+            }
             for (let index = 0; index < student_array.length; ++index) {
                 let student = student_array[index];
                 ajax_params.data.sid = student;
@@ -261,7 +255,7 @@ function calculateTotals(sid) {
         success: function (retdata) {
             if (retdata.computed_score != null) {
                 //show the form for setting it manually
-                $("#assignmentTotalform").css("visibility", "visible");
+                $("#assignmentTotalform").hide();
                 // populate it with data from retdata
                 $("#computed-total-score").val(retdata.computed_score);
                 $("#manual-total-score").val(retdata.manual_score);
@@ -347,7 +341,7 @@ function showDeadline() {
     tzoff = dl.getTimezoneOffset();
     dl.setHours(dl.getHours() + tzoff / 60);
     const options = {
-        weekday: 'short', 
+        weekday: 'short',
         year: 'numeric',
         month: 'short',
         day: 'numeric',
