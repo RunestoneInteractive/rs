@@ -64,17 +64,17 @@
 
       <div id="autogradingform" style="text-align: center; visibility: hidden;">
         <form>
-          <input id="autogradesubmit" type="submit" class="btn btn-primary" value="Autograde and Display Totals" />
+          <input id="autogradesubmit" type="submit" class="btn btn-primary" value="Score Questions and Update Totals" />
           <!--<button id="autogradebutton"  class="list-group-item" onclick="function(event){event.preventDefault(); autoGrade(event);}">Autograde</button>-->
         </form>
-        <strong>Warning</strong> Autograde does not support multiple selections yet.
+
       </div>
 
       <div>
         <div id="gradingprogresstitle"></div>
         <div id="autogradingprogress" style="max-height: 100px; overflow: auto;"></div>
       </div>
-    <div id="assignmentTotalform" style="text-align: center; visibility: hidden; background-color: rgba(219,103,14,.71); margin: 10px; padding: 5px; border-radius: 10px;">
+    <div id="assignmentTotalform" style="text-align: center; display: none; background-color: rgba(219,103,14,.71); margin: 10px; padding: 5px; border-radius: 10px;">
         <strong>Override student score for whole assignment.</strong>
         <form>
           <label for="computed-total-score">computed score</label>
@@ -107,6 +107,7 @@
               Mode will let you look at and/or grade any exercise by any student in
               the chapter you will choose in step 2.  Assignment mode lets you grade
               the exercises for an assignment you have created.</li>
+              <li>Choose whether or not you want to grade work submitted after the deadline</li>
               <li>Select the Chapter or Assignment</li>
               <li>Select the question(s) you want to grade (or Select All)</li>
               <li>Select the student(s) you want to grade (or Select All)</li>
@@ -117,12 +118,14 @@
             or more students to check their work.  This is also useful if a student has a
             question and you want to review what they have done so far.</p>
 
-            <p>To <strong>Autograde</strong> you typically will <strong>only</strong> select an assignment
-            and click the autograde button. If you need to "touch up" some grades for a
-            particular student with special circumstances, you can select that student and
-            regrade the whole assignment. You can autograde just one exercise for one
-            student by selecting a question and student. You can click on Autograde at any
-            point.</p>
+            <p>Scoring:  When a student clicks submit on a problem 
+            we grade it right away and store their correctness.  This gives you great flexibility
+            to later score the assignment based on their first/last or best answer.  It is best to 
+            make your explanations clear up front, but this gives you a lot of flexibility to go back 
+            later and allow for the students best score.</p>
+            <p>To <strong>Score Questions</strong> you can just press the button to score all students 
+            and all problems, or you can select any combination of students and problems if you have
+            updated one or more problems, or if you want to exempt a student from the deadline.</p>
 
           <p>
             Note 1:  All the dropdowns Assignments/Chapters, Questions and Students are searchable.
