@@ -56,8 +56,9 @@ function gradeIndividualItem() {
     padding: 5px;">
     <select id="filterSelect">
         <option value="nofilter">Show All</option>
-        <option value="filterto0">Show questions with a score of 0 or None</option>
-        <option value="filterto1">Show questions with a non-zero score</option>
+        <option value="filterto0">Show questions with a score of 0 or No Response</option>
+        <option value="filterto4">Show questions with a non-zero score</option>
+        <option value="filterto1">Show questions with 0 or partial credit</option>
         <option value="filterto2">Show questions with partial credit</option>
         <option value="filterto3">Show questions with full credit</option>
     </select>
@@ -94,6 +95,13 @@ function gradeIndividualItem() {
                 } else {
                     panel.style.display = "none";
                 }
+            } else if (rsd.value == "filterto4") {
+                if (v >= 0 && v < maxPoints) {
+                    panel.style.display = "block";
+                }
+                else {
+                    panel.style.display = "none";
+                }
             } else {
                 panel.style.display = "block";
             }
@@ -127,6 +135,26 @@ function gradeIndividualItem() {
             createGradingPanel($("#" + newid), question, sid, mg);
         }
     }
+
+
+    // Manually typeset, then strip tabindex so we don't stop on every MathJax element
+    // when trying to navigate through the grading panels.
+    // call this after waiting 1 second to allow MathJax to finish rendering
+    setTimeout(() => {
+        runestoneMathReady
+            .then(() => {
+                document.querySelectorAll('.MathJax')  // or adjust to '.mjx-svg' if you’ve customized
+                    .forEach(el => {
+                        // either remove tabindex entirely…
+                        el.removeAttribute('tabindex');
+                        el.removeAttribute('tabIndex');
+                        // …or explicitly set it to -1
+                        // el.setAttribute('tabindex','-1');
+                    });
+            })
+            .catch((err) => console.error('MathJax typeset failed:', err));
+    }, 3000);
+
 }
 
 function getSelectedGradingColumn(type) {
