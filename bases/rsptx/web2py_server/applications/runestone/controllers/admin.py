@@ -1133,6 +1133,7 @@ def createAssignment():
                 nofeedback=old_assignment.nofeedback,
                 nopause=old_assignment.nopause,
                 description=old_assignment.description,
+                kind=old_assignment.kind,
             )
             old_questions = db(
                 db.assignment_questions.assignment_id == old_assignment.id
@@ -2229,6 +2230,11 @@ def save_assignment():
     nopause = request.vars["nopause"]
     is_peer = request.vars["is_peer"]
     peer_async_visible = request.vars["peer_async_visible"]
+    kind = "Regular"
+    if is_peer == "T":
+        kind = "Peer"
+    elif is_timed == "T":
+        kind = "Timed"
     try:
         d_str = request.vars["due"]
         format_str = "%Y/%m/%d %H:%M"
@@ -2254,6 +2260,7 @@ def save_assignment():
             is_peer=is_peer,
             current_index=0,
             peer_async_visible=peer_async_visible,
+            kind=kind,
         )
         return json.dumps({request.vars["name"]: assignment_id, "status": "success"})
     except Exception as ex:

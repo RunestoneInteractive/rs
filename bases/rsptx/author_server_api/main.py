@@ -181,6 +181,11 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
         else:
             ready_files = []
         course = await fetch_course(user.course_name)
+        server_config = os.environ.get("SERVER_CONFIG", "dev")
+        if server_config == "production":
+            host = "https://" + os.environ.get("LOAD_BALANCER_HOST", "runestone.academy")
+        else:
+            host = ""
         logger.debug(f"{ready_files=}")
         return templates.TemplateResponse(
             "author/logfiles.html",
@@ -189,6 +194,8 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
                 ready_files=ready_files,
                 course=course,
                 username=user.username,
+                server_config=server_config,
+                host=host,
             ),
         )
     else:
