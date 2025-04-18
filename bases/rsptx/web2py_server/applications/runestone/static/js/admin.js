@@ -1,12 +1,29 @@
 var assignment_release_states = null;
 
+function maybeHideManual() {
+    // This function is called when the manual grading checkbox is clicked
+    var showRightSide = document.getElementById("show_manual_grading").checked;
+    if (showRightSide) {
+        $("#rightsideGradingTab").css("visibility", "visible");
+        gradeIndividualItem();
+    } else {
+        $("#rightsideGradingTab").css("visibility", "hidden");
+        $("#rightsideGradingTab").empty();
+    }
+}
+
 function gradeIndividualItem() {
     //This function figures out the parameters to feed to createGradingPanel, which does most of the work
     var sel1 = document.getElementById("gradingoption1");
     var assignOrChap = sel1.options[sel1.selectedIndex].value;
 
     set_release_button();
-
+    var showRightSide = false;
+    showRightSide = document.getElementById("show_manual_grading").checked;
+    if (!showRightSide) {
+        $("#rightsideGradingTab").empty();
+        return;
+    }
     var studentPicker = document.getElementById("studentselector");
     if (studentPicker.selectedIndex == -1) {
         $("#rightsideGradingTab").empty();
@@ -674,6 +691,9 @@ function updateQuestionList() {
     var chapAssign = sel1.options[sel1.selectedIndex].value;
     var chapAssignSelector = document.getElementById("chaporassignselector");
     var questionSelector = document.getElementById("questionselector");
+
+    let additional = document.getElementById("additional_grading_actions");
+    additional.style.visibility = "visible";
 
     $("#rightsideGradingTab").empty();
     // This will hold the name of the selected chapter or assignment.
@@ -2358,7 +2378,7 @@ function set_release_button() {
         // If so, set the button text appropriately
         if (release_state == true) {
             release_button.text("Hide Grades");
-            $("#releasestate").text("");
+            $("#releasestate").text("Students Can See Grades");
         } else {
             release_button.text("Release Grades");
             $("#releasestate").text("Grades Not Released");
