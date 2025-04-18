@@ -1,12 +1,29 @@
 var assignment_release_states = null;
 
+function maybeHideManual() {
+    // This function is called when the manual grading checkbox is clicked
+    var showRightSide = document.getElementById("show_manual_grading").checked;
+    if (showRightSide) {
+        $("#rightsideGradingTab").css("visibility", "visible");
+        gradeIndividualItem();
+    } else {
+        $("#rightsideGradingTab").css("visibility", "hidden");
+        $("#rightsideGradingTab").empty();
+    }
+}
+
 function gradeIndividualItem() {
     //This function figures out the parameters to feed to createGradingPanel, which does most of the work
     var sel1 = document.getElementById("gradingoption1");
     var assignOrChap = sel1.options[sel1.selectedIndex].value;
 
     set_release_button();
-
+    var showRightSide = false;
+    showRightSide = document.getElementById("show_manual_grading").checked;
+    if (!showRightSide) {
+        $("#rightsideGradingTab").empty();
+        return;
+    }
     var studentPicker = document.getElementById("studentselector");
     if (studentPicker.selectedIndex == -1) {
         $("#rightsideGradingTab").empty();
@@ -41,12 +58,15 @@ function gradeIndividualItem() {
         <option value="nofilter">Show All</option>
         <option value="filterto0">Show questions with a score of 0 or None</option>
         <option value="filterto1">Show questions with a non-zero score</option>
+        <option value="filterto2">Show questions with partial credit</option>
+        <option value="filterto3">Show questions with full credit</option>
     </select>
     `);
     let rsd = document.querySelector("#filterSelect");
     rsd.addEventListener("change", function () {
         let gPanels = document.querySelectorAll(".loading");
         for (let panel of gPanels) {
+            let maxPoints = parseInt(panel.querySelector(".problem_points_span").innerText.split(/:/)[1]);
             let v = panel
                 .querySelector("#gradingform")
                 .querySelector("#input-grade").value;
@@ -58,6 +78,18 @@ function gradeIndividualItem() {
                 }
             } else if (rsd.value == "filterto1") {
                 if (v > 0) {
+                    panel.style.display = "block";
+                } else {
+                    panel.style.display = "none";
+                }
+            } else if (rsd.value == "filterto2") {
+                if (v > 0 && v < maxPoints) {
+                    panel.style.display = "block";
+                } else {
+                    panel.style.display = "none";
+                }
+            } else if (rsd.value == "filterto3") {
+                if (v == maxPoints) {
                     panel.style.display = "block";
                 } else {
                     panel.style.display = "none";
@@ -457,7 +489,7 @@ function createGradingPanel(element, acid, studentId, multiGrader) {
             currPoints = question_points[currAssign][data.acid];
         }
         jQuery("#rightTitle", rightDiv).html(
-            `${data.name} <em>${data.acid}</em> <span>Points: ${currPoints} </span>`
+            `${data.name} <em>${data.acid}</em> <span class="problem_points_span">Points: ${currPoints} </span>`
         );
 
         if (data.file_includes) {
@@ -660,6 +692,9 @@ function updateQuestionList() {
     var chapAssignSelector = document.getElementById("chaporassignselector");
     var questionSelector = document.getElementById("questionselector");
 
+    let additional = document.getElementById("additional_grading_actions");
+    additional.style.visibility = "visible";
+
     $("#rightsideGradingTab").empty();
     // This will hold the name of the selected chapter or assignment.
     var col1val = "";
@@ -698,6 +733,19 @@ function updateQuestionList() {
     }
 
     questionSelector.style.visibility = "visible";
+}
+
+function downloadSubmissions() {
+    var chapAssignSelector = document.getElementById("chaporassignselector");
+    if (chapAssignSelector.selectedIndex > -1) {
+        col1val = chapAssignSelector.options[chapAssignSelector.selectedIndex].value;
+        let assignmentId = assignmentids[col1val];
+        if (assignmentId) {
+            window.location.href = `/assignment/instructor/download_assignment/${assignmentId}`;
+        } else {
+            alert("No assignment selected");
+        }
+    }
 }
 
 function gradeSelectedStudent() {
@@ -2330,7 +2378,7 @@ function set_release_button() {
         // If so, set the button text appropriately
         if (release_state == true) {
             release_button.text("Hide Grades");
-            $("#releasestate").text("");
+            $("#releasestate").text("Students Can See Grades");
         } else {
             release_button.text("Release Grades");
             $("#releasestate").text("Grades Not Released");

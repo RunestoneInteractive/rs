@@ -23,6 +23,7 @@
       <td>
         {% if is_instructor %}
           <button onclick="window.location.href='/runestone/admin/assignments?selected_assignment={{assignment.id}}'">Edit</button>
+          <button onclick="window.location.href='/assignment/instructor/download_assignment/{{assignment.id}}'">Download</button>
         {% else %}
         {% if assignment.id in stats %}
         {% set current = stats[assignment.id].is_submit %}

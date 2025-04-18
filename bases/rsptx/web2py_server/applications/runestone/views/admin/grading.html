@@ -31,6 +31,7 @@
       </div>
 
       <div>
+        <label for="enforceDeadline">Only See/check work submitted before</label>
         <input id="enforceDeadline" 
           type="checkbox" 
           name="enforceDeadline" 
@@ -38,19 +39,19 @@
           class="big-checkbox" 
           onchange="gradeSelectedStudent();"
           checked />
-        <label for="enforceDeadline">Only See/check work submitted before</label>
         <div id="dl_disp">the deadline</div>
-        <!-- todo add an onchange to this that may or may not call gradeSelectedStudent and/or gradeIndiidualItem -->
+        <label for="show_manual">Show student responses for manual grading</label>
+        <input id="show_manual_grading" type="checkbox" checked class="big-checkbox" onchange="maybeHideManual()">
       </div>
 
       <div>
-        <h3>Questions</h3>
+        <h3>Select Questions</h3>
         <select multiple onchange="gradeSelectedStudent();" class="form-control" id="questionselector" style="display: none;"></select>
         <span class="allcbclass"><input type="checkbox" id="allquestioncb" /><label for="allquestioncb">Select All</label></span>
       </div>
 
       <div>
-        <h3>Students</h3>
+        <h3>Select Students</h3>
         <select multiple onchange="gradeIndividualItem();" class="form-control" id="studentselector" style="display: none;"></select>
         <span class="allcbclass">
           <input type="checkbox" id="allstudentcb" />
@@ -141,17 +142,22 @@
       </div>
     </div>
   </div>
-  <div class="row col-xs-12">
+  <div class="row col-xs-12" >
     <div id="gradingsummarytitle"></div>
     <div id="autogradingsummary"></div>
+  </div>
+  <div id="additional_grading_actions" style="visibility: hidden; margin-top: 10px;">
+      <h3>Additional Actions</h3>
     <span id="releasestate" style="color: red;"></span>
     <button id="releasebutton" style="text-align: center; visibility: hidden;" class="btn btn-primary btn-sm" onclick="toggle_release_grades();">Release Grades</button>
+    <button class="btn btn-info" type="button" onclick="downloadSubmissions()">Download submissions</button>
   </div>
   <div class="row assigment_table_buttons" style="display: none">
     <div class="col-xs-12">
       <button class="btn btn-primary" type="button" onclick="$('#assignment_table_all').css('visibility', 'visible')">
-        Assignment table (beta)
+        Assignment table (Deprecated)
       </button>
+      <p>This will go away summer of 2025</p>
       <script src="../static/js/assignment_table.js"></script>
       <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet">
       <script src="../static/js/select2.multi-checkboxes.js"></script>

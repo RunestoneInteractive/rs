@@ -312,6 +312,7 @@ def autograde():
             assignment_name=assignment_name,
             timezoneoffset=timezoneoffset,
         )
+    res["message"] = f"autograded {len(questions_to_grade)} items"
     tres = _calculate_totals(sid=sid, assignment_name=assignment_name)
     if "computed_score" in tres:
         res["total_mess"] = tres["computed_score"]
