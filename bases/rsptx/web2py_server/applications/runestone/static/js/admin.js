@@ -722,12 +722,27 @@ function updateQuestionList() {
 
     let additional = document.getElementById("additional_grading_actions");
     additional.style.visibility = "visible";
+    const rawQS = window.location.search;
+    const params = new URLSearchParams(rawQS);
+    const selectedAssignment = params.get('selected_assignment'); // Example of getting a parameter
+    if (selectedAssignment) {
+        // If selectedAssignment is set, we need to select the corresponding option in the selector
+        for (let i = 0; i < chapAssignSelector.options.length; i++) {
+            if (chapAssignSelector.options[i].value === selectedAssignment) {
+                chapAssignSelector.selectedIndex = i;
+                break;
+            }
+        }
+        // Set the selected assignment in the question selector
+    }
 
     $("#rightsideGradingTab").empty();
     // This will hold the name of the selected chapter or assignment.
     var col1val = "";
     if (chapAssignSelector.selectedIndex > -1) {
         col1val = chapAssignSelector.options[chapAssignSelector.selectedIndex].value;
+    } else if (selectedAssignment) {
+        col1val = selectedAssignment;
     } else {
         $("#questionselector").empty();
         $("#rightsideGradingTab").empty();

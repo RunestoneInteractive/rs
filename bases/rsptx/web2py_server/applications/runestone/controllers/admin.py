@@ -745,7 +745,7 @@ def grading():
     response.title = "Grading"
     assignments = {}
     assignments_query = db(db.assignments.course == auth.user.course_id).select()
-
+    selected_assignment = request.vars.selected_assignment
     assignmentids = {}
     assignment_deadlines = {}
     question_points = {}
@@ -855,6 +855,7 @@ def grading():
         webwork_js_version=course_attrs.get("webwork_js_version", "2.17"),
         default_language=course_attrs.get("default_language", "python"),
         course=course,
+        selected_assignment=selected_assignment,
     )
 
 
