@@ -724,7 +724,7 @@ function updateQuestionList() {
     additional.style.visibility = "visible";
     const rawQS = window.location.search;
     const params = new URLSearchParams(rawQS);
-    const selectedAssignment = params.get('selected_assignment'); // Example of getting a parameter
+    const selectedAssignment = params.get('selected_assignment'); 
     if (selectedAssignment) {
         // If selectedAssignment is set, we need to select the corresponding option in the selector
         for (let i = 0; i < chapAssignSelector.options.length; i++) {
@@ -801,7 +801,9 @@ function gradeSelectedStudent() {
     selectedStudent.style.visibility = "visible";
 }
 
-function pickedAssignments(column) {
+function populateAssignments(column) {
+    // column is the id of the select2 element for assignments
+    // normally 'chaporassignselector'
     var pickedcolumn = document.getElementById(column);
 
     $("#" + column).empty();
@@ -847,7 +849,13 @@ function displayDefaultQuestion(column) {
     });
 }
 
-function pickedStudents(column) {
+// use the global variable students 
+// to populates the student selector
+// called after students are loaded when the page is loaded (getCourseStudents)
+// also called when an assignment is changed.
+function populateStudentSelector(column) {
+    // column is the id of the select2 element
+    // normally 'studentselector' not even sure why it is a parameter
     var pickedcolumn = document.getElementById(column);
     $("#" + column).empty();
     // students = students.replace(/&#x27;/g, '"');
@@ -922,7 +930,7 @@ function selectChapOrAssignment() {
     $("#allstudentcb").prop("checked", false);
 
     if (val == "assignment") {
-        pickedAssignments("chaporassignselector");
+        populateAssignments("chaporassignselector");
     } else if (val == "chapter") {
         pickedChapters("chaporassignselector");
     }
@@ -947,7 +955,7 @@ function selectChapOrAssignment() {
     fetch(request);
 
     displayDefaultQuestion("questionselector");
-    pickedStudents("studentselector");
+    populateStudentSelector("studentselector");
 }
 
 function getCourseStudents() {
@@ -958,7 +966,7 @@ function getCourseStudents() {
         data: {},
         success: function (retdata) {
             students = retdata;
-            pickedStudents("studentselector");
+            populateStudentSelector("studentselector");
         },
     });
 }
