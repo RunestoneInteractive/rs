@@ -22,12 +22,17 @@
 
       <div>
         <select required onchange="selectChapOrAssignment();" id="gradingoption1" class="form-control" style="margin-bottom: 10px;">
+                  {{if selected_assignment:}}
+                  <option value="" disabled>Select: Chapter or Assignment</option>
+                  <option value="assignment" selected>assignment</option>
+                  {{else:}}
                   <option value="" disabled selected>Select: Chapter or Assignment</option>
-                  <option value="chapter">chapter</option>
                   <option value="assignment">assignment</option>
+                  {{pass}}
+                  <option value="chapter">chapter</option>
         </select>
-
         <select onchange="updateQuestionList();" class="form-control" id="chaporassignselector" style="display:none;"></select>
+
       </div>
 
       <div>
@@ -363,5 +368,15 @@ $("#allstudentcb").click(function(){
 });
 
 </script>
+
+<!-- If selected_assignment is provided then go to it. -->
+{{if selected_assignment: }}
+<script>
+selectChapOrAssignment()
+let y = document.getElementById("chaporassignselector");
+y.dispatchEvent(new Event('change'))
+</script>
+{{pass}}
+
 
 {{ end }}
