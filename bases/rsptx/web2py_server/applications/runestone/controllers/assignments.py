@@ -217,13 +217,13 @@ def _autograde(
         )
         return {
             "success": True,
-            "message": "autograded {} items".format(count),
+            "message": "scored {} items".format(count),
             "count": count,
         }
     else:
         return {
             "success": False,
-            "message": "Select an assignment before trying to autograde.",
+            "message": "Select an assignment before trying to score it.",
         }
 
 
@@ -266,7 +266,7 @@ def student_autograde():
 
     if not res["success"]:
         session.flash = (
-            "Failed to autograde questions for user id {} for assignment {}".format(
+            "Failed to score questions for user id {} for assignment {}".format(
                 auth.user.id, assignment_id
             )
         )
@@ -312,7 +312,7 @@ def autograde():
             assignment_name=assignment_name,
             timezoneoffset=timezoneoffset,
         )
-    res["message"] = f"autograded {len(questions_to_grade)} items"
+    res["message"] = f"scored {len(questions_to_grade)} items"
     tres = _calculate_totals(sid=sid, assignment_name=assignment_name)
     if "computed_score" in tres:
         res["total_mess"] = tres["computed_score"]
