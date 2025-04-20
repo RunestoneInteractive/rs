@@ -958,6 +958,7 @@ function getCourseStudents() {
         data: {},
         success: function (retdata) {
             students = retdata;
+            pickedStudents("studentselector");
         },
     });
 }
