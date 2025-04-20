@@ -20,10 +20,14 @@
       <td>
         <a href="/assignment/student/doAssignment?assignment_id={{assignment.id}}">{{assignment.name}}</a>
       </td>
-      <td>
+      <td style="white-space: nowrap;">
         {% if is_instructor %}
-          <button onclick="window.location.href='/runestone/admin/assignments?selected_assignment={{assignment.id}}'">Edit</button>
-          <button onclick="window.location.href='/assignment/instructor/download_assignment/{{assignment.id}}'">Download</button>
+          <a href='/runestone/admin/assignments?selected_assignment={{assignment.id}}'">
+          <span class="material-symbols-outlined" aria-label="edit" title="edit this assignment">edit</span></a>
+          <a href="/runestone/admin/grading?selected_assignment={{assignment.name}}">
+          <span class="material-symbols-outlined" aria-label="grading" title="grade this assignment">grading</span></a>
+          <a href='/assignment/instructor/download_assignment/{{assignment.id}}'">
+          <span class="material-symbols-outlined" aria-label="download" title="download submissions">download</span></a>
         {% else %}
         {% if assignment.id in stats %}
         {% set current = stats[assignment.id].is_submit %}
@@ -43,8 +47,8 @@
 
       <td>{{assignment.duedate}}</td>
       <td>
-        {% if assignment.id in stats %}
-        {{stats[assignment.id].score}} / {{assignment.points}}
+        {% if assignment.id in stats and stats[assignment.id].score != None %}
+        {{ stats[assignment.id].score | round(2) }} / {{ assignment.points }}
         {% else %}
         No Score
         {% endif %}
