@@ -1112,7 +1112,7 @@ async def do_download_assignment(
             detail=f"Assignment {assignment_id} not found",
         )
 
-    res = await fetch_problem_data(assignment_id)
+    res = await fetch_problem_data(assignment_id, course_name)
     aqs = await fetch_assignment_questions(assignment_id)
     if not aqs:
         return make_json_response(
