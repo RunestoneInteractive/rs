@@ -1764,7 +1764,7 @@ async def remove_assignment_questions(assignment_ids: List[int]):
         await session.execute(stmt)
 
 
-async def fetch_problem_data(assignment_id: int) -> list:
+async def fetch_problem_data(assignment_id: int, course_name: str) -> list:
     """
     Fetch problem data for a given assignment.
 
@@ -1781,7 +1781,10 @@ async def fetch_problem_data(assignment_id: int) -> list:
         )
         .join(AssignmentQuestion, AssignmentQuestion.question_id == Question.id)
         .join(Useinfo, Question.name == Useinfo.div_id)
-        .where(AssignmentQuestion.assignment_id == assignment_id)
+        .where(
+            and_(AssignmentQuestion.assignment_id == assignment_id),
+            (Useinfo.course_id == course_name),
+        )
         .order_by(Useinfo.sid, Useinfo.timestamp)
     )
 
