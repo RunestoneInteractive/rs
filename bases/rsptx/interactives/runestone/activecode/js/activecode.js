@@ -323,7 +323,11 @@ export class ActiveCode extends RunestoneBase {
                     this.firstAfterRun = false;
                     this.startEditTimeStamp = new Date();
                 }
-                editor.acEditEvent = true;
+                // try to make sure vscrollbar does not overlap the resize handle
+                // need to delay request to happen after codemirror has adjusted the same style
+                window.requestAnimationFrame(() => {
+                    this.editor.display.scrollbars.vert.style.bottom =  "16px";
+                });
             }.bind(this)
         ); // use bind to preserve *this* inside the on handler.
 
@@ -365,16 +369,11 @@ export class ActiveCode extends RunestoneBase {
         });
         this.editor = editor;
 
-        // force an initial height for the container. Without this scrollbar does not appear
-        // height is that required by the linediv plus a little padding
-        if (editor.display.lineDiv.clientHeight > 0)
-            editor.getWrapperElement().style.height = (editor.display.lineDiv.clientHeight + 10) + 'px';
-        else {
-            // if the editor is hidden (in tab) then lineDiv has no clientHeight
-            // so guess based on number of lines
-            const numLines = editor.getValue().split("\n").length + 1;
-            editor.setSize(null, (numLines + 1) + "lh");
-        }
+        // try to make sure vscrollbar does not overlap the resize handle
+        // need to delay request to happen after codemirror has adjusted the same style
+        window.requestAnimationFrame(() => {
+            this.editor.display.scrollbars.vert.style.bottom =  "16px";
+        });
 
         // lock down code prefix/suffix
         this.setLockedRegions();
