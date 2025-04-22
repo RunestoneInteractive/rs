@@ -3301,22 +3301,38 @@ async def update_source_code(
         await session.commit()
 
 async def fetch_source_code(
-    acid: str, base_course: str, course_name: str
+    base_course: str, course_name: str, acid: str = None, filename: str = None
 ) -> SourceCodeValidator:
     """
-    Fetch the source code for a given acid.
+    Fetch the source code for a given acid or filename
+
+    Note that filenames are not guaranteed to be unique within a course, so
+    acid is the preferred lookup method.
 
     :param acid: str, the acid of the source code
     :return: SourceCodeValidator, the SourceCodeValidator object
     """
-    query = select(SourceCode).where(
-        and_(
-            SourceCode.acid == acid,
-            or_(
-                SourceCode.course_id == base_course, SourceCode.course_id == course_name
-            ),
+    if acid is None and filename is None:
+        return None
+    
+    elif acid is None:
+        query = select(SourceCode).where(
+            and_(
+                SourceCode.filename == filename,
+                or_(
+                    SourceCode.course_id == base_course, SourceCode.course_id == course_name
+                ),
+            )
         )
-    )
+    else:
+        query = select(SourceCode).where(
+            and_(
+                SourceCode.acid == acid,
+                or_(
+                    SourceCode.course_id == base_course, SourceCode.course_id == course_name
+                ),
+            )
+        )
     async with async_session() as session:
         res = await session.execute(query)
         return SourceCodeValidator.from_orm(res.scalars().first())
