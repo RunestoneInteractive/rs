@@ -71,6 +71,7 @@ const module_map = {
     groupsub: () => import("./runestone/groupsub/js/groupsub.js"),
     khanex: () => import("./runestone/khanex/js/khanex.js"),
     lp_build: () => import("./runestone/lp/js/lp.js"),
+    matching: () => import("./runestone/matching/js/matching.js"),
     multiplechoice: () => import("./runestone/mchoice/js/timedmc.js"),
     hparsons: () => import("./runestone/hparsons/js/hparsons.js"),
     parsons: () => import("./runestone/parsons/js/timedparsons.js"),
