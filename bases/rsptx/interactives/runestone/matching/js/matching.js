@@ -7,13 +7,14 @@ class MatchingProblem extends RunestoneBase {
         super({})
         this.container = container;
         this.boxData = boxData;
-        //this.createWorkspace(container);
-        this.workspace = container.querySelector('.matching-workspace');
-        this.leftColumn = container.querySelector('.left-column');
-        this.rightColumn = container.querySelector('.right-column');
-        this.svg = container.querySelector('.connector-svg');
-        this.connList = container.querySelector('.conn-list');
-        this.ariaLive = container.querySelector('.aria-live');
+        this.workspace = this.createWorkspace(container);
+        //this.workspace = container.querySelector('.matching-workspace');
+        //this.leftColumn = container.querySelector('.left-column');
+        //this.rightColumn = container.querySelector('.right-column');
+        //this.svg = container.querySelector('.connector-svg');
+        this.connList = this.createConnList(container);
+        this.ariaLive = this.createAriaLive(container);
+        this.controlDiv = this.createControlDiv(container);
 
         this.connections = [];
         this.allBoxes = [];
@@ -52,20 +53,55 @@ class MatchingProblem extends RunestoneBase {
 
         const leftColumn = document.createElement('div');
         leftColumn.className = 'left-column';
-
+        this.leftColumn = leftColumn;
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.classList.add('svg-container');
+        svg.classList.add('connector-svg');
+        this.svg = svg;
 
         const rightColumn = document.createElement('div');
         rightColumn.className = 'right-column';
-
+        this.rightColumn = rightColumn;
         workspace.appendChild(leftColumn);
         workspace.appendChild(svg);
         workspace.appendChild(rightColumn);
 
         container.insertBefore(workspace, container.firstChild);
+        return workspace;
     }
 
+    createConnList(container) {
+        const connList = document.createElement('div');
+        connList.className = 'conn-list';
+        connList.innerHTML = "<strong>Connections:</strong><br>";
+        container.appendChild(connList);
+        return connList;
+    }
+
+    createAriaLive(container) {
+        const ariaLive = document.createElement('div');
+        ariaLive.className = 'aria-live';
+        ariaLive.setAttribute('aria-live', 'polite');
+        ariaLive.setAttribute('aria-atomic', 'true');
+        container.appendChild(ariaLive);
+        return ariaLive;
+    }
+
+    createControlDiv(container) {
+        const controlDiv = document.createElement('div');
+        controlDiv.className = 'control-div';
+        const gradeBtn = document.createElement('button');
+        gradeBtn.className = 'grade-button';
+        gradeBtn.textContent = 'Grade';
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'reset-button';
+        resetBtn.textContent = 'Reset';
+        controlDiv.appendChild(gradeBtn);
+        controlDiv.appendChild(resetBtn);
+        container.appendChild(controlDiv);
+        return controlDiv;
+    }
+
+    // Utility functions
     shuffle(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
