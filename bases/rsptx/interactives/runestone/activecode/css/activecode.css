@@ -141,6 +141,18 @@
     border: solid 2px;
     margin-bottom: 10px;
     max-width: 100%;
+    min-width: 30em;
+    min-height: 100px;
+    /* best way to control height is let CodeMirror-scroll do it */
+    height: auto;
+}
+
+.CodeMirror-scroll {
+    /* calculated height is designed so editor panel
+     * will fit on screen (with space for navbar and
+     * controls). user should not have to scroll both
+     * page and editor panel. */
+    max-height: calc(100vh - 180px);
 }
 
 /* decorate locked lines that do not have lock marker */
