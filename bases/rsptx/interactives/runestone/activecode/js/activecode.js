@@ -1312,44 +1312,32 @@ Yet another is that there is an internal error.  The internal error message is: 
             throw $.i18n("msg_activecode_file_not_found", x);
         return Sk.builtinFiles["files"][x];
     }
-    fileReader(divid) {
-        // In the beginning files were just pre tags and we used the divid as the filename
-        let elem = document.getElementById(divid);
-        // In PreTeXt we moved that to a @data-filename
+    fileReader(fileName) {
+        // This function is called by Skulpt to read a file. We will sometimes enter
+        // with internal skulpt filenames and sometimes with filenames referenced from
+        // user source.
+
+        // Check if element is in the DOM
+        // For RST books fileName == element id
+        let elem = document.getElementById(fileName);
         if (elem === null) {
-            elem = document.querySelector(`[data-filename="${divid}"]`);
+            // For PTX books fileName is in data-filename, may or may not == element id
+            elem = document.querySelector(`[data-filename="${fileName}"]`);
         }
-        let data = "";
-        let result = "";
-        if (elem == null && Sk.builtinFiles.files.hasOwnProperty(divid)) {
-            return Sk.builtinFiles["files"][divid];
-        } else {
-            // try remote file unless it ends with .js or .py -- otherwise we'll ask the server for all
-            // kinds of modules that we are trying to import
-            if (!(divid.endsWith(".js") || divid.endsWith(".py"))) {
-                $.ajax({
-                    async: false,
-                    url: `/ns/logger/get_datafile?course_id=${eBookConfig.course}&acid=${divid}`,
-                    success: function (data) {
-                        result = data.detail;
-                    },
-                    error: function (err) {
-                        result = null;
-                    },
-                });
-                if (result) {
-                    return result;
-                }
+
+        // Check if the file is in the Skulpt builtinFiles.
+        if(Sk.builtinFiles.files.hasOwnProperty(fileName)) {
+            let skulptFile = Sk.builtinFiles["files"][fileName];
+            if(elem === null) {
+                return skulptFile;
+            } else {
+                console.log("Name conflict for file: " + fileName + " in Skulpt and in the DOM. Using DOM file.");
             }
         }
-        if (elem == null && result === null) {
-            throw new Sk.builtin.IOError(
-                $.i18n("msg_activecode_no_file_or_dir", divid)
-            );
-        } else {
-            // for backward compatibility - early on we had textarea with the divid on it.
-            // but later this switched to a runestone wrapper.  So we may need to dig for a pre
-            // or a textarea?
+
+        // If in DOM and not in Skulpt builtinFiles, read from the DOM
+        if (elem != null) {
+            let data;
             if (elem.nodeName.toLowerCase() == "textarea") {
                 data = elem.value;
             } else {
@@ -1360,8 +1348,29 @@ Yet another is that there is an internal error.  The internal error message is: 
                     data = elem.textContent;
                 }
             }
+            return data;
         }
-        return data;
+
+        // Try the DB unless fileName ends with .js or .py Skulpt internals will
+        // have these extensions.  We don't want to try to load them from the DB.
+        if (!(fileName.endsWith(".js") || fileName.endsWith(".py"))) {
+            let result = null;
+            $.ajax({
+                async: false,
+                url: `/ns/logger/get_source_code?course_id=${eBookConfig.course}&fileName=${fileName}`,
+                success: function (data) {
+                    result = data.detail.file_contents;
+                }
+            });
+            if (result) {
+                return result;
+            } else {
+                throw new Sk.builtin.IOError(
+                    $.i18n("msg_activecode_no_file_or_dir", fileName)
+                );
+            }
+        }
+        // Silent exit for files we didn't attempt to find in DB
     }
     outputfun(text) {
         // bnm python 3
@@ -1431,7 +1440,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             return window.componentMap[divid].editor.getValue();
         } else {
             let request = new Request(
-                `/ns/logger/get_datafile?course_id=${eBookConfig.course}&acid=${divid}`,
+                `/ns/logger/get_source_code?course_id=${eBookConfig.course}&acid=${divid}`,
                 {
                     method: "GET",
                     headers: this.jsonHeaders,
@@ -1439,7 +1448,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             );
             let wresult = await fetch(request);
             let obj = await wresult.json();
-            return obj.detail;
+            return obj.detail.file_contents;
         }
     }
 
