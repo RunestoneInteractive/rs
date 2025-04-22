@@ -37,7 +37,28 @@ class MatchingProblem extends RunestoneBase {
 
     // required elements for a Runestone component
 
-    checkCurrentAnswer() { }
+    checkCurrentAnswer() {
+        const correctAnswers = this.boxData.correctAnswers;
+        const actual = this.connections.map(conn => [
+            conn.fromBox.dataset.id,
+            conn.toBox.dataset.id
+        ]);
+
+        const correctMatches = correctAnswers.filter(expected =>
+            actual.some(given => given[0] === expected[0] && given[1] === expected[1])
+        );
+
+        const incorrectConnections = actual.filter(given =>
+            !correctAnswers.some(expected => expected[0] === given[0] && expected[1] === given[1])
+        );
+
+        this.correctCount = correctMatches.length;
+        this.incorrectCount = incorrectConnections.length;
+        this.missingCount = correctAnswers.length - this.correctCount;
+        this.denominator = this.correctCount + this.incorrectCount + this.missingCount;
+        this.scorePercent = this.denominator === 0 ? 0 : Math.max(0, Math.min(100, Math.round((this.correctCount / this.denominator) * 100)));
+
+    }
 
     async logCurrentAnswer(eventData) {
         eventData.event = "matching";
@@ -276,27 +297,15 @@ class MatchingProblem extends RunestoneBase {
         });
     }
 
+    /*
+    * This method grades the connections made by the user.
+    * It checks the current answer against the correct answers,
+    * renders feedback, and logs the current answer.
+    * It also updates the local storage with the current state.
+    * It is called when the user clicks the "Grade" button.
+    */
     gradeConnections() {
-        const correctAnswers = this.boxData.correctAnswers;
-        const actual = this.connections.map(conn => [
-            conn.fromBox.dataset.id,
-            conn.toBox.dataset.id
-        ]);
-
-        const correctMatches = correctAnswers.filter(expected =>
-            actual.some(given => given[0] === expected[0] && given[1] === expected[1])
-        );
-
-        const incorrectConnections = actual.filter(given =>
-            !correctAnswers.some(expected => expected[0] === given[0] && expected[1] === given[1])
-        );
-
-        this.correctCount = correctMatches.length;
-        this.incorrectCount = incorrectConnections.length;
-        this.missingCount = correctAnswers.length - this.correctCount;
-        this.denominator = this.correctCount + this.incorrectCount + this.missingCount;
-        this.scorePercent = this.denominator === 0 ? 0 : Math.max(0, Math.min(100, Math.round((this.correctCount / this.denominator) * 100)));
-
+        this.checkCurrentAnswer();
         this.renderFeedback();
         this.logCurrentAnswer({
             score: this.scorePercent,
