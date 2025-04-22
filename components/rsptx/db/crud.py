@@ -934,24 +934,29 @@ async def create_code_entry(data: CodeValidator) -> CodeValidator:
     return CodeValidator.from_orm(new_code)
 
 
-async def fetch_code(sid: str, acid: str, course_id: int) -> List[CodeValidator]:
+async def fetch_code(sid: str, acid: str, course_id: int, limit: int = 0) -> List[CodeValidator]:
     """
-    Retrieve a list of code entries for the given student id (sid), assignment id (acid), and course id (course_id).
+    Retrieve a list of the most recent code entries for the given student id (sid), assignment id (acid), and course id (course_id).
 
     :param sid: str, the id of the student
     :param acid: str, the id of the assignment
     :param course_id: int, the id of the course
+    :param limit: int, the maximum number of code entries to retrieve (0 for all)
     :return: List[CodeValidator], a list of CodeValidator objects representing the code entries
     """
     query = (
         select(Code)
         .where((Code.sid == sid) & (Code.acid == acid) & (Code.course_id == course_id))
-        .order_by(Code.id)
+        .order_by(Code.id.desc())
     )
+    if limit > 0:
+        query = query.limit(limit)
     async with async_session() as session:
         res = await session.execute(query)
 
         code_list = [CodeValidator.from_orm(x) for x in res.scalars().fetchall()]
+        # We retrieved most recent first, but want to return results in chronological order
+        code_list.reverse()
         return code_list
 
 
