@@ -98,8 +98,8 @@ async def get_assignments(
     )
     # filter assignments based on deadline exceptions
     assignment_ids = [a.assignment_id for a in accommodations]
-    if not is_instructor:
-        assignments = [a for a in assignments if a.is_visible or a.id in assignment_ids]
+    if not user_is_instructor:
+        assignments = [a for a in assignments if a.visible or a.id in assignment_ids]
 
     assignments.sort(key=lambda x: x.duedate, reverse=True)
     stats_list = await fetch_all_assignment_stats(course.course_name, user.id)
