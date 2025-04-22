@@ -5,13 +5,10 @@ import "../css/matching.less";
 class MatchingProblem extends RunestoneBase {
     constructor(container, boxData) {
         super({})
-        this.container = container;
+        this.containerDiv = container;
+        this.div_id = container.id;
         this.boxData = boxData;
         this.workspace = this.createWorkspace(container);
-        //this.workspace = container.querySelector('.matching-workspace');
-        //this.leftColumn = container.querySelector('.left-column');
-        //this.rightColumn = container.querySelector('.right-column');
-        //this.svg = container.querySelector('.connector-svg');
         this.connList = this.createConnList(container);
         this.ariaLive = this.createAriaLive(container);
         this.controlDiv = this.createControlDiv(container);
@@ -23,6 +20,7 @@ class MatchingProblem extends RunestoneBase {
         this.tempLine = null;
 
         this.init();
+        this.checkServer("matching", true);
     }
 
     init() {
@@ -40,11 +38,78 @@ class MatchingProblem extends RunestoneBase {
     // required elements for a Runestone component
 
     checkCurrentAnswer() { }
-    logCurrentAnswer() { }
-    renderFeedback() { }
-    restoreAnswers() { }
-    checkLocalStorage() { }
-    setLocalStorage() { }
+
+    async logCurrentAnswer(eventData) {
+        eventData.event = "matching";
+        eventData.div_id = this.div_id;
+        eventData.act = `score:${eventData.score} connections:${eventData.connections}`;
+        eventData.correct = eventData.score === 100;
+        eventData.answer = eventData.connections;
+
+        await this.logBookEvent(eventData);
+
+    }
+
+    renderFeedback() {
+        this.connections.forEach(conn => {
+            const idPair = [conn.fromBox.dataset.id, conn.toBox.dataset.id];
+            const isCorrect = this.boxData.correctAnswers.some(expected =>
+                expected[0] === idPair[0] && expected[1] === idPair[1]
+            );
+            conn.line.classList.remove("correct", "incorrect");
+            conn.line.classList.add(isCorrect ? "correct" : "incorrect");
+        });
+
+        this.connList.innerHTML = `<strong>Score: ${this.scorePercent}%</strong>`;
+    }
+
+    restoreAnswers() {
+        // Recreate lines
+        this.connections.forEach(conn => {
+            const from = this.getCenter(conn.fromBox);
+            const to = this.getCenter(conn.toBox);
+            const line = this.createLineElement(from.x, from.y, to.x, to.y);
+            line.fromBox = conn.fromBox;
+            line.toBox = conn.toBox;
+            this.svg.appendChild(line);
+            conn.line = line;
+        });
+
+    }
+    checkLocalStorage() {
+        if (this.graderactive) {
+            return;
+        }
+        const data = localStorage.getItem(this.div_id);
+        if (data) {
+            const parsedData = JSON.parse(data);
+            this.connections = parsedData.connections.map(conn => ({
+                fromBox: this.allBoxes.find(box => box.dataset.id === conn.from),
+                toBox: this.allBoxes.find(box => box.dataset.id === conn.to)
+            }));
+            this.updateConnectionModel();
+            this.correctCount = parsedData.correctCount;
+            this.incorrectCount = parsedData.incorrectCount;
+            this.missingCount = parsedData.missingCount;
+            this.scorePercent = parsedData.score;
+            this.restoreAnswers();
+            this.renderFeedback();
+        }
+    }
+    setLocalStorage() {
+        const data = {
+            connections: this.connections.map(conn => ({
+                from: conn.fromBox.dataset.id,
+                to: conn.toBox.dataset.id
+            })),
+            score: this.scorePercent,
+            correctCount: this.correctCount,
+            incorrectCount: this.incorrectCount,
+            missingCount: this.missingCount
+        };
+        localStorage.setItem(this.div_id, JSON.stringify(data));
+    }
+
     disableInteraction() { }
 
     createWorkspace(container) {
@@ -226,22 +291,24 @@ class MatchingProblem extends RunestoneBase {
             !correctAnswers.some(expected => expected[0] === given[0] && expected[1] === given[1])
         );
 
-        const correctCount = correctMatches.length;
-        const incorrectCount = incorrectConnections.length;
-        const missingCount = correctAnswers.length - correctCount;
-        const denominator = correctCount + incorrectCount + missingCount;
-        const scorePercent = denominator === 0 ? 0 : Math.max(0, Math.min(100, Math.round((correctCount / denominator) * 100)));
+        this.correctCount = correctMatches.length;
+        this.incorrectCount = incorrectConnections.length;
+        this.missingCount = correctAnswers.length - this.correctCount;
+        this.denominator = this.correctCount + this.incorrectCount + this.missingCount;
+        this.scorePercent = this.denominator === 0 ? 0 : Math.max(0, Math.min(100, Math.round((this.correctCount / this.denominator) * 100)));
 
-        this.connections.forEach(conn => {
-            const idPair = [conn.fromBox.dataset.id, conn.toBox.dataset.id];
-            const isCorrect = correctAnswers.some(expected =>
-                expected[0] === idPair[0] && expected[1] === idPair[1]
-            );
-            conn.line.classList.remove("correct", "incorrect");
-            conn.line.classList.add(isCorrect ? "correct" : "incorrect");
+        this.renderFeedback();
+        this.logCurrentAnswer({
+            score: this.scorePercent,
+            correctCount: this.correctCount,
+            incorrectCount: this.incorrectCount,
+            missingCount: this.missingCount,
+            connections: this.connections.map(conn => ({
+                from: conn.fromBox.dataset.id,
+                to: conn.toBox.dataset.id
+            }))
         });
-
-        this.connList.innerHTML = `<strong>Score: ${scorePercent}%</strong>`;
+        this.setLocalStorage();
     }
 
     resetConnections() {
@@ -309,8 +376,8 @@ class MatchingProblem extends RunestoneBase {
             });
         });
 
-        const gradeBtn = this.container.querySelector('.grade-button');
-        const resetBtn = this.container.querySelector('.reset-button');
+        const gradeBtn = this.containerDiv.querySelector('.grade-button');
+        const resetBtn = this.containerDiv.querySelector('.reset-button');
         if (gradeBtn) gradeBtn.addEventListener('click', () => this.gradeConnections());
         if (resetBtn) resetBtn.addEventListener('click', () => this.resetConnections());
 
