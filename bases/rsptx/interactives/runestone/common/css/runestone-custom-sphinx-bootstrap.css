@@ -391,22 +391,10 @@ div.container {
 }
 
 /* end navbar and menu related styles */
-
 .CodeMirror {
     margin: 0 0 1em 0;
     background-color: var(--background);
-    height: auto;
     clear: both;
-}
-
-.CodeMirror {
-    /* calculated height is designed so editor panel
-     * will fit on screen (with space for navbar and
-     * controls). user should not have to scroll both
-     * page and editor panel. */
-    max-height: calc(100vh - 180px);
-    min-height: 100px;
-    min-width: 30em;
 }
 
 .ac_section .CodeMirror pre {
