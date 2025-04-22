@@ -3268,6 +3268,38 @@ async def fetch_last_useinfo_peergroup(course_name: str) -> List[Useinfo]:
         return results.scalars().all()
 
 
+async def update_source_code(
+    acid: str,
+    filename: str,
+    course_id: str,
+    main_code: str
+):
+    """
+    Update the source code for a given acid or filename
+    """
+    query = select(SourceCode).where(
+        and_(
+            SourceCode.acid == acid,
+            SourceCode.course_id == course_id,
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        source_code_obj = res.scalars().first()
+        if source_code_obj:
+            source_code_obj.main_code = main_code
+            source_code_obj.filename = filename
+            session.add(source_code_obj)
+        else:
+            new_entry = SourceCode(
+                acid=acid,
+                filename=filename,
+                course_id=course_id,
+                main_code=main_code,
+            )
+            session.add(new_entry)
+        await session.commit()
+
 async def fetch_source_code(
     acid: str, base_course: str, course_name: str
 ) -> SourceCodeValidator:
