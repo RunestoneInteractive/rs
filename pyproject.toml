@@ -103,6 +103,7 @@ toml = "^0.10.2"
 tqdm = "^4.65.0"
 uvicorn = "^0.27.0"
 WTForms = "^3.0.0"
+openai = "^1.75.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 23.0"

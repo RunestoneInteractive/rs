@@ -22,6 +22,7 @@ import pandas as pd
 import redis
 from dateutil.parser import parse
 from rs_grading import _try_to_send_lti_grade
+import openai
 
 logger = logging.getLogger(settings.logger)
 logger.setLevel(settings.log_level)
@@ -758,6 +759,33 @@ def get_async_explainer():
     return json.dumps(
         {"mess": mess, "user": user, "answer": peer_answer, "responses": responses}
     )
+
+@auth.requires_login()
+def get_gpt_response():
+    """
+    This function is used to get a response from ChatGPT for a message that a student has sent in the async PI chat.
+    Receives the "message_history" as a parameter, which is all the messages that the student has sent and received from GPT, calls OpenAI, and returns a JSON response.
+    """
+    response.headers["Content-Type"] = "application/json"
+    try:
+        payload = json.loads(request.body.read().decode("utf-8"))
+        messageHistory = payload.get("message_history", "")
+        if not messageHistory:
+            raise ValueError("No message history provided")
+
+        # Call OpenAI with the message history
+        resp = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=messageHistory,
+            store=False
+        )
+
+        reply = resp.choices[0].message.content
+        return json.dumps({ "reply": reply })
+
+    except Exception as e:
+        response.status = 500
+        return json.dumps({ "error": str(e) })
 
 
 def _get_user_answer(div_id, s):

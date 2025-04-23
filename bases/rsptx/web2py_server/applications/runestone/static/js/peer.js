@@ -576,7 +576,8 @@ async function ratePeer(radio) {
 //
 async function showPeerEnableVote2() {
     // Log the justification from this student
-    let mess = document.getElementById("messageText").value;
+    console.log("Logging function");
+    let mess = document.getElementById("async-messageText").value;
 
     await logPeerEvent({
         sid: eBookConfig.username,
@@ -587,45 +588,51 @@ async function showPeerEnableVote2() {
     });
 
     // send a request to get a peer response and display it.
-    let data = {
-        div_id: currentQuestion,
-        course: eBookConfig.course,
-    };
-    let jsheaders = new Headers({
-        "Content-type": "application/json; charset=utf-8",
-        Accept: "application/json",
-    });
-    let request = new Request("/runestone/peer/get_async_explainer", {
-        method: "POST",
-        headers: jsheaders,
-        body: JSON.stringify(data),
-    });
-    let resp = await fetch(request);
-    if (!resp.ok) {
-        alert(`Error getting a justification ${resp.statusText}`);
-    }
-    let spec = await resp.json();
-    let peerMess = spec.mess;
-    let peerNameEl = document.getElementById("peerName");
-    // iterate over responses
-    let res = "";
-    for (let response in spec.responses) {
-        res += `User ${response} answered ${answerToString(
-            spec.responses[response]
-        )} <br />`;
-    }
+    // let data = {
+    //     div_id: currentQuestion,
+    //     course: eBookConfig.course,
+    // };
+    // let jsheaders = new Headers({
+    //     "Content-type": "application/json; charset=utf-8",
+    //     Accept: "application/json",
+    // });
+    // let request = new Request("/runestone/peer/get_async_explainer", {
+    //     method: "POST",
+    //     headers: jsheaders,
+    //     body: JSON.stringify(data),
+    // });
+    // let resp = await fetch(request);
+    // if (!resp.ok) {
+    //     alert(`Error getting a justification ${resp.statusText}`);
+    // }
+    // let spec = await resp.json();
+    // let peerMess = spec.mess;
+    // let peerNameEl = document.getElementById("peerName");
+    // // iterate over responses
+    // let res = "";
+    // for (let response in spec.responses) {
+    //     res += `User ${response} answered ${answerToString(
+    //         spec.responses[response]
+    //     )} <br />`;
+    // }
     //peerNameEl.innerHTML = `User ${spec.user} answered ${answerToString(spec.answer)}`;
-    peerNameEl.innerHTML = res;
-    let peerEl = document.getElementById("peerJust");
-    peerEl.innerHTML = peerMess;
-    let asyncPeerDiscussion = document.getElementById("asyncPeerDiscussion");
-    asyncPeerDiscussion.style.display = "block";
+    // peerNameEl.innerHTML = res;
+    // let peerEl = document.getElementById("peerJust");
+    // peerEl.innerHTML = peerMess;
+    // let asyncPeerDiscussion = document.getElementById("asyncPeerDiscussion");
+    // asyncPeerDiscussion.style.display = "block";
+    let discussionPanel = document.getElementById("discussion_panel");
+    discussionPanel.style.display = "block";
     let nextStep = document.getElementById("nextStep");
     nextStep.innerHTML =
-        "Please Answer the question again.  Even if you do not wish to change your answer.  After answering click the button to go on to the next question.";
+        "Please answer the question again, even if you do not wish to change your answer.  After answering click the 'Next Question' button below to go on to the next question.";
     nextStep.style.color = "red";
-    let sendExplanation = document.getElementById("async-sendexplanation");
-    sendExplanation.disabled = true;
+
+    let userAnswer = document.getElementById("async-user-answer");
+    userAnswer.textContent = window.componentMap[currentQuestion].answer;
+
+    // let sendExplanation = document.getElementById("async-sendexplanation");
+    // sendExplanation.disabled = true;
     let cq = document.getElementById(`${currentQuestion}_feedback`);
     cq.style.display = "none";
 

@@ -4,10 +4,11 @@
 {{end}}
 
 <!-- TODO: Figure out where to put this CSS code -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
-    #asyncPeerDiscussion {
+    /* #asyncPeerDiscussion {
         display: none;
-    }
+    } */
 
     .peer-question-student-interface {
         margin-right: 0px;
@@ -15,20 +16,162 @@
         padding-right: 15px;
     }
 
-    #explanation-panel {
+    #discussion_panel {
         margin: 20px 0;
+        background: #FBFBFB;
+        border: 0.5px solid #C7CDD1;
+        border-radius: 12px;
+        box-shadow: 0px 20px 24px 0px rgba(17, 17, 17, 0.06);
         padding-left: 0px;
         padding-right: 0px;
     }
 
-    #explanation-panel #messageText {
+    #discussion-panel-heading {
+        font-size: 22px;
+        font-weight: 500;
+        padding: 12px 24px;
+        background: #FBFBFB;
+        border: 1px solid #C7CDD1;
+        border-radius: 12px 12px 0px 0px;
+        box-shadow: 0px 2px 2px 0px rgba(17, 17, 17, 0.06);
+    }
+
+    #discussion-panel-heading p {
+        margin: 0;
+    }
+
+    #discussion-panel-peer-votes {
+        border-bottom: 1px solid #C7CDD1;
+        padding: 16px 24px;
+    }
+
+    #discussion-panel-peer-votes-content {
+        border-radius: 12px;
+        border: 2px solid #C7CDD1;
+        background: #FFFFFF;
+        padding: 16px 32px;
+    }
+
+    #discussion-panel-peer-votes-content p {
+        margin: 0;
+        line-height: 28px;
+    }
+
+    #discussion-panel-peer-votes-content #peerlist {
+        margin-bottom: 8px;
+    }
+
+    #discussion-panel-messages {
+        padding: 16px 24px;
+    }
+
+    #discussion-panel-messages #messages {
+        margin: 0;
+        padding-left: 0;
+        min-height: 25vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: end;
+    }
+
+    #discussion-panel-messages #messages > div {
+        margin-top: 8px;
+    }
+
+    #discussion-panel-messages #messages .outgoing-mess + .incoming-mess,
+    #discussion-panel-messages #messages .incoming-mess + .outgoing-mess {
+        margin-top: 16px;
+    }
+
+    #discussion-panel-messages #messages > div:first-child {
+        margin-top: 0;
+    }
+
+    #discussion-panel-messages #messages .outgoing-mess, #discussion-panel-messages #messages .incoming-mess {
+        display: flex;
+        flex-direction: column;
+        font-style: normal;
+        color: #333;
+        gap: 4px;
+    }
+
+    #discussion-panel-messages #messages .outgoing-mess {
+        align-items: end;
+    }
+
+    #discussion-panel-messages #messages .incoming-mess {
+        align-items: start;
+    }
+
+    #discussion-panel-messages #messages .sender {
+        display: flex;
+        font-size: 10px;
+        gap: 8px;
+        align-items: center;
+    }
+
+    #discussion-panel-messages #messages .sender-initials {
+        display: flex;
+        background: #777777;
+        height: 24px;
+        width: 24px;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+        color: #FFFFFF;
+    }
+
+    #discussion-panel-messages #messages .sender-name {
+        font-weight: 700;
+    }
+
+    #discussion-panel-messages #messages .content {
+        border-radius: 15px;
+        padding: 8px 16px;
+    }
+
+    #discussion-panel-messages #messages .outgoing-mess .sender-initials {
+        order: 2;
+    }
+
+    #discussion-panel-messages #messages .outgoing-mess .content {
+        background: rgba(215, 241, 249, 0.60);
+    }
+
+    #discussion-panel-messages #messages .incoming-mess .content {
+        background: rgba(255, 255, 215, 0.60);
+    }
+
+    #peer-message-box {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
         width: 100%;
         border-radius: 12px;
-        padding: 8px;
+        border: 2px solid #C7CDD1;
+        background: #FFFFFF;
+        padding: 8px 16px;
+        margin-top: 10px;
+        gap: 16px;
+    }
+
+    #peer-message-box input {
+        width: 100%;
+        border: none;
+    }
+
+    #async-sendpeermsg {
+        font-size: 24px;
+        cursor: pointer;
+    }
+
+    #async-sendpeermsg.disabled {
+        pointer-events: none;
+        opacity: 0.5;
     }
 
 </style>
-
 <script>
     eBookConfig.peer = true;
     eBookConfig.peerMode = "async";
@@ -61,7 +204,7 @@
         </div>
     {{ pass }}
     {{ if all_done == "false": }}
-        <div id="explanation-panel" class="col-md-6">
+        <!-- <div id="explanation-panel" class="col-md-6">
             <p>
                 Please provide an explanation for why you answered:
                 <span id="current_answer">__</span>
@@ -73,6 +216,52 @@
                 <p id="peerName"></p>
                 <p id="peerJust"></p>
                 <p id="nextStep"></p>
+            </div>
+        </div> -->
+
+        <!-- LLM integration -->
+        <!-- <div id="messages-container">
+            <div id="messages">
+            </div>
+            <div id="message-form">
+                <input type="text" id="message-input" placeholder="Message away!">
+                <button id="send-button">Send</button> -->
+                <!-- <span id="send-button" class="fa-solid fa-circle-arrow-up fa-xl disabled"></span> -->
+            <!-- </div>
+        </div> -->
+
+        <div id="nextStep"></div>
+
+        <div id="discussion_panel" class='col-md-6' style="display: none">
+
+            <div id="discussion-panel-heading">
+                <p class="discussion-panel-heading">Peer Text Chat</p>
+            </div>
+
+            <div id="discussion-panel-peer-votes">
+                <div id="discussion-panel-peer-votes-content">
+                    <p><strong>Here is what everyone answered:</strong></p>
+                    <div id="async-peerlist">
+                        <p>You: <strong><span id="async-user-answer"></span></strong></p>
+                        <p>GPT Peer: <strong><span id="async-gpt-answer"></span></strong></p>
+                    </div>
+                    <p><strong>Please discuss your answers now :)</strong></p>
+                </div>
+            </div>
+
+            <div id="discussion-panel-messages">
+                <ul id="messages" class="conversation"></ul>
+
+                <div id="peer-message-box">
+                    <!-- <textarea id="messageText" rows="6" style="width: 350px;"></textarea> -->
+                    <input type="text" id="async-messageText" placeholder="Type your explanation here...">
+                    <span
+                        id="async-sendpeermsg"
+                        class="bi bi-arrow-up-circle-fill disabled"
+                        aria-label="Send message"
+                    >
+                    </span>
+                </div>
             </div>
         </div>
     {{pass}}
@@ -88,6 +277,7 @@
     </div>
 {{ pass }}
 <script src="/runestone/static/js/peer.js?v={{=request.peer_mtime}}"></script>
+<script type="module" src="/runestone/static/js/async_peer.js"></script>
 <script>
     var user = "{{=auth.user.username}}";
     var currentQuestion = "{{=XML(current_question.name)}}";
@@ -126,6 +316,8 @@
                     let sAnswer = answerToString(currAnswer);
                     console.log(sAnswer);
                     $("#current_answer").html(sAnswer)
+
+                    showPeerEnableVote2();
                 }
             })
         }, 2000)
