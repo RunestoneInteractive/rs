@@ -15,6 +15,7 @@ h2 {
 /* Main wrapper for each matching component */
 [data-component="matching"] {
     margin: 2rem 0;
+    font-family: sans-serif;
 }
 
 .matching-workspace {
@@ -146,4 +147,12 @@ button:hover {
     width: 1px;
     height: 1px;
     overflow: hidden;
+}
+
+.control-div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 1rem;
 }
