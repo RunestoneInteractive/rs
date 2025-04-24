@@ -164,7 +164,12 @@
     background-color: #000;
 }
 .CodeMirror__locked-line {
-    background-color: #f8f8f8;
+    background-color: var(--ac-locked-line-bg);
+}
+
+/* keep after locked-line so this has higher priority */
+.CodeMirror__highlight-line {
+    background-color: var(--ac-highlight-line-bg);
 }
 
 .ac_sql_result {
