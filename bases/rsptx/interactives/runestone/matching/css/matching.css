@@ -38,6 +38,14 @@ h2 {
     padding: 10px;
     position: relative;
     z-index: 1;
+    max-width: 25vw;
+}
+
+
+.left-column img,
+.right-column img {
+    max-width: 25vw;
+    /* Ensure images do not exceed 25% of the viewport width */
 }
 
 .box {
@@ -94,7 +102,7 @@ h2 {
 }
 
 .line.incorrect {
-    stroke: #ccc;
+    stroke: #bf1521;
     stroke-width: 1;
 }
 

@@ -20,7 +20,11 @@ class MatchingProblem extends RunestoneBase {
         this.tempLine = null;
 
         this.init();
-        this.checkServer("matching", true);
+        // This is a hack to ensure that images are loaded before checking the server
+        // and setting up the connections.  
+        setTimeout(() => {
+            this.checkServer("matching", false);
+        }, 300);
     }
 
     init() {
@@ -237,18 +241,33 @@ class MatchingProblem extends RunestoneBase {
         line.setAttribute("x2", x2);
         line.setAttribute("y2", y2);
         line.setAttribute("class", "line");
+        line.setAttribute("tabindex", "0"); // Make the line focusable
+        line.setAttribute("role", "button"); // Add ARIA role for accessibility
+        line.setAttribute("aria-label", "Connection line. Press Delete to remove."); // Add ARIA label
+
 
         line.addEventListener("click", () => {
-            this.svg.removeChild(line);
-            const index = this.connections.findIndex(conn =>
-                (conn.fromBox === line.fromBox && conn.toBox === line.toBox) ||
-                (conn.fromBox === line.toBox && conn.toBox === line.fromBox)
-            );
-            if (index !== -1) this.connections.splice(index, 1);
-            this.updateConnectionModel();
+            this.removeLine(line);
+        });
+
+        line.addEventListener("keydown", (e) => {
+            if (e.key === "Delete" || e.key === "Backspace") {
+                e.preventDefault();
+                this.removeLine(line);
+            }
         });
 
         return line;
+    }
+
+    removeLine(line) {
+        this.svg.removeChild(line);
+        const index = this.connections.findIndex(conn =>
+            (conn.fromBox === line.fromBox && conn.toBox === line.toBox) ||
+            (conn.fromBox === line.toBox && conn.toBox === line.fromBox)
+        );
+        if (index !== -1) this.connections.splice(index, 1);
+        this.updateConnectionModel();
     }
 
     isConnected(a, b) {
@@ -289,7 +308,10 @@ class MatchingProblem extends RunestoneBase {
         this.connList.innerHTML = "<strong>Connections:</strong><br>";
         this.connections.forEach(conn => {
             const fromLabel = conn.fromBox.textContent;
-            const toLabel = conn.toBox.textContent;
+            let toLabel = conn.toBox.textContent;
+            if (!toLabel) {
+                toLabel = conn.toBox.querySelector("img").alt // innerHTML preserves everything inside <label>…</label>       
+            }
             const line = document.createElement('div');
             line.className = 'conn-entry';
             line.textContent = `${fromLabel} → ${toLabel}`;
@@ -430,91 +452,49 @@ class MatchingProblem extends RunestoneBase {
     }
 }
 
-function simplifyJson(json) {
-    const unwrapKeys = new Set(['left', 'right', 'correctAnswers']);
 
-    // all the HTML tag names you expect to see
-    const htmlTags = new Set([
-        'area', 'base', 'br', 'col', 'command', 'embed', 'hr', 'img', 'input', 'keygen',
-        'link', 'meta', 'param', 'source', 'track', 'wbr',
-        'em', 'span', 'p', 'div', 'strong', 'i', 'b', 'u', 'a', 'code', 'pre',
-        'blockquote', 'ol', 'ul', 'li', 'dl', 'dt', 'dd', 'table', 'tr', 'th', 'td',
-        'caption', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
-    ]);
-
-    function formatAttrs(attrs) {
-        if (!attrs || typeof attrs !== 'object') return '';
-        return ' ' + Object.entries(attrs)
-            .map(([k, v]) => `${k}="${v}"`)
-            .join('');
+function xmlToJson(xmlString) {
+    // 1) Parse
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlString, 'application/xml');
+    const err = doc.querySelector('parsererror');
+    if (err) {
+        throw new Error('Error parsing XML: ' + err.textContent);
     }
 
-    function flattenHtml(node) {
-        let out = '';
-        for (const key of Object.keys(node)) {
-            if (key === '_attributes') continue;
-            const val = node[key];
-            if (key === '_text') {
-                out += val;
-            } else if (htmlTags.has(key) && typeof val === 'object') {
-                // recurse into the child
-                const attrs = formatAttrs(val._attributes);
-                const inner = flattenHtml(val);
-                // void vs. normal tags
-                if (['area', 'base', 'br', 'col', 'command', 'embed', 'hr', 'img', 'input',
-                    'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr']
-                    .includes(key)) {
-                    out += `<${key}${attrs} />`;
-                } else {
-                    out += `<${key}${attrs}>${inner}</${key}>`;
-                }
-            }
-        }
-        // put a space where tags butt together
-        return out.replace(/>(?=<)/g, '> ');
+    // 2) Helper to pull [ {id, label}, … ] from a <left> or <right> element
+    function itemsFrom(sectionName) {
+        const section = doc.querySelector(sectionName);
+        if (!section) return [];
+        return Array.from(section.querySelectorAll(':scope > item'))
+            .map(itemEl => {
+                const idEl = itemEl.querySelector('id');
+                const labelEl = itemEl.querySelector('label');
+                return {
+                    id: idEl ? idEl.textContent.trim() : '',
+                    // innerHTML preserves everything inside <label>…</label>
+                    label: labelEl ? labelEl.innerHTML.trim() : ''
+                };
+            });
     }
 
-    function simplifyNode(node) {
-        if (node === null || typeof node !== 'object') {
-            return node;
-        }
-        if (Array.isArray(node)) {
-            return node.map(simplifyNode);
-        }
-
-        const keys = Object.keys(node);
-        // pure text leaf
-        if (keys.length === 1 && keys[0] === '_text') {
-            return node._text;
-        }
-        // detect any HTML tag keys → flatten entire node
-        if (keys.some(k => htmlTags.has(k))) {
-            return flattenHtml(node);
-        }
-        // otherwise, a normal object
-        const out = {};
-        for (const k of keys) {
-            out[k] = simplifyNode(node[k]);
-        }
-        return out;
+    // 3) Build correctAnswers as [ [p, r], [p, r], … ]
+    function correctAnswersFrom() {
+        const container = doc.querySelector('correctAnswers');
+        if (!container) return [];
+        return Array.from(container.querySelectorAll(':scope > item'))
+            .map(pairEl => {
+                return Array.from(pairEl.querySelectorAll(':scope > item'))
+                    .map(child => child.textContent.trim());
+            });
     }
 
-    const result = {};
-    for (const [section, val] of Object.entries(json)) {
-        const simp = simplifyNode(val);
-        if (unwrapKeys.has(section) && simp && simp.item) {
-            if (section === 'correctAnswers') {
-                result[section] = simp.item.map(p =>
-                    Array.isArray(p.item) ? p.item : p
-                );
-            } else {
-                result[section] = simp.item;
-            }
-        } else {
-            result[section] = simp;
-        }
-    }
-    return result;
+    // 4) Return the final shape
+    return {
+        left: itemsFrom('left'),
+        right: itemsFrom('right'),
+        correctAnswers: correctAnswersFrom()
+    };
 }
 
 // Register the component with Runestone 
@@ -526,9 +506,10 @@ document.addEventListener("runestone:login-complete", () => {
             try {
                 if (script.type == 'text/xml') {
                     const xml = script.textContent;
-                    const json = convert.xml2json(xml, { compact: true, spaces: 4 });
-                    boxData = JSON.parse(json);
-                    boxData = simplifyJson(boxData.all);
+                    //const json = convert.xml2json(xml, { compact: true, spaces: 4 });
+                    //boxData = JSON.parse(json);
+                    //boxData = simplifyJson(boxData.all);
+                    boxData = xmlToJson(xml);
                 } else {
                     boxData = JSON.parse(script.textContent);
                 }
