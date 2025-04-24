@@ -8,6 +8,9 @@ class MatchingProblem extends RunestoneBase {
         this.containerDiv = container;
         this.div_id = container.id;
         this.boxData = boxData;
+        this.boxesRenderedPromise = new Promise((resolve) => {
+            this.boxesRenderedResolve = resolve;
+        });
         this.workspace = this.createWorkspace(container);
         this.connList = this.createConnList(container);
         this.ariaLive = this.createAriaLive(container);
@@ -20,11 +23,12 @@ class MatchingProblem extends RunestoneBase {
         this.tempLine = null;
 
         this.init();
-        // This is a hack to ensure that images are loaded before checking the server
-        // and setting up the connections.  
-        setTimeout(() => {
-            this.checkServer("matching", false);
-        }, 300);
+        // ensure that boxes are rendered before checking server
+        // if boxes are not rendered then we may have dangling lines
+        // that are not connected to any boxes
+        this.boxesRenderedPromise.then(() => {
+            this.checkServer("matching", true);
+        });
     }
 
     init() {
@@ -211,6 +215,28 @@ class MatchingProblem extends RunestoneBase {
             const box = this.createBox(id, label, "drop");
             this.rightColumn.appendChild(box);
             this.allBoxes.push(box);
+        });
+
+        const imgs = Array.from(this.workspace.querySelectorAll('img'));
+        if (imgs.length === 0) {
+            this.boxesRenderedResolve();
+        }
+        // Wait for all images to load before resolving the promise
+        const imgPromises = imgs.map(img => {
+            if (typeof img.decode === 'function') {
+                return img.decode();
+            }
+            if (img.complete && img.naturalWidth !== 0) {
+                return Promise.resolve();
+            }
+            return new Promise((resolve) => {
+                img.addEventListener('load', () => resolve());
+                img.addEventListener('error', () => resolve());
+            });
+        });
+
+        Promise.all(imgPromises).then(() => {
+            this.boxesRenderedResolve();
         });
     }
 
