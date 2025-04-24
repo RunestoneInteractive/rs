@@ -1,6 +1,6 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
 import "../css/matching.less";
-
+import convert from "xml-js";
 
 class MatchingProblem extends RunestoneBase {
     constructor(container, boxData) {
@@ -430,12 +430,109 @@ class MatchingProblem extends RunestoneBase {
     }
 }
 
+function simplifyJson(json) {
+    const unwrapKeys = new Set(['left', 'right', 'correctAnswers']);
+
+    // all the HTML tag names you expect to see
+    const htmlTags = new Set([
+        'area', 'base', 'br', 'col', 'command', 'embed', 'hr', 'img', 'input', 'keygen',
+        'link', 'meta', 'param', 'source', 'track', 'wbr',
+        'em', 'span', 'p', 'div', 'strong', 'i', 'b', 'u', 'a', 'code', 'pre',
+        'blockquote', 'ol', 'ul', 'li', 'dl', 'dt', 'dd', 'table', 'tr', 'th', 'td',
+        'caption', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+    ]);
+
+    function formatAttrs(attrs) {
+        if (!attrs || typeof attrs !== 'object') return '';
+        return ' ' + Object.entries(attrs)
+            .map(([k, v]) => `${k}="${v}"`)
+            .join('');
+    }
+
+    function flattenHtml(node) {
+        let out = '';
+        for (const key of Object.keys(node)) {
+            if (key === '_attributes') continue;
+            const val = node[key];
+            if (key === '_text') {
+                out += val;
+            } else if (htmlTags.has(key) && typeof val === 'object') {
+                // recurse into the child
+                const attrs = formatAttrs(val._attributes);
+                const inner = flattenHtml(val);
+                // void vs. normal tags
+                if (['area', 'base', 'br', 'col', 'command', 'embed', 'hr', 'img', 'input',
+                    'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr']
+                    .includes(key)) {
+                    out += `<${key}${attrs} />`;
+                } else {
+                    out += `<${key}${attrs}>${inner}</${key}>`;
+                }
+            }
+        }
+        // put a space where tags butt together
+        return out.replace(/>(?=<)/g, '> ');
+    }
+
+    function simplifyNode(node) {
+        if (node === null || typeof node !== 'object') {
+            return node;
+        }
+        if (Array.isArray(node)) {
+            return node.map(simplifyNode);
+        }
+
+        const keys = Object.keys(node);
+        // pure text leaf
+        if (keys.length === 1 && keys[0] === '_text') {
+            return node._text;
+        }
+        // detect any HTML tag keys → flatten entire node
+        if (keys.some(k => htmlTags.has(k))) {
+            return flattenHtml(node);
+        }
+        // otherwise, a normal object
+        const out = {};
+        for (const k of keys) {
+            out[k] = simplifyNode(node[k]);
+        }
+        return out;
+    }
+
+    const result = {};
+    for (const [section, val] of Object.entries(json)) {
+        const simp = simplifyNode(val);
+        if (unwrapKeys.has(section) && simp && simp.item) {
+            if (section === 'correctAnswers') {
+                result[section] = simp.item.map(p =>
+                    Array.isArray(p.item) ? p.item : p
+                );
+            } else {
+                result[section] = simp.item;
+            }
+        } else {
+            result[section] = simp;
+        }
+    }
+    return result;
+}
+
+// Register the component with Runestone 
 document.addEventListener("runestone:login-complete", () => {
     document.querySelectorAll('[data-component="matching"]').forEach(container => {
-        const script = container.querySelector('script[type="application/json"]');
+        const script = container.querySelector('script');
         if (script) {
+            let boxData;
             try {
-                const boxData = JSON.parse(script.textContent);
+                if (script.type == 'text/xml') {
+                    const xml = script.textContent;
+                    const json = convert.xml2json(xml, { compact: true, spaces: 4 });
+                    boxData = JSON.parse(json);
+                    boxData = simplifyJson(boxData.all);
+                } else {
+                    boxData = JSON.parse(script.textContent);
+                }
+
                 window.componentMap[container.id] = new MatchingProblem(container, boxData);
             } catch (err) {
                 console.error("Failed to parse boxData JSON:", err);
