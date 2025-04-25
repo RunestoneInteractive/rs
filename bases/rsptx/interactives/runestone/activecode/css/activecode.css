@@ -72,7 +72,7 @@
 .ac_output {
     margin-top: 10px;
     margin-bottom: -10px;
-    display: none;
+    visibility: hidden;
     background-color: inherit;
 }
 
@@ -140,6 +140,43 @@
 .CodeMirror {
     border: solid 2px;
     margin-bottom: 10px;
+    max-width: 100%;
+    min-width: 30em;
+    min-height: 100px;
+    /* best way to control height is let CodeMirror-scroll do it */
+    height: auto;
+}
+
+.CodeMirror-scroll {
+    /* calculated height is designed so editor panel
+     * will fit on screen (with space for navbar and
+     * controls). user should not have to scroll both
+     * page and editor panel. */
+    max-height: calc(100vh - 180px);
+}
+
+/* decorate locked lines that do not have lock marker */
+.CodeMirror__locked-line .CodeMirror-gutter-wrapper:not(:has(.CodeMirror__gutter-locked-marker)):before {
+    content:" ";
+    display: block;
+    width: 2px;
+    height: 1lh;
+    right: -9px;
+    position: relative;
+    background-color: #888;
+    float: left;
+}
+.CodeMirror__gutter-locked-marker {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='16px' viewBox='0 -960 960 960' width='16px' fill='%23currentColor'%3E%3Cpath d='M263.72-96Q234-96 213-117.15T192-168v-384q0-29.7 21.15-50.85Q234.3-624 264-624h24v-96q0-79.68 56.23-135.84 56.22-56.16 136-56.16Q560-912 616-855.84q56 56.16 56 135.84v96h24q29.7 0 50.85 21.15Q768-581.7 768-552v384q0 29.7-21.16 50.85Q725.68-96 695.96-96H263.72Zm.28-72h432v-384H264v384Zm216.21-120Q510-288 531-309.21t21-51Q552-390 530.79-411t-51-21Q450-432 429-410.79t-21 51Q408-330 429.21-309t51 21ZM360-624h240v-96q0-50-35-85t-85-35q-50 0-85 35t-35 85v96Zm-96 456v-384 384Z'/%3E%3C/svg%3E");
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: 16px 16px;
+    height: 20px;
+    width: 20px;
+    background-color: #000;
+}
+.CodeMirror__locked-line {
+    background-color: #f8f8f8;
 }
 
 .ac_sql_result {

@@ -391,21 +391,10 @@ div.container {
 }
 
 /* end navbar and menu related styles */
-
 .CodeMirror {
     margin: 0 0 1em 0;
     background-color: var(--background);
-    height: auto;
     clear: both;
-}
-
-.CodeMirror-scroll {
-    /* this allows CM elements to be resized to (almost) any
-     * height while still relying on max-height (which keeps
-     * the CM editors to no more than the size needed
-     * unless resized) */
-    max-height: 60em;
-    min-width: 30em;
 }
 
 .ac_section .CodeMirror pre {

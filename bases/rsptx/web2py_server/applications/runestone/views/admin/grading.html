@@ -22,24 +22,41 @@
 
       <div>
         <select required onchange="selectChapOrAssignment();" id="gradingoption1" class="form-control" style="margin-bottom: 10px;">
+                  {{if selected_assignment:}}
+                  <option value="" disabled>Select: Chapter or Assignment</option>
+                  <option value="assignment" selected>assignment</option>
+                  {{else:}}
                   <option value="" disabled selected>Select: Chapter or Assignment</option>
-                  <option value="chapter">chapter</option>
                   <option value="assignment">assignment</option>
+                  {{pass}}
+                  <option value="chapter">chapter</option>
         </select>
-
         <select onchange="updateQuestionList();" class="form-control" id="chaporassignselector" style="display:none;"></select>
-        <span id="releasestate" style="color: red;"></span>
-        <button id="releasebutton" style="text-align: center; visibility: hidden;" class="btn btn-primary btn-sm" onclick="toggle_release_grades();">Release Grades</button>
+
       </div>
 
       <div>
-        <h3>Questions</h3>
+        <label for="enforceDeadline">Only See/check work submitted before</label>
+        <input id="enforceDeadline" 
+          type="checkbox" 
+          name="enforceDeadline" 
+          value="enforceDeadline" 
+          class="big-checkbox" 
+          onchange="gradeSelectedStudent();"
+          checked />
+        <div id="dl_disp">the deadline</div>
+        <label for="show_manual">Show student responses for manual grading</label>
+        <input id="show_manual_grading" type="checkbox" checked class="big-checkbox" onchange="maybeHideManual()">
+      </div>
+
+      <div>
+        <h3>Select Questions</h3>
         <select multiple onchange="gradeSelectedStudent();" class="form-control" id="questionselector" style="display: none;"></select>
         <span class="allcbclass"><input type="checkbox" id="allquestioncb" /><label for="allquestioncb">Select All</label></span>
       </div>
 
       <div>
-        <h3>Students</h3>
+        <h3>Select Students</h3>
         <select multiple onchange="gradeIndividualItem();" class="form-control" id="studentselector" style="display: none;"></select>
         <span class="allcbclass">
           <input type="checkbox" id="allstudentcb" />
@@ -53,24 +70,17 @@
 
       <div id="autogradingform" style="text-align: center; visibility: hidden;">
         <form>
-          <fieldset>
-            <input id="enforceDeadline" type="checkbox" name="enforceDeadline" value="enforceDeadline" class="big-checkbox" checked />
-            <label for="enforceDeadline">Only check work submitted before</label>
-            <span id="dl_disp"></span>
-          </fieldset>
-          <input id="autogradesubmit" type="submit" class="btn btn-primary" value="Autograde and Display Totals" />
+          <input id="autogradesubmit" type="submit" class="btn btn-primary" value="Score Questions and Update Totals" />
           <!--<button id="autogradebutton"  class="list-group-item" onclick="function(event){event.preventDefault(); autoGrade(event);}">Autograde</button>-->
         </form>
-        <strong>Warning</strong> Autograde does not support multiple selections yet.
+
       </div>
 
       <div>
         <div id="gradingprogresstitle"></div>
         <div id="autogradingprogress" style="max-height: 100px; overflow: auto;"></div>
-        <div id="gradingsummarytitle"></div>
-        <div id="autogradingsummary"></div>
       </div>
-    <div id="assignmentTotalform" style="text-align: center; visibility: hidden; background-color: rgba(219,103,14,.71); margin: 10px; padding: 5px; border-radius: 10px;">
+    <div id="assignmentTotalform" style="text-align: center; display: none; background-color: rgba(219,103,14,.71); margin: 10px; padding: 5px; border-radius: 10px;">
         <strong>Override student score for whole assignment.</strong>
         <form>
           <label for="computed-total-score">computed score</label>
@@ -103,6 +113,7 @@
               Mode will let you look at and/or grade any exercise by any student in
               the chapter you will choose in step 2.  Assignment mode lets you grade
               the exercises for an assignment you have created.</li>
+              <li>Choose whether or not you want to grade work submitted after the deadline</li>
               <li>Select the Chapter or Assignment</li>
               <li>Select the question(s) you want to grade (or Select All)</li>
               <li>Select the student(s) you want to grade (or Select All)</li>
@@ -113,12 +124,14 @@
             or more students to check their work.  This is also useful if a student has a
             question and you want to review what they have done so far.</p>
 
-            <p>To <strong>Autograde</strong> you typically will <strong>only</strong> select an assignment
-            and click the autograde button. If you need to "touch up" some grades for a
-            particular student with special circumstances, you can select that student and
-            regrade the whole assignment. You can autograde just one exercise for one
-            student by selecting a question and student. You can click on Autograde at any
-            point.</p>
+            <p>Scoring:  When a student clicks submit on a problem 
+            we grade it right away and store their correctness.  This gives you great flexibility
+            to later score the assignment based on their first/last or best answer.  It is best to 
+            make your explanations clear up front, but this gives you a lot of flexibility to go back 
+            later and allow for the students best score.</p>
+            <p>To <strong>Score Questions</strong> you can just press the button to score all students 
+            and all problems, or you can select any combination of students and problems if you have
+            updated one or more problems, or if you want to exempt a student from the deadline.</p>
 
           <p>
             Note 1:  All the dropdowns Assignments/Chapters, Questions and Students are searchable.
@@ -134,12 +147,22 @@
       </div>
     </div>
   </div>
-
+  <div class="row col-xs-12" >
+    <div id="gradingsummarytitle"></div>
+    <div id="autogradingsummary"></div>
+  </div>
+  <div id="additional_grading_actions" style="visibility: hidden; margin-top: 10px;">
+      <h3>Additional Actions</h3>
+    <span id="releasestate" style="color: red;"></span>
+    <button id="releasebutton" style="text-align: center; visibility: hidden;" class="btn btn-primary btn-sm" onclick="toggle_release_grades();">Release Grades</button>
+    <button class="btn btn-info" type="button" onclick="downloadSubmissions()">Download submissions</button>
+  </div>
   <div class="row assigment_table_buttons" style="display: none">
     <div class="col-xs-12">
       <button class="btn btn-primary" type="button" onclick="$('#assignment_table_all').css('visibility', 'visible')">
-        Assignment table (beta)
+        Assignment table (Deprecated)
       </button>
+      <p>This will go away summer of 2025</p>
       <script src="../static/js/assignment_table.js"></script>
       <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet">
       <script src="../static/js/select2.multi-checkboxes.js"></script>
@@ -345,5 +368,24 @@ $("#allstudentcb").click(function(){
 });
 
 </script>
+
+<!-- If selected_assignment is provided then go to it. -->
+{{if selected_assignment: }}
+<script>
+selectChapOrAssignment()
+// if there is a query string containing the assignment id then selectChapOrAssignment
+// will set the selected assignment to the one in the query string
+let y = document.getElementById("chaporassignselector");
+// Now do the normal stuff that would happen if the user selected the assignment
+y.dispatchEvent(new Event('change'))
+// After 2 seconds remove the query string from the URL so that the user can
+// select a different assignment without the query string being added to the URL.
+setTimeout(() => {
+  window.history.replaceState({},document.title, window.location.pathname);
+}, 2000);
+
+</script>
+{{pass}}
+
 
 {{ end }}

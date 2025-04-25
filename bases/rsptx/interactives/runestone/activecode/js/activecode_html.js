@@ -13,7 +13,7 @@ export default class HTMLActiveCode extends ActiveCode {
         let saveCode = "True";
         this.saveCode = await this.manage_scrubber(saveCode);
         $(this.output).text("");
-        $(this.outDiv).show({ duration: 700, queue: false });
+        this.outDiv.style.visibility = "visible";
         prog =
             "<script type=text/javascript>window.onerror = function(msg,url,line) {alert(msg+' on line: '+line);};</script>" +
             prog;

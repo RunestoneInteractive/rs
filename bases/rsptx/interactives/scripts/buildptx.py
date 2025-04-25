@@ -6,6 +6,8 @@ import os
 import subprocess
 import sys
 import pathlib
+import fnmatch
+
 from rsptx.build_tools.core import _build_ptx_book
 import click
 
@@ -25,15 +27,20 @@ class Config:
 
 @click.command()
 @click.option("--target", default="runestone", help="The target to build for")
+@click.option("--clean", is_flag=True, default=False, help="Clean the build directory before building")
 @click.argument("bookname")
-def build_book(target, bookname):
+def build_book(target, clean, bookname):
     p = pathlib.Path.cwd()
+
+    if clean:
+        if (p / "published" / bookname / "_static").exists():
+            print(f"Cleaning {bookname}")
+            remove_unmatched(p / "published" / bookname / "_static", ["pretext"])
 
     print(f"Building target: {target}")
 
     if (p / "project.ptx").exists():  # we are in a pretext project
-        print(f"Building {sys.argv[1]} in place")
-        bookname = sys.argv[1]
+        print(f"Building {bookname} in place")
     else:
         print("You must either name a book or be in the book's folder")
         exit(-1)
@@ -61,3 +68,49 @@ def build_book(target, bookname):
 
 if __name__ == "__main__":
     build_book()
+
+
+
+def remove_unmatched(path, patterns, verbose=False):
+    """
+    Recursively remove files and directories under the given path that do NOT match
+    any of the given glob patterns. Directories that match a pattern are preserved along
+    with their contents.
+    
+    Args:
+        path (str): The directory path whose contents will be processed.
+        patterns (list of str): List of glob patterns (e.g., ['*.txt', 'keep_dir']) that should be kept.
+        verbose (bool): If True, print detailed information about removed files and directories.
+    """
+    # If path is not a directory, handle it as a file.
+    if os.path.isfile(path):
+        if not any(fnmatch.fnmatch(os.path.basename(path), pat) for pat in patterns):
+            print(f"Removing file: {path}")
+            os.remove(path)
+        return
+
+    # List all items in the directory.
+    for entry in os.listdir(path):
+        full_entry = os.path.join(path, entry)
+        # Determine if the entry matches any pattern.
+        entry_matches = any(fnmatch.fnmatch(entry, pat) for pat in patterns)
+        
+        if os.path.isdir(full_entry):
+            if entry_matches:
+                # Directory matches a pattern: leave it and its contents untouched.
+                print(f"Keeping directory (matches pattern): {full_entry}")
+                continue
+            else:
+                # Recurse into the directory.
+                remove_unmatched(full_entry, patterns)
+                # After processing, remove the directory if it is now empty.
+                if not os.listdir(full_entry):
+                    print(f"Removing empty directory: {full_entry}")
+                    os.rmdir(full_entry)
+        else:
+            # For files, remove if no pattern matches.
+            if not entry_matches:
+                if verbose:
+                    print(f"Removing file: {full_entry}") 
+                os.remove(full_entry)
+

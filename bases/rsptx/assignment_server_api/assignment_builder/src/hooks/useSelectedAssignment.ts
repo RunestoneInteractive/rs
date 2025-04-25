@@ -6,6 +6,8 @@ import {
 import { useCallback, useRef } from "react";
 import { useSelector } from "react-redux";
 
+import { Assignment } from "@/types/assignment";
+
 export const useSelectedAssignment = () => {
   const selectedAssignmentId = useSelector(assignmentSelectors.getSelectedAssignmentId);
   const { data: selectedAssignment } = useGetAssignmentQuery(selectedAssignmentId as number, {
@@ -15,30 +17,28 @@ export const useSelectedAssignment = () => {
 
   const selectedAssignmentRef = useRef(selectedAssignment);
   const selectedAssignmentIdRef = useRef(selectedAssignmentId);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   selectedAssignmentRef.current = selectedAssignment;
   selectedAssignmentIdRef.current = selectedAssignmentId;
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateAssignment = useCallback(
-    (() => {
-      let timeoutId: NodeJS.Timeout | null = null;
+    (updateData: Partial<Assignment>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
 
-      return (updateData: any) => {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
+      timeoutRef.current = setTimeout(() => {
+        if (selectedAssignmentIdRef.current && selectedAssignmentRef.current) {
+          const updatedAssignment = {
+            ...selectedAssignmentRef.current,
+            ...updateData
+          };
+
+          putAssignment(updatedAssignment);
         }
-
-        timeoutId = setTimeout(() => {
-          if (selectedAssignmentIdRef.current) {
-            putAssignment({
-              id: selectedAssignmentIdRef.current,
-              ...updateData
-            });
-          }
-        }, 500);
-      };
-    })(),
+      }, 500);
+    },
     [putAssignment]
   );
 

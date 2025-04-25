@@ -147,6 +147,8 @@ export default class Timed extends RunestoneBase {
         this.renderContainer();
         this.renderTimer();
         await this.renderControlButtons();
+        // If we decide to disable cut/copy/paste, uncomment the line below        
+        // this.disableCutCopyPaste();
         this.containerDiv.appendChild(this.timedDiv); // This can't be appended in renderContainer because then it renders above the timer and control buttons.
         if (this.renderedQuestionArray.length > 1) this.renderNavControls();
         this.renderSubmitButton();
@@ -157,6 +159,18 @@ export default class Timed extends RunestoneBase {
         // check if already taken and if so show results
         this.styleExamElements(); // rename to renderPossibleResults
         this.checkServer("timedExam", true);
+    }
+
+    disableCutCopyPaste() {
+        document.addEventListener("cut", function(e) {
+            e.preventDefault();
+        });
+        document.addEventListener("copy", function(e) {
+            e.preventDefault();
+        });
+        document.addEventListener("paste", function(e) {
+            e.preventDefault();
+        });
     }
 
     renderContainer() {

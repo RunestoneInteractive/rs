@@ -278,8 +278,21 @@ def build_ptx_book(self, book, generate=False, target="runestone", source_path=N
     logger.debug(f"base_path = {base_path}")
     outputlog = pathlib.Path(base_path, "cli.log")
     start_time = datetime.datetime.now()
-    with open(outputlog, "w") as olfile:
-        olfile.write(f"Starting build on {start_time}\n")
+    try:
+        with open(outputlog, "w") as olfile:
+            olfile.write(f"Starting build on {start_time}\n")
+    except Exception as e:
+        logger.error(f"Failed to write to log file: {str(e)}")
+        logger.error(f"Absolute path to log file: {outputlog.absolute()}")
+        self.update_state(
+            state="FAILURE",
+            meta={
+                "exc_type": "RuntimeError",
+                "exc_message": str(e),
+                "current": "Failed to write to log file",
+            },
+        )
+        return False
     self.update_state(state="CHECKING", meta={"current": "pull latest"})
     git_pull(self, book)
 
@@ -329,6 +342,16 @@ def deploy_book(self, book):
     numServers = int(os.environ["NUM_SERVERS"].strip())
 
     for i in range(1, numServers + 1):
+        command = f"ssh -oStrictHostKeyChecking=no {user}@server{i} 'mkdir -p ~/books/{book}/published{book}'"
+        res = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+        )
+        if res.returncode != 0:
+            logger.debug(res.stdout)
+            logger.debug(res.stderr)
+            return False
         command = f"rsync -e 'ssh -oStrictHostKeyChecking=no'  --exclude '__pycache__' -P -rzc /books/{book}/published/{book} {user}@server{i}:~/books/{book}/published --copy-links --delete"
         logger.debug(command)
         self.update_state(state="DEPLOYING", meta={"current": f"server{i}"})

@@ -309,6 +309,8 @@ export default class FITB extends RunestoneBase {
     renderFITBFeedbackDiv() {
         this.feedBackDiv = document.createElement("div");
         this.feedBackDiv.id = this.divid + "_feedback";
+        this.feedBackDiv.setAttribute("aria-live", "polite");
+        this.feedBackDiv.setAttribute("role", "alert");
         this.containerDiv.appendChild(document.createElement("br"));
         this.containerDiv.appendChild(this.feedBackDiv);
     }

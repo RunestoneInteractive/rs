@@ -168,9 +168,9 @@ group by chapter, name""",
     for row in res:
         # do not construct links for unsupported questions
         if row["question_type"] not in unsupported_question_types and row["count"] > 0:
-            row[
-                "name"
-            ] = f"""<a href="/runestone/dashboard/exercisemetrics?id={row['name']}&chapter={row['chapter']}">{row['name']}</a>"""
+            row["name"] = (
+                f"""<a href="/runestone/dashboard/exercisemetrics?id={row['name']}&chapter={row['chapter']}">{row['name']}</a>"""
+            )
 
     return json.dumps(res)
 
@@ -217,13 +217,13 @@ def _autograde(
         )
         return {
             "success": True,
-            "message": "autograded {} items".format(count),
+            "message": "scored {} items".format(count),
             "count": count,
         }
     else:
         return {
             "success": False,
-            "message": "Select an assignment before trying to autograde.",
+            "message": "Select an assignment before trying to score it.",
         }
 
 
@@ -266,7 +266,7 @@ def student_autograde():
 
     if not res["success"]:
         session.flash = (
-            "Failed to autograde questions for user id {} for assignment {}".format(
+            "Failed to score questions for user id {} for assignment {}".format(
                 auth.user.id, assignment_id
             )
         )
@@ -296,23 +296,97 @@ def autograde():
     ### This endpoint is hit to autograde one or all students or questions for an assignment
     sid = request.vars.get("sid", None)
     question_name = request.vars.get("question", None)
+    if ":::" in question_name:
+        questions_to_grade = question_name.split(":::")
+    else:
+        questions_to_grade = [question_name]
+    logger.debug(f"questions_to_grade = {questions_to_grade}")
     enforce_deadline = request.vars.get("enforceDeadline", None)
     assignment_name = request.vars.assignment
     timezoneoffset = session.timezoneoffset if "timezoneoffset" in session else None
-    res = _autograde(
-        sid=sid,
-        question_name=question_name,
-        enforce_deadline=enforce_deadline,
-        assignment_name=assignment_name,
-        timezoneoffset=timezoneoffset,
-    )
+    for question_name in questions_to_grade:
+        res = _autograde(
+            sid=sid,
+            question_name=question_name,
+            enforce_deadline=enforce_deadline,
+            assignment_name=assignment_name,
+            timezoneoffset=timezoneoffset,
+        )
+    res["message"] = f"scored {len(questions_to_grade)} items"
     tres = _calculate_totals(sid=sid, assignment_name=assignment_name)
     if "computed_score" in tres:
         res["total_mess"] = tres["computed_score"]
     else:
         res["total_mess"] = tres["message"]
 
+    try:
+        if sid:
+            if pass_grade_to_lti(sid, assignment_name):
+                logger.info(f"Grade passed successfully for {sid} in {assignment_name}")
+    except Exception as e:
+        logger.error(f"Error passing grade to LTI for {sid} in {assignment_name}: {e}")
+        traceback.print_exc()
+
     return json.dumps(res)
+
+
+def pass_grade_to_lti(sid, assignment_name):
+    # if this assignment has an LMS counterpart then send the grade to the LMS
+
+    # First check to see if the course uses LTI
+    # We order by the id and get the last one to ensure we get the most recent entry
+    # in case there are multiple entries for the same course
+    lti_map = (
+        db(db.course_lti_map.course_id == auth.user.course_id)
+        .select(orderby=db.course_lti_map.id)
+        .last()
+    )
+    if not lti_map:
+        return False
+
+    # Now gather the information needed to submit a grade
+    student = db(db.auth_user.username == sid).select().first()
+
+    assignment = (
+        db(
+            (db.assignments.name == assignment_name)
+            & (db.assignments.course == auth.user.course_id)
+        )
+        .select()
+        .first()
+    )
+
+    grade = (
+        db(
+            (db.grades.auth_user == student.id)
+            & (db.grades.assignment == assignment.id)
+        )
+        .select()
+        .first()
+    )
+    if not grade:
+        logger.warning(f"No grade found for {sid} in {assignment_name}")
+        return False
+
+    lti_record = db(db.lti_keys.id == lti_map.lti_id).select().first()
+    if not lti_record:
+        return False
+
+    # Only send the grade if we have a valid LTI record and the grade is set
+    # and the outcome URL is set
+    if grade and grade.lis_result_sourcedid and grade.lis_outcome_url:
+        logger.info(f"Passing grade for {sid} in {assignment_name} score {grade.score}")
+        send_lti_grade(
+            assignment.points,
+            score=grade.score,
+            consumer=lti_record.consumer,
+            secret=lti_record.secret,
+            outcome_url=grade.lis_outcome_url,
+            result_sourcedid=grade.lis_result_sourcedid,
+        )
+        return True
+
+    return False
 
 
 @auth.requires(
@@ -1380,7 +1454,7 @@ def practice():
         interleaving=interleaving,
         flashcard_creation_method=flashcard_creation_method,
         feedback_saved=feedback_saved,
-        day_points=day_points
+        day_points=day_points,
     )
 
 
@@ -1398,9 +1472,9 @@ def like_dislike():
             course_name=course_name,
             like_practice=likeVal,
             response_time=datetime.datetime.utcnow(),
-            timezoneoffset=float(session.timezoneoffset)
-            if "timezoneoffset" in session
-            else 0,
+            timezoneoffset=(
+                float(session.timezoneoffset) if "timezoneoffset" in session else 0
+            ),
         )
         redirect(URL("practice"))
     session.flash = "Sorry, your request was not saved. Please login and try again."
@@ -1421,9 +1495,9 @@ def practice_feedback():
             course_name=course_name,
             feedback=feedback,
             response_time=datetime.datetime.utcnow(),
-            timezoneoffset=float(session.timezoneoffset)
-            if "timezoneoffset" in session
-            else 0,
+            timezoneoffset=(
+                float(session.timezoneoffset) if "timezoneoffset" in session else 0
+            ),
         )
         redirect(URL("practice", vars=dict(feedback_saved=1)))
     session.flash = "Sorry, your request was not saved. Please login and try again."

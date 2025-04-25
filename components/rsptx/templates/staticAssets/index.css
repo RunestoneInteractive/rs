@@ -30,7 +30,6 @@
     background-color: #f3f3f3;
     color: rgb(3, 2, 2);
     width: 45em;
-    height: 5em;
     line-height: 3em;
     text-align: left;
     border: 2px solid rgb(36, 35, 35);
@@ -46,11 +45,6 @@
     margin-bottom: 10px;
 }
 
-.book_descript {}
-
-.book_descript:hover {
-    height: unset;
-}
 
 .link1 {
     position: absolute;
