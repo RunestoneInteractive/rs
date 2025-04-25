@@ -137,7 +137,6 @@ pyhumps = "^3.8.0"
 pydal = "^20230521.1"
 pydantic-settings = "^2.0.3"
 jupyterlite-sphinx = "^0.9.3"
-openai = "^1.75.0"
 [tool.poetry.dev-dependencies]
 selenium = ">=2.53.6, <4.0.0"
 pyvirtualdisplay = "~3"
