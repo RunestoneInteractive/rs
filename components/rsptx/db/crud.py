@@ -934,24 +934,29 @@ async def create_code_entry(data: CodeValidator) -> CodeValidator:
     return CodeValidator.from_orm(new_code)
 
 
-async def fetch_code(sid: str, acid: str, course_id: int) -> List[CodeValidator]:
+async def fetch_code(sid: str, acid: str, course_id: int, limit: int = 0) -> List[CodeValidator]:
     """
-    Retrieve a list of code entries for the given student id (sid), assignment id (acid), and course id (course_id).
+    Retrieve a list of the most recent code entries for the given student id (sid), assignment id (acid), and course id (course_id).
 
     :param sid: str, the id of the student
     :param acid: str, the id of the assignment
     :param course_id: int, the id of the course
+    :param limit: int, the maximum number of code entries to retrieve (0 for all)
     :return: List[CodeValidator], a list of CodeValidator objects representing the code entries
     """
     query = (
         select(Code)
         .where((Code.sid == sid) & (Code.acid == acid) & (Code.course_id == course_id))
-        .order_by(Code.id)
+        .order_by(Code.id.desc())
     )
+    if limit > 0:
+        query = query.limit(limit)
     async with async_session() as session:
         res = await session.execute(query)
 
         code_list = [CodeValidator.from_orm(x) for x in res.scalars().fetchall()]
+        # We retrieved most recent first, but want to return results in chronological order
+        code_list.reverse()
         return code_list
 
 
@@ -3263,23 +3268,71 @@ async def fetch_last_useinfo_peergroup(course_name: str) -> List[Useinfo]:
         return results.scalars().all()
 
 
-async def fetch_source_code(
-    acid: str, base_course: str, course_name: str
-) -> SourceCodeValidator:
+async def update_source_code(
+    acid: str,
+    filename: str,
+    course_id: str,
+    main_code: str
+):
     """
-    Fetch the source code for a given acid.
-
-    :param acid: str, the acid of the source code
-    :return: SourceCodeValidator, the SourceCodeValidator object
+    Update the source code for a given acid or filename
     """
     query = select(SourceCode).where(
         and_(
             SourceCode.acid == acid,
-            or_(
-                SourceCode.course_id == base_course, SourceCode.course_id == course_name
-            ),
+            SourceCode.course_id == course_id,
         )
     )
+    async with async_session() as session:
+        res = await session.execute(query)
+        source_code_obj = res.scalars().first()
+        if source_code_obj:
+            source_code_obj.main_code = main_code
+            source_code_obj.filename = filename
+            session.add(source_code_obj)
+        else:
+            new_entry = SourceCode(
+                acid=acid,
+                filename=filename,
+                course_id=course_id,
+                main_code=main_code,
+            )
+            session.add(new_entry)
+        await session.commit()
+
+async def fetch_source_code(
+    base_course: str, course_name: str, acid: str = None, filename: str = None
+) -> SourceCodeValidator:
+    """
+    Fetch the source code for a given acid or filename
+
+    Note that filenames are not guaranteed to be unique within a course, so
+    acid is the preferred lookup method.
+
+    :param acid: str, the acid of the source code
+    :return: SourceCodeValidator, the SourceCodeValidator object
+    """
+    if acid is None and filename is None:
+        return None
+    
+    elif acid is None:
+        query = select(SourceCode).where(
+            and_(
+                SourceCode.filename == filename,
+                or_(
+                    SourceCode.course_id == base_course, SourceCode.course_id == course_name
+                ),
+            )
+        )
+    else:
+        query = select(SourceCode).where(
+            and_(
+                SourceCode.acid == acid,
+                or_(
+                    SourceCode.course_id == base_course, SourceCode.course_id == course_name
+                ),
+            )
+        )
     async with async_session() as session:
         res = await session.execute(query)
         return SourceCodeValidator.from_orm(res.scalars().first())
