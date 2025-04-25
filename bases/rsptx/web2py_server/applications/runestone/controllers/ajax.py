@@ -1510,7 +1510,7 @@ def get_datafile():
     course = request.vars.course_id  # the course name
     the_course = db(db.courses.course_name == course).select(**SELECT_CACHE).first()
     acid = request.vars.acid
-    file_contents = (
+    datafile = (
         db(
             (db.source_code.acid == acid)
             & (
@@ -1518,16 +1518,18 @@ def get_datafile():
                 | (db.source_code.course_id == course)
             )
         )
-        .select(db.source_code.main_code)
+        .select(db.source_code)
         .first()
     )
 
-    if file_contents:
-        file_contents = file_contents.main_code
+    if datafile:
+        file_name = datafile.filename
+        file_contents = datafile.main_code
     else:
+        file_name = ""
         file_contents = None
 
-    return json.dumps(dict(data=file_contents))
+    return json.dumps(dict(data=file_contents, filename=file_name))
 
 
 @auth.requires(

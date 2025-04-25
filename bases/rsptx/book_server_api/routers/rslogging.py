@@ -580,26 +580,62 @@ async def update_reading_score(request: Request, data: ReadingAssignmentSpec):
 async def get_datafile(
     request: Request,
     course_id: str,
-    acid: str,
+    acid: str=None,
     response_class=JSONResponse,
 ):
     """
-    Get the source code for a given resource id (acid) in a given course.
-    Normally these are datafiles that are stored here.
+    Old API to get something from source_code table. Remove someday.
+    For now, just pass on to new API. It used filename as acid, hence remap below.
+    """
+    result = await get_source_code(
+        request=request,
+        course_id=course_id,
+        filename=acid,
+        response_class=response_class,
+    )
+    return result
+
+@router.get("/get_source_code")
+async def get_source_code(
+    request: Request,
+    course_id: str,
+    acid: str=None,
+    filename: str=None,
+    response_class=JSONResponse,
+):
+    """
+    Get the source code for a given resource id (acid) or filename.
+    source code table stores both datafiles and initial code for programs.
+
+    Note that filenames are not guaranteed to be unique within a course, so
+    acid is the preferred lookup method.
 
     This API does not require a user to be logged in.
 
-    returns: JSONResponse - file contents
+    returns: JSONResponse - detail: file contents, filename: file name
     """
     course = await fetch_course(course_id)
 
-    file_contents = await fetch_source_code(
-        acid, course.base_course, course.course_name
+    rslogger.debug(f"get_source_code: -{acid}-{filename}-")
+
+    db_result = await fetch_source_code(
+        base_course=course.base_course,
+        course_name=course.course_name,
+        acid=acid,
+        filename=filename
     )
 
-    if file_contents:
-        file_contents = file_contents.main_code
+    if db_result:
+        # Found data, unpack desired fields
+        file_contents = db_result.main_code
+        filename = db_result.filename
     else:
         file_contents = None
 
-    return make_json_response(detail=file_contents)
+    response_bundle = {
+        "filename": filename,
+        "file_contents": file_contents,
+    }
+    import pprint
+    rslogger.debug(f"get_source_code: {pprint.pformat(response_bundle)}")
+    return make_json_response(detail=response_bundle)
