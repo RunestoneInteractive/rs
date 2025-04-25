@@ -1,0 +1,25 @@
+.typeCard {
+  transition: all 0.2s ease;
+  border: 2px solid var(--surface-200);
+  box-shadow: var(--card-shadow);
+}
+
+.typeCard > div {
+  padding: 0.75rem !important;
+}
+
+.typeCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: var(--surface-border);
+}
+
+.typeCard.selected {
+  border-color: var(--primary-color);
+  background-color: var(--primary-50);
+}
+
+.typeCard.selected:hover {
+  transform: none;
+  box-shadow: var(--card-shadow);
+} 

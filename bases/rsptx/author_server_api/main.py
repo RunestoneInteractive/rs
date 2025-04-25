@@ -181,6 +181,11 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
         else:
             ready_files = []
         course = await fetch_course(user.course_name)
+        server_config = os.environ.get("SERVER_CONFIG", "dev")
+        if server_config == "production":
+            host = "https://" + os.environ.get("LOAD_BALANCER_HOST", "runestone.academy")
+        else:
+            host = ""
         logger.debug(f"{ready_files=}")
         return templates.TemplateResponse(
             "author/logfiles.html",
@@ -189,6 +194,8 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
                 ready_files=ready_files,
                 course=course,
                 username=user.username,
+                server_config=server_config,
+                host=host,
             ),
         )
     else:
@@ -439,10 +446,14 @@ async def check_db(payload=Body(...)):
 async def new_course(payload=Body(...), user=Depends(auth_manager)):
     base_course = payload["bcname"]
     github_url = payload["github"]
+    repo_path = payload["repo_path"]
     logger.debug(f"Got {base_course} and {github_url}")
 
     gh_parts = github_url.split("/")
-    repo_path = gh_parts[-1].replace(".git", "")
+    if not repo_path:
+        repo_path = gh_parts[-1].replace(".git", "")
+    if not repo_path.startswith("/books/"):
+        repo_path = "/books/" + repo_path
     logger.debug(f"repo_path = {repo_path}")
 
     if "DEV_DBURL" not in os.environ:

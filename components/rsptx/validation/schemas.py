@@ -26,7 +26,7 @@ from pydantic import (
     Json,
 )
 from humps import camelize  # type: ignore
-from typing_extensions import Annotated
+from typing_extensions import Annotated, TypedDict
 
 # Local application imports
 # -------------------------
@@ -230,6 +230,10 @@ class AssignmentIncoming(BaseModel):
     points: int
     duedate: datetime
     kind: str
+    time_limit: Optional[int] = 60
+    nofeedback: Optional[bool] = False
+    nopause: Optional[bool] = False
+    peer_async_visible: Optional[bool] = True
 
 
 class QuestionIncoming(BaseModel):
@@ -261,6 +265,31 @@ class SearchSpecification(BaseModel):
     author: Optional[str] = None
     tag_list: Optional[str] = None
     base_course: Optional[str] = None
+    assignment_id: Optional[int] = None
+
+
+class ExercisesSearchRequest(BaseModel):
+    """Request model for searching exercises with pagination and filtering"""
+    # Base course flag - when true, uses current course's base_course
+    use_base_course: bool = True
+    base_course: Optional[str] = None
+    
+    # Assignment ID to filter out already assigned exercises
+    assignment_id: Optional[int] = None
+
+    # Pagination
+    page: int = 0
+    limit: int = 20
+    
+    # Sorting
+    sorting: Dict[str, Any] = Field(
+        default_factory=lambda: {"field": "name", "order": 1}
+    )
+    
+    # Filters - consolidated JSON object for all filter types
+    # Supports array values for multi-selection and match modes with field_matchMode pattern
+    # Example: { "question_type": ["mchoice", "activecode"], "question_type_matchMode": "equals" }
+    filters: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ScoringSpecification(BaseModel):
@@ -287,3 +316,33 @@ class UpdateAssignmentExercisesPayload(BaseModel):
     assignmentId: int
     idsToAdd: Optional[List[int]] = None
     idsToRemove: Optional[List[int]] = None
+
+class AssignmentQuestionUpdateDict(TypedDict, total=False):
+    # AssignmentQuestion fields
+    id: int
+    assignment_id: int
+    question_id: int
+    points: int
+    timed: Optional[bool]
+    autograde: str
+    which_to_grade: str
+    reading_assignment: Optional[bool]
+    sorting_priority: int
+    activities_required: Optional[int]
+    
+    # Question fields
+    name: Optional[str]
+    source: Optional[str]
+    question_type: Optional[str]
+    htmlsrc: Optional[str]
+    question_json: Optional[Json]
+    chapter: Optional[str]
+    subchapter: Optional[str]
+    author: Optional[str]
+    topic: Optional[str]
+    feedback: Optional[str]
+    difficulty: Optional[float]
+    tags: Optional[str]
+    
+    # Owner field for permission checking
+    owner: Optional[str]

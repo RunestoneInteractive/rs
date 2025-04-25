@@ -985,6 +985,21 @@ files = [
 ]
 
 [[package]]
+name = "coloraide"
+version = "4.5.1"
+description = "A color library for Python."
+optional = false
+python-versions = ">=3.9"
+groups = ["main", "dev"]
+files = [
+    {file = "coloraide-4.5.1-py3-none-any.whl", hash = "sha256:5ddfbf72f1caab610f7654019fcd00899e037d086392cb9d76e9c4f278fff36b"},
+    {file = "coloraide-4.5.1.tar.gz", hash = "sha256:d80e84ab7b09ac3665ebeab9783f8aa9a51fe2bb9ea4eb561ca100d3793a21c8"},
+]
+
+[package.dependencies]
+typing-extensions = {version = "*", markers = "python_version < \"3.11\""}
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -3838,19 +3853,20 @@ files = [
 
 [[package]]
 name = "pretext"
-version = "2.13.4"
+version = "2.17.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0.0,>=3.8.5"
 groups = ["main", "dev"]
 files = [
-    {file = "pretext-2.13.4-py3-none-any.whl", hash = "sha256:c7e9794fa029b14c6bd6b1b3dc1be2fbe361272d5b887580d0d9e12faa8dcae3"},
-    {file = "pretext-2.13.4.tar.gz", hash = "sha256:ab21cc483b68953c8dd493248c1c507841552e85d3e9c9d09974d10a3f6614b1"},
+    {file = "pretext-2.17.0-py3-none-any.whl", hash = "sha256:944ed56572f23ba08451f8991206be60abeeab7f2034dd3c1611310cb4fd2189"},
+    {file = "pretext-2.17.0.tar.gz", hash = "sha256:98ba8c5fae78f951762c33c2e53199adde43b10ca9743a64748e1ed7f560dbd1"},
 ]
 
 [package.dependencies]
 click = ">=8,<9"
 click-log = ">=0.4,<0.5"
+coloraide = ">=4,<5"
 ghp-import = ">=2,<3"
 GitPython = ">=3,<4"
 jinja2 = ">=3,<4"
@@ -3860,7 +3876,7 @@ plastex = ">=3,<4"
 playwright = ">=1,<2"
 psutil = ">=7,<8"
 pydantic-xml = ">=2"
-pyMuPDF = ">=1.23,<2.0"
+pyMuPDF = ">=1.24,<2.0"
 PyPDF2 = ">=2.5,<2.6"
 qrcode = ">=7,<8"
 requests = ">=2,<3"

@@ -1,0 +1,25 @@
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--text-color-secondary);
+  font-size: 1rem;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding-left: 2.5rem !important;
+}
+
+.searchInput:focus {
+  box-shadow: 0 0 0 0.2rem var(--primary-200);
+  border-color: var(--primary-400);
+} 

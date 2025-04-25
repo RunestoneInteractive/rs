@@ -36,8 +36,8 @@ export default class SQLActiveCode extends ActiveCode {
                     self.dburl = `${bookprefix}${self.dburl}`;
                 } else if (self.dburl.startsWith("external")) {
                     // PTX markup
-                    if(
-                        eBookConfig.useRunestoneServices  ||
+                    if (
+                        eBookConfig.useRunestoneServices ||
                         window.location.search.includes("mode=browsing")
                     ) {
                         // On Runestone server
@@ -187,7 +187,7 @@ export default class SQLActiveCode extends ActiveCode {
         respDiv = document.createElement("div");
         respDiv.id = divid;
         this.outDiv.appendChild(respDiv);
-        $(this.outDiv).show();
+        this.outDiv.style.visibility = "visible";
         // Sometimes we don't want to show a bunch of intermediate results
         // like when we are including a bunch of previous statements from
         // other activecodes In that case the showlastsql flag can be set
@@ -320,9 +320,8 @@ export default class SQLActiveCode extends ActiveCode {
             pct = 0.0;
         }
         pct = pct.toLocaleString(undefined, { maximumFractionDigits: 2 });
-        result += `You passed ${this.passed} out of ${
-            this.passed + this.failed
-        } tests for ${pct}%`;
+        result += `You passed ${this.passed} out of ${this.passed + this.failed
+            } tests for ${pct}%`;
         this.unit_results = `percent:${pct}:passed:${this.passed}:failed:${this.failed}`;
         return result;
     }

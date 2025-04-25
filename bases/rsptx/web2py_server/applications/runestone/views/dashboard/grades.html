@@ -121,17 +121,6 @@
 </div>
 <p>Note: You can have the gradebook show either points or the percentage by changing the option in the course settings panel</p>
 <div class="row"></div>
-<div>
-    <h2>Timed Exam Analysis</h2>
-    <p>Note: The following reports will ONLY work for competency based timed exams</p>
-    <ul>
-        {{for assign in assignments:}}
-        {{if assign.is_timed:}}
-        <li><a href="/runestone/exams/one_exam_competency?assignment={{=assign.name}}">{{=assign.name}}</a></li>
-        {{ pass }}
-        {{pass}}
-    </ul>
-</div>
 
 <script>
     $(function () {

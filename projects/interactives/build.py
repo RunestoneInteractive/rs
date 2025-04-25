@@ -18,8 +18,8 @@ else:
 
 
 with pushd("../../bases/rsptx/interactives"):
-    subprocess.run(["npm", "install"], check=True)
     if "--dev" in sys.argv:
+        subprocess.run(["npm", "install"], check=True)
         debug = False
         if "--to" in sys.argv:
             book = sys.argv[sys.argv.index("--to") + 1]
@@ -47,6 +47,7 @@ with pushd("../../bases/rsptx/interactives"):
                 ["python", "./scripts/dist2xml.py", f"{VERSION}"], check=True
             )
     else:
+        subprocess.run(["npm", "ci"], check=True)
         subprocess.run(["npm", "run", "dist"], check=True)
         subprocess.run(["python", "./scripts/dist2xml.py", f"{VERSION}"], check=True)
 
@@ -88,6 +89,10 @@ if sys.argv[1:] == ["--publish"]:
                 VERSION,
             ],
             check=True,
+        )
+        # tag the release in the repo
+        subprocess.run(
+            ["git", "tag", f"components_{VERSION}"], check=True
         )
         print("Moving release to jsdist")
         subprocess.run(

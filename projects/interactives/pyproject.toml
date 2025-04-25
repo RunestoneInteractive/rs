@@ -34,7 +34,7 @@ license = "GPL"
 name = "runestone"
 readme = "README.rst"
 repository = "https://github.com/RunestoneInteractive/rs"
-version = "7.5.12"
+version = "7.5.16"
 
 # See https://python-poetry.org/docs/pyproject/#include-and-exclude.
 include = [
@@ -123,7 +123,7 @@ jupyter-sphinx = "<0.5"
 jupyterlab = "^4.2.4"
 scikit-learn = "^1.5.1"
 ipyleaflet = "^0.19.2"
-aiosqlite = "^0.17.0"
+aiosqlite = ">=0.18.0"
 
 # Development dependencies
 # ========================

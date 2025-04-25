@@ -3,4 +3,11 @@ introduced by creating a latex image.
 
 To build this image simply run:
 
-docker build . -t latex_base:important
+docker build . -t latex_base:important --label keep=true
+
+When pruning
+
+docker image prune -a --filter "label!=keep"
+docker container prune
+
+It might be --filter "label=keep=true"

@@ -1,4 +1,6 @@
-{% extends "_base.html" %} {% block content %}
+{% extends "_base.html" %}
+
+{% block content %}
 
 <div class="starter-template">
     <h1>Runestone / PreTeXt Book Manager</h1>
@@ -22,94 +24,60 @@
             {% for book in book_list %}
             <tr>
                 <td>
-                    <a href="/author/editlibrary/{{book.basecourse}}"
-                        >{{book.basecourse}}</a
-                    >
+                    <a href="/author/editlibrary/{{book.basecourse}}">{{book.basecourse}}</a>
                 </td>
                 <td>
-                    <button
-                        onclick="buildTask('{{book.basecourse}}')"
-                        type="button"
-                        class="btn btn-primary"
-                    >
+                    <button onclick="buildTask('{{book.basecourse}}')" type="button" class="btn btn-primary">
                         Build
                     </button>
                 </td>
                 <td>
-                    <a
-                        href="/ns/books/published/{{book.basecourse}}/{{book.main_page}}?mode=browsing"
-                        role="button"
-                        class="btn btn-success"
-                    >
+                    <a href="/ns/books/published/{{book.basecourse}}/{{book.main_page}}?mode=browsing" role="button"
+                        class="btn btn-success">
                         View
                     </a>
                 </td>
                 <td>
-                    <button
-                        onclick="deployTask('{{book.basecourse}}')"
-                        type="button"
-                        class="btn btn-warning"
-                    >
+                    <button onclick="deployTask('{{book.basecourse}}')" type="button" class="btn btn-warning">
                         Deploy
                     </button>
                 </td>
                 <td>
-                    <button
-                        onclick="showLog('{{book.basecourse}}')"
-                        type="button"
-                        class="btn btn-success"
-                    >
+                    <button onclick="showLog('{{book.basecourse}}')" type="button" class="btn btn-success">
                         Show last log
                     </button>
                 </td>
                 <td>
-                    <a
-                        role="button"
-                        class="btn btn-info"
-                        href="/author/impact/{{book.basecourse}}"
-                        >Student Impact</a
-                    >
+                    <a role="button" class="btn btn-info" href="/author/impact/{{book.basecourse}}">Student Impact</a>
                 </td>
                 <td>
-                    <a
-                        role="button"
-                        class="btn btn-info"
-                        href="anonymize_data/{{book.basecourse}}"
-                        >Datashop Dump</a
-                    >
+                    <a role="button" class="btn btn-info" href="anonymize_data/{{book.basecourse}}">Datashop Dump</a>
                 </td>
                 <td>{{book.last_build}}</td>
             </tr>
             {% endfor %}
         </table>
         <p>
-            <input
-                type="checkbox"
-                id="generate"
-                name="generate"
-                value="generate"
-            />
-            <label for="generate"
-                >Check the box if you want to generate assets for a PreTeXt
-                book</label
-            >
+            <input type="checkbox" id="generate" name="generate" value="generate" />
+            <label for="generate">Check the box if you want to generate assets for a PreTeXt
+                book</label>
         </p>
 
         <br />
         <h3>Add a New Book</h3>
+        <a href="https://pretextbook.org/doc/guide/html/sec-the-author-interface.html" target="_blank">Help</a>
+        </br>
         <label for="bcname">Your document id / basecourse name</label>
         <input id="bcname" type="text" name="bcname" onchange="checkDB(this)" />
         <br />
-        <label for="gitrepo">Github Repo URL</label>
-        <input id="gitrepo" type="text" name="githubrepo" /> (Must use https url
+        <label for="gitrepo">Github (<strong>remote</strong>) Repo URL</label>
+        <input id="gitrepo" type="text" name="githubrepo" /> (Must use <code>https</code> url
         not ssh)
+        <br />
+        <label for="repo_path"><strong>OR</strong> Path to existing <strong>local</strong> repo</label>
+        <input id="repo_path" type="text" name="repo_path" /> (<code>/books/existingRepo</code>)
         <div class="taskbox">
-            <button
-                id="addcoursebutton"
-                type="button"
-                onclick="addCourse()"
-                class="btn btn-primary"
-            >
+            <button id="addcoursebutton" type="button" onclick="addCourse()" class="btn btn-primary">
                 Add Book to Runestone
             </button>
             <span id="bookstatus"></span>

@@ -745,7 +745,7 @@ def grading():
     response.title = "Grading"
     assignments = {}
     assignments_query = db(db.assignments.course == auth.user.course_id).select()
-
+    selected_assignment = request.vars.selected_assignment
     assignmentids = {}
     assignment_deadlines = {}
     question_points = {}
@@ -855,6 +855,7 @@ def grading():
         webwork_js_version=course_attrs.get("webwork_js_version", "2.17"),
         default_language=course_attrs.get("default_language", "python"),
         course=course,
+        selected_assignment=selected_assignment,
     )
 
 
@@ -1133,6 +1134,7 @@ def createAssignment():
                 nofeedback=old_assignment.nofeedback,
                 nopause=old_assignment.nopause,
                 description=old_assignment.description,
+                kind=old_assignment.kind,
             )
             old_questions = db(
                 db.assignment_questions.assignment_id == old_assignment.id
@@ -1377,6 +1379,7 @@ def edit_question():
         return json.dumps("Could not find question {} to update".format(old_qname))
 
     author = auth.user.first_name + " " + auth.user.last_name
+    owner = auth.user.username
     timestamp = datetime.datetime.utcnow()
     chapter = old_question.chapter
     question_type = old_question.question_type
@@ -1389,7 +1392,7 @@ def edit_question():
 
     if (
         old_qname == new_qname
-        and old_question.author.lower() != author.lower()
+        and old_question.owner != owner
         and not is_editor(auth.user.id)
     ):
         return json.dumps(
@@ -1397,7 +1400,14 @@ def edit_question():
         )
 
     if old_qname != new_qname:
-        newq = db(db.questions.name == new_qname).select().first()
+        newq = (
+            db(
+                (db.questions.name == new_qname)
+                & (db.questions.base_course == base_course)
+            )
+            .select()
+            .first()
+        )
         if newq and newq.author.lower() != author.lower():
             return json.dumps(
                 "Name taken, you cannot replace a question you did not author"
@@ -1420,6 +1430,7 @@ def edit_question():
             question=question,
             name=new_qname,
             author=author,
+            owner=owner,
             base_course=base_course,
             timestamp=timestamp,
             chapter=chapter,
@@ -1776,6 +1787,7 @@ def releasegrades():
         logger.error(ex)
         return "ERROR"
 
+    # this is now redundant as we send lti as we grade
     if released:
         # send lti grades
         assignment = _get_assignment(assignmentid)
@@ -2228,6 +2240,11 @@ def save_assignment():
     nopause = request.vars["nopause"]
     is_peer = request.vars["is_peer"]
     peer_async_visible = request.vars["peer_async_visible"]
+    kind = "Regular"
+    if is_peer == "T":
+        kind = "Peer"
+    elif is_timed == "T":
+        kind = "Timed"
     try:
         d_str = request.vars["due"]
         format_str = "%Y/%m/%d %H:%M"
@@ -2253,6 +2270,7 @@ def save_assignment():
             is_peer=is_peer,
             current_index=0,
             peer_async_visible=peer_async_visible,
+            kind=kind,
         )
         return json.dumps({request.vars["name"]: assignment_id, "status": "success"})
     except Exception as ex:
