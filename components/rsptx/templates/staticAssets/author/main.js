@@ -100,9 +100,6 @@ async function addCourse() {
     let repo_path = document.querySelector("#repo_path");
     if (repo_path) {
         repo_path = repo_path.value;
-        if (!repo_path.startsWith("/books/")) {
-            repo_path = "/books/" + repo_path;
-        }
         if (!repo.value && !repo_path) {
             alert("You must provide either a github url or path to a local repo");
             return;
@@ -112,6 +109,9 @@ async function addCourse() {
                 "You must provide either a github url or path to a local repo, not both"
             );
             return;
+        }
+        if (repo_path && !repo_path.startsWith("/books/")) {
+            repo_path = "/books/" + repo_path;
         }
     }
     let response = await fetch("/author/add_course", {

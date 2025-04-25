@@ -373,8 +373,17 @@ $("#allstudentcb").click(function(){
 {{if selected_assignment: }}
 <script>
 selectChapOrAssignment()
+// if there is a query string containing the assignment id then selectChapOrAssignment
+// will set the selected assignment to the one in the query string
 let y = document.getElementById("chaporassignselector");
+// Now do the normal stuff that would happen if the user selected the assignment
 y.dispatchEvent(new Event('change'))
+// After 2 seconds remove the query string from the URL so that the user can
+// select a different assignment without the query string being added to the URL.
+setTimeout(() => {
+  window.history.replaceState({},document.title, window.location.pathname);
+}, 2000);
+
 </script>
 {{pass}}
 
