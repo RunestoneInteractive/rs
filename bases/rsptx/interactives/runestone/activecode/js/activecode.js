@@ -71,6 +71,7 @@ export class ActiveCode extends RunestoneBase {
         this.code = $(orig).text() || "\n\n\n\n\n";
         this.language = $(orig).data("lang");
         this.timelimit = $(orig).data("timelimit");
+        this.highlightLines = $(orig).data("highlight-lines");
         this.includes = $(orig).data("include");
         this.hidecode = $(orig).data("hidecode");
         this.chatcodes = $(orig).data("chatcodes");
@@ -204,8 +205,9 @@ export class ActiveCode extends RunestoneBase {
         setTimeout(
             function () {
                 this.editor.refresh();
-                // need to regen locked decoration
+                // need to regen/highlight locked decoration
                 this.setLockedRegions();
+                this.setHighlightLines();
             }.bind(this),
             1000
         );
@@ -275,6 +277,7 @@ export class ActiveCode extends RunestoneBase {
         CodeMirror.on(editor, "refresh", (cm) => {
             window.requestAnimationFrame(() => {
                 this.setLockedRegions();
+                this.setHighlightLines();
                 // make sure vscrollbar does not overlap the resize handle
                 editor.display.scrollbars.vert.style.bottom =  "16px";
             });
@@ -378,8 +381,32 @@ export class ActiveCode extends RunestoneBase {
         // lock down code prefix/suffix
         this.setLockedRegions();
 
+        this.setHighlightLines();
+
         if (this.hidecode) {
             $(this.codeDiv).css("display", "none");
+        }
+    }
+
+    async setHighlightLines() {
+        if (this.highlightLines) {
+            if (typeof this.highlightLines === "number")
+                this.highlightLines = this.highlightLines.toString();
+
+            let highlightList = this.highlightLines.split(",");
+            let lines = this.containerDiv.querySelectorAll(".CodeMirror-code > div");
+            highlightList.forEach((line) => {
+                // addLineClass not used here for reason described in setLockedRegions
+                line = line.trim();
+                let lineNum = line.split("-");
+                if (lineNum.length > 1) {
+                    for (let i = parseInt(lineNum[0]); i <= parseInt(lineNum[1]); i++) {
+                        lines[i - 1].classList.add("CodeMirror__highlight-line");
+                    }
+                } else {
+                    lines[lineNum - 1].classList.add("CodeMirror__highlight-line");
+                }
+            });
         }
     }
 
@@ -879,6 +906,10 @@ export class ActiveCode extends RunestoneBase {
                     div_id: this.divid,
                 });
             }
+            // Only re-highlight lines if we are at initial position
+            // otherwise may be highlighting wrong ones
+            if(pos === 0)
+                this.setHighlightLines();
         };
         $(scrubber).slider({
             max: this.history.length - 1,
@@ -919,6 +950,7 @@ export class ActiveCode extends RunestoneBase {
         } else {
             scrubber.value = 0;
         }
+        this.setHighlightLines();
         let pos = $(scrubber).slider("value");
         let outOf = this.history.length;
         let ts = this.timestamps[$(scrubber).slider("value")];
