@@ -1,7 +1,6 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
 import "../css/matching.less";
-import convert from "xml-js";
-
+import { xmlToJson } from "./xmlconversion.js";
 class MatchingProblem extends RunestoneBase {
     constructor(container, boxData) {
         super({})
@@ -479,49 +478,7 @@ class MatchingProblem extends RunestoneBase {
 }
 
 
-function xmlToJson(xmlString) {
-    // 1) Parse
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(xmlString, 'application/xml');
-    const err = doc.querySelector('parsererror');
-    if (err) {
-        throw new Error('Error parsing XML: ' + err.textContent);
-    }
 
-    // 2) Helper to pull [ {id, label}, … ] from a <left> or <right> element
-    function itemsFrom(sectionName) {
-        const section = doc.querySelector(sectionName);
-        if (!section) return [];
-        return Array.from(section.querySelectorAll(':scope > item'))
-            .map(itemEl => {
-                const idEl = itemEl.querySelector('id');
-                const labelEl = itemEl.querySelector('label');
-                return {
-                    id: idEl ? idEl.textContent.trim() : '',
-                    // innerHTML preserves everything inside <label>…</label>
-                    label: labelEl ? labelEl.innerHTML.trim() : ''
-                };
-            });
-    }
-
-    // 3) Build correctAnswers as [ [p, r], [p, r], … ]
-    function correctAnswersFrom() {
-        const container = doc.querySelector('correctAnswers');
-        if (!container) return [];
-        return Array.from(container.querySelectorAll(':scope > item'))
-            .map(pairEl => {
-                return Array.from(pairEl.querySelectorAll(':scope > item'))
-                    .map(child => child.textContent.trim());
-            });
-    }
-
-    // 4) Return the final shape
-    return {
-        left: itemsFrom('left'),
-        right: itemsFrom('right'),
-        correctAnswers: correctAnswersFrom()
-    };
-}
 
 // Register the component with Runestone 
 document.addEventListener("runestone:login-complete", () => {
