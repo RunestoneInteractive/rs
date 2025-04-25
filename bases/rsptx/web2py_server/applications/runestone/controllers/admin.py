@@ -1379,6 +1379,7 @@ def edit_question():
         return json.dumps("Could not find question {} to update".format(old_qname))
 
     author = auth.user.first_name + " " + auth.user.last_name
+    owner = auth.user.username
     timestamp = datetime.datetime.utcnow()
     chapter = old_question.chapter
     question_type = old_question.question_type
@@ -1391,7 +1392,7 @@ def edit_question():
 
     if (
         old_qname == new_qname
-        and old_question.author.lower() != author.lower()
+        and old_question.owner != owner
         and not is_editor(auth.user.id)
     ):
         return json.dumps(
@@ -1399,7 +1400,14 @@ def edit_question():
         )
 
     if old_qname != new_qname:
-        newq = db(db.questions.name == new_qname).select().first()
+        newq = (
+            db(
+                (db.questions.name == new_qname)
+                & (db.questions.base_course == base_course)
+            )
+            .select()
+            .first()
+        )
         if newq and newq.author.lower() != author.lower():
             return json.dumps(
                 "Name taken, you cannot replace a question you did not author"
@@ -1422,6 +1430,7 @@ def edit_question():
             question=question,
             name=new_qname,
             author=author,
+            owner=owner,
             base_course=base_course,
             timestamp=timestamp,
             chapter=chapter,
