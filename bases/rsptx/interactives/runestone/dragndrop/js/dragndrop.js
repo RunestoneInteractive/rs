@@ -360,14 +360,14 @@ export default class DragNDrop extends RunestoneBase {
     adjustDragDropWidths() {
         // Temporarily minimize the dragzone width to the content
         this.draggableDiv.style.width = "fit-content";
-        
+
         const dragzoneWidth = this.draggableDiv.offsetWidth;
         const totalWidth = this.dragDropWrapDiv.offsetWidth;
 
         let dragzonePercent = Math.ceil((dragzoneWidth / totalWidth) * 100);
         dragzonePercent = Math.max(28, Math.min(dragzonePercent, 48));
         const dropzonePercent = 100 - dragzonePercent - 4; // 4 accounts for zone padding
-        
+
         this.dragwidth = dragzonePercent;
         this.dropwidth = dropzonePercent;
 
@@ -561,6 +561,7 @@ export default class DragNDrop extends RunestoneBase {
         this.dragwidth = data.drag_width;
         this.dropwidth = data.drop_width;
         this.answerState = JSON.parse(data.answer);
+        this.correct = data.correct;
         this.finishSettingUp();
     }
 
