@@ -220,6 +220,13 @@ class MchoiceAnswers(Base, CorrectAnswerMixin):
         ),
     )
 
+@register_answer_table
+class MatchingAnswers(Base, CorrectAnswerMixin):
+    __tablename__ = "matching_answers"
+    # See answer_. TODO: what is the format?
+    answer = Column(JSON, nullable=False)
+    __table_args__ = (Index("idx_div_sid_course_match", "sid", "div_id", "course_name"),)
+
 
 # An answer to a fill-in-the-blank question.
 @register_answer_table
