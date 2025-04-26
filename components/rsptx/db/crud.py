@@ -129,6 +129,7 @@ EVENT2TABLE = {
     "dragNdrop": "dragndrop_answers",
     "fillb": "fitb_answers",
     "lp_build": "lp_answers",
+    "matching": "matching_answers",
     "mChoice": "mchoice_answers",
     "parsons": "parsons_answers",
     "shortanswer": "shortanswer_answers",

@@ -2,10 +2,10 @@ import RunestoneBase from "../../common/js/runestonebase.js";
 import "../css/matching.less";
 import { xmlToJson } from "./xmlconversion.js";
 class MatchingProblem extends RunestoneBase {
-    constructor(container, boxData) {
+    constructor(container, boxData, opts) {
         super({})
         this.containerDiv = container;
-        this.div_id = container.id;
+        this.divid = container.id;
         this.boxData = boxData;
         this.boxesRenderedPromise = new Promise((resolve) => {
             this.boxesRenderedResolve = resolve;
@@ -20,7 +20,8 @@ class MatchingProblem extends RunestoneBase {
         this.selectedBox = null;
         this.startBox = null;
         this.tempLine = null;
-
+        this.useRunestoneServices = eBookConfig.useRunestoneServices;
+        this.graderactive = opts.graderactive || false;
         this.init();
         // ensure that boxes are rendered before checking server
         // if boxes are not rendered then we may have dangling lines
@@ -69,10 +70,10 @@ class MatchingProblem extends RunestoneBase {
 
     async logCurrentAnswer(eventData) {
         eventData.event = "matching";
-        eventData.div_id = this.div_id;
-        eventData.act = `score:${eventData.score} connections:${eventData.connections}`;
+        eventData.div_id = this.divid;
+        eventData.act = `score:${eventData.score} connections:${JSON.stringify(eventData.connections)}`;
         eventData.correct = eventData.score === 100;
-        eventData.answer = eventData.connections;
+        eventData.answer = JSON.stringify({ connections: eventData.connections });
 
         await this.logBookEvent(eventData);
 
@@ -91,8 +92,16 @@ class MatchingProblem extends RunestoneBase {
         this.connList.innerHTML = `<strong>Score: ${this.scorePercent}%</strong>`;
     }
 
-    restoreAnswers() {
+    restoreAnswers(data) {
         // Recreate lines
+        if (data) {
+            this.connections = data.answer.connections.map(conn => ({
+                fromBox: this.allBoxes.find(box => box.dataset.id === conn.from),
+                toBox: this.allBoxes.find(box => box.dataset.id === conn.to)
+            }));
+            this.updateConnectionModel();
+            this.correct = data.correct;
+        }
         this.connections.forEach(conn => {
             const from = this.getCenter(conn.fromBox);
             const to = this.getCenter(conn.toBox);
@@ -108,7 +117,7 @@ class MatchingProblem extends RunestoneBase {
         if (this.graderactive) {
             return;
         }
-        const data = localStorage.getItem(this.div_id);
+        const data = localStorage.getItem(this.divid);
         if (data) {
             const parsedData = JSON.parse(data);
             this.connections = parsedData.connections.map(conn => ({
@@ -135,7 +144,7 @@ class MatchingProblem extends RunestoneBase {
             incorrectCount: this.incorrectCount,
             missingCount: this.missingCount
         };
-        localStorage.setItem(this.div_id, JSON.stringify(data));
+        localStorage.setItem(this.divid, JSON.stringify(data));
     }
 
     disableInteraction() { }
@@ -496,8 +505,8 @@ document.addEventListener("runestone:login-complete", () => {
                 } else {
                     boxData = JSON.parse(script.textContent);
                 }
-
-                window.componentMap[container.id] = new MatchingProblem(container, boxData);
+                let opts = {};
+                window.componentMap[container.id] = new MatchingProblem(container, boxData, opts);
             } catch (err) {
                 console.error("Failed to parse boxData JSON:", err);
             }
