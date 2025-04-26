@@ -186,6 +186,31 @@ async def get_history(
     return make_json_response(detail=res)
 
 
+@router.post("/get_latest_code")
+async def get_latest_code(
+    request: Request, acid: str, user=Depends(auth_manager)
+):
+    """
+    return the history of saved code by this user for a particular a active code id (acid)
+
+    :Return:
+        - detail is JSON blob code of the last saved code block for this user
+            { "code": code }
+        - if no code is found then return an empty blob
+    """
+    sid = user.username
+    course_id = user.course_id
+
+    res: Dict[str, Any] = {}
+
+    # get the code they saved in chronological order; id order gets that for us
+    r = await fetch_code(sid, acid, course_id, 1)  # type: ignore
+    if len(r) > 0:
+        res["code"] = r[0].code
+
+    return make_json_response(detail=res)
+
+
 # Used by :ref:`compareAnswers`
 @router.get("/getaggregateresults")
 async def getaggregateresults(request: Request, div_id: str, course_name: str):

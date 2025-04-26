@@ -16,6 +16,7 @@ import datetime
 import os
 import re
 import subprocess
+import asyncio
 from pathlib import Path
 import logging
 from io import StringIO
@@ -40,6 +41,7 @@ from sqlalchemy.sql import text
 from rsptx.logging import rslogger
 from runestone.server import get_dburl
 from rsptx.db.models import Library, LibraryValidator
+from rsptx.db.crud import update_source_code
 from rsptx.response_helpers.core import canonical_utcnow
 import pdb
 
@@ -732,29 +734,28 @@ def manifest_data_to_db(course_name, manifest_path):
                         filename = el.attrib["data-filename"]
                     else:
                         filename = el.attrib["id"]
+                    id = el.attrib["id"]
 
                     # write datafile contents to the source_code table
-                    res = res = sess.execute(
-                        f"""select * from source_code where acid='{filename}' and course_id='{course_name}'"""
-                    ).first()
-
-                    vdict = dict(
-                        acid=filename, course_id=course_name, main_code=file_contents
+                    event_loop = asyncio.get_event_loop()
+                    event_loop.run_until_complete(
+                        update_source_code(acid=id, course_id=course_name, main_code=file_contents, filename=filename)
                     )
-                    if res:
-                        upd = (
-                            source_code.update()
-                            .where(
-                                and_(
-                                    source_code.c.acid == filename,
-                                    source_code.c.course_id == course_name,
-                                )
-                            )
-                            .values(**vdict)
-                        )
-                    else:
-                        upd = source_code.insert().values(**vdict)
-                    sess.execute(upd)
+
+            for sourceEl in subchapter.findall("./source"):
+                id = sourceEl.attrib["id"]
+                file_contents = sourceEl.text
+                if "filename" in sourceEl.attrib:
+                    filename = sourceEl.attrib["filename"]
+                else:
+                    filename = sourceEl.attrib["id"]
+
+                event_loop = asyncio.get_event_loop()
+                event_loop.run_until_complete(
+                    update_source_code(acid=id, course_id=course_name, main_code=file_contents, filename=filename)
+                )
+
+                
 
     latex = root.find("./latex-macros")
     rslogger.info("Setting attributes for this base course")

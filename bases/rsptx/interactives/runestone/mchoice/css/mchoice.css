@@ -10,3 +10,7 @@
 .runestone fieldset legend {
     font-size: small;
 }
+
+.multiplechoice_section label > .para {
+    display: inline;
+} 

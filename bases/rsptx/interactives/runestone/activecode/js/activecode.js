@@ -71,6 +71,7 @@ export class ActiveCode extends RunestoneBase {
         this.code = $(orig).text() || "\n\n\n\n\n";
         this.language = $(orig).data("lang");
         this.timelimit = $(orig).data("timelimit");
+        this.highlightLines = $(orig).data("highlight-lines");
         this.includes = $(orig).data("include");
         this.hidecode = $(orig).data("hidecode");
         this.chatcodes = $(orig).data("chatcodes");
@@ -204,8 +205,9 @@ export class ActiveCode extends RunestoneBase {
         setTimeout(
             function () {
                 this.editor.refresh();
-                // need to regen locked decoration
+                // need to regen/highlight locked decoration
                 this.setLockedRegions();
+                this.setHighlightLines();
             }.bind(this),
             1000
         );
@@ -275,6 +277,7 @@ export class ActiveCode extends RunestoneBase {
         CodeMirror.on(editor, "refresh", (cm) => {
             window.requestAnimationFrame(() => {
                 this.setLockedRegions();
+                this.setHighlightLines();
                 // make sure vscrollbar does not overlap the resize handle
                 editor.display.scrollbars.vert.style.bottom =  "16px";
             });
@@ -378,8 +381,32 @@ export class ActiveCode extends RunestoneBase {
         // lock down code prefix/suffix
         this.setLockedRegions();
 
+        this.setHighlightLines();
+
         if (this.hidecode) {
             $(this.codeDiv).css("display", "none");
+        }
+    }
+
+    async setHighlightLines() {
+        if (this.highlightLines) {
+            if (typeof this.highlightLines === "number")
+                this.highlightLines = this.highlightLines.toString();
+
+            let highlightList = this.highlightLines.split(",");
+            let lines = this.containerDiv.querySelectorAll(".CodeMirror-code > div");
+            highlightList.forEach((line) => {
+                // addLineClass not used here for reason described in setLockedRegions
+                line = line.trim();
+                let lineNum = line.split("-");
+                if (lineNum.length > 1) {
+                    for (let i = parseInt(lineNum[0]); i <= parseInt(lineNum[1]); i++) {
+                        lines[i - 1].classList.add("CodeMirror__highlight-line");
+                    }
+                } else {
+                    lines[lineNum - 1].classList.add("CodeMirror__highlight-line");
+                }
+            });
         }
     }
 
@@ -879,6 +906,10 @@ export class ActiveCode extends RunestoneBase {
                     div_id: this.divid,
                 });
             }
+            // Only re-highlight lines if we are at initial position
+            // otherwise may be highlighting wrong ones
+            if(pos === 0)
+                this.setHighlightLines();
         };
         $(scrubber).slider({
             max: this.history.length - 1,
@@ -919,6 +950,7 @@ export class ActiveCode extends RunestoneBase {
         } else {
             scrubber.value = 0;
         }
+        this.setHighlightLines();
         let pos = $(scrubber).slider("value");
         let outOf = this.history.length;
         let ts = this.timestamps[$(scrubber).slider("value")];
@@ -1311,44 +1343,32 @@ Yet another is that there is an internal error.  The internal error message is: 
             throw $.i18n("msg_activecode_file_not_found", x);
         return Sk.builtinFiles["files"][x];
     }
-    fileReader(divid) {
-        // In the beginning files were just pre tags and we used the divid as the filename
-        let elem = document.getElementById(divid);
-        // In PreTeXt we moved that to a @data-filename
+    fileReader(fileName) {
+        // This function is called by Skulpt to read a file. We will sometimes enter
+        // with internal skulpt filenames and sometimes with filenames referenced from
+        // user source.
+
+        // Check if element is in the DOM
+        // For RST books fileName == element id
+        let elem = document.getElementById(fileName);
         if (elem === null) {
-            elem = document.querySelector(`[data-filename="${divid}"]`);
+            // For PTX books fileName is in data-filename, may or may not == element id
+            elem = document.querySelector(`[data-filename="${fileName}"]`);
         }
-        let data = "";
-        let result = "";
-        if (elem == null && Sk.builtinFiles.files.hasOwnProperty(divid)) {
-            return Sk.builtinFiles["files"][divid];
-        } else {
-            // try remote file unless it ends with .js or .py -- otherwise we'll ask the server for all
-            // kinds of modules that we are trying to import
-            if (!(divid.endsWith(".js") || divid.endsWith(".py"))) {
-                $.ajax({
-                    async: false,
-                    url: `/ns/logger/get_datafile?course_id=${eBookConfig.course}&acid=${divid}`,
-                    success: function (data) {
-                        result = data.detail;
-                    },
-                    error: function (err) {
-                        result = null;
-                    },
-                });
-                if (result) {
-                    return result;
-                }
+
+        // Check if the file is in the Skulpt builtinFiles.
+        if(Sk.builtinFiles.files.hasOwnProperty(fileName)) {
+            let skulptFile = Sk.builtinFiles["files"][fileName];
+            if(elem === null) {
+                return skulptFile;
+            } else {
+                console.log("Name conflict for file: " + fileName + " in Skulpt and in the DOM. Using DOM file.");
             }
         }
-        if (elem == null && result === null) {
-            throw new Sk.builtin.IOError(
-                $.i18n("msg_activecode_no_file_or_dir", divid)
-            );
-        } else {
-            // for backward compatibility - early on we had textarea with the divid on it.
-            // but later this switched to a runestone wrapper.  So we may need to dig for a pre
-            // or a textarea?
+
+        // If in DOM and not in Skulpt builtinFiles, read from the DOM
+        if (elem != null) {
+            let data;
             if (elem.nodeName.toLowerCase() == "textarea") {
                 data = elem.value;
             } else {
@@ -1359,8 +1379,29 @@ Yet another is that there is an internal error.  The internal error message is: 
                     data = elem.textContent;
                 }
             }
+            return data;
         }
-        return data;
+
+        // Try the DB unless fileName ends with .js or .py Skulpt internals will
+        // have these extensions.  We don't want to try to load them from the DB.
+        if (!(fileName.endsWith(".js") || fileName.endsWith(".py"))) {
+            let result = null;
+            $.ajax({
+                async: false,
+                url: `/ns/logger/get_source_code?course_id=${eBookConfig.course}&fileName=${fileName}`,
+                success: function (data) {
+                    result = data.detail.file_contents;
+                }
+            });
+            if (result) {
+                return result;
+            } else {
+                throw new Sk.builtin.IOError(
+                    $.i18n("msg_activecode_no_file_or_dir", fileName)
+                );
+            }
+        }
+        // Silent exit for files we didn't attempt to find in DB
     }
     outputfun(text) {
         // bnm python 3
@@ -1430,7 +1471,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             return window.componentMap[divid].editor.getValue();
         } else {
             let request = new Request(
-                `/ns/logger/get_datafile?course_id=${eBookConfig.course}&acid=${divid}`,
+                `/ns/logger/get_source_code?course_id=${eBookConfig.course}&acid=${divid}`,
                 {
                     method: "GET",
                     headers: this.jsonHeaders,
@@ -1438,7 +1479,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             );
             let wresult = await fetch(request);
             let obj = await wresult.json();
-            return obj.detail;
+            return obj.detail.file_contents;
         }
     }
 
