@@ -9,7 +9,6 @@ export const useExerciseTypes = (): ExerciseTypeConfig[] => {
   return questionTypeOptions.map((option, index) => ({
     ...option,
     color: colorSchemes[index],
-    tag: option.value,
-    description: option.description
+    tag: option.value
   }));
 };
