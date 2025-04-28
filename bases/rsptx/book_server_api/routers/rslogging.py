@@ -616,7 +616,7 @@ async def get_source_code(
     """
     course = await fetch_course(course_id)
 
-    rslogger.debug(f"get_source_code: -{acid}-{filename}-")
+    rslogger.debug(f"get_source_code: course_name:{course.course_name} acid: {acid} filename: {filename} course_name:{course.course_name}")
 
     db_result = await fetch_source_code(
         base_course=course.base_course,
@@ -628,7 +628,8 @@ async def get_source_code(
     if db_result:
         # Found data, unpack desired fields
         file_contents = db_result.main_code
-        filename = db_result.filename
+        if db_result.filename:
+            filename = db_result.filename
     else:
         file_contents = None
 
@@ -636,6 +637,4 @@ async def get_source_code(
         "filename": filename,
         "file_contents": file_contents,
     }
-    import pprint
-    rslogger.debug(f"get_source_code: {pprint.pformat(response_bundle)}")
     return make_json_response(detail=response_bundle)
