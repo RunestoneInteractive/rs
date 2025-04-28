@@ -1388,7 +1388,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             let result = null;
             $.ajax({
                 async: false,
-                url: `/ns/logger/get_source_code?course_id=${eBookConfig.course}&fileName=${fileName}`,
+                url: `/ns/logger/get_source_code?course_id=${eBookConfig.course}&filename=${fileName}`,
                 success: function (data) {
                     result = data.detail.file_contents;
                 }
