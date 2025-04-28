@@ -276,6 +276,7 @@ class MatchingProblem extends RunestoneBase {
         line.setAttribute("y2", y2);
         line.setAttribute("class", "line");
         line.setAttribute("tabindex", "0"); // Make the line focusable
+        line.setAttribute("focusable", "true"); // Make the line focusable
         line.setAttribute("role", "button"); // Add ARIA role for accessibility
         line.setAttribute("aria-label", "Connection line. Press Delete to remove."); // Add ARIA label
 
@@ -390,7 +391,7 @@ class MatchingProblem extends RunestoneBase {
     attachEvents() {
         this.allBoxes.forEach(box => {
             box.addEventListener("mousedown", e => {
-                if (e.ctrlKey || e.metaKey) {
+                if (e.ctrlKey || e.metaKey || true) {
                     e.preventDefault();
                     this.startBox = box;
                     const from = this.getCenter(this.startBox);

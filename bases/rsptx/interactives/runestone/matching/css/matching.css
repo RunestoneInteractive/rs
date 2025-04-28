@@ -116,6 +116,15 @@ h2 {
     stroke-width: 1;
 }
 
+.line:focus,
+line:hover {
+    stroke: #3498db;
+    stroke-dasharray: 6 4;
+    /* 6px dash, 4px gap */
+    stroke-width: 5;
+    outline: none;
+}
+
 .conn-list {
     max-width: 800px;
     margin: 0 auto 1rem;
