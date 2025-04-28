@@ -192,7 +192,7 @@ class DataFile(RunestoneIdDirective):
             )
             engine.execute(
                 Source_code.insert().values(
-                    acid=divid, course_id=course_name, main_code=source
+                    acid=divid, course_id=course_name, main_code=source, filename=divid
                 )
             )
         else:
