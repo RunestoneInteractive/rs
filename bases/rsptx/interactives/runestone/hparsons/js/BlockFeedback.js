@@ -75,7 +75,7 @@ export default class BlockFeedback extends HParsonsFeedback {
         if (this.grade === "correct") {
             answerArea.addClass("correct");
             feedbackArea.fadeIn(100);
-            feedbackArea.attr("class", "alert alert-info");
+            feedbackArea.attr("class", "hp_feedback alert alert-info");
             if (this.checkCount > 1) {
                 feedbackArea.html(
                     $.i18n("msg_parson_correct", this.checkCount)
@@ -90,7 +90,7 @@ export default class BlockFeedback extends HParsonsFeedback {
             // too little code
             answerArea.addClass("incorrect");
             feedbackArea.fadeIn(500);
-            feedbackArea.attr("class", "alert alert-danger");
+            feedbackArea.attr("class", "hp_feedback alert alert-danger");
             feedbackArea.html($.i18n("msg_parson_too_short"));
         }
 
