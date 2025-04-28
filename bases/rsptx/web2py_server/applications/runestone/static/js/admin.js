@@ -2147,7 +2147,13 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
                 $(`#${whereDiv}`).append(authorInfo);
             }
             let editButton = document.createElement("button");
-            let constrainbc = document.getElementById("qbankform").constrainbc.checked;
+            let constrainbc = document.getElementById("qbankform")
+            if (constrainbc) {
+                constrainbc = constrainbc.checked;
+            } else {
+                constrainbc = false;
+            }
+
             $(editButton).text("Edit Question");
             $(editButton).addClass("btn btn-normal");
             $(editButton).attr("data-target", "#editModal");

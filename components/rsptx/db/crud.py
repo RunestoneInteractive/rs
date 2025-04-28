@@ -129,6 +129,7 @@ EVENT2TABLE = {
     "dragNdrop": "dragndrop_answers",
     "fillb": "fitb_answers",
     "lp_build": "lp_answers",
+    "matching": "matching_answers",
     "mChoice": "mchoice_answers",
     "parsons": "parsons_answers",
     "shortanswer": "shortanswer_answers",
@@ -3312,13 +3313,16 @@ async def fetch_source_code(
     :param acid: str, the acid of the source code
     :return: SourceCodeValidator, the SourceCodeValidator object
     """
+    rslogger.debug(f"fetch_source_code: -{acid}-{filename}-{course_name}-{base_course}")
     if acid is None and filename is None:
         return None
-    
     elif acid is None:
+        # match against filename or acid for backwards compatibility
         query = select(SourceCode).where(
             and_(
-                SourceCode.filename == filename,
+                or_(
+                    SourceCode.filename == filename, SourceCode.acid == filename,
+                ),
                 or_(
                     SourceCode.course_id == base_course, SourceCode.course_id == course_name
                 ),

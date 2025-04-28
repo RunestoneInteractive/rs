@@ -151,7 +151,12 @@ async def log_book_event(
             if entry.act in ["start", "pause", "resume"]:
                 # We don't need these in the answer table but want the event to be timedExam.
                 create_answer_table = False
-        elif entry.event == "webwork" or entry.event == "hparsonsAnswer" or entry.event == "SPLICE.reportScoreAndState" :
+        elif (
+            entry.event == "webwork"
+            or entry.event == "hparsonsAnswer"
+            or entry.event == "SPLICE.reportScoreAndState"
+            or entry.event == "matching"
+        ):
             entry.answer = json.loads(useinfo_dict["answer"])
 
         if create_answer_table:
@@ -580,7 +585,7 @@ async def update_reading_score(request: Request, data: ReadingAssignmentSpec):
 async def get_datafile(
     request: Request,
     course_id: str,
-    acid: str=None,
+    acid: str = None,
     response_class=JSONResponse,
 ):
     """
@@ -595,12 +600,13 @@ async def get_datafile(
     )
     return result
 
+
 @router.get("/get_source_code")
 async def get_source_code(
     request: Request,
     course_id: str,
-    acid: str=None,
-    filename: str=None,
+    acid: str = None,
+    filename: str = None,
     response_class=JSONResponse,
 ):
     """
@@ -616,19 +622,20 @@ async def get_source_code(
     """
     course = await fetch_course(course_id)
 
-    rslogger.debug(f"get_source_code: -{acid}-{filename}-")
+    rslogger.debug(f"get_source_code: course_name:{course.course_name} acid: {acid} filename: {filename} course_name:{course.course_name}")
 
     db_result = await fetch_source_code(
         base_course=course.base_course,
         course_name=course.course_name,
         acid=acid,
-        filename=filename
+        filename=filename,
     )
 
     if db_result:
         # Found data, unpack desired fields
         file_contents = db_result.main_code
-        filename = db_result.filename
+        if db_result.filename:
+            filename = db_result.filename
     else:
         file_contents = None
 
@@ -636,6 +643,4 @@ async def get_source_code(
         "filename": filename,
         "file_contents": file_contents,
     }
-    import pprint
-    rslogger.debug(f"get_source_code: {pprint.pformat(response_bundle)}")
     return make_json_response(detail=response_bundle)

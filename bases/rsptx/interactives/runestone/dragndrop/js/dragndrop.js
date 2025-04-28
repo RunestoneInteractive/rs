@@ -303,11 +303,25 @@ export default class DragNDrop extends RunestoneBase {
                     draggedSpan != ev.target &&
                     !this.strangerDanger(draggedSpan)
                 ) {
-                    // Make sure element isn't already there--prevents erros w/appending child
+                    // Make sure element isn't already there--prevents errors w/appending child
                     this.draggableDiv.appendChild(draggedSpan);
                 }
             }.bind(this)
         );
+
+        // Add keyboard navigation for selecting premises
+        dgSpan.addEventListener("keydown", function (ev) {
+            if (ev.key === "Enter" || ev.key === " ") {
+                ev.preventDefault();
+                if (!self.selectedPremise) {
+                    self.selectedPremise = dgSpan;
+                    dgSpan.classList.add("selected");
+                } else {
+                    self.selectedPremise.classList.remove("selected");
+                    self.selectedPremise = null;
+                }
+            }
+        });
     }
 
     setDropListeners(dpSpan) {
@@ -347,7 +361,7 @@ export default class DragNDrop extends RunestoneBase {
                     !this.strangerDanger(draggedSpan) &&
                     !this.premiseArray.includes(ev.target) // don't drop on another premise!
                 ) {
-                    // Make sure element isn't already there--prevents erros w/appending child
+                    // Make sure element isn't already there--prevents errors w/appending child
                     ev.target.appendChild(draggedSpan);
                 }
                 this.queueMathJax(this.containerDiv).then(() => {
@@ -355,19 +369,37 @@ export default class DragNDrop extends RunestoneBase {
                 });
             }.bind(this)
         );
+
+        // Add keyboard navigation for dropping premises
+        dpSpan.addEventListener("keydown", function (ev) {
+            if ((ev.key === "Enter" || ev.key === " ") && self.selectedPremise) {
+                ev.preventDefault();
+                if (
+                    !self.strangerDanger(self.selectedPremise) &&
+                    !self.premiseArray.includes(dpSpan) // don't drop on another premise!
+                ) {
+                    dpSpan.appendChild(self.selectedPremise);
+                    self.selectedPremise.classList.remove("selected");
+                    self.selectedPremise = null;
+                    self.queueMathJax(self.containerDiv).then(() => {
+                        self.adjustDragDropWidths();
+                    });
+                }
+            }
+        });
     }
 
     adjustDragDropWidths() {
         // Temporarily minimize the dragzone width to the content
         this.draggableDiv.style.width = "fit-content";
-        
+
         const dragzoneWidth = this.draggableDiv.offsetWidth;
         const totalWidth = this.dragDropWrapDiv.offsetWidth;
 
         let dragzonePercent = Math.ceil((dragzoneWidth / totalWidth) * 100);
         dragzonePercent = Math.max(28, Math.min(dragzonePercent, 48));
         const dropzonePercent = 100 - dragzonePercent - 4; // 4 accounts for zone padding
-        
+
         this.dragwidth = dragzonePercent;
         this.dropwidth = dropzonePercent;
 
@@ -561,6 +593,7 @@ export default class DragNDrop extends RunestoneBase {
         this.dragwidth = data.drag_width;
         this.dropwidth = data.drop_width;
         this.answerState = JSON.parse(data.answer);
+        this.correct = data.correct;
         this.finishSettingUp();
     }
 
