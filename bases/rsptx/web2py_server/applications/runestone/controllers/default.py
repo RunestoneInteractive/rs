@@ -325,12 +325,26 @@ def courses():
     res = db(db.user_courses.user_id == auth.user.id).select(
         db.user_courses.course_id, orderby=~db.user_courses.id
     )
+    instructor = db(db.course_instructor.instructor == auth.user.id).select()
+    iset = set()
+    for row in instructor:
+        iset.add(row.course)
+    logger.debug("Instructor set = %s", iset)
     classlist = []
+    bclist = []
     for row in res:
         classes = db(db.courses.id == row.course_id).select()
         for part in classes:
-            classlist.append(part.course_name)
-    return dict(courses=classlist)
+            if part.base_course == part.course_name:
+                bclist.append(
+                    {"course_name": part.course_name, "is_instructor": part.id in iset}
+                )
+            else:
+                classlist.append(
+                    {"course_name": part.course_name, "is_instructor": part.id in iset}
+                )
+    logger.debug("Course list = %s", classlist)
+    return dict(courses=classlist, bclist=bclist)
 
 
 @auth.requires_login()
