@@ -14,6 +14,7 @@ class MatchingProblem extends RunestoneBase {
         this.connList = this.createConnList(container);
         this.ariaLive = this.createAriaLive(container);
         this.controlDiv = this.createControlDiv(container);
+        this.createHelpModal();
 
         this.connections = [];
         this.allBoxes = [];
@@ -193,14 +194,52 @@ class MatchingProblem extends RunestoneBase {
         controlDiv.className = 'control-div';
         const gradeBtn = document.createElement('button');
         gradeBtn.className = 'grade-button';
-        gradeBtn.textContent = 'Grade';
+        gradeBtn.textContent = 'Check Me';
         const resetBtn = document.createElement('button');
         resetBtn.className = 'reset-button';
         resetBtn.textContent = 'Reset';
+        // add Help button
+        const helpBtn = document.createElement('button');
+        helpBtn.className = 'help-button';
+        helpBtn.textContent = '?';                     // changed from 'Help'
+        helpBtn.setAttribute('aria-label', 'Help');    // accessible label
         controlDiv.appendChild(gradeBtn);
         controlDiv.appendChild(resetBtn);
+        controlDiv.appendChild(helpBtn);
         container.appendChild(controlDiv);
+
+        // events
+        gradeBtn.addEventListener('click', () => this.gradeConnections());
+        resetBtn.addEventListener('click', () => this.resetConnections());
+        helpBtn.addEventListener('click', () => this.showHelp());
         return controlDiv;
+    }
+
+    createHelpModal() {
+        this.helpModal = document.createElement('div');
+        this.helpModal.className = 'help-modal';
+        const text = `<p>Click and drag between boxes to create connections.</p>
+        <p>Use the tab key to navigate to a box and press Enter to select the box.  Then tab to the connecting box and press Enter to create a connection between the two selected boxes.</p>
+        <p>Click on a connection line to remove it. You can also use the tab key to select lines.  Press the delete key to remove a selected line.</p>
+        <p>Click the "Check Me" button to check your connections, and save your work.</p>
+        <p>Click the "Reset" button to clear all connections.</p>`
+
+        this.helpModal.innerHTML = `
+          <div class="help-modal-content">
+            <button class="help-close">&times;</button>
+            <div class="help-text">${text}</div>
+          </div>`;
+        this.containerDiv.appendChild(this.helpModal);
+        this.helpModal.querySelector('.help-close')
+            .addEventListener('click', () => this.hideHelp());
+    }
+
+    showHelp() {
+        this.helpModal.style.display = 'flex';
+    }
+
+    hideHelp() {
+        this.helpModal.style.display = 'none';
     }
 
     // Utility functions
@@ -339,7 +378,8 @@ class MatchingProblem extends RunestoneBase {
             return;
         }
 
-        // we should always store co
+        // we should always store connections as drag to drop
+        // even if the user connects drop to drag
         if (fromBox.dataset.role === "drop") {
             [fromBox, toBox] = [toBox, fromBox];
         }
