@@ -61,7 +61,7 @@ h2 {
     text-align: center;
     font-weight: bold;
     user-select: none;
-    cursor: pointer;
+    cursor: grab;
     white-space: nowrap;
     text-align: center;
 }
@@ -90,7 +90,7 @@ h2 {
 
 .line {
     stroke: black;
-    stroke-width: 2;
+    stroke-width: 3;
     cursor: pointer;
     pointer-events: auto;
     transition: stroke 0.2s ease, stroke-width 0.2s ease;
@@ -117,7 +117,7 @@ h2 {
 }
 
 .line:focus,
-line:hover {
+.line:hover {
     stroke: #3498db;
     stroke-dasharray: 6 4;
     /* 6px dash, 4px gap */
@@ -149,7 +149,7 @@ button {
     border-radius: 6px;
     background: #3498db;
     color: white;
-    cursor: pointer;
+    cursor: grab;
     transition: background 0.2s ease-in-out;
 }
 

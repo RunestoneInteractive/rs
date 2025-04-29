@@ -103,8 +103,8 @@ class MatchingProblem extends RunestoneBase {
             this.correct = data.correct;
         }
         this.connections.forEach(conn => {
-            const from = this.getCenter(conn.fromBox);
-            const to = this.getCenter(conn.toBox);
+            const from = this.getRightBoxCenter(conn.fromBox);
+            const to = this.getLeftBoxCenter(conn.toBox);
             const line = this.createLineElement(from.x, from.y, to.x, to.y);
             line.fromBox = conn.fromBox;
             line.toBox = conn.toBox;
@@ -268,6 +268,24 @@ class MatchingProblem extends RunestoneBase {
             y: elRect.top - containerRect.top + elRect.height / 2
         };
     }
+
+    getRightBoxCenter(el) {
+        const elRect = el.getBoundingClientRect();
+        const containerRect = this.workspace.getBoundingClientRect();
+        return {
+            x: elRect.left - containerRect.left + elRect.width,
+            y: elRect.top - containerRect.top + elRect.height / 2
+        };
+    }
+    getLeftBoxCenter(el) {
+        const elRect = el.getBoundingClientRect();
+        const containerRect = this.workspace.getBoundingClientRect();
+        return {
+            x: elRect.left - containerRect.left,
+            y: elRect.top - containerRect.top + elRect.height / 2
+        };
+    }
+
     createLineElement(x1, y1, x2, y2) {
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
         line.setAttribute("x1", x1);
@@ -321,10 +339,14 @@ class MatchingProblem extends RunestoneBase {
             return;
         }
 
+        // we should always store co
+        if (fromBox.dataset.role === "drop") {
+            [fromBox, toBox] = [toBox, fromBox];
+        }
         if (this.isConnected(fromBox, toBox)) return;
 
-        const from = this.getCenter(fromBox);
-        const to = this.getCenter(toBox);
+        const from = this.getRightBoxCenter(fromBox);
+        const to = this.getLeftBoxCenter(toBox);
         const line = this.createLineElement(from.x, from.y, to.x, to.y);
 
         line.fromBox = fromBox;
@@ -394,7 +416,7 @@ class MatchingProblem extends RunestoneBase {
                 if (e.ctrlKey || e.metaKey || true) {
                     e.preventDefault();
                     this.startBox = box;
-                    const from = this.getCenter(this.startBox);
+                    const from = this.getRightBoxCenter(this.startBox);
                     this.tempLine = this.createLineElement(from.x, from.y, from.x, from.y);
                     this.tempLine.setAttribute("stroke", "gray");
                     this.tempLine.setAttribute("stroke-dasharray", "4");
@@ -449,8 +471,8 @@ class MatchingProblem extends RunestoneBase {
 
         window.addEventListener("resize", () => {
             this.connections.forEach(conn => {
-                const from = this.getCenter(conn.fromBox);
-                const to = this.getCenter(conn.toBox);
+                const from = this.getRightBoxCenter(conn.fromBox);
+                const to = this.getLeftBoxCenter(conn.toBox);
                 conn.line.setAttribute("x1", from.x);
                 conn.line.setAttribute("y1", from.y);
                 conn.line.setAttribute("x2", to.x);
@@ -461,7 +483,7 @@ class MatchingProblem extends RunestoneBase {
 
     updateTempLine = (e) => {
         if (!this.startBox || !this.tempLine) return;
-        const from = this.getCenter(this.startBox);
+        const from = this.getRightBoxCenter(this.startBox);
         this.tempLine.setAttribute("x1", from.x);
         this.tempLine.setAttribute("y1", from.y);
         const containerRect = this.workspace.getBoundingClientRect();
