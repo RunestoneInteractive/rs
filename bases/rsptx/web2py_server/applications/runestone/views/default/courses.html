@@ -43,6 +43,18 @@
             /* stack items vertically */
             flex-direction: column;
         }
+    }
+    .anon_link {
+        text-align: center;
+        margin: 0 auto;
+        padding: 1rem;
+        background-color: #f9f9f9;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: 80%;
+        font-size: 1.5rem;
+        border: 1px solid #111;
+    }
 </style>
 
 
@@ -63,7 +75,7 @@
         with a single click on the <a href="/ns/books/index">library page.</a></p>
 </div>
 {{if requested_course:}}
-<div style="margin-left: 10%; margin-right: 10%">
+<div style="margin-left: 10%; margin-right: 10%" class="anon_link">
     <p><strong>You were trying to get to {{=requested_course}}?</strong> Click <a
             href="/ns/books/published/{{=requested_course}}/{{=pagepath}}?mode=browsing" target="_blank">this link</a>
         to view
