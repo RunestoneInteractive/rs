@@ -1,7 +1,7 @@
 <h2>Assignments</h2>
 <label style="margin-bottom:10px; display:block;">
   <input type="checkbox" id="hide_hidden_assignments" onchange="toggleHiddenAssignments(this.checked)">
-  Hide hidden assignments
+  Student View: Hide Hidden Assignments
 </label>
 {% if assignment_list %}
 <table class="table">
@@ -68,7 +68,7 @@
 </table>
 <script>
   function toggleHiddenAssignments(checked) {
-    document.querySelectorAll('tr.hidden_assign').forEach(function(row) {
+    document.querySelectorAll('tr.hidden_assign').forEach(function (row) {
       row.style.display = checked ? 'none' : '';
     });
   }
