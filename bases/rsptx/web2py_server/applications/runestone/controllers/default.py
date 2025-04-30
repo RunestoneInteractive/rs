@@ -343,8 +343,15 @@ def courses():
                 classlist.append(
                     {"course_name": part.course_name, "is_instructor": part.id in iset}
                 )
-    logger.debug("Course list = %s", classlist)
-    return dict(courses=classlist, bclist=bclist)
+    pagepath = request.vars.requested_path
+    if not pagepath:
+        pagepath = "index.html"
+    return dict(
+        courses=classlist,
+        bclist=bclist,
+        requested_course=request.vars.requested_course,
+        pagepath=pagepath,
+    )
 
 
 @auth.requires_login()
