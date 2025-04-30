@@ -72,6 +72,8 @@ export default class DragNDrop extends RunestoneBase {
             replaceSpan.setAttribute("draggable", "true");
             replaceSpan.classList.add("draggable-drag");
             replaceSpan.classList.add("premise");
+            replaceSpan.tabIndex = 0;
+            replaceSpan.setAttribute('role', 'button');
             replaceSpan.dataset.category = this.getCategory(element);
             replaceSpan.dataset.parent_id = this.divid;
             this.premiseArray.push(replaceSpan);
@@ -91,6 +93,8 @@ export default class DragNDrop extends RunestoneBase {
                 "drop-label",
                 "response"
             );
+            replaceSpan.tabIndex = 0;
+            replaceSpan.setAttribute('role', 'button');
             replaceSpan.dataset.category = this.getCategory(element);
             replaceSpan.dataset.parent_id = this.divid;
             this.responseArray.push(replaceSpan);
