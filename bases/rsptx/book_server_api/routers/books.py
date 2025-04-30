@@ -262,7 +262,7 @@ async def serve_page(
                     url=f"/ns/books/published/{user.course_name}/{pagepath}"
                 )
             return RedirectResponse(
-                url=f"/runestone/default/courses?requested_course={course_name}&current_course={user.course_name}"
+                url=f"/runestone/default/courses?requested_course={course_name}&current_course={user.course_name}&requested_path={pagepath}"
             )
     # proceed with the knowledge that course_row is defined after this point.
 
