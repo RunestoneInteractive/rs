@@ -42,7 +42,7 @@ class LibraryForm(StarletteForm):
     default_language = StringField(
         "Default Programming Language (for scratch activecode)"
     )
-    github_url = StringField("Github URL")
+    # github_url = StringField("Github URL") # todo remove from model
     repo_path = StringField("Path to an existing repo")
     main_page = StringField("Main page")
 
