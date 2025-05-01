@@ -318,7 +318,7 @@ async def subchapmap(
 @app.get("/author/getlog/{book}")
 async def getlog(request: Request, book):
     book_entry = await fetch_library_book(book)
-    if book_entry and book_entry.repo_path:
+    if book_entry and book_entry.repo_path and (pathlib.Path(book_entry.repo_path) / "cli.log").exists():
         work_dir = book_entry.repo_path
     else:
         work_dir = f"/books/{book}"
