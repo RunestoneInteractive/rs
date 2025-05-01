@@ -202,6 +202,10 @@ export default class LiveCode extends ActiveCode {
         if (this.language === "octave") {
             paramobj.memorylimit = 200000;
         }
+        if (this.compileargs.toString().indexOf("fsanitize") > -1) {
+            //fsanitize requires an allocation of a giant block of memory
+            paramobj.memorylimit = 2000000000;
+        }
         if (this.timelimit) {
             // convert to seconds to match JOBE - decimal is OK
             let timelimitSeconds = this.timelimit / 1000;
