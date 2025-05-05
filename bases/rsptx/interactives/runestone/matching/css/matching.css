@@ -26,6 +26,7 @@ h2 {
     max-width: 1000px;
     width: 100%;
     margin: 0 auto 1rem;
+    background: var(--componentBgColor);
 }
 
 .left-column,
@@ -55,8 +56,8 @@ h2 {
     min-width: 120px;
     padding: 10px 14px;
     min-height: 50px;
-    background: #f1c40f;
-    border: 2px solid #e67e22;
+    background: var(--dropableBgColor, #f9f9f9);
+    border: 2px solid var(--boxBorderColor);
     border-radius: 8px;
     text-align: center;
     font-weight: bold;
@@ -86,10 +87,12 @@ h2 {
     height: 100%;
     pointer-events: none;
     z-index: 0;
+    background: var(--componentBgColor);
 }
 
 .line {
-    stroke: black;
+    stroke: var(--dragLineColor);
+    ;
     stroke-width: 3;
     cursor: pointer;
     pointer-events: auto;
@@ -103,7 +106,8 @@ h2 {
 
 .line.incorrect {
     stroke: #bf1521;
-    stroke-width: 1;
+    stroke-width: 2;
+    stroke-dasharray: 5 5;
 }
 
 .line.highlighted {
@@ -129,7 +133,7 @@ h2 {
     max-width: 800px;
     margin: 0 auto 1rem;
     padding: 10px;
-    background: #f9f9f9;
+    background: var(--componentBgColor);
     border: 1px solid #ccc;
     border-radius: 6px;
     font-size: 14px;
@@ -233,4 +237,18 @@ button:hover {
     margin-top: 1.5rem;
     font-size: 1rem;
     line-height: 1.4;
+}
+
+.match_question {
+    background-color: var(--questionBgColor);
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.match_feedback {
+    background-color: var(--parsonsIncorrectBgColor);
+    padding: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
 }

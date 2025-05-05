@@ -11,6 +11,7 @@ class MatchingProblem extends RunestoneBase {
             this.boxesRenderedResolve = resolve;
         });
         this.workspace = this.createWorkspace(container);
+        this.statement = this.createStatement(container);
         this.connList = this.createConnList(container);
         this.ariaLive = this.createAriaLive(container);
         this.controlDiv = this.createControlDiv(container);
@@ -90,8 +91,24 @@ class MatchingProblem extends RunestoneBase {
             conn.line.classList.add(isCorrect ? "correct" : "incorrect");
         });
 
-        this.connList.innerHTML = `<strong>Score: ${this.scorePercent}%</strong>`;
+        this.connList.innerHTML = `<strong>Score: ${this.scorePercent}%</strong><br>`;
+        this.connList.innerHTML += `<br>Correct: ${this.correctCount}`;
+        this.connList.innerHTML += `<br>Incorrect: ${this.incorrectCount}`;
+        this.connList.innerHTML += `<br>Missing: ${this.missingCount}`;
+        if (this.scorePercent !== 100) {
+            this.connList.innerHTML += `<div class="match_feedback"><strong>Feedback:</strong> ${this.boxData.feedback}</div>`;
+        }
     }
+
+    createStatement(container) {
+        const statement = document.createElement('div');
+        statement.className = 'statement';
+        statement.classList.add('match_question');
+        statement.innerHTML = this.boxData.statement;
+        container.insertBefore(statement, container.firstChild);
+        return statement;
+    }
+
 
     restoreAnswers(data) {
         // Recreate lines
