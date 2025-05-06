@@ -3728,14 +3728,14 @@ files = [
 
 [[package]]
 name = "pretext"
-version = "2.17.0"
+version = "2.18.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0.0,>=3.8.5"
 groups = ["main", "dev"]
 files = [
-    {file = "pretext-2.17.0-py3-none-any.whl", hash = "sha256:944ed56572f23ba08451f8991206be60abeeab7f2034dd3c1611310cb4fd2189"},
-    {file = "pretext-2.17.0.tar.gz", hash = "sha256:98ba8c5fae78f951762c33c2e53199adde43b10ca9743a64748e1ed7f560dbd1"},
+    {file = "pretext-2.18.0-py3-none-any.whl", hash = "sha256:66c640de88d0d375497a29132ff25205f5ccb47185ff5e7719ef6aea4943e2df"},
+    {file = "pretext-2.18.0.tar.gz", hash = "sha256:83bc4336d29f4a7b81decd7c74931791ebb06a72d1c657ad667d1c9ed5ea9ac1"},
 ]
 
 [package.dependencies]
