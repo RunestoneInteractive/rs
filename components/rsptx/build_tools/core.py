@@ -298,6 +298,13 @@ def extract_docinfo(tree, string, attr=None, click=click):
     string: The name of the element we are looking for
     Helper to get the contents of several tags from the docinfo element of a PreTeXt book
     """
+    authstr = ""
+    if string == "author":
+        el = tree.findall(f"./{string}")
+        for a in el:
+            authstr += ET.tostring(a, encoding="unicode", method="text").strip() + ", "
+        authstr = authstr[:-2]
+        return authstr
     el = tree.find(f"./{string}")
     if attr is not None and el is not None:
         print(f"{el.attrib[attr]=}")
@@ -331,6 +338,7 @@ def update_library(
         subtitle = extract_docinfo(docinfo, "subtitle")
         description = extract_docinfo(docinfo, "blurb")
         shelf = extract_docinfo(docinfo, "shelf")
+        author = extract_docinfo(docinfo, "author")
     else:
         try:
             config_vars = {}
@@ -387,6 +395,7 @@ def update_library(
             last_build=build_time,
             for_classes="F",
             is_visible="T",
+            authors=author,
         )
         new_book = Library(**new_lib.dict())
         with Session.begin() as s:
@@ -415,6 +424,7 @@ def update_library(
                 build_system=build_system,
                 main_page=main_page,
                 last_build=build_time,
+                authors=author,
             )
         )
         with Session.begin() as session:
@@ -739,7 +749,12 @@ def manifest_data_to_db(course_name, manifest_path):
                     # write datafile contents to the source_code table
                     event_loop = asyncio.get_event_loop()
                     event_loop.run_until_complete(
-                        update_source_code(acid=id, course_id=course_name, main_code=file_contents, filename=filename)
+                        update_source_code(
+                            acid=id,
+                            course_id=course_name,
+                            main_code=file_contents,
+                            filename=filename,
+                        )
                     )
 
             for sourceEl in subchapter.findall("./source"):
@@ -752,10 +767,13 @@ def manifest_data_to_db(course_name, manifest_path):
 
                 event_loop = asyncio.get_event_loop()
                 event_loop.run_until_complete(
-                    update_source_code(acid=id, course_id=course_name, main_code=file_contents, filename=filename)
+                    update_source_code(
+                        acid=id,
+                        course_id=course_name,
+                        main_code=file_contents,
+                        filename=filename,
+                    )
                 )
-
-                
 
     latex = root.find("./latex-macros")
     rslogger.info("Setting attributes for this base course")
