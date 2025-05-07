@@ -112,7 +112,7 @@ export const AssignmentExercisesTable = ({
                 className="pi pi-info-circle"
                 id={`info-icon-${data.id}`}
                 style={{ cursor: "pointer" }}
-              ></i>
+              />
             </div>
           )}
         />
