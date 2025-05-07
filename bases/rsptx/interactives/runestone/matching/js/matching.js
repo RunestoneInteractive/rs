@@ -1,12 +1,28 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
 import "../css/matching.less";
 import { xmlToJson } from "./xmlconversion.js";
-class MatchingProblem extends RunestoneBase {
-    constructor(container, boxData, opts) {
-        super({})
-        this.containerDiv = container;
+export class MatchingProblem extends RunestoneBase {
+    constructor(opts) {
+        super(opts)
+        let container = opts.orig;
+        this.containerDiv = opts.orig;
+        const script = container.querySelector('script');
+        if (script) {
+            let boxData;
+            try {
+                if (script.type == 'text/xml') {
+                    const xml = script.textContent;
+                    boxData = xmlToJson(xml);
+                } else {
+                    boxData = JSON.parse(script.textContent);
+                }
+                this.boxData = boxData;
+            } catch (err) {
+                console.error("Failed to parse boxData JSON:", err);
+            }
+        }
+
         this.divid = container.id;
-        this.boxData = boxData;
         this.boxesRenderedPromise = new Promise((resolve) => {
             this.boxesRenderedResolve = resolve;
         });
@@ -70,7 +86,17 @@ class MatchingProblem extends RunestoneBase {
 
     }
 
-    async logCurrentAnswer(eventData) {
+    async logCurrentAnswer() {
+        let eventData = {
+            score: this.scorePercent,
+            correctCount: this.correctCount,
+            incorrectCount: this.incorrectCount,
+            missingCount: this.missingCount,
+            connections: this.connections.map(conn => ({
+                from: conn.fromBox.dataset.id,
+                to: conn.toBox.dataset.id
+            }))
+        }
         eventData.event = "matching";
         eventData.div_id = this.divid;
         eventData.act = `score:${eventData.score} connections:${JSON.stringify(eventData.connections)}`;
@@ -229,6 +255,9 @@ class MatchingProblem extends RunestoneBase {
         gradeBtn.addEventListener('click', () => this.gradeConnections());
         resetBtn.addEventListener('click', () => this.resetConnections());
         helpBtn.addEventListener('click', () => this.showHelp());
+        this.gradeBtn = gradeBtn;
+        this.resetBtn = resetBtn;
+        this.helpBtn = helpBtn;
         return controlDiv;
     }
 
@@ -412,6 +441,7 @@ class MatchingProblem extends RunestoneBase {
         this.svg.appendChild(line);
         this.connections.push({ fromBox, toBox, line });
         this.updateConnectionModel();
+        this.isAnswered = true;
 
         if (this.ariaLive) {
             this.ariaLive.textContent = `Connected ${fromBox.textContent} to ${toBox.textContent}`;
@@ -443,16 +473,7 @@ class MatchingProblem extends RunestoneBase {
     gradeConnections() {
         this.checkCurrentAnswer();
         this.renderFeedback();
-        this.logCurrentAnswer({
-            score: this.scorePercent,
-            correctCount: this.correctCount,
-            incorrectCount: this.incorrectCount,
-            missingCount: this.missingCount,
-            connections: this.connections.map(conn => ({
-                from: conn.fromBox.dataset.id,
-                to: conn.toBox.dataset.id
-            }))
-        });
+        this.logCurrentAnswer();
         this.setLocalStorage();
     }
 
@@ -572,24 +593,9 @@ class MatchingProblem extends RunestoneBase {
 // Register the component with Runestone 
 document.addEventListener("runestone:login-complete", () => {
     document.querySelectorAll('[data-component="matching"]').forEach(container => {
-        const script = container.querySelector('script');
-        if (script) {
-            let boxData;
-            try {
-                if (script.type == 'text/xml') {
-                    const xml = script.textContent;
-                    //const json = convert.xml2json(xml, { compact: true, spaces: 4 });
-                    //boxData = JSON.parse(json);
-                    //boxData = simplifyJson(boxData.all);
-                    boxData = xmlToJson(xml);
-                } else {
-                    boxData = JSON.parse(script.textContent);
-                }
-                let opts = {};
-                window.componentMap[container.id] = new MatchingProblem(container, boxData, opts);
-            } catch (err) {
-                console.error("Failed to parse boxData JSON:", err);
-            }
+        if (!container.closest("[data-component=timedAssessment]")) {
+            let opts = { orig: container }
+            window.componentMap[container.id] = new MatchingProblem(opts);
         }
     });
 });

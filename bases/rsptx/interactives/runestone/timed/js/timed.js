@@ -18,6 +18,7 @@ import ACFactory from "../../activecode/js/acfactory.js";
 import TimedClickableArea from "../../clickableArea/js/timedclickable";
 import TimedDragNDrop from "../../dragndrop/js/timeddnd.js";
 import TimedParsons from "../../parsons/js/timedparsons.js";
+import TimedMatching from "../../matching/js/timed_matching.js";
 import SelectOne from "../../selectquestion/js/selectone";
 import "../css/timed.less";
 
