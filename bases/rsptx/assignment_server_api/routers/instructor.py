@@ -5,6 +5,8 @@ import pathlib
 import pandas as pd
 import io
 
+from .assignment_summary import create_assignment_summary
+
 from fastapi import (
     APIRouter,
     Cookie,
@@ -1188,3 +1190,28 @@ async def do_assignment_summary(
     )
 
     return response
+
+
+@router.get("/assignment_summary_data/{assignment_id}")
+@instructor_role_required()
+async def do_assignment_summary_data(
+    assignment_id: int,
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    course = await fetch_course(user.course_name)
+    if settings.server_config == "development":
+        dburl = settings.dev_dburl
+    elif settings.server_config == "production":
+        dburl = settings.dburl
+
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "assignment_summary": create_assignment_summary(
+                assignment_id, course, dburl
+            )
+        },
+    )
+

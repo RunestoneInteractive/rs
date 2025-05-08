@@ -4,12 +4,12 @@ import numpy as np
 from sqlalchemy import create_engine
 
 
-def create_assignment_summary(dburl):
+def create_assignment_summary(assignment_id, course, dburl):
 
-    COURSE_NAME = "2024-25BaldwinHS-APCSA"
-    COURSE_ID = 29243
-    BASE_COURSE = "csawesome"
-    ASSIGNMENT_ID = 195092
+    COURSE_NAME = course.course_name
+    COURSE_ID = course.id
+    BASE_COURSE = course.base_course
+    ASSIGNMENT_ID = assignment_id
     eng = create_engine(dburl)
 
     df = pd.read_sql(
@@ -133,9 +133,6 @@ def create_assignment_summary(dburl):
         lambda x: "{:.2f}".format(float(x.split(":")[0])) if ":" in x else x
     )
 
-    return merged.to_json(
+    return merged.to_dict(
         orient="records",
-        lines=True,
-        date_format="iso",
     )
-

@@ -1,18 +1,61 @@
-{% extends "_base.html" %} 
+{% extends "_base.html" %}
 {% block title %}
 Assignment Summary
 {% endblock %}
 {% block css %}
 
 <link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
+<script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css" rel="stylesheet"
+    media="screen">
 
 
-{% endblock %} 
+{% endblock %}
 {% block content %}
 <h1>Assignment Summary</h1>
 
+<div id="container">
+</div>
+<script>
+    assignment_id = {{ assignment_id }};
+    course_name = "{{ course_name }}";
+    course_id = {{ course_id }};
+    base_course = "{{ base_course }}";
 
-{% endblock %} 
+    // use fetch to call /assignment/instructor/assignment_summary_data
+    fetch(`/assignment/instructor/assignment_summary_data/${assignment_id}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    })
+        .then((response) => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error("Network response was not ok");
+            }
+        })
+        .then((data) => {
+            console.log(data.detail)
+            container = document.getElementById('container');
+            retdata = data.detail.assignment_summary;
+            let columns = [];
+            if (retdata && retdata.length > 0) {
+                for (let k of Object.keys(retdata[0])) {
+                    columns.push({ data: k, renderer: "html" });
+                }
+
+                var hot = new Handsontable(container, {
+                    data: retdata,
+                    colHeaders: Object.keys(retdata[0]),
+                    licenseKey: "non-commercial-and-evaluation",
+                    columns: columns,
+                });
+            }
+        })
+</script>
+{% endblock %}
 
 {% block js %}
 <script src="/staticAssets/assignment/student.js"></script>
