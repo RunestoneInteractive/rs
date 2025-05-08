@@ -100,6 +100,7 @@ async function addCourse() {
     let repo_path = document.querySelector("#repo_path");
     if (repo_path) {
         repo_path = repo_path.value;
+        repo_path = repo_path.trim();
         if (!repo.value && !repo_path) {
             alert("You must provide either a github url or path to a local repo");
             return;
@@ -119,7 +120,7 @@ async function addCourse() {
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ bcname: bcname.value, github: repo.value, repo_path: repo_path })
+        body: JSON.stringify({ bcname: bcname.value.trim(), github: repo.value, repo_path: repo_path })
     });
     if (response.ok) {
         let data = await response.json();
@@ -129,7 +130,7 @@ async function addCourse() {
             cloneTask();
         } else if (repo_path) {
             // redirect to the /author/editlibrary page
-            window.location.href = `/author/editlibrary/${bcname.value}`;
+            window.location.href = `/author/editlibrary/${bcname.value.trim()}`;
 
         }
         // if clone fails we should remove from db? - maybe add a remove button?
