@@ -67,7 +67,7 @@ export const AssignmentExercisesTable = ({
       Tags: data.tags,
       Chapter: data.chapter
     })
-      .filter(([, value]) => value)
+      .filter(([, value]) => value || value === 0)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
   };
@@ -107,7 +107,7 @@ export const AssignmentExercisesTable = ({
           style={{ width: "2rem" }}
           body={(data: Exercise) => (
             <div className="flex gap-2 justify-content-center">
-              <Tooltip target={`#info-icon-${data.id}`} content={getTooltipText(data)}></Tooltip>
+              <Tooltip target={`#info-icon-${data.id}`} content={getTooltipText(data)} />
               <i
                 className="pi pi-info-circle"
                 id={`info-icon-${data.id}`}
