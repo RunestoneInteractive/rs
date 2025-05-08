@@ -4,6 +4,7 @@ import { ExerciseTypeTag } from "@components/ui/ExerciseTypeTag";
 import { useReorderAssignmentExercisesMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { Column } from "primereact/column";
 import { DataTable, DataTableSelectionMultipleChangeEvent } from "primereact/datatable";
+import { Tooltip } from "primereact/tooltip";
 import { useRef } from "react";
 
 import { useJwtUser } from "@/hooks/useJwtUser";
@@ -59,6 +60,17 @@ export const AssignmentExercisesTable = ({
       !!exercise.question_json
     );
   };
+  const getTooltipText = (data: Exercise) => {
+    return Object.entries({
+      Author: data.author,
+      Difficulty: data.difficulty,
+      Tags: data.tags,
+      Chapter: data.chapter
+    })
+      .filter(([, value]) => value || value === 0)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("\n");
+  };
 
   return (
     <div style={{ position: "relative" }}>
@@ -91,6 +103,19 @@ export const AssignmentExercisesTable = ({
         onRowReorder={(e) => reorderExercises(e.value.map((exercise) => exercise.id))}
       >
         <Column selectionMode="multiple" style={{ width: "3rem" }} />
+        <Column
+          style={{ width: "2rem" }}
+          body={(data: Exercise) => (
+            <div className="flex gap-2 justify-content-center">
+              <Tooltip target={`#info-icon-${data.id}`} content={getTooltipText(data)} />
+              <i
+                className="pi pi-info-circle"
+                id={`info-icon-${data.id}`}
+                style={{ cursor: "pointer" }}
+              />
+            </div>
+          )}
+        />
         <Column
           style={{ width: "3rem" }}
           body={(data: Exercise) => (
