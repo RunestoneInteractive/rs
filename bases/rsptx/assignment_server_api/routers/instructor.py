@@ -14,7 +14,12 @@ from fastapi import (
     status,
     Form,
 )
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
+from fastapi.responses import (
+    HTMLResponse,
+    RedirectResponse,
+    JSONResponse,
+    StreamingResponse,
+)
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import create_engine
 from pydantic import BaseModel
@@ -1144,6 +1149,42 @@ async def do_download_assignment(
         csv_buffer,
         media_type="text/csv",
     )
-    response.headers["Content-Disposition"] = f"attachment; filename=assignment_{assignment_id}.csv"
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename=assignment_{assignment_id}.csv"
+    )
+
+    return response
+
+
+@router.get("/assignment_summary/{assignment_id}")
+@instructor_role_required()
+async def do_assignment_summary(
+    assignment_id: int,
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+):
+    """
+    Download the specified assignment.
+    """
+
+    course_name = user.course_name
+
+    course = await fetch_course(course_name)
+    context = {
+        "course": course,
+        "course_name": course.course_name,
+        "base_course": course.base_course,
+        "assignment_id": assignment_id,
+        "course_id": course.id,
+        "user": user,
+        "request": request,
+        "is_instructor": True,
+        "student_page": False,
+    }
+    templates = Jinja2Templates(directory=template_folder)
+    response = templates.TemplateResponse(
+        "assignment/instructor/assignment_summary.html", context
+    )
 
     return response
