@@ -1,12 +1,28 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
 import "../css/matching.less";
 import { xmlToJson } from "./xmlconversion.js";
-class MatchingProblem extends RunestoneBase {
-    constructor(container, boxData, opts) {
-        super({})
-        this.containerDiv = container;
+export class MatchingProblem extends RunestoneBase {
+    constructor(opts) {
+        super(opts)
+        let container = opts.orig;
+        this.containerDiv = opts.orig;
+        const script = container.querySelector('script');
+        if (script) {
+            let boxData;
+            try {
+                if (script.type == 'text/xml') {
+                    const xml = script.textContent;
+                    boxData = xmlToJson(xml);
+                } else {
+                    boxData = JSON.parse(script.textContent);
+                }
+                this.boxData = boxData;
+            } catch (err) {
+                console.error("Failed to parse boxData JSON:", err);
+            }
+        }
+
         this.divid = container.id;
-        this.boxData = boxData;
         this.boxesRenderedPromise = new Promise((resolve) => {
             this.boxesRenderedResolve = resolve;
         });
@@ -70,7 +86,17 @@ class MatchingProblem extends RunestoneBase {
 
     }
 
-    async logCurrentAnswer(eventData) {
+    async logCurrentAnswer() {
+        let eventData = {
+            score: this.scorePercent,
+            correctCount: this.correctCount,
+            incorrectCount: this.incorrectCount,
+            missingCount: this.missingCount,
+            connections: this.connections.map(conn => ({
+                from: conn.fromBox.dataset.id,
+                to: conn.toBox.dataset.id
+            }))
+        }
         eventData.event = "matching";
         eventData.div_id = this.divid;
         eventData.act = `score:${eventData.score} connections:${JSON.stringify(eventData.connections)}`;
@@ -229,6 +255,9 @@ class MatchingProblem extends RunestoneBase {
         gradeBtn.addEventListener('click', () => this.gradeConnections());
         resetBtn.addEventListener('click', () => this.resetConnections());
         helpBtn.addEventListener('click', () => this.showHelp());
+        this.gradeBtn = gradeBtn;
+        this.resetBtn = resetBtn;
+        this.helpBtn = helpBtn;
         return controlDiv;
     }
 
@@ -412,6 +441,7 @@ class MatchingProblem extends RunestoneBase {
         this.svg.appendChild(line);
         this.connections.push({ fromBox, toBox, line });
         this.updateConnectionModel();
+        this.isAnswered = true;
 
         if (this.ariaLive) {
             this.ariaLive.textContent = `Connected ${fromBox.textContent} to ${toBox.textContent}`;
@@ -443,16 +473,7 @@ class MatchingProblem extends RunestoneBase {
     gradeConnections() {
         this.checkCurrentAnswer();
         this.renderFeedback();
-        this.logCurrentAnswer({
-            score: this.scorePercent,
-            correctCount: this.correctCount,
-            incorrectCount: this.incorrectCount,
-            missingCount: this.missingCount,
-            connections: this.connections.map(conn => ({
-                from: conn.fromBox.dataset.id,
-                to: conn.toBox.dataset.id
-            }))
-        });
+        this.logCurrentAnswer();
         this.setLocalStorage();
     }
 
@@ -469,7 +490,7 @@ class MatchingProblem extends RunestoneBase {
 
     attachEvents() {
         this.allBoxes.forEach(box => {
-            box.addEventListener("mousedown", e => {
+            box.addEventListener("pointerdown", e => {
                 if (e.ctrlKey || e.metaKey || true) {
                     e.preventDefault();
                     this.startBox = box;
@@ -479,8 +500,8 @@ class MatchingProblem extends RunestoneBase {
                     this.tempLine.setAttribute("stroke-dasharray", "4");
                     this.svg.appendChild(this.tempLine);
 
-                    document.addEventListener("mousemove", this.updateTempLine);
-                    document.addEventListener("mouseup", this.finishConnection);
+                    document.addEventListener("pointermove", this.updateTempLine);
+                    document.addEventListener("pointerup", this.finishConnection);
                 }
             });
 
@@ -539,6 +560,7 @@ class MatchingProblem extends RunestoneBase {
     }
 
     updateTempLine = (e) => {
+        e.preventDefault();
         if (!this.startBox || !this.tempLine) return;
         const from = this.getRightBoxCenter(this.startBox);
         this.tempLine.setAttribute("x1", from.x);
@@ -552,17 +574,30 @@ class MatchingProblem extends RunestoneBase {
     };
 
     finishConnection = (e) => {
+        e.preventDefault();
         if (this.tempLine) {
             this.svg.removeChild(this.tempLine);
             this.tempLine = null;
         }
 
-        const endBox = this.allBoxes.find(box => box.contains(e.target) && box !== this.startBox);
+        // the target element is the element under the pointer
+        // when the pointer is released
+        // this is not the same as e.target which may be the box or it may be the svg 
+        // or it may be the line, so we do it this way instead of checking to see if the box contains
+        // e.target.  const endBox = this.allBoxes.find(box => box.contains(e.target) && box !== this.startBox);
+        const pointX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
+        const pointY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
+        const targetElement = document.elementFromPoint(pointX, pointY);
+
+        const endBox = this.allBoxes.find(box =>
+            box.contains(targetElement) && box !== this.startBox
+        );
+
         if (this.startBox && endBox) this.createPermanentLine(this.startBox, endBox);
 
         this.startBox = null;
-        document.removeEventListener("mousemove", this.updateTempLine);
-        document.removeEventListener("mouseup", this.finishConnection);
+        document.removeEventListener("pointermove", this.updateTempLine);
+        document.removeEventListener("pointerup", this.finishConnection);
     }
 }
 
@@ -572,24 +607,9 @@ class MatchingProblem extends RunestoneBase {
 // Register the component with Runestone 
 document.addEventListener("runestone:login-complete", () => {
     document.querySelectorAll('[data-component="matching"]').forEach(container => {
-        const script = container.querySelector('script');
-        if (script) {
-            let boxData;
-            try {
-                if (script.type == 'text/xml') {
-                    const xml = script.textContent;
-                    //const json = convert.xml2json(xml, { compact: true, spaces: 4 });
-                    //boxData = JSON.parse(json);
-                    //boxData = simplifyJson(boxData.all);
-                    boxData = xmlToJson(xml);
-                } else {
-                    boxData = JSON.parse(script.textContent);
-                }
-                let opts = {};
-                window.componentMap[container.id] = new MatchingProblem(container, boxData, opts);
-            } catch (err) {
-                console.error("Failed to parse boxData JSON:", err);
-            }
+        if (!container.closest("[data-component=timedAssessment]")) {
+            let opts = { orig: container }
+            window.componentMap[container.id] = new MatchingProblem(opts);
         }
     });
 });

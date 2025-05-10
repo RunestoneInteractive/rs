@@ -516,10 +516,20 @@ def manifest_data_to_db(course_name, manifest_path):
     chapters = Table("chapters", meta, autoload=True, autoload_with=engine)
     subchapters = Table("sub_chapters", meta, autoload=True, autoload_with=engine)
     questions = Table("questions", meta, autoload=True, autoload_with=engine)
+    book_author = Table("book_author", meta, autoload=True, autoload_with=engine)
     source_code = Table("source_code", meta, autoload=True, autoload_with=engine)
     course_attributes = Table(
         "course_attributes", meta, autoload=True, autoload_with=engine
     )
+
+    # Get the author name from the manifest
+    tree = ET.parse(manifest_path)
+    docinfo = tree.find("./library-metadata")
+    author = extract_docinfo(docinfo, "author")
+    res = sess.execute(book_author.select().where(book_author.c.book == course_name))
+    book_author_data = res.first()
+    # the owner is the username of the author
+    owner = book_author_data["author"]
 
     rslogger.info(f"Cleaning up old chapters info for {course_name}")
     # Delete the chapter rows before repopulating. Subchapter rows are taken
@@ -607,6 +617,8 @@ def manifest_data_to_db(course_name, manifest_path):
                 subchapter=subchapter.find("./id").text,
                 chapter=chapter.find("./id").text,
                 from_source="T",
+                author=author,
+                owner=owner,
             )
             if res:
                 ins = (
@@ -711,6 +723,8 @@ def manifest_data_to_db(course_name, manifest_path):
                     qnumber=qlabel,
                     optional=optional,
                     practice=practice,
+                    author=author,
+                    owner=owner,
                 )
                 if old_ww_id:
                     namekey = old_ww_id
