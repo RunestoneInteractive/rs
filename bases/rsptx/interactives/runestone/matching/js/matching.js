@@ -490,7 +490,7 @@ export class MatchingProblem extends RunestoneBase {
 
     attachEvents() {
         this.allBoxes.forEach(box => {
-            box.addEventListener("mousedown", e => {
+            box.addEventListener("pointerdown", e => {
                 if (e.ctrlKey || e.metaKey || true) {
                     e.preventDefault();
                     this.startBox = box;
@@ -500,8 +500,8 @@ export class MatchingProblem extends RunestoneBase {
                     this.tempLine.setAttribute("stroke-dasharray", "4");
                     this.svg.appendChild(this.tempLine);
 
-                    document.addEventListener("mousemove", this.updateTempLine);
-                    document.addEventListener("mouseup", this.finishConnection);
+                    document.addEventListener("pointermove", this.updateTempLine);
+                    document.addEventListener("pointerup", this.finishConnection);
                 }
             });
 
@@ -560,6 +560,7 @@ export class MatchingProblem extends RunestoneBase {
     }
 
     updateTempLine = (e) => {
+        e.preventDefault();
         if (!this.startBox || !this.tempLine) return;
         const from = this.getRightBoxCenter(this.startBox);
         this.tempLine.setAttribute("x1", from.x);
@@ -573,17 +574,30 @@ export class MatchingProblem extends RunestoneBase {
     };
 
     finishConnection = (e) => {
+        e.preventDefault();
         if (this.tempLine) {
             this.svg.removeChild(this.tempLine);
             this.tempLine = null;
         }
 
-        const endBox = this.allBoxes.find(box => box.contains(e.target) && box !== this.startBox);
+        // the target element is the element under the pointer
+        // when the pointer is released
+        // this is not the same as e.target which may be the box or it may be the svg 
+        // or it may be the line, so we do it this way instead of checking to see if the box contains
+        // e.target.  const endBox = this.allBoxes.find(box => box.contains(e.target) && box !== this.startBox);
+        const pointX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
+        const pointY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
+        const targetElement = document.elementFromPoint(pointX, pointY);
+
+        const endBox = this.allBoxes.find(box =>
+            box.contains(targetElement) && box !== this.startBox
+        );
+
         if (this.startBox && endBox) this.createPermanentLine(this.startBox, endBox);
 
         this.startBox = null;
-        document.removeEventListener("mousemove", this.updateTempLine);
-        document.removeEventListener("mouseup", this.finishConnection);
+        document.removeEventListener("pointermove", this.updateTempLine);
+        document.removeEventListener("pointerup", this.finishConnection);
     }
 }
 
