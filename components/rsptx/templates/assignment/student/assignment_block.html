@@ -34,9 +34,9 @@
           <span class=" material-symbols-outlined" aria-label="edit" title="edit this assignment">edit</span></a>
         <a href="/runestone/admin/grading?selected_assignment={{assignment.name}}">
           <span class="material-symbols-outlined" aria-label="grading" title="grade this assignment">grading</span></a>
-        <a href='/assignment/instructor/download_assignment/{{assignment.id}}'">
-          <span class=" material-symbols-outlined" aria-label="download"
-          title="download submissions">download</span></a>
+        <a href='/assignment/instructor/assignment_summary/{{assignment.id}}'">
+          <span class=" material-symbols-outlined" aria-label="dashboard"
+          title="view summary">dashboard</span></a>
         {% else %}
         {% if assignment.id in stats %}
         {% set current = stats[assignment.id].is_submit %}
