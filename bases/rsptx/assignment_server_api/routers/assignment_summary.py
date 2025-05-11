@@ -118,10 +118,10 @@ def create_assignment_summary(assignment_id, course, dburl):
             except ValueError:
                 print(f"ValueError: {col + '_y'} cannot be converted to int")
         if f"{col}_x" not in merged.columns:
-            merged[col] = "0.0 : 0"
+            merged[col] = "0.0 (0)"
             continue
         merged[col] = (
-            merged[col + "_x"].astype(str) + " : " + merged[col + "_y"].astype(str)
+            merged[col + "_x"].astype(str) + " (" + merged[col + "_y"].astype(str) + ")"
         )
         merged.drop(columns=[col + "_x", col + "_y"], inplace=True)
     merged.replace({np.nan: ""}, inplace=True)
@@ -129,8 +129,8 @@ def create_assignment_summary(assignment_id, course, dburl):
     merged = merged[
         ["Student ID", "First Name", "Last Name"] + list(exercises) + ["total"]
     ]
-    merged.iloc[-1, 3:-1] = merged.iloc[-1, 3:-1].apply(
-        lambda x: "{:.2f}".format(float(x.split(":")[0])) if ":" in x else x
+    merged.iloc[-1, 3:] = merged.iloc[-1, 3:].apply(
+        lambda x: "{:.2f}".format(float(x.split("(")[0])) if type(x) is str and "(" in x else "{:.2f}".format(float(x))
     )
 
     return merged.to_dict(
