@@ -450,6 +450,7 @@ export default class MultipleChoice extends RunestoneBase {
         } else {
             this.renderMCMFFeedback();
         }
+        this.queueMathJax(this.feedBackDiv);
     }
     scoreMCMASubmission() {
         this.correctCount = 0;
