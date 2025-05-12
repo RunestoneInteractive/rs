@@ -16,6 +16,7 @@ import datetime
 import os
 import re
 import subprocess
+import asyncio
 from pathlib import Path
 import logging
 from io import StringIO
@@ -40,6 +41,7 @@ from sqlalchemy.sql import text
 from rsptx.logging import rslogger
 from runestone.server import get_dburl
 from rsptx.db.models import Library, LibraryValidator
+from rsptx.db.crud import update_source_code
 from rsptx.response_helpers.core import canonical_utcnow
 import pdb
 
@@ -296,6 +298,13 @@ def extract_docinfo(tree, string, attr=None, click=click):
     string: The name of the element we are looking for
     Helper to get the contents of several tags from the docinfo element of a PreTeXt book
     """
+    authstr = ""
+    if string == "author":
+        el = tree.findall(f"./{string}")
+        for a in el:
+            authstr += ET.tostring(a, encoding="unicode", method="text").strip() + ", "
+        authstr = authstr[:-2]
+        return authstr
     el = tree.find(f"./{string}")
     if attr is not None and el is not None:
         print(f"{el.attrib[attr]=}")
@@ -329,6 +338,7 @@ def update_library(
         subtitle = extract_docinfo(docinfo, "subtitle")
         description = extract_docinfo(docinfo, "blurb")
         shelf = extract_docinfo(docinfo, "shelf")
+        author = extract_docinfo(docinfo, "author")
     else:
         try:
             config_vars = {}
@@ -385,6 +395,7 @@ def update_library(
             last_build=build_time,
             for_classes="F",
             is_visible="T",
+            authors=author,
         )
         new_book = Library(**new_lib.dict())
         with Session.begin() as s:
@@ -413,6 +424,7 @@ def update_library(
                 build_system=build_system,
                 main_page=main_page,
                 last_build=build_time,
+                authors=author,
             )
         )
         with Session.begin() as session:
@@ -504,10 +516,20 @@ def manifest_data_to_db(course_name, manifest_path):
     chapters = Table("chapters", meta, autoload=True, autoload_with=engine)
     subchapters = Table("sub_chapters", meta, autoload=True, autoload_with=engine)
     questions = Table("questions", meta, autoload=True, autoload_with=engine)
+    book_author = Table("book_author", meta, autoload=True, autoload_with=engine)
     source_code = Table("source_code", meta, autoload=True, autoload_with=engine)
     course_attributes = Table(
         "course_attributes", meta, autoload=True, autoload_with=engine
     )
+
+    # Get the author name from the manifest
+    tree = ET.parse(manifest_path)
+    docinfo = tree.find("./library-metadata")
+    author = extract_docinfo(docinfo, "author")
+    res = sess.execute(book_author.select().where(book_author.c.book == course_name))
+    book_author_data = res.first()
+    # the owner is the username of the author
+    owner = book_author_data["author"]
 
     rslogger.info(f"Cleaning up old chapters info for {course_name}")
     # Delete the chapter rows before repopulating. Subchapter rows are taken
@@ -595,6 +617,8 @@ def manifest_data_to_db(course_name, manifest_path):
                 subchapter=subchapter.find("./id").text,
                 chapter=chapter.find("./id").text,
                 from_source="T",
+                author=author,
+                owner=owner,
             )
             if res:
                 ins = (
@@ -699,6 +723,8 @@ def manifest_data_to_db(course_name, manifest_path):
                     qnumber=qlabel,
                     optional=optional,
                     practice=practice,
+                    author=author,
+                    owner=owner,
                 )
                 if old_ww_id:
                     namekey = old_ww_id
@@ -732,29 +758,36 @@ def manifest_data_to_db(course_name, manifest_path):
                         filename = el.attrib["data-filename"]
                     else:
                         filename = el.attrib["id"]
+                    id = el.attrib["id"]
 
                     # write datafile contents to the source_code table
-                    res = res = sess.execute(
-                        f"""select * from source_code where acid='{filename}' and course_id='{course_name}'"""
-                    ).first()
-
-                    vdict = dict(
-                        acid=filename, course_id=course_name, main_code=file_contents
-                    )
-                    if res:
-                        upd = (
-                            source_code.update()
-                            .where(
-                                and_(
-                                    source_code.c.acid == filename,
-                                    source_code.c.course_id == course_name,
-                                )
-                            )
-                            .values(**vdict)
+                    event_loop = asyncio.get_event_loop()
+                    event_loop.run_until_complete(
+                        update_source_code(
+                            acid=id,
+                            course_id=course_name,
+                            main_code=file_contents,
+                            filename=filename,
                         )
-                    else:
-                        upd = source_code.insert().values(**vdict)
-                    sess.execute(upd)
+                    )
+
+            for sourceEl in subchapter.findall("./source"):
+                id = sourceEl.attrib["id"]
+                file_contents = sourceEl.text
+                if "filename" in sourceEl.attrib:
+                    filename = sourceEl.attrib["filename"]
+                else:
+                    filename = sourceEl.attrib["id"]
+
+                event_loop = asyncio.get_event_loop()
+                event_loop.run_until_complete(
+                    update_source_code(
+                        acid=id,
+                        course_id=course_name,
+                        main_code=file_contents,
+                        filename=filename,
+                    )
+                )
 
     latex = root.find("./latex-macros")
     rslogger.info("Setting attributes for this base course")

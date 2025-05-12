@@ -1,0 +1,75 @@
+{% extends "_base.html" %}
+{% block title %}
+Assignment Summary
+{% endblock %}
+{% block css %}
+
+<link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
+<script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css" rel="stylesheet"
+    media="screen">
+
+
+{% endblock %}
+{% block content %}
+<h1>Assignment Summary</h1>
+
+<p>The table below shows you the students scores on each question in the assignment. 
+It also shows you the number of attempts each student has made on each question the format of 
+the table cells is <code>score (attempts)</code>
+</p>
+
+<!-- todo:  format the div_id headings to do: http://localhost/runestone/dashboard/exercisemetrics?id=fill1512&chapter=Assessments -->
+
+<div id="container">
+</div>
+<div>
+<a role="button" class="btn btn-info" href='/assignment/instructor/download_assignment/{{assignment_id}}'">
+        Download Submissions</a>
+</div>
+<script>
+    assignment_id = {{ assignment_id }};
+    course_name = "{{ course_name }}";
+    course_id = {{ course_id }};
+    base_course = "{{ base_course }}";
+
+    // use fetch to call /assignment/instructor/assignment_summary_data
+    fetch(`/assignment/instructor/assignment_summary_data/${assignment_id}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    })
+        .then((response) => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error("Network response was not ok");
+            }
+        })
+        .then((data) => {
+            console.log(data.detail)
+            container = document.getElementById('container');
+            retdata = data.detail.assignment_summary;
+            let columns = [];
+            if (retdata && retdata.length > 0) {
+                for (let k of Object.keys(retdata[0])) {
+                    columns.push({ data: k, renderer: "html" });
+                }
+
+                var hot = new Handsontable(container, {
+                    data: retdata,
+                    colHeaders: Object.keys(retdata[0]),
+                    licenseKey: "non-commercial-and-evaluation",
+                    columns: columns,
+                    fixedColumnsLeft: 3,
+                    readOnly: true,
+                });
+            }
+        })
+</script>
+{% endblock %}
+
+{% block js %}
+<script src="/staticAssets/assignment/student.js"></script>
+{% endblock %}

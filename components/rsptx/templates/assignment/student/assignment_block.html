@@ -1,4 +1,8 @@
 <h2>Assignments</h2>
+<label style="margin-bottom:10px; display:block;">
+  <input type="checkbox" id="hide_hidden_assignments" onchange="toggleHiddenAssignments(this.checked)">
+  Student View: Hide Hidden Assignments
+</label>
 {% if assignment_list %}
 <table class="table">
   <thead>
@@ -16,13 +20,23 @@
   </thead>
   <tbody>
     {% for assignment in assignment_list %}
-    <tr>
+    {% if assignment.visible %}
+    <tr class="visible_assign">
+      {% else %}
+    <tr class="hidden_assign">
+      {% endif %}
       <td>
         <a href="/assignment/student/doAssignment?assignment_id={{assignment.id}}">{{assignment.name}}</a>
       </td>
-      <td>
+      <td style="white-space: nowrap;">
         {% if is_instructor %}
-          <button onclick="window.location.href='/runestone/admin/assignments?selected_assignment={{assignment.id}}'">Edit</button>
+        <a href='/runestone/admin/assignments?selected_assignment={{assignment.id}}'">
+          <span class=" material-symbols-outlined" aria-label="edit" title="edit this assignment">edit</span></a>
+        <a href="/runestone/admin/grading?selected_assignment={{assignment.name}}">
+          <span class="material-symbols-outlined" aria-label="grading" title="grade this assignment">grading</span></a>
+        <a href='/assignment/instructor/assignment_summary/{{assignment.id}}'">
+          <span class=" material-symbols-outlined" aria-label="dashboard"
+          title="view summary">dashboard</span></a>
         {% else %}
         {% if assignment.id in stats %}
         {% set current = stats[assignment.id].is_submit %}
@@ -32,8 +46,7 @@
         <select required onchange="updateAssignmentProgress(this.value, {{assignment.id}})">
           <option disabled selected value="">Track my Progress</option>
           {% for option in ["Not Started", "In Progress", "Finished"]:%}
-          <option
-            {% if current == option: %} selected {% endif %} value="{{option}}">{{option}}
+          <option {% if current==option: %} selected {% endif %} value="{{option}}">{{option}}
           </option>
           {% endfor %}
         </select>
@@ -42,8 +55,8 @@
 
       <td>{{assignment.duedate}}</td>
       <td>
-        {% if assignment.id in stats %}
-        {{stats[assignment.id].score}} / {{assignment.points}}
+        {% if assignment.id in stats and stats[assignment.id].score != None %}
+        {{ stats[assignment.id].score | round(2) }} / {{ assignment.points }}
         {% else %}
         No Score
         {% endif %}
@@ -53,6 +66,13 @@
     {% endfor %}
   </tbody>
 </table>
+<script>
+  function toggleHiddenAssignments(checked) {
+    document.querySelectorAll('tr.hidden_assign').forEach(function (row) {
+      row.style.display = checked ? 'none' : '';
+    });
+  }
+</script>
 {% else %}
 <p>No assignments yet.</p>
 {% endif %}

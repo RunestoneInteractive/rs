@@ -1,12 +1,29 @@
 var assignment_release_states = null;
 
+function maybeHideManual() {
+    // This function is called when the manual grading checkbox is clicked
+    var showRightSide = document.getElementById("show_manual_grading").checked;
+    if (showRightSide) {
+        $("#rightsideGradingTab").css("visibility", "visible");
+        gradeIndividualItem();
+    } else {
+        $("#rightsideGradingTab").css("visibility", "hidden");
+        $("#rightsideGradingTab").empty();
+    }
+}
+
 function gradeIndividualItem() {
     //This function figures out the parameters to feed to createGradingPanel, which does most of the work
     var sel1 = document.getElementById("gradingoption1");
     var assignOrChap = sel1.options[sel1.selectedIndex].value;
 
     set_release_button();
-
+    var showRightSide = false;
+    showRightSide = document.getElementById("show_manual_grading").checked;
+    if (!showRightSide) {
+        $("#rightsideGradingTab").empty();
+        return;
+    }
     var studentPicker = document.getElementById("studentselector");
     if (studentPicker.selectedIndex == -1) {
         $("#rightsideGradingTab").empty();
@@ -39,14 +56,18 @@ function gradeIndividualItem() {
     padding: 5px;">
     <select id="filterSelect">
         <option value="nofilter">Show All</option>
-        <option value="filterto0">Show questions with a score of 0 or None</option>
-        <option value="filterto1">Show questions with a non-zero score</option>
+        <option value="filterto0">Show questions with a score of 0 or No Response</option>
+        <option value="filterto4">Show questions with a non-zero score</option>
+        <option value="filterto1">Show questions with 0 or partial credit</option>
+        <option value="filterto2">Show questions with partial credit</option>
+        <option value="filterto3">Show questions with full credit</option>
     </select>
     `);
     let rsd = document.querySelector("#filterSelect");
     rsd.addEventListener("change", function () {
         let gPanels = document.querySelectorAll(".loading");
         for (let panel of gPanels) {
+            let maxPoints = parseInt(panel.querySelector(".problem_points_span").innerText.split(/:/)[1]);
             let v = panel
                 .querySelector("#gradingform")
                 .querySelector("#input-grade").value;
@@ -60,6 +81,25 @@ function gradeIndividualItem() {
                 if (v > 0) {
                     panel.style.display = "block";
                 } else {
+                    panel.style.display = "none";
+                }
+            } else if (rsd.value == "filterto2") {
+                if (v > 0 && v < maxPoints) {
+                    panel.style.display = "block";
+                } else {
+                    panel.style.display = "none";
+                }
+            } else if (rsd.value == "filterto3") {
+                if (v == maxPoints) {
+                    panel.style.display = "block";
+                } else {
+                    panel.style.display = "none";
+                }
+            } else if (rsd.value == "filterto4") {
+                if (v >= 0 && v < maxPoints) {
+                    panel.style.display = "block";
+                }
+                else {
                     panel.style.display = "none";
                 }
             } else {
@@ -95,6 +135,26 @@ function gradeIndividualItem() {
             createGradingPanel($("#" + newid), question, sid, mg);
         }
     }
+
+
+    // Manually typeset, then strip tabindex so we don't stop on every MathJax element
+    // when trying to navigate through the grading panels.
+    // call this after waiting 1 second to allow MathJax to finish rendering
+    setTimeout(() => {
+        runestoneMathReady
+            .then(() => {
+                document.querySelectorAll('.MathJax')  // or adjust to '.mjx-svg' if you’ve customized
+                    .forEach(el => {
+                        // either remove tabindex entirely…
+                        el.removeAttribute('tabindex');
+                        el.removeAttribute('tabIndex');
+                        // …or explicitly set it to -1
+                        // el.setAttribute('tabindex','-1');
+                    });
+            })
+            .catch((err) => console.error('MathJax typeset failed:', err));
+    }, 3000);
+
 }
 
 function getSelectedGradingColumn(type) {
@@ -155,24 +215,8 @@ function autoGrade() {
     // todo -- check the number of selected
     let allq = document.getElementById("allquestioncb").checked;
     let alls = document.getElementById("allstudentcb").checked;
-    if (!(allq && alls)) {
-        let qs = $("#questionselector").select2("val");
-        if (qs && qs.length > 1) {
-            alert(
-                "Autograding does not work with multiple selections.  Leave blank to grade all questions.  You may select 1 question."
-            );
-            $("#autogradesubmit").prop("disabled", false);
-            return;
-        }
-        let ss = $("#studentselector").select2("val");
-        if (ss && ss.length > 1) {
-            alert(
-                "Autograding does not work with multiple selections.  Leave blank to grade all students. You may select 1 student."
-            );
-            $("#autogradesubmit").prop("disabled", false);
-            return;
-        }
-    }
+    let qs = $("#questionselector").select2("val");
+    let ss = $("#studentselector").select2("val");
     if (allq && alls) {
         studentID = null;
         question = null;
@@ -192,19 +236,29 @@ function autoGrade() {
         success: function (retdata) {
             $("#assignmentTotalform").css("visibility", "hidden");
             if (question != null || studentID != null) {
-                alert(retdata.message);
+                console.log(retdata.message);
             }
         },
     };
 
-    if (assignment != null && question === null && studentID == null) {
+    if (assignment != null) {
         (async function (students, ajax_params) {
             // Grade each student provided.
-            let student_array = Object.keys(students);
+            let student_array;
+            if (ss.length > 0) {
+
+                student_array = ss;
+            } else {
+                student_array = Object.keys(students);
+            }
             let total = 0;
             $("#gradingprogresstitle").html("<h3>Grading in Progress</h3>");
             $("#autogradingprogress").html("");
             $("#autogradingprogress").css("border", "1px solid");
+            if (qs.length > 0) {
+                // If questions are selected, add them to the params.
+                ajax_params.data.question = qs.join(":::");
+            }
             for (let index = 0; index < student_array.length; ++index) {
                 let student = student_array[index];
                 ajax_params.data.sid = student;
@@ -261,7 +315,7 @@ function calculateTotals(sid) {
         success: function (retdata) {
             if (retdata.computed_score != null) {
                 //show the form for setting it manually
-                $("#assignmentTotalform").css("visibility", "visible");
+                $("#assignmentTotalform").hide();
                 // populate it with data from retdata
                 $("#computed-total-score").val(retdata.computed_score);
                 $("#manual-total-score").val(retdata.manual_score);
@@ -347,7 +401,7 @@ function showDeadline() {
     tzoff = dl.getTimezoneOffset();
     dl.setHours(dl.getHours() + tzoff / 60);
     const options = {
-        weekday: 'short', 
+        weekday: 'short',
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -463,7 +517,7 @@ function createGradingPanel(element, acid, studentId, multiGrader) {
             currPoints = question_points[currAssign][data.acid];
         }
         jQuery("#rightTitle", rightDiv).html(
-            `${data.name} <em>${data.acid}</em> <span>Points: ${currPoints} </span>`
+            `${data.name} <em>${data.acid}</em> <span class="problem_points_span">Points: ${currPoints} </span>`
         );
 
         if (data.file_includes) {
@@ -666,11 +720,29 @@ function updateQuestionList() {
     var chapAssignSelector = document.getElementById("chaporassignselector");
     var questionSelector = document.getElementById("questionselector");
 
+    let additional = document.getElementById("additional_grading_actions");
+    additional.style.visibility = "visible";
+    const rawQS = window.location.search;
+    const params = new URLSearchParams(rawQS);
+    const selectedAssignment = params.get('selected_assignment'); 
+    if (selectedAssignment) {
+        // If selectedAssignment is set, we need to select the corresponding option in the selector
+        for (let i = 0; i < chapAssignSelector.options.length; i++) {
+            if (chapAssignSelector.options[i].value === selectedAssignment) {
+                chapAssignSelector.selectedIndex = i;
+                break;
+            }
+        }
+        // Set the selected assignment in the question selector
+    }
+
     $("#rightsideGradingTab").empty();
     // This will hold the name of the selected chapter or assignment.
     var col1val = "";
     if (chapAssignSelector.selectedIndex > -1) {
         col1val = chapAssignSelector.options[chapAssignSelector.selectedIndex].value;
+    } else if (selectedAssignment) {
+        col1val = selectedAssignment;
     } else {
         $("#questionselector").empty();
         $("#rightsideGradingTab").empty();
@@ -706,6 +778,19 @@ function updateQuestionList() {
     questionSelector.style.visibility = "visible";
 }
 
+function downloadSubmissions() {
+    var chapAssignSelector = document.getElementById("chaporassignselector");
+    if (chapAssignSelector.selectedIndex > -1) {
+        col1val = chapAssignSelector.options[chapAssignSelector.selectedIndex].value;
+        let assignmentId = assignmentids[col1val];
+        if (assignmentId) {
+            window.location.href = `/assignment/instructor/download_assignment/${assignmentId}`;
+        } else {
+            alert("No assignment selected");
+        }
+    }
+}
+
 function gradeSelectedStudent() {
     var selectedStudent = document.getElementById("studentselector");
 
@@ -716,7 +801,9 @@ function gradeSelectedStudent() {
     selectedStudent.style.visibility = "visible";
 }
 
-function pickedAssignments(column) {
+function populateAssignments(column) {
+    // column is the id of the select2 element for assignments
+    // normally 'chaporassignselector'
     var pickedcolumn = document.getElementById(column);
 
     $("#" + column).empty();
@@ -762,7 +849,13 @@ function displayDefaultQuestion(column) {
     });
 }
 
-function pickedStudents(column) {
+// use the global variable students 
+// to populates the student selector
+// called after students are loaded when the page is loaded (getCourseStudents)
+// also called when an assignment is changed.
+function populateStudentSelector(column) {
+    // column is the id of the select2 element
+    // normally 'studentselector' not even sure why it is a parameter
     var pickedcolumn = document.getElementById(column);
     $("#" + column).empty();
     // students = students.replace(/&#x27;/g, '"');
@@ -837,7 +930,7 @@ function selectChapOrAssignment() {
     $("#allstudentcb").prop("checked", false);
 
     if (val == "assignment") {
-        pickedAssignments("chaporassignselector");
+        populateAssignments("chaporassignselector");
     } else if (val == "chapter") {
         pickedChapters("chaporassignselector");
     }
@@ -862,7 +955,7 @@ function selectChapOrAssignment() {
     fetch(request);
 
     displayDefaultQuestion("questionselector");
-    pickedStudents("studentselector");
+    populateStudentSelector("studentselector");
 }
 
 function getCourseStudents() {
@@ -873,6 +966,7 @@ function getCourseStudents() {
         data: {},
         success: function (retdata) {
             students = retdata;
+            populateStudentSelector("studentselector");
         },
     });
 }
@@ -2053,7 +2147,13 @@ async function renderRunestoneComponent(componentSrc, whereDiv, moreOpts) {
                 $(`#${whereDiv}`).append(authorInfo);
             }
             let editButton = document.createElement("button");
-            let constrainbc = document.getElementById("qbankform").constrainbc.checked;
+            let constrainbc = document.getElementById("qbankform")
+            if (constrainbc) {
+                constrainbc = constrainbc.checked;
+            } else {
+                constrainbc = false;
+            }
+
             $(editButton).text("Edit Question");
             $(editButton).addClass("btn btn-normal");
             $(editButton).attr("data-target", "#editModal");
@@ -2336,7 +2436,7 @@ function set_release_button() {
         // If so, set the button text appropriately
         if (release_state == true) {
             release_button.text("Hide Grades");
-            $("#releasestate").text("");
+            $("#releasestate").text("Students Can See Grades");
         } else {
             release_button.text("Release Grades");
             $("#releasestate").text("Grades Not Released");

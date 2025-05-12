@@ -217,13 +217,13 @@ def _autograde(
         )
         return {
             "success": True,
-            "message": "autograded {} items".format(count),
+            "message": "scored {} items".format(count),
             "count": count,
         }
     else:
         return {
             "success": False,
-            "message": "Select an assignment before trying to autograde.",
+            "message": "Select an assignment before trying to score it.",
         }
 
 
@@ -266,7 +266,7 @@ def student_autograde():
 
     if not res["success"]:
         session.flash = (
-            "Failed to autograde questions for user id {} for assignment {}".format(
+            "Failed to score questions for user id {} for assignment {}".format(
                 auth.user.id, assignment_id
             )
         )
@@ -296,16 +296,23 @@ def autograde():
     ### This endpoint is hit to autograde one or all students or questions for an assignment
     sid = request.vars.get("sid", None)
     question_name = request.vars.get("question", None)
+    if ":::" in question_name:
+        questions_to_grade = question_name.split(":::")
+    else:
+        questions_to_grade = [question_name]
+    logger.debug(f"questions_to_grade = {questions_to_grade}")
     enforce_deadline = request.vars.get("enforceDeadline", None)
     assignment_name = request.vars.assignment
     timezoneoffset = session.timezoneoffset if "timezoneoffset" in session else None
-    res = _autograde(
-        sid=sid,
-        question_name=question_name,
-        enforce_deadline=enforce_deadline,
-        assignment_name=assignment_name,
-        timezoneoffset=timezoneoffset,
-    )
+    for question_name in questions_to_grade:
+        res = _autograde(
+            sid=sid,
+            question_name=question_name,
+            enforce_deadline=enforce_deadline,
+            assignment_name=assignment_name,
+            timezoneoffset=timezoneoffset,
+        )
+    res["message"] = f"scored {len(questions_to_grade)} items"
     tres = _calculate_totals(sid=sid, assignment_name=assignment_name)
     if "computed_score" in tres:
         res["total_mess"] = tres["computed_score"]

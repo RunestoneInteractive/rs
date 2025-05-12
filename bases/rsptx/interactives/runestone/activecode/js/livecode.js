@@ -10,9 +10,12 @@ export default class LiveCode extends ActiveCode {
         var orig = $(opts.orig).find("textarea")[0];
         super(opts);
         this.stdin = $(orig).data("stdin");
-        this.datafile = $(orig).data("datafile");
+        this.additional_files = $(orig).data("add-files");
+        // Accept older "datafile" attribute for backwards compatibility
+        this.datafiles = $(orig).data("datafile");
         this.sourcefile = $(orig).data("sourcefile");
         this.compileargs = unescapeHtml($(orig).data("compileargs"));
+        this.compileAlso = unescapeHtml($(orig).data("compile-also"));
         this.linkargs = unescapeHtml($(orig).data("linkargs"));
         this.runargs = unescapeHtml($(orig).data("runargs"));
         this.interpreterargs = unescapeHtml($(orig).data("interpreterargs"));
@@ -199,6 +202,10 @@ export default class LiveCode extends ActiveCode {
         if (this.language === "octave") {
             paramobj.memorylimit = 200000;
         }
+        if (this.compileargs.toString().indexOf("fsanitize") > -1) {
+            //fsanitize requires an allocation of a giant block of memory
+            paramobj.memorylimit = 2000000000;
+        }
         if (this.timelimit) {
             // convert to seconds to match JOBE - decimal is OK
             let timelimitSeconds = this.timelimit / 1000;
@@ -213,44 +220,120 @@ export default class LiveCode extends ActiveCode {
         }
 
         $(this.output).html($.i18n("msg_activecode_compiling_running"));
+
+        // Need to handle additional files
+        // that come from additional_files (based on ids) and datafiles (based on filenames)
+        // merge into one collection of objects we can iterate over. Tag datafiles as "datafile"
+        let allFilesRaw = [];
+        if (this.datafiles != undefined) {
+            let datafiles = this.datafiles.split(",");
+            for (let d of datafiles) {
+                let datafileFileName = d.trim();
+                allFilesRaw.push({filename:datafileFileName, type: "datafile"});
+            }
+        }
+        if (this.additional_files != undefined) {
+            let additionalFiles = this.additional_files.split(",");
+            for (let f of additionalFiles) {
+                let addFileId = f.trim();
+                allFilesRaw.push({acid:addFileId});
+            }
+        }
+
+        // Now build up actual file collection
         var files = [];
-        var content, base64;
-        if (this.datafile != undefined) {
-            var ids = this.datafile.split(",");
-            for (var i = 0; i < ids.length; i++) {
-                let fileName = ids[i].trim();
-                let file = document.getElementById(fileName);
-                if (file === null || file === undefined) {
-                    file = document.querySelector(
-                        '[data-filename="' + fileName + '"]'
-                    );
-                }
-                let fileExtension = fileName.substring(
-                    fileName.lastIndexOf(".") + 1
-                );
-                if (file === null || file === undefined) {
-                    // console.log("No file with given id");
-                    // check to see if file is in db
-                    content = this.fileReader(fileName);
+        for (let f of allFilesRaw) {
+            // Need to determine content and filename for each datafile
+            let fileName, content;
+            // Check on page to see if we have the datafile.
+            // Datafiles are looked up via data-filename attribute while additional_files are looked up via id
+            let fileElement;
+            if (f.type === "datafile")
+                fileElement = document.querySelector(`[data-filename="${f.filename}"]`);
+                // But RST markup uses filename as id
+                if (!fileElement)
+                    fileElement = document.getElementById(f.filename);
+            else
+                fileElement = document.getElementById(f.acid);
+
+            if (fileElement) {
+                // if the element is a code mirror, get the value from the editor
+                if (window.componentMap && window.componentMap.hasOwnProperty(fileElement.id)) {
+                    let editor = window.componentMap[fileElement.id].editor;
+                    content = editor.getValue();
                 } else {
                     // if file element is editable textarea, file.value is defined and has the current contents
                     // otherwise rely on static contents
-                    if(file.value)
-                        content = file.value;
+                    if(fileElement.value)
+                        content = fileElement.value;
                     else
-                        content = file.textContent;
-                    // may be undefined at this point if file is an image
+                        content = fileElement.textContent;
                 }
+                // Note - content may be undefined at this point if file is an image
+                // If the file came from an item with a data-filename attribute, use that as the filename
+                // otherwise this must be an RST item with filename as the id
+                fileName = fileElement.dataset.filename || f.filename;
+            } else {
+                // check to see if file is in db
+                let result = null;
+                let studentCode = null;
+                let url;
+                // Again, datafiles traditionally are looked up via filename, additional_files are looked up via acid
+                if (f.type === "datafile") {
+                    url = `/ns/logger/get_source_code?course_id=${eBookConfig.course}&filename=${f.filename}`;
+                } else {
+                    url = `/ns/logger/get_source_code?course_id=${eBookConfig.course}&acid=${f.acid}`;
+                    // if looking up additional file, also check to see if there is a student submission
+                    // if so, we will want to use their code. Still need to hit source_code table for filename.
+                    let request = new Request(
+                        `${eBookConfig.new_server_prefix}/assessment/get_latest_code?acid=${f.acid}`,
+                        {
+                            method: "POST",
+                            headers: this.jsonHeaders,
+                        }
+                    );
+                    try {
+                        let response = await fetch(request);
+                        let data = await response.json();
+                        data = data.detail;
+                        if (data && data.code) {
+                            studentCode = data.code;
+                        }
+                    } catch (e) {
+                        console.log("Error getting student code: " + e);
+                        // do nothing, we will just use the original code
+                    }
+                }
+                // Now make request for source_code
+                $.ajax({
+                    async: false,
+                    url: url,
+                    success: function (data) {
+                        result = data.detail;
+                    }
+                });
+                if (result) {
+                    // favor student code if it exists
+                    content = studentCode || result.file_contents;
+                    fileName = result.filename;
+                }
+            }
+
+            if (fileName) {
+                let fileExtension = fileName.substring(
+                    fileName.lastIndexOf(".") + 1
+                );
                 if (fileExtension === "jar") {
                     files = files.concat(this.parseJavaClasses(content));
                 } else if (["jpg", "png", "gif"].indexOf(fileExtension) > -1) {
-                    if (file) {
-                        if (file.toDataURL) {
-                            base64 = file.toDataURL("image/" + fileExtension);
+                    let base64;
+                    if (fileElement) {
+                        if (fileElement.toDataURL) {
+                            base64 = fileElement.toDataURL("image/" + fileExtension);
                             base64 = base64.substring(base64.indexOf(",") + 1);
                         } else {
-                            base64 = file.src.substring(
-                                file.src.indexOf(",") + 1
+                            base64 = fileElement.src.substring(
+                                fileElement.src.indexOf(",") + 1
                             );
                         }
                     } else {
@@ -262,6 +345,9 @@ export default class LiveCode extends ActiveCode {
                     // this could be any type of file, .txt, .java, .csv, etc
                     files.push({ name: fileName, content: content });
                 }
+            } else {
+                // if we don't have a file name, then we don't have a file
+                $.i18n("msg_activecode_no_file_or_dir")
             }
         }
         // If we are running unit tests we need to substitute the test driver for the student
@@ -296,6 +382,15 @@ export default class LiveCode extends ActiveCode {
             } else {
                 paramobj.compileargs = [sourcefilename];
             }
+        }
+        if (this.compileAlso) {
+            // a space separated list of files that also need to be compiled
+            // they also all should be part of additional_files
+            // we will stick them onto the end of the compilerargs
+            // so that jobe builds them into the string sent to the compiler
+            // e.g. g++ [other_compile_args] [compileAlso] sourcefile -o executable
+            paramobj.compileargs = paramobj.compileargs || [];
+            paramobj.compileargs.push(this.compileAlso);
         }
         let runspec = {
             language_id: this.language,
@@ -412,9 +507,19 @@ export default class LiveCode extends ActiveCode {
                 this.errinfo = result.cmpinfo;
                 break;
             case 12: // run time error
-                $(odiv).html(result.stdout.replace(/\n/g, "<br>"));
-                if (result.stderr) {
-                    this.addJobeErrorMessage(result.stderr);
+                // special case for compile-only request when using c/cpp
+                if(
+                    (this.language === "cpp" || this.language === "c")
+                    && result.stderr.includes("Permission denied")
+                    && this.compileargs.includes("-c")
+                ) {
+                    $(odiv).html($.i18n("msg_activecode_compile_only"));
+                } else {
+                    // any other case is real run time error
+                    $(odiv).html(result.stdout.replace(/\n/g, "<br>"));
+                    if (result.stderr) {
+                        this.addJobeErrorMessage(result.stderr);
+                    }
                 }
                 break;
             case 13: // time limit

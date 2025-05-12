@@ -25,6 +25,10 @@ export default class HParsons extends RunestoneBase {
         this.randomize = $(orig).data("randomize") ? true : false;
         this.isBlockGrading = $(orig).data("blockanswer") ? true : false;
         this.language = $(orig).data("language");
+        // Detect math mode
+        if (this.language === undefined && orig.textContent.includes('span class="process-math"')) {
+            this.language = "math";
+        }
         if (this.isBlockGrading) {
             this.blockAnswer = $(orig).data("blockanswer").split(" ");
         }
@@ -46,6 +50,9 @@ export default class HParsons extends RunestoneBase {
         this.outerDiv = null;
         this.controlDiv = null;
         this.processContent(this.code);
+
+        this.microParsonToRaw = new Map();
+        this.simulatedSolution = [];
 
         // Change to factory when more execution based feedback is included
         if (this.isBlockGrading) {
@@ -83,10 +90,10 @@ export default class HParsons extends RunestoneBase {
         this.unittest = this.processSingleContent(code, "--unittest--");
     }
 
-    processSingleContent(code, delimitier) {
-        let index = code.indexOf(delimitier);
+    processSingleContent(code, delimiter) {
+        let index = code.indexOf(delimiter);
         if (index > -1) {
-            let content = code.substring(index + delimitier.length);
+            let content = code.substring(index + delimiter.length);
             let endIndex = content.indexOf("\n--");
             content =
                 endIndex > -1 ? content.substring(0, endIndex + 1) : content;
@@ -119,6 +126,15 @@ export default class HParsons extends RunestoneBase {
         };
         InitMicroParsons(props);
         this.hparsonsInput = $(this.outerDiv).find("micro-parsons")[0];
+        this.renderMathInBlocks();
+        // Change "code" to "answer" in parsons direction for non-code languages
+        if (this.language === undefined || this.language === "math") {
+            this.outerDiv.querySelectorAll(".hparsons-tip").forEach(el => {
+                if (el.textContent.includes("our code")) {
+                    el.textContent = el.textContent.replace("our code", "our answer");
+                }
+            });
+        }
     }
 
     createOutput() {
@@ -152,11 +168,75 @@ export default class HParsons extends RunestoneBase {
             that.hparsonsInput.resetInput();
             that.setLocalStorage();
             that.feedbackController.reset();
+            that.renderMathInBlocks();
         };
         $(resetBtn).attr("type", "button");
 
         $(this.outerDiv).prepend(ctrlDiv);
         this.controlDiv = ctrlDiv;
+    }
+
+    // Decodes escaped HTML entities (like &lt;) into raw characters
+    decodeHTMLEntities(str) {
+        const textarea = document.createElement("textarea");
+        textarea.innerHTML = str;
+        return textarea.value;
+    }
+
+    renderMathInBlocks() {
+        if (this.language !== "math") return;
+        setTimeout(() => {
+            const blocks = document.querySelectorAll(`#${this.divid}-container .parsons-block`);
+            blocks.forEach(block => {
+                block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
+            });
+
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise().then(() => this.simulateSolution());
+            }
+        }, 0);
+    }
+
+    /*
+        This function performs a simulated "correct answer" ordering using the
+        correct block indices specified in `this.blockAnswer`. It looks ahead 
+        at the rendered content from the MicroParsons widget to build:
+        - this.simulatedSolution: an array of correctly ordered rendered strings
+        - this.microParsonToRaw: a Map that links rendered HTML (from MicroParsons) 
+          to their original raw `<m>` source strings from PreTeXt
+
+        This is called after MathJax renders the math blocks to ensure the mapping
+        is built from the final, visible DOM state. It is needed for grading 
+        math-mode Parsons problems, where rendered symbols (e.g., “\(\alpha\)”) must
+        be matched against author-defined symbolic content.
+    */
+    simulateSolution() {
+        if (
+            this.simulatedSolution.length > 0 &&
+            this.microParsonToRaw instanceof Map &&
+            this.microParsonToRaw.size > 0
+        ) { // Already initialized from local storage
+            this.feedbackController.solution = this.simulatedSolution;
+            this.feedbackController.grader.solution = this.simulatedSolution;
+            return; 
+        }
+
+        this.microParsonToRaw = new Map();
+
+        const allBlocks = Array.from(
+            this.outerDiv.querySelectorAll("micro-parsons .parsons-block")
+        );
+        if (!this.blockAnswer || allBlocks.length === 0) return;
+
+        const rendered = this.hparsonsInput.getParsonsTextArray();
+        const raw = this.originalBlocks;
+        const correctOrder = this.blockAnswer.map(Number);
+
+        this.simulatedSolution = correctOrder.map(i => rendered[i]);
+        rendered.forEach((r, i) => this.microParsonToRaw.set(r, raw[i].trim()));
+
+        this.feedbackController.solution = this.simulatedSolution;
+        this.feedbackController.grader.solution = this.simulatedSolution;
     }
 
     // Return previous answers in local storage
@@ -204,14 +284,36 @@ export default class HParsons extends RunestoneBase {
         if (localData.count) {
             this.feedbackController.checkCount = localData.count;
         }
+        if (localData.simulatedSolution) {
+            this.simulatedSolution = localData.simulatedSolution;
+        }
+        if (localData.microParsonToRaw) {
+            this.microParsonToRaw = new Map(Object.entries(localData.microParsonToRaw));
+        } else {
+            this.microParsonToRaw = new Map();
+        }
     }
     // RunestoneBase: Set the state of the problem in local storage
     setLocalStorage(data) {
         let currentState = {};
         if (data == undefined) {
-            currentState = {
-                answer: this.hparsonsInput.getParsonsTextArray(),
-            };
+            let userAnswer = this.hparsonsInput.getParsonsTextArray();
+
+            // In math mode, convert microParsons to raw before caching 
+            // Additionally, save the solution and microParson ➜ Raw map.
+            if (this.language === "math") {
+                userAnswer = userAnswer.map(sym => this.microParsonToRaw.get(sym));
+                currentState = {
+                    answer: userAnswer,
+                    simulatedSolution: this.simulatedSolution,
+                    microParsonToRaw: Object.fromEntries(this.microParsonToRaw),
+                };
+            } else {
+                currentState = {
+                    answer: userAnswer,
+                };
+            }
+            
             if (this.isBlockGrading) {
                 // if this is block grading, add number of previous attempts too
                 currentState.count = this.feedbackController.checkCount;

@@ -220,6 +220,13 @@ class MchoiceAnswers(Base, CorrectAnswerMixin):
         ),
     )
 
+@register_answer_table
+class MatchingAnswers(Base, CorrectAnswerMixin):
+    __tablename__ = "matching_answers"
+    # See answer_. TODO: what is the format?
+    answer = Column(JSON, nullable=False)
+    __table_args__ = (Index("idx_div_sid_course_match", "sid", "div_id", "course_name"),)
+
 
 # An answer to a fill-in-the-blank question.
 @register_answer_table
@@ -354,19 +361,37 @@ class Code(Base, IdMixin):
 CodeValidator = sqlalchemy_to_pydantic(Code)
 
 
-# Used for datafiles and storing questions and their suffix separately.
-# this maybe redundant TODO: check before we port the api call to get
-# a datafile
+# This table is used to store the initial contents of datafiles or programs that may get used
+# by other programs - i.e. add-files or includes.
+#
+# Datafiles and interactive programs exist here and within the htmlsrc of the question table.
+# Non-interactive programs exist only here.
+#
+# This table is the authoritative source for:
+# * Initial contents of any program/datafile element.
+# * Filename to use when saving contents to Jobe or trying to include this file in a program.
+#
+# When looking for the contents of a datafile, we check on the page first
+#  then here.
+# When looking for the contents of a program, we check current page, stored
+#  student submissions, then here.
+#
+# For programs, the Question table is where we looks for prefix/suffix code, includes, etc...
+# So the three marked columns below are unused and maybe should be removed.
 class SourceCode(Base, IdMixin):
     __tablename__ = "source_code"
 
+    # Unique identifier for this element.
+    # For datafiles, this defaults to the filename for historical reasons.
     acid = Column(String(512), index=True, nullable=False)
     course_id = Column(String(512), index=True, nullable=False)
-    includes = Column(String(512))
-    available_files = Column(String(512))
+    includes = Column(String(512))                              # unused
+    available_files = Column(String(512))                       # unused
     main_code = Column(Text, nullable=False)
-    suffix_code = Column(Text)
-
+    suffix_code = Column(Text)                                  # unused
+    # Filename to use when saving contents to Jobe or trying to include
+    # this file in a program. It is OK to reuse the same filename for different
+    filename = Column(String(512))
 
 SourceCodeValidator = sqlalchemy_to_pydantic(SourceCode)
 

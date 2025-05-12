@@ -1,18 +1,5 @@
 /* Todo, better integration with prism and Pretext dark mode*/
 
-.hparsons_section {
-    position: relative;
-    margin-right: auto;
-    margin-left: auto;
-    max-width: 800px;
-    clear: both;
-}
-
-.hparsons_section > *:not(.hparsons_section) {
-    max-width: 500pt;
-    margin-left: auto;
-    margin-right: auto;
-}
 
 .hp_question {
     padding-left: 10px;
@@ -26,11 +13,17 @@
 
 .hp_output {
     display: none;
-    max-width: 450px;
+    margin-left: 15px; /* align with micro-parsons */
+    margin-right: 15px;
     background-color: inherit;
 }
 .hp_output pre {
     background-color: var(--questionBgColor, lightgray);
+}
+
+.hp_feedback {
+    margin-left: 15px; /* align with micro-parsons */
+    margin-right: 15px;
 }
 
 .hp_sql_result {

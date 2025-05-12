@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Concept Connector</title>
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script type="text/javascript">
+        eBookConfig = {};
+        eBookConfig.useRunestoneServices = false;
+        eBookConfig.host = 'http://127.0.0.1:8000';
+        eBookConfig.course = 'PTX_Course_Title_Here';
+        eBookConfig.basecourse = 'PTX_Base_Course';
+        eBookConfig.isLoggedIn = false;
+        eBookConfig.email = '';
+        eBookConfig.isInstructor = false;
+        eBookConfig.logLevel = 0;
+        eBookConfig.username = '';
+        eBookConfig.readings = null;
+        eBookConfig.activities = null;
+        eBookConfig.downloadsEnabled = false;
+        eBookConfig.allow_pairs = false;
+        eBookConfig.enableScratchAC = false;
+        eBookConfig.build_info = "";
+        eBookConfig.python3 = null;
+        eBookConfig.runestone_version = '7.5.16';
+        eBookConfig.jobehost = '';
+        eBookConfig.proxyuri_runs = '';
+        eBookConfig.proxyuri_files = '';
+        eBookConfig.enable_chatcodes = false;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    <script src="_static/pretext/js/lib/jquery.min.js"></script>
+    <script src="_static/pretext/js/lib/jquery.sticky.js"></script>
+    <script src="_static/pretext/js/lib/jquery.espy.min.js"></script>
+    <script src="_static/prefix-runtime.bundle.js"></script>
+    <script src="_static/prefix-runtime-libs.bundle.js"></script>
+    <script src="_static/prefix-runestone.bundle.js"></script>
+    <link rel="stylesheet" type="text/css" href="_static/prefix-runtime-libs.css">
+    <link rel="stylesheet" type="text/css" href="_static/prefix-runestone.css">
+</head>
+
+<body>
+
+    <h2>Connect the Concepts</h2>
+    <p>Match each concept on the left with its correct description on the right. Use your mouse or keyboard (Tab +
+        Enter).</p>
+
+    <!-- Example 1 -->
+    <div class="ptx-runestone-container">
+        <div data-component="matching" class="runestone" id="matching-velocity1">
+
+
+            <script type="application/json">
+              {
+                "statement": "Match each concept on the left with its correct description on the right.",
+                "feedback": "You are incorrect. Try again.",
+                "left": [{ "id": "a", "label": "Energy: $E = mc^2$" },
+                        { "id": "b", "label": "Kinetic energy: $KE = \\frac{1}{2}mv^2$" },
+                        { "id": "c", "label": "Potential energy: $PE = mgh$" }],
+                "right": [{ "id": "x", "label": "Mass-energy equivalence" },
+                        { "id": "y", "label": "Energy of motion" },
+                        { "id": "z", "label": "Energy due to position" }],
+                "correctAnswers": [["a", "x"], ["b", "y"], ["c", "z"]]
+              }
+            </script>
+        </div>
+    </div>
+
+    <!-- Example 2  -->
+
+    <div class="ptx-runestone-container">
+        <div data-component="matching" class="runestone" id="matching-music1">
+            <script type="application/json">
+{
+"left": [{"id": "matching-music-history-p1", "label": "Paul"}, {"id":
+"matching-music-history-p2", "label": "Ringo"}, {"id":
+"matching-music-history-p3", "label": "Eric"}, {"id":
+"matching-music-history-p4", "label": "Elton"}, {"id":
+"matching-music-history-p5", "label": "Jethro"}],
+"right": [{"id": "matching-music-history-r1", "label": "Beatle"}, {"id":
+"matching-music-history-r2", "label": "Yardbirds"}, {"id":
+"matching-music-history-r3", "label": "Guitarist"}, {"id":
+"matching-music-history-r4", "label": "Drummer"}, {"id":
+"matching-music-history-r5", "label": "Flautist"}, {"id":
+"matching-music-history-r6", "label": "Harpist"}, {"id":
+"matching-music-history-r7", "label": "Pianist"}, {"id":
+"matching-music-history-r8", "label": "\\(\\sin{x^2}\\)"}],
+"correctAnswers":
+[["matching-music-history-p1","matching-music-history-r1"],
+["matching-music-history-p2","matching-music-history-r1"],
+["matching-music-history-p2","matching-music-history-r4"],
+["matching-music-history-p3","matching-music-history-r2"],
+["matching-music-history-p3","matching-music-history-r3"],
+["matching-music-history-p4","matching-music-history-r7"]]
+}
+            </script>
+        </div>
+
+
+        <div id="aria-live" aria-live="polite" aria-atomic="true"></div>
+    </div>
+
+
+    <div class="ptx-runestone-container">
+        <div data-component="matching" class="runestone" id="matching-music-xml1">
+            <script type="text/xml">
+                <matching>
+                    <premise>
+                        <id>matching-music-history-p1</id>
+                        <label>Paul</label>
+                    </premise>
+                    <premise>
+                        <id>matching-music-history-p2</id>
+                        <label>Ringo</label>
+                    </premise>
+                    <premise>
+                        <id>matching-music-history-p3</id>
+                        <label>Eric</label>
+                    </premise>
+                    <premise>
+                        <id>matching-music-history-p4</id>
+                        <label>Elton</label>
+                    </premise>
+                    <premise>
+                        <id>matching-music-history-p5</id>
+                        <label>Jethro</label>
+                    </premise>
+                    <response>
+                        <id>matching-music-history-r1</id>
+                        <label>Beatle</label>
+                    </response>
+                    <response>
+                        <id>matching-music-history-r2</id>
+                        <label>Yardbirds</label>
+                    </response>
+                    <response>
+                        <id>matching-music-history-r3</id>
+                        <label>Guitarist</label>
+                    </response>
+                    <response>
+                        <id>matching-music-history-r4</id>
+                        <label>Drummer</label>
+                    </response>
+                    <response>
+                        <id>matching-music-history-r5</id>
+                        <label>Flautist</label>
+                    </response>
+                    <response>
+                        <id>matching-music-history-r6</id>
+                        <label>Harpist</label>
+                    </response>
+                    <response>
+                        <id>matching-music-history-r7</id>
+                        <label>Pianist</label>
+                    </response>
+                    <response>
+                        <id>matching-music-history-r8</id>
+                        <label><p><em>Some</em> Math: \(\sin{x^2}\)</p></label>
+                    </response>
+                    <response>
+                        <id>matching-music-history-r9</id>
+                        <label><img src="https://cdn.uploads.micro.blog/5380/2025/img-4003.jpeg" alt="Brad" /></label>
+                    </response>
+                    <edge>
+                        <label>matching-music-history-p1</label>
+                        <label>matching-music-history-r1</label>
+                    </edge>
+                    <edge>
+                        <label>matching-music-history-p2</label>
+                        <label>matching-music-history-r1</label>
+                    </edge>
+                    <edge>
+                        <label>matching-music-history-p2</label>
+                        <label>matching-music-history-r4</label>
+                    </edge>
+                    <edge>
+                        <label>matching-music-history-p3</label>
+                        <label>matching-music-history-r2</label>
+                    </edge>
+                    <edge>
+                        <label>matching-music-history-p3</label>
+                        <label>matching-music-history-r3</label>
+                    </edge>
+                    <edge>
+                        <label>matching-music-history-p4</label>
+                        <label>matching-music-history-r7</label>
+                    </edge>
+               </matching>
+            </script>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

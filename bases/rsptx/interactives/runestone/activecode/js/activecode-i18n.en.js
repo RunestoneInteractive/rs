@@ -103,6 +103,8 @@ $.i18n().load({
         msg_activecode_input_prg: "Input for Program",
         msg_activecode_were_compiling_err:
             "There were errors compiling your code. See below.",
+        msg_activecode_compile_only:
+            "Code successfully compiled. No executable built.",
         msg_activecode_time_limit_exc: "Time Limit Exceeded on your program",
         msg_activecode_server_err: "A server error occurred",
         msg_activecode_compiling_running:

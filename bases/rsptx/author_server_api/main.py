@@ -181,6 +181,11 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
         else:
             ready_files = []
         course = await fetch_course(user.course_name)
+        server_config = os.environ.get("SERVER_CONFIG", "dev")
+        if server_config == "production":
+            host = "https://" + os.environ.get("LOAD_BALANCER_HOST", "runestone.academy")
+        else:
+            host = ""
         logger.debug(f"{ready_files=}")
         return templates.TemplateResponse(
             "author/logfiles.html",
@@ -189,6 +194,8 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
                 ready_files=ready_files,
                 course=course,
                 username=user.username,
+                server_config=server_config,
+                host=host,
             ),
         )
     else:
@@ -311,7 +318,7 @@ async def subchapmap(
 @app.get("/author/getlog/{book}")
 async def getlog(request: Request, book):
     book_entry = await fetch_library_book(book)
-    if book_entry and book_entry.repo_path:
+    if book_entry and book_entry.repo_path and (pathlib.Path(book_entry.repo_path) / "cli.log").exists():
         work_dir = book_entry.repo_path
     else:
         work_dir = f"/books/{book}"

@@ -30,3 +30,4 @@ _build
 /bases/rsptx/assignment_server_api/react
 .vite
 *.tgz
+**/test/_static

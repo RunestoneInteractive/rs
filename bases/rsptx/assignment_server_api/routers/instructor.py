@@ -1,8 +1,27 @@
+import csv
+import datetime
+import json
 import pathlib
 import pandas as pd
+import io
 
-from fastapi import APIRouter, HTTPException, Depends, Request, status, Form
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from .assignment_summary import create_assignment_summary
+
+from fastapi import (
+    APIRouter,
+    Cookie,
+    HTTPException,
+    Depends,
+    Request,
+    status,
+    Form,
+)
+from fastapi.responses import (
+    HTMLResponse,
+    RedirectResponse,
+    JSONResponse,
+    StreamingResponse,
+)
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import create_engine
 from pydantic import BaseModel
@@ -16,6 +35,7 @@ from rsptx.db.crud import (
     delete_lti_course,
     fetch_assignment_questions,
     fetch_assignments,
+    fetch_problem_data,
     fetch_questions_by_search_criteria,
     fetch_question_count_per_subchapter,
     fetch_all_course_attributes,
@@ -382,7 +402,7 @@ async def new_assignment(
         from_source=False,
         is_peer=False,
         current_index=0,
-        enforce_due=False
+        enforce_due=False,
     )
     try:
         res = await create_assignment(new_assignment)
@@ -603,6 +623,7 @@ async def get_assignment_questions(
 
     return make_json_response(status=status.HTTP_200_OK, detail={"exercises": qlist})
 
+
 @router.put("/assignment_question/batch")
 @instructor_role_required()
 @with_course()
@@ -611,7 +632,7 @@ async def assignment_questions_batch(
     request_data: list[AssignmentQuestionUpdateDict],
     user=Depends(auth_manager),
     response_class=JSONResponse,
-    course = None,
+    course=None,
 ):
     """
     Update multiple assignment questions and their associated questions in batch.
@@ -627,6 +648,7 @@ async def assignment_questions_batch(
             detail=f"Error updating assignment questions: {str(e)}",
         )
     return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
+
 
 @router.put("/assignment_question")
 @instructor_role_required()
@@ -749,6 +771,7 @@ async def fetch_chooser_data(
     )
     return make_json_response(status=status.HTTP_200_OK, detail={"questions": res})
 
+
 @router.post("/exercises/search")
 @instructor_role_required()
 @with_course()
@@ -761,7 +784,7 @@ async def search_exercises_endpoint(
 ):
     """
     Smart search for exercises with pagination, filtering, and sorting.
-    
+
     - Uses consolidated filters object for all filter types including text search
     - Supports base_course flag to automatically use the current course's base course
     - Flexible sorting options
@@ -770,25 +793,25 @@ async def search_exercises_endpoint(
     # Set base course if flag is enabled
     if search_request.use_base_course:
         search_request.base_course = course.base_course
-    
+
     # Perform exercise search
     result = await search_exercises(search_request)
-    
+
     # Convert timestamps to strings for JSON
     exercises = []
     for exercise in result["exercises"]:
         exercise_dict = exercise.model_dump()
         if hasattr(exercise, "timestamp") and exercise.timestamp:
-            exercise_dict["timestamp"] = exercise.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            exercise_dict["timestamp"] = exercise.timestamp.strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
         exercises.append(exercise_dict)
-    
+
     return make_json_response(
         status=status.HTTP_200_OK,
-        detail={
-            "exercises": exercises,
-            "pagination": result["pagination"]
-        }
+        detail={"exercises": exercises, "pagination": result["pagination"]},
     )
+
 
 @router.post("/search_questions")
 async def search_questions(
@@ -1065,3 +1088,130 @@ async def get_language_options(request: Request):
 async def get_language_options(request: Request):
     options = [option.to_dict() for option in QuestionType]
     return JSONResponse(content=options, status_code=status.HTTP_200_OK)
+
+
+@router.get("/download_assignment/{assignment_id}")
+@instructor_role_required()
+async def do_download_assignment(
+    assignment_id: int,
+    request: Request,
+    user=Depends(auth_manager),
+    RS_info: Optional[str] = Cookie(None),
+):
+    """
+    Download the specified assignment.
+    """
+
+    rslogger.debug(f"Downloading assignment: {assignment_id}")
+    course_name = user.course_name
+
+    course = await fetch_course(course_name)
+
+    assigns = await fetch_assignments(course.course_name)
+    current_assignment = None
+    for assign in assigns:
+        if assign.id == assignment_id:
+            current_assignment = assign
+            break
+    if current_assignment is None:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND,
+            detail=f"Assignment {assignment_id} not found",
+        )
+
+    res = await fetch_problem_data(assignment_id, course_name)
+    aqs = await fetch_assignment_questions(assignment_id)
+    if not aqs:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND,
+            detail=f"Assignment questions for {assignment_id} not found",
+        )
+
+    if RS_info:
+        rslogger.debug(f"RS_info Cookie {RS_info}")
+        # Note that to get to the value of the cookie you must use ``.value``
+        try:
+            parsed_js = json.loads(RS_info)
+        except Exception:
+            parsed_js = {}
+
+    tzoffset = parsed_js.get("tz_offset", None)
+    dd = datetime.timedelta(hours=int(tzoffset) if tzoffset is not None else 0)
+
+    csv_buffer = io.StringIO()
+    csv_writer = csv.writer(csv_buffer)
+    csv_writer.writerow(["Timestamp", "SID", "Div ID", "Event", "Act"])
+    for row in res:
+        csv_row = [row.ts + dd, row.sid, row.name, row.event, row.act]
+        csv_writer.writerow(csv_row)
+    csv_buffer.seek(0)
+
+    # send the csv file to the user
+    response = StreamingResponse(
+        csv_buffer,
+        media_type="text/csv",
+    )
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename=assignment_{assignment_id}.csv"
+    )
+
+    return response
+
+
+@router.get("/assignment_summary/{assignment_id}")
+@instructor_role_required()
+async def do_assignment_summary(
+    assignment_id: int,
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+):
+    """
+    Download the specified assignment.
+    """
+
+    course_name = user.course_name
+
+    course = await fetch_course(course_name)
+    context = {
+        "course": course,
+        "course_name": course.course_name,
+        "base_course": course.base_course,
+        "assignment_id": assignment_id,
+        "course_id": course.id,
+        "user": user,
+        "request": request,
+        "is_instructor": True,
+        "student_page": False,
+    }
+    templates = Jinja2Templates(directory=template_folder)
+    response = templates.TemplateResponse(
+        "assignment/instructor/assignment_summary.html", context
+    )
+
+    return response
+
+
+@router.get("/assignment_summary_data/{assignment_id}")
+@instructor_role_required()
+async def do_assignment_summary_data(
+    assignment_id: int,
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    course = await fetch_course(user.course_name)
+    if settings.server_config == "development":
+        dburl = settings.dev_dburl
+    elif settings.server_config == "production":
+        dburl = settings.dburl
+
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "assignment_summary": create_assignment_summary(
+                assignment_id, course, dburl
+            )
+        },
+    )
+
