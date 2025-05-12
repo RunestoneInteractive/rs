@@ -124,6 +124,7 @@ export class MatchingProblem extends RunestoneBase {
         if (this.scorePercent !== 100) {
             this.connList.innerHTML += `<div class="match_feedback"><strong>Feedback:</strong> ${this.boxData.feedback}</div>`;
         }
+        this.queueMathJax(this.connList)
     }
 
     createStatement(container) {

@@ -586,6 +586,7 @@ export default class DragNDrop extends RunestoneBase {
             this.feedBackDiv.className =
                 "alert alert-danger draggable-feedback";
         }
+        this.queueMathJax(this.feedBackDiv);
     }
     /*===================================
     === Checking/restoring from storage ===
