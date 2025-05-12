@@ -10,7 +10,7 @@ export interface DragBlock {
   content: string;
 }
 
-export interface DragAndDropData extends Partial<CreateExerciseFormType> {
+export interface MatchingData extends Partial<CreateExerciseFormType> {
   left: ItemWithLabel[];
   right: ItemWithLabel[];
   correctAnswers: string[][];

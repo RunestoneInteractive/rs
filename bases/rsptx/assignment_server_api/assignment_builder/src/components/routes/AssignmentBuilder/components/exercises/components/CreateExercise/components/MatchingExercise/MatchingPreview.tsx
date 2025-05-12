@@ -1,11 +1,11 @@
 import { ExercisePreview } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreview";
 import { FC, useEffect, useState } from "react";
 
-import { generateDragAndDropPreview } from "@/utils/preview/dndPreview";
+import { generateMatchingPreview } from "@/utils/preview/matchingPreview";
 
 import { ItemWithLabel } from "./types";
 
-interface DragAndDropPreviewProps {
+interface MatchingPreviewProps {
   left: ItemWithLabel[];
   right: ItemWithLabel[];
   correctAnswers: string[][];
@@ -14,7 +14,7 @@ interface DragAndDropPreviewProps {
   statement?: string;
 }
 
-export const DragAndDropPreview: FC<DragAndDropPreviewProps> = ({
+export const MatchingPreview: FC<MatchingPreviewProps> = ({
   left,
   right,
   correctAnswers,
@@ -25,7 +25,7 @@ export const DragAndDropPreview: FC<DragAndDropPreviewProps> = ({
   const [generatedHtml, setGeneratedHtml] = useState<string>("");
 
   useEffect(() => {
-    const html = generateDragAndDropPreview({
+    const html = generateMatchingPreview({
       left,
       right,
       correctAnswers,

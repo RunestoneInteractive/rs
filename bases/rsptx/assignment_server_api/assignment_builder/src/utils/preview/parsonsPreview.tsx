@@ -4,8 +4,8 @@ export interface ParsonsBlock {
   indent: number;
   isDistractor?: boolean;
   isPaired?: boolean;
-  groupId?: string; // ID группы альтернативных блоков
-  isCorrect?: boolean; // Флаг для отметки правильного блока в группе
+  groupId?: string;
+  isCorrect?: boolean;
 }
 
 export interface ParsonsPreviewProps {

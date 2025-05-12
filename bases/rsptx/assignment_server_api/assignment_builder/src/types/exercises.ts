@@ -6,7 +6,8 @@ export const supportedExerciseTypesToEdit = [
   "shortanswer",
   "activecode",
   "dragndrop",
-  "parsonsprob"
+  "parsonsprob",
+  "matching"
 ];
 
 export const supportedExerciseTypes = [
@@ -17,7 +18,8 @@ export const supportedExerciseTypes = [
   "dragndrop",
   "clickablearea",
   "poll",
-  "shortanswer"
+  "shortanswer",
+  "matching"
 ] as const;
 
 export type ExerciseType = (typeof supportedExerciseTypes)[number];
@@ -68,9 +70,10 @@ export type QuestionJSON = Partial<{
   attachment: boolean;
   statement: string;
   optionList: Option[];
-  leftColumnBlocks: { id: string; content: string }[];
-  rightColumnBlocks: { id: string; content: string }[];
-  connections: { id: string; sourceId: string; targetId: string }[];
+  left: { id: string; label: string }[];
+  right: { id: string; label: string }[];
+  correctAnswers: string[][];
+  feedback: string;
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;

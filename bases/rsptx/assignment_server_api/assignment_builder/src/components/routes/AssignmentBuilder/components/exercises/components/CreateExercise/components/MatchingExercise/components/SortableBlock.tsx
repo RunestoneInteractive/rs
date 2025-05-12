@@ -4,7 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "primereact/button";
 import { FC, useCallback, useMemo } from "react";
 
-import styles from "../DragAndDropExercise.module.css";
+import styles from "../MatchingExercise.module.css";
 import { DragBlock } from "../types";
 
 export interface SortableBlockProps {
@@ -103,6 +103,21 @@ export const SortableBlock: FC<SortableBlockProps> = ({
       }
     >
       <div className={styles.blockIndex}>{index + 1}</div>
+      {!isLeft && onStartConnection && (
+        <div
+          className={`${styles.connectionHandleLeft} 
+            ${activeSource === block.id ? styles.activeConnectionHandle : ""} 
+            ${isConnected ? styles.connectedHandle : ""}`}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onStartConnection(block.id);
+          }}
+          title={isConnected ? "Connected - click to modify" : "Drag to connect with left block"}
+        >
+          <i className={`fa-solid ${isConnected ? "fa-link" : "fa-circle-arrow-left"}`} />
+        </div>
+      )}
       <div
         className={styles.dragHandle}
         {...attributes}

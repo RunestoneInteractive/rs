@@ -32,11 +32,10 @@ interface BlockItemProps {
   };
 }
 
-// Height per line of code (in pixels)
 const LINE_HEIGHT = 18;
-// Minimum height for the editor
+
 const MIN_EDITOR_HEIGHT = 36;
-// Additional padding for the editor
+
 const EDITOR_PADDING = 8;
 
 export const BlockItem: FC<BlockItemProps> = ({
@@ -60,14 +59,10 @@ export const BlockItem: FC<BlockItemProps> = ({
   const contentRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // State to track the editor height
   const [editorHeight, setEditorHeight] = useState<number>(MIN_EDITOR_HEIGHT);
 
-  // Manage tooltips to prevent stuck tooltips
   useEffect(() => {
-    // cleanup function to handle tooltip hiding when component unmounts
     return () => {
-      // Find and hide all tooltips that might be associated with this component
       const tooltips = document.querySelectorAll(".p-tooltip");
 
       tooltips.forEach((tooltip) => {
@@ -76,25 +71,20 @@ export const BlockItem: FC<BlockItemProps> = ({
     };
   }, []);
 
-  // Calculate editor height based on content
   const calculateEditorHeight = useCallback((content: string) => {
     if (!content) return MIN_EDITOR_HEIGHT;
 
-    // Count number of lines
     const lineCount = content.split("\n").length;
 
-    // Calculate height based on line count with minimum height
     return Math.max(lineCount * LINE_HEIGHT + EDITOR_PADDING + LINE_HEIGHT / 2, MIN_EDITOR_HEIGHT);
   }, []);
 
-  // Update editor height when content changes
   useEffect(() => {
     setEditorHeight(calculateEditorHeight(block.content));
   }, [block.content, calculateEditorHeight]);
 
   const handleContentChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement> | string) => {
-      // Handle both string (from editors) and event (from InputText)
       const newContent = typeof e === "string" ? e : e.target.value;
 
       onContentChange(block.id, newContent);
@@ -104,7 +94,6 @@ export const BlockItem: FC<BlockItemProps> = ({
 
   const handleRemove = useCallback(
     (e: React.MouseEvent) => {
-      // Stop propagation to prevent drag start
       e.stopPropagation();
       onRemove(block.id);
     },
@@ -122,7 +111,7 @@ export const BlockItem: FC<BlockItemProps> = ({
   const handleAddAlternative = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      // Hide any visible tooltips
+
       hideAllTooltips();
 
       if (onAddAlternative) {
@@ -141,12 +130,10 @@ export const BlockItem: FC<BlockItemProps> = ({
     [block.id, onCorrectChange]
   );
 
-  // Prevent dragging when clicking in the input field
   const handleInputMouseDown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
   }, []);
 
-  // Determine if we should use text editor (TipTap) or code editor (Monaco)
   const isTextEditor = useMemo(() => language === "text", [language]);
 
   return (
@@ -159,14 +146,14 @@ export const BlockItem: FC<BlockItemProps> = ({
       `}
       style={{
         backgroundColor: isDragging ? "var(--surface-100)" : "var(--surface-50)",
-        cursor: "default", // Change cursor to default since only handle is draggable
+        cursor: "default",
         position: "relative",
-        width: `${blockWidth}%`, // Set width as percentage of parent container
+        width: `${blockWidth}%`,
         maxWidth: "800px",
-        height: "auto", // Allow height to adjust based on content
-        minHeight: "36px", // Minimum height for the block
-        overflow: "hidden", // Prevent content overflow
-        flexShrink: 0, // Prevent shrinking during drag
+        height: "auto",
+        minHeight: "36px",
+        overflow: "hidden",
+        flexShrink: 0,
         ...style
       }}
     >
@@ -246,7 +233,7 @@ export const BlockItem: FC<BlockItemProps> = ({
               onMouseDown={handleInputMouseDown}
               className="w-full p-inputtext-sm"
               placeholder="Enter code..."
-              style={{ height: "26px", maxWidth: "100%" }} // Make input smaller
+              style={{ height: "26px", maxWidth: "100%" }}
             />
           )}
         </div>
@@ -271,7 +258,7 @@ export const BlockItem: FC<BlockItemProps> = ({
             onClick={handleRemove}
             className="p-button-rounded p-button-danger p-button-text p-button-sm"
             aria-label="Remove block"
-            style={{ width: "26px", height: "26px", flexShrink: 0 }} // Make button smaller
+            style={{ width: "26px", height: "26px", flexShrink: 0 }}
           />
         </div>
       </div>

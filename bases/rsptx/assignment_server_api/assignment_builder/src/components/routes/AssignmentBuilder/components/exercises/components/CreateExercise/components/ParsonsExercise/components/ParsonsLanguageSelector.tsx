@@ -15,7 +15,6 @@ export const ParsonsLanguageSelector: FC<ParsonsLanguageSelectorProps> = ({
 }) => {
   const baseLanguageOptions = useSelector(datasetSelectors.getLanguageOptions);
 
-  // Add text option if it doesn't exist
   const languageOptions = useMemo(() => {
     const textOption = baseLanguageOptions.find((option) => option.value === "text");
 

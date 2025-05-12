@@ -21,31 +21,31 @@ import { FC, useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { QuestionJSON } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
 import { safeJsonParse } from "@/utils/json";
-import { generateDragAndDropPreview } from "@/utils/preview/dndPreview";
+import { generateMatchingPreview } from "@/utils/preview/matchingPreview";
 import { buildQuestionJson } from "@/utils/questionJson";
 
-import { DRAG_AND_DROP_STEP_VALIDATORS } from "../../config/stepConfigs";
+import { MATCHING_STEP_VALIDATORS } from "../../config/stepConfigs";
 import { useBaseExercise } from "../../hooks/useBaseExercise";
 import { useExerciseStepNavigation } from "../../hooks/useExerciseStepNavigation";
 import { ExerciseLayout } from "../../shared/ExerciseLayout";
 import { ExerciseComponentProps } from "../../types/ExerciseTypes";
 import { validateCommonFields } from "../../utils/validation";
 
-import styles from "./DragAndDropExercise.module.css";
-import { DragAndDropPreview } from "./DragAndDropPreview";
-import { DragAndDropSettings } from "./DragAndDropSettings";
-import { SortableBlock, DragAndDropInstructions } from "./components";
-import { useDragAndDropConnections } from "./hooks";
-import { DragAndDropData, ItemWithLabel } from "./types";
+import styles from "./MatchingExercise.module.css";
+import { MatchingPreview } from "./MatchingPreview";
+import { MatchingSettings } from "./MatchingSettings";
+import { MatchingInstructions, SortableBlock } from "./components";
+import { useMatchingConnections } from "./hooks";
+import { MatchingData, ItemWithLabel } from "./types";
 
-const DRAG_AND_DROP_STEPS = [
+const MATCHING_STEPS = [
   { label: "Statement" },
   { label: "Content" },
   { label: "Settings" },
   { label: "Preview" }
 ];
 
-const getDefaultFormData = (): DragAndDropData => ({
+const getDefaultFormData = (): MatchingData => ({
   name: createExerciseId(),
   author: "",
   topic: "",
@@ -54,7 +54,7 @@ const getDefaultFormData = (): DragAndDropData => ({
   points: 1,
   difficulty: 3,
   htmlsrc: "",
-  question_type: "dragndrop",
+  question_type: "matching",
   statement: "",
   left: [{ id: `left-${Date.now()}`, label: "" }],
   right: [{ id: `right-${Date.now() + 1}`, label: "" }],
@@ -62,7 +62,7 @@ const getDefaultFormData = (): DragAndDropData => ({
   feedback: "Incorrect. Please try again."
 });
 
-export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
+export const MatchingExercise: FC<ExerciseComponentProps> = ({
   initialData,
   onSave,
   onCancel,
@@ -86,15 +86,15 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
         right: questionJson.right || getDefaultFormData().right,
         correctAnswers: questionJson.correctAnswers || getDefaultFormData().correctAnswers,
         feedback: questionJson.feedback || getDefaultFormData().feedback
-      } as DragAndDropData;
+      } as MatchingData;
     }
 
-    return initialData as DragAndDropData;
+    return initialData as MatchingData;
   }, [initialData, isEdit]);
 
-  const handleDragAndDropSave = useCallback(
-    async (data: DragAndDropData) => {
-      const htmlsrc = generateDragAndDropPreview({
+  const handleMatchingSave = useCallback(
+    async (data: MatchingData) => {
+      const htmlsrc = generateMatchingPreview({
         left: data.left || [],
         right: data.right || [],
         correctAnswers: data.correctAnswers || [],
@@ -108,7 +108,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
         htmlsrc,
         question_json: buildQuestionJson({
           ...data,
-          question_type: "dragndrop"
+          question_type: "matching"
         } as any)
       };
 
@@ -129,12 +129,12 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
     goToPrevStep,
     handleSave: baseHandleSave,
     setActiveStep
-  } = useBaseExercise<DragAndDropData>({
+  } = useBaseExercise<MatchingData>({
     initialData: parsedInitialData,
-    steps: DRAG_AND_DROP_STEPS,
-    exerciseType: "dragndrop",
+    steps: MATCHING_STEPS,
+    exerciseType: "matching",
     generatePreview: (data) =>
-      generateDragAndDropPreview({
+      generateMatchingPreview({
         left: data.left || [],
         right: data.right || [],
         correctAnswers: data.correctAnswers || [],
@@ -143,13 +143,13 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
         statement: data.statement || ""
       }),
     validateStep: (step, data) => {
-      const errors = DRAG_AND_DROP_STEP_VALIDATORS[step](data);
+      const errors = MATCHING_STEP_VALIDATORS[step](data);
 
       return errors.length === 0;
     },
     validateForm: validateCommonFields,
     getDefaultFormData,
-    onSave: handleDragAndDropSave,
+    onSave: handleMatchingSave,
     onCancel,
     resetForm,
     onFormReset,
@@ -161,13 +161,13 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
       data: formData,
       activeStep,
       setActiveStep,
-      stepValidators: DRAG_AND_DROP_STEP_VALIDATORS,
+      stepValidators: MATCHING_STEP_VALIDATORS,
       goToNextStep,
       goToPrevStep,
-      steps: DRAG_AND_DROP_STEPS,
+      steps: MATCHING_STEPS,
       handleBaseSave: baseHandleSave,
       generateHtmlSrc: (data) =>
-        generateDragAndDropPreview({
+        generateMatchingPreview({
           left: data.left || [],
           right: data.right || [],
           correctAnswers: data.correctAnswers || [],
@@ -196,7 +196,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
     generatePath,
     hasMovedEnough,
     mousePosition
-  } = useDragAndDropConnections({
+  } = useMatchingConnections({
     formData,
     updateFormData,
     containerRef,
@@ -318,9 +318,9 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
   );
 
   const renderConnections = useCallback(() => {
-    return (formData.correctAnswers || []).map(([sourceId, targetId], index) => {
-      const sourcePosition = getBlockPosition(sourceId, true);
-      const targetPosition = getBlockPosition(targetId, false);
+    return (formData.correctAnswers || []).map(([leftId, rightId], index) => {
+      const sourcePosition = getBlockPosition(leftId, true);
+      const targetPosition = getBlockPosition(rightId, false);
 
       if (!sourcePosition || !targetPosition) return null;
 
@@ -330,7 +330,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
       const color = "#10b981";
 
       return (
-        <g key={`connection-${sourceId}-${targetId}`}>
+        <g key={`connection-${leftId}-${rightId}`} className={styles.connection}>
           <path
             d={path}
             fill="none"
@@ -342,7 +342,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
             className={styles.deleteConnection}
             onClick={(e) => {
               e.stopPropagation();
-              handleDeleteConnection(sourceId, targetId);
+              handleDeleteConnection(leftId, rightId);
             }}
             style={{ cursor: "pointer" }}
           >
@@ -360,6 +360,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
               y1={midY - 3}
               x2={midX + 3}
               y2={midY + 3}
+              className={styles.deleteLine}
               stroke={color}
               strokeWidth="1.5"
             />
@@ -368,6 +369,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
               y1={midY - 3}
               x2={midX - 3}
               y2={midY + 3}
+              className={styles.deleteLine}
               stroke={color}
               strokeWidth="1.5"
             />
@@ -380,7 +382,8 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
   const renderActiveLine = useCallback(() => {
     if (!activeSource || !hasMovedEnough) return null;
 
-    const sourcePosition = getBlockPosition(activeSource, true);
+    const isLeftSource = activeSource.startsWith("left-");
+    const sourcePosition = getBlockPosition(activeSource, isLeftSource);
 
     if (!sourcePosition) return null;
 
@@ -441,49 +444,8 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
   }, [activeStep, triggerConnectionsRedraw, formData.left, formData.right]);
 
   const renderContentStep = () => {
-    const totalConnections = formData.correctAnswers?.length || 0;
-    const totalLeftItems = formData.left?.length || 0;
-    const totalRightItems = formData.right?.length || 0;
-
-    const connectedLeftItems = new Set(
-      (formData.correctAnswers || []).map(([sourceId]) => sourceId)
-    ).size;
-
-    const connectedRightItems = new Set(
-      (formData.correctAnswers || []).map(([_, targetId]) => targetId)
-    ).size;
-
-    const leftConnectionPercentage =
-      totalLeftItems > 0 ? Math.round((connectedLeftItems / totalLeftItems) * 100) : 0;
-
     return (
       <div className={styles.contentStep} ref={containerRef} style={{ padding: 0 }}>
-        <div className={styles.stepHeader}>
-          <div className={styles.connectionStats}>
-            <div className={styles.statItem}>
-              <span className={styles.statLabel}>Source Items Connected:</span>
-              <span className={styles.statValue}>
-                {connectedLeftItems} / {totalLeftItems}
-              </span>
-            </div>
-            <div className={styles.statItem}>
-              <span className={styles.statLabel}>Target Items with Connections:</span>
-              <span className={styles.statValue}>
-                {connectedRightItems} / {totalRightItems}
-              </span>
-            </div>
-            <div
-              className={`${styles.connectionProgress} ${leftConnectionPercentage === 100 ? styles.complete : ""}`}
-            >
-              <div
-                className={styles.progressBar}
-                style={{ width: `${leftConnectionPercentage}%` }}
-                title={`${leftConnectionPercentage}% of source items connected`}
-              />
-            </div>
-          </div>
-        </div>
-
         <div className={styles.columnsContainer}>
           <div className={styles.columnsContent}>
             <div className={styles.column}>
@@ -558,6 +520,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
                         canRemove={(formData.right || []).length > 1}
                         isLeft={false}
                         isRightTarget={activeSource !== null}
+                        onStartConnection={handleStartConnection}
                         onCompleteConnection={handleCompleteConnection}
                         activeSource={activeSource}
                         connections={formData.correctAnswers}
@@ -585,7 +548,8 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
             <div className={styles.connectionGuide}>
               <div className={styles.guideContent}>
                 <i className="fa-solid fa-info-circle mr-2" />
-                Drag to a target match to create a connection
+                Drag to {activeSource.startsWith("left-") ? "a target match" : "a source item"} to
+                create a connection
               </div>
             </div>
           )}
@@ -598,7 +562,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
     switch (activeStep) {
       case 0:
         return (
-          <DragAndDropInstructions
+          <MatchingInstructions
             instructions={formData.statement || ""}
             onChange={handleQuestionChange}
           />
@@ -606,12 +570,10 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
       case 1:
         return renderContentStep();
       case 2:
-        return (
-          <DragAndDropSettings initialData={formData} onSettingsChange={handleSettingsChange} />
-        );
+        return <MatchingSettings initialData={formData} onSettingsChange={handleSettingsChange} />;
       case 3:
         return (
-          <DragAndDropPreview
+          <MatchingPreview
             left={formData.left || []}
             right={formData.right || []}
             correctAnswers={formData.correctAnswers || []}
@@ -627,10 +589,10 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
 
   return (
     <ExerciseLayout
-      title="Drag and Drop Exercise"
-      exerciseType="dragndrop"
+      title="Matching Exercise"
+      exerciseType="matching"
       isEdit={isEdit}
-      steps={DRAG_AND_DROP_STEPS}
+      steps={MATCHING_STEPS}
       activeStep={activeStep}
       onStepSelect={handleStepSelect}
       isCurrentStepValid={isCurrentStepValid}

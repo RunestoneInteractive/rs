@@ -26,7 +26,6 @@ export const ParsonsCodeHighlighter: FC<ParsonsCodeHighlighterProps> = ({
   const editorRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Map language values to Monaco editor language identifiers
   const getMonacoLanguage = (lang: string): string => {
     const languageMap: Record<string, string> = {
       python: "python",
@@ -42,7 +41,6 @@ export const ParsonsCodeHighlighter: FC<ParsonsCodeHighlighterProps> = ({
     return languageMap[lang] || "plaintext";
   };
 
-  // Хук для принудительного обновления размера редактора
   useEffect(() => {
     const updateEditorLayout = () => {
       if (editorRef.current) {
@@ -52,10 +50,8 @@ export const ParsonsCodeHighlighter: FC<ParsonsCodeHighlighterProps> = ({
       }
     };
 
-    // Добавляем слушатель изменения размера окна
     window.addEventListener("resize", updateEditorLayout);
 
-    // Создаем ResizeObserver для отслеживания изменений размера контейнера
     if (typeof ResizeObserver !== "undefined" && containerRef.current) {
       const resizeObserver = new ResizeObserver(() => {
         updateEditorLayout();
@@ -74,16 +70,11 @@ export const ParsonsCodeHighlighter: FC<ParsonsCodeHighlighterProps> = ({
     };
   }, []);
 
-  // Handle editor mount
   const handleEditorDidMount = (editor: any) => {
     editorRef.current = editor;
 
-    // Настройка редактора для простой однострочной редактирования
     editor.onDidContentSizeChange(() => {
-      const contentHeight = Math.min(
-        Math.max(editor.getContentHeight(), 36), // Минимальная высота 36px
-        500 // Максимальная высота 500px
-      );
+      const contentHeight = Math.min(Math.max(editor.getContentHeight(), 36), 500);
 
       const container = containerRef.current;
 
@@ -93,12 +84,9 @@ export const ParsonsCodeHighlighter: FC<ParsonsCodeHighlighterProps> = ({
       }
     });
 
-    // Инициализация размера
     editor.layout();
   };
 
-  // Используем обычный textarea для маленьких экранов или мобильных устройств
-  // для решения проблем с адаптивностью Monaco Editor
   const isSmallScreen = typeof window !== "undefined" && window.innerWidth < 768;
 
   if (isSmallScreen) {

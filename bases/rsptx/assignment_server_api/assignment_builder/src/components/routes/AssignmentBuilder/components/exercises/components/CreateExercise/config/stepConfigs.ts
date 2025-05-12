@@ -1,6 +1,7 @@
 import { CreateExerciseFormType } from "@/types/exercises";
 
 import { DragAndDropData } from "../components/DragAndDropExercise/types";
+import { MatchingData } from "../components/MatchingExercise/types";
 import { ParsonsData } from "../components/ParsonsExercise/ParsonsExercise";
 import { isTipTapContentEmpty } from "../utils/validation";
 
@@ -136,6 +137,25 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
       title: "Create Statement",
       description:
         "Write clear instructions for students about how to complete the drag and drop exercise"
+    },
+    1: {
+      title: "Content Matching",
+      description: "Create blocks in both columns and connect matching items"
+    },
+    2: {
+      title: "Exercise Settings",
+      description: "Configure exercise settings such as name, points, etc."
+    },
+    3: {
+      title: "Preview",
+      description: "Preview the exercise as students will see it"
+    }
+  },
+  matching: {
+    0: {
+      title: "Create Statement",
+      description:
+        "Write clear instructions for students about how to complete the matching exercise"
     },
     1: {
       title: "Content Matching",
@@ -428,45 +448,26 @@ export const DRAG_AND_DROP_STEP_VALIDATORS: StepValidator<DragAndDropData>[] = [
   (data) => {
     const errors: string[] = [];
 
-    // Check for blocks
-    if (!data.leftColumnBlocks?.length || !data.rightColumnBlocks?.length) {
-      errors.push("You must create blocks in both columns");
+    // Check for items
+    if (!data.left?.length || !data.right?.length) {
+      errors.push("You must create items in both columns");
       return errors;
     }
 
-    // Check for empty blocks
-    const hasEmptyBlocks = [
-      ...(data.leftColumnBlocks || []),
-      ...(data.rightColumnBlocks || [])
-    ].some((block) => isTipTapContentEmpty(block.content));
+    // Check for empty items
+    const hasEmptyItems = [...(data.left || []), ...(data.right || [])].some(
+      (item) => !item.label || item.label.trim() === ""
+    );
 
-    if (hasEmptyBlocks) {
-      errors.push("All blocks must have content");
+    if (hasEmptyItems) {
+      errors.push("All items must have content");
     }
 
     // Check for connections
-    if (!data.connections?.length) {
+    if (!data.correctAnswers?.length) {
       errors.push(
         "You need to create at least one connection between source items and matching targets"
       );
-    }
-
-    // Check for duplicate connections
-    const sourceIds = new Set();
-    const targetIds = new Set();
-    let hasInvalidConnections = false;
-
-    (data.connections || []).forEach((conn) => {
-      if (sourceIds.has(conn.sourceId) || targetIds.has(conn.targetId)) {
-        hasInvalidConnections = true;
-      }
-
-      sourceIds.add(conn.sourceId);
-      targetIds.add(conn.targetId);
-    });
-
-    if (hasInvalidConnections) {
-      errors.push("Each item can only have one connection");
     }
 
     return errors;
@@ -493,3 +494,7 @@ export const DRAG_AND_DROP_STEP_VALIDATORS: StepValidator<DragAndDropData>[] = [
   // Preview
   () => [] // Preview is always valid
 ];
+
+// Matching Exercise Step Validators - can use the same validators as DRAG_AND_DROP
+export const MATCHING_STEP_VALIDATORS: StepValidator<MatchingData>[] =
+  DRAG_AND_DROP_STEP_VALIDATORS;

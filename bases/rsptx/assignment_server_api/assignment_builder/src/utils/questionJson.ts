@@ -25,9 +25,17 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
     }),
     ...(data.question_type === "dragndrop" && {
       statement: data.statement,
-      leftColumnBlocks: data.leftColumnBlocks,
-      rightColumnBlocks: data.rightColumnBlocks,
-      connections: data.connections
+      left: data.left,
+      right: data.right,
+      correctAnswers: data.correctAnswers,
+      feedback: data.feedback
+    }),
+    ...(data.question_type === "matching" && {
+      statement: data.statement,
+      left: data.left,
+      right: data.right,
+      correctAnswers: data.correctAnswers,
+      feedback: data.feedback
     })
   };
 
@@ -47,9 +55,10 @@ export const getDefaultQuestionJson = (languageOptions: TableDropdownOption[]) =
     { choice: "", feedback: "", correct: false },
     { choice: "", feedback: "", correct: false }
   ],
-  leftColumnBlocks: [{ id: `left-${Date.now()}`, content: "" }],
-  rightColumnBlocks: [{ id: `right-${Date.now() + 1}`, content: "" }],
-  connections: []
+  left: [{ id: "a", label: "" }],
+  right: [{ id: "x", label: "" }],
+  correctAnswers: [["a", "x"]],
+  feedback: "Incorrect. Please try again."
 });
 
 export const mergeQuestionJsonWithDefaults = (
@@ -63,8 +72,9 @@ export const mergeQuestionJsonWithDefaults = (
     ...questionJson,
     optionList: questionJson?.optionList ?? defaultQuestionJson.optionList,
     statement: questionJson?.statement ?? defaultQuestionJson.statement,
-    leftColumnBlocks: questionJson?.leftColumnBlocks ?? defaultQuestionJson.leftColumnBlocks,
-    rightColumnBlocks: questionJson?.rightColumnBlocks ?? defaultQuestionJson.rightColumnBlocks,
-    connections: questionJson?.connections ?? defaultQuestionJson.connections
+    left: questionJson?.left ?? defaultQuestionJson.left,
+    right: questionJson?.right ?? defaultQuestionJson.right,
+    correctAnswers: questionJson?.correctAnswers ?? defaultQuestionJson.correctAnswers,
+    feedback: questionJson?.feedback ?? defaultQuestionJson.feedback
   };
 };

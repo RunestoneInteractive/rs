@@ -1,22 +1,22 @@
 import { Toast } from "primereact/toast";
 import { RefObject, useCallback, useEffect, useState } from "react";
 
-import styles from "../DragAndDropExercise.module.css";
-import { DragAndDropData } from "../types";
+import styles from "../MatchingExercise.module.css";
+import { MatchingData } from "../types";
 
-interface UseDragAndDropConnectionsProps {
-  formData: DragAndDropData;
-  updateFormData: (field: keyof DragAndDropData, value: any) => void;
+interface UseMatchingConnectionsProps {
+  formData: MatchingData;
+  updateFormData: (field: keyof MatchingData, value: any) => void;
   containerRef: RefObject<HTMLDivElement>;
   toastRef: RefObject<Toast>;
 }
 
-export const useDragAndDropConnections = ({
+export const useMatchingConnections = ({
   formData,
   updateFormData,
   containerRef,
   toastRef
-}: UseDragAndDropConnectionsProps) => {
+}: UseMatchingConnectionsProps) => {
   const [activeSource, setActiveSource] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [hasMovedEnough, setHasMovedEnough] = useState(false);
@@ -67,7 +67,8 @@ export const useDragAndDropConnections = ({
       setActiveSource(sourceId);
       setHasMovedEnough(false);
 
-      const position = getBlockPosition(sourceId, true);
+      const isLeftSource = sourceId.startsWith("left-");
+      const position = getBlockPosition(sourceId, isLeftSource);
 
       if (position) {
         setMousePosition(position);
@@ -80,8 +81,26 @@ export const useDragAndDropConnections = ({
     (targetId: string) => {
       if (!activeSource) return;
 
+      const isSourceLeft = activeSource.startsWith("left-");
+      const isTargetLeft = targetId.startsWith("left-");
+
+      if (isSourceLeft === isTargetLeft) {
+        toastRef.current?.show({
+          severity: "warn",
+          summary: "Invalid Connection",
+          detail: "Cannot connect items on the same side",
+          life: 3000
+        });
+        setActiveSource(null);
+        return;
+      }
+
+      const connection: [string, string] = isSourceLeft
+        ? [activeSource, targetId]
+        : [targetId, activeSource];
+
       const connectionExists = (formData.correctAnswers || []).some(
-        ([sourceId, tgtId]) => sourceId === activeSource && tgtId === targetId
+        ([leftId, rightId]) => leftId === connection[0] && rightId === connection[1]
       );
 
       if (connectionExists) {
@@ -95,9 +114,7 @@ export const useDragAndDropConnections = ({
         return;
       }
 
-      const newConnection: [string, string] = [activeSource, targetId];
-
-      updateFormData("correctAnswers", [...(formData.correctAnswers || []), newConnection]);
+      updateFormData("correctAnswers", [...(formData.correctAnswers || []), connection]);
       setActiveSource(null);
     },
     [activeSource, formData.correctAnswers, updateFormData, toastRef]
@@ -156,9 +173,18 @@ export const useDragAndDropConnections = ({
 
     const handleMouseUp = (e: MouseEvent) => {
       const elements = document.elementsFromPoint(e.clientX, e.clientY);
-      const targetBlock = elements.find(
-        (el) => el.classList.contains(styles.rightTarget) && el instanceof HTMLElement
-      ) as HTMLElement | undefined;
+
+      const isSourceLeft = activeSource.startsWith("left-");
+
+      const targetBlock = elements.find((el) => {
+        if (!(el instanceof HTMLElement)) return false;
+
+        if (!el.dataset.blockId) return false;
+
+        const isTargetLeft = el.dataset.blockId.startsWith("left-");
+
+        return isSourceLeft !== isTargetLeft;
+      }) as HTMLElement | undefined;
 
       if (targetBlock && targetBlock.dataset.blockId) {
         handleCompleteConnection(targetBlock.dataset.blockId);
@@ -193,7 +219,8 @@ export const useDragAndDropConnections = ({
       triggerConnectionsRedraw();
 
       if (activeSource) {
-        const sourcePosition = getBlockPosition(activeSource, true);
+        const isLeftSource = activeSource.startsWith("left-");
+        const sourcePosition = getBlockPosition(activeSource, isLeftSource);
 
         if (sourcePosition && !hasMovedEnough) {
           setMousePosition(sourcePosition);

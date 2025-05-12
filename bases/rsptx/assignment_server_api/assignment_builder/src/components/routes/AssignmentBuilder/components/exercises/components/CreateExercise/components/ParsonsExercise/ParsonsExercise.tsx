@@ -51,11 +51,10 @@ const generatePreview = (data: ParsonsData): string => {
     blocks: data.blocks || [],
     name: data.name || "parsons_exercise",
     language: data.language || "python",
-    // Set hardcoded defaults for Parsons exercises
-    adaptive: true, // Always provide feedback
-    numbered: "left", // Always show line numbers on the left
-    noindent: false, // Always allow indentation
-    questionLabel: data.name // Use name as the question label
+    adaptive: true,
+    numbered: "left",
+    noindent: false,
+    questionLabel: data.name
   });
 };
 
@@ -65,11 +64,10 @@ const generateExerciseHtmlSrc = (data: ParsonsData): string => {
     instructions: data.instructions || "",
     blocks: data.blocks || [],
     language: data.language || "python",
-    // Set hardcoded defaults for Parsons exercises
-    adaptive: true, // Always provide feedback
-    numbered: "left", // Always show line numbers on the left
-    noindent: false, // Always allow indentation
-    questionLabel: data.name // Use name as the question label
+    adaptive: true,
+    numbered: "left",
+    noindent: false,
+    questionLabel: data.name
   });
 };
 
@@ -82,7 +80,6 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
   isEdit = false
 }) => {
   const validateStep = useCallback((step: number, data: ParsonsData) => {
-    // Use the validator functions to determine validity
     const errors = PARSONS_STEP_VALIDATORS[step](data);
 
     return errors.length === 0;
@@ -118,7 +115,6 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
     isEdit
   });
 
-  // Use our centralized navigation and validation hook
   const { validation, handleNext, handleStepSelect, handleSave, stepsValidity } =
     useExerciseStepNavigation({
       data: formData,
@@ -133,7 +129,6 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
       updateFormData
     });
 
-  // Handler for updating blocks
   const handleBlocksUpdate = useCallback(
     (blocks: ParsonsBlock[]) => {
       updateFormData("blocks", blocks);
@@ -141,10 +136,9 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
     [updateFormData]
   );
 
-  // Render step content
   const renderStepContent = () => {
     switch (activeStep) {
-      case 0: // Language
+      case 0:
         return (
           <ParsonsLanguageSelector
             language={formData.language || ""}
@@ -152,7 +146,7 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
           />
         );
 
-      case 1: // Instructions
+      case 1:
         return (
           <ParsonsInstructions
             instructions={formData.instructions || ""}
@@ -160,7 +154,7 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
           />
         );
 
-      case 2: // Code Blocks
+      case 2:
         return (
           <ParsonsBlocksManager
             blocks={formData.blocks || []}
@@ -169,10 +163,10 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
           />
         );
 
-      case 3: // Settings
+      case 3:
         return <ParsonsExerciseSettings formData={formData} onChange={handleSettingsChange} />;
 
-      case 4: // Preview
+      case 4:
         return (
           <ParsonsPreview
             instructions={formData.instructions || ""}

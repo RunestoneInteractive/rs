@@ -1,70 +1,87 @@
-import {
-  DragBlock,
-  BlockConnection
-} from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/DragAndDropExercise/types";
+import { ItemWithLabel } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/DragAndDropExercise/types";
 
 interface DragAndDropPreviewProps {
-  leftColumnBlocks: DragBlock[];
-  rightColumnBlocks: DragBlock[];
-  connections: BlockConnection[];
+  left: ItemWithLabel[];
+  right: ItemWithLabel[];
+  correctAnswers: string[][];
+  feedback: string;
   name: string;
   statement?: string;
 }
 
+const removePTags = (content: string): string => {
+  if (!content) return "";
+
+  return content
+    .replace(/^<p>/, "")
+    .replace(/<\/p>$/, "")
+    .replace(/<p>/g, "<span>")
+    .replace(/<\/p>/g, "</span>");
+};
+
 export const generateDragAndDropPreview = ({
-  leftColumnBlocks,
-  rightColumnBlocks,
-  connections,
+  left,
+  right,
+  correctAnswers,
+  feedback,
   name,
   statement
 }: DragAndDropPreviewProps): string => {
-  const safeId = name.replace(/\s+/g, "_").replace(/[^\w]/g, "");
+  const safeId = (name || "exercise_" + Date.now()).replace(/\s+/g, "_").replace(/[^\w]/g, "");
+  let html = "";
 
-  let dragAndDropItems = "";
-  let itemIndex = 0;
+  const usedLeftItems = new Set<string>();
+  const connectedRightItems = new Set<string>();
 
-  connections.forEach((connection) => {
-    const leftBlock = leftColumnBlocks.find((block) => block.id === connection.sourceId);
-    const rightBlock = rightColumnBlocks.find((block) => block.id === connection.targetId);
+  left.forEach((leftItem) => {
+    const connections = correctAnswers.filter(([sourceId]) => sourceId === leftItem.id);
 
-    if (leftBlock && rightBlock) {
-      itemIndex++;
-      const dragId = `${safeId}_drag${itemIndex}`;
+    if (connections.length > 0) {
+      connections.forEach(([_, targetId]) => {
+        const rightItem = right.find((item) => item.id === targetId);
 
-      dragAndDropItems += `
-    <li data-subcomponent="draggable" id="${dragId}">${leftBlock.content}</li>
-    <li data-subcomponent="dropzone" for="${dragId}">${rightBlock.content}</li>`;
+        if (rightItem) {
+          const dragId = `${safeId}_drag_${leftItem.id}`;
+
+          html += `<li data-subcomponent="draggable" id="${dragId}">${removePTags(leftItem.label || "")}</li>`;
+
+          if (!connectedRightItems.has(rightItem.id)) {
+            html += `<li data-subcomponent="dropzone" for="${dragId}">${removePTags(rightItem.label || "")}</li>`;
+            connectedRightItems.add(rightItem.id);
+          }
+
+          usedLeftItems.add(leftItem.id);
+        }
+      });
     }
   });
 
-  const usedLeftBlockIds = connections.map((conn) => conn.sourceId);
-  const usedRightBlockIds = connections.map((conn) => conn.targetId);
+  left.forEach((leftItem) => {
+    if (!usedLeftItems.has(leftItem.id)) {
+      const dragId = `${safeId}_extra_${leftItem.id}`;
 
-  leftColumnBlocks.forEach((block) => {
-    if (!usedLeftBlockIds.includes(block.id)) {
-      itemIndex++;
-      const dragId = `${safeId}_drag${itemIndex}`;
-
-      dragAndDropItems += `
-    <li data-subcomponent="draggable" id="${dragId}">${block.content}</li>`;
+      html += `
+    <li data-subcomponent="draggable" id="${dragId}">${removePTags(leftItem.label || "")}</li>`;
     }
   });
 
-  rightColumnBlocks.forEach((block) => {
-    if (!usedRightBlockIds.includes(block.id)) {
-      itemIndex++;
-      const dragId = `${safeId}_drop${itemIndex}`;
+  const usedRightItems = new Set(correctAnswers.map(([_, targetId]) => targetId));
 
-      dragAndDropItems += `
-    <li data-subcomponent="dropzone" for="${dragId}">${block.content}</li>`;
+  right.forEach((rightItem) => {
+    if (!usedRightItems.has(rightItem.id)) {
+      const placeholderId = `${safeId}_placeholder`;
+
+      html += `
+    <li data-subcomponent="dropzone" for="${placeholderId}">${removePTags(rightItem.label || "")}</li>`;
     }
   });
 
   return `
 <div class="runestone flex justify-content-center">
 <ul data-component="dragndrop" data-question_label="${safeId}" id="${safeId}" style="visibility: hidden; margin: 0 auto; text-align: center;">
-    <span data-subcomponent="question">${statement || "Match items from the left column with their corresponding items on the right."}</span>
-${dragAndDropItems}
-</ul>
+    <span data-subcomponent="question">${removePTags(statement || "Match items from the left column with their corresponding items on the right.")}</span>
+    <span data-subcomponent="feedback">${removePTags(feedback || "Incorrect. Please try again.")}</span>
+${html}
+</ul>   
 </div>`;
 };
