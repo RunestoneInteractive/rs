@@ -1210,3 +1210,10 @@ details.ptx-footnote {
     background-color: var(--content-background, #fff);
     color: var(--bodyFont, #000);
 }
+
+
+legend {
+    /* allow darkmode to override legend color */
+    color: var(--grayToWhite, #333);
+    border-bottom-color: var(--grayToWhite, #333);
+}
