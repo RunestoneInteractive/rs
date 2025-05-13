@@ -1206,12 +1206,13 @@ async def do_assignment_summary_data(
     elif settings.server_config == "production":
         dburl = settings.dburl
 
+    summary_data, question_metadata = create_assignment_summary(
+        assignment_id, course, dburl
+    )
     return make_json_response(
         status=status.HTTP_200_OK,
         detail={
-            "assignment_summary": create_assignment_summary(
-                assignment_id, course, dburl
-            )
+            "assignment_summary": summary_data,
+            "question_metadata": question_metadata,
         },
     )
-

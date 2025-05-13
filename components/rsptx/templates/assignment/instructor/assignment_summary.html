@@ -51,19 +51,29 @@ the table cells is <code>score (attempts)</code>
             console.log(data.detail)
             container = document.getElementById('container');
             retdata = data.detail.assignment_summary;
+            let metaData = data.detail.question_metadata;
             let columns = [];
+            let headers = [];
             if (retdata && retdata.length > 0) {
                 for (let k of Object.keys(retdata[0])) {
                     columns.push({ data: k, renderer: "html" });
+                    if (k in metaData) {
+                        headers.push(`<a href="/runestone/dashboard/exercisemetrics?id=${k}&chapter=${metaData[k].chapter}">${k} (${metaData[k].points})</a>`)
+                    } else {
+                        headers.push(`<b>${k}</b>`)
+                    }
                 }
 
                 var hot = new Handsontable(container, {
                     data: retdata,
-                    colHeaders: Object.keys(retdata[0]),
+                    colHeaders: headers,
                     licenseKey: "non-commercial-and-evaluation",
                     columns: columns,
                     fixedColumnsLeft: 3,
                     readOnly: true,
+                    afterGetColHeader(col, TH) {
+                        TH.innerHTML = this.getSettings().colHeaders[col];
+                    }
                 });
             }
         })

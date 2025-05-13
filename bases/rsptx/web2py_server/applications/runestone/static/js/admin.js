@@ -416,6 +416,13 @@ function showDeadline() {
     return dl;
 }
 
+// used from the grading page
+function showSummary() {
+    let assignment = getSelectedItem("assignment")
+    let aid = assignmentids[assignment]
+    window.location.href = `/assignment/instructor/assignment_summary/${aid}`
+}
+
 function createGradingPanel(element, acid, studentId, multiGrader) {
     if (!eBookConfig.gradingURL) {
         alert("Can't grade without a URL");
@@ -724,7 +731,7 @@ function updateQuestionList() {
     additional.style.visibility = "visible";
     const rawQS = window.location.search;
     const params = new URLSearchParams(rawQS);
-    const selectedAssignment = params.get('selected_assignment'); 
+    const selectedAssignment = params.get('selected_assignment');
     if (selectedAssignment) {
         // If selectedAssignment is set, we need to select the corresponding option in the selector
         for (let i = 0; i < chapAssignSelector.options.length; i++) {
