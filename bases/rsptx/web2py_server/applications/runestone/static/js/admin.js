@@ -420,7 +420,8 @@ function showDeadline() {
 function showSummary() {
     let assignment = getSelectedItem("assignment")
     let aid = assignmentids[assignment]
-    window.location.href = `/assignment/instructor/assignment_summary/${aid}`
+    //window.location.href = `/assignment/instructor/assignment_summary/${aid}`
+    window.open(`/assignment/instructor/assignment_summary/${aid}`, "_blank");
 }
 
 function createGradingPanel(element, acid, studentId, multiGrader) {
