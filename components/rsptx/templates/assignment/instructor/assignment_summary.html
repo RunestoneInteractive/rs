@@ -8,7 +8,29 @@ Assignment Summary
 <script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css" rel="stylesheet"
     media="screen">
+  <style>
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: auto;
+    }
 
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100px;
+    }
+  </style>
 
 {% endblock %}
 {% block content %}
@@ -22,6 +44,9 @@ the table cells is <code>score (attempts)</code>
 <!-- todo:  format the div_id headings to do: http://localhost/runestone/dashboard/exercisemetrics?id=fill1512&chapter=Assessments -->
 
 <div id="container">
+<div class="loading-container">
+    <p>Building Report</p>
+    <div class="spinner"></div>
 </div>
 <div>
 <a role="button" class="btn btn-info" href='/assignment/instructor/download_assignment/{{assignment_id}}'">
@@ -75,6 +100,8 @@ the table cells is <code>score (attempts)</code>
                         TH.innerHTML = this.getSettings().colHeaders[col];
                     }
                 });
+                let loading = document.querySelector('.loading-container');
+                loading.style.display = 'none';
             }
         })
 </script>
