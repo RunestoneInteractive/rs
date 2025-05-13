@@ -14,7 +14,7 @@ def create_assignment_summary(assignment_id, course, dburl):
 
     df = pd.read_sql(
         f"""
-    select sid, div_id, score
+    select sid, div_id, score, chapter, points, subchapter
     from assignment_questions
     join  questions on assignment_questions.question_id = questions.id
     join question_grades on questions.name = question_grades.div_id
@@ -22,6 +22,8 @@ def create_assignment_summary(assignment_id, course, dburl):
         eng,
     )
 
+    div_id_to_chapter = df[['div_id', 'chapter', 'points']].drop_duplicates().set_index('div_id').T.to_dict()
+    div_id_to_chapter = {k: {'chapter': v['chapter'], 'points': v['points']} for k, v in div_id_to_chapter.items()}
     pt = df.pivot(index="sid", columns="div_id", values="score").reset_index()
     students = pd.read_sql(
         f"""
@@ -135,4 +137,4 @@ def create_assignment_summary(assignment_id, course, dburl):
 
     return merged.to_dict(
         orient="records",
-    )
+    ), div_id_to_chapter
