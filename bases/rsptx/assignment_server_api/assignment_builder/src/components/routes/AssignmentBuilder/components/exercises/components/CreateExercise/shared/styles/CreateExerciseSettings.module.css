@@ -14,26 +14,20 @@
 }
 
 .settingsHeader {
-  padding: 1rem 1.5rem;
+  padding: .75rem 1rem;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
 }
 
 .settingsHeader h3 {
-  margin: 0 0 0.25rem;
+  margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
   color: #334155;
 }
 
-.settingsHeader p {
-  margin: 0;
-  font-size: 0.875rem;
-  color: #64748b;
-}
-
 .settingsContent {
-  padding: 3.25rem 2.25rem 2.25rem;
+  padding: 2rem;
 }
 
 .formSection {
