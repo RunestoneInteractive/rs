@@ -14,7 +14,7 @@ export default class LiveCode extends ActiveCode {
         // Accept older "datafile" attribute for backwards compatibility
         this.datafiles = $(orig).data("datafile");
         this.sourcefile = $(orig).data("sourcefile");
-        this.compileargs = unescapeHtml($(orig).data("compileargs"));
+        this.compileargs = unescapeHtml($(orig).data("compileargs")) || "";
         this.compileAlso = unescapeHtml($(orig).data("compile-also"));
         this.linkargs = unescapeHtml($(orig).data("linkargs"));
         this.runargs = unescapeHtml($(orig).data("runargs"));
@@ -202,7 +202,7 @@ export default class LiveCode extends ActiveCode {
         if (this.language === "octave") {
             paramobj.memorylimit = 200000;
         }
-        if (this.compileargs.toString().indexOf("fsanitize") > -1) {
+        if (this.compileargs && this.compileargs.toString().indexOf("fsanitize") > -1) {
             //fsanitize requires an allocation of a giant block of memory
             paramobj.memorylimit = 2000000000;
         }
@@ -511,7 +511,7 @@ export default class LiveCode extends ActiveCode {
                 if(
                     (this.language === "cpp" || this.language === "c")
                     && result.stderr.includes("Permission denied")
-                    && this.compileargs.includes("-c")
+                    && this.compileargs && this.compileargs.includes("-c")
                 ) {
                     $(odiv).html($.i18n("msg_activecode_compile_only"));
                 } else {
