@@ -33,7 +33,6 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
   onFormReset,
   isEdit = false
 }: UseBaseExerciseProps<T>) => {
-  // Initialize form data
   const [formData, setFormData] = useState<T>(() => {
     if (initialData) {
       return {
@@ -44,20 +43,16 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
     return getDefaultFormData();
   });
 
-  // UI state
   const [activeStep, setActiveStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Track step validation
   const [stepsVisited, setStepsVisited] = useState<Record<number, boolean>>(() =>
     Object.fromEntries(steps.map((_, index) => [index, false]))
   );
 
-  // Track field interactions
   const [questionInteracted, setQuestionInteracted] = useState(false);
   const [settingsInteracted, setSettingsInteracted] = useState(false);
 
-  // Reset form when resetForm is true
   useEffect(() => {
     if (resetForm && onFormReset) {
       setFormData(getDefaultFormData());
@@ -70,7 +65,6 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
     }
   }, [resetForm, onFormReset, steps, getDefaultFormData]);
 
-  // Update form data field
   const updateFormData = useCallback(<K extends keyof T>(field: K, value: T[K]) => {
     setFormData((prev) => ({
       ...prev,
@@ -78,7 +72,6 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
     }));
   }, []);
 
-  // Handle settings changes
   const handleSettingsChange = useCallback((settings: Partial<T>) => {
     setFormData((prev) => ({
       ...prev,
@@ -87,7 +80,6 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
     setSettingsInteracted(true);
   }, []);
 
-  // Handle question content change
   const handleQuestionChange = useCallback(
     (content: string) => {
       updateFormData("statement" as keyof T, content as any);
@@ -96,12 +88,10 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
     [updateFormData]
   );
 
-  // Check if current step is valid
   const isCurrentStepValid = useCallback(() => {
     return validateStep(activeStep, formData);
   }, [activeStep, formData, validateStep]);
 
-  // Go to next step
   const goToNextStep = useCallback(() => {
     if (isCurrentStepValid()) {
       setStepsVisited((prev) => ({
@@ -112,14 +102,12 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
     }
   }, [activeStep, isCurrentStepValid]);
 
-  // Go to previous step
   const goToPrevStep = useCallback(() => {
     if (activeStep > 0) {
       setActiveStep((prev) => prev - 1);
     }
   }, [activeStep]);
 
-  // Generate HTML preview
   const generateHtmlPreview = useCallback(() => {
     try {
       return generatePreview(formData);
@@ -129,7 +117,6 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
     }
   }, [formData, generatePreview]);
 
-  // Handle save
   const handleSave = useCallback(async () => {
     const errors = validateForm(formData);
 

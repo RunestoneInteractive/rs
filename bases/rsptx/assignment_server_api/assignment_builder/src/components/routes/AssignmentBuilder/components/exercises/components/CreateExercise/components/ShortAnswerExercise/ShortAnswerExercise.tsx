@@ -1,20 +1,19 @@
 import { ExerciseComponentProps } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/types/ExerciseTypes";
-import { Checkbox } from "primereact/checkbox";
-import { FC, useCallback, useMemo } from "react";
-import { toast } from "react-hot-toast";
+import { FC } from "react";
 
 import { CreateExerciseFormType } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
 import { generateShortAnswerPreview } from "@/utils/preview/shortAnswer";
 
+import { SHORT_ANSWER_STEP_VALIDATORS } from "../../config/stepConfigs";
 import { useBaseExercise } from "../../hooks/useBaseExercise";
+import { useExerciseStepNavigation } from "../../hooks/useExerciseStepNavigation";
 import { ExerciseLayout } from "../../shared/ExerciseLayout";
-import { QuestionEditor } from "../../shared/QuestionEditor";
-import styles from "../../shared/styles/CreateExercise.module.css";
-import { isTipTapContentEmpty, validateCommonFields } from "../../utils/validation";
+import { validateCommonFields } from "../../utils/validation";
 
 import { ShortAnswerExerciseSettings } from "./ShortAnswerExerciseSettings";
 import { ShortAnswerPreview } from "./ShortAnswerPreview";
+import { ShortAnswerInstructions } from "./components";
 
 const SHORT_ANSWER_STEPS = [{ label: "Question" }, { label: "Settings" }, { label: "Preview" }];
 
@@ -46,48 +45,28 @@ export const ShortAnswerExercise: FC<ExerciseComponentProps> = ({
   onFormReset,
   isEdit = false
 }) => {
-  // Validation for steps
-  const validateStep = useCallback((step: number, data: Partial<CreateExerciseFormType>) => {
-    switch (step) {
-      case 0:
-        return !isTipTapContentEmpty(data.statement || "");
-      case 1:
-        return Boolean(
-          data.name?.trim() &&
-            data.chapter &&
-            data.points !== undefined &&
-            data.points > 0 &&
-            data.difficulty !== undefined
-        );
-      case 2:
-        return true; // Preview is always valid
-      default:
-        return false;
-    }
-  }, []);
-
   const {
     formData,
     activeStep,
     isSaving,
-    stepsVisited,
-    questionInteracted,
-    settingsInteracted,
     updateFormData,
     handleSettingsChange,
     handleQuestionChange,
     isCurrentStepValid,
     goToNextStep,
     goToPrevStep,
-    handleSave,
-    setStepsVisited,
+    handleSave: baseHandleSave,
     setActiveStep
   } = useBaseExercise({
     initialData,
     steps: SHORT_ANSWER_STEPS,
     exerciseType: "shortanswer",
     generatePreview,
-    validateStep,
+    validateStep: (step, data) => {
+      const errors = SHORT_ANSWER_STEP_VALIDATORS[step](data);
+
+      return errors.length === 0;
+    },
     validateForm: validateCommonFields,
     getDefaultFormData,
     onSave: onSave as (data: Partial<CreateExerciseFormType>) => Promise<void>,
@@ -97,98 +76,36 @@ export const ShortAnswerExercise: FC<ExerciseComponentProps> = ({
     isEdit
   });
 
-  // Compute steps validity for the layout
-  const stepsValidity = useMemo(
-    () => ({
-      0: !isTipTapContentEmpty(formData.statement || ""),
-      1: Boolean(
-        formData.name?.trim() &&
-          formData.chapter &&
-          formData.points !== undefined &&
-          formData.points > 0 &&
-          formData.difficulty !== undefined
-      ),
-      2: true
-    }),
-    [formData]
-  );
-
-  // Handle step selection
-  const handleStepSelect = useCallback(
-    (index: number) => {
-      setStepsVisited((prev) => ({
-        ...prev,
-        [activeStep]: true
-      }));
-
-      const canAccess =
-        index === 0 || // Always can go to first step
-        index < activeStep || // Can go back
-        (index === activeStep + 1 && isCurrentStepValid()); // Can go forward if current is valid
-
-      if (canAccess) {
-        setActiveStep(index);
-      } else {
-        toast.error("Please complete the current step before proceeding");
-      }
-    },
-    [activeStep, isCurrentStepValid, setStepsVisited, setActiveStep]
-  );
+  // Use our centralized navigation and validation hook
+  const { validation, handleNext, handleStepSelect, handleSave, stepsValidity } =
+    useExerciseStepNavigation({
+      data: formData,
+      activeStep,
+      setActiveStep,
+      stepValidators: SHORT_ANSWER_STEP_VALIDATORS,
+      goToNextStep,
+      goToPrevStep,
+      steps: SHORT_ANSWER_STEPS,
+      handleBaseSave: baseHandleSave,
+      generateHtmlSrc: generatePreview,
+      updateFormData
+    });
 
   // Render step content
   const renderStepContent = () => {
     switch (activeStep) {
       case 0: // Question
         return (
-          <QuestionEditor
-            title="Short Answer Question"
-            helpText="Create a question that students will answer with a short text response."
-            tipText="Tip: Be concise and specific with your question for better responses"
-            content={formData.statement || ""}
-            showValidation={stepsVisited[0] || questionInteracted}
-            isContentEmpty={isTipTapContentEmpty(formData.statement || "")}
+          <ShortAnswerInstructions
+            instructions={formData.statement || ""}
             onChange={handleQuestionChange}
-            onFocus={() => setStepsVisited((prev) => ({ ...prev, 0: true }))}
-            extraContent={
-              <div className="flex align-items-center">
-                <Checkbox
-                  inputId="allowAttachments"
-                  checked={formData.attachment || false}
-                  onChange={(e) => updateFormData("attachment", e.checked)}
-                />
-                <label htmlFor="allowAttachments" className="ml-2 cursor-pointer">
-                  Allow file attachments (students can upload files with their answers)
-                </label>
-              </div>
-            }
+            attachment={!!formData.attachment}
+            onAttachmentChange={(checked) => updateFormData("attachment", checked)}
           />
         );
 
       case 1: // Settings
-        return (
-          <>
-            <ShortAnswerExerciseSettings
-              formData={formData}
-              onChange={handleSettingsChange}
-              showValidation={stepsVisited[1] || settingsInteracted}
-            />
-            {(stepsVisited[1] || settingsInteracted) &&
-              (!formData.name?.trim() ||
-                !formData.chapter ||
-                formData.points === undefined ||
-                formData.points <= 0 ||
-                formData.difficulty === undefined) && (
-                <div className={styles.validationError}>
-                  {!formData.name?.trim() && <div>Exercise name is required</div>}
-                  {!formData.chapter && <div>Chapter is required</div>}
-                  {(formData.points === undefined || formData.points <= 0) && (
-                    <div>Points must be greater than 0</div>
-                  )}
-                  {formData.difficulty === undefined && <div>Difficulty is required</div>}
-                </div>
-              )}
-          </>
-        );
+        return <ShortAnswerExerciseSettings formData={formData} onChange={handleSettingsChange} />;
 
       case 2: // Preview
         return (
@@ -207,6 +124,7 @@ export const ShortAnswerExercise: FC<ExerciseComponentProps> = ({
   return (
     <ExerciseLayout
       title="Short Answer Exercise"
+      exerciseType="shortanswer"
       isEdit={isEdit}
       steps={SHORT_ANSWER_STEPS}
       activeStep={activeStep}
@@ -215,9 +133,10 @@ export const ShortAnswerExercise: FC<ExerciseComponentProps> = ({
       stepsValidity={stepsValidity}
       onCancel={onCancel}
       onBack={goToPrevStep}
-      onNext={goToNextStep}
+      onNext={handleNext}
       onSave={handleSave}
       onStepSelect={handleStepSelect}
+      validation={validation}
     >
       {renderStepContent()}
     </ExerciseLayout>

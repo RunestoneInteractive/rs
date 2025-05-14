@@ -614,3 +614,12 @@ document.addEventListener("runestone:login-complete", () => {
         }
     });
 });
+
+// Add component factory initialization
+if (typeof window.component_factory === "undefined") {
+    window.component_factory = {};
+}
+
+window.component_factory.matching = function (opts) {
+    return new MatchingProblem(opts);
+};

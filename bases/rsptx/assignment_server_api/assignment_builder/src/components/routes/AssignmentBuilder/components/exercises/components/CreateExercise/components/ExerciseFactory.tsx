@@ -10,14 +10,15 @@ import {
   ClickableAreaExercise,
   PollExercise,
   ShortAnswerExercise,
-  MultiChoiceExercise
+  MultiChoiceExercise,
+  MatchingExercise
 } from ".";
 
 export const ExerciseFactory: FC<ExerciseComponentProps> = (props) => {
   switch (props.type) {
     case "mchoice":
       return <MultiChoiceExercise {...props} />;
-    case "parsons":
+    case "parsonsprob":
       return <ParsonsExercise {...props} />;
     case "activecode":
       return <ActiveCodeExercise {...props} />;
@@ -31,6 +32,8 @@ export const ExerciseFactory: FC<ExerciseComponentProps> = (props) => {
       return <PollExercise {...props} />;
     case "shortanswer":
       return <ShortAnswerExercise {...props} />;
+    case "matching":
+      return <MatchingExercise {...props} />;
     default:
       throw new Error(`Unknown exercise type: ${props.type}`);
   }

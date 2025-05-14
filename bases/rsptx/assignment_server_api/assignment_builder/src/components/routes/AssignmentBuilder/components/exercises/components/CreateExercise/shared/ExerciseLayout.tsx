@@ -1,11 +1,18 @@
 import { Button } from "primereact/button";
 import { Steps } from "primereact/steps";
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 
+import { ExerciseStepWrapper } from "@/components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/shared/ExerciseStepWrapper";
+
+import { getStepConfig } from "../config/stepConfigs";
+import { ValidationState } from "../hooks/useStepValidation";
+
+import { ValidationMessage } from "./ValidationMessage";
 import styles from "./styles/CreateExercise.module.css";
 
 interface ExerciseLayoutProps {
   title: string;
+  exerciseType: string;
   isEdit: boolean;
   steps: { label: string }[];
   activeStep: number;
@@ -18,10 +25,12 @@ interface ExerciseLayoutProps {
   onSave: () => void;
   onStepSelect: (index: number) => void;
   children: ReactNode;
+  validation?: ValidationState;
 }
 
 export const ExerciseLayout = ({
   title,
+  exerciseType,
   isEdit,
   steps,
   activeStep,
@@ -33,8 +42,14 @@ export const ExerciseLayout = ({
   onNext,
   onSave,
   onStepSelect,
-  children
+  children,
+  validation
 }: ExerciseLayoutProps) => {
+  const currentStepConfig = useMemo(
+    () => getStepConfig(exerciseType, activeStep),
+    [exerciseType, activeStep]
+  );
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -49,17 +64,11 @@ export const ExerciseLayout = ({
               label="Save"
               icon="pi pi-check"
               onClick={onSave}
-              disabled={Object.values(stepsValidity).some((valid) => !valid) || isSaving}
+              disabled={isSaving}
               loading={isSaving}
             />
           ) : (
-            <Button
-              label="Next"
-              icon="pi pi-chevron-right"
-              iconPos="right"
-              onClick={onNext}
-              disabled={!isCurrentStepValid()}
-            />
+            <Button label="Next" icon="pi pi-chevron-right" iconPos="right" onClick={onNext} />
           )}
         </div>
       </div>
@@ -73,7 +82,19 @@ export const ExerciseLayout = ({
           className={styles.steps}
         />
 
-        {children}
+        <div className={styles.exerciseContentWrapper}>
+          {currentStepConfig ? (
+            <ExerciseStepWrapper
+              title={currentStepConfig.title}
+              description={currentStepConfig.description}
+            >
+              {children}
+            </ExerciseStepWrapper>
+          ) : (
+            <>{children}</>
+          )}
+        </div>
+        {validation && !validation.isValid && <ValidationMessage errors={validation.errors} />}
       </div>
     </div>
   );
