@@ -7,8 +7,6 @@
     text-align: left;
     vertical-align: top;
     background-color: var(--questionBgColor, #efefff);
-    font-family: monospace;
-    font-size: 120%;
     padding-bottom: 10px;
     min-width: 28%;
     border: 1px solid var(--componentBorderColor, #efefff);

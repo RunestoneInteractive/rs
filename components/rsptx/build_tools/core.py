@@ -340,6 +340,7 @@ def update_library(
         shelf = extract_docinfo(docinfo, "shelf")
         author = extract_docinfo(docinfo, "author")
     else:
+        author = ""
         try:
             config_vars = {}
             exec(open("conf.py").read(), config_vars)

@@ -8,3 +8,4 @@ export { ClickableAreaExercise } from "./ClickableAreaExercise/ClickableAreaExer
 export * from "./PollExercise/PollExercise";
 export { ShortAnswerExercise } from "./ShortAnswerExercise/ShortAnswerExercise";
 export * from "./MultiChoiceExercise";
+export { MatchingExercise } from "./MatchingExercise/MatchingExercise";

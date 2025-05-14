@@ -1,0 +1,92 @@
+.parsons-editor {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  max-width: 100% !important;
+}
+  
+.parsons-editor-textarea {
+  width: 100%;
+  position: relative;
+}
+
+.parsons-editor-textarea textarea {
+  width: 100%;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 4px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+.parsons-editor .monaco-editor,
+.parsons-editor .monaco-editor-background,
+.parsons-editor .monaco-editor .overflow-guard,
+.parsons-editor .monaco-editor .editor-scrollable {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.parsons-editor .monaco-editor .lines-content,
+.parsons-editor .monaco-editor .view-lines,
+.parsons-editor .monaco-editor .monaco-editor-background {
+  width: 100% !important;
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+}
+
+.parsons-editor .monaco-editor .view-line {
+  width: 100% !important;
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+  white-space: pre-wrap !important;
+}
+
+.parsons-editor .monaco-editor .view-line span {
+  word-break: break-all !important;
+  max-width: 100% !important;
+}
+
+.parsons-editor .monaco-editor .scrollbar {
+  display: none !important;
+}
+
+.parsons-editor .monaco-editor .lines-content .cigr,
+.parsons-editor .monaco-editor .lines-content .cigra {
+  display: none !important;
+}
+
+.parsons-editor .monaco-editor .margin-view-overlays,
+.parsons-editor .monaco-editor .margin {
+  display: none !important;
+  width: 0 !important;
+}
+
+.parsons-editor .monaco-editor .monaco-editor-background,
+.parsons-editor .monaco-editor .margin-view-overlays {
+  background-color: transparent !important;
+}
+
+.parsons-editor .monaco-editor .view-lines {
+  width: 100% !important; 
+}
+
+.parsons-editor .monaco-editor:not(.focused) .cursor {
+  display: none !important;
+}
+
+.parsons-editor .monaco-editor .decorationsOverviewRuler {
+  display: none !important;
+}
+
+.parsons-editor .monaco-editor,
+.parsons-editor .monaco-editor-background,
+.parsons-editor .monaco-editor .inputarea,
+.parsons-editor .monaco-editor .editor-widget {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+} 

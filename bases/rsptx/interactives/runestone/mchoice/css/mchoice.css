@@ -13,4 +13,8 @@
 
 .multiplechoice_section label > .para {
     display: inline;
-} 
+}
+
+.multiplechoice_section .exercise-interactives {
+    margin-top: 1em;
+}

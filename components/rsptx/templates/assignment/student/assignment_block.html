@@ -1,8 +1,11 @@
 <h2>Assignments</h2>
+{% if is_instructor %}
 <label style="margin-bottom:10px; display:block;">
   <input type="checkbox" id="hide_hidden_assignments" onchange="toggleHiddenAssignments(this.checked)">
   Student View: Hide Hidden Assignments
 </label>
+{% endif %}
+
 {% if assignment_list %}
 <table class="table">
   <thead>
@@ -35,8 +38,7 @@
         <a href="/runestone/admin/grading?selected_assignment={{assignment.name}}">
           <span class="material-symbols-outlined" aria-label="grading" title="grade this assignment">grading</span></a>
         <a href='/assignment/instructor/assignment_summary/{{assignment.id}}'">
-          <span class=" material-symbols-outlined" aria-label="dashboard"
-          title="view summary">dashboard</span></a>
+          <span class=" material-symbols-outlined" aria-label="dashboard" title="view summary">dashboard</span></a>
         {% else %}
         {% if assignment.id in stats %}
         {% set current = stats[assignment.id].is_submit %}

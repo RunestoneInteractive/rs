@@ -32,9 +32,8 @@ const SortableOption = ({
   option,
   onUpdate,
   onRemove,
-  totalOptions,
-  showValidation = true
-}: PollOptionItemProps & { totalOptions: number; showValidation?: boolean }) => {
+  totalOptions
+}: PollOptionItemProps & { totalOptions: number }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: option.id
   });
@@ -55,8 +54,8 @@ const SortableOption = ({
 
   const isEmpty = isTipTapContentEmpty(option.choice);
 
-  // Add a visual indicator for empty options only when showValidation is true
-  const editorContainerClass = `${styles.editorContainer} ${showValidation && isEmpty ? styles.emptyEditor : ""}`;
+  // Visual indicator for empty options
+  const editorContainerClass = `${styles.editorContainer} ${isEmpty ? styles.emptyEditor : ""}`;
 
   return (
     <div ref={setNodeRef} style={style} className={styles.optionContainer}>
@@ -96,12 +95,10 @@ const SortableOption = ({
 
 export const PollOptions = ({
   options,
-  onChange,
-  showValidation = true
+  onChange
 }: {
   options: PollOption[];
   onChange: (options: PollOption[]) => void;
-  showValidation?: boolean;
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -170,7 +167,6 @@ export const PollOptions = ({
                     onUpdate={handleUpdate}
                     onRemove={handleRemove}
                     totalOptions={options.length}
-                    showValidation={showValidation}
                   />
                 </div>
               ))}

@@ -23,12 +23,12 @@ export const ExercisePreview = ({
   return (
     <MathJaxWrapper>
       <MathJax>
-        <div className="ptx-runestone-container relative">
+        <div className="ptx-runestone-container relative flex justify-content-center w-full">
           <div
-            className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
+            className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 flex justify-content-center"
             style={{ maxHeight }}
           >
-            <div ref={ref} className="min-w-full"></div>
+            <div ref={ref} className="text-center mx-auto"></div>
           </div>
         </div>
       </MathJax>

@@ -15,6 +15,7 @@ class QuestionType(Enum):
     POLL = ("poll", "Poll", "Create a survey question to gather student feedback")
     HPARSONS = ("hparsons", "HParsons", "")
     ACTEX = ("actex", "Actex", "")
+    MATCHING = ("matching", "Matching", "Create a programming exercise where students arrange code blocks in the correct order")
 
     def to_dict(self):
         return {
