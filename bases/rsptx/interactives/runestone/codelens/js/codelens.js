@@ -64,8 +64,9 @@ window.component_factory.codelens = function (opts) {
     // allTraceData is created by a series of script tags that when loaded create this
     // as a global object containing trace information.
     try {
+        let startInstr = allTraceData[divid].startingInstruction || 0;
         let vis = addVisualizerToPage(allTraceData[divid], divid, {
-            startingInstruction: 0,
+            startingInstruction: startInstr,
             editCodeBaseURL: null,
             hideCode: false,
             lang: lang,
@@ -104,8 +105,9 @@ $(document).on("runestone:login-complete", function () {
             let lang = $(cl).data("params").lang;
             try {
                 if (divid in window.allTraceData) {
+                    let startInstr = allTraceData[divid].startingInstruction || 0;
                     var vis = addVisualizerToPage(allTraceData[divid], divid, {
-                        startingInstruction: 0,
+                        startingInstruction: startInstr,
                         editCodeBaseURL: null,
                         hideCode: false,
                         lang: lang,
