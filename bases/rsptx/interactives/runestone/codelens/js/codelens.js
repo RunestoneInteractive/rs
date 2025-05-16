@@ -83,8 +83,10 @@ window.component_factory.codelens = function (opts) {
         rb.logBookEvent({
             event: "codelens",
             div_id: evt.detail.divid,
-            act: `answer:${evt.detail.answer}`,
+            act: 'answer',
+            answer: evt.detail.answer,
             correct: evt.detail.correct,
+            percent: evt.detail.percent || 0,
         });
         console.log(evt);
     });
@@ -126,8 +128,10 @@ $(document).on("runestone:login-complete", function () {
             rb.logBookEvent({
                 event: "codelens",
                 div_id: evt.detail.divid,
-                act: `answer:${evt.detail.answer}`,
+                act: 'answer',
+                answer: evt.detail.answer,
                 correct: evt.detail.correct,
+                percent: evt.detail.percent || 0,
             });
             console.log(evt);
         });
