@@ -125,7 +125,7 @@ from rsptx.data_types.autograde import AutogradeOptions
 # Map from the ``event`` field of a ``LogItemIncoming`` to the database table used to store data associated with this event.
 EVENT2TABLE = {
     "clickableArea": "clickablearea_answers",
-    "codelens1": "codelens_answers",
+    "codelens": "codelens_answers",
     "dragNdrop": "dragndrop_answers",
     "fillb": "fitb_answers",
     "lp_build": "lp_answers",
