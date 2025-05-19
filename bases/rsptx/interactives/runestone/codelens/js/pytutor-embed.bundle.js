@@ -618,6 +618,9 @@ var ExecutionVisualizer = /** @class */ (function () {
         this.curInputCode = dat.code.rtrim(); // kill trailing spaces
         this.params = params;
         this.curTrace = dat.trace;
+        this.numQuestions = 0;
+        this.questionsAnswered = {};
+        this.questionsSkipped = {};
         // postprocess the trace
         if (this.curTrace.length > 0) {
             var lastEntry = this.curTrace[this.curTrace.length - 1];
@@ -639,6 +642,12 @@ var ExecutionVisualizer = /** @class */ (function () {
                 this.instrLimitReachedWarningMsg = lastEntry.exception_msg;
                 this.curTrace.pop(); // postprocess to kill last entry
             }
+            this.curTrace.forEach((val, i) => {
+                if (val.question) {
+                    this.numQuestions++;
+                    this.questionsAnswered[i] = false;
+                }
+            });
         }
         // if you have multiple ExecutionVisualizer on a page, their IDs
         // better be unique or else you'll run into rendering problems
@@ -802,21 +811,45 @@ var ExecutionVisualizer = /** @class */ (function () {
             return;
         }
         var myViz = this; // to prevent confusion of 'this' inside of nested functions
-        if (this.params.verticalStack) {
-            this.domRoot.html('<table border="0" class="visualizer">\
-                           <tr><td class="vizLayoutTd" id="vizLayoutTdFirst""></td></tr>\
-                           <tr><td class="vizLayoutTd" id="vizLayoutTdSecond"></td></tr>\
-                         </table>');
-        }
-        else {
-            this.domRoot.html('<table border="0" class="visualizer"><tr>\
-                           <td class="vizLayoutTd" id="vizLayoutTdFirst"></td>\
-                           <td class="vizLayoutTd" id="vizLayoutTdSecond"></td>\
-                         </tr></table>');
+        let direction = this.params.verticalStack ? "vertical" : "horizontal";
+        this.domRoot.html(`
+                    <div border="0" class="visualizer visualizer--${direction}">
+                        <div class="vizLayoutTd vizLayoutTdWide" id="vizLayoutTdFirst""></div>
+                        <div class="vizLayoutTd vizLayoutTdWide" id="vizLayoutTdSecond"></div>
+                        </div>
+                        <div class=question>`);
+        if (this.numQuestions > 0) {
+            // set up question area and event handlling
+            this.domRoot.append(`
+                        <div class="codelens__questionContainer">
+                            <div class="codelens__question codelens__question--hidden">
+                                <div class="codelens__prompt" aria-live="assertive"></div>
+                                <div class="codelens__questionControls">
+                                    <input type="text" id="v${this.visualizerID}_questionAnswer" class="form form-control selectwidthauto"/>
+                                    <button id="v${this.visualizerID}_questionSubmit" class="btn btn-success">Submit</button>
+                                    <button id="v${this.visualizerID}_questionSkip"class="btn btn-danger">Skip</button>
+                                </div>
+                            </div>
+                            <div class="codelens__feedback" aria-live="assertive">0 of ${this.numQuestions} questions answered.</div>
+                        </div>`);
+            let domRootEl = this.domRoot[0];
+            this.questionContainerDiv = domRootEl.querySelector('.codelens__questionContainer');
+            this.questionDiv = domRootEl.querySelector('.codelens__question');
+            this.promptDiv = domRootEl.querySelector('.codelens__prompt');
+            this.feedbackDiv = domRootEl.querySelector('.codelens__feedback');
+            this.questionSubBtn = domRootEl.querySelector(`#v${this.visualizerID}_questionSubmit`);
+            this.questionSkipBtn = domRootEl.querySelector(`#v${this.visualizerID}_questionSkip`);
+            this.answerInput = domRootEl.querySelector(`#v${this.visualizerID}_questionAnswer`);
+            this.answerInput.addEventListener("keydown", e => {
+                if (e.key == "Enter") {
+                    e.preventDefault();
+                    this.questionSubBtn.click();
+                }
+            })
         }
         // create a container for a resizable slider to encompass
         // both CodeDisplay and NavigationController
-        this.domRoot.find('#vizLayoutTdFirst').append('<div id="codAndNav" style="width: 550px;"/>');
+        this.domRoot.find('#vizLayoutTdFirst').append('<div id="codAndNav"/>');
         var base = this.domRoot.find('#vizLayoutTdFirst #codAndNav');
         var baseD3 = this.domRootD3.select('#vizLayoutTdFirst #codAndNav');
         this.codDisplay = new CodeDisplay(this, base, baseD3, this.curInputCode, this.params.lang, this.params.editCodeBaseURL);
@@ -843,7 +876,7 @@ var ExecutionVisualizer = /** @class */ (function () {
             this.domRoot.find('#jmpLastInstr').hide();
         }
         if (this.params.codeDivWidth) {
-            this.domRoot.find('#codAndNav').width(this.params.codeDivWidth);
+            this.domRoot.find('#codAndNav');
         }
         if (this.params.codeDivHeight) {
             this.domRoot.find('#pyCodeOutputDiv')
@@ -989,7 +1022,7 @@ var ExecutionVisualizer = /** @class */ (function () {
         }
     };
     // returns true if action successfully taken
-    ExecutionVisualizer.prototype.stepForward = function () {
+    ExecutionVisualizer.prototype.stepForward = async function () {
         var myViz = this;
         if (myViz.curInstr < myViz.curTrace.length - 1) {
             // if there is a next breakpoint, then jump to it ...
@@ -1003,6 +1036,7 @@ var ExecutionVisualizer = /** @class */ (function () {
             else {
                 myViz.curInstr += 1;
             }
+            await myViz.renderQuestionMaybe();
             myViz.updateOutput(true);
             return true;
         }
@@ -1408,7 +1442,6 @@ var ExecutionVisualizer = /** @class */ (function () {
         myViz.prevLineNumber = prevLineNumber;
         myViz.curLineIsReturn = curIsReturn;
         myViz.prevLineIsReturn = prevIsReturn;
-        myViz.renderQuestionMaybe();
     };
     ExecutionVisualizer.prototype.isOutputLineVisibleForBubbles = function (lineDivID) {
         var pcod = this.domRoot.find('#pyCodeOutputDiv');
@@ -1420,40 +1453,128 @@ var ExecutionVisualizer = /** @class */ (function () {
         // add a few pixels of fudge factor on the bottom end due to bottom scrollbar
         return (PO <= LO) && (LO < (PO + H - 25));
     };
-    ExecutionVisualizer.prototype.renderQuestionMaybe = function () {
+
+    ExecutionVisualizer.prototype.setPausedDisplay = function(pause) {
+        let domRootEl = this.domRoot[0];
+        let vcrBtns =  domRootEl.querySelectorAll('#vcrControls > button');
+        vcrBtns.forEach(btn => {
+            btn.disabled = pause;
+        });
+        if(pause) {
+            this.questionSubBtn.style.display = null;
+            this.questionSkipBtn.style.display = null;
+            this.answerInput.disabled = false;
+        } else {
+            this.questionSubBtn.style.display = 'none';
+            this.questionSkipBtn.style.display = 'none';
+            this.answerInput.disabled = true;
+        }
+        //unhide at first pause, never rehide
+        this.questionDiv.classList.remove('codelens__question--hidden');
+    }
+    
+    ExecutionVisualizer.prototype.skippedMessage = function () {
+        // steps are off by one from human perspective...
+        let skippedSteps = Object.keys(this.questionsSkipped).map(i => parseInt(i) + 1);
+        let plural = skippedSteps.length > 1 ? "s" : "";
+        if (skippedSteps.length > 0) {
+            return ` (Skipped question${plural} at step${plural} ${skippedSteps.join(", ")}.)`;
+        }
+        return "";
+    }
+
+    ExecutionVisualizer.prototype.renderQuestionMaybe = async function () {
         // bnm
         if (this.curInstr < 1)
             return;
-        var curEntry = this.curTrace[this.curInstr - 1];
-        if (curEntry.question) {
+        let questionStep = this.curInstr - 1;
+        var curEntry = this.curTrace[questionStep];
+        if (curEntry.question && !this.questionsAnswered[questionStep]) {
+            this.promptDiv.innerHTML = `Line ${curEntry.line}: ${curEntry.question.text}`;
+            this.answerInput.value = '';
             var done = false;
             while (!done) {
-                var ans = prompt(curEntry.question.text);
-                var answer = curEntry.question.correct;
-                var attrs = answer.split(".");
-                var correctAns = this.curTrace[this.curInstr];
-                for (var j in attrs) {
-                    correctAns = correctAns[attrs[j]];
-                }
-                if (ans.length > 0 && ans == correctAns) {
-                    alert('Correct');
+                // trigger color flash by removing animation class and adding it back after a little time
+                this.questionContainerDiv.classList.remove('codelens-question--reveal');
+                window.setTimeout(() => {
+                    this.questionContainerDiv.classList.add('codelens-question--reveal');
+                }, 20);
+                this.setPausedDisplay(true);
+                this.answerInput.focus();
+                let ev = this;
+                let skipped = false;
+                await new Promise((resolve) => {
+                    this.questionSubBtn.addEventListener('click', async function handler(event) {
+                        ev.setPausedDisplay(false);
+                        resolve();
+                    }, { once: true });
+                    this.questionSkipBtn.addEventListener('click', async function handler(event) {
+                        ev.setPausedDisplay(false);
+                        skipped = true;
+                        resolve();
+                    }, { once: true });
+                });
+                if (skipped) {
+                    let numCorrect = Object.entries(this.questionsAnswered).filter( el => el[1] === true).length;
+                    this.questionsSkipped[questionStep] = true;
+                    this.feedbackDiv.innerHTML = `Skipped. ${numCorrect} of ${this.numQuestions} questions answered.` + this.skippedMessage();
                     done = true;
+                } else {
+                    var ans = this.answerInput.value;
+                    var answerLiteral = curEntry.question.correctText;
+                    let correct = false;
+                    if (answerLiteral) {
+                        correct = answerLiteral == ans.trim();
+                    } else {
+                        var answer = curEntry.question.correct;
+                        var attrs = answer.split(".");
+                        var correctAns = this.curTrace[this.curInstr];
+                        // current_frame skips to right place
+                        if (attrs[0] == "current_frame") {
+                            correctAns = correctAns['stack_to_render'];
+                            correctAns = correctAns.slice(-1)[0];
+                            correctAns = correctAns['encoded_locals'];
+                            attrs.shift();
+                        }
+                        // Now follow the steps specified
+                        for (var j of attrs) {
+                            correctAns = correctAns[j];
+                        }
+                        if (correctAns instanceof Array) {
+                            // C/C++ have value as an array in different formats. Last item is native type
+                            correctAns = correctAns.slice(-1)[0];
+                        }
+                        if (ans.length > 0 && ans == correctAns) {
+                            correct = true;
+                        }
+                    }
+                    if (correct) {
+                        this.questionsAnswered[questionStep] = true;
+                        delete this.questionsSkipped[questionStep];
+                        done = true;
+                    }
+                    let numCorrect = Object.entries(this.questionsAnswered).filter( el => el[1] === true).length;
+                    let pctCorrect = numCorrect / this.numQuestions;
+                    let completed = this.numQuestions == numCorrect;
+                    let message = "";
+                    if (correct) {
+                        message = `Correct. ${numCorrect} of ${this.numQuestions} questions answered.`;
+                    }
+                    else {
+                        message = "Try again.";
+                        if (curEntry.question.feedback)
+                            message += ` ${curEntry.question.feedback}`;
+                    }
+                    this.feedbackDiv.innerHTML = message + this.skippedMessage();
                     // Create a custom event so that we don't have to suck in all of runestone
                     // codelens.js  has code that binds to this event and generates the call to
                     // record the answer.
                     var e = new CustomEvent("codelens:answer", { detail: { divid: $(this.domRoot).closest(".pytutorVisualizer")[0].id,
-                            correct: true,
-                            answer: ans
-                        } });
-                    document.dispatchEvent(e);
-                }
-                else {
-                    done = !confirm(curEntry.question.feedback + "\nClick OK to try again");
-                    var e = new CustomEvent("codelens:answer", { detail: { divid: $(this.domRoot).closest(".pytutorVisualizer")[0].id,
-                            correct: false,
-                            answer: ans
-                        } });
-                    document.dispatchEvent(e);
+                        correct: completed,
+                        percent: pctCorrect,
+                        answer: `${questionStep}:${ans}`
+                    } });
+                    window.dispatchEvent(e);
                 }
             }
         }
@@ -1483,7 +1604,25 @@ var DataVisualizer = /** @class */ (function () {
         this.hideVarsSet = null;
         this.hideFieldsSet = null;
         this.draggedHeapObjectCSS = d3.map(); // see above for description
-        var codeVizHTML = "\n      <div id=\"selectiveHideStatus\"></div>\n      <div id=\"dataViz\">\n         <table id=\"stackHeapTable\">\n           <tr>\n             <td id=\"stack_td\">\n               <div id=\"globals_area\">\n                 <div id=\"stackHeader\">" + this.getRealLabel("Frames") + "</div>\n               </div>\n               <div id=\"stack\"></div>\n             </td>\n             <td id=\"heap_td\">\n               <div id=\"heap\">\n                 <div id=\"heapHeader\">" + this.getRealLabel("Objects") + "</div>\n               </div>\n             </td>\n           </tr>\n         </table>\n       </div>";
+        var codeVizHTML = `
+            <div id="selectiveHideStatus"></div>
+            <div id="dataViz">
+                <table id="stackHeapTable">
+                    <tr>
+                        <td id="stack_td">
+                            <div id="globals_area">
+                                <div id="stackHeader">${this.getRealLabel("Frames")}</div>
+                            </div>
+                            <div id="stack"></div>
+                        </td>
+                        <td id="heap_td">
+                            <div id="heap">
+                                <div id="heapHeader">${this.getRealLabel("Objects")}</div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>`;
         this.domRoot.append(codeVizHTML);
         // create a persistent globals frame
         // (note that we need to keep #globals_area separate from #stack for d3 to work its magic)
@@ -3663,7 +3802,6 @@ var ProgramOutputBox = /** @class */ (function () {
         this.owner = owner;
         this.domRoot = domRoot;
         var outputsHTML = '<div id="progOutputs">\
-         <div id="printOutputDocs">Print output (drag lower right corner to resize)</div>\n\
          <textarea id="pyStdout" cols="40" rows="5" wrap="off" readonly></textarea>\
        </div>';
         this.domRoot.append(outputsHTML);
@@ -3688,9 +3826,7 @@ var ProgramOutputBox = /** @class */ (function () {
             stdoutHeight = heightOverride;
         }
         // do this only after adding outputsHTML to the DOM
-        this.domRoot.find('#pyStdout').width('350px')
-            .height(stdoutHeight)
-            .resizable();
+        this.domRoot.find('#pyStdout').width('100%');
     }
     ProgramOutputBox.prototype.renderOutput = function (stdoutStr) {
         if (!stdoutStr) {

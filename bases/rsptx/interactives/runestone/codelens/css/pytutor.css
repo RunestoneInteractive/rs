@@ -40,20 +40,37 @@ div.ExecutionVisualizer {
   /* make sure dark mode text is still black
      todo: actually make dark mode work */
   color: black;
+  background:white;
 }
 
-div.ExecutionVisualizer table.visualizer {
+div.ExecutionVisualizer .ui-resizable-e {
+  width: 7px;
+}
+
+div.ExecutionVisualizer .visualizer {
   font-family: verdana, arial, helvetica, sans-serif;
   font-size: 10pt;
   margin-bottom: 10px;
   width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  overflow: auto;
 }
 
-table.visualizer tr {
-    text-align: center;
+.visualizer #vizLayoutTdFirst {
+  flex: 2;
+  flex-basis: 400px;
+}
+.visualizer #vizLayoutTdSecond {
+  flex: 1;
+  flex-basis: 200px;
 }
 
-div.ExecutionVisualizer table.visualizer td.vizLayoutTd {
+.ExecutionVisualizer .codAndNav {
+  max-width: 95%;
+}
+
+div.ExecutionVisualizer .visualizer .vizLayoutTd {
   vertical-align: top;
   display: inline-block;
   margin: 0 20px;
@@ -63,8 +80,8 @@ div.ExecutionVisualizer table.visualizer td.vizLayoutTd {
     text-align: center;
 }
 
-div.ExecutionVisualizer td#stack_td,
-div.ExecutionVisualizer td#heap_td {
+div.ExecutionVisualizer #stack_td,
+div.ExecutionVisualizer #heap_td {
   vertical-align:top;
   font-size: 10pt; /* don't make fonts in the heap so big! */
 }
@@ -75,7 +92,6 @@ div.ExecutionVisualizer #dataViz {
 
 div.ExecutionVisualizer div#codeDisplayDiv {
   /* set this as default unless user specifies a custom size */
-  width: 550px;
 }
 
 div.ExecutionVisualizer div#pyCodeOutputDiv {
@@ -783,4 +799,48 @@ div.ExecutionVisualizer .pycrazy-highlight-prev-and-cur {
 
 #optTabularView td.stepTableTd {
   padding: 3px 10px;
+}
+
+
+.codelens-question--reveal {
+  animation: target-fade 5s 1;
+}
+
+@keyframes target-fade {
+  0% {
+    background-color: var(--activated-content-bg, var(--componentBgColor));
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.codelens__question--hidden {
+    display: none;
+}
+
+
+.codelens__questionContainer {
+    border-top: 1px solid #ccc;
+    padding: 20px;
+}
+
+.codelens__questionContainer > * {
+    margin-bottom: 10px;
+}
+
+.codelens__question > * {
+    margin-bottom: 10px;
+}
+
+
+.codelens .exercise-statement {
+  background-color: var(--questionBgColor);
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.codelens__questionControls input[type="text"] {
+  width: auto;
+  display: inline-block;
 }
