@@ -10,6 +10,7 @@ export class MatchingProblem extends RunestoneBase {
         if (script) {
             let boxData;
             try {
+                // the script is called xml but may also contain some html for the statement.
                 if (script.type == 'text/xml') {
                     const xml = script.textContent;
                     boxData = xmlToJson(xml);
