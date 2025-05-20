@@ -240,9 +240,11 @@ export class MatchingProblem extends RunestoneBase {
         const gradeBtn = document.createElement('button');
         gradeBtn.className = 'grade-button';
         gradeBtn.textContent = 'Check Me';
+        gradeBtn.classList.add('btn', 'btn-success');
         const resetBtn = document.createElement('button');
         resetBtn.className = 'reset-button';
         resetBtn.textContent = 'Reset';
+        resetBtn.classList.add('btn', 'btn-default');
         // add Help button
         const helpBtn = document.createElement('button');
         helpBtn.className = 'help-button';
