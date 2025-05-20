@@ -162,8 +162,6 @@ button {
     padding: 8px 16px;
     border: none;
     border-radius: 6px;
-    background: #3498db;
-    color: white;
     cursor: grab;
     transition: background 0.2s ease-in-out;
 }
@@ -222,7 +220,8 @@ button:hover {
 
 /* modal content box */
 .help-modal-content {
-    background: white;
+
+    background-color: var(--questionBgColor);
     padding: 1rem 1.5rem;
     border-radius: 6px;
     max-width: 80%;
