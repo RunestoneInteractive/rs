@@ -1,7 +1,7 @@
 export function xmlToJson(xmlString) {
   // 1) Parse the XML string
   const parser = new DOMParser();
-  const doc = parser.parseFromString(xmlString, 'application/xml');
+  const doc = parser.parseFromString(xmlString, 'text/html');
   const err = doc.querySelector('parsererror');
   if (err) {
     throw new Error('XML parse error: ' + err.textContent);
