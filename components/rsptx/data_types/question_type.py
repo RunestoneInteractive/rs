@@ -11,11 +11,11 @@ class QuestionType(Enum):
     CLICKABLEAREA = ("clickablearea", "Clickable Area", "Create an exercise where students identify areas in text or images")
     DRAGNDROP = ("dragndrop", "Drag and Drop", "Create an exercise where students match or order items by dragging")
     FILLINTHEBLANK = ("fillintheblank", "Fill in the blank", "Create a text with missing words that students need to fill in")
-    PARSONSPROB = ("parsonsprob", "Parsonsprob", "")
+    PARSONSPROB = ("parsonsprob", "Parsonsprob", "Create a programming exercise where students arrange code blocks in the correct order")
     POLL = ("poll", "Poll", "Create a survey question to gather student feedback")
     HPARSONS = ("hparsons", "HParsons", "")
     ACTEX = ("actex", "Actex", "")
-    MATCHING = ("matching", "Matching", "Create a programming exercise where students arrange code blocks in the correct order")
+    MATCHING = ("matching", "Matching", "Create an exercise where students match items from two different sets")
 
     def to_dict(self):
         return {

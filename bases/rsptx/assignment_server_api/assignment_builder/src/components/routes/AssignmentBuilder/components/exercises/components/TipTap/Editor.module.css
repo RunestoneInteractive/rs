@@ -112,6 +112,7 @@
   padding: 1rem;
   min-height: 50px;
   outline: none;
+  position: relative;
 }
 
 .editor :global(.ProseMirror p) {
@@ -380,4 +381,4 @@
   border-radius: 0 var(--border-radius) var(--border-radius) 0;
   color: var(--text-color-secondary);
   font-style: italic;
-} 
+}
