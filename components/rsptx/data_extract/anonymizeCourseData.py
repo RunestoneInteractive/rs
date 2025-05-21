@@ -309,6 +309,19 @@ class Anonymizer:
         else:
             return row.act
 
+    def anonymize_peergroup(self, row):
+        if row.event == "peergroup":
+            act_parts = row.act.split(":")
+            # grouplist:user,user,user
+            if len(act_parts) < 2:
+                return row.act
+            users = act_parts[1].split(",")
+            users = [str(self.user_map.get(u, "Anonymous")) for u in users]
+            act_parts[1] = ",".join(users)
+            return ":".join(act_parts)
+        else:
+            return row.act
+
     def get_user_activities(self):
         useinfo = pd.read_sql_query(
             f"""
@@ -398,10 +411,11 @@ class Anonymizer:
         useinfo["base_course"] = useinfo.course_id.map(
             lambda x: self.anon_to_base.get(x)
         )
-        # anonymize act field for sendmessage event
+        # anonymize act field for peer events
         useinfo["act"] = useinfo.apply(self.anonymize_sendmessage, axis=1)
         useinfo["act"] = useinfo.apply(self.anonymize_ratepeer, axis=1)
-        # anonymize ratepeer fields
+        useinfo["act"] = useinfo.apply(self.anonymize_peergroup, axis=1)
+
         useinfo["div_id"] = useinfo.div_id.map(anon_page)
 
         # ## Remove names that could not be anonymized
