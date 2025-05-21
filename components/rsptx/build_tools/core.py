@@ -689,7 +689,7 @@ def manifest_data_to_db(course_name, manifest_path):
                 practice = "F"
                 if qtype == "webwork":
                     practice = "T"
-                if el and "practice" in el.attrib:
+                if el is not None and "practice" in el.attrib:
                     practice = "T"
                 autograde = ""
                 if "====" in dbtext:
