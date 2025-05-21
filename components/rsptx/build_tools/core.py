@@ -37,6 +37,10 @@ from sqlalchemy import create_engine, Table, MetaData, and_, update
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import text
 
+# Temporary asyncio workaround
+import nest_asyncio
+nest_asyncio.apply()
+
 # todo: use our logger
 from rsptx.logging import rslogger
 from runestone.server import get_dburl
@@ -546,6 +550,7 @@ def manifest_data_to_db(course_name, manifest_path):
         .values(from_source="F")
     )
 
+    
     rslogger.info("Populating the database with Chapter information")
     ext_img_patt = re.compile(r"""src="external""")
     gen_img_patt = re.compile(r"""src="generated""")
@@ -762,15 +767,20 @@ def manifest_data_to_db(course_name, manifest_path):
                     id = el.attrib["id"]
 
                     # write datafile contents to the source_code table
-                    event_loop = asyncio.get_event_loop()
-                    event_loop.run_until_complete(
-                        update_source_code(
-                            acid=id,
-                            course_id=course_name,
-                            main_code=file_contents,
-                            filename=filename,
+                    # try/catch temporary asyncio workaround
+                    try:
+                        event_loop = asyncio.get_running_loop()
+                    except RuntimeError:
+                        event_loop = asyncio.get_event_loop()
+                    finally:
+                        event_loop.run_until_complete(
+                            update_source_code(
+                                acid=id,
+                                course_id=course_name,
+                                main_code=file_contents,
+                                filename=filename,
+                            )
                         )
-                    )
 
             for sourceEl in subchapter.findall("./source"):
                 id = sourceEl.attrib["id"]
@@ -780,15 +790,20 @@ def manifest_data_to_db(course_name, manifest_path):
                 else:
                     filename = sourceEl.attrib["id"]
 
-                event_loop = asyncio.get_event_loop()
-                event_loop.run_until_complete(
-                    update_source_code(
-                        acid=id,
-                        course_id=course_name,
-                        main_code=file_contents,
-                        filename=filename,
+                # try/catch temporary asyncio workaround
+                try:
+                    event_loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    event_loop = asyncio.get_event_loop()
+                finally:
+                    event_loop.run_until_complete(
+                        update_source_code(
+                            acid=id,
+                            course_id=course_name,
+                            main_code=file_contents,
+                            filename=filename,
+                        )
                     )
-                )
 
     latex = root.find("./latex-macros")
     rslogger.info("Setting attributes for this base course")
