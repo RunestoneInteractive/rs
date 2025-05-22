@@ -455,7 +455,9 @@ async def new_course(payload=Body(...), user=Depends(auth_manager)):
     if not repo_path.startswith("/books/"):
         repo_path = "/books/" + repo_path
     logger.debug(f"repo_path = {repo_path}")
-
+    # check to see if this path already exists
+    if pathlib.Path(repo_path).exists():
+        return JSONResponse({"detail": "repo_path already exists"})
     if "DEV_DBURL" not in os.environ:
         return JSONResponse({"detail": "DBURL is not set"})
     else:
