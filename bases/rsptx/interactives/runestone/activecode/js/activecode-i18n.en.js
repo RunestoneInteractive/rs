@@ -111,6 +111,7 @@ $.i18n().load({
             "Compiling and Running your Code Now...",
         msg_activecode_server_comm_err: "Error communicating with the server.",
         msg_activecode_save_run: "Save & Run",
+        msg_activecode_run_button_title: "Save & Run (ctrl-s)",
         msg_activecode_render: "Save & Render",
         msg_activecode_assertion_error:
             "An assertion error happens when python encounters an assertion statement.  Python evaluates the expression to the right of the word assert; if that expression is True everything is fine and the program continues.  If the expression is False Python raises an error and stops.",
