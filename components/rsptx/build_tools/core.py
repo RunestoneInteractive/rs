@@ -37,15 +37,11 @@ from sqlalchemy import create_engine, Table, MetaData, and_, update
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import text
 
-# Temporary asyncio workaround
-import nest_asyncio
-nest_asyncio.apply()
-
 # todo: use our logger
 from rsptx.logging import rslogger
 from runestone.server import get_dburl
 from rsptx.db.models import Library, LibraryValidator
-from rsptx.db.crud import update_source_code
+from rsptx.db.crud import update_source_code_sync
 from rsptx.response_helpers.core import canonical_utcnow
 import pdb
 
@@ -766,21 +762,15 @@ def manifest_data_to_db(course_name, manifest_path):
                         filename = el.attrib["id"]
                     id = el.attrib["id"]
 
-                    # write datafile contents to the source_code table
-                    # try/catch temporary asyncio workaround
-                    try:
-                        event_loop = asyncio.get_running_loop()
-                    except RuntimeError:
-                        event_loop = asyncio.get_event_loop()
-                    finally:
-                        event_loop.run_until_complete(
-                            update_source_code(
-                                acid=id,
-                                course_id=course_name,
-                                main_code=file_contents,
-                                filename=filename,
-                            )
-                        )
+                    # manifest_data_to_db gets called from sync/async contexts
+                    # so must use sync DB access to avoid asyncio error
+                    # if process_manifest moves to async we can swap this out for async and remove the sync version
+                    update_source_code_sync(
+                        acid=id,
+                        course_id=course_name,
+                        main_code=file_contents,
+                        filename=filename,
+                    )
 
             for sourceEl in subchapter.findall("./source"):
                 id = sourceEl.attrib["id"]
@@ -790,20 +780,13 @@ def manifest_data_to_db(course_name, manifest_path):
                 else:
                     filename = sourceEl.attrib["id"]
 
-                # try/catch temporary asyncio workaround
-                try:
-                    event_loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    event_loop = asyncio.get_event_loop()
-                finally:
-                    event_loop.run_until_complete(
-                        update_source_code(
-                            acid=id,
-                            course_id=course_name,
-                            main_code=file_contents,
-                            filename=filename,
-                        )
-                    )
+                # see note above about sync/async
+                update_source_code_sync(
+                    acid=id,
+                    course_id=course_name,
+                    main_code=file_contents,
+                    filename=filename,
+                )
 
     latex = root.find("./latex-macros")
     rslogger.info("Setting attributes for this base course")
