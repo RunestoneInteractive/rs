@@ -48,99 +48,73 @@ export const generateParsonsPreview = ({
   Object.values(groupMap).forEach((groupBlocks) => {
     const correctBlock = groupBlocks.find((b) => b.isCorrect) || groupBlocks[0];
 
-    if (groupBlocks.length > 1) {
-      const alternatives = groupBlocks
-        .filter((b) => b.id !== correctBlock.id)
-        .map((b) => b.content.trim())
-        .join(" || ");
+    processedBlocks.push({
+      ...correctBlock,
+      content: correctBlock.content.trim()
+    });
 
-      let mergedContent = correctBlock.content.trim();
+    groupBlocks
+      .filter((b) => b.id !== correctBlock.id)
+      .forEach((altBlock) => {
+        processedBlocks.push({
+          ...altBlock,
+          content: altBlock.content.trim(),
+          isPaired: true,
+          isDistractor: true
+        });
+      });
+  });
 
-      if (alternatives) {
-        mergedContent += ` || ${alternatives}`;
+  const blocksContent = processedBlocks
+    .map((block) => {
+      let blockContent = block.content;
+
+      if (blockContent.includes("\n")) {
+        const lines = blockContent.split("\n");
+
+        blockContent = lines
+          .map((line, i) => {
+            if (i === 0) return line;
+            return " ".repeat(block.indent * 4) + line;
+          })
+          .join("\n");
       }
 
-      processedBlocks.push({
-        ...correctBlock,
-        content: mergedContent
-      });
-    } else {
-      processedBlocks.push(correctBlock);
-    }
-  });
-
-  const blockOrder = blocks.filter((b) => !b.groupId).map((b) => b.id);
-  const groupOrder: string[] = [];
-
-  blocks.forEach((block) => {
-    if (block.groupId && !groupOrder.includes(block.groupId)) {
-      groupOrder.push(block.groupId);
-    }
-  });
-
-  const orderedBlocks = [...processedBlocks];
-
-  orderedBlocks.sort((a, b) => {
-    if (!a.groupId && !b.groupId) {
-      return blockOrder.indexOf(a.id) - blockOrder.indexOf(b.id);
-    }
-    else if (a.groupId && !b.groupId) {
-      return groupOrder.indexOf(a.groupId) - blockOrder.indexOf(b.id);
-    }
-    else if (!a.groupId && b.groupId) {
-      return blockOrder.indexOf(a.id) - groupOrder.indexOf(b.groupId);
-    }
-    else if (a.groupId && b.groupId) {
-      return groupOrder.indexOf(a.groupId) - groupOrder.indexOf(b.groupId);
-    }
-    return 0;
-  });
-
-  const shuffledBlocks = [...orderedBlocks].sort(() => Math.random() - 0.5);
-
-  const blocksContent = shuffledBlocks
-    .map((block) => {
-      let blockContent = block.content.trim();
-
       if (block.isDistractor) {
-        blockContent += " #distractor";
-      } else if (block.isPaired) {
-        blockContent += " #paired";
+        blockContent += block.isPaired ? " #paired" : " #distractor";
       }
 
       return blockContent;
     })
     .join("\n---\n");
 
-  let optionsString = "";
+  let dataAttributes = "";
 
   if (language) {
-    optionsString += ` data-language="${language}"`;
+    dataAttributes += ` data-language="${language}"`;
   }
 
-  const label = questionLabel || name;
-
   if (adaptive) {
-    optionsString += ' data-adaptive="true"';
+    dataAttributes += ' data-adaptive="true"';
   }
 
   if (numbered !== "none") {
-    optionsString += ` data-numbered="${numbered}"`;
+    dataAttributes += ` data-numbered="${numbered}"`;
   }
 
   if (noindent) {
-    optionsString += ' data-noindent="true"';
+    dataAttributes += ' data-noindent="true"';
   }
 
   return `
-<div class="runestone parsons-container">
+<div class="runestone">
   <div data-component="parsons" id="${safeId}" class="parsons">
-    <div class="parsons_question parsons-text">
-${instructions}
+    <div class="parsons_question">
+      ${instructions}
     </div>
-    <pre class="parsonsblocks" data-question_label="${label}"${optionsString} style="visibility: hidden;">
+    <pre class="parsonsblocks" data-question_label="${questionLabel || name}"${dataAttributes}>
 ${blocksContent}
-    </pre>
-  </div>    
+    </pre>  
+  </div>
 </div>`;
 };

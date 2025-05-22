@@ -237,7 +237,9 @@ export const renderItems = () => {
       const { event } = props;
 
       if (event.key === "Escape") {
-        popup?.[0].hide();
+        if (popup?.[0] && !popup[0].state.isDestroyed) {
+          popup[0].hide();
+        }
         return true;
       }
 
@@ -251,7 +253,9 @@ export const renderItems = () => {
 
           if (selectItem && typeof selectedIndex === "number") {
             selectItem(selectedIndex);
-            popup?.[0].hide();
+            if (popup?.[0] && !popup[0].state.isDestroyed) {
+              popup[0].hide();
+            }
             return true;
           }
         }
@@ -273,7 +277,9 @@ export const renderItems = () => {
     },
 
     onExit: () => {
-      popup?.[0].destroy();
+      if (popup?.[0] && !popup[0].state.isDestroyed) {
+        popup[0].destroy();
+      }
       component?.destroy();
     }
   };

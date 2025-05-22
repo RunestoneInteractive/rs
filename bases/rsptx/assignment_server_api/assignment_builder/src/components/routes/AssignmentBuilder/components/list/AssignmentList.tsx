@@ -122,6 +122,27 @@ export const AssignmentList = ({
     </div>
   );
 
+  const previewBodyTemplate = (rowData: Assignment) => (
+    <div className="flex justify-content-center">
+      <Button
+        icon="pi pi-eye"
+        onClick={() => {
+          const protocol = window.location.protocol;
+          const hostname = window.location.hostname;
+          const baseUrl = `${protocol}//${hostname}`;
+          const previewUrl = `${baseUrl}/assignment/student/doAssignment?assignment_id=${rowData.id}`;
+
+          window.open(previewUrl, "_blank");
+        }}
+        className="p-button-text p-button-sm"
+        tooltip="Preview as student"
+        tooltipOptions={{
+          position: "top"
+        }}
+      />
+    </div>
+  );
+
   return (
     <div className={styles.container}>
       <div className={classNames(styles.header, styles.tableHeader)}>
@@ -192,6 +213,7 @@ export const AssignmentList = ({
           body={visibilityBodyTemplate}
           className={styles.visibilityColumn}
         />
+        <Column header="Preview" body={previewBodyTemplate} className={styles.previewColumn} />
         <Column body={actionsBodyTemplate} className={styles.actionsColumn} />
       </DataTable>
     </div>

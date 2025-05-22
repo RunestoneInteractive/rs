@@ -1,6 +1,7 @@
 import { MathExtension } from "@aarkue/tiptap-math-extension";
 import { TipTapImage } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Plugins/Image";
 import FontFamily from "@tiptap/extension-font-family";
+import HardBreak from "@tiptap/extension-hard-break";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -15,9 +16,8 @@ import "tippy.js/dist/tippy.css";
 import "katex/dist/katex.min.css";
 
 import styles from "./Editor.module.css";
-import { Command } from "./SlashCommands";
+import { Command, items } from "./SlashCommands";
 
-// Add custom styles for tippy
 const customStyles = `
   .tippy-box {
     border: none !important;
@@ -38,9 +38,16 @@ interface PollEditorProps {
   onChange: (content: string) => void;
   placeholder?: string;
   onFocus?: () => void;
+  enableBlankOption?: boolean;
 }
 
-export const Editor = ({ content, onChange, onFocus }: PollEditorProps) => {
+export const Editor = ({
+  content,
+  onChange,
+  onFocus,
+  placeholder,
+  enableBlankOption = false
+}: PollEditorProps) => {
   useEffect(() => {
     const styleElement = document.createElement("style");
 
@@ -51,6 +58,23 @@ export const Editor = ({ content, onChange, onFocus }: PollEditorProps) => {
       document.head.removeChild(styleElement);
     };
   }, []);
+
+  const getSlashCommandItems = () => {
+    if (enableBlankOption) {
+      return [
+        ...items,
+        {
+          title: "Add Blank",
+          description: "Insert a blank placeholder for fill-in-the-blank exercises",
+          icon: "fa-square-plus",
+          command: ({ editor, range }: any) => {
+            editor.chain().focus().deleteRange(range).insertContent("{blank}").run();
+          }
+        }
+      ];
+    }
+    return items;
+  };
 
   const editor = useEditor({
     extensions: [
@@ -79,6 +103,28 @@ export const Editor = ({ content, onChange, onFocus }: PollEditorProps) => {
           HTMLAttributes: {
             class: "bg-gray-100 rounded p-2 font-mono text-sm"
           }
+        },
+        // Disable hardBreak from StarterKit to avoid conflicts with our custom configuration
+        hardBreak: false
+      }),
+      // Add custom HardBreak extension that uses Enter key for line breaks
+      HardBreak.extend({
+        addKeyboardShortcuts() {
+          return {
+            Enter: () => {
+              // For lists and other block elements, use default behavior
+              if (
+                this.editor.isActive("orderedList") ||
+                this.editor.isActive("bulletList") ||
+                this.editor.isActive("heading") ||
+                this.editor.isActive("codeBlock")
+              ) {
+                return false;
+              }
+              // Otherwise insert a hard break (line break)
+              return this.editor.commands.setHardBreak();
+            }
+          };
         }
       }),
       Underline,
@@ -110,11 +156,23 @@ export const Editor = ({ content, onChange, onFocus }: PollEditorProps) => {
             return `Heading ${node.attrs.level}`;
           }
           /* eslint-disable-next-line */
-          return 'Press "/" for commands...';
+          return placeholder || 'Press "/" for commands...';
         },
         includeChildren: true
       }),
-      Command,
+      Command.configure({
+        suggestion: {
+          items: ({ query }: { query: string }) => {
+            const commandItems = getSlashCommandItems();
+
+            return commandItems.filter(
+              (item) =>
+                item.title.toLowerCase().includes(query.toLowerCase()) ||
+                item.description.toLowerCase().includes(query.toLowerCase())
+            );
+          }
+        }
+      }),
       MathExtension.configure({
         delimiters: "dollar",
         katexOptions: {
@@ -167,6 +225,11 @@ export const Editor = ({ content, onChange, onFocus }: PollEditorProps) => {
         >
           <i className="fa-solid fa-highlighter" />
         </button>
+        {enableBlankOption && (
+          <button onClick={() => editor.chain().focus().insertContent("{blank}").run()}>
+            <i className="fa-solid fa-square-plus" />
+          </button>
+        )}
       </BubbleMenu>
 
       <EditorContent editor={editor} className={styles.editor} />

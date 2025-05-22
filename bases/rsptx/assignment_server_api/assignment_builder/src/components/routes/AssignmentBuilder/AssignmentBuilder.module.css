@@ -137,6 +137,10 @@
   transform: scale(0.8);
 }
 
+.previewColumn {
+  width: 50px;
+}
+
 .actionsColumn {
   width: 100px;
 }
