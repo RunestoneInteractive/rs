@@ -59,6 +59,7 @@ from rsptx.validation.schemas import (
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
 from .async_session import async_session
+from .sync_session import sync_session
 from rsptx.response_helpers.core import http_422error_detail, canonical_utcnow
 from rsptx.db.models import (
     Assignment,
@@ -3268,6 +3269,39 @@ async def fetch_last_useinfo_peergroup(course_name: str) -> List[Useinfo]:
         results = await session.execute(query)
         return results.scalars().all()
 
+# We need a synchronous version of this function for use in manifest_data_to_db
+# if/when process_manifest moves to being async we could remove this
+def update_source_code_sync(
+    acid: str,
+    filename: str,
+    course_id: str,
+    main_code: str
+):
+    """
+    Update the source code for a given acid or filename
+    """
+    query = select(SourceCode).where(
+        and_(
+            SourceCode.acid == acid,
+            SourceCode.course_id == course_id,
+        )
+    )
+    with sync_session() as session:
+        res = session.execute(query)
+        source_code_obj = res.scalars().first()
+        if source_code_obj:
+            source_code_obj.main_code = main_code
+            source_code_obj.filename = filename
+            session.add(source_code_obj)
+        else:
+            new_entry = SourceCode(
+                acid=acid,
+                filename=filename,
+                course_id=course_id,
+                main_code=main_code,
+            )
+            session.add(new_entry)
+        session.commit()
 
 async def update_source_code(
     acid: str,
