@@ -312,6 +312,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-WARN}
       - JWT_SECRET=${JWT_SECRET}
       - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-runestone}
 
   author:
     profiles: [ "author" ]

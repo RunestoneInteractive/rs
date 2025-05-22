@@ -24,6 +24,7 @@ import "codemirror/mode/octave/octave.js";
 import "./../css/activecode.less";
 import "codemirror/lib/codemirror.css";
 import "./../css/codemirror-dark.less";
+import "codemirror/addon/comment/comment.js";
 import "codemirror/addon/hint/show-hint.js";
 import "codemirror/addon/hint/show-hint.css";
 import "codemirror/addon/hint/sql-hint.js";
@@ -352,8 +353,10 @@ export class ActiveCode extends RunestoneBase {
                 e.preventDefault();
             });
         }
-        //Solving Keyboard Trap of ActiveCode: If user use tab for navigation outside of ActiveCode, then change tab behavior in ActiveCode to enable tab user to tab out of the textarea
+        // capture current this for use in event handler
+        let acElement = this;
         $(window).keydown(function (e) {
+            //Solving Keyboard Trap of ActiveCode: If user use tab for navigation outside of ActiveCode, then change tab behavior in ActiveCode to enable tab user to tab out of the textarea
             var code = e.keyCode ? e.keyCode : e.which;
             if (code == 9 && $("textarea:focus").length === 0) {
                 editor.setOption("extraKeys", {
@@ -368,6 +371,14 @@ export class ActiveCode extends RunestoneBase {
                             .previousSibling.focus();
                     },
                 });
+            }
+            if ((e.originalEvent.code == "KeyS") && e.originalEvent.ctrlKey) {
+                acElement.runButton.click();
+                e.preventDefault();
+            }
+            if ((e.originalEvent.code == "Slash") && e.originalEvent.ctrlKey) {
+                editor.toggleComment();
+                e.preventDefault();
             }
         });
         this.editor = editor;
@@ -505,6 +516,7 @@ export class ActiveCode extends RunestoneBase {
         $(ctrlDiv).addClass("ac_actions");
         // Run
         butt = document.createElement("button");
+        butt.title = $.i18n("msg_activecode_run_button_title");
         $(butt).text($.i18n("msg_activecode_run_code"));
         $(butt).addClass("btn btn-success run-button");
         ctrlDiv.appendChild(butt);

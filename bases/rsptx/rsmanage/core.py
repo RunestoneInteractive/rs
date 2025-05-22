@@ -26,6 +26,8 @@ import redis
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import UniqueViolation
+import psycopg2
+from psycopg2.sql import Identifier, SQL
 
 
 # our own package imports
@@ -222,18 +224,18 @@ async def initdb(config, list_tables, reset, force):
                 show_default=True,
                 err=False,
             )
-        # If PGPASSWORD is not set in the environment then it will prompt for password
-        res = subprocess.call(
-            f"dropdb --if-exists --force --host={config.dbhost} --username={config.dbuser} {config.dbname}",
-            shell=True,
-        )
-        res = subprocess.call(
-            f"createdb --host={config.dbhost} --username={config.dbuser} --owner={config.dbuser} {config.dbname}",
-            shell=True,
-        )
-        if res != 0:
-            click.echo("Failed to drop the database do you have permission?")
-            sys.exit(1)
+
+        conn = psycopg2.connect(database='template1',
+                              user=config.dbuser,
+                              password=config.dbpass,
+                              host=config.dbhost)
+        conn.set_session(autocommit=True)
+        curs = conn.cursor()
+        curs.execute(SQL("DROP DATABASE {}").format(Identifier(config.dbname)))
+        curs.execute(SQL("CREATE DATABASE {} WITH OWNER = {}")
+                         .format(Identifier(config.dbname), Identifier(config.dbuser)))
+        curs.close()
+        conn.close()
 
         # Because click won't natively support making commands async we can use this simple method
         # to call async functions.
