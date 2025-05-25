@@ -1,9 +1,9 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
+import { assignmentApi } from "@store/assignment/assignment.logic.api";
 import { assignmentExerciseApi } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { baseQuery } from "@store/baseQuery";
 import toast from "react-hot-toast";
 
-import { RootState } from "@/state/store";
 import { DetailResponse } from "@/types/api";
 import {
   CreateExercisesPayload,
@@ -20,24 +20,13 @@ export const exercisesApi = createApi({
     createNewExercise: build.mutation<number, CreateExercisesPayload>({
       query: (body) => ({
         method: "POST",
-        url: "/assignment/instructor/new_question",
+        url: "/assignment/instructor/question_creation",
         body
       }),
-      transformResponse: (response: DetailResponse<{ id: number }>) => {
-        return response.detail.id;
-      },
-      onQueryStarted: (_, { queryFulfilled, dispatch, getState }) => {
+      onQueryStarted: (_, { queryFulfilled, dispatch }) => {
         queryFulfilled
-          .then((response) => {
-            const state = getState() as RootState;
-
-            dispatch(
-              assignmentExerciseApi.endpoints.updateAssignmentExercises.initiate({
-                idsToAdd: [response.data],
-                isReading: false,
-                assignmentId: state.assignmentTemp.selectedAssignmentId!
-              })
-            );
+          .then(() => {
+            dispatch(assignmentExerciseApi.util.invalidateTags(["Exercises"]));
           })
           .catch(() => {
             toast("Error creating new exercise", {

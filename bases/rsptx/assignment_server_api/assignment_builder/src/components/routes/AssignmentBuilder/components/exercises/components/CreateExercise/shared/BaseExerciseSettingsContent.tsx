@@ -1,6 +1,6 @@
 import { Chips } from "primereact/chips";
 import { Dropdown } from "primereact/dropdown";
-import { InputNumber } from "primereact/inputnumber";
+import { InputNumber, InputNumberChangeEvent } from "primereact/inputnumber";
 import { InputText } from "primereact/inputtext";
 import { ReactNode, useCallback, useEffect, useState } from "react";
 
@@ -144,7 +144,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
               min={0}
               max={100000}
               className={`w-full ${pointsError ? styles.requiredField : ""}`}
-              onValueChange={(e) => updateSetting("points", e.value !== null ? e.value : 1)}
+              onChange={(e) => updateSetting("points", e.value !== null ? e.value : 1)}
             />
             <label htmlFor="points">Points*</label>
           </span>
@@ -161,7 +161,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
               min={1}
               max={5}
               className="w-full"
-              onValueChange={(e) => updateSetting("difficulty", e.value !== null ? e.value : 3)}
+              onChange={(e) => updateSetting("difficulty", e.value !== null ? e.value : 1)}
             />
             <label htmlFor="difficulty">Difficulty</label>
           </span>

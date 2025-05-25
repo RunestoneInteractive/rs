@@ -51,7 +51,7 @@ from starlette.requests import Request
 
 from rsptx.validation import schemas
 from rsptx.validation.schemas import (
-    AssignmentQuestionUpdateDict,
+    AssignmentQuestionUpdateDict, CreateExercisesPayload,
 )
 
 # Local application imports
@@ -1642,6 +1642,54 @@ async def update_assignment_question(
         await session.merge(new_assignment_question)
 
     return AssignmentQuestionValidator.from_orm(new_assignment_question)
+
+async def add_assignment_question(
+    data: CreateExercisesPayload,
+    question: Question
+) -> None:
+
+    async with async_session() as session:
+
+        assignment_result = await session.execute(
+            select(Assignment).where(
+                Assignment.id == data.assignment_id
+            )
+        )
+        assignment = assignment_result.scalar_one_or_none()
+
+        if not assignment:
+            raise Exception(f"The assignment with id {data.assignment_id} is not found.")
+
+        # Get the maximum sorting_priority considering isReading
+        query_max_priority = select(
+            func.max(AssignmentQuestion.sorting_priority)
+        ).where(
+            AssignmentQuestion.assignment_id == data.assignment_id,
+            AssignmentQuestion.reading_assignment == data.is_reading,
+        )
+        max_priority_result = await session.execute(query_max_priority)
+        max_sort_priority = (
+                max_priority_result.scalar() or 0
+        )  # If there are no records, start from 0
+ 
+        session.add(
+            AssignmentQuestion(
+            assignment_id=data.assignment_id,
+            question_id=question.id,
+            points=data.points,  # Use the points from the question
+            timed=None,  # Leave as null
+            autograde=(
+                "interaction" if data.is_reading else "pct_correct"
+            ),  # Depends on isReading
+            which_to_grade="best_answer",
+            reading_assignment=data.is_reading,
+            sorting_priority=max_sort_priority,
+            activities_required=None
+            )
+        )
+        assignment.points += data.points
+
+        await session.commit()
 
 
 async def update_assignment_exercises(
