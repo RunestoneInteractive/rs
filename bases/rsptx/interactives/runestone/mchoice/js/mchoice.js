@@ -61,16 +61,25 @@ export default class MultipleChoice extends RunestoneBase {
     ====  out of intermediate HTML    ====
     ====================================*/
     findQuestion() {
-        var delimiter;
-        for (var i = 0; i < this.origElem.childNodes.length; i++) {
-            if (this.origElem.childNodes[i].nodeName === "LI") {
-                delimiter = this.origElem.childNodes[i].outerHTML;
-                break;
+        // Old HTML format had question inside ul
+        // Newer format has a div.exercise-statement that is a part of the ul's parent
+        // Check for newer format...
+        const exStatement = this.origElem.parentElement.querySelector('.exercise-statement');
+        if (exStatement) {
+            this.question = exStatement;
+        } else {
+            //Older format
+            var delimiter;
+            for (var i = 0; i < this.origElem.childNodes.length; i++) {
+                if (this.origElem.childNodes[i].nodeName === "LI") {
+                    delimiter = this.origElem.childNodes[i].outerHTML;
+                    break;
+                }
             }
+            var fulltext = $(this.origElem).html();
+            var temp = fulltext.split(delimiter);
+            this.question = temp[0];
         }
-        var fulltext = $(this.origElem).html();
-        var temp = fulltext.split(delimiter);
-        this.question = temp[0];
     }
 
     findAnswers() {
