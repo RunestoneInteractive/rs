@@ -3231,7 +3231,7 @@ version = "2.9.7"
 description = "psycopg2 - Python-PostgreSQL Database Adapter"
 optional = false
 python-versions = ">=3.6"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "psycopg2-binary-2.9.7.tar.gz", hash = "sha256:1b918f64a51ffe19cd2e230b3240ba481330ce1d4b7875ae67305bd1d37b041c"},
     {file = "psycopg2_binary-2.9.7-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:ea5f8ee87f1eddc818fc04649d952c526db4426d26bab16efbe5a0c52b27d6ab"},
@@ -4288,7 +4288,7 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.6.5"
+version = "7.7.1"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
@@ -5494,4 +5494,4 @@ test = ["big-O", "importlib-resources ; python_version < \"3.9\"", "jaraco.funct
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "249cff7e114d9b47cb69ef787d8824840bd2903aa464c372a4697156479e9122"
+content-hash = "7ec81faa5eb95e65adc9d9d1452559a510f95ccbbb71fa6f61cf10c922634a05"
