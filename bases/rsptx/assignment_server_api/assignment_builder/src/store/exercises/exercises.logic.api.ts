@@ -1,5 +1,4 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { assignmentApi } from "@store/assignment/assignment.logic.api";
 import { assignmentExerciseApi } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { baseQuery } from "@store/baseQuery";
 import toast from "react-hot-toast";
@@ -20,7 +19,7 @@ export const exercisesApi = createApi({
     createNewExercise: build.mutation<number, CreateExercisesPayload>({
       query: (body) => ({
         method: "POST",
-        url: "/assignment/instructor/question_creation",
+        url: "/assignment/instructor/question",
         body
       }),
       onQueryStarted: (_, { queryFulfilled, dispatch }) => {

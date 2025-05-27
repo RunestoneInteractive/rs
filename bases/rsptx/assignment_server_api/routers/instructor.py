@@ -1219,7 +1219,7 @@ async def do_assignment_summary_data(
         },
     )
 
-@router.post("/question_creation")
+@router.post("/question")
 @instructor_role_required()
 async def question_creation(
     request_data: CreateExercisesPayload,
