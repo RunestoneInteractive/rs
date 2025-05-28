@@ -149,19 +149,41 @@ Manage API Tokens
     function addTokenInput() {
         tokenCount++;
         const tokenInputs = document.getElementById('token-inputs');
+        
+        // Remove the Add button from the current last row
+        const currentAddBtn = tokenInputs.querySelector('.add-token-btn');
+        if (currentAddBtn) {
+            currentAddBtn.outerHTML = '<button type="button" class="remove-token-btn" onclick="removeTokenInput(this)">Remove</button>';
+        }
+        
+        // Create new row with Add button
         const newRow = document.createElement('div');
         newRow.className = 'token-row';
         newRow.innerHTML = `
         <input type="password" class="token-input" placeholder="Enter API token">
-        <button type="button" class="remove-token-btn" onclick="removeTokenInput(this)">Remove</button>
+        <button type="button" class="add-token-btn" onclick="addTokenInput()">+ Add</button>
     `;
         tokenInputs.appendChild(newRow);
     }
 
     function removeTokenInput(button) {
         const row = button.parentElement;
+        const tokenInputs = document.getElementById('token-inputs');
+        
+        // If this is the only row, don't remove it
+        if (tokenInputs.children.length === 1) {
+            return;
+        }
+        
         row.remove();
         tokenCount--;
+        
+        // Ensure the last row has the Add button
+        const lastRow = tokenInputs.lastElementChild;
+        const lastButton = lastRow.querySelector('button');
+        if (lastButton && lastButton.classList.contains('remove-token-btn')) {
+            lastButton.outerHTML = '<button type="button" class="add-token-btn" onclick="addTokenInput()">+ Add</button>';
+        }
     }
 
     function showAlert(message, type) {
