@@ -2,7 +2,7 @@
 # With thanks to David Bowes (d.h.bowes@lancaster.ac.uk) who did all the hard work
 # on this originally.
 
-FROM docker.io/ubuntu:22.04
+FROM docker.io/ubuntu:24.04
 
 # https://github.com/opencontainers/image-spec/blob/master/annotations.md
 LABEL \
@@ -47,11 +47,13 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     build-essential \
     catch2 \
     fp-compiler \
+    g++-14 \
+    gcc-14 \
     git \
     libapache2-mod-php \
     nodejs \
     octave \
-    openjdk-18-jdk \
+    openjdk-21-jdk \
     php \
     php-cli \
     php-mbstring \
@@ -63,8 +65,9 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     tzdata \
     unzip \
     vim \
-    wget && \
-    python3 -m pip install pylint beautifulsoup4 pandas requests altair && \
+    wget
+
+RUN python3 -m pip install --break-system-packages pylint beautifulsoup4 pandas requests altair && \
     pylint --reports=no --score=n --generate-rcfile > /etc/pylintrc && \
     ln -sf /proc/self/fd/1 /var/log/apache2/access.log && \
     ln -sf /proc/self/fd/1 /var/log/apache2/error.log && \
@@ -85,6 +88,10 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     apt-get -y autoremove --purge && \
     apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Prefer gcc-14 and g++-14
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 60 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 60
 
 # Fix catch.hpp (use the one from catch2)
 RUN rm -f /usr/include/catch.hpp && ln -s /usr/include/catch2/catch.hpp /usr/include/catch.hpp
