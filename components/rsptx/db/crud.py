@@ -119,6 +119,8 @@ from rsptx.db.models import (
     UserSubChapterProgressValidator,
     UserTopicPractice,
     UserTopicPracticeValidator,
+    APIToken,
+    APITokenValidator,
 )
 from rsptx.data_types.which_to_grade import WhichToGradeOptions
 from rsptx.data_types.autograde import AutogradeOptions
@@ -3072,7 +3074,7 @@ async def fetch_reading_assignment_spec(
     :param chapter: str, the label of the chapter
     :param subchapter: str, the label of the subchapter
     :param course_id: int, the id of the course
-    :return: The number of required activities or None
+    :return: The number of required activities or None if not found
     """
     query = (
         select(
@@ -3461,3 +3463,57 @@ async def get_repo_path(book: str) -> Optional[str]:
         result = await session.execute(query)
         repo_path = result.scalar()
         return repo_path
+
+
+# new function to create encrypted API tokens
+async def create_api_token(
+    course_id: int,
+    provider: str,
+    token: str,
+) -> APITokenValidator:
+    """
+    Create a new API token for a course with encrypted storage.
+
+    :param course_id: int, the id of the course
+    :param provider: str, the provider name
+    :param token: str, plaintext token to encrypt and store
+    :return: APITokenValidator, the newly created token record
+    """
+    new_token = APIToken(course_id=course_id, provider=provider, token=token)
+    async with async_session.begin() as session:
+        session.add(new_token)
+    return APITokenValidator.from_orm(new_token)
+
+
+async def fetch_api_token(
+    course_id: int,
+    provider: str,
+) -> Optional[APITokenValidator]:
+    """
+    Fetch the least recently used API token for a given course and provider.
+    Updates the last_used field to the current datetime when returning a token.
+
+    :param course_id: int, the id of the course
+    :param provider: str, the provider name
+    :return: Optional[APITokenValidator], the least recently used token or None if not found
+    """
+    query = (
+        select(APIToken)
+        .where(
+            (APIToken.course_id == course_id)
+            & (APIToken.provider == provider)
+        )
+        .order_by(APIToken.last_used.asc().nulls_first())  # Least recently used first, NULL values first
+        .limit(1)
+    )
+    
+    async with async_session.begin() as session:
+        res = await session.execute(query)
+        token = res.scalars().first()
+        if token:
+            # Update the last_used field to current datetime
+            token.last_used = canonical_utcnow()
+            session.add(token)
+            return APITokenValidator.from_orm(token)
+        return None
+

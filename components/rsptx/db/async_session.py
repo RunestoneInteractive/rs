@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import select
+from cryptography.fernet import Fernet
 
 # Local application imports
 # -------------------------
@@ -44,6 +45,8 @@ async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False
 
 # This creates the base class we will use to create models
 Base = declarative_base()
+# Generate this key once and store it securely (e.g., env var or config file)
+fernet = Fernet(settings.fernet_secret)
 
 
 async def init_models():

@@ -29,6 +29,7 @@
 # ----------------
 import re
 from typing import Dict, Type
+import os
 
 # Third-party imports
 # -------------------
@@ -51,10 +52,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.sql.schema import UniqueConstraint
+from sqlalchemy.types import TypeDecorator
 
 # Local application imports
 # -------------------------
-from .async_session import Base
+from .async_session import Base, fernet
 from rsptx.validation.schemas import BaseModelNone, sqlalchemy_to_pydantic
 
 
@@ -91,6 +93,20 @@ class Web2PyBoolean(types.TypeDecorator):
         return Web2PyBoolean(self.impl.length)
 
 
+class EncryptedString(TypeDecorator):
+    impl = String
+    python_type = str
+    
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return fernet.encrypt(value.encode()).decode()
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return fernet.decrypt(value.encode()).decode()
+    
 # Schema Definition
 # =================
 
@@ -1094,3 +1110,14 @@ class Web2pySessionRunestone(Base, IdMixin):
     modified_datetime = Column(DateTime)
     unique_key = Column(String(64))
     session_data = Column(LargeBinary)
+
+class APIToken(Base, IdMixin):
+    __tablename__ = "api_tokens"
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    provider = Column(String(100), nullable=False)
+    token = Column(EncryptedString(1024), nullable=False)
+    last_used = Column(DateTime, nullable=True)
+
+APITokenValidator = sqlalchemy_to_pydantic(APIToken)
+
+

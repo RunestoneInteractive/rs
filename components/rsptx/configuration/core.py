@@ -153,7 +153,8 @@ class Settings(BaseSettings):
 
     # This is the secret key used for generating the JWT token.
     jwt_secret: bytes = b"supersecret"
-
+    fernet_secret: bytes = b"fernetsecret"
+    
     # This is the private key web2py uses for hashing passwords.
     @property
     def web2py_private_key(self) -> str:
