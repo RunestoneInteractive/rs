@@ -40,6 +40,9 @@ def index():
         )
         sections = set()
         for course in course_list:
+            if course["shelf_section"] == None:
+                course["shelf_section"] = "Uncategorized"
+            # if the shelf_section is not in sections, add it
             if course["shelf_section"] not in sections:
                 sections.add(course["shelf_section"])
 

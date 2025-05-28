@@ -180,10 +180,17 @@ export function runestone_auto_import() {
     }
 
     // Load JS for each of the components found.
-    const a = [...s].map((value) =>
-        // If there's no JS for this component, return an empty Promise.
-        (module_map[value] || (() => Promise.resolve()))()
-    );
+    const a = [...s].map((value) => {
+        let z;
+        console.log(`Loading Runestone component: ${value}`);
+        try {
+            z = (module_map[value] || (() => Promise.resolve()))();
+        } catch (e) {
+            console.error(`Error loading ${value}:`, e);
+        }
+        z.error = (msg) => console.error(`Error in ${value}:`, msg);
+        return z;
+    });
 
     // Send the Runestone login complete event when all JS is loaded and the pre-login is also complete.
     Promise.all([pre_login_complete_promise, ...a]).then(function () {
