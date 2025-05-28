@@ -42,9 +42,10 @@ export default class DragNDrop extends RunestoneBase {
         this.origElem = orig;
         this.divid = orig.id;
         this.useRunestoneServices = opts.useRunestoneServices;
-        this.random = false;
-        if (this.origElem.hasAttribute("data-random")) {
-            this.random = true;
+        this.random = true;
+        //check if the original element has a data-random attribute set to the value "no"
+        if (this.origElem.dataset.random === "no") {
+            this.random = false;
         }
         this.feedback = "";
         this.question = "";
@@ -79,7 +80,10 @@ export default class DragNDrop extends RunestoneBase {
             this.premiseArray.push(replaceSpan);
             this.setDragListeners(replaceSpan);
         }
-        this.premiseArray = shuffleArray(this.premiseArray);
+        if (this.random) {
+            // Shuffle the premiseArray if random is true
+            this.premiseArray = shuffleArray(this.premiseArray);
+        }
         for (let element of this.origElem.querySelectorAll(
             "[data-subcomponent='dropzone']"
         )) {
@@ -443,7 +447,10 @@ export default class DragNDrop extends RunestoneBase {
             this.dropZoneDiv.appendChild(response);
         }
         this.draggableDiv.innerHTML = "";
-        shuffleArray(this.premiseArray);
+        // Shuffle the premiseArray if random is true
+        if (this.random) {
+            this.premiseArray = shuffleArray(this.premiseArray);
+        }
         for (let premise of this.premiseArray) {
             this.draggableDiv.appendChild(premise);
         }
