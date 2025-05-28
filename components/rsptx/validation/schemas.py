@@ -346,3 +346,22 @@ class AssignmentQuestionUpdateDict(TypedDict, total=False):
     
     # Owner field for permission checking
     owner: Optional[str]
+
+class CreateExercisesPayload(BaseModel):
+    id: Optional[int] = None
+    name: str
+    source: str
+    question_type: str
+    htmlsrc: str
+    autograde: Optional[str] = None
+    question_json: Json
+    chapter: Optional[str] = None
+    author: Optional[str] = None
+    tags: Optional[str] = None
+    description: Optional[str] = None
+    difficulty: Optional[float] = None
+    topic: Optional[str] = None
+    points: Optional[int] = None
+
+    is_reading: bool
+    assignment_id: int
