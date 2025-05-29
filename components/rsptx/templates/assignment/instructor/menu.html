@@ -1,0 +1,535 @@
+{% extends "_base.html" %}
+
+{% block title %}
+Instructor Dashboard
+{% endblock %}
+
+{% block css %}
+<style>
+    .instructor-menu {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .accordion {
+        margin-bottom: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .accordion-header {
+        background: linear-gradient(135deg, #4a90e2, #357abd);
+        color: white;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        width: 100%;
+        text-align: left;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .accordion-header:hover {
+        background: linear-gradient(135deg, #357abd, #2a5f8f);
+    }
+
+    .accordion-header.active {
+        background: linear-gradient(135deg, #357abd, #2a5f8f);
+    }
+
+    .accordion-icon {
+        transition: transform 0.3s ease;
+        font-size: 20px;
+    }
+
+    .accordion-header.active .accordion-icon {
+        transform: rotate(90deg);
+    }
+
+    .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        background: #f8f9fa;
+    }
+
+    .accordion-content.active {
+        max-height: 600px;
+    }
+
+    .accordion-body {
+        padding: 20px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 15px;
+    }
+
+    .menu-item {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 15px;
+        text-decoration: none;
+        color: #333;
+        transition: all 0.3s ease;
+        display: block;
+    }
+
+    .menu-item:hover {
+        background: #f0f7ff;
+        border-color: #4a90e2;
+        text-decoration: none;
+        color: #333;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(74, 144, 226, 0.2);
+    }
+
+    .menu-item h4 {
+        margin: 0 0 8px 0;
+        color: #4a90e2;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .menu-item p {
+        margin: 0;
+        color: #666;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px 0;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .page-header h1 {
+        color: #333;
+        margin: 0;
+        font-size: 2.5em;
+        font-weight: 300;
+    }
+
+    .course-info {
+        background: #f0f7ff;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        border-left: 4px solid #4a90e2;
+    }
+
+    .course-info h3 {
+        margin: 0 0 5px 0;
+        color: #333;
+    }
+
+    .course-info p {
+        margin: 0;
+        color: #666;
+    }
+
+    .toggle-all-btn {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+    }
+
+    .toggle-all-btn:hover {
+        background: linear-gradient(135deg, #218838, #1dc7a0);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="instructor-menu">
+    <div class="page-header">
+        <h1>Instructor Dashboard</h1>
+    </div>
+
+    <div class="course-info">
+        <h3>{{ course.course_name }}</h3>
+        <p>Base Course: {{ course.base_course }}</p>
+    </div>
+
+    <!-- Assignments & Grading Accordion -->
+    <div class="accordion">
+        <button class="accordion-header" onclick="toggleAccordion(this)">
+            <span>Assignments & Grading</span>
+            <span class="accordion-icon">►</span>
+        </button>
+        <div class="accordion-content">
+            <div class="accordion-body">
+                <a href="/assignment/instructor/gradebook" class="menu-item">
+                    <h4>Grade Book</h4>
+                    <p>View and manage student grades for all assignments</p>
+                </a>
+                <a href="/assignment/instructor/builder" class="menu-item">
+                    <h4>Assignment Builder</h4>
+                    <p>Create and edit assignments with questions</p>
+                </a>
+                <a href="/assignment/instructor/builderV2" class="menu-item">
+                    <h4>Assignment Builder V2</h4>
+                    <p>New and improved assignment creation interface</p>
+                </a>
+                <a href="/assignment/instructor/grader" class="menu-item">
+                    <h4>Grader</h4>
+                    <p>Grade student submissions and provide feedback</p>
+                </a>
+                <a href="#" class="menu-item" onclick="showAssignmentList()">
+                    <h4>Assignment Summaries</h4>
+                    <p>View detailed reports for specific assignments</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Management Accordion -->
+    <div class="accordion">
+        <button class="accordion-header" onclick="toggleAccordion(this)">
+            <span>Student Management</span>
+            <span class="accordion-icon">►</span>
+        </button>
+        <div class="accordion-content">
+            <div class="accordion-body">
+                <a href="#" class="menu-item" onclick="showStudentRoster()">
+                    <h4>Course Roster</h4>
+                    <p>View and manage enrolled students</p>
+                </a>
+                <a href="/assignment/instructor/except" class="menu-item">
+                    <h4>Manage Accommodations</h4>
+                    <p>Set deadline extensions and special accommodations</p>
+                </a>
+                <a href="#" class="menu-item" onclick="showActiveStudents()">
+                    <h4>Students Online</h4>
+                    <p>See which students are currently active</p>
+                </a>
+                <a href="#" class="menu-item" onclick="showPeerReview()">
+                    <h4>Peer Review</h4>
+                    <p>Manage peer assignment reviews</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Analytics Accordion -->
+    <div class="accordion">
+        <button class="accordion-header" onclick="toggleAccordion(this)">
+            <span>Course Analytics</span>
+            <span class="accordion-icon">►</span>
+        </button>
+        <div class="accordion-content">
+            <div class="accordion-body">
+                <a href="#" class="menu-item" onclick="showChapterActivity()">
+                    <h4>Chapter Activity</h4>
+                    <p>View student engagement by chapter and subchapter</p>
+                </a>
+                <a href="#" class="menu-item" onclick="showCourseData()">
+                    <h4>Download Course Data</h4>
+                    <p>Export student activity and assignment data</p>
+                </a>
+                <a href="#" class="menu-item" onclick="showExerciseMetrics()">
+                    <h4>Exercise Metrics</h4>
+                    <p>Analyze student performance on specific exercises</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Administration Accordion -->
+    <div class="accordion">
+        <button class="accordion-header" onclick="toggleAccordion(this)">
+            <span>Course Administration</span>
+            <span class="accordion-icon">►</span>
+        </button>
+        <div class="accordion-content">
+            <div class="accordion-body">
+                <a href="#" class="menu-item" onclick="showCourseSettings()">
+                    <h4>Course Settings</h4>
+                    <p>Configure course options and preferences</p>
+                </a>
+                <a href="#" class="menu-item" onclick="showManageInstructors()">
+                    <h4>Add TA</h4>
+                    <p>Add teaching assistants to your course</p>
+                </a>
+                <a href="#" class="menu-item" onclick="showCopyAssignments()">
+                    <h4>Copy Assignments</h4>
+                    <p>Copy assignments from other courses</p>
+                </a>
+                <a href="#" class="menu-item" onclick="showResetExam()">
+                    <h4>Reset Student Exam</h4>
+                    <p>Reset timed exams for individual students</p>
+                </a>
+                <a href="/assignment/instructor/invoice_request" class="menu-item">
+                    <h4>Invoice Request</h4>
+                    <p>Request billing for course usage</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Integration Accordion -->
+    <div class="accordion">
+        <button class="accordion-header" onclick="toggleAccordion(this)">
+            <span>System Integration</span>
+            <span class="accordion-icon">►</span>
+        </button>
+        <div class="accordion-content">
+            <div class="accordion-body">
+                <a href="/assignment/instructor/add_token" class="menu-item">
+                    <h4>Manage API Tokens</h4>
+                    <p>Add and manage API tokens for external services</p>
+                </a>
+                {% if settings.lti_interface %}
+                <a href="#" class="menu-item" onclick="showLTISetup()">
+                    <h4>LTI Integration</h4>
+                    <p>Configure Learning Tools Interoperability settings</p>
+                </a>
+                {% endif %}
+                <a href="#" class="menu-item" onclick="showDeleteOptions()">
+                    <h4>Delete</h4>
+                    <p>Remove students, assignments, or course data</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help & Support Accordion -->
+    <div class="accordion">
+        <button class="accordion-header" onclick="toggleAccordion(this)">
+            <span>Help & Support</span>
+            <span class="accordion-icon">►</span>
+        </button>
+        <div class="accordion-content">
+            <div class="accordion-body">
+                <a href="https://runestone.academy/instructors/" target="_blank" class="menu-item">
+                    <h4>Instructor Guide</h4>
+                    <p>Complete guide for using Runestone as an instructor</p>
+                </a>
+                <a href="https://runestone.academy/support/" target="_blank" class="menu-item">
+                    <h4>Documentation</h4>
+                    <p>Technical documentation and tutorials</p>
+                </a>
+                <a href="https://github.com/RunestoneInteractive/RunestoneServer/issues" target="_blank" class="menu-item">
+                    <h4>Report Issues</h4>
+                    <p>Report bugs or request new features</p>
+                </a>
+                <a href="https://community.runestone.academy/" target="_blank" class="menu-item">
+                    <h4>Community Forum</h4>
+                    <p>Connect with other instructors and get help</p>
+                </a>
+                <a href="#" class="menu-item" onclick="showVideoTutorials()">
+                    <h4>Video Tutorials</h4>
+                    <p>Watch step-by-step video guides</p>
+                </a>
+                <a href="#" class="menu-item" onclick="showQuickStart()">
+                    <h4>Quick Start Guide</h4>
+                    <p>Get started with Runestone in 5 minutes</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <button id="toggleAllBtn" class="toggle-all-btn" onclick="toggleAllAccordions()">
+            Show All Sections
+        </button>
+    </div>
+</div>
+
+<script>
+    function toggleAccordion(header) {
+        const content = header.nextElementSibling;
+        const icon = header.querySelector('.accordion-icon');
+
+        // Toggle current accordion only (removed auto-closing behavior)
+        header.classList.toggle('active');
+        content.classList.toggle('active');
+        
+        updateToggleAllButton();
+    }
+
+    function toggleAllAccordions() {
+        const btn = document.getElementById('toggleAllBtn');
+        const allHeaders = document.querySelectorAll('.accordion-header');
+        const allContents = document.querySelectorAll('.accordion-content');
+        
+        // Check if any accordion is closed
+        const anyOpen = Array.from(allHeaders).some(h => h.classList.contains('active'));
+        
+        if (anyOpen) {
+            // Close all
+            allHeaders.forEach(h => h.classList.remove('active'));
+            allContents.forEach(c => c.classList.remove('active'));
+            btn.textContent = 'Show All Sections';
+        } else {
+            // Open all
+            allHeaders.forEach(h => h.classList.add('active'));
+            allContents.forEach(c => c.classList.add('active'));
+            btn.textContent = 'Hide All Sections';
+        }
+    }
+
+    function updateToggleAllButton() {
+        const btn = document.getElementById('toggleAllBtn');
+        const allHeaders = document.querySelectorAll('.accordion-header');
+        const anyOpen = Array.from(allHeaders).some(h => h.classList.contains('active'));
+        
+        btn.textContent = anyOpen ? 'Hide All Sections' : 'Show All Sections';
+    }
+
+    // Placeholder functions for features that need implementation
+    async function showAssignmentList() {
+        try {
+            const response = await fetch('/assignment/instructor/assignments');
+            const data = await response.json();
+
+            let html = '<div style="margin: 20px;"><h3>Select Assignment to View Summary:</h3><ul>';
+            data.detail.forEach(assignment => {
+                html += `<li><a href="/assignment/instructor/assignment_summary/${assignment.id}">${assignment.name}</a></li>`;
+            });
+            html += '</ul></div>';
+
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(html);
+        } catch (error) {
+            alert('Error loading assignments: ' + error.message);
+        }
+    }
+
+    async function showStudentRoster() {
+        try {
+            const response = await fetch('/assignment/instructor/course_roster');
+            const data = await response.json();
+
+            let html = '<div style="margin: 20px;"><h3>Course Roster:</h3><table border="1" style="border-collapse: collapse; width: 100%;"><tr><th>Username</th><th>First Name</th><th>Last Name</th><th>Email</th></tr>';
+            data.detail.students.forEach(student => {
+                html += `<tr><td>${student.username}</td><td>${student.first_name || ''}</td><td>${student.last_name || ''}</td><td>${student.email || ''}</td></tr>`;
+            });
+            html += '</table></div>';
+
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(html);
+        } catch (error) {
+            alert('Error loading roster: ' + error.message);
+        }
+    }
+
+    function showActiveStudents() {
+        window.open(`/${window.location.pathname.split('/')[1]}/dashboard/active`, '_blank');
+    }
+
+    function showChapterActivity() {
+        window.open(`/${window.location.pathname.split('/')[1]}/dashboard/subchapoverview`, '_blank');
+    }
+
+    function showCourseData() {
+        window.open('https://author.runestone.academy/author/logfiles/', '_blank');
+    }
+
+    function showPeerReview() {
+        window.open('/assignment/instructor/reviewPeerAssignment', '_blank');
+    }
+
+    function showExerciseMetrics() {
+        alert('Exercise metrics feature coming soon!');
+    }
+
+    function showCourseSettings() {
+        alert('Course settings panel coming soon!');
+    }
+
+    function showManageInstructors() {
+        alert('Instructor management panel coming soon!');
+    }
+
+    function showCopyAssignments() {
+        alert('Copy assignments feature coming soon!');
+    }
+
+    function showResetExam() {
+        alert('Reset exam feature coming soon!');
+    }
+
+    function showLTISetup() {
+        alert('LTI setup panel coming soon!');
+    }
+
+    function showDeleteOptions() {
+        alert('Delete options panel coming soon!');
+    }
+
+    function showVideoTutorials() {
+        const helpWindow = window.open('', '_blank');
+        helpWindow.document.write(`
+            <div style="margin: 20px; font-family: Arial, sans-serif;">
+                <h2>Video Tutorials</h2>
+                <ul style="line-height: 2;">
+                    <li><a href="https://youtu.be/example1" target="_blank">Getting Started with Runestone</a></li>
+                    <li><a href="https://youtu.be/example2" target="_blank">Creating Your First Assignment</a></li>
+                    <li><a href="https://youtu.be/example3" target="_blank">Managing Student Grades</a></li>
+                    <li><a href="https://youtu.be/example4" target="_blank">Using the Assignment Builder</a></li>
+                    <li><a href="https://youtu.be/example5" target="_blank">Setting Up Course Analytics</a></li>
+                </ul>
+                <p><em>Note: Video links are placeholders. Actual tutorials will be available soon.</em></p>
+            </div>
+        `);
+    }
+
+    function showQuickStart() {
+        const helpWindow = window.open('', '_blank');
+        helpWindow.document.write(`
+            <div style="margin: 20px; font-family: Arial, sans-serif; max-width: 800px;">
+                <h2>Runestone Quick Start Guide</h2>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                    <h3>Step 1: Set Up Your Course</h3>
+                    <p>Make sure your course is properly configured with the correct base course and settings.</p>
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                    <h3>Step 2: Create Your First Assignment</h3>
+                    <p>Use the Assignment Builder to create assignments with questions from your textbook.</p>
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                    <h3>Step 3: Manage Students</h3>
+                    <p>View your course roster and set up any needed accommodations for students.</p>
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                    <h3>Step 4: Grade and Provide Feedback</h3>
+                    <p>Use the Grader and Grade Book to review student work and provide feedback.</p>
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                    <h3>Step 5: Monitor Progress</h3>
+                    <p>Use Course Analytics to track student engagement and performance.</p>
+                </div>
+                <p><strong>Need more help?</strong> Check out our <a href="https://runestone.academy/instructors/" target="_blank">complete instructor guide</a>.</p>
+            </div>
+        `);
+    }
+
+    // Open first accordion by default
+    document.addEventListener('DOMContentLoaded', function () {
+        const firstAccordion = document.querySelector('.accordion-header');
+        if (firstAccordion) {
+            toggleAccordion(firstAccordion);
+        }
+        updateToggleAllButton();
+    });
+</script>
+{% endblock %}

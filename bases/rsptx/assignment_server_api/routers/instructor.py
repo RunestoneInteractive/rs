@@ -1321,3 +1321,28 @@ async def get_add_token_page(
     }
 
     return templates.TemplateResponse("assignment/instructor/add_token.html", context)
+
+
+@router.get("/menu")
+@instructor_role_required()
+@with_course()
+async def get_instructor_menu(
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+    course=None,
+):
+    """
+    Display the main instructor menu dashboard.
+    """
+    templates = Jinja2Templates(directory=template_folder)
+    context = {
+        "course": course,
+        "user": user,
+        "request": request,
+        "is_instructor": True,
+        "student_page": False,
+        "settings": settings,
+    }
+
+    return templates.TemplateResponse("assignment/instructor/menu.html", context)
