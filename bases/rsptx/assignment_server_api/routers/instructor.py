@@ -44,6 +44,7 @@ from rsptx.db.crud import (
     create_question,
     fetch_course,
     fetch_users_for_course,
+    fetch_subchapters,
     create_assignment,
     fetch_questions_for_chapter_subchapter,
     remove_assignment_questions,
@@ -443,6 +444,36 @@ async def do_update_assignment(
     return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
 
 
+@router.get("/sections_for_chapter/{chapter}")
+@instructor_role_required()
+@with_course()
+async def get_sections_for_chapter(
+    request: Request,
+    chapter: str,
+    user=Depends(auth_manager),
+    course=None,
+    response_class=JSONResponse,
+):
+    """
+    Get sections for a specific chapter.
+    Specifically the section title and section label
+    """
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return make_json_response(
+            status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    sections = await fetch_subchapters(course.base_course, chapter)
+    # make a list of dictionaries with section title and label
+    sections = [
+        {"title": section.sub_chapter_name, "label": section.sub_chapter_label}
+        for section in sections
+        if section.sub_chapter_name and section.sub_chapter_label
+    ]
+    return make_json_response(status=status.HTTP_200_OK, detail={"sections": sections})
+
+
 @router.post("/new_question")
 async def new_question(
     request_data: QuestionIncoming,
@@ -462,11 +493,12 @@ async def new_question(
     if request_data.author is None:
         request_data.author = user.first_name + " " + user.last_name
 
+    if request_data.subchapter is None:
+        request_data.subchapter = "Exercises"
     # First create the question
     new_question = QuestionValidator(
         **request_data.model_dump(),
         base_course=course.base_course,
-        subchapter="Exercises",
         timestamp=canonical_utcnow(),
         is_private=False,
         practice=False,
@@ -504,13 +536,14 @@ async def do_update_question(
     rslogger.debug(f"Updating question: {request_data}")
     if request_data.author is None:
         request_data.author = user.first_name + " " + user.last_name
+    if request_data.subchapter is None:
+        request_data.subchapter = "Exercises"
     req = request_data.model_dump()
     req["question"] = req["source"]
     del req["source"]
     upd_question = QuestionValidator(
         **req,
         base_course=course.base_course,
-        subchapter="Exercises",
         timestamp=canonical_utcnow(),
         is_private=False,
         practice=False,
