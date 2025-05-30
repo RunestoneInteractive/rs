@@ -151,6 +151,7 @@ else:
 db.define_table(
     "courses",
     Field("course_name", "string", unique=True),
+    Field("domain_name", "string"),
     Field("term_start_date", "date"),
     Field("institution", "string"),
     Field("base_course", "string"),
@@ -231,6 +232,9 @@ def getCourseAttributesDict(course_id, base_course=None):
             .default_language
         )
     except AttributeError as e:
+        attrdict["default_language"] = "python"
+    # appears we can get here and have a None value
+    if attrdict["default_language"] == None:
         attrdict["default_language"] = "python"
 
     return attrdict

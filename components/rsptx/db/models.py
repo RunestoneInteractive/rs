@@ -457,6 +457,8 @@ class Courses(Base, IdMixin):
     new_server = Column(Web2PyBoolean, default=True)
     is_supporter = Column(Web2PyBoolean)
     state = Column(String(128))  # the US State in which the course is taught
+    # Use to track what domain based features are enabled for this course.
+    domain_name = Column(String(512))
 
 
 CoursesValidator = sqlalchemy_to_pydantic(Courses)
