@@ -185,18 +185,23 @@ Instructor Dashboard
                     <h4>Assignment Builder</h4>
                     <p>Create and edit assignments with questions</p>
                 </a>
-                <a href="/assignment/instructor/builderV2" class="menu-item">
-                    <h4>Assignment Builder V2</h4>
-                    <p>New and improved assignment creation interface</p>
+                <a href="/runestone/admin/assignments" class="menu-item">
+                    <h4>Legacy Assignment Builder</h4>
+                    <p>From the days of RST and web2py.</p>
                 </a>
-                <a href="/assignment/instructor/grader" class="menu-item">
+                <a href="/runestone/admin/grading" class="menu-item">
                     <h4>Grader</h4>
                     <p>Grade student submissions and provide feedback</p>
                 </a>
-                <a href="#" class="menu-item" onclick="showAssignmentList()">
-                    <h4>Assignment Summaries</h4>
-                    <p>View detailed reports for specific assignments</p>
+                <a href="/assignment/instructor/copy_assignments" class="menu-item" onclick="">
+                    <h4>Copy Assignments</h4>
+                    <p>Copy assignments from previous courses</p>
                 </a>
+                <a href="#" class="menu-item" onclick="">
+                    <h4>Configure Practice</h4>
+                    <p>Configure the spaced repitition practice tool.</p>
+                </a>
+
             </div>
         </div>
     </div>
@@ -209,9 +214,9 @@ Instructor Dashboard
         </button>
         <div class="accordion-content">
             <div class="accordion-body">
-                <a href="#" class="menu-item" onclick="showStudentRoster()">
-                    <h4>Course Roster</h4>
-                    <p>View and manage enrolled students</p>
+                <a href="/assignment/instructor/manage_students" class="menu-item">
+                    <h4>Manage Students</h4>
+                    <p>Add, remove students and reset passwords</p>
                 </a>
                 <a href="/assignment/instructor/except" class="menu-item">
                     <h4>Manage Accommodations</h4>
@@ -269,10 +274,6 @@ Instructor Dashboard
                     <h4>Add TA</h4>
                     <p>Add teaching assistants to your course</p>
                 </a>
-                <a href="#" class="menu-item" onclick="showCopyAssignments()">
-                    <h4>Copy Assignments</h4>
-                    <p>Copy assignments from other courses</p>
-                </a>
                 <a href="#" class="menu-item" onclick="showResetExam()">
                     <h4>Reset Student Exam</h4>
                     <p>Reset timed exams for individual students</p>
@@ -288,7 +289,7 @@ Instructor Dashboard
     <!-- System Integration Accordion -->
     <div class="accordion">
         <button class="accordion-header" onclick="toggleAccordion(this)">
-            <span>System Integration</span>
+            <span>External Tools</span>
             <span class="accordion-icon">►</span>
         </button>
         <div class="accordion-content">
@@ -327,7 +328,8 @@ Instructor Dashboard
                     <h4>Documentation</h4>
                     <p>Technical documentation and tutorials</p>
                 </a>
-                <a href="https://github.com/RunestoneInteractive/RunestoneServer/issues" target="_blank" class="menu-item">
+                <a href="https://github.com/RunestoneInteractive/RunestoneServer/issues" target="_blank"
+                    class="menu-item">
                     <h4>Report Issues</h4>
                     <p>Report bugs or request new features</p>
                 </a>
@@ -362,7 +364,7 @@ Instructor Dashboard
         // Toggle current accordion only (removed auto-closing behavior)
         header.classList.toggle('active');
         content.classList.toggle('active');
-        
+
         updateToggleAllButton();
     }
 
@@ -370,10 +372,10 @@ Instructor Dashboard
         const btn = document.getElementById('toggleAllBtn');
         const allHeaders = document.querySelectorAll('.accordion-header');
         const allContents = document.querySelectorAll('.accordion-content');
-        
+
         // Check if any accordion is closed
         const anyOpen = Array.from(allHeaders).some(h => h.classList.contains('active'));
-        
+
         if (anyOpen) {
             // Close all
             allHeaders.forEach(h => h.classList.remove('active'));
@@ -391,7 +393,7 @@ Instructor Dashboard
         const btn = document.getElementById('toggleAllBtn');
         const allHeaders = document.querySelectorAll('.accordion-header');
         const anyOpen = Array.from(allHeaders).some(h => h.classList.contains('active'));
-        
+
         btn.textContent = anyOpen ? 'Hide All Sections' : 'Show All Sections';
     }
 
@@ -458,10 +460,6 @@ Instructor Dashboard
 
     function showManageInstructors() {
         alert('Instructor management panel coming soon!');
-    }
-
-    function showCopyAssignments() {
-        alert('Copy assignments feature coming soon!');
     }
 
     function showResetExam() {

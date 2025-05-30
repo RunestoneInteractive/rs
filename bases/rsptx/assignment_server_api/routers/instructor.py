@@ -43,6 +43,8 @@ from rsptx.db.crud import (
     create_deadline_exception,
     create_question,
     fetch_course,
+    fetch_course_by_id,
+    fetch_instructor_courses,
     fetch_users_for_course,
     fetch_subchapters,
     create_assignment,
@@ -1346,3 +1348,75 @@ async def get_instructor_menu(
     }
 
     return templates.TemplateResponse("assignment/instructor/menu.html", context)
+
+
+@router.get("/manage_students")
+@instructor_role_required()
+@with_course()
+async def get_manage_students(
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+    course=None,
+):
+    """
+    Display the student management interface.
+    """
+    templates = Jinja2Templates(directory=template_folder)
+
+    # Get all students in the course
+    students = {}  # This would normally be populated from the database
+    # TODO: Implement actual student retrieval logic
+
+    context = {
+        "course": course,
+        "user": user,
+        "request": request,
+        "is_instructor": True,
+        "student_page": False,
+        "students": students,
+        "settings": settings,
+    }
+
+    return templates.TemplateResponse(
+        "assignment/instructor/manage_students.html", context
+    )
+
+
+@router.get("/copy_assignments")
+@instructor_role_required()
+@with_course()
+async def get_copy_assignments(
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+    course=None,
+):
+    """
+    Display the copy assignments interface.
+    """
+    templates = Jinja2Templates(directory=template_folder)
+
+    # Get instructor's available courses for copying from
+    instructor_course_relationships = await fetch_instructor_courses(user.id)
+    instructor_course_list = []
+
+    # For each course where the user is an instructor, get the full course information
+    for course_relation in instructor_course_relationships:
+        course = await fetch_course_by_id(course_relation.course)
+        if course:  # Make sure the course exists
+            instructor_course_list.append(course)
+
+    context = {
+        "course": course,
+        "user": user,
+        "request": request,
+        "is_instructor": True,
+        "student_page": False,
+        "instructor_course_list": instructor_course_list,
+        "settings": settings,
+    }
+
+    return templates.TemplateResponse(
+        "assignment/instructor/copy_assignments.html", context
+    )
