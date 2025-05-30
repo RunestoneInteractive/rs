@@ -46,7 +46,7 @@ from pydal.validators import CRYPT
 from sqlalchemy import and_, distinct, func, update, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import select, text, delete, insert
-from sqlalchemy.orm import aliased, joinedload, contains_eager
+from sqlalchemy.orm import aliased, joinedload, contains_eager, attributes
 from starlette.requests import Request
 
 from rsptx.validation import schemas
@@ -85,6 +85,7 @@ from rsptx.db.models import (
     CoursesValidator,
     DeadlineException,
     DeadlineExceptionValidator,
+    DomainApprovals,
     EditorBasecourse,
     Grade,
     GradeValidator,
@@ -3908,3 +3909,23 @@ async def fetch_api_token(
             return APITokenValidator.from_orm(token)
         return None
 
+# DomainApprovals
+# ------------------
+async def check_domain_approval(
+    course_id: int, approval_type: attributes.InstrumentedAttribute
+) -> bool:
+    """
+    Check if a domain approval exists for a given course and approval type.
+    :param course_id: int, the id of the course
+    :param approval_type: sqlalchemy.orm.attributes.InstrumentedAttribute, the type of approval (e.g., 'DomainApprovals.lti1p3')
+    """
+    query = select(Courses.domain_name) \
+            .join(DomainApprovals, Courses.domain_name == DomainApprovals.domain_name) \
+            .where(
+                (approval_type == True)
+                & (Courses.id == course_id)
+            )
+    async with async_session() as session:
+        res = await session.execute(query)
+        domain = res.scalars().first()
+        return domain is not None
