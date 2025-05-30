@@ -46,7 +46,7 @@ Jinja2 = "<3.1.0"
 aiofiles = "^0.8.0"
 alembic = "^1.0.0"
 python-dateutil = "^2.0.0"
-fastapi-login = "^1.8.0"
+fastapi-login = "^1.10.0"
 pydal = ">=20210215.1"
 python-multipart = "^0.0.5"
 # asyncpg v. 0.25 has a `bug <https://github.com/MagicStack/asyncpg/issues/884>`_. Stay at v. 0.24 until it's fixed.
@@ -65,6 +65,7 @@ psycopg2-binary = "^2.9.7"
 pydantic-settings = "^2.0.3"
 numpy = "^1.0.0"
 cryptography = "^3.0.0"
+greenlet = "^3.2.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"
