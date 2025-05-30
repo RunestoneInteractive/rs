@@ -728,12 +728,12 @@ async def deep_link_entry(request: Request, course=None):
         "rs_course_name": course.course_name,
         "mapping_mismatch": mapping_mismatch,
         "current_mapped_course_name": lti_context.get("label"),
+        "request": request,
     }
 
     templates = Jinja2Templates(directory=template_folder)
     resp = templates.TemplateResponse(
         name="admin/lti1p3/pick_links.html",
-        request=request, 
         context=tpl_kwargs
     )
     return resp
