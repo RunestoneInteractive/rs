@@ -28,6 +28,10 @@ import "codemirror/addon/comment/comment.js";
 import "codemirror/addon/hint/show-hint.js";
 import "codemirror/addon/hint/show-hint.css";
 import "codemirror/addon/hint/sql-hint.js";
+import "codemirror/addon/hint/css-hint.js";
+import "codemirror/addon/hint/html-hint.js";
+import "codemirror/addon/hint/javascript-hint.js";
+import "codemirror/addon/hint/xml-hint.js";
 import "codemirror/addon/hint/anyword-hint.js";
 import "codemirror/addon/edit/matchbrackets.js";
 import "./skulpt.min.js";
@@ -53,8 +57,23 @@ window.componentMap = {};
 var socket, connection, doc;
 var chatcodesServer = "chat.codes";
 
-CodeMirror.commands.autocomplete = function (cm) {
-    cm.showHint({ hint: CodeMirror.hint.anyword });
+CodeMirror.commands.autocomplete = function(cm) {
+    var doc = cm.getDoc();
+    var POS = doc.getCursor();
+    var mode = CodeMirror.innerMode(cm.getMode(), cm.getTokenAt(POS).state).mode.name;
+    // CodeMirror presently supports JavaScript, XML, CSS, and SQL modes.
+    // If the mode is not one of the supported types, fall back to the anyword hint.
+    if (mode == 'xml') { //html depends on xml
+        cm.showHint(cm, CodeMirror.hint.html);
+    } else if (mode == 'javascript') {
+        cm.showHint(cm, CodeMirror.hint.javascript);
+    } else if (mode == 'css') {
+        cm.showHint(cm, CodeMirror.hint.css);
+    } else if (mode == 'sql') {
+        cm.showHint(cm, CodeMirror.hint.sql);
+    } else {
+        cm.showHint({hint:CodeMirror.hint.anyword})
+    }
 };
 
 // separate into constructor and init
