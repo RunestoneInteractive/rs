@@ -42,6 +42,7 @@ from rsptx.db.crud import (
     create_assignment_question,
     create_deadline_exception,
     create_question,
+    delete_course_instructor,
     fetch_course,
     fetch_course_by_id,
     fetch_instructor_courses,
@@ -60,6 +61,8 @@ from rsptx.db.crud import (
     get_peer_votes,
     search_exercises,
     create_api_token,
+    create_instructor_course_entry,
+    update_course_settings,
 )
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
@@ -1420,3 +1423,140 @@ async def get_copy_assignments(
     return templates.TemplateResponse(
         "assignment/instructor/copy_assignments.html", context
     )
+
+
+# TA Management endpoints
+@router.post("/add_ta")
+@instructor_role_required()
+@with_course()
+async def add_ta(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Add a student as a teaching assistant for the course.
+    Expects JSON body with student_id.
+    """
+    try:
+        data = await request.json()
+        student_id = data.get("student_id")
+
+        if not student_id:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": "student_id is required"},
+            )
+
+        # Verify the student exists and is enrolled in the course
+        students = await fetch_users_for_course(course.course_name)
+        student_exists = any(s.id == int(student_id) for s in students)
+
+        if not student_exists:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": "Student not found in course"},
+            )
+
+        # Add the student as an instructor
+        await create_instructor_course_entry(int(student_id), course.id)
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": "Teaching Assistant added successfully",
+            }
+        )
+
+    except Exception as e:
+        rslogger.error(f"Error adding TA: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": "Internal server error"},
+        )
+
+
+@router.post("/remove_ta")
+@instructor_role_required()
+@with_course()
+async def remove_ta(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Remove a teaching assistant from the course.
+    Expects JSON body with instructor_id.
+    """
+    try:
+        data = await request.json()
+        instructor_id = data.get("instructor_id")
+
+        if not instructor_id:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": "instructor_id is required"},
+            )
+
+        await delete_course_instructor(course.id, int(instructor_id))
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": "Teaching Assistant removed successfully",
+            }
+        )
+
+    except Exception as e:
+        rslogger.error(f"Error removing TA: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": "Internal server error"},
+        )
+
+
+# Course Settings endpoint
+@router.post("/update_course_setting")
+@instructor_role_required()
+@with_course()
+async def update_course_setting(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Update a course setting/attribute.
+    Expects JSON body with setting and value.
+    """
+    try:
+        data = await request.json()
+        setting = data.get("setting")
+        value = data.get("value")
+
+        if not setting or value is None:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": "setting and value are required"},
+            )
+
+        try:
+            await update_course_settings(course.id, setting, value)
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "message": "Invalid date format",
+                },
+            )
+
+        return JSONResponse(
+            content={"success": True, "message": "Setting updated successfully"}
+        )
+
+    except Exception as e:
+        rslogger.error(f"Error updating course setting: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": "Internal server error"},
+        )
