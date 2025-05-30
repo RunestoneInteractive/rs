@@ -81,6 +81,10 @@
             <input type="text" id="start_date" value="{{=startDate}}" onchange="updateCourse(this, 'new_date')">
             </div>
             <div class="settingsbox">
+            <label for="course_domainname">Course domain</label>
+            <input type="text" id="course_domain_name" value="{{=courseDomain}}" onchange="updateCourse(this, 'course_domain_name')">
+            </div>
+            <div class="settingsbox">
             <label for="downloads">Enable ActiveCode Downloads</label>
             <input type="checkbox" id="downloads"
             {{ if downloads_enabled == "true": }}

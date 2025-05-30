@@ -697,6 +697,7 @@ def admin():
 
     return dict(
         startDate=date,
+        courseDomain=course.domain_name,
         coursename=auth.user.course_name,
         course_id=auth.user.course_name,
         instructors=instructordict,
@@ -2812,6 +2813,10 @@ def update_course():
         if "allow_pairs" in request.vars:
             db(db.courses.id == thecourse.id).update(
                 allow_pairs=(request.vars["allow_pairs"] == "true")
+            )
+        if "course_domain_name" in request.vars:
+            db(db.courses.id == thecourse.id).update(
+                domain_name=request.vars["course_domain_name"]
             )
         if "downloads_enabled" in request.vars:
             print("DOWNLOADS = ", request.vars.enable_downloads)
