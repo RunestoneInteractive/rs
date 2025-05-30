@@ -5016,7 +5016,7 @@ url = "projects/rsmanage"
 
 [[package]]
 name = "runestone"
-version = "7.5.15"
+version = "7.7.1"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
@@ -6272,4 +6272,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "3c2114b3caef927dbe90dbfa50104e9161bdb3ea31efd599ba2dd0cd01763e9f"
+content-hash = "32852fac338df6cb3adfa3c1fa80537f4c4639a155f716dbf3d69ddd13a38f92"
