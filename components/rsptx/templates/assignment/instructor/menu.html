@@ -222,7 +222,7 @@ Instructor Dashboard
                     <h4>Manage Accommodations</h4>
                     <p>Set deadline extensions and special accommodations</p>
                 </a>
-                <a href="#" class="menu-item" onclick="showActiveStudents()">
+                <a href="/runestone/dashboard/active" class="menu-item" onclick="showActiveStudents()">
                     <h4>Students Online</h4>
                     <p>See which students are currently active</p>
                 </a>
@@ -266,13 +266,13 @@ Instructor Dashboard
         </button>
         <div class="accordion-content">
             <div class="accordion-body">
-                <a href="#" class="menu-item" onclick="showCourseSettings()">
+                <a href="/assignment/instructor/course_settings" class="menu-item">
                     <h4>Course Settings</h4>
                     <p>Configure course options and preferences</p>
                 </a>
-                <a href="#" class="menu-item" onclick="showManageInstructors()">
-                    <h4>Add TA</h4>
-                    <p>Add teaching assistants to your course</p>
+                <a href="/assignment/instructor/manage_tas" class="menu-item">
+                    <h4>Manage Teaching Assistants</h4>
+                    <p>Add or remove teaching assistants for your course</p>
                 </a>
                 <a href="#" class="menu-item" onclick="showResetExam()">
                     <h4>Reset Student Exam</h4>
@@ -452,14 +452,6 @@ Instructor Dashboard
 
     function showExerciseMetrics() {
         alert('Exercise metrics feature coming soon!');
-    }
-
-    function showCourseSettings() {
-        alert('Course settings panel coming soon!');
-    }
-
-    function showManageInstructors() {
-        alert('Instructor management panel coming soon!');
     }
 
     function showResetExam() {

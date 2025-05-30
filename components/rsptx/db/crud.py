@@ -1016,7 +1016,9 @@ async def create_code_entry(data: CodeValidator) -> CodeValidator:
     return CodeValidator.from_orm(new_code)
 
 
-async def fetch_code(sid: str, acid: str, course_id: int, limit: int = 0) -> List[CodeValidator]:
+async def fetch_code(
+    sid: str, acid: str, course_id: int, limit: int = 0
+) -> List[CodeValidator]:
     """
     Retrieve a list of the most recent code entries for the given student id (sid), assignment id (acid), and course id (course_id).
 
@@ -3663,14 +3665,10 @@ async def fetch_last_useinfo_peergroup(course_name: str) -> List[Useinfo]:
         results = await session.execute(query)
         return results.scalars().all()
 
+
 # We need a synchronous version of this function for use in manifest_data_to_db
 # if/when process_manifest moves to being async we could remove this
-def update_source_code_sync(
-    acid: str,
-    filename: str,
-    course_id: str,
-    main_code: str
-):
+def update_source_code_sync(acid: str, filename: str, course_id: str, main_code: str):
     """
     Update the source code for a given acid or filename
     """
@@ -3697,12 +3695,8 @@ def update_source_code_sync(
             session.add(new_entry)
         session.commit()
 
-async def update_source_code(
-    acid: str,
-    filename: str,
-    course_id: str,
-    main_code: str
-):
+
+async def update_source_code(acid: str, filename: str, course_id: str, main_code: str):
     """
     Update the source code for a given acid or filename
     """
@@ -3729,6 +3723,7 @@ async def update_source_code(
             session.add(new_entry)
         await session.commit()
 
+
 async def fetch_source_code(
     base_course: str, course_name: str, acid: str = None, filename: str = None
 ) -> SourceCodeValidator:
@@ -3749,10 +3744,12 @@ async def fetch_source_code(
         query = select(SourceCode).where(
             and_(
                 or_(
-                    SourceCode.filename == filename, SourceCode.acid == filename,
+                    SourceCode.filename == filename,
+                    SourceCode.acid == filename,
                 ),
                 or_(
-                    SourceCode.course_id == base_course, SourceCode.course_id == course_name
+                    SourceCode.course_id == base_course,
+                    SourceCode.course_id == course_name,
                 ),
             )
         )
@@ -3761,7 +3758,8 @@ async def fetch_source_code(
             and_(
                 SourceCode.acid == acid,
                 or_(
-                    SourceCode.course_id == base_course, SourceCode.course_id == course_name
+                    SourceCode.course_id == base_course,
+                    SourceCode.course_id == course_name,
                 ),
             )
         )
@@ -3891,14 +3889,13 @@ async def fetch_api_token(
     """
     query = (
         select(APIToken)
-        .where(
-            (APIToken.course_id == course_id)
-            & (APIToken.provider == provider)
-        )
-        .order_by(APIToken.last_used.asc().nulls_first())  # Least recently used first, NULL values first
+        .where((APIToken.course_id == course_id) & (APIToken.provider == provider))
+        .order_by(
+            APIToken.last_used.asc().nulls_first()
+        )  # Least recently used first, NULL values first
         .limit(1)
     )
-    
+
     async with async_session.begin() as session:
         res = await session.execute(query)
         token = res.scalars().first()
@@ -3929,3 +3926,98 @@ async def check_domain_approval(
         res = await session.execute(query)
         domain = res.scalars().first()
         return domain is not None
+async def delete_course_instructor(course_id: int, instructor_id: int) -> None:
+    """
+    Remove an instructor from a course by deleting the CourseInstructor relationship.
+
+    :param course_id: int, the id of the course
+    :param instructor_id: int, the id of the instructor to remove
+    :return: None
+    """
+    stmt = delete(CourseInstructor).where(
+        (CourseInstructor.course == course_id)
+        & (CourseInstructor.instructor == instructor_id)
+    )
+
+    async with async_session() as session:
+        await session.execute(stmt)
+        await session.commit()
+
+
+async def update_course_settings(course_id: int, setting: str, value: str) -> None:
+    """
+    Update a course setting/attribute. Handles both special course table fields
+    and course attributes.
+
+    :param course_id: int, the id of the course
+    :param setting: str, the setting name to update
+    :param value: str, the value to set
+    :return: None
+    :raises ValueError: If date format is invalid for new_date setting
+    """
+    async with async_session() as session:
+        # Handle special course table fields
+        if setting in ["new_date", "allow_pairs", "downloads_enabled"]:
+            if setting == "new_date":
+                # Update term_start_date in courses table
+                import datetime
+
+                try:
+                    new_date = datetime.datetime.strptime(value, "%Y-%m-%d").date()
+                    stmt = (
+                        update(Courses)
+                        .where(Courses.id == course_id)
+                        .values(term_start_date=new_date)
+                    )
+                    await session.execute(stmt)
+                except ValueError:
+                    raise ValueError("Invalid date format")
+
+            elif setting == "allow_pairs":
+                bool_val = value.lower() == "true"
+                stmt = (
+                    update(Courses)
+                    .where(Courses.id == course_id)
+                    .values(allow_pairs=bool_val)
+                )
+                await session.execute(stmt)
+
+            elif setting == "downloads_enabled":
+                bool_val = value.lower() == "true"
+                stmt = (
+                    update(Courses)
+                    .where(Courses.id == course_id)
+                    .values(downloads_enabled=bool_val)
+                )
+                await session.execute(stmt)
+        else:
+            # Handle course attributes
+            # Check if attribute exists
+            stmt = select(CourseAttribute).where(
+                (CourseAttribute.course_id == course_id)
+                & (CourseAttribute.attr == setting)
+            )
+            result = await session.execute(stmt)
+            existing_attr = result.scalar_one_or_none()
+
+            if existing_attr:
+                # Update existing attribute
+                stmt = (
+                    update(CourseAttribute)
+                    .where(
+                        (CourseAttribute.course_id == course_id)
+                        & (CourseAttribute.attr == setting)
+                    )
+                    .values(value=str(value))
+                )
+                await session.execute(stmt)
+            else:
+                # Create new attribute
+                new_attr = CourseAttribute(
+                    course_id=course_id,
+                    attr=setting,
+                    value=str(value),
+                )
+                session.add(new_attr)
+
+        await session.commit()
