@@ -97,6 +97,7 @@ services:
       - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
       - JWT_SECRET=${JWT_SECRET}
+      - FERNET_SECRET=${FERNET_SECRET}
       - UVICORN_WORKERS=${UVICORN_WORKERS:-2}
       - UVICORN_USER=www-data
       - UVICORN_GROUP=www-data
@@ -213,6 +214,7 @@ services:
       - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
       - JWT_SECRET=${JWT_SECRET}
+      - FERNET_SECRET=${FERNET_SECRET}
       - UVICORN_WORKERS=3
       - UVICORN_USER=www-data
       - UVICORN_GROUP=www-data
