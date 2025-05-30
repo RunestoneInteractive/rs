@@ -72,6 +72,7 @@ AUTOGRADE_POSSIBLE_VALUES = dict(
 AUTOGRADEABLE = set(
     [
         "clickablearea",
+        "codelens",
         "dragndrop",
         "fillintheblank",
         "khanex",
