@@ -42,8 +42,10 @@ from rsptx.db.models import (
     Lti1p3Course,
     Lti1p3Assignment,
     AssignmentValidator,
+    DomainApprovals,
 )
 from rsptx.db.crud import (
+    check_domain_approval,
     delete_lti1p3_course,
     fetch_assignments,
     fetch_library_book,
@@ -650,6 +652,17 @@ async def deep_link_entry(request: Request, course=None):
     lti_course = await fetch_lti1p3_course_by_rs_course(
         course, with_config=False
     )
+
+    approved = await check_domain_approval(course.id, DomainApprovals.lti1p3)
+    if not approved:
+        rslogger.debug(
+            f"LTI1p3 - Failed domain approval for {course.id}"
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="The domain for this course is not approved for LTI 1.3 integration. Please make an issue at https://github.com/RunestoneInteractive/rs/issues to request approval.",
+        )
+
     mapping_mismatch = False
     if lti_course and lti_course.lti1p3_course_id != lti_context.get('id'):
         mapping_mismatch = True
