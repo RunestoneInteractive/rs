@@ -1260,3 +1260,9 @@ class APIToken(Base, IdMixin):
 APITokenValidator = sqlalchemy_to_pydantic(APIToken)
 
 
+# Used to track what domains are approved for which paid features.
+# Absence of a record is assumed to indicate False for all features.
+class DomainApprovals(Base):
+    __tablename__ = "domain_approvals"
+    domain_name = Column(String(512), primary_key=True)
+    lti1p3 = Column(Web2PyBoolean, default=False)
