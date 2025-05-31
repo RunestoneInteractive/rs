@@ -24,6 +24,7 @@ from rsptx.db.models import (
     DeadlineExceptionValidator,
 )
 from rsptx.logging import rslogger
+from rsptx.lti1p3.core import attempt_lti1p3_score_update
 
 
 async def grade_submission(
@@ -253,6 +254,8 @@ async def compute_total_score(
         )
     rslogger.debug(f"newGrade = {newGrade}")
     res = await upsert_grade(newGrade)
+    # And send the grade off to any LTI1.3 tools that are listening
+    await attempt_lti1p3_score_update(user.id, scoreSpec.assignment_id, total)
     return total
 
 

@@ -950,7 +950,7 @@ async def get_admin(
 @router.get("/cancel_lti")
 async def cancel_lti(request: Request, user=Depends(auth_manager)):
     """
-    Cancel the LTI session.
+    Cancel the LTI 1.1 session.
     """
     # get the course
     course = await fetch_course(user.course_name)

@@ -65,7 +65,7 @@ def add_exception_handlers(app):
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content=jsonable_encoder(
-                {"detail": "You need to be Logged in to access this resource"}
+                {"detail": "You need to be logged in to Runestone to access this resource"}
             ),
         )
         # If we want to redirect the user to a login page which we really do not...
