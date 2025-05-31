@@ -157,8 +157,8 @@ services:
       - REDIS_URI=redis://${REDIS_HOST}:6379/0
       # Note: host.docker.internal refers back to the host so we can just use a local instance
       # of postgresql
-      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
-      - DBURL=${DC_DBURL:-$DBURL}
+      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}?ssl=disable
+      - DBURL=${DC_DBURL:-$DBURL}?ssl=disable
       - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
       - JWT_SECRET=${JWT_SECRET}
       - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
