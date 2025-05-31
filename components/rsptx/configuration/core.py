@@ -64,7 +64,7 @@ class Settings(BaseSettings):
 
     # The path to the Runestone application inside web2py.
 
-    runestone_path: PosixPath = Path(
+    runestone_path: Path = Path(
         os.environ.get("RUNESTONE_PATH", Path.home())
     ).resolve()
 

@@ -106,6 +106,11 @@ def build():
         else:
             login_required = "true"
 
+        if request.vars.domainname:
+            domainname = request.vars.domainname
+        else:
+            domainname = None
+
         # TODO: Update new_server after full away from old server
         cid = db.courses.update_or_insert(
             course_name=request.vars.projectname,
@@ -117,6 +122,7 @@ def build():
             courselevel=courselevel,
             state=request.vars.state,
             new_server=True,
+            domain_name=domainname,
         )
 
         origin = getCourseOrigin(base_course)

@@ -18,13 +18,15 @@ packages = [
     { include = "rsptx/exceptions", from = "../../components" },
     { include = "rsptx/book_server_api", from = "../../bases" },
     { include = "rsptx/practice", from = "../../components" },
-    { include = "rsptx/data_types", from = "../../components" },
+    { include = "rsptx/lti1p3", from = "../../components" },
+    { include = "rsptx/data_types", from = "../../components" }
 ]
 
 
 [tool.poetry.dependencies]
 python = "^3.10"
 aioredis = "^2.0.0"
+aiohttp = "^3.11.11"
 async-timeout = "^4.0.0"
 celery = { extras = ["redis"], version = "^5.0.0" }
 fastapi = "^0.103.0"
@@ -56,6 +58,7 @@ pillow = "^10.0.0"
 pydantic-settings = "^2.0.3"
 pytz = "^2024.2"
 requests = "^2.0.0"
+jwcrypto = "^1.5.6"
 psycopg2-binary = "^2.0.0"
 
 [tool.poetry.group.dev.dependencies]
@@ -73,7 +76,6 @@ PyVirtualDisplay = "^3.0"
 polling2 = "^0.5.0"
 pytest-asyncio = "^0.17.0"
 pytest-env = "^0.6.0"
-# This is a Runestone Components dependency that's needed when testing PostgreSQL.
 # This is used by VSCode for Python refactoring
 rope = "^0.21.0"
 runestone = { path = "../interactives", develop = true }

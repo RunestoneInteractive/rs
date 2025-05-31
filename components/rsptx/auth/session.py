@@ -37,15 +37,22 @@ class NotAuthenticatedException(Exception):
 # Note -- when we upgrade to fastapi-login >= 1.10 we can use the following
 # not_authenticated_exception = NotAuthenticatedException in the constructor
 
+class RSLoginManager(LoginManager):
+    """
+    Custom LoginManager class to force access token cookie to be SameSite=None so that iframe embedding and redirects from LTI tools work properly.
+    """
+    def set_cookie(self, response, token):
+        response.set_cookie(key=self.cookie_name, value=token, httponly=True, samesite="None", secure=True)
+
 try:
-    auth_manager = LoginManager(
+    auth_manager = RSLoginManager(
         settings.jwt_secret,
         "/auth/validate",
         use_cookie=True,
         custom_exception=NotAuthenticatedException,
     )
 except:
-    auth_manager = LoginManager(
+    auth_manager = RSLoginManager(
         settings.jwt_secret,
         "/auth/validate",
         use_cookie=True,
