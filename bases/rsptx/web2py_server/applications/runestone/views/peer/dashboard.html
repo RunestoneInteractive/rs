@@ -1,4 +1,15 @@
-{{ extend "admin/instructors.html"}} {{ block tabcontent }}
+{{ extend "admin/instructors.html"}}
+
+<!-- {{ block moreincludes }}
+    <link
+        rel="stylesheet"
+        href="{{=URL('static','css/peer.css')}}?v={{=request.peer_mtime}}"
+    />
+{{ end }} -->
+
+{{ block tabcontent }}
+
+<title>Peer Instruction: {{=assignment_name}}</title>
 
 <script>
     eBookConfig.peer = true;
@@ -10,95 +21,47 @@
 <h2>Peer Instruction: {{=assignment_name}}</h2>
 
 <div class="row">
-    <div class="col-md-6">
-        <form
-            action="/runestone/peer/dashboard"
-            method="GET"
+    <form
+        action="/runestone/peer/dashboard"
+        method="GET"
+    >
+        <div id="pi-question-info">
+            <div class="d-flex align-items-center gap-5">
+                <h3 class="fw-normal">Question {{ =current_qnum }} of {{ =num_questions }}</h3>
 
-        >
-            <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
-            <label for="groupsize">Group Size</label>
-            <select id="groupsize" name="groupsize">
-                <option value="2"
-                {{ if groupsize == "2": }}
-                  selected
-                {{ pass }}
-                >2</option>
-                <option value="3"
-                {{ if groupsize == "3": }}
-                  selected
-                {{ pass }}
-                >3</option>
-                <option value="4"
-                {{ if groupsize == "4": }}
-                  selected
-                {{ pass }}
-                >4</option>
-                <option value="5"
-                {{ if groupsize == "5": }}
-                  selected
-                {{ pass }}
-                >5</option>
-            </select>
-            <br />
-            <button
-                type="button"
-                id="vote1"
-                class="btn btn-info"
-                onclick="warnAndStopVote(event)"
-            >
-                Stop Vote 1
-            </button>
-        <div id="chat-modality">
-            <button
-                type="button"
-                id="makep"
-                class="btn btn-info"
-                onclick="makePartners(event,false)"
-                disabled
-            >
-                Enable Text Chat
-            </button>
-            <button
-                type="button"
-                id="facechat"
-                class="btn btn-info"
-                onclick="enableFaceChat(event)"
-                disabled
-            >
-            Enable in-person Chat
-            </button>
-            {{ if enable_ab: }}   
-            <button
-                type="button"
-                id="makeabgroups"
-                class="btn btn-info"
-                onclick="makePartners(event, true)"
-                disabled
-            >
-                Run AB Experiment
-            </button>
-        </div>
-            {{ pass }}
-            <button
-                type="button"
-                id="vote2"
-                class="btn btn-info"
-                onclick="startVote2(event)"
-                disabled
-            >
-                Start Vote 2
-            </button>
-            <button
-                type="button"
-                id="vote3"
-                class="btn btn-info"
-                onclick="warnAndStopVote(event)"
-                disabled
-            >
-                Stop Vote 2
-            </button>
-            <div>
+                <div class="d-flex gap-3">
+                    <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
+                    <label for="groupsize">Group Size</label>
+                    <select id="groupsize" name="groupsize">
+                        <option value="2"
+                        {{ if groupsize == "2": }}
+                        selected
+                        {{ pass }}
+                        >2</option>
+                        <option value="3"
+                        {{ if groupsize == "3": }}
+                        selected
+                        {{ pass }}
+                        >3</option>
+                        <option value="4"
+                        {{ if groupsize == "4": }}
+                        selected
+                        {{ pass }}
+                        >4</option>
+                        <option value="5"
+                        {{ if groupsize == "5": }}
+                        selected
+                        {{ pass }}
+                        >5</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="pi-session-status">
+                Session Not Started
+            </div>
+
+            <div id="pi-assignment-navigation" class="d-flex gap-2">
                 <button
                     type="submit"
                     id="nextq"
@@ -117,20 +80,124 @@
                 >
                     Start Over
                 </button>
+                {{ if lti: }}
+                    <button
+                        type="button"
+                        id="sendScores"
+                        class="btn btn-info"
+                        onclick="sendLtiScores(event)"
+                        disabled
+                    >
+                        Send LTI Scores
+                    </button>
+                {{ pass }}
             </div>
-            {{ if lti: }}
-            <button
-                type="button"
-                id="sendScores"
-                class="btn btn-info"
-                onclick="sendLtiScores(event)"
-                disabled
-                >
-            Send LTI Scores
-            </button>
-            {{ pass }}
-        </form>
-    </div>
+        </div>
+
+        <div class="row">
+            <div class="pi-stepper">
+                <div class="pi-step-group active">
+                    <div class="pi-step first active">
+                        <div class="pi-step-number">
+                            <div class="pi-step-number-inner">1</div>
+                        </div>
+                        <div class="pi-step-buttons">
+                            <button
+                                type="button"
+                                id="vote1"
+                                class="btn btn-info"
+                                onclick="warnAndStopVote(event)"
+                            >
+                                Stop Vote 1
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pi-step-group middle">
+                    <div class="pi-stepper-line"></div>
+                    <div class="pi-step outside">
+                        <div class="pi-step-number">
+                            <div class="pi-step-number-inner">2</div>
+                        </div>
+                        <div class="pi-step-buttons" id="chat-modality">
+                            <button
+                                type="button"
+                                id="makep"
+                                class="btn btn-info"
+                                onclick="makePartners(event,false)"
+                                disabled
+                            >
+                                Enable Text Chat
+                            </button>
+                            OR
+                            <button
+                                type="button"
+                                id="facechat"
+                                class="btn btn-info"
+                                onclick="enableFaceChat(event)"
+                                disabled
+                            >
+                                Enable in-person Chat
+                            </button>
+                            {{ if enable_ab: }}
+                                OR
+                                <button
+                                    type="button"
+                                    id="makeabgroups"
+                                    class="btn btn-info"
+                                    onclick="makePartners(event, true)"
+                                    disabled
+                                >
+                                    Run AB Experiment
+                                </button>
+                            {{ pass }}
+                        </div>
+                    </div>
+                    <div class="pi-stepper-line"></div>
+                </div>
+
+                <div class="pi-step-group">
+                    <div class="pi-step">
+                        <div class="pi-step-number">
+                            <div class="pi-step-number-inner">3</div>
+                        </div>
+                        <div class="pi-step-buttons">
+                            <button
+                                type="button"
+                                id="vote2"
+                                class="btn btn-info"
+                                onclick="startVote2(event)"
+                                disabled
+                            >
+                                Start Vote 2
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pi-stepper-line"></div>
+
+                    <div class="pi-step last">
+                        <div class="pi-step-number">
+                            <div class="pi-step-number-inner">4</div>
+                        </div>
+                        <div class="pi-step-buttons">
+                            <button
+                                type="button"
+                                id="vote3"
+                                class="btn btn-info"
+                                onclick="warnAndStopVote(event)"
+                                disabled
+                            >
+                                Stop Vote 2
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </form>
 </div>
 
 <div id="imessage"></div>
