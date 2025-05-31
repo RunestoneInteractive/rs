@@ -8,6 +8,14 @@ license = ""
 packages = [
     { include = "rsptx/web2py_server", from = "../../bases" },
     { include = "rsptx/cl_utils", from = "../../components" },
+    { include = "rsptx/logging", from = "../../components" },
+    { include = "rsptx/db", from = "../../components" },
+    { include = "rsptx/validation", from = "../../components" },
+    { include = "rsptx/configuration", from = "../../components" },
+    { include = "rsptx/response_helpers", from = "../../components" },
+    { include = "rsptx/exceptions", from = "../../components" },
+    { include = "rsptx/lti1p3", from = "../../components" },
+    { include = "rsptx/data_types", from = "../../components" }
 ]
 
 exclude = ["**/errors/*", "**/tests", "**/__pycache__", "**/docker", "**/jobeinabox"]
@@ -16,14 +24,18 @@ exclude = ["**/errors/*", "**/tests", "**/__pycache__", "**/docker", "**/jobeina
 python = "^3.10"
 
 # This is actually an rsmanage dependency. It's here so that rsmanage can be installed without installing this, which requires Postgres (available only in the container).
+aiohttp = "^3.11.11"
 altair = "^4.0.0"
 beautifulsoup4 = "^4.0.0"
 bleach = "> 3.1.1"
 boto3 = "^1.26.30"
 cryptography = "^3.0.0"
 cssselect = ">= 1.0"
+fastapi = "^0.103.0"
+fastapi_login = "^1.10.3"
 diff-match-patch = ">= 20110725.1"
 lxml = ">= 4.6.2"
+jwcrypto = "^1.5.6"
 numpy = "^1.0.0"
 oauth2 = ">=1.9"
 pandas = "^1.0.0"
@@ -31,7 +43,7 @@ pathlib2 = "^2.0.0"
 Paver = ">= 1.2.4"
 pgcli = "^3.0.0"
 psycopg2-binary = "^2.0.0"
-pyjwt = "== 2.0.1"
+pyjwt = "^2.10.1"
 pylint = ">= 1.2.1"
 python-dateutil = ">= 2.4.2"
 pytz = ">= 2016.6.1"

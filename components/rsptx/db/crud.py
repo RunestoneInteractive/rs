@@ -45,8 +45,8 @@ from fastapi.exceptions import HTTPException
 from pydal.validators import CRYPT
 from sqlalchemy import and_, distinct, func, update, or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql import select, text, delete
-from sqlalchemy.orm import aliased
+from sqlalchemy.sql import select, text, delete, insert
+from sqlalchemy.orm import aliased, joinedload, contains_eager, attributes
 from starlette.requests import Request
 
 from rsptx.validation import schemas
@@ -85,6 +85,7 @@ from rsptx.db.models import (
     CoursesValidator,
     DeadlineException,
     DeadlineExceptionValidator,
+    DomainApprovals,
     EditorBasecourse,
     Grade,
     GradeValidator,
@@ -92,6 +93,14 @@ from rsptx.db.models import (
     Library,
     LibraryValidator,
     LtiKey,
+    Lti1p3Conf,
+    Lti1p3ConfValidator,
+    Lti1p3Course,
+    Lti1p3CourseValidator,
+    Lti1p3User,
+    Lti1p3UserValidator,
+    Lti1p3Assignment,
+    Lti1p3AssignmentValidator,
     Question,
     QuestionGrade,
     QuestionGradeValidator,
@@ -233,6 +242,19 @@ async def get_peer_votes(div_id: str, course_name: str, voting_stage: int):
         return {"acts": []}
 
 
+async def get_book_chapters(course_name: str) -> List[ChapterValidator]:
+    """
+    Retrieve all chapters for a given course (course_name)
+    
+    :param course_name: str, the name of the course
+    :return: List[ChapterValidator], a list of ChapterValidator objects representing the chapters
+    """
+    query = select(Chapter).where(Chapter.course_id == course_name).order_by(Chapter.chapter_num)
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [ChapterValidator.from_orm(x) for x in res.scalars().fetchall()]
+
+
 async def fetch_chapter_for_subchapter(subchapter: str, base_course: str) -> str:
     """
     Used for pretext books where the subchapter is unique across the book
@@ -252,6 +274,27 @@ async def fetch_chapter_for_subchapter(subchapter: str, base_course: str) -> str
     async with async_session() as session:
         chapter_label = await session.execute(query)
         return chapter_label.scalars().first()
+    
+
+async def get_book_subchapters(course_name: str) -> List[SubChapterValidator]:
+    """
+    Retrieve all subchapters for a given course (course_name)
+    
+    :param course_name: str, the name of the course
+    :return: List[SubChapterValidator], a list of SubChapterValidator objects
+    """
+    query = (
+        select(SubChapter)
+        .join(Chapter)
+        .where(
+            (Chapter.course_id == course_name) & (SubChapter.chapter_id == Chapter.id)
+        )
+        .order_by(Chapter.chapter_num, SubChapter.sub_chapter_num)
+    )
+    async with async_session() as session:
+        print(query)
+        res = await session.execute(query)
+        return [SubChapterValidator.from_orm(x) for x in res.scalars().fetchall()]
 
 
 async def fetch_page_activity_counts(
@@ -543,6 +586,23 @@ async def create_course(course_info: CoursesValidator) -> None:
         session.add(new_course)
     return new_course
 
+async def user_in_course(
+    user_id: int, course_id: int
+) -> bool:
+    """
+    Return true if given user is in indicated course
+
+    :param user_id: int, the user id
+    :param course_id: the id of the course
+    :return: True / False
+    """
+    query = select(func.count(UserCourse.course_id)).where(
+        and_(UserCourse.user_id == user_id, UserCourse.course_id == course_id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        res_count = res.scalars().fetchall()[0]
+        return res_count != 0
 
 async def fetch_courses_for_user(
     user_id: int, course_id: Optional[int] = None
@@ -690,9 +750,12 @@ async def get_course_origin(base_course):
 
 # auth_user
 # ---------
-async def fetch_user(user_name: str) -> AuthUserValidator:
+async def fetch_user(user_name: str, fallback_to_registration: bool = False) -> AuthUserValidator:
     """
     Retrieve a user by their username (user_name)
+
+    fallback_to_registration is for LTI logins to match existing instructor accounts.
+    If user_name is not found, try to find the user by their registration_id (initial email).
 
     :param user_name: str, the username of the user
     :return: AuthUserValidator, the AuthUserValidator object representing the user
@@ -701,6 +764,10 @@ async def fetch_user(user_name: str) -> AuthUserValidator:
     async with async_session() as session:
         res = await session.execute(query)
         user = res.scalars().one_or_none()
+        if not user and fallback_to_registration:
+            fallback_query = select(AuthUser).where(AuthUser.registration_id == user_name)
+            res = await session.execute(fallback_query)
+            user = res.scalars().one_or_none()
     return AuthUserValidator.from_orm(user)
 
 
@@ -893,15 +960,26 @@ async def fetch_course_instructors(
 async def create_instructor_course_entry(iid: int, cid: int) -> CourseInstructor:
     """
     Create a new CourseInstructor entry with the given instructor id (iid) and course id (cid)
+    Sanity checks to make sure that the instructor is not already associated with the course
 
     :param iid: int, the id of the instructor
     :param cid: int, the id of the course
     :return: CourseInstructor, the newly created CourseInstructor object
     """
-    nci = CourseInstructor(course=cid, instructor=iid)
+
     async with async_session.begin() as session:
-        session.add(nci)
-    return nci
+        res = await session.execute(
+            select(CourseInstructor)
+            .where(
+                (CourseInstructor.course == cid) &
+                (CourseInstructor.instructor == iid)
+            )
+        )
+        ci = res.scalars().first()
+        if ci is None:
+            ci = CourseInstructor(course=cid, instructor=iid)
+            session.add(ci)
+    return ci
 
 
 async def fetch_course_students(course_id: int) -> List[AuthUserValidator]:
@@ -1841,7 +1919,23 @@ async def fetch_all_assignment_stats(
         return [GradeValidator.from_orm(a) for a in res.scalars()]
 
 
-# write a function that given a userid and a courseid fetches a Grade object from the database
+async def fetch_all_grades_for_assignment(
+    assignment_id: int,
+) -> list[GradeValidator]:
+    """
+    Fetch all grades for the given assignment id (assignment_id)
+    
+    :param assignment_id: int, the id of the assignment
+    :return: List[GradeValidator], a list of GradeValidator objects
+    """
+    query = select(Grade).where(Grade.assignment == assignment_id)
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        return [GradeValidator.from_orm(a) for a in res.scalars()]
+
+
 async def fetch_grade(userid: int, assignmentid: int) -> Optional[GradeValidator]:
     """
     Fetch the Grade object for the given user and assignment.
@@ -3155,22 +3249,25 @@ async def did_send_messages(sid: str, div_id: str, course_name: str) -> bool:
             return False
 
 
-async def uses_lti(course_id: int) -> bool:
+async def fetch_lti_version(course_id: int) -> str:
     """
-    Check if a course uses LTI.
+    Check if a course uses LTI 1.1, 1.3 or none
 
     :param course_id: int, the id of the course
-    :return: bool, whether the course uses LTI
+    :return: str for LTI version (1.1 or 1.3) or None
     """
     query = select(CourseLtiMap).where(CourseLtiMap.course_id == course_id)
+    query2 = select(Lti1p3Course).where(Lti1p3Course.rs_course_id == course_id)
     async with async_session() as session:
         res = await session.execute(query)
-        # check the number of rows in res
-
         if len(res.all()) > 0:
-            return True
+            return "1.1"
 
-    return False
+        res2 = await session.execute(query2)
+        if len(res2.all()) > 0:
+            return "1.3"
+
+        return None
 
 
 async def create_lti_course(course_id: int, lti_id: str) -> CourseLtiMap:
@@ -3209,6 +3306,301 @@ async def delete_lti_course(course_id: int) -> bool:
         await session.execute(d_query2)
 
     return True
+
+#-----------------------------------------------------------------------
+# LTI 1.3
+async def upsert_lti1p3_config(config: Lti1p3Conf) -> Lti1p3Conf:
+    """
+    Insert or update an LTI1.3 platform config.
+    issuer and client_id must be provided. If they match an existing record,
+    all other fields are optional and only need to be provided if they are to be updated.
+    """
+    async with async_session() as session:
+        query = select(Lti1p3Conf).where(
+            (Lti1p3Conf.issuer == config.issuer) & 
+            (Lti1p3Conf.client_id == config.client_id)
+        )
+        res = await session.execute(query)
+        existing_conf = res.scalars().one_or_none()
+        await session.commit()
+        if existing_conf:
+            existing_conf.update_from_dict(config.dict())
+            # Validate now that we have built full object
+            Lti1p3ConfValidator.from_orm(existing_conf)
+            ret = existing_conf
+        else:
+            Lti1p3ConfValidator.from_orm(config) # validate data
+            session.add(config)
+            ret = config
+        await session.commit()
+        return ret
+
+async def fetch_lti1p3_config(id: int) -> Lti1p3Conf:
+    """
+    Retrieve an LTI1.3 platform configuration
+    """
+    query = select(Lti1p3Conf).where(
+        (Lti1p3Conf.id == id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        conf = res.scalars().one_or_none()
+        return conf
+    
+async def fetch_lti1p3_config_by_lti_data(issuer: str, client_id: str) -> Lti1p3Conf:
+    """
+    Retrieve an LTI1.3 platform config by issuer and client_id.
+    """
+    query = select(Lti1p3Conf).where(
+        (Lti1p3Conf.issuer == issuer) & 
+        (Lti1p3Conf.client_id == client_id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        conf = res.scalars().one_or_none()
+        return conf
+
+async def upsert_lti1p3_course(course: Lti1p3Course) -> Lti1p3Course:
+    """
+    Insert or update an LTI1.3 course.
+
+    rs_course_id must be provided and will be used to identify the record to update.
+    all other fields are optional and only need to be provided if they are to be updated.
+    """
+    async with async_session() as session:
+        query = select(Lti1p3Course).where(
+            (Lti1p3Course.rs_course_id == course.rs_course_id)
+        )
+        res = await session.execute(query)
+        existing_course = res.scalars().one_or_none()
+        await session.commit()
+        if existing_course:
+            existing_course.update_from_dict(course.dict())
+            # Validate now that we have built full object
+            Lti1p3CourseValidator.from_orm(existing_course)
+            ret = existing_course
+        else:
+            Lti1p3CourseValidator.from_orm(course)
+            session.add(course)
+            ret = course
+        await session.commit()
+        return ret
+    
+async def delete_lti1p3_course(rs_course_id: int) -> int:
+    """
+    Delete an LTI1.3 course mapping by the rs_course_id it is associated with
+    """
+    query = delete(Lti1p3Course).where(Lti1p3Course.rs_course_id == rs_course_id)
+    async with async_session() as session:
+        res = await session.execute(query)
+        await session.commit()
+        return res.rowcount
+
+async def fetch_lti1p3_course(id: int, with_config: bool = True, with_rs_course: bool = False) -> Lti1p3Course:
+    """
+    Retrieve an LTI1.3 course by its id
+    Also optionally fetches the associated Lti1p3Conf and/or RS Course
+    """
+    query = select(Lti1p3Course).where(Lti1p3Course.id == id)
+    if with_config:
+        query = query.options(joinedload(Lti1p3Course.lti_config))
+    if with_rs_course:
+        query = query.options(joinedload(Lti1p3Course.rs_course))
+    async with async_session() as session:
+        res = await session.execute(query)
+        course = res.scalars().one_or_none()
+        return course
+
+async def fetch_lti1p3_course_by_rs_course(rs_course: CoursesValidator, with_config: bool = True) -> Lti1p3Course:
+    """
+    Retrieve an LTI1.3 platform config by its id
+    Also optionally fetches the associated Lti1p3Conf and/or Course
+    """
+    query = select(Lti1p3Course).where(Lti1p3Course.rs_course_id == rs_course.id)
+    if with_config:
+        query = query.options(joinedload(Lti1p3Course.lti_config))
+    async with async_session() as session:
+        res = await session.execute(query)
+        course = res.scalars().one_or_none()
+        return course
+
+async def fetch_lti1p3_course_by_id(id: int, with_config: bool = True, with_rs_course: bool = False) -> Lti1p3Course:
+    """
+    Retrieve an LTI1.3 platform config by its id
+    Also optionally fetches the associated Lti1p3Conf and/or Course
+    """
+    query = select(Lti1p3Course).where(Lti1p3Course.id == id)
+    if with_config:
+        query = query.options(joinedload(Lti1p3Course.lti_config))
+    if with_rs_course:
+        query = query.options(joinedload(Lti1p3Course.rs_course))
+    async with async_session() as session:
+        res = await session.execute(query)
+        dep = res.scalars().one_or_none()
+        return dep
+
+async def fetch_lti1p3_course_by_lti_id(lti_id: str, with_config: bool = True, with_rs_course: bool = False) -> Lti1p3Course:
+    """
+    Retrieve an LTI1.3 platform config by its lti identifier
+    Also optionally fetches the associated Lti1p3Conf and/or Course
+    """
+    query = select(Lti1p3Course).where(Lti1p3Course.lti1p3_course_id == lti_id)
+    if with_config:
+        query = query.options(joinedload(Lti1p3Course.lti_config))
+    if with_rs_course:
+        query = query.options(joinedload(Lti1p3Course.rs_course))
+    async with async_session() as session:
+        res = await session.execute(query)
+        dep = res.scalars().one_or_none()
+        return dep
+
+async def fetch_lti1p3_course_by_lti_data(issuer: str, client_id: str, deploy_id: str, with_config: bool = True) -> Lti1p3Course:
+    """
+    Retrieve an LTI1.3 platform config by issuer and client_id.
+    Also fetches the associated Lti1p3Conf
+    """
+    query = select(Lti1p3Course).join(Lti1p3Conf).where(
+        (Lti1p3Conf.issuer == issuer) & 
+        (Lti1p3Conf.client_id == client_id) &
+        (Lti1p3Course.deployment_id == deploy_id)
+    )
+    if with_config:
+        query = query.options(joinedload(Lti1p3Course.lti_config))
+    async with async_session() as session:
+        res = await session.execute(query)
+        dep = res.scalars().one_or_none()
+        return dep
+
+async def upsert_lti1p3_user(user: Lti1p3User) -> Lti1p3User:
+    """
+    Insert or update an LTI1.3 user mapping.
+    """
+    async with async_session() as session:
+        query = select(Lti1p3User).where(
+            (Lti1p3User.lti1p3_course_id == user.lti1p3_course_id) &
+            (Lti1p3User.rs_user_id == user.rs_user_id)
+        )
+        res = await session.execute(query)
+        existing_user = res.scalars().one_or_none()
+        await session.commit()
+        if existing_user:
+            # never should never need to update lti_user_id
+            return existing_user
+        else:
+            new_user = Lti1p3User(
+                lti1p3_course_id=user.lti1p3_course_id,
+                rs_user_id=user.rs_user_id,
+                lti_user_id=user.lti_user_id
+            )
+            Lti1p3UserValidator.from_orm(new_user)
+            session.add(new_user)
+            await session.commit()
+            return new_user
+
+async def fetch_lti1p3_user(rs_user_id: int, lti1p3_course_id: int) -> Lti1p3User:
+    """
+    Retrieve a user's LTI1.3 mapping for a particular course
+    """
+    query = select(Lti1p3User).where(
+        (Lti1p3User.rs_user_id == rs_user_id) & 
+        (Lti1p3User.lti1p3_course_id == lti1p3_course_id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        user = res.scalars().one_or_none()
+        return user
+
+async def fetch_lti1p3_users_for_course(lti1p3_course_id: int, with_rsuser: bool = True) -> List[Lti1p3User]:
+    """
+    Retrieve all LTI1.3 user mapping for a particular course
+    """
+    query = select(Lti1p3User).where(
+        (Lti1p3User.lti1p3_course_id == lti1p3_course_id)
+    )
+    if with_rsuser:
+        query = query.options(joinedload(Lti1p3User.rs_user))
+    async with async_session() as session:
+        res = await session.execute(query)
+        users = res.scalars().all()
+        return users
+        
+async def upsert_lti1p3_assignment(assignment: Lti1p3Assignment) -> Lti1p3Assignment:
+    """
+    Insert or update an LTI1.3 assignment mapping.
+    """
+    async with async_session() as session:
+        query = select(Lti1p3Assignment).where(
+            (Lti1p3Assignment.lti1p3_course_id == assignment.lti1p3_course_id) &
+            (Lti1p3Assignment.rs_assignment_id == assignment.rs_assignment_id)
+        )
+        res = await session.execute(query)
+        existing_assignment = res.scalars().one_or_none()
+        await session.commit()
+        if existing_assignment:
+            existing_assignment.update_from_dict(assignment.dict())
+            # Validate now that we have full object
+            Lti1p3AssignmentValidator.from_orm(existing_assignment)
+            ret = existing_assignment
+        else:
+            new_assignment = Lti1p3Assignment(
+                lti1p3_course_id=assignment.lti1p3_course_id,
+                rs_assignment_id=assignment.rs_assignment_id,
+                lti_lineitem_id=assignment.lti_lineitem_id
+            )
+            Lti1p3AssignmentValidator.from_orm(new_assignment)
+            session.add(new_assignment)
+            ret = new_assignment
+        await session.commit()
+        return ret
+
+async def fetch_lti1p3_assignments_by_rs_assignment_id(rs_assignment_id: int) -> Lti1p3Assignment:
+    """
+    Retrieve an LTI1.3 assignment mapping. There may be more than record as one RS course
+    might be mapped to multiple different LTI assignments. 
+    """
+    query = select(Lti1p3Assignment).where(
+        (Lti1p3Assignment.rs_assignment_id == rs_assignment_id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        assignment = res.scalars().all()
+        return assignment
+
+async def fetch_lti1p3_assignments_by_rs_course_id(rs_course_id: int) -> List[Lti1p3Assignment]:
+    """
+    Retrieve all LTI1.3 assignment mappings for a course
+    """
+    query = select(Lti1p3Assignment).join(Assignment).where(
+        (Assignment.course == rs_course_id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        assignments = res.scalars().all()
+        return assignments
+
+
+async def fetch_lti1p3_grading_data_for_assignment(rs_assignment_id: int) -> Lti1p3Assignment:
+    """
+    Fetch data needed to submit grades for a particular assignment
+    """
+    async with async_session() as session:
+        query = (
+            select(Lti1p3Assignment).
+            join(Lti1p3Course, Lti1p3Course.id == Lti1p3Assignment.lti1p3_course_id)
+            .where(Lti1p3Assignment.rs_assignment_id == rs_assignment_id)
+            .options(
+                joinedload(Lti1p3Assignment.rs_assignment),
+                joinedload(Lti1p3Assignment.lti1p3_course),
+                joinedload(Lti1p3Assignment.lti1p3_course).joinedload(Lti1p3Course.lti_config),
+                joinedload(Lti1p3Assignment.lti1p3_course).joinedload(Lti1p3Course.rs_course)
+            )
+        )
+        res = await session.execute(query)
+        assign = res.scalars().one_or_none()
+        return assign
+
+# /LTI 1.3
+#-----------------------------------------------------------------------
 
 
 async def create_invoice_request(
@@ -3517,3 +3909,23 @@ async def fetch_api_token(
             return APITokenValidator.from_orm(token)
         return None
 
+# DomainApprovals
+# ------------------
+async def check_domain_approval(
+    course_id: int, approval_type: attributes.InstrumentedAttribute
+) -> bool:
+    """
+    Check if a domain approval exists for a given course and approval type.
+    :param course_id: int, the id of the course
+    :param approval_type: sqlalchemy.orm.attributes.InstrumentedAttribute, the type of approval (e.g., 'DomainApprovals.lti1p3')
+    """
+    query = select(Courses.domain_name) \
+            .join(DomainApprovals, Courses.domain_name == DomainApprovals.domain_name) \
+            .where(
+                (approval_type == True)
+                & (Courses.id == course_id)
+            )
+    async with async_session() as session:
+        res = await session.execute(query)
+        domain = res.scalars().first()
+        return domain is not None
