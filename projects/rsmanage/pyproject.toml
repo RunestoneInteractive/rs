@@ -45,6 +45,7 @@ pandas = "^1.0.0"
 numpy = "^1.0.0"
 tqdm = "^4.66.4"
 CodeChat = "1.9.3"
+cryptography = "^3.0.0"
 
 [tool.poetry.group.dev.dependencies]
 runestone = { path = "../interactives", develop = true }
