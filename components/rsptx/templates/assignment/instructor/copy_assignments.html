@@ -80,12 +80,12 @@
 <div id="messageContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
 {% endblock %}
 
-{% block additional_javascript %}
+{% block js %}
 <script>
     // Function to get assignments list when course is selected
     function getAssignList(sel) {
         const data = { course_name: sel.value };
-        $("#assignSelection select").remove();
+        $("#assignSelection").empty(); // Clear the entire container
         $("#copyButton").prop('disabled', true);
 
         if (!sel.value) {
@@ -113,6 +113,7 @@
             let opt = document.createElement("option");
             opt.value = -1;
             opt.text = "All Assignments";
+            opt.selected = true; // Select "All Assignments" by default
             sel.appendChild(opt);
 
             // Add individual assignments
@@ -124,6 +125,9 @@
             }
 
             container.appendChild(sel);
+
+            // Enable the copy button since "All Assignments" is selected by default
+            $("#copyButton").prop('disabled', false);
         }).fail(function () {
             showMessage("Failed to load assignments for selected course", "error");
         });
@@ -190,7 +194,7 @@
 </script>
 {% endblock %}
 
-{% block additional_css %}
+{% block css %}
 <style>
     .page-title {
         color: #333;
