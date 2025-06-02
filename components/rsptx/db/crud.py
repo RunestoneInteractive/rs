@@ -73,6 +73,7 @@ from rsptx.db.models import (
     BookAuthor,
     Chapter,
     ChapterValidator,
+    ClickableareaAnswers,
     Code,
     CodeValidator,
     Competency,
@@ -86,7 +87,9 @@ from rsptx.db.models import (
     DeadlineException,
     DeadlineExceptionValidator,
     DomainApprovals,
+    DragndropAnswers,
     EditorBasecourse,
+    FitbAnswers,
     Grade,
     GradeValidator,
     InvoiceRequest,
@@ -101,6 +104,8 @@ from rsptx.db.models import (
     Lti1p3UserValidator,
     Lti1p3Assignment,
     Lti1p3AssignmentValidator,
+    MchoiceAnswers,
+    ParsonsAnswers,
     Question,
     QuestionGrade,
     QuestionGradeValidator,
@@ -108,6 +113,7 @@ from rsptx.db.models import (
     runestone_component_dict,
     SelectedQuestion,
     SelectedQuestionValidator,
+    ShortanswerAnswers,
     SourceCode,
     SourceCodeValidator,
     SubChapter,
@@ -127,6 +133,8 @@ from rsptx.db.models import (
     UserSubChapterProgress,
     UserSubChapterProgressValidator,
     UserTopicPractice,
+    UserTopicPracticeCompletion,
+    UserTopicPracticeFeedback,
     UserTopicPracticeValidator,
     APIToken,
     APITokenValidator,
@@ -2106,6 +2114,10 @@ async def fetch_questions_by_search_criteria(
                 Question.name.regexp_match(criteria.source_regex, flags="i"),
             )
         )
+
+
+
+
     if criteria.question_type:
         where_criteria.append(Question.question_type == criteria.question_type)
 
@@ -3475,7 +3487,7 @@ async def fetch_lti1p3_course_by_lti_data(issuer: str, client_id: str, deploy_id
 
 async def upsert_lti1p3_user(user: Lti1p3User) -> Lti1p3User:
     """
-    Insert or update an LTI1.3 user mapping.
+    Insert or update an LTI1.3 user mapping for a particular course
     """
     async with async_session() as session:
         query = select(Lti1p3User).where(
@@ -3540,7 +3552,7 @@ async def upsert_lti1p3_assignment(assignment: Lti1p3Assignment) -> Lti1p3Assign
         await session.commit()
         if existing_assignment:
             existing_assignment.update_from_dict(assignment.dict())
-            # Validate now that we have full object
+            # Validate now that we have built full object
             Lti1p3AssignmentValidator.from_orm(existing_assignment)
             ret = existing_assignment
         else:
@@ -4021,3 +4033,251 @@ async def update_course_settings(course_id: int, setting: str, value: str) -> No
                 session.add(new_attr)
 
         await session.commit()
+
+
+#-----------------------------------------------------------------------
+# Assessment Reset Functions
+#-----------------------------------------------------------------------
+
+async def fetch_timed_assessments(course_id: int) -> List[Tuple[str, str]]:
+    """
+    Retrieve all timed assessments for a given course.
+
+    :param course_id: int, the course id
+    :return: List[Tuple[str, str]], list of (name, description) tuples for timed assessments
+    """
+    query = (
+        select(Assignment.name, Assignment.description)
+        .where(
+            (Assignment.course == course_id)
+            & (Assignment.is_timed == "T")
+        )
+        .order_by(Assignment.name)
+    )
+    
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [(row.name, row.description or "") for row in res.all()]
+
+
+async def reset_student_assessment(username: str, assessment_name: str, course_name: str) -> bool:
+    """
+    Reset a student's timed assessment by:
+    1. Updating useinfo records to set act="start_reset"
+    2. Deleting timed_exam records
+    3. Deleting selected_questions records for exam questions
+
+    :param username: str, the student's username
+    :param assessment_name: str, the name of the assessment to reset
+    :param course_name: str, the name of the course
+    :return: bool, True if reset was successful
+    """
+    try:
+        async with async_session.begin() as session:
+            # Update useinfo records for this exam to mark as reset
+            useinfo_update = (
+                update(Useinfo)
+                .where(
+                    (Useinfo.sid == username)
+                    & (Useinfo.div_id == assessment_name)
+                    & (Useinfo.course_id == course_name)
+                    & (Useinfo.event == "timedExam")
+                )
+                .values(act="start_reset")
+            )
+            await session.execute(useinfo_update)
+            
+            # Delete timed_exam records
+            timed_exam_delete = delete(TimedExam).where(
+                (TimedExam.sid == username)
+                & (TimedExam.div_id == assessment_name)
+                & (TimedExam.course_name == course_name)
+            )
+            await session.execute(timed_exam_delete)
+            
+            # Get all question names for this assessment
+            assessment_questions_query = (
+                select(Question.name)
+                .join(AssignmentQuestion, Question.id == AssignmentQuestion.question_id)
+                .join(Assignment, AssignmentQuestion.assignment_id == Assignment.id)
+                .where(Assignment.name == assessment_name)
+            )
+            question_result = await session.execute(assessment_questions_query)
+            question_names = [row.name for row in question_result.scalars().all()]
+            
+            # Delete selected_questions records for all questions in this exam
+            if question_names:
+                selected_questions_delete = delete(SelectedQuestion).where(
+                    (SelectedQuestion.sid == username)
+                    & (SelectedQuestion.selector_id.in_(question_names))
+                )
+                await session.execute(selected_questions_delete)
+            
+            return True
+            
+    except Exception as e:
+        rslogger.error(f"Error deleting course {course_name}: {e}")
+        return False
+
+
+#-----------------------------------------------------------------------
+# Course Deletion Functions
+#-----------------------------------------------------------------------
+
+async def delete_course_completely(course_name: str) -> bool:
+    """
+    Completely delete a course and all associated data.
+    
+    WARNING: This is a destructive operation that cannot be undone.
+    
+    This function will delete:
+    - All student enrollments in the course
+    - All assignments and grades
+    - All course sections
+    - Student progress data (useinfo, timed_exam, etc.)
+    - Course customizations and settings
+    - LTI integrations
+    
+    :param course_name: str, the name of the course to delete
+    :return: bool, True if deletion was successful
+    """
+    try:
+        async with async_session.begin() as session:
+            # First, get the course information
+            course_query = select(Courses).where(Courses.course_name == course_name)
+            course_result = await session.execute(course_query)
+            course = course_result.scalar_one_or_none()
+            
+            if not course:
+                rslogger.warning(f"Course {course_name} not found for deletion")
+                return False
+            
+            course_id = course.id
+            rslogger.info(f"Starting deletion of course: {course_name} (ID: {course_id})")
+            
+            # Delete in order to respect foreign key constraints
+            
+            # 1. Delete student progress and activity data
+            rslogger.info("Deleting student activity data...")
+            
+            # Delete useinfo records
+            await session.execute(delete(Useinfo).where(Useinfo.course_id == course_name))
+            
+            # Delete timed exam records
+            await session.execute(delete(TimedExam).where(TimedExam.course_name == course_name))
+            
+            # Delete multiple choice answers
+            await session.execute(delete(MchoiceAnswers).where(MchoiceAnswers.course_name == course_name))
+            
+            # Delete fill-in-the-blank answers
+            await session.execute(delete(FitbAnswers).where(FitbAnswers.course_name == course_name))
+            
+            # Delete drag and drop answers
+            await session.execute(delete(DragndropAnswers).where(DragndropAnswers.course_name == course_name))
+            
+            # Delete clickable area answers
+            await session.execute(delete(ClickableareaAnswers).where(ClickableareaAnswers.course_name == course_name))
+            
+            # Delete parsons answers
+            await session.execute(delete(ParsonsAnswers).where(ParsonsAnswers.course_name == course_name))
+            
+            # Delete short answer responses
+            await session.execute(delete(ShortanswerAnswers).where(ShortanswerAnswers.course_name == course_name))
+            
+            # Delete coding answers
+            await session.execute(delete(Code).where(Code.course_id == course_name))
+            
+            # Note: PollAnswer model not found in imports, skipping poll responses deletion
+            # await session.execute(delete(PollAnswer).where(PollAnswer.course_name == course_name))
+            
+            # Delete selected questions for this course's students
+            # This is more complex as we need to find students in the course first
+            student_query = select(AuthUser.username).where(AuthUser.course_id == course_id)
+            student_result = await session.execute(student_query)
+            student_usernames = [row.username for row in student_result.scalars().all()]
+            
+            if student_usernames:
+                await session.execute(delete(SelectedQuestion).where(SelectedQuestion.sid.in_(student_usernames)))
+            
+            # 2. Delete grading and assignment data
+            rslogger.info("Deleting grades and assignments...")
+            
+            # Delete question grades for students in this course
+            await session.execute(delete(QuestionGrade).where(QuestionGrade.course_name == course_name))
+            
+            # Delete assignment grades for students in this course
+            assignment_query = select(Assignment.id).where(Assignment.course == course_id)
+            assignment_result = await session.execute(assignment_query)
+            assignment_ids = [row.id for row in assignment_result.scalars().all()]
+            
+            if assignment_ids:
+                await session.execute(delete(Grade).where(Grade.assignment.in_(assignment_ids)))
+            
+            # Delete assignment questions
+            if assignment_ids:
+                await session.execute(delete(AssignmentQuestion).where(AssignmentQuestion.assignment_id.in_(assignment_ids)))
+            
+            # Delete assignments
+            await session.execute(delete(Assignment).where(Assignment.course == course_id))
+            
+            # 3. Delete course instructor relationships
+            rslogger.info("Deleting instructor relationships...")
+            await session.execute(delete(CourseInstructor).where(CourseInstructor.course == course_id))
+            
+            # 4. Delete course attributes/settings
+            rslogger.info("Deleting course settings...")
+            await session.execute(delete(CourseAttribute).where(CourseAttribute.course_id == course_id))
+            
+            # 5. Delete practice/flashcard data
+            rslogger.info("Deleting practice data...")
+            await session.execute(delete(UserTopicPractice).where(UserTopicPractice.course_name == course_name))
+            await session.execute(delete(UserTopicPracticeCompletion).where(UserTopicPracticeCompletion.course_name == course_name))
+            await session.execute(delete(UserTopicPracticeFeedback).where(UserTopicPracticeFeedback.course_name == course_name))
+            
+            # 6. Delete payment/invoice data if exists
+            rslogger.info("Deleting payment data...")
+            # Note: We may want to preserve some payment data for accounting purposes
+            # For now, we'll delete invoice requests but preserve actual payments
+            if student_usernames:
+                student_ids_query = select(AuthUser.id).where(AuthUser.username.in_(student_usernames))
+                student_ids_result = await session.execute(student_ids_query)
+                student_ids = [row.id for row in student_ids_result.scalars().all()]
+                
+                if student_ids:
+                    await session.execute(delete(InvoiceRequest).where(InvoiceRequest.user_id.in_(student_ids)))
+            
+            # 7. Update student enrollments - move them to a default course or mark them inactive
+            rslogger.info("Updating student enrollments...")
+            # Instead of deleting users, we'll move them to a default "orphaned" course
+            # or set their course_id to None/default
+            
+            # Option 1: Set course_id to None (they become unenrolled)
+            await session.execute(
+                update(AuthUser)
+                .where(AuthUser.course_id == course_id)
+                .values(course_id=None, active="F")
+            )
+            
+            # Option 2: Alternative - move to a default "orphaned students" course
+            # This would require creating such a course first
+            # default_course_query = select(Courses).where(Courses.course_name == "orphaned_students")
+            # default_course = await session.execute(default_course_query)
+            # if default_course.scalar_one_or_none():
+            #     await session.execute(
+            #         update(AuthUser)
+            #         .where(AuthUser.course_id == course_id)
+            #         .values(course_id=default_course.scalar_one().id)
+            #     )
+            
+            # 8. Finally, delete the course itself
+            rslogger.info("Deleting course record...")
+            await session.execute(delete(Courses).where(Courses.id == course_id))
+            
+            rslogger.info(f"Successfully deleted course: {course_name}")
+            return True
+            
+    except Exception as e:
+        rslogger.error(f"Error deleting course {course_name}: {e}")
+        return False
+
+

@@ -30,6 +30,9 @@ from rsptx.db.crud import (
     fetch_users_for_course,
     create_instructor_course_entry,
     update_course_settings,
+    fetch_timed_assessments,
+    reset_student_assessment,
+    delete_course_completely,
 )
 from rsptx.auth.session import auth_manager
 from rsptx.templates import template_folder
@@ -329,8 +332,16 @@ async def get_course_settings(
         "student_page": False,
         "settings": settings,
         "start_date": start_date,
-        "downloads_enabled": str(course.downloads_enabled).lower() if course.downloads_enabled is not None else "false",
-        "allow_pairs": str(course.allow_pairs).lower() if course.allow_pairs is not None else "false",
+        "downloads_enabled": (
+            str(course.downloads_enabled).lower()
+            if course.downloads_enabled is not None
+            else "false"
+        ),
+        "allow_pairs": (
+            str(course.allow_pairs).lower()
+            if course.allow_pairs is not None
+            else "false"
+        ),
         "enable_compare_me": course_attrs.get("enable_compare_me", "false"),
         "show_points": course_attrs.get("show_points") == "true",
         "groupsize": course_attrs.get("groupsize", "3"),
@@ -338,3 +349,196 @@ async def get_course_settings(
 
     return templates.TemplateResponse("admin/instructor/course_settings.html", context)
 
+
+# Assessment Reset Model
+class AssessmentResetRequest(BaseModel):
+    student_username: str
+    assessment_name: str
+
+
+@router.get("/assessment_reset")
+@instructor_role_required()
+@with_course()
+async def get_assessment_reset(
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+    course=None,
+):
+    """
+    Display the assessment reset interface.
+    """
+    templates = Jinja2Templates(directory=template_folder)
+
+    # Get all students in the course
+    students = await fetch_users_for_course(course.course_name)
+
+    # Get all timed assessments for the course
+    assessment_tuples = await fetch_timed_assessments(course.id)
+    assessments = [
+        {"name": name, "description": desc} for name, desc in assessment_tuples
+    ]
+
+    context = {
+        "course": course,
+        "user": user,
+        "request": request,
+        "is_instructor": True,
+        "student_page": False,
+        "students": students,
+        "assessments": assessments,
+        "settings": settings,
+    }
+
+    return templates.TemplateResponse("admin/instructor/assessment_reset.html", context)
+
+
+@router.post("/reset_assessment")
+@instructor_role_required()
+@with_course()
+async def post_reset_assessment(
+    request: Request,
+    reset_data: AssessmentResetRequest,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Handle the actual assessment reset operation.
+    """
+    try:
+        # Perform the reset operation
+        success = await reset_student_assessment(
+            reset_data.student_username, reset_data.assessment_name, course.course_name
+        )
+
+        if success:
+            return JSONResponse(
+                content={
+                    "success": True,
+                    "message": f"Successfully reset assessment '{reset_data.assessment_name}' for student '{reset_data.student_username}'",
+                }
+            )
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "message": "Failed to reset assessment. Please check the logs for details.",
+                },
+            )
+
+    except Exception as e:
+        rslogger.error(f"Error in reset_assessment endpoint: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"An error occurred: {str(e)}"},
+        )
+
+
+# Course Deletion Model
+class CourseDeleteRequest(BaseModel):
+    course_name: str
+    confirmation: str
+
+
+@router.get("/course_delete")
+@instructor_role_required()
+@with_course()
+async def get_course_delete(
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+    course=None,
+):
+    """
+    Display the course deletion interface.
+    """
+    try:
+        # Get student count for the course
+        students = await fetch_users_for_course(course.course_name)
+        student_count = len(students) if students else 0
+
+        rslogger.info(
+            f"Rendering course deletion page for course: {course.course_name}"
+        )
+        templates = Jinja2Templates(directory=template_folder)
+        context = {
+            "course": course,
+            "student_count": student_count,
+            "user": user,
+            "request": request,
+            "is_instructor": True,
+            "student_page": False,
+            "settings": settings,
+        }
+
+        return templates.TemplateResponse(
+            "admin/instructor/course_delete.html", context
+        )
+
+    except Exception as e:
+        rslogger.error(f"Error in get_course_delete endpoint: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to load course deletion page: {str(e)}"
+        )
+
+
+@router.post("/delete_course")
+@instructor_role_required()
+@with_course()
+async def post_delete_course(
+    request: Request,
+    delete_data: CourseDeleteRequest,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Handle the actual course deletion operation.
+    """
+    try:
+        # Verify the course name matches
+        if delete_data.course_name != course.course_name:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "message": "Course name does not match the current course",
+                },
+            )
+
+        # Verify the confirmation
+        if delete_data.confirmation != "DELETE":
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "message": "Invalid confirmation. Must be 'DELETE'",
+                },
+            )
+
+        # Perform the course deletion
+        success = await delete_course_completely(course.course_name)
+
+        if success:
+            rslogger.info(f"Successfully deleted course: {course.course_name}")
+            return JSONResponse(
+                content={
+                    "success": True,
+                    "message": f"Successfully deleted course '{course.course_name}'",
+                }
+            )
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "message": "Failed to delete course. Please check the logs for details.",
+                },
+            )
+
+    except Exception as e:
+        rslogger.error(f"Error in delete_course endpoint: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"An error occurred: {str(e)}"},
+        )
