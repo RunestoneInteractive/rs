@@ -166,7 +166,7 @@ Instructor Dashboard
 
     <div class="course-info">
         <h3>{{ course.course_name }}</h3>
-        <p>Base Course: {{ course.base_course }}</p>
+        <p>Base Course: {{ course.base_course }} Take me to <a href="/ns/course/index">My Course</a>.</p>
     </div>
 
     <!-- Assignments & Grading Accordion -->
@@ -185,10 +185,6 @@ Instructor Dashboard
                     <h4>Assignment Builder</h4>
                     <p>Create and edit assignments with questions</p>
                 </a>
-                <a href="/runestone/admin/assignments" class="menu-item">
-                    <h4>Legacy Assignment Builder</h4>
-                    <p>From the days of RST and web2py.</p>
-                </a>
                 <a href="/runestone/admin/grading" class="menu-item">
                     <h4>Grader</h4>
                     <p>Grade student submissions and provide feedback</p>
@@ -200,6 +196,18 @@ Instructor Dashboard
                 <a href="/runestone/admin/practice" class="menu-item" onclick="">
                     <h4>Configure Practice</h4>
                     <p>Configure the spaced repitition practice tool.</p>
+                </a>
+                <a href="#" class="menu-item" onclick="showResetExam()">
+                    <h4>Reset Student Exam</h4>
+                    <p>Reset timed exams for individual students</p>
+                </a>
+                <a href="/runestone/peer/dashboard" class="menu-item">
+                    <h4>Peer Instruction Dashboard</h4>
+                    <p>Manage peer assignment reviews</p>
+                </a>
+                <a href="/runestone/admin/assignments" class="menu-item">
+                    <h4>Legacy Assignment Builder</h4>
+                    <p>Unsupported! Do not use this unless you really need it.</p>
                 </a>
 
             </div>
@@ -225,10 +233,6 @@ Instructor Dashboard
                 <a href="/runestone/dashboard/active" class="menu-item">
                     <h4>Students Online</h4>
                     <p>See which students are currently active</p>
-                </a>
-                <a href="#" class="menu-item" onclick="showPeerReview()">
-                    <h4>Peer Review</h4>
-                    <p>Manage peer assignment reviews</p>
                 </a>
             </div>
         </div>
@@ -274,14 +278,15 @@ Instructor Dashboard
                     <h4>Manage Teaching Assistants</h4>
                     <p>Add or remove teaching assistants for your course</p>
                 </a>
-                <a href="#" class="menu-item" onclick="showResetExam()">
-                    <h4>Reset Student Exam</h4>
-                    <p>Reset timed exams for individual students</p>
-                </a>
                 <a href="/assignment/instructor/invoice_request" class="menu-item">
                     <h4>Invoice Request</h4>
                     <p>Request billing for course usage</p>
                 </a>
+                <a href="#" class="menu-item" onclick="showDeleteOptions()">
+                    <h4>Delete</h4>
+                    <p>Remove this course and all its data. (Danger!)</p>
+                </a>
+
             </div>
         </div>
     </div>
@@ -298,15 +303,9 @@ Instructor Dashboard
                     <h4>Manage API Tokens</h4>
                     <p>Add and manage API tokens for external services</p>
                 </a>
-                {% if settings.lti_interface %}
                 <a href="#" class="menu-item" onclick="showLTISetup()">
-                    <h4>LTI Integration</h4>
+                    <h4>Connect my Learning Management System</h4>
                     <p>Configure Learning Tools Interoperability settings</p>
-                </a>
-                {% endif %}
-                <a href="#" class="menu-item" onclick="showDeleteOptions()">
-                    <h4>Delete</h4>
-                    <p>Remove students, assignments, or course data</p>
                 </a>
             </div>
         </div>
