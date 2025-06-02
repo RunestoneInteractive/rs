@@ -127,6 +127,17 @@ include /etc/nginx/default.d/\*.conf;
        proxy_pass http://host.docker.internal:8115/lti1p3/;
     }
 
+    location /admin/instructor/ {
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header Host $http_host;
+       # we don't want nginx trying to do something clever with
+       # redirects, we set the Host: header above already.
+       proxy_redirect off;
+       proxy_pass http://admin:8115/instructor/;
+    }
+
+
     # route author requests
     # This one looks a bit different due to the author server being optional in the compose setup
     # We have to define the proxy endpoint inside the location

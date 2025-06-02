@@ -193,7 +193,7 @@ Instructor Dashboard
                     <h4>Grader</h4>
                     <p>Grade student submissions and provide feedback</p>
                 </a>
-                <a href="/assignment/instructor/copy_assignments" class="menu-item" onclick="">
+                <a href="/admin/instructor/copy_assignments" class="menu-item" onclick="">
                     <h4>Copy Assignments</h4>
                     <p>Copy assignments from previous courses</p>
                 </a>
@@ -214,7 +214,7 @@ Instructor Dashboard
         </button>
         <div class="accordion-content">
             <div class="accordion-body">
-                <a href="/assignment/instructor/manage_students" class="menu-item">
+                <a href="/admin/instructor/manage_students" class="menu-item">
                     <h4>Manage Students</h4>
                     <p>Add, remove students and reset passwords</p>
                 </a>
@@ -222,7 +222,7 @@ Instructor Dashboard
                     <h4>Manage Accommodations</h4>
                     <p>Set deadline extensions and special accommodations</p>
                 </a>
-                <a href="/runestone/dashboard/active" class="menu-item" onclick="showActiveStudents()">
+                <a href="/runestone/dashboard/active" class="menu-item">
                     <h4>Students Online</h4>
                     <p>See which students are currently active</p>
                 </a>
@@ -266,11 +266,11 @@ Instructor Dashboard
         </button>
         <div class="accordion-content">
             <div class="accordion-body">
-                <a href="/assignment/instructor/course_settings" class="menu-item">
+                <a href="/admin/instructor/course_settings" class="menu-item">
                     <h4>Course Settings</h4>
                     <p>Configure course options and preferences</p>
                 </a>
-                <a href="/assignment/instructor/manage_tas" class="menu-item">
+                <a href="/admin/instructor/manage_tas" class="menu-item">
                     <h4>Manage Teaching Assistants</h4>
                     <p>Add or remove teaching assistants for your course</p>
                 </a>
@@ -418,7 +418,7 @@ Instructor Dashboard
 
     async function showStudentRoster() {
         try {
-            const response = await fetch('/assignment/instructor/course_roster');
+            const response = await fetch('/admin/instructor/course_roster');
             const data = await response.json();
 
             let html = '<div style="margin: 20px;"><h3>Course Roster:</h3><table border="1" style="border-collapse: collapse; width: 100%;"><tr><th>Username</th><th>First Name</th><th>Last Name</th><th>Email</th></tr>';
@@ -434,9 +434,6 @@ Instructor Dashboard
         }
     }
 
-    function showActiveStudents() {
-        window.open(`/${window.location.pathname.split('/')[1]}/dashboard/active`, '_blank');
-    }
 
     function showChapterActivity() {
         window.open(`/${window.location.pathname.split('/')[1]}/dashboard/subchapoverview`, '_blank');
