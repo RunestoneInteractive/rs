@@ -2692,7 +2692,7 @@ async def fetch_books_by_author(author: str) -> List[Tuple[Library, BookAuthor]]
     )
     async with async_session() as sess:
         res = await sess.execute(query)
-        return res.scalars().fetchall()
+        return res.fetchall()
 
 
 async def fetch_course_practice(course_name: str) -> Optional[CoursePractice]:

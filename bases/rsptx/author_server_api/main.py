@@ -50,6 +50,7 @@ from rsptx.author_server_api.worker import (
 )
 from rsptx.auth.session import is_instructor
 from rsptx.exceptions.core import add_exception_handlers
+from rsptx.endpoint_validators import with_course, author_role_required
 
 from rsptx.db.crud import (
     create_book_author,
@@ -148,6 +149,7 @@ async def home(request: Request, user=Depends(auth_manager)):
     if user:
         name = user.first_name
         book_list = await fetch_books_by_author(user.username)
+        book_list = [b.Library for b in book_list if b.Library is not None]
     else:
         name = "unknown person"
         book_list = []
@@ -183,7 +185,9 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
         course = await fetch_course(user.course_name)
         server_config = os.environ.get("SERVER_CONFIG", "dev")
         if server_config == "production":
-            host = "https://" + os.environ.get("LOAD_BALANCER_HOST", "runestone.academy")
+            host = "https://" + os.environ.get(
+                "LOAD_BALANCER_HOST", "runestone.academy"
+            )
         else:
             host = ""
         logger.debug(f"{ready_files=}")
@@ -268,6 +272,7 @@ async def dump_assignments(request: Request, course: str, user=Depends(auth_mana
 
 
 @app.get("/author/impact/{book}")
+@author_role_required()
 async def impact(request: Request, book: str, user=Depends(auth_manager)):
     # check for author status
     if user:
@@ -316,9 +321,13 @@ async def subchapmap(
 
 # Called to download the log
 @app.get("/author/getlog/{book}")
-async def getlog(request: Request, book):
+async def getlog(request: Request, book, user=Depends(auth_manager)):
     book_entry = await fetch_library_book(book)
-    if book_entry and book_entry.repo_path and (pathlib.Path(book_entry.repo_path) / "cli.log").exists():
+    if (
+        book_entry
+        and book_entry.repo_path
+        and (pathlib.Path(book_entry.repo_path) / "cli.log").exists()
+    ):
         work_dir = book_entry.repo_path
     else:
         work_dir = f"/books/{book}"
@@ -341,15 +350,15 @@ def get_model_dict(model):
 
 @app.get("/author/editlibrary/{book}")
 @app.post("/author/editlibrary/{book}")
+@author_role_required()
 async def editlib(request: Request, book: str, user=Depends(auth_manager)):
     # Get the book and populate the form with current data
     book_data = await fetch_library_book(book)
     course = await fetch_course(user.course_name)
-
+    book_data_dict = get_model_dict(book_data)
     # this will either create the form with data from the submitted form or
     # from the kwargs passed if there is not form data.  So we can prepopulate
     #
-    book_data_dict = get_model_dict(book_data)
     form = await LibraryForm.from_formdata(request, **book_data_dict)
     if request.method == "POST" and await form.validate():
         print(f"Got {form.authors.data}")
