@@ -152,9 +152,9 @@ async def get_copy_assignments(
 
     # For each course where the user is an instructor, get the full course information
     for course_relation in instructor_course_relationships:
-        course = await fetch_course_by_id(course_relation.course)
-        if course:  # Make sure the course exists
-            instructor_course_list.append(course)
+        temp_course = await fetch_course_by_id(course_relation.course)
+        if temp_course:  # Make sure the course exists
+            instructor_course_list.append(temp_course)
 
     context = {
         "course": course,
