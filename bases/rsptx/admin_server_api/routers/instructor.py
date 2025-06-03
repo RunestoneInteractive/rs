@@ -25,6 +25,7 @@ from rsptx.db.crud import (
     delete_course_instructor,
     fetch_all_course_attributes,
     fetch_course,
+    fetch_available_students_for_instructor_add,
     fetch_course_by_id,
     fetch_instructor_courses,
     fetch_users_for_course,
@@ -541,4 +542,105 @@ async def post_delete_course(
         return JSONResponse(
             status_code=500,
             content={"success": False, "message": f"An error occurred: {str(e)}"},
+        )
+
+
+@router.get("/add_instructor")
+@instructor_role_required()
+@with_course()
+async def get_add_instructor(
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+    course=None,
+):
+    """
+    Render the Add Instructor page.
+    """
+    templates = Jinja2Templates(directory=template_folder)
+    context = {
+        "course": course,
+        "user": user,
+        "request": request,
+        "is_instructor": True,
+        "student_page": False,
+        "settings": settings,
+    }
+    return templates.TemplateResponse("admin/instructor/add_instructor.html", context)
+
+
+@router.get("/available_students")
+@instructor_role_required()
+@with_course()
+async def get_available_students(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Return students in the course who are not instructors.
+    """
+
+    students = await fetch_available_students_for_instructor_add(course.id)
+    for i in students:
+        # Convert datetime objects to ISO format for JSON serialization
+        if 'created_on' in i:
+            i['created_on'] = i['created_on'].isoformat()
+        if 'modified_on' in i:
+            i['modified_on'] = i['modified_on'].isoformat()
+
+    return JSONResponse(content={"students": [s for s in students]})
+
+
+@router.get("/current_instructors")
+@instructor_role_required()
+@with_course()
+async def get_current_instructors(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Return current instructors for the course.
+    """
+    from rsptx.db.crud import fetch_current_instructors_for_course
+
+    instructors = await fetch_current_instructors_for_course(course.id)
+    for i in instructors:
+        # Convert datetime objects to ISO format for JSON serialization
+        if 'created_on' in i:
+            i['created_on'] = i['created_on'].isoformat()
+        if 'modified_on' in i:
+            i['modified_on'] = i['modified_on'].isoformat()
+
+    return JSONResponse(content={"instructors": [i for i in instructors]})
+
+
+@router.post("/add_instructor")
+@instructor_role_required()
+@with_course()
+async def post_add_instructor(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Add a user as an instructor to the course.
+    """
+    data = await request.json()
+    user_id = data.get("user_id")
+    if not user_id:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "Missing user_id"},
+        )
+    from rsptx.db.crud import add_instructor_to_course
+
+    try:
+        await add_instructor_to_course(course.id, int(user_id))
+        return JSONResponse(content={"success": True})
+    except Exception as e:
+        rslogger.error(f"Error adding instructor: {e}")
+        return JSONResponse(
+            status_code=500, content={"success": False, "message": str(e)}
         )

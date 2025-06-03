@@ -137,6 +137,23 @@ Instructor Dashboard
         color: #666;
     }
 
+    .course-info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .course-link a {
+        color: #357abd;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .course-link a:hover {
+        text-decoration: underline;
+    }
+
     .toggle-all-btn {
         background: linear-gradient(135deg, #28a745, #20c997);
         color: white;
@@ -166,7 +183,10 @@ Instructor Dashboard
 
     <div class="course-info">
         <h3>{{ course.course_name }}</h3>
-        <p>Base Course: {{ course.base_course }} Take me to <a href="/ns/course/index">My Course</a>.</p>
+        <div class="course-info-row">
+            <span>Base Course: {{ course.base_course }}</span>
+            <span class="course-link"><a href="/ns/course/index">Take me to My Course</a>.</span>
+        </div>
     </div>
 
     <!-- Assignments & Grading Accordion -->
@@ -274,7 +294,7 @@ Instructor Dashboard
                     <h4>Course Settings</h4>
                     <p>Configure course options and preferences</p>
                 </a>
-                <a href="/admin/instructor/manage_tas" class="menu-item">
+                <a href="/admin/instructor/add_instructor" class="menu-item">
                     <h4>Manage Teaching Assistants</h4>
                     <p>Add or remove teaching assistants for your course</p>
                 </a>
@@ -283,8 +303,8 @@ Instructor Dashboard
                     <p>Request billing for course usage</p>
                 </a>
                 <a href="/admin/instructor/course_delete" class="menu-item">
-                    <h4>Delete</h4>
-                    <p>Remove this course and all its data. (Danger! ⛔️)</p>
+                    <h4>⛔️ Delete</h4>
+                    <p>Remove this course and all its data.</p>
                 </a>
 
             </div>
