@@ -685,7 +685,19 @@ async def create_user_course_entry(user_id: int, course_id: int) -> UserCourse:
 
     return new_uc
 
+async def delete_user_course_entry(user_id: int, course_id: int) -> None:
+    """
+    Delete a user course entry for a given user (user_id) and course (course_id)
 
+    :param user_id: int, the user id
+    :param course_id: int, the course id
+    """
+    query = delete(UserCourse).where(
+        and_(UserCourse.user_id == user_id, UserCourse.course_id == course_id)
+    )
+    async with async_session.begin() as session:
+        await session.execute(query)
+        
 # course_attributes
 # -----------------
 
@@ -3999,6 +4011,18 @@ async def delete_course_instructor(course_id: int, instructor_id: int) -> None:
     async with async_session() as session:
         await session.execute(stmt)
         await session.commit()
+
+async def create_course_instructor(course_id: int, instructor_id: int) -> None:
+    """
+    Add an instructor to a course by creating a new CourseInstructor relationship.
+
+    :param course_id: int, the id of the course
+    :param instructor_id: int, the id of the instructor to add
+    :return: None
+    """
+    new_entry = CourseInstructor(course=course_id, instructor=instructor_id)
+    async with async_session.begin() as session:
+        session.add(new_entry)
 
 
 async def update_course_settings(course_id: int, setting: str, value: str) -> None:

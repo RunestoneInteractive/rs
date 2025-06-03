@@ -21,8 +21,11 @@ from typing import List, Optional, Annotated
 
 from rsptx.db.crud import (
     create_invoice_request,
+    create_course_instructor,
     delete_lti_course,
     delete_course_instructor,
+    delete_user_course_entry,
+    create_user_course_entry,
     fetch_all_course_attributes,
     fetch_course,
     fetch_available_students_for_instructor_add,
@@ -114,7 +117,7 @@ async def get_manage_students(
 
     # Get all students in the course
     students = {}  # This would normally be populated from the database
-    # TODO: Implement actual student retrieval logic
+    students = await fetch_users_for_course(course.course_name)
 
     context = {
         "course": course,
@@ -616,7 +619,7 @@ async def get_current_instructors(
     return JSONResponse(content={"instructors": [i for i in instructors]})
 
 
-@router.post("/add_instructor")
+@router.post("/add_instructor_user")
 @instructor_role_required()
 @with_course()
 async def post_add_instructor(
@@ -634,13 +637,47 @@ async def post_add_instructor(
             status_code=400,
             content={"success": False, "message": "Missing user_id"},
         )
-    from rsptx.db.crud import add_instructor_to_course
 
     try:
-        await add_instructor_to_course(course.id, int(user_id))
+        await create_course_instructor(course.id, int(user_id))
         return JSONResponse(content={"success": True})
     except Exception as e:
         rslogger.error(f"Error adding instructor: {e}")
         return JSONResponse(
             status_code=500, content={"success": False, "message": str(e)}
+        )
+
+
+@router.post("/remove_students")
+@instructor_role_required()
+@with_course()
+async def remove_student(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Remove one or more students from the current course.
+    Expects form data with student_id (can be a single value or a list).
+    """
+    try:
+        form = await request.form()
+        student_ids = form.getlist("student_id")
+        if not student_ids:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": "student_id is required"},
+            )
+        bc = await fetch_course(course.base_course)
+        for sid in student_ids:
+            await delete_user_course_entry(int(sid), course.id)
+            await create_user_course_entry(int(sid), bc.id)
+        return JSONResponse(
+            content={"success": True, "message": f"Removed {len(student_ids)} student(s) from course"}
+        )
+    except Exception as e:
+        rslogger.error(f"Error removing student(s): {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": "Internal server error"},
         )

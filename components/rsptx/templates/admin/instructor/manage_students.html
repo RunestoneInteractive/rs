@@ -121,7 +121,28 @@ Manage Students
         width: 66.66667%;
     }
 
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #4a90e2;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .back-link:hover {
+        color: #357abd;
+        text-decoration: underline;
+    }
+
+    .back-link::before {
+        content: "← ";
+        margin-right: 5px;
+    }
+
     @media (max-width: 768px) {
+
         .col-md-4,
         .col-md-8 {
             width: 100%;
@@ -133,6 +154,8 @@ Manage Students
 
 {% block content %}
 <div class="student-management">
+    <a href="/admin/instructor/menu" class="back-link">Back to Instructor Dashboard</a>
+
     <div class="page-header">
         <h1>Manage Students</h1>
     </div>
@@ -144,12 +167,12 @@ Manage Students
 
     <div class="row">
         <div class="col-md-4">
-            <form id="removeStudents" method="POST" action="/{{request.application}}/admin/removeStudents">
+            <form id="removeStudents" method="POST" action="/admin/instructor/remove_students">
                 <h3 style="text-align: center">Students</h3>
-                <select id="studentList" class="form-control" size="10" name="studentList" multiple>
+                <select id="studentList" class="form-control" size="10" name="student_list" multiple>
                     <option value="None" selected>--Select Student(s) for Action--</option>
                     {% for person in students: %}
-                    <option value="{{person}}">{{ students[person] }}</option>
+                    <option value="{{person.username}}">{{ person.first_name }} {{ person.last_name }}</option>
                     {% endfor %}
                 </select>
                 <div style="text-align: center">

@@ -3,6 +3,10 @@
 {% block title %}Copy Assignments{% endblock %}
 
 {% block content %}
+<a href="/admin/instructor/menu" class="back-link"
+    style="display:inline-block; margin-bottom:20px; color:#4a90e2; text-decoration:none; font-size:16px; font-weight:600; transition:color 0.3s ease;">
+    &larr; Back to Instructor Dashboard
+</a>
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
@@ -340,6 +344,20 @@
 
     .alert i {
         margin-right: 8px;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #4a90e2;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .back-link:hover {
+        color: #357abd;
     }
 </style>
 {% endblock %}
