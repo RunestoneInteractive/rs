@@ -141,6 +141,20 @@ Manage Students
         margin-right: 5px;
     }
 
+    .help-doc {
+        background: #f8f9fa;
+        border-left: 4px solid #4a90e2;
+        padding: 12px 18px;
+        border-radius: 6px;
+        margin-top: 12px;
+        margin-bottom: 0;
+        color: #333;
+    }
+
+    .help-doc p {
+        margin-bottom: 6px;
+    }
+
     @media (max-width: 768px) {
 
         .col-md-4,
@@ -176,15 +190,16 @@ Manage Students
                     {% endfor %}
                 </select>
                 <div style="text-align: center">
-                    <input style="height:30px; margin-bottom: 10px" type="submit" value="Remove Student(s)"
+                    <input style="margin-bottom: 10px" type="submit" value="Remove Student(s)"
                         class="btn btn-danger"> <br />
                     <button type="button" id="passwordreset" onclick="resetOnePassword()" class="btn btn-primary">Reset
                         Password</button>
                 </div>
-                <p>Removing a student drops them from your course and transfers them to the "open" course for the same
-                    book.</p>
-                <p>You will not see them in the grading interface or gradebook anymore, but no data is lost.</p>
             </form>
+            <div class="help-doc">
+                <p>Removing a student drops them from your course and transfers them to the <strong>"open" course</strong> for the same book.</p>
+                <p>You will not see them in the grading interface or gradebook anymore, but <strong>no data is lost</strong>.</p>
+            </div>
         </div>
 
         <div class="col-md-8">
@@ -200,17 +215,15 @@ Manage Students
                 <input type="submit" name="Send" value="Register Students" class="btn btn-primary">
             </form>
             <br />
-            <p>You can make the file in your favorite Spreadsheet app and then export it to a CSV file to upload here.
-                Please export without headers.</p>
-            <p><strong>Notes -- Please Read</strong></p>
-            <ol>
-                <li>If anything fails then none of the students will be added. Fix your errors and try again.</li>
-                <li>If you need to <strong>add new students,</strong> put them in a new CSV file and upload. Your
-                    existing students will not be impacted.</li>
-                <li>If you are trying to add <strong>existing students</strong> to a <strong>new</strong> class, that is
-                    not supported. Once a student is registered they can add themselves to any course from the 👤 menu
-                    -> Change Course page.</li>
-            </ol>
+            <div class="help-doc">
+                <p style="margin-bottom: 6px;">You can make the file in your favorite Spreadsheet app and then export it to a CSV file to upload here. Please export without headers.</p>
+                <p style="font-weight: bold; margin-bottom: 6px;">Notes -- Please Read</p>
+                <ol style="margin-bottom: 0;">
+                    <li>If anything fails then none of the students will be added. Fix your errors and try again.</li>
+                    <li>If you need to <strong>add new students,</strong> put them in a new CSV file and upload. Your existing students will not be impacted.</li>
+                    <li>If you are trying to add <strong>existing students</strong> to a <strong>new</strong> class, that is not supported. Once a student is registered they can add themselves to any course from the 👤 menu -> Change Course page.</li>
+                </ol>
+            </div>
         </div>
     </div>
 </div>
@@ -230,21 +243,28 @@ Manage Students
             return;
         }
 
+        const newPassword = prompt('Enter the new password for this student:');
+        if (!newPassword) {
+            alert('Password reset cancelled.');
+            return;
+        }
+
         if (confirm('Are you sure you want to reset the password for this student?')) {
             // Make API call to reset password
-            fetch('/assignment/instructor/reset_password', {
+            fetch('/admin/instructor/reset_password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    student_id: selectedStudents[0]
+                    sid: selectedStudents[0],
+                    password: newPassword
                 })
             })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('Password reset successfully. New password: ' + data.new_password);
+                        alert('Password reset successfully.');
                     } else {
                         alert('Error resetting password: ' + data.message);
                     }

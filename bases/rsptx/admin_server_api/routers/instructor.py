@@ -587,10 +587,10 @@ async def get_available_students(
     students = await fetch_available_students_for_instructor_add(course.id)
     for i in students:
         # Convert datetime objects to ISO format for JSON serialization
-        if 'created_on' in i:
-            i['created_on'] = i['created_on'].isoformat()
-        if 'modified_on' in i:
-            i['modified_on'] = i['modified_on'].isoformat()
+        if "created_on" in i:
+            i["created_on"] = i["created_on"].isoformat()
+        if "modified_on" in i:
+            i["modified_on"] = i["modified_on"].isoformat()
 
     return JSONResponse(content={"students": [s for s in students]})
 
@@ -611,10 +611,10 @@ async def get_current_instructors(
     instructors = await fetch_current_instructors_for_course(course.id)
     for i in instructors:
         # Convert datetime objects to ISO format for JSON serialization
-        if 'created_on' in i:
-            i['created_on'] = i['created_on'].isoformat()
-        if 'modified_on' in i:
-            i['modified_on'] = i['modified_on'].isoformat()
+        if "created_on" in i:
+            i["created_on"] = i["created_on"].isoformat()
+        if "modified_on" in i:
+            i["modified_on"] = i["modified_on"].isoformat()
 
     return JSONResponse(content={"instructors": [i for i in instructors]})
 
@@ -673,10 +673,53 @@ async def remove_student(
             await delete_user_course_entry(int(sid), course.id)
             await create_user_course_entry(int(sid), bc.id)
         return JSONResponse(
-            content={"success": True, "message": f"Removed {len(student_ids)} student(s) from course"}
+            content={
+                "success": True,
+                "message": f"Removed {len(student_ids)} student(s) from course",
+            }
         )
     except Exception as e:
         rslogger.error(f"Error removing student(s): {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": "Internal server error"},
+        )
+
+
+@router.post("/reset_password")
+@instructor_role_required()
+@with_course()
+async def reset_password(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Reset a student's password. Expects JSON with 'sid' (student id) and 'password'.
+    """
+    try:
+        data = await request.json()
+        sid = data.get("sid")
+        password = data.get("password")
+        if not sid or not password:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": "sid and password are required"},
+            )
+        from rsptx.db.crud import fetch_user, update_user
+
+        student = await fetch_user(sid)
+        if not student:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "Student not found"},
+            )
+        await update_user(student.id, {"password": password})
+        return JSONResponse(
+            content={"success": True, "message": "Password reset successfully."}
+        )
+    except Exception as e:
+        rslogger.error(f"Error resetting password: {e}")
         return JSONResponse(
             status_code=500,
             content={"success": False, "message": "Internal server error"},
