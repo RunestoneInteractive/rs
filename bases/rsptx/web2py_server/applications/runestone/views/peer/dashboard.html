@@ -1,16 +1,11 @@
 {{ extend "admin/instructors.html"}}
 
-<!-- {{ block moreincludes }}
-    <link
-        rel="stylesheet"
-        href="{{=URL('static','css/peer.css')}}?v={{=request.peer_mtime}}"
-    />
-{{ end }} -->
-
 {{ block tabcontent }}
 
-<title>Peer Instruction: {{=assignment_name}}</title>
-
+<link
+    rel="stylesheet"
+    href="{{=URL('static','css/peer.css')}}?v={{=request.peer_mtime}}"
+/>
 <script>
     eBookConfig.peer = true;
 </script>
