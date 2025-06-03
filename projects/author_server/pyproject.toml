@@ -20,6 +20,7 @@ packages = [
     { include = "rsptx/templates", from = "../../components" },
     { include = "rsptx/author_server_api", from = "../../bases" },
     { include = "rsptx/data_types", from = "../../components" },
+    { include = "rsptx/endpoint_validators", from = "../../components" },
 ]
 
 exclude = [
@@ -36,11 +37,12 @@ Jinja2 = "^3.0.0"
 pytest = "^7.1.2"
 redis = "^4.3.4"
 requests = "^2.28.1"
+cryptography = "^3.0.0"
 uvicorn = "^0.18.2"
 pretext = "^2.13.0"
 SQLAlchemy = "^1.4.39"
 psycopg2-binary = "^2.9.3"
-fastapi-login = "^1.8.0"
+fastapi-login = "^1.10.0"
 myst-parser = "^1.0.0"
 sphinx-reredirects = "^0.1.1"
 pandas = "^1.0.0"

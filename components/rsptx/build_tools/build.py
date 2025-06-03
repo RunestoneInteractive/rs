@@ -481,6 +481,7 @@ def image(config):
         "Building docker images (see build.log for detailed progress)...", style="bold"
     )
     status = {}
+    set_for_build = maybe_set_profiles()
     with Live(generate_table(status), refresh_per_second=4) as lt:
         status = {}
         for service in config.ym["services"]:
@@ -520,6 +521,53 @@ def image(config):
                     style="bold red",
                 )
                 exit(1)
+    if set_for_build:
+        # if we set the COMPOSE_PROFILES environment variable, we need to unset it
+        # so that it doesn't affect the next command
+        del os.environ["COMPOSE_PROFILES"]
+        console.print(
+            "Unset COMPOSE_PROFILES environment variable after build", style="bold"
+        )
+
+
+def maybe_set_profiles():
+    # use docker compose config --profiles to get the profiles
+    # and set the COMPOSE_PROFILES environment variable
+    set_for_build = False
+    if "COMPOSE_PROFILES" not in os.environ:
+        # if COMPOSE_PROFILES is not set, we will use the default profiles
+        # which are author,basic,dev,production
+        console.print(
+            "COMPOSE_PROFILES not set, using default profiles: author,basic,dev,production"
+        )
+        # run docker compose config --profiles to get the profiles
+        command_list = [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.yml",
+            "config",
+            "--profiles",
+        ]
+        ret = subprocess.run(
+            command_list,
+            capture_output=True,
+        )
+        if ret.returncode != 0:
+            console.print(
+                "There was an error getting the profiles, please check your docker-compose.yml file",
+                style="bold red",
+            )
+            exit(1)
+        profiles = ret.stdout.decode(stdout_err_encoding).strip().split("\n")
+        profiles = [p.strip() for p in profiles if p.strip()]
+        if profiles:
+            os.environ["COMPOSE_PROFILES"] = ",".join(profiles)
+            set_for_build = True
+            console.print(
+                f"Using profiles: {os.environ['COMPOSE_PROFILES']}", style="bold"
+            )
+    return set_for_build
 
 
 # Now if the --push flag was given, push the images to Docker Hub
@@ -552,9 +600,7 @@ def push(config):
             subprocess.run(
                 ["git", "tag", f"v{new_version}"], capture_output=True, check=True
             )
-            subprocess.run(
-                ["git", "push", "--tags"], capture_output=True, check=True
-            )
+            subprocess.run(["git", "push", "--tags"], capture_output=True, check=True)
             config.version = new_version
 
     console.print("Pushing docker images to Docker Hub...", style="bold")

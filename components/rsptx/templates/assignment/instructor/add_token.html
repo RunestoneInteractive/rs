@@ -1,0 +1,289 @@
+{% extends "_base.html" %}
+{% block title %}
+Manage API Tokens
+{% endblock %}
+
+{% block css %}
+<style>
+    .token-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .token-input {
+        margin-bottom: 10px;
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .provider-select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .add-token-btn {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-left: 10px;
+    }
+
+    .remove-token-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-left: 10px;
+    }
+
+    .submit-btn {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .submit-btn:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+
+    .token-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .token-row input {
+        flex: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="token-container">
+    <h1>Manage API Tokens</h1>
+    <p>Add API tokens for external services. These tokens will be encrypted and stored securely for your course.</p>
+
+    <div id="alert-container"></div>
+
+    <form id="token-form">
+        <div class="form-group">
+            <label for="provider">Provider:</label>
+            <select id="provider" class="provider-select" required>
+                <option value="">Select a provider...</option>
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="google">Google</option>
+                <option value="azure">Azure</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+
+        <div id="custom-provider" style="display: none;">
+            <label for="custom-provider-name">Custom Provider Name:</label>
+            <input type="text" id="custom-provider-name" class="token-input" placeholder="Enter provider name">
+        </div>
+
+        <div class="form-group">
+            <label>API Tokens:</label>
+            <div id="token-inputs">
+                <div class="token-row">
+                    <input type="password" class="token-input" placeholder="Enter API token" required>
+                    <button type="button" class="add-token-btn" onclick="addTokenInput()">+ Add</button>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submit-btn">Save Tokens</button>
+    </form>
+</div>
+
+<script>
+    let tokenCount = 1;
+
+    document.getElementById('provider').addEventListener('change', function () {
+        const customProviderDiv = document.getElementById('custom-provider');
+        if (this.value === 'other') {
+            customProviderDiv.style.display = 'block';
+            document.getElementById('custom-provider-name').required = true;
+        } else {
+            customProviderDiv.style.display = 'none';
+            document.getElementById('custom-provider-name').required = false;
+        }
+    });
+
+    function addTokenInput() {
+        tokenCount++;
+        const tokenInputs = document.getElementById('token-inputs');
+        
+        // Remove the Add button from the current last row
+        const currentAddBtn = tokenInputs.querySelector('.add-token-btn');
+        if (currentAddBtn) {
+            currentAddBtn.outerHTML = '<button type="button" class="remove-token-btn" onclick="removeTokenInput(this)">Remove</button>';
+        }
+        
+        // Create new row with Add button
+        const newRow = document.createElement('div');
+        newRow.className = 'token-row';
+        newRow.innerHTML = `
+        <input type="password" class="token-input" placeholder="Enter API token">
+        <button type="button" class="add-token-btn" onclick="addTokenInput()">+ Add</button>
+    `;
+        tokenInputs.appendChild(newRow);
+    }
+
+    function removeTokenInput(button) {
+        const row = button.parentElement;
+        const tokenInputs = document.getElementById('token-inputs');
+        
+        // If this is the only row, don't remove it
+        if (tokenInputs.children.length === 1) {
+            return;
+        }
+        
+        row.remove();
+        tokenCount--;
+        
+        // Ensure the last row has the Add button
+        const lastRow = tokenInputs.lastElementChild;
+        const lastButton = lastRow.querySelector('button');
+        if (lastButton && lastButton.classList.contains('remove-token-btn')) {
+            lastButton.outerHTML = '<button type="button" class="add-token-btn" onclick="addTokenInput()">+ Add</button>';
+        }
+    }
+
+    function showAlert(message, type) {
+        const alertContainer = document.getElementById('alert-container');
+        alertContainer.innerHTML = `
+        <div class="alert alert-${type}">
+            ${message}
+        </div>
+    `;
+
+        // Auto-hide success messages after 5 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+    }
+
+    document.getElementById('token-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+
+        try {
+            // Get provider
+            let provider = document.getElementById('provider').value;
+            if (provider === 'other') {
+                provider = document.getElementById('custom-provider-name').value.trim();
+                if (!provider) {
+                    throw new Error('Please enter a custom provider name');
+                }
+            }
+
+            // Get all tokens
+            const tokenInputs = document.querySelectorAll('.token-input');
+            const tokens = [];
+
+            for (let input of tokenInputs) {
+                const token = input.value.trim();
+                if (token) {
+                    tokens.push(token);
+                }
+            }
+
+            if (tokens.length === 0) {
+                throw new Error('Please enter at least one token');
+            }
+
+            // Submit to API
+            const response = await fetch('/assignment/instructor/add_token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    provider: provider,
+                    tokens: tokens
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showAlert(data.detail.message, 'success');
+                // Reset form
+                document.getElementById('token-form').reset();
+                // Reset token inputs to just one
+                document.getElementById('token-inputs').innerHTML = `
+                <div class="token-row">
+                    <input type="password" class="token-input" placeholder="Enter API token" required>
+                    <button type="button" class="add-token-btn" onclick="addTokenInput()">+ Add</button>
+                </div>
+            `;
+                tokenCount = 1;
+            } else {
+                throw new Error(data.detail || 'Failed to save tokens');
+            }
+
+        } catch (error) {
+            showAlert(error.message, 'danger');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save Tokens';
+        }
+    });
+
+    // Show/hide password functionality
+    document.addEventListener('click', function (e) {
+        if (e.target.classList.contains('toggle-password')) {
+            const input = e.target.previousElementSibling;
+            if (input.type === 'password') {
+                input.type = 'text';
+                e.target.textContent = 'Hide';
+            } else {
+                input.type = 'password';
+                e.target.textContent = 'Show';
+            }
+        }
+    });
+</script>
+{% endblock %}

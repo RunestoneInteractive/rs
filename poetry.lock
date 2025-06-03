@@ -37,7 +37,7 @@ version = "0.18.0"
 description = "asyncio bridge to the standard sqlite3 module"
 optional = false
 python-versions = ">=3.7"
-groups = ["main"]
+groups = ["main", "dev"]
 files = [
     {file = "aiosqlite-0.18.0-py3-none-any.whl", hash = "sha256:c3511b841e3a2c5614900ba1d179f366826857586f78abd75e7cbeb88e75a557"},
     {file = "aiosqlite-0.18.0.tar.gz", hash = "sha256:faa843ef5fb08bafe9a9b3859012d3d9d6f77ce3637899de20606b7fc39aa213"},
@@ -1038,6 +1038,7 @@ optional = false
 python-versions = ">=3.7"
 groups = ["main", "dev"]
 files = [
+    {file = "configobj-5.0.9-py2.py3-none-any.whl", hash = "sha256:1ba10c5b6ee16229c79a05047aeda2b55eb4e80d7c7d8ecf17ec1ca600c79882"},
     {file = "configobj-5.0.9.tar.gz", hash = "sha256:03c881bbf23aa07bccf1b837005975993c4ab4427ba57f959afdd9d1a2386848"},
 ]
 
@@ -3727,14 +3728,14 @@ files = [
 
 [[package]]
 name = "pretext"
-version = "2.18.0"
+version = "2.19.1"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0.0,>=3.8.5"
 groups = ["main", "dev"]
 files = [
-    {file = "pretext-2.18.0-py3-none-any.whl", hash = "sha256:66c640de88d0d375497a29132ff25205f5ccb47185ff5e7719ef6aea4943e2df"},
-    {file = "pretext-2.18.0.tar.gz", hash = "sha256:83bc4336d29f4a7b81decd7c74931791ebb06a72d1c657ad667d1c9ed5ea9ac1"},
+    {file = "pretext-2.19.1-py3-none-any.whl", hash = "sha256:657d64f9fec80faea214fe84ca4fbf975361a4c3d8b85aee24ca15b69cdf68b3"},
+    {file = "pretext-2.19.1.tar.gz", hash = "sha256:d0bf6a7a99e14f0ada1fdd8a5e7906a04a63155b58297686bc9b9b8d22cb881f"},
 ]
 
 [package.dependencies]
@@ -3893,6 +3894,7 @@ files = [
     {file = "psycopg2_binary-2.9.10-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:bb89f0a835bcfc1d42ccd5f41f04870c1b936d8507c6df12b7737febc40f0909"},
     {file = "psycopg2_binary-2.9.10-cp313-cp313-musllinux_1_2_ppc64le.whl", hash = "sha256:f0c2d907a1e102526dd2986df638343388b94c33860ff3bbe1384130828714b1"},
     {file = "psycopg2_binary-2.9.10-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:f8157bed2f51db683f31306aa497311b560f2265998122abe1dce6428bd86567"},
+    {file = "psycopg2_binary-2.9.10-cp313-cp313-win_amd64.whl", hash = "sha256:27422aa5f11fbcd9b18da48373eb67081243662f9b46e6fd07c3eb46e4535142"},
     {file = "psycopg2_binary-2.9.10-cp38-cp38-macosx_12_0_x86_64.whl", hash = "sha256:eb09aa7f9cecb45027683bb55aebaaf45a0df8bf6de68801a6afdc7947bb09d4"},
     {file = "psycopg2_binary-2.9.10-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b73d6d7f0ccdad7bc43e6d34273f70d587ef62f824d7261c4ae9b8b1b6af90e8"},
     {file = "psycopg2_binary-2.9.10-cp38-cp38-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:ce5ab4bf46a211a8e924d307c1b1fcda82368586a19d0a24f8ae166f5c784864"},
@@ -5014,7 +5016,7 @@ url = "projects/rsmanage"
 
 [[package]]
 name = "runestone"
-version = "7.5.1"
+version = "7.7.1"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
@@ -5023,6 +5025,7 @@ files = []
 develop = true
 
 [package.dependencies]
+aiosqlite = ">=0.18.0"
 asyncpg = "^0.28.0"
 click = "~8"
 CodeChat = "1.9.3"
@@ -6269,4 +6272,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "3c2114b3caef927dbe90dbfa50104e9161bdb3ea31efd599ba2dd0cd01763e9f"
+content-hash = "32852fac338df6cb3adfa3c1fa80537f4c4639a155f716dbf3d69ddd13a38f92"
