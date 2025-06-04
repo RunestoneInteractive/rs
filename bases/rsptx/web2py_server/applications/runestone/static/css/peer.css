@@ -1,3 +1,10 @@
+#pi-instructor-interface .row, #pi-instructor-interface #imessage {
+    margin-right: 0px;
+    margin-left: 0px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
 #pi-session-status {
     border: 1px solid #333333;
     background-color: #F2E0C3;
@@ -7,6 +14,26 @@
     margin: 5px;
 }
 
+#pi-question-indicator {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+#pi-group-size-selector {
+    gap: 5px;
+}
+
+#pi-group-size-selector label {
+    margin-bottom: 0;
+    font-weight: 500;
+}
+
+#pi-instructor-interface h3 {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
 #pi-question-info {
     display: flex;
     flex-direction: row;
@@ -14,23 +41,33 @@
     justify-content: space-between;
 }
 
+#pi-assignment-navigation {
+    display: flex;
+    gap: 5px;
+}
+
 .pi-stepper {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     margin-top: 20px;
+    margin-bottom: 20px;
+    overflow: auto;
 }
 
 .pi-step-group {
     display: flex;
     flex-direction: row;
     padding: 24px;
-    /* gap: 1rem; */
-    width: 25%;
+    transition: background-color 0.3s ease;
 }
 
 .pi-step-group.middle {
     width: 50%;
+}
+
+.pi-step-group.last {
+    width: 35%;
 }
 
 .pi-step-group.active {
@@ -44,10 +81,11 @@
     align-items: center;
     gap: 9px;
     padding: 13px 16px 16px 16px;
+    transition: outline 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .pi-step.active:hover {
-    scale: 1.01;
+    scale: 1.05;
     transition: scale 0.2s ease-in-out;
 }
 
@@ -69,52 +107,6 @@
     position: relative;
 }
 
-/* .pi-step-number::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    right: calc(100% + 22px);
-    width: 80px;
-    height: 1px;
-    background-color: #000000;
-    transform: translateY(-50%);
-} */
-
-/* .pi-step-number::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: calc(100% + 22px);
-    width: 80px;
-    height: 1px;
-    background-color: #000000;
-    transform: translateY(-50%);
-} */
-
-/* .pi-step.outside .pi-step-number::before {
-    width: 260px;
-}
-
-.pi-step.outside .pi-step-number::after {
-    width: 260px;
-}
-
-.pi-step.active .pi-step-number::before {
-    display: none;
-}
-
-.pi-step.active .pi-step-number::after {
-    display: none;
-}
-
-.pi-step.first .pi-step-number::before {
-    display: none;
-}
-
-.pi-step.last .pi-step-number::after {
-    display: none;
-} */
-
 .pi-step-number-inner {
     height: 30px;
     width: 30px;
@@ -131,7 +123,7 @@
 
 .pi-stepper-line {
     height: 1px;
-    flex: 0.5;
+    flex: 1;
     background-color: #000000;
     margin: 34px 0px 0 0px;
 }
@@ -151,3 +143,9 @@
     color: #1A6A83;
     border: 1px solid #46B8DA;
 }
+
+#pi-live-vote-graph {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+

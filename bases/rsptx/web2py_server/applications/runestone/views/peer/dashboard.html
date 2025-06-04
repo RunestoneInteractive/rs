@@ -15,82 +15,82 @@
 
 <h2>Peer Instruction: {{=assignment_name}}</h2>
 
-<div class="row">
-    <form
-        action="/runestone/peer/dashboard"
-        method="GET"
-    >
-        <div id="pi-question-info">
-            <div class="d-flex align-items-center gap-5">
-                <h3 class="fw-normal">Question {{ =current_qnum }} of {{ =num_questions }}</h3>
+<div id="pi-instructor-interface">
+    <div class="row">
+        <form
+            action="/runestone/peer/dashboard"
+            method="GET"
+        >
+            <div id="pi-question-info">
+                <div id="pi-question-indicator">
+                    <h3>Question {{ =current_qnum }} of {{ =num_questions }}</h3>
 
-                <div class="d-flex gap-3">
-                    <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
-                    <label for="groupsize">Group Size</label>
-                    <select id="groupsize" name="groupsize">
-                        <option value="2"
-                        {{ if groupsize == "2": }}
-                        selected
-                        {{ pass }}
-                        >2</option>
-                        <option value="3"
-                        {{ if groupsize == "3": }}
-                        selected
-                        {{ pass }}
-                        >3</option>
-                        <option value="4"
-                        {{ if groupsize == "4": }}
-                        selected
-                        {{ pass }}
-                        >4</option>
-                        <option value="5"
-                        {{ if groupsize == "5": }}
-                        selected
-                        {{ pass }}
-                        >5</option>
-                    </select>
+                    <div id="pi-group-size-selector">
+                        <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
+                        <label for="groupsize">Group Size</label>
+                        <select id="groupsize" name="groupsize">
+                            <option value="2"
+                            {{ if groupsize == "2": }}
+                            selected
+                            {{ pass }}
+                            >2</option>
+                            <option value="3"
+                            {{ if groupsize == "3": }}
+                            selected
+                            {{ pass }}
+                            >3</option>
+                            <option value="4"
+                            {{ if groupsize == "4": }}
+                            selected
+                            {{ pass }}
+                            >4</option>
+                            <option value="5"
+                            {{ if groupsize == "5": }}
+                            selected
+                            {{ pass }}
+                            >5</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="pi-session-status">
+                    Vote 1 in Progress...
+                </div>
+
+                <div id="pi-assignment-navigation">
+                    <button
+                        type="submit"
+                        id="nextq"
+                        class="btn btn-info"
+                        name="next"
+                        value="Next"
+                    >
+                        Next Question
+                    </button>
+                    <button
+                        type="submit"
+                        id="restart"
+                        class="btn btn-danger"
+                        name="next"
+                        value="Reset"
+                    >
+                        Start Over
+                    </button>
+                    {{ if lti: }}
+                        <button
+                            type="button"
+                            id="sendScores"
+                            class="btn btn-info"
+                            onclick="sendLtiScores(event)"
+                            disabled
+                        >
+                            Send LTI Scores
+                        </button>
+                    {{ pass }}
                 </div>
             </div>
 
-            <div id="pi-session-status">
-                Session Not Started
-            </div>
-
-            <div id="pi-assignment-navigation" class="d-flex gap-2">
-                <button
-                    type="submit"
-                    id="nextq"
-                    class="btn btn-info"
-                    name="next"
-                    value="Next"
-                >
-                    Next Question
-                </button>
-                <button
-                    type="submit"
-                    id="restart"
-                    class="btn btn-danger"
-                    name="next"
-                    value="Reset"
-                >
-                    Start Over
-                </button>
-                {{ if lti: }}
-                    <button
-                        type="button"
-                        id="sendScores"
-                        class="btn btn-info"
-                        onclick="sendLtiScores(event)"
-                        disabled
-                    >
-                        Send LTI Scores
-                    </button>
-                {{ pass }}
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="pi-stepper">
+            <div class="pi-stepper row">
                 <div class="pi-step-group active">
                     <div class="pi-step first active">
                         <div class="pi-step-number">
@@ -152,7 +152,7 @@
                     <div class="pi-stepper-line"></div>
                 </div>
 
-                <div class="pi-step-group">
+                <div class="pi-step-group last">
                     <div class="pi-step">
                         <div class="pi-step-number">
                             <div class="pi-step-number-inner">3</div>
@@ -190,25 +190,26 @@
                     </div>
                 </div>
             </div>
+
+        </form>
+    </div>
+
+    <div id="imessage"></div>
+
+    <div class="row">
+        <div class="oneq col-md-6 runestone-sphinx">
+        {{=XML(current_question['htmlsrc'])}}
         </div>
-
-    </form>
-</div>
-
-<div id="imessage"></div>
-
-<div class="row">
-    <div class="oneq col-md-6 runestone-sphinx">
-    {{=XML(current_question['htmlsrc'])}}
+        <div id="pi-live-vote-graph" class="col-md-6">
+            <div id="counter1"></div>
+            <div id="counter2"></div>
+            <div id="messcounter"></div>
+            <div id="first_answer" style="display: none"></div>
+            <div id="second_answer"></div>
+            <button class="btn" type="button" onclick="hideShowGraph()">Hide/Show Graph</button>
+        </div>
     </div>
-    <div class="col-md-6">
-        <div id="counter1"></div>
-        <div id="counter2"></div>
-        <div id="messcounter"></div>
-        <div id="first_answer" style="display: none"></div>
-        <div id="second_answer"></div>
-        <button type="button" onclick="hideShowGraph()">Hide/Show Graph</button>
-    </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
