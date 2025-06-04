@@ -1003,6 +1003,7 @@ export class ActiveCode extends RunestoneBase {
 
         var coachDiv = document.createElement("div");
         coachDiv.classList.add("alert", "alert-warning", "codecoach");
+        coachDiv.setAttribute("aria-live", "polite");
         $(coachDiv).css("display", "none");
         let coachHead = coachDiv.appendChild(document.createElement("h3"));
         coachHead.textContent = $.i18n("msg_activecode_code_coach");
