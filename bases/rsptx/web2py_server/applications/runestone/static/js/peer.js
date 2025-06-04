@@ -167,7 +167,7 @@ function connect(event) {
                     console.log(`group = ${mess.group}`);
                     let groupList = [];
                     if (mess.group) {
-                        groupList = JSON.parse(mess.group);
+                        groupList = mess.group;
                     }
                     messarea = document.getElementById("imessage");
                     messarea.innerHTML = `<h3>Time to talk to your group</h3>

@@ -605,6 +605,12 @@ def _broadcast_faceChat(peeps, in_person_groups):
     Send the message to enable the face chat to the students in the peeps list
     """
 
+    people = db(db.auth_user.course_name == auth.user.course_name).select(
+        db.auth_user.username, db.auth_user.first_name, db.auth_user.last_name
+    )
+    # create a dictionary of people with their usernames as keys
+    peeps_dict = {p.username: f"{p.first_name} {p.last_name}" for p in people}
+
     r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
     for p in peeps:
         # create a message from p1 to put into the publisher queue
@@ -617,13 +623,14 @@ def _broadcast_faceChat(peeps, in_person_groups):
             if p in group:
                 pgroup = group
                 break
+        pgroup = [peeps_dict.get(x, x) for x in pgroup]  # convert usernames to names
         mess = {
             "type": "control",
             "from": p,
             "to": p,
             "message": "enableFaceChat",
             "broadcast": False,
-            "group": json.dumps(list(pgroup)),
+            "group": pgroup,
             "course_name": auth.user.course_name,
         }
         r.publish("peermessages", json.dumps(mess))
