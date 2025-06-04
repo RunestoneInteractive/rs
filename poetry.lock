@@ -5621,7 +5621,7 @@ files = [
 
 [[package]]
 name = "rsmanage"
-version = "2.0.0"
+version = "2.0.1"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -5663,7 +5663,7 @@ url = "projects/rsmanage"
 
 [[package]]
 name = "runestone"
-version = "7.7.3"
+version = "7.7.4"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
