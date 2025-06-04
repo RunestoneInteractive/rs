@@ -1,0 +1,331 @@
+{% extends "_base.html" %}
+
+{% block title %}
+Assessment Reset
+{% endblock %}
+
+{% block css %}
+<style>
+    .assessment-reset {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px 0;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .page-header h1 {
+        color: #333;
+        margin: 0;
+        font-size: 2.5em;
+        font-weight: 300;
+    }
+
+    .course-info {
+        background: #f0f7ff;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        border-left: 4px solid #4a90e2;
+    }
+
+    .course-info h3 {
+        margin: 0 0 5px 0;
+        color: #333;
+    }
+
+    .course-info p {
+        margin: 0;
+        color: #666;
+    }
+
+    .reset-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+    }
+
+    .selection-panel {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ddd;
+    }
+
+    .selection-panel h3 {
+        margin: 0 0 15px 0;
+        color: #333;
+        font-size: 1.4em;
+        text-align: center;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #4a90e2;
+    }
+
+    .select-container {
+        margin-bottom: 20px;
+    }
+
+    .select-container label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #555;
+    }
+
+    .form-select {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px;
+        background-color: white;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+    }
+
+    .form-select[size] {
+        height: 200px;
+    }
+
+    .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 6px;
+        padding: 15px;
+        margin: 20px 0;
+        border-left: 4px solid #f39c12;
+    }
+
+    .warning-box h4 {
+        margin: 0 0 10px 0;
+        color: #856404;
+        font-size: 1.1em;
+    }
+
+    .warning-box p {
+        margin: 0;
+        color: #856404;
+        line-height: 1.4;
+    }
+
+    .action-panel {
+        text-align: center;
+        background: white;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border: 1px solid #ddd;
+    }
+
+    .reset-btn {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 6px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+        min-width: 200px;
+    }
+
+    .reset-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #c82333, #bd2130);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+    }
+
+    .reset-btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #4a90e2;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .back-link:hover {
+        color: #357abd;
+        text-decoration: underline;
+    }
+
+    .back-link::before {
+        content: "← ";
+        margin-right: 5px;
+    }
+
+    @media (max-width: 768px) {
+        .reset-container {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .assessment-reset {
+            padding: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="assessment-reset">
+    <a href="/admin/instructor/menu" class="back-link">Back to Instructor Dashboard</a>
+
+    <div class="page-header">
+        <h1>Reset Student Assessment</h1>
+    </div>
+
+    <div class="course-info">
+        <h3>{{ course.course_name }}</h3>
+        <p>Base Course: {{ course.base_course }}</p>
+    </div>
+
+    <div class="warning-box">
+        <h4>⚠️ Important Warning</h4>
+        <p>Resetting an assessment will permanently remove all of the student's progress for that assessment. The
+            student will need to start over. This action cannot be undone. Use this feature only when a student needs to
+            retake an exam due to technical issues or other exceptional circumstances.</p>
+    </div>
+
+    <div class="reset-container">
+        <div class="selection-panel">
+            <h3>Select Student</h3>
+            <div class="select-container">
+                <label for="studentSelect">Choose a student to reset:</label>
+                <select id="studentSelect" class="form-select" size="8">
+                    <option value="">-- Select a Student --</option>
+                    {% for student in students %}
+                    <option value="{{ student.username }}">{{ student.last_name }}, {{ student.first_name }} ({{
+                        student.username }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="selection-panel">
+            <h3>Select Assessment</h3>
+            <div class="select-container">
+                <label for="assessmentSelect">Choose an assessment to reset:</label>
+                <select id="assessmentSelect" class="form-select" size="8">
+                    <option value="">-- Select an Assessment --</option>
+                    {% for assessment in assessments %}
+                    <option value="{{ assessment.name }}">{{ assessment.name }}{% if assessment.description %} - {{
+                        assessment.description }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-panel">
+        <button id="resetBtn" class="reset-btn" onclick="performReset()" disabled>
+            Reset Assessment
+        </button>
+        <p style="margin-top: 15px; color: #666; font-size: 14px;">
+            Both a student and an assessment must be selected to enable the reset button.
+        </p>
+    </div>
+</div>
+
+<script>
+    function updateResetButton() {
+        const studentSelect = document.getElementById('studentSelect');
+        const assessmentSelect = document.getElementById('assessmentSelect');
+        const resetBtn = document.getElementById('resetBtn');
+
+        const studentSelected = studentSelect.value !== '';
+        const assessmentSelected = assessmentSelect.value !== '';
+
+        resetBtn.disabled = !(studentSelected && assessmentSelected);
+    }
+
+    function performReset() {
+        const studentSelect = document.getElementById('studentSelect');
+        const assessmentSelect = document.getElementById('assessmentSelect');
+
+        const studentId = studentSelect.value;
+        const assessmentName = assessmentSelect.value;
+
+        if (!studentId || !assessmentName) {
+            alert('Please select both a student and an assessment.');
+            return;
+        }
+
+        const studentName = studentSelect.options[studentSelect.selectedIndex].text;
+        const assessmentDisplayName = assessmentSelect.options[assessmentSelect.selectedIndex].text;
+
+        const confirmMessage = `Are you sure you want to reset "${assessmentDisplayName}" for student "${studentName}"?\n\nThis will permanently delete all their progress and answers for this assessment. This action cannot be undone.`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        // Disable the button during the reset operation
+        const resetBtn = document.getElementById('resetBtn');
+        const originalText = resetBtn.textContent;
+        resetBtn.disabled = true;
+        resetBtn.textContent = 'Resetting...';
+
+        // Make the API call to reset the assessment
+        fetch('/admin/instructor/reset_assessment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                student_username: studentId,
+                assessment_name: assessmentName
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Successfully reset "${assessmentDisplayName}" for student "${studentName}".`);
+                    // Clear the selections
+                    studentSelect.value = '';
+                    assessmentSelect.value = '';
+                    updateResetButton();
+                } else {
+                    alert(`Error resetting assessment: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                alert(`Error resetting assessment: ${error.message}`);
+            })
+            .finally(() => {
+                // Re-enable the button
+                resetBtn.textContent = originalText;
+                updateResetButton();
+            });
+    }
+
+    // Add event listeners to update the reset button state
+    document.getElementById('studentSelect').addEventListener('change', updateResetButton);
+    document.getElementById('assessmentSelect').addEventListener('change', updateResetButton);
+
+    // Initialize the button state
+    document.addEventListener('DOMContentLoaded', updateResetButton);
+</script>
+{% endblock %}

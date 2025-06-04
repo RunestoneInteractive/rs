@@ -73,6 +73,7 @@ from rsptx.db.models import (
     BookAuthor,
     Chapter,
     ChapterValidator,
+    ClickableareaAnswers,
     Code,
     CodeValidator,
     Competency,
@@ -86,7 +87,9 @@ from rsptx.db.models import (
     DeadlineException,
     DeadlineExceptionValidator,
     DomainApprovals,
+    DragndropAnswers,
     EditorBasecourse,
+    FitbAnswers,
     Grade,
     GradeValidator,
     InvoiceRequest,
@@ -101,6 +104,8 @@ from rsptx.db.models import (
     Lti1p3UserValidator,
     Lti1p3Assignment,
     Lti1p3AssignmentValidator,
+    MchoiceAnswers,
+    ParsonsAnswers,
     Question,
     QuestionGrade,
     QuestionGradeValidator,
@@ -108,6 +113,7 @@ from rsptx.db.models import (
     runestone_component_dict,
     SelectedQuestion,
     SelectedQuestionValidator,
+    ShortanswerAnswers,
     SourceCode,
     SourceCodeValidator,
     SubChapter,
@@ -127,6 +133,8 @@ from rsptx.db.models import (
     UserSubChapterProgress,
     UserSubChapterProgressValidator,
     UserTopicPractice,
+    UserTopicPracticeCompletion,
+    UserTopicPracticeFeedback,
     UserTopicPracticeValidator,
     APIToken,
     APITokenValidator,
@@ -245,11 +253,15 @@ async def get_peer_votes(div_id: str, course_name: str, voting_stage: int):
 async def get_book_chapters(course_name: str) -> List[ChapterValidator]:
     """
     Retrieve all chapters for a given course (course_name)
-    
+
     :param course_name: str, the name of the course
     :return: List[ChapterValidator], a list of ChapterValidator objects representing the chapters
     """
-    query = select(Chapter).where(Chapter.course_id == course_name).order_by(Chapter.chapter_num)
+    query = (
+        select(Chapter)
+        .where(Chapter.course_id == course_name)
+        .order_by(Chapter.chapter_num)
+    )
     async with async_session() as session:
         res = await session.execute(query)
         return [ChapterValidator.from_orm(x) for x in res.scalars().fetchall()]
@@ -274,12 +286,12 @@ async def fetch_chapter_for_subchapter(subchapter: str, base_course: str) -> str
     async with async_session() as session:
         chapter_label = await session.execute(query)
         return chapter_label.scalars().first()
-    
+
 
 async def get_book_subchapters(course_name: str) -> List[SubChapterValidator]:
     """
     Retrieve all subchapters for a given course (course_name)
-    
+
     :param course_name: str, the name of the course
     :return: List[SubChapterValidator], a list of SubChapterValidator objects
     """
@@ -586,9 +598,8 @@ async def create_course(course_info: CoursesValidator) -> None:
         session.add(new_course)
     return new_course
 
-async def user_in_course(
-    user_id: int, course_id: int
-) -> bool:
+
+async def user_in_course(user_id: int, course_id: int) -> bool:
     """
     Return true if given user is in indicated course
 
@@ -603,6 +614,7 @@ async def user_in_course(
         res = await session.execute(query)
         res_count = res.scalars().fetchall()[0]
         return res_count != 0
+
 
 async def fetch_courses_for_user(
     user_id: int, course_id: Optional[int] = None
@@ -673,7 +685,19 @@ async def create_user_course_entry(user_id: int, course_id: int) -> UserCourse:
 
     return new_uc
 
+async def delete_user_course_entry(user_id: int, course_id: int) -> None:
+    """
+    Delete a user course entry for a given user (user_id) and course (course_id)
 
+    :param user_id: int, the user id
+    :param course_id: int, the course id
+    """
+    query = delete(UserCourse).where(
+        and_(UserCourse.user_id == user_id, UserCourse.course_id == course_id)
+    )
+    async with async_session.begin() as session:
+        await session.execute(query)
+        
 # course_attributes
 # -----------------
 
@@ -750,7 +774,9 @@ async def get_course_origin(base_course):
 
 # auth_user
 # ---------
-async def fetch_user(user_name: str, fallback_to_registration: bool = False) -> AuthUserValidator:
+async def fetch_user(
+    user_name: str, fallback_to_registration: bool = False
+) -> AuthUserValidator:
     """
     Retrieve a user by their username (user_name)
 
@@ -765,7 +791,9 @@ async def fetch_user(user_name: str, fallback_to_registration: bool = False) -> 
         res = await session.execute(query)
         user = res.scalars().one_or_none()
         if not user and fallback_to_registration:
-            fallback_query = select(AuthUser).where(AuthUser.registration_id == user_name)
+            fallback_query = select(AuthUser).where(
+                AuthUser.registration_id == user_name
+            )
             res = await session.execute(fallback_query)
             user = res.scalars().one_or_none()
     return AuthUserValidator.from_orm(user)
@@ -969,10 +997,8 @@ async def create_instructor_course_entry(iid: int, cid: int) -> CourseInstructor
 
     async with async_session.begin() as session:
         res = await session.execute(
-            select(CourseInstructor)
-            .where(
-                (CourseInstructor.course == cid) &
-                (CourseInstructor.instructor == iid)
+            select(CourseInstructor).where(
+                (CourseInstructor.course == cid) & (CourseInstructor.instructor == iid)
             )
         )
         ci = res.scalars().first()
@@ -1016,7 +1042,9 @@ async def create_code_entry(data: CodeValidator) -> CodeValidator:
     return CodeValidator.from_orm(new_code)
 
 
-async def fetch_code(sid: str, acid: str, course_id: int, limit: int = 0) -> List[CodeValidator]:
+async def fetch_code(
+    sid: str, acid: str, course_id: int, limit: int = 0
+) -> List[CodeValidator]:
     """
     Retrieve a list of the most recent code entries for the given student id (sid), assignment id (acid), and course id (course_id).
 
@@ -1924,7 +1952,7 @@ async def fetch_all_grades_for_assignment(
 ) -> list[GradeValidator]:
     """
     Fetch all grades for the given assignment id (assignment_id)
-    
+
     :param assignment_id: int, the id of the assignment
     :return: List[GradeValidator], a list of GradeValidator objects
     """
@@ -2104,6 +2132,7 @@ async def fetch_questions_by_search_criteria(
                 Question.name.regexp_match(criteria.source_regex, flags="i"),
             )
         )
+
     if criteria.question_type:
         where_criteria.append(Question.question_type == criteria.question_type)
 
@@ -3307,7 +3336,8 @@ async def delete_lti_course(course_id: int) -> bool:
 
     return True
 
-#-----------------------------------------------------------------------
+
+# -----------------------------------------------------------------------
 # LTI 1.3
 async def upsert_lti1p3_config(config: Lti1p3Conf) -> Lti1p3Conf:
     """
@@ -3317,8 +3347,8 @@ async def upsert_lti1p3_config(config: Lti1p3Conf) -> Lti1p3Conf:
     """
     async with async_session() as session:
         query = select(Lti1p3Conf).where(
-            (Lti1p3Conf.issuer == config.issuer) & 
-            (Lti1p3Conf.client_id == config.client_id)
+            (Lti1p3Conf.issuer == config.issuer)
+            & (Lti1p3Conf.client_id == config.client_id)
         )
         res = await session.execute(query)
         existing_conf = res.scalars().one_or_none()
@@ -3329,36 +3359,36 @@ async def upsert_lti1p3_config(config: Lti1p3Conf) -> Lti1p3Conf:
             Lti1p3ConfValidator.from_orm(existing_conf)
             ret = existing_conf
         else:
-            Lti1p3ConfValidator.from_orm(config) # validate data
+            Lti1p3ConfValidator.from_orm(config)  # validate data
             session.add(config)
             ret = config
         await session.commit()
         return ret
 
+
 async def fetch_lti1p3_config(id: int) -> Lti1p3Conf:
     """
     Retrieve an LTI1.3 platform configuration
     """
-    query = select(Lti1p3Conf).where(
-        (Lti1p3Conf.id == id)
-    )
+    query = select(Lti1p3Conf).where((Lti1p3Conf.id == id))
     async with async_session() as session:
         res = await session.execute(query)
         conf = res.scalars().one_or_none()
         return conf
-    
+
+
 async def fetch_lti1p3_config_by_lti_data(issuer: str, client_id: str) -> Lti1p3Conf:
     """
     Retrieve an LTI1.3 platform config by issuer and client_id.
     """
     query = select(Lti1p3Conf).where(
-        (Lti1p3Conf.issuer == issuer) & 
-        (Lti1p3Conf.client_id == client_id)
+        (Lti1p3Conf.issuer == issuer) & (Lti1p3Conf.client_id == client_id)
     )
     async with async_session() as session:
         res = await session.execute(query)
         conf = res.scalars().one_or_none()
         return conf
+
 
 async def upsert_lti1p3_course(course: Lti1p3Course) -> Lti1p3Course:
     """
@@ -3385,7 +3415,8 @@ async def upsert_lti1p3_course(course: Lti1p3Course) -> Lti1p3Course:
             ret = course
         await session.commit()
         return ret
-    
+
+
 async def delete_lti1p3_course(rs_course_id: int) -> int:
     """
     Delete an LTI1.3 course mapping by the rs_course_id it is associated with
@@ -3396,7 +3427,10 @@ async def delete_lti1p3_course(rs_course_id: int) -> int:
         await session.commit()
         return res.rowcount
 
-async def fetch_lti1p3_course(id: int, with_config: bool = True, with_rs_course: bool = False) -> Lti1p3Course:
+
+async def fetch_lti1p3_course(
+    id: int, with_config: bool = True, with_rs_course: bool = False
+) -> Lti1p3Course:
     """
     Retrieve an LTI1.3 course by its id
     Also optionally fetches the associated Lti1p3Conf and/or RS Course
@@ -3411,7 +3445,10 @@ async def fetch_lti1p3_course(id: int, with_config: bool = True, with_rs_course:
         course = res.scalars().one_or_none()
         return course
 
-async def fetch_lti1p3_course_by_rs_course(rs_course: CoursesValidator, with_config: bool = True) -> Lti1p3Course:
+
+async def fetch_lti1p3_course_by_rs_course(
+    rs_course: CoursesValidator, with_config: bool = True
+) -> Lti1p3Course:
     """
     Retrieve an LTI1.3 platform config by its id
     Also optionally fetches the associated Lti1p3Conf and/or Course
@@ -3424,7 +3461,10 @@ async def fetch_lti1p3_course_by_rs_course(rs_course: CoursesValidator, with_con
         course = res.scalars().one_or_none()
         return course
 
-async def fetch_lti1p3_course_by_id(id: int, with_config: bool = True, with_rs_course: bool = False) -> Lti1p3Course:
+
+async def fetch_lti1p3_course_by_id(
+    id: int, with_config: bool = True, with_rs_course: bool = False
+) -> Lti1p3Course:
     """
     Retrieve an LTI1.3 platform config by its id
     Also optionally fetches the associated Lti1p3Conf and/or Course
@@ -3439,7 +3479,10 @@ async def fetch_lti1p3_course_by_id(id: int, with_config: bool = True, with_rs_c
         dep = res.scalars().one_or_none()
         return dep
 
-async def fetch_lti1p3_course_by_lti_id(lti_id: str, with_config: bool = True, with_rs_course: bool = False) -> Lti1p3Course:
+
+async def fetch_lti1p3_course_by_lti_id(
+    lti_id: str, with_config: bool = True, with_rs_course: bool = False
+) -> Lti1p3Course:
     """
     Retrieve an LTI1.3 platform config by its lti identifier
     Also optionally fetches the associated Lti1p3Conf and/or Course
@@ -3454,15 +3497,22 @@ async def fetch_lti1p3_course_by_lti_id(lti_id: str, with_config: bool = True, w
         dep = res.scalars().one_or_none()
         return dep
 
-async def fetch_lti1p3_course_by_lti_data(issuer: str, client_id: str, deploy_id: str, with_config: bool = True) -> Lti1p3Course:
+
+async def fetch_lti1p3_course_by_lti_data(
+    issuer: str, client_id: str, deploy_id: str, with_config: bool = True
+) -> Lti1p3Course:
     """
     Retrieve an LTI1.3 platform config by issuer and client_id.
     Also fetches the associated Lti1p3Conf
     """
-    query = select(Lti1p3Course).join(Lti1p3Conf).where(
-        (Lti1p3Conf.issuer == issuer) & 
-        (Lti1p3Conf.client_id == client_id) &
-        (Lti1p3Course.deployment_id == deploy_id)
+    query = (
+        select(Lti1p3Course)
+        .join(Lti1p3Conf)
+        .where(
+            (Lti1p3Conf.issuer == issuer)
+            & (Lti1p3Conf.client_id == client_id)
+            & (Lti1p3Course.deployment_id == deploy_id)
+        )
     )
     if with_config:
         query = query.options(joinedload(Lti1p3Course.lti_config))
@@ -3471,14 +3521,15 @@ async def fetch_lti1p3_course_by_lti_data(issuer: str, client_id: str, deploy_id
         dep = res.scalars().one_or_none()
         return dep
 
+
 async def upsert_lti1p3_user(user: Lti1p3User) -> Lti1p3User:
     """
-    Insert or update an LTI1.3 user mapping.
+    Insert or update an LTI1.3 user mapping for a particular course
     """
     async with async_session() as session:
         query = select(Lti1p3User).where(
-            (Lti1p3User.lti1p3_course_id == user.lti1p3_course_id) &
-            (Lti1p3User.rs_user_id == user.rs_user_id)
+            (Lti1p3User.lti1p3_course_id == user.lti1p3_course_id)
+            & (Lti1p3User.rs_user_id == user.rs_user_id)
         )
         res = await session.execute(query)
         existing_user = res.scalars().one_or_none()
@@ -3490,62 +3541,65 @@ async def upsert_lti1p3_user(user: Lti1p3User) -> Lti1p3User:
             new_user = Lti1p3User(
                 lti1p3_course_id=user.lti1p3_course_id,
                 rs_user_id=user.rs_user_id,
-                lti_user_id=user.lti_user_id
+                lti_user_id=user.lti_user_id,
             )
             Lti1p3UserValidator.from_orm(new_user)
             session.add(new_user)
             await session.commit()
             return new_user
 
+
 async def fetch_lti1p3_user(rs_user_id: int, lti1p3_course_id: int) -> Lti1p3User:
     """
     Retrieve a user's LTI1.3 mapping for a particular course
     """
     query = select(Lti1p3User).where(
-        (Lti1p3User.rs_user_id == rs_user_id) & 
-        (Lti1p3User.lti1p3_course_id == lti1p3_course_id)
+        (Lti1p3User.rs_user_id == rs_user_id)
+        & (Lti1p3User.lti1p3_course_id == lti1p3_course_id)
     )
     async with async_session() as session:
         res = await session.execute(query)
         user = res.scalars().one_or_none()
         return user
 
-async def fetch_lti1p3_users_for_course(lti1p3_course_id: int, with_rsuser: bool = True) -> List[Lti1p3User]:
+
+async def fetch_lti1p3_users_for_course(
+    lti1p3_course_id: int, with_rsuser: bool = True
+) -> List[Lti1p3User]:
     """
     Retrieve all LTI1.3 user mapping for a particular course
     """
-    query = select(Lti1p3User).where(
-        (Lti1p3User.lti1p3_course_id == lti1p3_course_id)
-    )
+    query = select(Lti1p3User).where((Lti1p3User.lti1p3_course_id == lti1p3_course_id))
     if with_rsuser:
         query = query.options(joinedload(Lti1p3User.rs_user))
     async with async_session() as session:
         res = await session.execute(query)
         users = res.scalars().all()
         return users
-        
+
+
 async def upsert_lti1p3_assignment(assignment: Lti1p3Assignment) -> Lti1p3Assignment:
     """
     Insert or update an LTI1.3 assignment mapping.
     """
     async with async_session() as session:
         query = select(Lti1p3Assignment).where(
-            (Lti1p3Assignment.lti1p3_course_id == assignment.lti1p3_course_id) &
-            (Lti1p3Assignment.rs_assignment_id == assignment.rs_assignment_id)
+            (Lti1p3Assignment.lti1p3_course_id == assignment.lti1p3_course_id)
+            & (Lti1p3Assignment.rs_assignment_id == assignment.rs_assignment_id)
         )
         res = await session.execute(query)
         existing_assignment = res.scalars().one_or_none()
         await session.commit()
         if existing_assignment:
             existing_assignment.update_from_dict(assignment.dict())
-            # Validate now that we have full object
+            # Validate now that we have built full object
             Lti1p3AssignmentValidator.from_orm(existing_assignment)
             ret = existing_assignment
         else:
             new_assignment = Lti1p3Assignment(
                 lti1p3_course_id=assignment.lti1p3_course_id,
                 rs_assignment_id=assignment.rs_assignment_id,
-                lti_lineitem_id=assignment.lti_lineitem_id
+                lti_lineitem_id=assignment.lti_lineitem_id,
             )
             Lti1p3AssignmentValidator.from_orm(new_assignment)
             session.add(new_assignment)
@@ -3553,10 +3607,13 @@ async def upsert_lti1p3_assignment(assignment: Lti1p3Assignment) -> Lti1p3Assign
         await session.commit()
         return ret
 
-async def fetch_lti1p3_assignments_by_rs_assignment_id(rs_assignment_id: int) -> Lti1p3Assignment:
+
+async def fetch_lti1p3_assignments_by_rs_assignment_id(
+    rs_assignment_id: int,
+) -> Lti1p3Assignment:
     """
     Retrieve an LTI1.3 assignment mapping. There may be more than record as one RS course
-    might be mapped to multiple different LTI assignments. 
+    might be mapped to multiple different LTI assignments.
     """
     query = select(Lti1p3Assignment).where(
         (Lti1p3Assignment.rs_assignment_id == rs_assignment_id)
@@ -3566,12 +3623,17 @@ async def fetch_lti1p3_assignments_by_rs_assignment_id(rs_assignment_id: int) ->
         assignment = res.scalars().all()
         return assignment
 
-async def fetch_lti1p3_assignments_by_rs_course_id(rs_course_id: int) -> List[Lti1p3Assignment]:
+
+async def fetch_lti1p3_assignments_by_rs_course_id(
+    rs_course_id: int,
+) -> List[Lti1p3Assignment]:
     """
     Retrieve all LTI1.3 assignment mappings for a course
     """
-    query = select(Lti1p3Assignment).join(Assignment).where(
-        (Assignment.course == rs_course_id)
+    query = (
+        select(Lti1p3Assignment)
+        .join(Assignment)
+        .where((Assignment.course == rs_course_id))
     )
     async with async_session() as session:
         res = await session.execute(query)
@@ -3579,28 +3641,35 @@ async def fetch_lti1p3_assignments_by_rs_course_id(rs_course_id: int) -> List[Lt
         return assignments
 
 
-async def fetch_lti1p3_grading_data_for_assignment(rs_assignment_id: int) -> Lti1p3Assignment:
+async def fetch_lti1p3_grading_data_for_assignment(
+    rs_assignment_id: int,
+) -> Lti1p3Assignment:
     """
     Fetch data needed to submit grades for a particular assignment
     """
     async with async_session() as session:
         query = (
-            select(Lti1p3Assignment).
-            join(Lti1p3Course, Lti1p3Course.id == Lti1p3Assignment.lti1p3_course_id)
+            select(Lti1p3Assignment)
+            .join(Lti1p3Course, Lti1p3Course.id == Lti1p3Assignment.lti1p3_course_id)
             .where(Lti1p3Assignment.rs_assignment_id == rs_assignment_id)
             .options(
                 joinedload(Lti1p3Assignment.rs_assignment),
                 joinedload(Lti1p3Assignment.lti1p3_course),
-                joinedload(Lti1p3Assignment.lti1p3_course).joinedload(Lti1p3Course.lti_config),
-                joinedload(Lti1p3Assignment.lti1p3_course).joinedload(Lti1p3Course.rs_course)
+                joinedload(Lti1p3Assignment.lti1p3_course).joinedload(
+                    Lti1p3Course.lti_config
+                ),
+                joinedload(Lti1p3Assignment.lti1p3_course).joinedload(
+                    Lti1p3Course.rs_course
+                ),
             )
         )
         res = await session.execute(query)
         assign = res.scalars().one_or_none()
         return assign
 
+
 # /LTI 1.3
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 
 
 async def create_invoice_request(
@@ -3663,14 +3732,10 @@ async def fetch_last_useinfo_peergroup(course_name: str) -> List[Useinfo]:
         results = await session.execute(query)
         return results.scalars().all()
 
+
 # We need a synchronous version of this function for use in manifest_data_to_db
 # if/when process_manifest moves to being async we could remove this
-def update_source_code_sync(
-    acid: str,
-    filename: str,
-    course_id: str,
-    main_code: str
-):
+def update_source_code_sync(acid: str, filename: str, course_id: str, main_code: str):
     """
     Update the source code for a given acid or filename
     """
@@ -3697,12 +3762,8 @@ def update_source_code_sync(
             session.add(new_entry)
         session.commit()
 
-async def update_source_code(
-    acid: str,
-    filename: str,
-    course_id: str,
-    main_code: str
-):
+
+async def update_source_code(acid: str, filename: str, course_id: str, main_code: str):
     """
     Update the source code for a given acid or filename
     """
@@ -3729,6 +3790,7 @@ async def update_source_code(
             session.add(new_entry)
         await session.commit()
 
+
 async def fetch_source_code(
     base_course: str, course_name: str, acid: str = None, filename: str = None
 ) -> SourceCodeValidator:
@@ -3749,10 +3811,12 @@ async def fetch_source_code(
         query = select(SourceCode).where(
             and_(
                 or_(
-                    SourceCode.filename == filename, SourceCode.acid == filename,
+                    SourceCode.filename == filename,
+                    SourceCode.acid == filename,
                 ),
                 or_(
-                    SourceCode.course_id == base_course, SourceCode.course_id == course_name
+                    SourceCode.course_id == base_course,
+                    SourceCode.course_id == course_name,
                 ),
             )
         )
@@ -3761,7 +3825,8 @@ async def fetch_source_code(
             and_(
                 SourceCode.acid == acid,
                 or_(
-                    SourceCode.course_id == base_course, SourceCode.course_id == course_name
+                    SourceCode.course_id == base_course,
+                    SourceCode.course_id == course_name,
                 ),
             )
         )
@@ -3891,14 +3956,13 @@ async def fetch_api_token(
     """
     query = (
         select(APIToken)
-        .where(
-            (APIToken.course_id == course_id)
-            & (APIToken.provider == provider)
-        )
-        .order_by(APIToken.last_used.asc().nulls_first())  # Least recently used first, NULL values first
+        .where((APIToken.course_id == course_id) & (APIToken.provider == provider))
+        .order_by(
+            APIToken.last_used.asc().nulls_first()
+        )  # Least recently used first, NULL values first
         .limit(1)
     )
-    
+
     async with async_session.begin() as session:
         res = await session.execute(query)
         token = res.scalars().first()
@@ -3908,6 +3972,7 @@ async def fetch_api_token(
             session.add(token)
             return APITokenValidator.from_orm(token)
         return None
+
 
 # DomainApprovals
 # ------------------
@@ -3919,13 +3984,465 @@ async def check_domain_approval(
     :param course_id: int, the id of the course
     :param approval_type: sqlalchemy.orm.attributes.InstrumentedAttribute, the type of approval (e.g., 'DomainApprovals.lti1p3')
     """
-    query = select(Courses.domain_name) \
-            .join(DomainApprovals, Courses.domain_name == DomainApprovals.domain_name) \
-            .where(
-                (approval_type == True)
-                & (Courses.id == course_id)
-            )
+    query = (
+        select(Courses.domain_name)
+        .join(DomainApprovals, Courses.domain_name == DomainApprovals.domain_name)
+        .where((approval_type == True) & (Courses.id == course_id))
+    )
     async with async_session() as session:
         res = await session.execute(query)
         domain = res.scalars().first()
         return domain is not None
+
+
+async def delete_course_instructor(course_id: int, instructor_id: int) -> None:
+    """
+    Remove an instructor from a course by deleting the CourseInstructor relationship.
+
+    :param course_id: int, the id of the course
+    :param instructor_id: int, the id of the instructor to remove
+    :return: None
+    """
+    stmt = delete(CourseInstructor).where(
+        (CourseInstructor.course == course_id)
+        & (CourseInstructor.instructor == instructor_id)
+    )
+
+    async with async_session() as session:
+        await session.execute(stmt)
+        await session.commit()
+
+async def create_course_instructor(course_id: int, instructor_id: int) -> None:
+    """
+    Add an instructor to a course by creating a new CourseInstructor relationship.
+
+    :param course_id: int, the id of the course
+    :param instructor_id: int, the id of the instructor to add
+    :return: None
+    """
+    new_entry = CourseInstructor(course=course_id, instructor=instructor_id)
+    async with async_session.begin() as session:
+        session.add(new_entry)
+
+
+async def update_course_settings(course_id: int, setting: str, value: str) -> None:
+    """
+    Update a course setting/attribute. Handles both special course table fields
+    and course attributes.
+
+    :param course_id: int, the id of the course
+    :param setting: str, the setting name to update
+    :param value: str, the value to set
+    :return: None
+    :raises ValueError: If date format is invalid for new_date setting
+    """
+    async with async_session() as session:
+        # Handle special course table fields
+        if setting in ["new_date", "allow_pairs", "downloads_enabled"]:
+            if setting == "new_date":
+                # Update term_start_date in courses table
+                import datetime
+
+                try:
+                    new_date = datetime.datetime.strptime(value, "%Y-%m-%d").date()
+                    stmt = (
+                        update(Courses)
+                        .where(Courses.id == course_id)
+                        .values(term_start_date=new_date)
+                    )
+                    await session.execute(stmt)
+                except ValueError:
+                    raise ValueError("Invalid date format")
+
+            elif setting == "allow_pairs":
+                bool_val = value.lower() == "true"
+                stmt = (
+                    update(Courses)
+                    .where(Courses.id == course_id)
+                    .values(allow_pairs=bool_val)
+                )
+                await session.execute(stmt)
+
+            elif setting == "downloads_enabled":
+                bool_val = value.lower() == "true"
+                stmt = (
+                    update(Courses)
+                    .where(Courses.id == course_id)
+                    .values(downloads_enabled=bool_val)
+                )
+                await session.execute(stmt)
+        else:
+            # Handle course attributes
+            # Check if attribute exists
+            stmt = select(CourseAttribute).where(
+                (CourseAttribute.course_id == course_id)
+                & (CourseAttribute.attr == setting)
+            )
+            result = await session.execute(stmt)
+            existing_attr = result.scalar_one_or_none()
+
+            if existing_attr:
+                # Update existing attribute
+                stmt = (
+                    update(CourseAttribute)
+                    .where(
+                        (CourseAttribute.course_id == course_id)
+                        & (CourseAttribute.attr == setting)
+                    )
+                    .values(value=str(value))
+                )
+                await session.execute(stmt)
+            else:
+                # Create new attribute
+                new_attr = CourseAttribute(
+                    course_id=course_id,
+                    attr=setting,
+                    value=str(value),
+                )
+                session.add(new_attr)
+
+        await session.commit()
+
+
+# -----------------------------------------------------------------------
+# Assessment Reset Functions
+# -----------------------------------------------------------------------
+
+
+async def fetch_timed_assessments(course_id: int) -> List[Tuple[str, str]]:
+    """
+    Retrieve all timed assessments for a given course.
+
+    :param course_id: int, the course id
+    :return: List[Tuple[str, str]], list of (name, description) tuples for timed assessments
+    """
+    query = (
+        select(Assignment.name, Assignment.description)
+        .where((Assignment.course == course_id) & (Assignment.is_timed == "T"))
+        .order_by(Assignment.name)
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [(row.name, row.description or "") for row in res.all()]
+
+
+async def reset_student_assessment(
+    username: str, assessment_name: str, course_name: str
+) -> bool:
+    """
+    Reset a student's timed assessment by:
+    1. Updating useinfo records to set act="start_reset"
+    2. Deleting timed_exam records
+    3. Deleting selected_questions records for exam questions
+
+    :param username: str, the student's username
+    :param assessment_name: str, the name of the assessment to reset
+    :param course_name: str, the name of the course
+    :return: bool, True if reset was successful
+    """
+    try:
+        async with async_session.begin() as session:
+            # Update useinfo records for this exam to mark as reset
+            useinfo_update = (
+                update(Useinfo)
+                .where(
+                    (Useinfo.sid == username)
+                    & (Useinfo.div_id == assessment_name)
+                    & (Useinfo.course_id == course_name)
+                    & (Useinfo.event == "timedExam")
+                )
+                .values(act="start_reset")
+            )
+            await session.execute(useinfo_update)
+
+            # Delete timed_exam records
+            timed_exam_delete = delete(TimedExam).where(
+                (TimedExam.sid == username)
+                & (TimedExam.div_id == assessment_name)
+                & (TimedExam.course_name == course_name)
+            )
+            await session.execute(timed_exam_delete)
+
+            # Get all question names for this assessment
+            assessment_questions_query = (
+                select(Question.name)
+                .join(AssignmentQuestion, Question.id == AssignmentQuestion.question_id)
+                .join(Assignment, AssignmentQuestion.assignment_id == Assignment.id)
+                .where(Assignment.name == assessment_name)
+            )
+            question_result = await session.execute(assessment_questions_query)
+            question_names = [row.name for row in question_result.scalars().all()]
+
+            # Delete selected_questions records for all questions in this exam
+            if question_names:
+                selected_questions_delete = delete(SelectedQuestion).where(
+                    (SelectedQuestion.sid == username)
+                    & (SelectedQuestion.selector_id.in_(question_names))
+                )
+                await session.execute(selected_questions_delete)
+
+            return True
+
+    except Exception as e:
+        rslogger.error(f"Error deleting course {course_name}: {e}")
+        return False
+
+
+# -----------------------------------------------------------------------
+# Course Deletion Functions
+# -----------------------------------------------------------------------
+
+
+async def delete_course_completely(course_name: str) -> bool:
+    """
+    Completely delete a course and all associated data.
+
+    WARNING: This is a destructive operation that cannot be undone.
+
+    This function will delete:
+    - All student enrollments in the course
+    - All assignments and grades
+    - All course sections
+    - Student progress data (useinfo, timed_exam, etc.)
+    - Course customizations and settings
+    - LTI integrations
+
+    :param course_name: str, the name of the course to delete
+    :return: bool, True if deletion was successful
+    """
+    try:
+        async with async_session.begin() as session:
+            # First, get the course information
+            course_query = select(Courses).where(Courses.course_name == course_name)
+            course_result = await session.execute(course_query)
+            course = course_result.scalar_one_or_none()
+
+            if not course:
+                rslogger.warning(f"Course {course_name} not found for deletion")
+                return False
+
+            course_id = course.id
+            rslogger.info(
+                f"Starting deletion of course: {course_name} (ID: {course_id})"
+            )
+
+            # Delete in order to respect foreign key constraints
+
+            # 1. Delete student progress and activity data
+            rslogger.info("Deleting student activity data...")
+
+            # Delete useinfo records
+            await session.execute(
+                delete(Useinfo).where(Useinfo.course_id == course_name)
+            )
+
+            # Delete timed exam records
+            await session.execute(
+                delete(TimedExam).where(TimedExam.course_name == course_name)
+            )
+
+            # Delete multiple choice answers
+            await session.execute(
+                delete(MchoiceAnswers).where(MchoiceAnswers.course_name == course_name)
+            )
+
+            # Delete fill-in-the-blank answers
+            await session.execute(
+                delete(FitbAnswers).where(FitbAnswers.course_name == course_name)
+            )
+
+            # Delete drag and drop answers
+            await session.execute(
+                delete(DragndropAnswers).where(
+                    DragndropAnswers.course_name == course_name
+                )
+            )
+
+            # Delete clickable area answers
+            await session.execute(
+                delete(ClickableareaAnswers).where(
+                    ClickableareaAnswers.course_name == course_name
+                )
+            )
+
+            # Delete parsons answers
+            await session.execute(
+                delete(ParsonsAnswers).where(ParsonsAnswers.course_name == course_name)
+            )
+
+            # Delete short answer responses
+            await session.execute(
+                delete(ShortanswerAnswers).where(
+                    ShortanswerAnswers.course_name == course_name
+                )
+            )
+
+            # Delete coding answers
+            await session.execute(delete(Code).where(Code.course_id == course_name))
+
+            # Note: PollAnswer model not found in imports, skipping poll responses deletion
+            # await session.execute(delete(PollAnswer).where(PollAnswer.course_name == course_name))
+
+            # Delete selected questions for this course's students
+            # This is more complex as we need to find students in the course first
+            student_query = select(AuthUser.username).where(
+                AuthUser.course_id == course_id
+            )
+            student_result = await session.execute(student_query)
+            student_usernames = [row.username for row in student_result.scalars().all()]
+
+            if student_usernames:
+                await session.execute(
+                    delete(SelectedQuestion).where(
+                        SelectedQuestion.sid.in_(student_usernames)
+                    )
+                )
+
+            # 2. Delete grading and assignment data
+            rslogger.info("Deleting grades and assignments...")
+
+            # Delete question grades for students in this course
+            await session.execute(
+                delete(QuestionGrade).where(QuestionGrade.course_name == course_name)
+            )
+
+            # Delete assignment grades for students in this course
+            assignment_query = select(Assignment.id).where(
+                Assignment.course == course_id
+            )
+            assignment_result = await session.execute(assignment_query)
+            assignment_ids = [row.id for row in assignment_result.scalars().all()]
+
+            if assignment_ids:
+                await session.execute(
+                    delete(Grade).where(Grade.assignment.in_(assignment_ids))
+                )
+
+            # Delete assignment questions
+            if assignment_ids:
+                await session.execute(
+                    delete(AssignmentQuestion).where(
+                        AssignmentQuestion.assignment_id.in_(assignment_ids)
+                    )
+                )
+
+            # Delete assignments
+            await session.execute(
+                delete(Assignment).where(Assignment.course == course_id)
+            )
+
+            # 3. Delete course instructor relationships
+            rslogger.info("Deleting instructor relationships...")
+            await session.execute(
+                delete(CourseInstructor).where(CourseInstructor.course == course_id)
+            )
+
+            # 4. Delete course attributes/settings
+            rslogger.info("Deleting course settings...")
+            await session.execute(
+                delete(CourseAttribute).where(CourseAttribute.course_id == course_id)
+            )
+
+            # 5. Delete practice/flashcard data
+            rslogger.info("Deleting practice data...")
+            await session.execute(
+                delete(UserTopicPractice).where(
+                    UserTopicPractice.course_name == course_name
+                )
+            )
+            await session.execute(
+                delete(UserTopicPracticeCompletion).where(
+                    UserTopicPracticeCompletion.course_name == course_name
+                )
+            )
+            await session.execute(
+                delete(UserTopicPracticeFeedback).where(
+                    UserTopicPracticeFeedback.course_name == course_name
+                )
+            )
+
+            # 6. Delete payment/invoice data if exists
+            rslogger.info("Deleting payment data...")
+            # Note: We may want to preserve some payment data for accounting purposes
+            # For now, we'll delete invoice requests but preserve actual payments
+            if student_usernames:
+                student_ids_query = select(AuthUser.id).where(
+                    AuthUser.username.in_(student_usernames)
+                )
+                student_ids_result = await session.execute(student_ids_query)
+                student_ids = [row.id for row in student_ids_result.scalars().all()]
+
+                if student_ids:
+                    await session.execute(
+                        delete(InvoiceRequest).where(
+                            InvoiceRequest.user_id.in_(student_ids)
+                        )
+                    )
+
+            # 7. Update student enrollments - move them to a default course or mark them inactive
+            rslogger.info("Updating student enrollments...")
+            # Instead of deleting users, we'll move them to a default "orphaned" course
+            # or set their course_id to None/default
+
+            # Option 1: Set course_id to None (they become unenrolled)
+            await session.execute(
+                update(AuthUser)
+                .where(AuthUser.course_id == course_id)
+                .values(course_id=None, active="F")
+            )
+
+            # Option 2: Alternative - move to a default "orphaned students" course
+            # This would require creating such a course first
+            # default_course_query = select(Courses).where(Courses.course_name == "orphaned_students")
+            # default_course = await session.execute(default_course_query)
+            # if default_course.scalar_one_or_none():
+            #     await session.execute(
+            #         update(AuthUser)
+            #         .where(AuthUser.course_id == course_id)
+            #         .values(course_id=default_course.scalar_one().id)
+            #     )
+
+            # 8. Finally, delete the course itself
+            rslogger.info("Deleting course record...")
+            await session.execute(delete(Courses).where(Courses.id == course_id))
+
+            rslogger.info(f"Successfully deleted course: {course_name}")
+            return True
+
+    except Exception as e:
+        rslogger.error(f"Error deleting course {course_name}: {e}")
+        return False
+
+
+async def fetch_available_students_for_instructor_add(course_id: int) -> List[Dict[str, Any]]:
+    """
+    Fetch students in the course who are not already instructors.
+    """
+    async with async_session() as session:
+        students_stmt = (
+            select(AuthUser)
+            .join(UserCourse, AuthUser.id == UserCourse.user_id)
+            .where(UserCourse.course_id == course_id)
+        )
+        students = (await session.execute(students_stmt)).scalars().all()
+        instructors_stmt = select(CourseInstructor.instructor).where(
+            CourseInstructor.course == course_id
+        )
+        instructor_ids = set((await session.execute(instructors_stmt)).scalars().all())
+        available_students = [AuthUserValidator.from_orm(s).model_dump() for s in students if s.id not in instructor_ids]
+        return available_students
+
+
+async def fetch_current_instructors_for_course(course_id: int) -> List[Dict[str, Any]]:
+    """
+    Fetch all instructors for a given course.
+    """
+    async with async_session() as session:
+        stmt = (
+            select(AuthUser)
+            .join(CourseInstructor, AuthUser.id == CourseInstructor.instructor)
+            .where(CourseInstructor.course == course_id)
+        )
+        instructors = (await session.execute(stmt)).scalars().all()
+        return [AuthUserValidator.from_orm(i).model_dump() for i in instructors]

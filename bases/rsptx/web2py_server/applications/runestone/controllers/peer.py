@@ -94,8 +94,13 @@ def dashboard():
         act="start_question",
         timestamp=datetime.datetime.utcnow(),
     )
-    
-    is_lti = asyncio.get_event_loop().run_until_complete(fetch_lti_version(auth.user.course_id)) != None
+
+    is_lti = (
+        asyncio.get_event_loop().run_until_complete(
+            fetch_lti_version(auth.user.course_id)
+        )
+        != None
+    )
 
     print("is_lti", is_lti)
     r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
@@ -170,6 +175,8 @@ def _get_numbered_question(assignment_id, qnum):
 
 def _get_lastn_answers(num_answer, div_id, course_name, start_time, end_time=None):
     dburl = settings.database_uri.replace("postgres://", "postgresql://")
+    if "?" in dburl:
+        dburl = dburl[: dburl.index("?")]
 
     time_clause = f"""
         AND timestamp > '{start_time}'

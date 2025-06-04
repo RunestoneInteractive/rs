@@ -1,0 +1,360 @@
+{% extends "_base.html" %}
+
+{% block title %}Copy Assignments{% endblock %}
+
+{% block content %}
+<a href="/admin/instructor/menu" class="back-link"
+    style="display:inline-block; margin-bottom:20px; color:#4a90e2; text-decoration:none; font-size:16px; font-weight:600; transition:color 0.3s ease;">
+    &larr; Back to Instructor Dashboard
+</a>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <h2 class="page-title">Copy Assignments</h2>
+            <p class="page-description">Copy assignments from other courses to your current course.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Select Source Course and Assignment</h4>
+                </div>
+                <div class="card-body">
+                    <form id="copyAssignmentForm">
+                        <div class="form-group">
+                            <label for="courseSelection">Select the course you want to copy assignments from:</label>
+                            <select id="courseSelection" class="form-control" onchange="getAssignList(this)">
+                                <option value="">Select a Course</option>
+                                {% for course in instructor_course_list %}
+                                <option value="{{ course.course_name }}">{{ course.course_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <div id="assignSelection"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="button" onclick="copyAssignments()" class="btn btn-primary" id="copyButton"
+                                disabled>
+                                <i class="fas fa-copy"></i> Copy Assignment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Instructions</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle"></i> How to Copy Assignments</h5>
+                        <ol>
+                            <li>Select a source course from the dropdown</li>
+                            <li>Choose which assignment to copy (or "All" for all assignments)</li>
+                            <li>Click "Copy Assignment" to copy to your current course</li>
+                        </ol>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Important Notes</h5>
+                        <ul>
+                            <li>Due dates will be adjusted based on your course term dates</li>
+                            <li>Assignment names must be unique in your course</li>
+                            <li>This action cannot be undone</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+<div id="messageContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+{% endblock %}
+
+{% block js %}
+<script>
+    // Function to get assignments list when course is selected
+    function getAssignList(sel) {
+        const data = { course_name: sel.value };
+        $("#assignSelection").empty(); // Clear the entire container
+        $("#copyButton").prop('disabled', true);
+
+        if (!sel.value) {
+            return;
+        }
+
+        $.getJSON("/runestone/admin/get_assignment_list", data, function (data) {
+            let container = document.getElementById("assignSelection");
+
+            // Create label
+            let label = document.createElement("label");
+            label.textContent = "Select assignment to copy:";
+            label.setAttribute("for", "assignmentsDropdown");
+            container.appendChild(label);
+
+            // Create select element
+            let sel = document.createElement("select");
+            sel.classList.add("form-control");
+            sel.id = "assignmentsDropdown";
+            sel.onchange = function () {
+                $("#copyButton").prop('disabled', false);
+            };
+
+            // Add "All" option
+            let opt = document.createElement("option");
+            opt.value = -1;
+            opt.text = "All Assignments";
+            opt.selected = true; // Select "All Assignments" by default
+            sel.appendChild(opt);
+
+            // Add individual assignments
+            for (let assign of data.assignments) {
+                let opt = document.createElement("option");
+                opt.value = assign.id;
+                opt.text = assign.name;
+                sel.appendChild(opt);
+            }
+
+            container.appendChild(sel);
+
+            // Enable the copy button since "All Assignments" is selected by default
+            $("#copyButton").prop('disabled', false);
+        }).fail(function () {
+            showMessage("Failed to load assignments for selected course", "error");
+        });
+    }
+
+    // Function to copy assignments
+    function copyAssignments() {
+        let selectedCourse = document.getElementById("courseSelection").value;
+        let selectedAssignment = document.getElementById("assignmentsDropdown");
+
+        if (!selectedCourse || !selectedAssignment) {
+            showMessage("Please select both a course and an assignment", "error");
+            return;
+        }
+
+        selectedAssignment = selectedAssignment.options[selectedAssignment.selectedIndex].value;
+
+        const data = {
+            oldassignment: selectedAssignment,
+            course: selectedCourse,
+        };
+
+        // Show loading state
+        $("#copyButton").html('<i class="fas fa-spinner fa-spin"></i> Copying...').prop('disabled', true);
+
+        $.post("/runestone/admin/copy_assignment", data, function (response) {
+            if (response == "success") {
+                showMessage("Assignment(s) copied successfully!", "success");
+                // Reset form
+                $("#courseSelection").val("");
+                $("#assignSelection").empty();
+            } else {
+                showMessage(`Copy Failed: ${response}`, "error");
+            }
+        }).fail(function () {
+            showMessage("Copy failed due to server error", "error");
+        }).always(function () {
+            // Reset button state
+            $("#copyButton").html('<i class="fas fa-copy"></i> Copy Assignment').prop('disabled', true);
+        });
+    }
+
+    // Function to show messages
+    function showMessage(message, type) {
+        const alertClass = type === "success" ? "alert-success" : "alert-danger";
+        const icon = type === "success" ? "fas fa-check-circle" : "fas fa-exclamation-circle";
+
+        const messageHtml = `
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                <i class="${icon}"></i> ${message}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        `;
+
+        $("#messageContainer").html(messageHtml);
+
+        // Auto-dismiss after 5 seconds
+        setTimeout(function () {
+            $("#messageContainer .alert").alert('close');
+        }, 5000);
+    }
+</script>
+{% endblock %}
+
+{% block css %}
+<style>
+    .page-title {
+        color: #333;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+
+    .page-description {
+        color: #666;
+        margin-bottom: 30px;
+        font-size: 16px;
+    }
+
+    .card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 15px 20px;
+    }
+
+    .card-title {
+        margin: 0;
+        color: #333;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .form-control:focus {
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+        outline: none;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin-right: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: #4a90e2;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #357abd;
+        transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+        color: white;
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+
+    .alert {
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+    }
+
+    .alert-info {
+        background: #e7f3ff;
+        border: 1px solid #4a90e2;
+        color: #1e4d72;
+    }
+
+    .alert-warning {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        color: #856404;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        border: 1px solid #28a745;
+        color: #155724;
+    }
+
+    .alert-danger {
+        background: #f8d7da;
+        border: 1px solid #dc3545;
+        color: #721c24;
+    }
+
+    .alert h5 {
+        margin-top: 0;
+        margin-bottom: 10px;
+    }
+
+    .alert ul,
+    .alert ol {
+        margin-bottom: 0;
+        padding-left: 20px;
+    }
+
+    .alert i {
+        margin-right: 8px;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #4a90e2;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .back-link:hover {
+        color: #357abd;
+    }
+</style>
+{% endblock %}

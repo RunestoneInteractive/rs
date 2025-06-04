@@ -1,0 +1,359 @@
+{% extends "_base.html" %}
+
+{% block title %}
+Manage Teaching Assistants
+{% endblock %}
+
+{% block css %}
+<style>
+    .ta-management {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px 0;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .page-header h1 {
+        color: #333;
+        margin: 0;
+        font-size: 2.5em;
+        font-weight: 300;
+    }
+
+    .course-info {
+        background: #f0f7ff;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        border-left: 4px solid #4a90e2;
+    }
+
+    .course-info h3 {
+        margin: 0 0 5px 0;
+        color: #333;
+    }
+
+    .course-info p {
+        margin: 0;
+        color: #666;
+    }
+
+    .ta-sections {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-top: 20px;
+    }
+
+    .ta-section {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .ta-section h3 {
+        text-align: center;
+        color: #4a90e2;
+        margin-bottom: 20px;
+        font-size: 1.4em;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .search-input {
+        margin-bottom: 10px;
+    }
+
+    .instructor-list,
+    .student-list {
+        height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 15px;
+    }
+
+    .instructor-list option,
+    .student-list option {
+        padding: 8px 12px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .instructor-list option:hover,
+    .student-list option:hover {
+        background: #f0f7ff;
+    }
+
+    .action-buttons {
+        text-align: center;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        margin: 5px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 16px;
+        min-width: 40px;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .alert {
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        display: none;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+
+    .instructions {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        color: #666;
+    }
+
+    @media (max-width: 768px) {
+        .ta-sections {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ta-management">
+    <div class="page-header">
+        <h1>Manage Teaching Assistants</h1>
+    </div>
+
+    <div class="course-info">
+        <h3>{{ course.course_name }}</h3>
+        <p>Base Course: {{ course.base_course }}</p>
+    </div>
+
+    <div class="instructions">
+        <strong>Instructions:</strong> Teaching Assistants have the same privileges as instructors, including access to
+        grades,
+        assignment creation, and student management. Use this interface to add or remove TAs for your course.
+    </div>
+
+    <div id="alert-container"></div>
+
+    <div class="ta-sections">
+        <!-- Remove Instructor Section -->
+        <div class="ta-section">
+            <h3>Remove Current Instructor/TA</h3>
+            <form id="removeInstructorForm">
+                <select id="instructorList" name="instructor" class="form-control instructor-list" size="15">
+                    {% for instructor_id, instructor_name in instructors.items() %}
+                    <option value="{{ instructor_id }}">{{ instructor_name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-danger" onclick="removeInstructor()">Remove Selected</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Add Instructor Section -->
+        <div class="ta-section">
+            <h3>Add New Teaching Assistant</h3>
+            <div class="search-input">
+                <input id="TA_search" type="text" class="form-control" placeholder="Search students..."
+                    onkeyup="searchStudents()">
+            </div>
+            <form id="addInstructorForm">
+                <select id="studentList" name="student" class="form-control student-list" size="15">
+                    {% for student_id, student_name in students.items() %}
+                    <option class="available_students" value="{{ student_id }}">{{ student_name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-success" onclick="addInstructor()">Add as TA</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Search functionality for students
+    function searchStudents() {
+        const searchTerm = document.getElementById('TA_search').value.toLowerCase();
+        const studentOptions = document.querySelectorAll('.available_students');
+
+        studentOptions.forEach(option => {
+            const text = option.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                option.style.display = 'block';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+    }
+
+    // Add instructor function
+    async function addInstructor() {
+        const studentList = document.getElementById('studentList');
+        const selectedStudent = studentList.value;
+
+        if (!selectedStudent) {
+            showAlert('Please select a student to add as TA.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/assignment/instructor/add_ta', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    student_id: selectedStudent
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert('Teaching Assistant added successfully!', 'success');
+                // Move the student from students list to instructors list
+                const selectedOption = studentList.querySelector(`option[value="${selectedStudent}"]`);
+                if (selectedOption) {
+                    const instructorList = document.getElementById('instructorList');
+                    const newOption = document.createElement('option');
+                    newOption.value = selectedStudent;
+                    newOption.textContent = selectedOption.textContent;
+                    instructorList.appendChild(newOption);
+                    selectedOption.remove();
+                }
+            } else {
+                showAlert('Error adding TA: ' + result.message, 'error');
+            }
+        } catch (error) {
+            showAlert('Error adding TA: ' + error.message, 'error');
+        }
+    }
+
+    // Remove instructor function
+    async function removeInstructor() {
+        const instructorList = document.getElementById('instructorList');
+        const selectedInstructor = instructorList.value;
+
+        if (!selectedInstructor) {
+            showAlert('Please select an instructor/TA to remove.', 'error');
+            return;
+        }
+
+        if (!confirm('Are you sure you want to remove this Teaching Assistant?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/assignment/instructor/remove_ta', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    instructor_id: selectedInstructor
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert('Teaching Assistant removed successfully!', 'success');
+                // Move the instructor back to students list
+                const selectedOption = instructorList.querySelector(`option[value="${selectedInstructor}"]`);
+                if (selectedOption) {
+                    const studentList = document.getElementById('studentList');
+                    const newOption = document.createElement('option');
+                    newOption.value = selectedInstructor;
+                    newOption.textContent = selectedOption.textContent;
+                    newOption.className = 'available_students';
+                    studentList.appendChild(newOption);
+                    selectedOption.remove();
+
+                    // Sort the student list alphabetically
+                    sortSelectOptions(studentList);
+                }
+            } else {
+                showAlert('Error removing TA: ' + result.message, 'error');
+            }
+        } catch (error) {
+            showAlert('Error removing TA: ' + error.message, 'error');
+        }
+    }
+
+    // Helper function to sort select options
+    function sortSelectOptions(selectElement) {
+        const options = Array.from(selectElement.options);
+        options.sort((a, b) => a.text.localeCompare(b.text));
+        selectElement.innerHTML = '';
+        options.forEach(option => selectElement.appendChild(option));
+    }
+
+    // Show alert function
+    function showAlert(message, type) {
+        const alertContainer = document.getElementById('alert-container');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.textContent = message;
+        alert.style.display = 'block';
+
+        alertContainer.innerHTML = '';
+        alertContainer.appendChild(alert);
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            alert.style.display = 'none';
+        }, 5000);
+    }
+</script>
+{% endblock %}

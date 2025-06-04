@@ -2748,7 +2748,9 @@ def _copy_one_assignment(course, oldid):
 def courselog():
     thecourse = db(db.courses.id == auth.user.course_id).select().first()
     course = auth.user.course_name
-
+    dburl = settings.database_uri.replace("postgres://", "postgresql://")
+    if dburl.find("?") > 0:
+        dburl = dburl[: dburl.find("?")]
     data = pd.read_sql_query(
         """
     select sid, useinfo.timestamp, event, act, div_id, chapter, subchapter
@@ -2758,7 +2760,7 @@ def courselog():
     """.format(
             thecourse.base_course, course
         ),
-        settings.database_uri.replace("postgres://", "postgresql://"),
+        dburl,
     )
     data = data[~data.sid.str.contains(r"^\d{38,38}@")]
 
@@ -2775,14 +2777,16 @@ def courselog():
 )
 def codelog():
     course = auth.user.course_name
-
+    dburl = settings.database_uri.replace("postgres://", "postgresql://")
+    if dburl.find("?") > 0:
+        dburl = dburl[: dburl.find("?")]
     data = pd.read_sql_query(
         """
     select * from code where course_id = {}
     """.format(
             auth.user.course_id
         ),
-        settings.database_uri.replace("postgres://", "postgresql://"),
+        dburl,
     )
     data = data[~data.sid.str.contains(r"^\d{38,38}@")]
 
