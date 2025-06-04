@@ -4,7 +4,7 @@ FROM python:3.11-slim AS builder
 LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
 
 # This is the name of the wheel that we build using `poetry build-project`
-ARG wheel=book_server-2.0.0-py3-none-any.whl
+ARG wheel=book_server-2.0.1-py3-none-any.whl
 
 # set work directory
 WORKDIR /usr/src/app
