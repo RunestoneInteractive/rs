@@ -42,7 +42,10 @@ from rsptx.db.crud import (
     create_assignment_question,
     create_deadline_exception,
     create_question,
+    delete_course_instructor,
     fetch_course,
+    fetch_course_by_id,
+    fetch_instructor_courses,
     fetch_users_for_course,
     fetch_subchapters,
     create_assignment,
@@ -950,7 +953,7 @@ async def get_admin(
 @router.get("/cancel_lti")
 async def cancel_lti(request: Request, user=Depends(auth_manager)):
     """
-    Cancel the LTI session.
+    Cancel the LTI 1.1 session.
     """
     # get the course
     course = await fetch_course(user.course_name)
@@ -1321,3 +1324,5 @@ async def get_add_token_page(
     }
 
     return templates.TemplateResponse("assignment/instructor/add_token.html", context)
+
+

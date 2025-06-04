@@ -90,7 +90,9 @@ def custom_importer(name, globals={}, locals=None, fromlist=(), level=_DEFAULT_L
                         result = sys.modules[modules_prefix]
                     except KeyError as ke:
                         # print(f"Key error in custom import {ke}")
-                        raise ImportError("No module named %s" % modules_prefix)
+                        # ImportError on line below causes issues with some imports
+                        # https://stackoverflow.com/questions/76341290/unable-to-import-requests-in-web2py-even-though-requests-is-accessible-directl
+                        raise ModuleNotFoundError("No module named %s" % modules_prefix)
             return result
         else:
             # "from x import a, b, ..."

@@ -34,6 +34,8 @@ def _get_dburl():
     remove_prefix = "postgres://"
     if dburl.startswith(remove_prefix):
         dburl = "postgresql://" + dburl[len(remove_prefix) :]
+    if dburl.find("?") > 0:
+        dburl = dburl[: dburl.find("?")]
     return dburl
 
 

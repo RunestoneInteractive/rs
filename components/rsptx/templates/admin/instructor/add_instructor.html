@@ -1,0 +1,139 @@
+{% extends "_base.html" %}
+
+{% block title %}Add Instructor{% endblock %}
+
+{% block content %}
+<a href="/admin/instructor/menu" class="back-link"
+    style="display:inline-block; margin-bottom:20px; color:#4a90e2; text-decoration:none; font-size:16px; font-weight:600; transition:color 0.3s ease;">
+    &larr; Back to Instructor Dashboard
+</a>
+<div class="container" style="max-width: 900px; margin: 0 auto;">
+    <h2 style="text-align: center; margin-top: 30px;">Manage Instructors/TAs</h2>
+    <div class="row" style="display: flex; gap: 40px; margin-top: 40px;">
+        <div class="col" style="flex: 1;">
+            <h4>Current Instructors</h4>
+            <ul id="instructor-list"
+                style="min-height: 200px; border: 1px solid #eee; border-radius: 6px; padding: 10px 15px; background: #f8f9fa;">
+            </ul>
+            <button id="remove-instructor-btn" class="btn btn-danger" disabled>Remove Selected</button>
+        </div>
+        <div class="col" style="flex: 1;">
+            <h4>Add a New Instructor</h4>
+            <input type="text" id="student-search" class="form-control" placeholder="Search students..."
+                style="margin-bottom: 10px;">
+            <select id="student-list" class="form-control" size="10" style="width: 100%;"></select>
+            <button id="add-instructor-btn" class="btn btn-success" style="margin-top: 10px;" disabled>Add as
+                Instructor</button>
+        </div>
+    </div>
+</div>
+<script>
+    let selectedInstructorId = null;
+    let selectedStudentId = null;
+    let allStudents = [];
+
+    async function loadInstructors() {
+        const res = await fetch('/admin/instructor/current_instructors');
+        const data = await res.json();
+        const list = document.getElementById('instructor-list');
+        list.innerHTML = '';
+        data.instructors.forEach(inst => {
+            const li = document.createElement('li');
+            li.textContent = `${inst.first_name} ${inst.last_name} (${inst.username})`;
+            li.dataset.id = inst.id;
+            li.onclick = function () {
+                document.querySelectorAll('#instructor-list li').forEach(el => el.classList.remove('selected'));
+                li.classList.add('selected');
+                selectedInstructorId = inst.id;
+                document.getElementById('remove-instructor-btn').disabled = false;
+            };
+            list.appendChild(li);
+        });
+        document.getElementById('remove-instructor-btn').disabled = true;
+        selectedInstructorId = null;
+    }
+
+    async function loadStudents() {
+        const res = await fetch('/admin/instructor/available_students');
+        const data = await res.json();
+        allStudents = data.students;
+        renderStudentList('');
+    }
+
+    function renderStudentList(filter) {
+        const select = document.getElementById('student-list');
+        select.innerHTML = '';
+        allStudents.filter(s => {
+            const name = `${s.first_name} ${s.last_name} ${s.username}`.toLowerCase();
+            return name.includes(filter.toLowerCase());
+        }).forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.first_name} ${s.last_name} (${s.username})`;
+            select.appendChild(opt);
+        });
+        document.getElementById('add-instructor-btn').disabled = true;
+        selectedStudentId = null;
+    }
+
+    document.getElementById('student-search').addEventListener('input', function () {
+        renderStudentList(this.value);
+    });
+
+    document.getElementById('student-list').addEventListener('change', function () {
+        selectedStudentId = this.value;
+        document.getElementById('add-instructor-btn').disabled = !selectedStudentId;
+    });
+
+    document.getElementById('add-instructor-btn').onclick = async function () {
+        if (!selectedStudentId) return;
+        const res = await fetch('/admin/instructor/add_instructor_user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: selectedStudentId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            await loadInstructors();
+            await loadStudents();
+        } else {
+            alert(data.message || 'Failed to add instructor');
+        }
+    };
+
+    document.getElementById('remove-instructor-btn').onclick = async function () {
+        if (!selectedInstructorId) return;
+        const res = await fetch('/admin/instructor/remove_ta', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ instructor_id: selectedInstructorId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            await loadInstructors();
+            await loadStudents();
+        } else {
+            alert(data.message || 'Failed to remove instructor');
+        }
+    };
+
+    // Initial load
+    loadInstructors();
+    loadStudents();
+</script>
+<style>
+    #instructor-list li.selected {
+        background: #e0e0e0;
+        font-weight: bold;
+    }
+</style>
+<div class="alert alert-warning mt-4" style="max-width:900px; margin: 30px auto 0 auto;">
+    <strong>Note:</strong> <br>
+    <ul style="margin-bottom:0;">
+        <li>All instructors and TAs added here will have the same privileges, including the ability to add or remove
+            other instructors, manage course content, and access all student data.</li>
+        <li>Be careful when granting instructor access—there is no distinction between "TA" and "instructor" roles in
+            terms of permissions.</li>
+    </ul>
+</div>
+{% endblock %}

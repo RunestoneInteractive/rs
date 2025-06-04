@@ -225,15 +225,20 @@ async def initdb(config, list_tables, reset, force):
                 err=False,
             )
 
-        conn = psycopg2.connect(database='template1',
-                              user=config.dbuser,
-                              password=config.dbpass,
-                              host=config.dbhost)
+        conn = psycopg2.connect(
+            database="template1",
+            user=config.dbuser,
+            password=config.dbpass,
+            host=config.dbhost,
+        )
         conn.set_session(autocommit=True)
         curs = conn.cursor()
         curs.execute(SQL("DROP DATABASE {}").format(Identifier(config.dbname)))
-        curs.execute(SQL("CREATE DATABASE {} WITH OWNER = {}")
-                         .format(Identifier(config.dbname), Identifier(config.dbuser)))
+        curs.execute(
+            SQL("CREATE DATABASE {} WITH OWNER = {}").format(
+                Identifier(config.dbname), Identifier(config.dbuser)
+            )
+        )
         curs.close()
         conn.close()
 
@@ -985,7 +990,7 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
         sid = f"and useinfo.sid = '{sid}'"
     else:
         sid = ""
-    
+
     aqs = engine.execute(
         f"select question_id, reading_assignment from assignment_questions where assignment_id = {current_assignment.id}"
     )
@@ -1025,10 +1030,11 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
 
     if has_readings:
         click.echo("\n\nReading Assignment Questions")
-        qres = engine.execute(f"""
+        qres = engine.execute(
+            f"""
         select chapter, subchapter from questions where id in ({','.join([str(q) for q in qlist])})
         """
-    )
+        )
         div_ids = []
         for row in qres:
             alist = engine.execute(
@@ -1058,7 +1064,8 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
             else:
                 click.echo(
                     f"< {row.ts} {row.sid:<15} {row.div_id:<40} {row.event:<10} {row.act:<30}"
-                )   
+                )
+
 
 #
 # Utility Functions Below here
@@ -1155,13 +1162,18 @@ def peergroups(course):
 
 @cli.command()
 @click.option("--book", help="document-id or basecourse")
-@click.option("--author", help="username")
+@click.option("--author", help="Runestone username of an author or admin")
 @click.option("--github", help="url of book on github", default="")
 @pass_config
 async def addbookauthor(config, book, author, github):
-    """Add a user with author permissions for a book"""
+    """Add a user with author permissions for a book to the Runestone DB.
+    Note that this will create the permissions for the user designated as author
+    to use the runestone author interface to build and deploy the book.
+    The name of the book must match the document-id as defined in the docinfo section
+    of the book's PreTeXt source.
+    """
     book = book or click.prompt("document-id or basecourse ")
-    author = author or click.prompt("username of author ")
+    author = author or click.prompt("Runestone username of an author or admin: ")
 
     a_row = await fetch_user(author)
     if not a_row:
@@ -1169,7 +1181,15 @@ async def addbookauthor(config, book, author, github):
         sys.exit(-1)
     res = await fetch_course(book)  # verify this is a base course?
     if res:
-        click.echo(f"Warning - Book {book} already exists in courses table")
+        if res.base_course != book:
+            click.echo(
+                f"Error - {book} is not a base course, it is a course based on {res.base_course}"
+            )
+            sys.exit(-1)
+        elif res.course_name == res.base_course:
+            click.echo(f"Warning - {book} is already a base course")
+        else:
+            click.echo(f"Warning - Book {book} already exists in courses table")
     # Create an entry in courses (course_name, term_start_date, institution, base_course, login_required, allow_pairs, student_price, downloads_enabled, courselevel, newserver)
     if not res:
         new_course = CoursesValidator(
@@ -1185,17 +1205,57 @@ async def addbookauthor(config, book, author, github):
             new_server=True,
         )
         await create_course(new_course)
-    else:
-        # Try to deduce the github url from the working directory
+    # Try to deduce the github url from the working directory
+    repo_path = None
+    if not github:
+        lib_entry = await fetch_library_book(book)
+        if lib_entry:
+            github = lib_entry.github_url
+            if not github:
+                click.echo(
+                    f"Warning: No github url found for {book} in library."
+                )
         if not github:
-            github = f"https://github.com/RunestoneInteractive/{book}.git"
-
+            # check to see if book exists under $BOOK_PATH
+            book_path = os.path.join(settings.book_path, book)
+            if os.path.exists(book_path):
+                # try to find the .git directory
+                git_path = os.path.join(book_path, ".git")
+                if os.path.exists(git_path):
+                    # try to get the remote url from git
+                    res = subprocess.run(
+                        ["git", "-C", book_path, "config", "--get", "remote.origin.url"],
+                        capture_output=True,
+                        text=True,
+                    )
+                    if res.returncode == 0:
+                        github = res.stdout.strip()
+                    else:
+                        click.echo("Could not determine github url from git config")
+                else:
+                    click.echo(f"No .git directory found in {book_path}")
+            else:
+                github = click.prompt(f"Book path {book_path} does not exist, please provide a github url")
+                book_path = click.prompt(
+                    "Please provide the path to the book on your local machine, or leave blank if it is not cloned locally"
+                )
+                # extract the final part of the path in book_path
+                if book_path:
+                    book_path = book_path.rstrip("/").split("/")[-1]
+                    repo_path = f"/books/{book_path}"
     # create an entry in book_author (author, book)
     try:
-        vals = dict(title=f"Temporary title for {book}")
+        vals = dict(title=f"Temporary title for {book}", github_url=github)
+        if repo_path:
+            vals["repo_path"] = repo_path
         await create_library_book(book, vals)
     except Exception:
         click.echo(f"Warning: Book: {book} already exists in library")
+        if lib_entry.github_url != github:
+            vals = dict(github_url=github)
+            if repo_path:
+                vals["repo_path"] = repo_path
+            await update_library_book(lib_entry.id, vals)
 
     try:
         await create_book_author(author, book)
@@ -1261,7 +1321,50 @@ async def library_show(ctx, book):
     click.echo("-----------------")
     click.echo(f"for_classes: {bookrec.for_classes}")
     click.echo(f"is_visible: {bookrec.is_visible}")
+    click.echo(f"repo_path: {bookrec.repo_path}")
+    click.echo(f"github_url: {bookrec.github_url}")
 
+@library.command("repo_path")
+@click.pass_context
+@click.argument("book")
+@click.option(
+    "--path", default=None, help="Path to the book on your local machine"
+)
+async def library_repo_path(ctx, book, path):
+    """
+    Set the repo_path for the book in the library
+    """
+    if not path:
+        path = click.prompt("Please provide the path to the book on your local machine relative to $BOOK_PATH")
+    print(f"Setting the repo_path to {path} for {book} in the library")
+    if path.startswith("/"):
+        click.echo(
+            click.style(
+                "Warning: The path should be relative to $BOOK_PATH, not an absolute path",
+                fg="yellow",
+            )
+        )
+        path = path.split("/")[-1]  # get the last part of the path
+    path = f"/books/{path}"  # prepend /books/ to the path
+    bookrec = await fetch_library_book(book)
+    await update_library_book(bookrec.id, dict(repo_path=path))
 
+# add a new library command to set the github_url for the book
+@library.command("github")
+@click.pass_context
+@click.argument("book")
+@click.option(
+    "--url", default=None, help="GitHub URL of the book repository"
+)
+async def library_github(ctx, book, url):
+    """
+    Set the github_url for the book in the library
+    """
+    if not url:
+        url = click.prompt("Please provide the GitHub URL of the book repository")
+    print(f"Setting the github_url to {url} for {book} in the library")
+    bookrec = await fetch_library_book(book)
+    await update_library_book(bookrec.id, dict(github_url=url))
+    
 if __name__ == "__main__":
     cli(_anyio_backend="asyncio")

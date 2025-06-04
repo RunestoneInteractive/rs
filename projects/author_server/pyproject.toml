@@ -20,6 +20,7 @@ packages = [
     { include = "rsptx/templates", from = "../../components" },
     { include = "rsptx/author_server_api", from = "../../bases" },
     { include = "rsptx/data_types", from = "../../components" },
+    { include = "rsptx/endpoint_validators", from = "../../components" },
 ]
 
 exclude = [
