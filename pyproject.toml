@@ -109,6 +109,9 @@ tqdm = "^4.65.0"
 uvicorn = "^0.27.0"
 WTForms = "^3.0.0"
 itsdangerous = "^2.2.0"
+standard-asyncore = "^3.13.0"
+standard-imghdr = "^3.13.0"
+standard-cgi = "^3.13.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 23.0"
