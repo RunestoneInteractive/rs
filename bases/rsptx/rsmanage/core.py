@@ -435,7 +435,6 @@ async def build(config, clone, ptx, gen, manifest, course):
 #    adduser
 #
 @cli.command()
-@click.option("--instructor", is_flag=True, help="Make this user an instructor")
 @click.option(
     "--fromfile",
     default=None,
@@ -522,15 +521,6 @@ async def adduser(
         userinfo["last_name"] = last_name or click.prompt("Last Name")
         userinfo["email"] = email or click.prompt("email address")
         userinfo["course_name"] = course or click.prompt("course name")
-        if not instructor:
-            if (
-                username and course
-            ):  # user has supplied other info via CL parameter safe to assume False
-                userinfo["instructor"] = False
-            else:
-                userinfo["instructor"] = click.confirm(
-                    "Make this user an instructor", default=False
-                )
         course = await fetch_course(userinfo["course_name"])
         new_user = AuthUserValidator(
             **userinfo,
