@@ -668,6 +668,9 @@ export default class LiveCode extends ActiveCode {
             document.createElement("div")
         );
         this.errDiv = eContainer;
+        eContainer.setAttribute("aria-live", "polite");
+        eContainer.setAttribute("aria-atomic", "true");
+        eContainer.setAttribute("role", "log");
         eContainer.className = "error alert alert-danger";
         eContainer.id = this.divid + "_errinfo";
         eContainer.appendChild(errHead[0]);
