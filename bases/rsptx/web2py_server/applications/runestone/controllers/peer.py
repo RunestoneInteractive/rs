@@ -454,6 +454,7 @@ def make_pairs():
     # Create a list of groups
     group_list = []
     done = len(peeps) == 0
+    in_person_groups = []
     if is_ab:
         in_person_groups = _get_local_groups(auth.user.course_name)
         peeps_in_person = []
@@ -527,9 +528,8 @@ def make_pairs():
     # which is not broadcast!
     _broadcast_peer_answers(sid_ans)
     logger.info(f"DONE broadcasting pair information")
-    # todo: broadcast the enableFaceChat message to the in-person chatters
     if is_ab:
-        _broadcast_faceChat(peeps_in_person)
+        _broadcast_faceChat(peeps_in_person, in_person_groups)
     return json.dumps("success")
 
 
@@ -600,10 +600,16 @@ def _broadcast_peer_answers(answers):
         r.publish("peermessages", json.dumps(mess))
 
 
-def _broadcast_faceChat(peeps):
+def _broadcast_faceChat(peeps, in_person_groups):
     """
     Send the message to enable the face chat to the students in the peeps list
     """
+
+    people = db(db.auth_user.course_name == auth.user.course_name).select(
+        db.auth_user.username, db.auth_user.first_name, db.auth_user.last_name
+    )
+    # create a dictionary of people with their usernames as keys
+    peeps_dict = {p.username: f"{p.first_name} {p.last_name}" for p in people}
 
     r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
     for p in peeps:
@@ -611,12 +617,20 @@ def _broadcast_faceChat(peeps):
         # it seems odd to not have a to field in the message...
         # but it is not necessary as the client can figure out how it is to
         # based on who it is from.
+        # todo use _get_local_groups to get the in person groups
+        pgroup = set()
+        for group in in_person_groups:
+            if p in group:
+                pgroup = group
+                break
+        pgroup = [peeps_dict.get(x, x) for x in pgroup]  # convert usernames to names
         mess = {
             "type": "control",
             "from": p,
             "to": p,
             "message": "enableFaceChat",
             "broadcast": False,
+            "group": pgroup,
             "course_name": auth.user.course_name,
         }
         r.publish("peermessages", json.dumps(mess))
