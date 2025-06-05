@@ -199,6 +199,9 @@ export default class SQLActiveCode extends ActiveCode {
         for (let r of resultArray) {
             let section = document.createElement("div");
             section.setAttribute("class", "ac_sql_result");
+            section.setAttribute("aria-live", "polite");
+            section.setAttribute("aria-atomic", "true");
+            section.setAttribute("role", "log");
             respDiv.appendChild(section);
             if (r.status === "success") {
                 if (r.columns) {
