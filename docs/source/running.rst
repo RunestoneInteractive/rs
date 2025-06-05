@@ -25,7 +25,7 @@ The Runestone server uses docker compose to start up a number of containers that
 
 #. Now add a book. ``cd /your/path/to/book`` (the same value you used for ``BOOK_PATH``) and clone a book.  For example: ``git clone https://github.com/RunestoneInteractive/overview.git``
 
-#. Add the book to the database.  (Note this is not needed for overview since we preload many books) ``docker compose run --rm rsmanage rsmanage addbookauthor`` You will then be prompted to enter some information about the course:
+#. Add the book to the database.  ``docker compose run --rm rsmanage rsmanage addbookauthor`` You will then be prompted to enter some information about the book and the author.:
 
     .. code-block:: text
 
