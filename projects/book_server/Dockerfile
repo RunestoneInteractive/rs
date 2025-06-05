@@ -1,5 +1,5 @@
 # pull official base image
-FROM python:3.11-slim AS builder
+FROM python:3.13-slim AS builder
 
 LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
 
@@ -34,7 +34,7 @@ COPY ./dist/$wheel /usr/src/app/$wheel
 RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
 RUN rm /usr/src/app/$wheel
 
-FROM python:3.11-slim
+FROM python:3.13-slim
 WORKDIR /usr/src/app
 
 COPY --from=builder /usr/local /usr/local
