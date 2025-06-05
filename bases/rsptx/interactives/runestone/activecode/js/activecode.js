@@ -1003,6 +1003,9 @@ export class ActiveCode extends RunestoneBase {
 
         var coachDiv = document.createElement("div");
         coachDiv.classList.add("alert", "alert-warning", "codecoach");
+        coachDiv.setAttribute("aria-live", "polite");
+        coachDiv.setAttribute("aria-atomic", "true");
+        coachDiv.setAttribute("role", "log");
         $(coachDiv).css("display", "none");
         let coachHead = coachDiv.appendChild(document.createElement("h3"));
         coachHead.textContent = $.i18n("msg_activecode_code_coach");
@@ -1647,8 +1650,11 @@ Yet another is that there is an internal error.  The internal error message is: 
                         document.createElement("pre")
                     );
                     checkPre.textContent = p.value;
-                    this.codecoach.append(checkDiv);
                     $(this.codecoach).css("display", "block");
+                    // screenreaders seem to miss error message without the delay
+                    setTimeout(() => {
+                        this.codecoach.append(checkDiv);
+                    }, 10);
                 }
             }
         });
