@@ -1,5 +1,5 @@
 # pull official base image
-FROM python:3.11 AS builder
+FROM python:3.13 AS builder
 
 LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
 
