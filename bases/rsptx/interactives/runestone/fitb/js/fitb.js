@@ -98,13 +98,18 @@ export default class FITB extends RunestoneBase {
         json_element.remove();
         // Check for older versions that have raw html content.
         if (dict_.problemHtml !== undefined) {
-          this.problemHtml = dict_.problemHtml;
-          this.dyn_vars = dict_.dyn_vars;
-          this.blankNames = dict_.blankNames;
-          this.feedbackArray = dict_.feedbackArray;
+            // if dict_.problemHtml starts with &lt; then unescape it this happens for previews
+            // when the problem comes from the DB
+            if (dict_.problemHtml.startsWith("&lt;")) {
+                dict_.problemHtml = dict_.problemHtml.replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+            }
+            this.problemHtml = dict_.problemHtml;
+            this.dyn_vars = dict_.dyn_vars;
+            this.blankNames = dict_.blankNames;
+            this.feedbackArray = dict_.feedbackArray;
         } else {
-          this.problemHtml = this.origElem.innerHTML;
-          this.feedbackArray = dict_;
+            this.problemHtml = this.origElem.innerHTML;
+            this.feedbackArray = dict_;
         }
 
         this.createFITBElement();
@@ -139,10 +144,10 @@ export default class FITB extends RunestoneBase {
             imports_promise = Promise.all(import_promises)
                 .then(
                     (module_namespace_arr) =>
-                        (this.dyn_imports = Object.assign(
-                            {},
-                            ...module_namespace_arr
-                        ))
+                    (this.dyn_imports = Object.assign(
+                        {},
+                        ...module_namespace_arr
+                    ))
                 )
                 .catch((err) => {
                     throw `Failed dynamic import: ${err}.`;
