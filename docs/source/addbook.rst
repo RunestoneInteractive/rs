@@ -36,18 +36,14 @@ The overview book is an easy example because the database already contains a cou
 
 .. code-block:: bash
 
-   $ rsmanage addcourse
+   $ rsmanage addbookauthor
    Loaded .env file from /Users/bmiller/rs
    You have defined docker compose specific environment variables
    Using configuration: development
-   Using database: runestone_dev
-   Course Name: ac-single
-   Base Course: ac-single
-   Your institution: Runestone Academy
-   Require users to log in [Y/n]: n
-   Enable pair programming support [y/N]: n
-   Course added to DB successfully
-   $
+   Database connection successful
+   document-id or basecourse : ac-single
+   Runestone username of an author or admin: : testuser1
+   Book added to DB successfully
 
 3. Now we can build the book using the ``rsmanage`` command.  ``rsmanage build --ptx ac-single`` If you are running the database in docker then you should use ``docker compose run rsmanage rsmanage build --ptx ac-single`` This will build the book and deploy it to ``ac-single/published/ac-single``  The Active Calculus book should now be visible in the library.
 4. Notice that we used ``ac-single`` for the course name as well as the base course name.  You **should not** use this course for your own courses.  Instead you should use the runestone web interface to create a custom course from the ``ac-single`` base course.  But first you will need to make the book available to the web interface.  You do this by setting a flag in the library table of the database.  For now you need to do this by hand.  This really should be another rsmanage subcommand but instead run ``psql $DEV_DBURL``
