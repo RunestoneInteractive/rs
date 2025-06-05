@@ -237,8 +237,11 @@ export default class SQLActiveCode extends ActiveCode {
             } else {
                 let messageBox = document.createElement("pre");
                 messageBox.textContent = r.message;
-                section.appendChild(messageBox);
                 section.classList.add("ac_sql_result_failure");
+                // screenreaders seem to miss error message without the delay
+                setTimeout(() => {
+                    section.appendChild(messageBox);
+                }, 10);
             }
         }
 

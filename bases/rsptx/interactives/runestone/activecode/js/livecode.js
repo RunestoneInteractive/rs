@@ -675,7 +675,10 @@ export default class LiveCode extends ActiveCode {
         eContainer.id = this.divid + "_errinfo";
         eContainer.appendChild(errHead[0]);
         var errText = eContainer.appendChild(document.createElement("pre"));
-        errText.innerHTML = escapeHtml(err);
+        // screenreaders seem to miss error message without the delay
+        setTimeout(() => {
+            errText.innerHTML = escapeHtml(err);
+        }, 10);
     }
     /**
      * Checks to see if file is on server

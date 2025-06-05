@@ -68,7 +68,10 @@ export default class JSActiveCode extends ActiveCode {
             document.createElement("pre")
         );
         var errString = err.toString();
-        errText.innerHTML = errString;
+        // screenreaders seem to miss error message without the delay
+        setTimeout(() => {
+            errText.innerHTML = errString;
+        }, 10);
         console.log("Runtime Error: " + err.toString());
     }
 }
