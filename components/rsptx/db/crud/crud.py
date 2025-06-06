@@ -22,7 +22,7 @@ from typing import Dict, List, Optional, Tuple, Any
 import textwrap
 import traceback
 import pytz
-from typing import Any, Dict, List, Optional, Tuple
+
 from sqlalchemy import (
     select,
     func,
@@ -31,10 +31,6 @@ from sqlalchemy import (
     not_,
     desc,
     asc,
-    String,
-    Text,
-    Unicode,
-    UnicodeText,
 )
 
 # Third-party imports
@@ -42,11 +38,10 @@ from sqlalchemy import (
 from asyncpg.exceptions import UniqueViolationError
 from fastapi import status
 from fastapi.exceptions import HTTPException
-from pydal.validators import CRYPT
 from sqlalchemy import and_, distinct, func, update, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import select, text, delete, insert
-from sqlalchemy.orm import aliased, joinedload, contains_eager, attributes
+from sqlalchemy.orm import aliased, joinedload, attributes
 from starlette.requests import Request
 
 from rsptx.validation import schemas
@@ -58,9 +53,9 @@ from rsptx.validation.schemas import (
 # -------------------------
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
-from .async_session import async_session
-from .sync_session import sync_session
-from rsptx.response_helpers.core import http_422error_detail, canonical_utcnow
+from ..async_session import async_session
+from ..sync_session import sync_session
+from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.db.models import (
     Assignment,
     AssignmentValidator,
@@ -139,6 +134,7 @@ from rsptx.db.models import (
     APIToken,
     APITokenValidator,
 )
+from .course import fetch_course
 from rsptx.data_types.which_to_grade import WhichToGradeOptions
 from rsptx.data_types.autograde import AutogradeOptions
 
@@ -524,180 +520,6 @@ async def fetch_last_poll_response(sid: str, course_name: str, poll_id: str) -> 
         return res.scalars().first()
 
 
-# Courses
-# -------
-async def fetch_course(course_name: str) -> CoursesValidator:
-    """
-    Fetches a course by its name.
-
-    :param course_name: The name of the course to be fetched.
-    :type course_name: str
-    :return: A CoursesValidator instance representing the fetched course.
-    :rtype: CoursesValidator
-    """
-    query = select(Courses).where(Courses.course_name == course_name)
-    async with async_session() as session:
-        res = await session.execute(query)
-        # When selecting ORM entries it is useful to use the ``scalars`` method
-        # This modifies the result so that you are getting the ORM object
-        # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
-        course = res.scalars().one_or_none()
-        return CoursesValidator.from_orm(course)
-
-
-async def fetch_course_by_id(course_id: int) -> CoursesValidator:
-    """
-    Fetches a course by its id.
-
-    :param course_name: The id of the course to be fetched.
-    :type course_name: int
-    :return: A CoursesValidator instance representing the fetched course.
-    :rtype: CoursesValidator
-    """
-    query = select(Courses).where(Courses.id == course_id)
-    async with async_session() as session:
-        res = await session.execute(query)
-        # When selecting ORM entries it is useful to use the ``scalars`` method
-        # This modifies the result so that you are getting the ORM object
-        # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
-        course = res.scalars().one_or_none()
-        return CoursesValidator.from_orm(course)
-
-
-async def fetch_base_course(base_course: str) -> CoursesValidator:
-    """
-    Fetches a base course by its name.
-
-    :param base_course: The name of the base course to be fetched.
-    :type base_course: str
-    :return: A CoursesValidator instance representing the fetched base course.
-    :rtype: CoursesValidator
-    """
-    query = select(Courses).where(
-        (Courses.base_course == base_course) & (Courses.course_name == base_course)
-    )
-    async with async_session() as session:
-        res = await session.execute(query)
-        # When selecting ORM entries it is useful to use the ``scalars`` method
-        # This modifies the result so that you are getting the ORM object
-        # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
-        base_course = res.scalars().one_or_none()
-        return CoursesValidator.from_orm(base_course)
-
-
-async def create_course(course_info: CoursesValidator) -> None:
-    """
-    Creates a new course in the database.
-
-    :param course_info: A CoursesValidator instance representing the course to be created.
-    :type course_info: CoursesValidator
-    :return: None
-    """
-    new_course = Courses(**course_info.dict())
-    async with async_session.begin() as session:
-        session.add(new_course)
-    return new_course
-
-
-async def user_in_course(user_id: int, course_id: int) -> bool:
-    """
-    Return true if given user is in indicated course
-
-    :param user_id: int, the user id
-    :param course_id: the id of the course
-    :return: True / False
-    """
-    query = select(func.count(UserCourse.course_id)).where(
-        and_(UserCourse.user_id == user_id, UserCourse.course_id == course_id)
-    )
-    async with async_session() as session:
-        res = await session.execute(query)
-        res_count = res.scalars().fetchall()[0]
-        return res_count != 0
-
-
-async def fetch_courses_for_user(
-    user_id: int, course_id: Optional[int] = None
-) -> UserCourse:
-    """
-    Retrieve a list of courses for a given user (user_id)
-
-    :param user_id: int, the user id
-    :param course_id: Optional[int], the id of the course (optional)
-    :return: List[UserCourse], a list of UserCourse objects representing the courses
-    """
-    if course_id is None:
-        query = select(Courses).where(
-            and_(UserCourse.user_id == user_id, UserCourse.course_id == Courses.id)
-        )
-    else:
-        query = select(Courses).where(
-            and_(
-                UserCourse.user_id == user_id,
-                UserCourse.course_id == course_id,
-                UserCourse.course_id == Courses.id,
-            )
-        )
-    async with async_session() as session:
-        res = await session.execute(query)
-        # When selecting ORM entries it is useful to use the ``scalars`` method
-        # This modifies the result so that you are getting the ORM object
-        # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
-        course_list = [CoursesValidator.from_orm(x) for x in res.scalars().fetchall()]
-        return course_list
-
-
-#
-async def fetch_users_for_course(course_name: str) -> list[AuthUserValidator]:
-    """
-    Retrieve a list of users/students enrolled in a given course (course_name)
-
-    :param course_name: str, the name of the course
-    :return: list[AuthUserValidator], a list of AuthUserValidator objects representing the users
-    """
-    course = await fetch_course(course_name)
-    query = select(AuthUser).where(
-        and_(
-            UserCourse.user_id == AuthUser.id,
-            UserCourse.course_id == course.id,
-        )
-    )
-    async with async_session() as session:
-        res = await session.execute(query)
-        # When selecting ORM entries it is useful to use the ``scalars`` method
-        # This modifies the result so that you are getting the ORM object
-        # instead of a Row object. `See <https://docs.sqlalchemy.org/en/14/orm/queryguide.html#selecting-orm-entities-and-attributes>`_
-        user_list = [AuthUserValidator.from_orm(x) for x in res.scalars().fetchall()]
-        return user_list
-
-
-async def create_user_course_entry(user_id: int, course_id: int) -> UserCourse:
-    """
-    Create a new user course entry for a given user (user_id) and course (course_id)
-
-    :param user_id: int, the user id
-    :param course_id: int, the course id
-    :return: UserCourse, the newly created UserCourse object
-    """
-    new_uc = UserCourse(user_id=user_id, course_id=course_id)
-    async with async_session.begin() as session:
-        session.add(new_uc)
-
-    return new_uc
-
-async def delete_user_course_entry(user_id: int, course_id: int) -> None:
-    """
-    Delete a user course entry for a given user (user_id) and course (course_id)
-
-    :param user_id: int, the user id
-    :param course_id: int, the course id
-    """
-    query = delete(UserCourse).where(
-        and_(UserCourse.user_id == user_id, UserCourse.course_id == course_id)
-    )
-    async with async_session.begin() as session:
-        await session.execute(query)
-        
 # course_attributes
 # -----------------
 
@@ -770,99 +592,6 @@ async def get_course_origin(base_course):
         res = await session.execute(query)
         ca = res.scalars().first()
         return ca.value
-
-
-# auth_user
-# ---------
-async def fetch_user(
-    user_name: str, fallback_to_registration: bool = False
-) -> AuthUserValidator:
-    """
-    Retrieve a user by their username (user_name)
-
-    fallback_to_registration is for LTI logins to match existing instructor accounts.
-    If user_name is not found, try to find the user by their registration_id (initial email).
-
-    :param user_name: str, the username of the user
-    :return: AuthUserValidator, the AuthUserValidator object representing the user
-    """
-    query = select(AuthUser).where(AuthUser.username == user_name)
-    async with async_session() as session:
-        res = await session.execute(query)
-        user = res.scalars().one_or_none()
-        if not user and fallback_to_registration:
-            fallback_query = select(AuthUser).where(
-                AuthUser.registration_id == user_name
-            )
-            res = await session.execute(fallback_query)
-            user = res.scalars().one_or_none()
-    return AuthUserValidator.from_orm(user)
-
-
-async def create_user(user: AuthUserValidator) -> Optional[AuthUserValidator]:
-    """
-    The given user will have the password in plain text.  First we will hash
-    the password then add this user to the database.
-
-    :param user: AuthUserValidator, the AuthUserValidator object representing the user to be created
-    :return: Optional[AuthUserValidator], the newly created AuthUserValidator object if successful, None otherwise
-    """
-    if await fetch_user(user.username):
-        raise HTTPException(
-            status_code=422,
-            detail=http_422error_detail(
-                ["body", "username"], "duplicate username", "integrity_error"
-            ),
-        )
-
-    new_user = AuthUser(**user.dict())
-    crypt = CRYPT(key=settings.web2py_private_key, salt=True)
-    new_user.password = str(crypt(user.password)[0])
-    async with async_session.begin() as session:
-        session.add(new_user)
-    return AuthUserValidator.from_orm(new_user)
-
-
-async def update_user(user_id: int, new_vals: dict):
-    """
-    Update a user's information by their id (user_id)
-
-    :param user_id: int, the id of the user
-    :param new_vals: dict, a dictionary containing the new values to be updated
-    """
-    if "password" in new_vals:
-        crypt = CRYPT(key=settings.web2py_private_key, salt=True)
-        new_vals["password"] = str(crypt(new_vals["password"])[0])
-    stmt = update(AuthUser).where((AuthUser.id == user_id)).values(**new_vals)
-    async with async_session.begin() as session:
-        await session.execute(stmt)
-    rslogger.debug("SUCCESS")
-
-
-async def delete_user(username):
-    """
-    Delete a user by their username (username)
-
-    :param username: str, the username of the user to be deleted
-    """
-    # We do not have foreign key constraints on the username in the answer tables
-    # so delete all of the rows matching the username schedule for deletion
-    stmt_list = []
-    for tbl, item in runestone_component_dict.items():
-        stmt = delete(item.model).where(item.model.sid == username)
-        stmt_list.append(stmt)
-
-    delcode = delete(Code).where(Code.sid == username)
-    deluse = delete(Useinfo).where(Useinfo.sid == username)
-    deluser = delete(AuthUser).where(AuthUser.username == username)
-    async with async_session.begin() as session:
-        for stmt in stmt_list:
-            await session.execute(stmt)
-        await session.execute(delcode)
-        await session.execute(deluse)
-        await session.execute(deluser)
-        # This will delete many other things as well based on the CASECADING
-        # foreign keys
 
 
 async def fetch_group(group_name):
@@ -4012,6 +3741,7 @@ async def delete_course_instructor(course_id: int, instructor_id: int) -> None:
         await session.execute(stmt)
         await session.commit()
 
+
 async def create_course_instructor(course_id: int, instructor_id: int) -> None:
     """
     Add an instructor to a course by creating a new CourseInstructor relationship.
@@ -4415,7 +4145,9 @@ async def delete_course_completely(course_name: str) -> bool:
         return False
 
 
-async def fetch_available_students_for_instructor_add(course_id: int) -> List[Dict[str, Any]]:
+async def fetch_available_students_for_instructor_add(
+    course_id: int,
+) -> List[Dict[str, Any]]:
     """
     Fetch students in the course who are not already instructors.
     """
@@ -4430,7 +4162,11 @@ async def fetch_available_students_for_instructor_add(course_id: int) -> List[Di
             CourseInstructor.course == course_id
         )
         instructor_ids = set((await session.execute(instructors_stmt)).scalars().all())
-        available_students = [AuthUserValidator.from_orm(s).model_dump() for s in students if s.id not in instructor_ids]
+        available_students = [
+            AuthUserValidator.from_orm(s).model_dump()
+            for s in students
+            if s.id not in instructor_ids
+        ]
         return available_students
 
 
