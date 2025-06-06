@@ -691,9 +691,13 @@ def _create_access_token(data: dict, expires=None, scopes=None) -> bytes:
         response.cookies["access_token"] = encoded_jwt
         response.cookies["access_token"]["expires"] = 24 * 3600 * 105  # 15 weeks
         response.cookies["access_token"]["path"] = "/"
-        response.cookies["access_token"]["httponly"] = True
-        response.cookies["access_token"]["samesite"] = "None"
-        response.cookies["access_token"]["secure"] = True
+        # if the ALLOW_INSECURE_LOGIN environment variable is set then do not set
+        # the httponly, samesite, or secure attributes on the cookie.
+        # This is useful for testing purposes, but should not be used in production.
+        if not os.environ.get("ALLOW_INSECURE_LOGIN", False):
+            response.cookies["access_token"]["httponly"] = True
+            response.cookies["access_token"]["samesite"] = "None"
+            response.cookies["access_token"]["secure"] = True
         if "LOAD_BALANCER_HOST" in os.environ:
             response.cookies["access_token"]["domain"] = os.environ[
                 "LOAD_BALANCER_HOST"

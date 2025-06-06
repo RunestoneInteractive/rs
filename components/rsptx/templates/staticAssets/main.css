@@ -38,3 +38,6 @@ body {
   color: red;
 }
 
+.autopermalink {
+    display: none;
+}

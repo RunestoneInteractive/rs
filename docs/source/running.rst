@@ -25,22 +25,25 @@ The Runestone server uses docker compose to start up a number of containers that
 
 #. Now add a book. ``cd /your/path/to/book`` (the same value you used for ``BOOK_PATH``) and clone a book.  For example: ``git clone https://github.com/RunestoneInteractive/overview.git``
 
-#. Add the book to the database.  (Note this is not needed for overview since we preload many books) ``docker compose run --rm rsmanage rsmanage addcourse`` You will then be prompted to enter some information about the course:
+#. Add the book to the database.  ``docker compose run --rm rsmanage rsmanage addbookauthor`` You will then be prompted to enter some information about the book and the author.:
 
     .. code-block:: text
 
+        Using configuration: development
+        Using database: runestone_dev
+        Checking database connection
+        postgresql+asyncpg://bmiller:@localhost/runestone_dev
         Database connection successful
-        Course Name: foo
-        Base Course: foo
-        Your institution: Runestone
-        Require users to log in [Y/n]: n
-        Enable pair programming support [y/N]: n
+        document-id or basecourse : foobar
+        Runestone username of an author or admin: : testuser1
 
     If the course already exists in the database, it will ask you if you want to use a different name.
 
 #. Now go back to the rs directory and run the following command: ``docker compose run --rm rsmanage rsmanage build overview``  Insert your courses name in place of overview.  If you are building a PreTeXt book you will need to run ``docker compose run --rm rsmanage rsmanage build --ptx yourbook``
 
 #. You should now be able to access the overview book on your server running on localhost.  The url to go directly to your book is is `http://localhost/ns/books/published/yourbook/index.html``
+
+#. If you want to create a course for students to use, you can run the following command: ``docker compose run --rm rsmanage rsmanage addcourse``  This will create a course with the name you provide.
 
 If you want to stop the server, you can run the following command: ``docker compose stop``
 

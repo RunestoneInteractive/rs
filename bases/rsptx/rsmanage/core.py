@@ -435,7 +435,6 @@ async def build(config, clone, ptx, gen, manifest, course):
 #    adduser
 #
 @cli.command()
-@click.option("--instructor", is_flag=True, help="Make this user an instructor")
 @click.option(
     "--fromfile",
     default=None,
@@ -522,15 +521,6 @@ async def adduser(
         userinfo["last_name"] = last_name or click.prompt("Last Name")
         userinfo["email"] = email or click.prompt("email address")
         userinfo["course_name"] = course or click.prompt("course name")
-        if not instructor:
-            if (
-                username and course
-            ):  # user has supplied other info via CL parameter safe to assume False
-                userinfo["instructor"] = False
-            else:
-                userinfo["instructor"] = click.confirm(
-                    "Make this user an instructor", default=False
-                )
         course = await fetch_course(userinfo["course_name"])
         new_user = AuthUserValidator(
             **userinfo,
@@ -1217,28 +1207,20 @@ async def addbookauthor(config, book, author, github):
                 )
         if not github:
             # check to see if book exists under $BOOK_PATH
-            book_path = os.path.join(settings.book_path, book)
-            if os.path.exists(book_path):
-                # try to find the .git directory
-                git_path = os.path.join(book_path, ".git")
-                if os.path.exists(git_path):
-                    # try to get the remote url from git
-                    res = subprocess.run(
-                        ["git", "-C", book_path, "config", "--get", "remote.origin.url"],
-                        capture_output=True,
-                        text=True,
-                    )
-                    if res.returncode == 0:
-                        github = res.stdout.strip()
-                    else:
-                        click.echo("Could not determine github url from git config")
-                else:
-                    click.echo(f"No .git directory found in {book_path}")
-            else:
-                github = click.prompt(f"Book path {book_path} does not exist, please provide a github url")
-                book_path = click.prompt(
-                    "Please provide the path to the book on your local machine, or leave blank if it is not cloned locally"
+            github = find_github_url(book)
+            if not github:
+                click.echo(
+                    f"Warning: No github url found for {book} in $BOOK_PATH. Please provide it manually."
                 )
+                book_path = click.prompt(
+                    "Please provide the path to the repository on your local machine relative to $BOOK_PATH, or leave blank if it is not cloned locally", default=""
+                )
+                github = find_github_url(book_path)
+                if not github:
+                    click.echo(
+                        "Error: It appears you do not have a repository for this book. Exiting."
+                    )
+                    sys.exit(-1)
                 # extract the final part of the path in book_path
                 if book_path:
                     book_path = book_path.rstrip("/").split("/")[-1]
@@ -1270,6 +1252,27 @@ async def addbookauthor(config, book, author, github):
         await create_membership(auth_group_id, a_row.id)
 
 
+def find_github_url(book):
+    book_path = os.path.join(settings.book_path, book)
+    if os.path.exists(book_path):
+        # try to find the .git directory
+        git_path = os.path.join(book_path, ".git")
+        if os.path.exists(git_path):
+            # try to get the remote url from git
+            res = subprocess.run(
+                ["git", "-C", book_path, "config", "--get", "remote.origin.url"],
+                capture_output=True,
+                text=True,
+            )
+            if res.returncode == 0:
+                return res.stdout.strip()
+            else:
+                click.echo("Could not determine github url from git config")
+        else:
+            click.echo(f"No .git directory found in {book_path}")
+    else:
+        return None
+    return None
 # command group for mangaging the library table
 
 

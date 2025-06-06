@@ -58,6 +58,9 @@ export default class JSActiveCode extends ActiveCode {
         this.eContainer = this.outerDiv.appendChild(
             document.createElement("div")
         );
+        this.eContainer.setAttribute("aria-live", "polite");
+        this.eContainer.setAttribute("aria-atomic", "true");
+        this.eContainer.setAttribute("role", "log");
         this.eContainer.className = "error alert alert-danger";
         this.eContainer.id = this.divid + "_errinfo";
         this.eContainer.appendChild(errHead[0]);
@@ -65,7 +68,10 @@ export default class JSActiveCode extends ActiveCode {
             document.createElement("pre")
         );
         var errString = err.toString();
-        errText.innerHTML = errString;
+        // screenreaders seem to miss error message without the delay
+        setTimeout(() => {
+            errText.innerHTML = errString;
+        }, 10);
         console.log("Runtime Error: " + err.toString());
     }
 }
