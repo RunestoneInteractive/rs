@@ -16,7 +16,7 @@
 
 __author__ = "isaiahmayerchak"
 
-from asyncore import write
+# from asyncore import write
 from docutils import nodes
 from docutils.parsers.rst import directives
 from runestone.common.runestonedirective import (
