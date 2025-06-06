@@ -43,7 +43,7 @@ cryptography = "^3.0.0"
 pydal = ">=20210215.1"
 python-multipart = "^0.0.5"
 # asyncpg v. 0.25 has a `bug <https://github.com/MagicStack/asyncpg/issues/884>`_. Stay at v. 0.24 until it's fixed.
-asyncpg = "^0.28.0"
+asyncpg = "^0.30.0"
 SQLAlchemy = "^1.0.0"
 aiosqlite = "^0.18.0"
 redis = "^4.3.0"

@@ -34,7 +34,7 @@ license = "GPL"
 name = "runestone"
 readme = "README.rst"
 repository = "https://github.com/RunestoneInteractive/rs"
-version = "7.7.3"
+version = "7.7.4"
 
 # See https://python-poetry.org/docs/pyproject/#include-and-exclude.
 include = [
@@ -131,7 +131,7 @@ cryptography = "^3.0.0"
 python-dotenv = "^1.0.0"
 pydantic = "^2.0.0"
 fastapi = "^0.103.0"
-asyncpg = "^0.28.0"
+asyncpg = "^0.30.0"
 greenlet = "^3.0.0"
 dateutils = "^0.6.12"
 pyhumps = "^3.8.0"
