@@ -4,6 +4,7 @@ from .course import (
     create_course,
     create_user_course_entry,
     delete_user_course_entry,
+    delete_course_completely,
     fetch_base_course,
     fetch_course_by_id,
     fetch_course,
@@ -38,6 +39,7 @@ __all__ = [
 __all__ += [
     "create_course",
     "create_user_course_entry",
+    "delete_course_completely",
     "delete_user_course_entry",
     "fetch_base_course",
     "fetch_course_by_id",
