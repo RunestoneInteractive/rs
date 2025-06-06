@@ -3072,14 +3072,14 @@ files = [
 
 [[package]]
 name = "pydal"
-version = "20230521.1"
+version = "20241204.1"
 description = "pyDAL is a Database Abstraction Layer. It generates queries for SQlite, PotsgreSQL, MySQL, and other backends. It was originally part of the web2py frameworks but it is now an independent project. Example: db.define_table(\"thing\",Field(\"name\")) and db.thing.insert(name=\"Pizza\")"
 optional = false
 python-versions = ">=3.7"
 groups = ["main", "dev"]
 files = [
-    {file = "pydal-20230521.1-py2.py3-none-any.whl", hash = "sha256:37f3430fdd0650d92d637350065ba43ffba0357aa51f3db5b170f4a2105deef2"},
-    {file = "pydal-20230521.1.tar.gz", hash = "sha256:10478a61e627c5b8cb7691f7f7ebf7210845485316493d37d740c297fb6d1845"},
+    {file = "pydal-20241204.1-py2.py3-none-any.whl", hash = "sha256:416f06de17ab0a5340e11195a0583abfe484eceb067cd3ab92208d3dc5aa7683"},
+    {file = "pydal-20241204.1.tar.gz", hash = "sha256:1ba1f9e528b985e234f5b3acfd9d549998b44f7ed7ae747b9e8d4ad3047bf511"},
 ]
 
 [[package]]
@@ -3876,7 +3876,7 @@ myst-parser = "^1.0.0"
 Paver = ">=1.2.4"
 pretext = "^2.7.0"
 psycopg2-binary = "^2.9.6"
-pydal = "^20230521.1"
+pydal = ">=20230521.1"
 pydantic = "^2.0.0"
 pydantic-settings = "^2.0.3"
 pyhumps = "^3.8.0"
@@ -4876,4 +4876,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "8de0d8f7de1e1f9b797223a9b3b83e1899aff3a0619bab4db593dcf30eb13ee0"
+content-hash = "8de79c75af86133fc3afe389e0d6a8c044c662dd99a30147e125d3b428230387"
