@@ -135,7 +135,7 @@ asyncpg = "^0.30.0"
 greenlet = "^3.0.0"
 dateutils = "^0.6.12"
 pyhumps = "^3.8.0"
-pydal = "^20230521.1"
+pydal = ">=20230521.1"
 pydantic-settings = "^2.0.3"
 jupyterlite-sphinx = "^0.9.3"
 [tool.poetry.dev-dependencies]
