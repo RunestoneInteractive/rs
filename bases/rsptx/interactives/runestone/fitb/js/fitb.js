@@ -103,6 +103,9 @@ export default class FITB extends RunestoneBase {
             if (dict_.problemHtml.startsWith("&lt;")) {
                 dict_.problemHtml = dict_.problemHtml.replace(/&lt;/g, "<").replace(/&gt;/g, ">");
             }
+            dict_.problemHtml = dict_.problemHtml.replace(/src="external/g, 
+                'src="' + `/ns/books/published/${eBookConfig.basecourse}` + '/external');
+
             this.problemHtml = dict_.problemHtml;
             this.dyn_vars = dict_.dyn_vars;
             this.blankNames = dict_.blankNames;
