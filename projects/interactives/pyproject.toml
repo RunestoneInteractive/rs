@@ -145,6 +145,9 @@ pytest = "~7"
 pylint = "~2"
 readme-renderer = ">24"
 json2xml = "~3"
+standard-asyncore = "^3.13.0"
+standard-imghdr = "^3.13.0"
+standard-cgi = "^3.13.0"
 
 
 # Scripts
