@@ -16,7 +16,6 @@ import datetime
 import os
 import re
 import subprocess
-import asyncio
 from pathlib import Path
 import logging
 from io import StringIO
@@ -26,7 +25,6 @@ from shutil import copytree
 # -----------
 import click
 import lxml.etree as ET
-from lxml import ElementInclude
 import pretext
 from pretext.utils import is_earlier_version
 import pretext.project
@@ -154,7 +152,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
             target = "runestone"
         # sets output_dir to `published/<course>`
         # and {"host-platform": "runestone"} in stringparams
-        rs = check_project_ptx(course=course, target=target)
+        rs = check_project_ptx(click=click, course=course, target=target)
         if not rs:
             return False
 
