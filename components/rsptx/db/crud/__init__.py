@@ -12,6 +12,7 @@ from .course import (
     fetch_users_for_course,
     user_in_course,
 )
+
 from .book import (
     get_book_chapters,
     fetch_chapter_for_subchapter,
@@ -28,6 +29,7 @@ from .book import (
 )
 
 from .group import fetch_group, create_group, fetch_membership, create_membership
+
 # from .user
 __all__ = [
     "fetch_user",
@@ -36,18 +38,33 @@ __all__ = [
     "delete_user",
 ]
 
-# from .course
+# import all functions from .lti by name
+from .lti import (
+    upsert_lti1p3_config,
+    fetch_lti1p3_config,
+    fetch_lti1p3_config_by_lti_data,
+    upsert_lti1p3_course,
+    delete_lti1p3_course,
+    fetch_lti1p3_course,
+    fetch_lti1p3_course_by_rs_course,
+    fetch_lti1p3_course_by_id,
+    fetch_lti1p3_course_by_lti_id,
+    fetch_lti1p3_course_by_lti_data,
+    upsert_lti1p3_user,
+)
+
 __all__ += [
-    "create_course",
-    "create_user_course_entry",
-    "delete_course_completely",
-    "delete_user_course_entry",
-    "fetch_base_course",
-    "fetch_course_by_id",
-    "fetch_course",
-    "fetch_courses_for_user",
-    "fetch_users_for_course",
-    "user_in_course",
+    "upsert_lti1p3_config",
+    "fetch_lti1p3_config",
+    "fetch_lti1p3_config_by_lti_data",
+    "upsert_lti1p3_course",
+    "delete_lti1p3_course",
+    "fetch_lti1p3_course",
+    "fetch_lti1p3_course_by_rs_course",
+    "fetch_lti1p3_course_by_id",
+    "fetch_lti1p3_course_by_lti_id",
+    "fetch_lti1p3_course_by_lti_data",
+    "upsert_lti1p3_user",
 ]
 
 # from .book
@@ -64,6 +81,20 @@ __all__ += [
     "get_book_subchapters",
     "update_sub_chapter_progress",
     "update_user_state",
+]
+
+# from .course
+__all__ += [
+    "create_course",
+    "create_user_course_entry",
+    "delete_course_completely",
+    "delete_user_course_entry",
+    "fetch_base_course",
+    "fetch_course_by_id",
+    "fetch_course",
+    "fetch_courses_for_user",
+    "fetch_users_for_course",
+    "user_in_course",
 ]
 
 # from .group
