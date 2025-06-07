@@ -18,7 +18,7 @@ from ..models import (
     UserExperimentValidator,
 )
 from ..async_session import async_session
-from .. import schemas
+from rsptx.validation import schemas
 from asyncpg.exceptions import UniqueViolationError
 from rsptx.logging import rslogger
 

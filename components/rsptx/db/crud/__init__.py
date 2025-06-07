@@ -60,6 +60,15 @@ from .group import (
     is_editor,
 )
 
+# from library
+from .library import (
+    create_book_author,
+    create_library_book,
+    fetch_books_by_author,
+    fetch_library_book,
+    fetch_library_books,
+    update_library_book,
+)
 
 # import all functions from .lti by name
 from .lti import (
@@ -82,6 +91,14 @@ from .lti import (
     upsert_lti1p3_user,
 )
 
+from .practice import (
+    create_user_topic_practice,
+    delete_one_user_topic_practice,
+    fetch_course_practice,
+    fetch_one_user_topic_practice,
+    fetch_qualified_questions,
+)
+
 from .question import (
     count_matching_questions,
     create_question_grade_entry,
@@ -97,7 +114,7 @@ from .question import (
     fetch_user_experiment,
     fetch_viewed_questions,
     search_exercises,
-    update_question_grade_entry
+    update_question_grade_entry,
 )
 
 # from .user
@@ -130,6 +147,16 @@ __all__ += [
     "update_assignment_question",
     "update_multiple_assignment_questions",
     "upsert_grade",
+]
+
+# from .library
+__all__ += [
+    "create_book_author",
+    "create_library_book",
+    "fetch_books_by_author",
+    "fetch_library_book",
+    "fetch_library_books",
+    "update_library_book",
 ]
 
 # from .lti
@@ -192,6 +219,15 @@ __all__ += [
     "fetch_membership",
     "is_author",
     "is_editor",
+]
+
+# from .practice
+__all__ += [
+    "create_user_topic_practice",
+    "delete_one_user_topic_practice",
+    "fetch_course_practice",
+    "fetch_one_user_topic_practice",
+    "fetch_qualified_questions",
 ]
 
 # from .question
