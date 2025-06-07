@@ -502,3 +502,34 @@ async def fetch_previous_selections(sid) -> List[str]:
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return [row.selected_id for row in res.scalars().fetchall()]
+
+
+# write a function that takes a QuestionValidator as a parameter and inserts a new Question into the database
+async def create_question(question: QuestionValidator) -> QuestionValidator:
+    """Add a row to the ``question`` table.
+
+    :param question: A question object
+    :type question: QuestionValidator
+    :return: A representation of the row inserted.
+    :rtype: QuestionValidator
+    """
+    async with async_session.begin() as session:
+        new_question = Question(**question.dict())
+        session.add(new_question)
+    return QuestionValidator.from_orm(new_question)
+
+
+async def update_question(question: QuestionValidator) -> QuestionValidator:
+    """Update a row in the ``question`` table.
+
+    :param question: A question object
+    :type question: QuestionValidator
+    :return: A representation of the row updated.
+    :rtype: QuestionValidator
+    """
+    async with async_session.begin() as session:
+        stmt = (
+            update(Question).where(Question.id == question.id).values(**question.dict())
+        )
+        await session.execute(stmt)
+    return question

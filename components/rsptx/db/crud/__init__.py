@@ -91,6 +91,8 @@ from .lti import (
     upsert_lti1p3_user,
 )
 
+from .peer import fetch_last_useinfo_peergroup, get_peer_votes
+
 from .practice import (
     create_user_topic_practice,
     delete_one_user_topic_practice,
@@ -102,6 +104,7 @@ from .practice import (
 from .question import (
     count_matching_questions,
     create_question_grade_entry,
+    create_question,
     create_user_experiment_entry,
     fetch_assignment_question,
     fetch_assignment_questions,
@@ -114,7 +117,13 @@ from .question import (
     fetch_user_experiment,
     fetch_viewed_questions,
     search_exercises,
+    update_question,
     update_question_grade_entry,
+)
+
+from .rsfiles import (
+    fetch_source_code,
+    update_source_code,
 )
 
 # from .user
@@ -220,6 +229,11 @@ __all__ += [
     "is_author",
     "is_editor",
 ]
+# from .peer
+__all__ += [
+    "fetch_last_useinfo_peergroup",
+    "get_peer_votes",
+]
 
 # from .practice
 __all__ += [
@@ -233,6 +247,7 @@ __all__ += [
 # from .question
 __all__ += [
     "count_matching_questions",
+    "create_question",
     "create_question_grade_entry",
     "create_user_experiment_entry",
     "fetch_assignment_question",
@@ -246,5 +261,12 @@ __all__ += [
     "fetch_user_experiment",
     "fetch_viewed_questions",
     "search_exercises",
+    "update_question",
     "update_question_grade_entry",
+]
+
+# from .rsfiles
+__all__ += [
+    "fetch_source_code",
+    "update_source_code",
 ]
