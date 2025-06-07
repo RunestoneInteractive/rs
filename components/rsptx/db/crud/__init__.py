@@ -27,6 +27,7 @@ from .book import (
     create_user_chapter_progress_entry,
 )
 
+from .group import fetch_group, create_group, fetch_membership, create_membership
 # from .user
 __all__ = [
     "fetch_user",
@@ -63,4 +64,12 @@ __all__ += [
     "get_book_subchapters",
     "update_sub_chapter_progress",
     "update_user_state",
+]
+
+# from .group
+__all__ += [
+    "fetch_group",
+    "create_group",
+    "fetch_membership",
+    "create_membership",
 ]
