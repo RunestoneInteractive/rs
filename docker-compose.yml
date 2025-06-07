@@ -398,7 +398,7 @@ services:
     build:
       context: ./projects/admin_server
       dockerfile: Dockerfile
-    image: admin
+    image: ghcr.io/runestoneinteractive/rs-admin
     extra_hosts:
       - host.docker.internal:host-gateway
     container_name: admin
