@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import select
 from cryptography.fernet import Fernet
+from typing import TypeAlias
 
 # Local application imports
 # -------------------------
@@ -44,7 +45,7 @@ engine = create_async_engine(
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 # This creates the base class we will use to create models
-Base = declarative_base()
+Base: TypeAlias = declarative_base() # type: ignore
 # Generate this key once and store it securely (e.g., env var or config file)
 fernet = Fernet(settings.fernet_secret)
 
