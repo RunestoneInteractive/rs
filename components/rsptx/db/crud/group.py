@@ -67,3 +67,37 @@ async def create_membership(group_id, user_id):
     async with async_session.begin() as session:
         session.add(new_mem)
     return new_mem
+
+async def is_author(userid: int) -> bool:
+    """
+    Checks if a user is an author.
+
+    :param userid: The ID of the user to check.
+    :type userid: int
+    :return: True if the user is an author, False otherwise.
+    :rtype: bool
+    """
+    ed = await fetch_group("author")
+    row = await fetch_membership(ed.id, userid)
+
+    if row:
+        return True
+    else:
+        return False
+
+async def is_editor(userid: int) -> bool:
+    """
+    Checks if a user is an editor.
+
+    :param userid: The ID of the user to check.
+    :type userid: int
+    :return: True if the user is an editor, False otherwise.
+    :rtype: bool
+    """
+    ed = await fetch_group("editor")
+    row = await fetch_membership(ed.id, userid)
+
+    if row:
+        return True
+    else:
+        return False

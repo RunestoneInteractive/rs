@@ -17,7 +17,6 @@ turned into reusable functions that are defined in this file.
 import datetime
 import hashlib
 import json
-from collections import namedtuple
 from typing import Dict, List, Optional, Tuple, Any
 import textwrap
 import traceback
@@ -36,8 +35,7 @@ from sqlalchemy import (
 # Third-party imports
 # -------------------
 from asyncpg.exceptions import UniqueViolationError
-from fastapi import status
-from fastapi.exceptions import HTTPException
+
 from sqlalchemy import and_, distinct, func, update, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import select, text, delete, insert
@@ -134,7 +132,8 @@ from rsptx.db.models import (
     APIToken,
     APITokenValidator,
 )
-from .course import fetch_course
+from .course import fetch_course, create_course
+from .user import create_user
 from rsptx.data_types.which_to_grade import WhichToGradeOptions
 from rsptx.data_types.autograde import AutogradeOptions
 
@@ -1684,42 +1683,6 @@ async def create_editor_for_basecourse(user_id: int, bc_name: str) -> EditorBase
     return new_ed
 
 
-async def is_editor(userid: int) -> bool:
-    """
-    Checks if a user is an editor.
-
-    :param userid: The ID of the user to check.
-    :type userid: int
-    :return: True if the user is an editor, False otherwise.
-    :rtype: bool
-    """
-    ed = await fetch_group("editor")
-    row = await fetch_membership(ed.id, userid)
-
-    if row:
-        return True
-    else:
-        return False
-
-
-async def is_author(userid: int) -> bool:
-    """
-    Checks if a user is an author.
-
-    :param userid: The ID of the user to check.
-    :type userid: int
-    :return: True if the user is an author, False otherwise.
-    :rtype: bool
-    """
-    ed = await fetch_group("author")
-    row = await fetch_membership(ed.id, userid)
-
-    if row:
-        return True
-    else:
-        return False
-
-
 # Used by the library page
 async def get_students_per_basecourse() -> dict:
     """
@@ -1875,7 +1838,7 @@ async def fetch_questions_for_chapter_subchapter(
                                 [
                                     q
                                     for q in questions[chapter][subchapter]
-                                    if q.optional != True
+                                    if q.optional != True  # noqa: E712
                                 ]
                             ),
                         },
@@ -2371,7 +2334,7 @@ async def check_domain_approval(
     query = (
         select(Courses.domain_name)
         .join(DomainApprovals, Courses.domain_name == DomainApprovals.domain_name)
-        .where((approval_type == True) & (Courses.id == course_id))
+        .where((approval_type == True) & (Courses.id == course_id)) # noqa: E712
     )
     async with async_session() as session:
         res = await session.execute(query)

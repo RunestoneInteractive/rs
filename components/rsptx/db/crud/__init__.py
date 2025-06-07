@@ -20,7 +20,7 @@ from .assignment import (
     update_assignment_exercises,
     update_assignment_question,
     update_multiple_assignment_questions,
-    upsert_grade
+    upsert_grade,
 )
 
 from .course import (
@@ -51,7 +51,14 @@ from .book import (
     update_user_state,
 )
 
-from .group import fetch_group, create_group, fetch_membership, create_membership
+from .group import (
+    create_group,
+    create_membership,
+    fetch_group,
+    fetch_membership,
+    is_author,
+    is_editor,
+)
 
 
 # import all functions from .lti by name
@@ -104,7 +111,7 @@ __all__ += [
     "update_assignment_exercises",
     "update_assignment_question",
     "update_multiple_assignment_questions",
-    "upsert_grade"
+    "upsert_grade",
 ]
 
 # from .lti
@@ -165,4 +172,6 @@ __all__ += [
     "create_membership",
     "fetch_group",
     "fetch_membership",
+    "is_author",
+    "is_editor",
 ]
