@@ -82,6 +82,24 @@ from .lti import (
     upsert_lti1p3_user,
 )
 
+from .question import (
+    count_matching_questions,
+    create_question_grade_entry,
+    create_user_experiment_entry,
+    fetch_assignment_question,
+    fetch_assignment_questions,
+    fetch_matching_questions,
+    fetch_previous_selections,
+    fetch_question,
+    fetch_question_count_per_subchapter,
+    fetch_question_grade,
+    fetch_questions_by_search_criteria,
+    fetch_user_experiment,
+    fetch_viewed_questions,
+    search_exercises,
+    update_question_grade_entry
+)
+
 # from .user
 __all__ = [
     "fetch_user",
@@ -174,4 +192,23 @@ __all__ += [
     "fetch_membership",
     "is_author",
     "is_editor",
+]
+
+# from .question
+__all__ += [
+    "count_matching_questions",
+    "create_question_grade_entry",
+    "create_user_experiment_entry",
+    "fetch_assignment_question",
+    "fetch_assignment_questions",
+    "fetch_matching_questions",
+    "fetch_previous_selections",
+    "fetch_question",
+    "fetch_question_count_per_subchapter",
+    "fetch_question_grade",
+    "fetch_questions_by_search_criteria",
+    "fetch_user_experiment",
+    "fetch_viewed_questions",
+    "search_exercises",
+    "update_question_grade_entry",
 ]
