@@ -1,4 +1,3 @@
-import logging
 from typing import List, Optional, Tuple, Dict
 from sqlalchemy import select, and_, or_, func, asc, desc, not_
 from sqlalchemy.exc import IntegrityError

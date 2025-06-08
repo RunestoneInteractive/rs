@@ -27,78 +27,44 @@ from sqlalchemy import (
     func,
     and_,
     or_,
-    not_,
-    desc,
-    asc,
 )
 
 # Third-party imports
 # -------------------
-from asyncpg.exceptions import UniqueViolationError
 
-from sqlalchemy import and_, distinct, func, update, or_
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql import select, text, delete, insert
-from sqlalchemy.orm import aliased, joinedload, attributes
+from sqlalchemy import update
+from sqlalchemy.sql import select, text, delete
+from sqlalchemy.orm import attributes
 from starlette.requests import Request
 
 from rsptx.validation import schemas
-from rsptx.validation.schemas import (
-    AssignmentQuestionUpdateDict,
-)
 
 # Local application imports
 # -------------------------
 from rsptx.logging import rslogger
-from rsptx.configuration import settings
 from ..async_session import async_session
-from ..sync_session import sync_session
 from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.db.models import (
     Assignment,
-    AssignmentValidator,
     AssignmentQuestion,
-    AssignmentQuestionValidator,
-    AuthGroup,
-    AuthMembership,
     AuthUser,
     AuthUserValidator,
-    BookAuthor,
     Chapter,
     ChapterValidator,
-    ClickableareaAnswers,
     Code,
     CodeValidator,
-    Competency,
     CourseAttribute,
     CourseInstructor,
     CourseInstructorValidator,
     CourseLtiMap,
-    CoursePractice,
     Courses,
     CoursesValidator,
-    DeadlineException,
     DeadlineExceptionValidator,
     DomainApprovals,
-    DragndropAnswers,
     EditorBasecourse,
-    FitbAnswers,
-    Grade,
-    GradeValidator,
     InvoiceRequest,
-    Library,
-    LibraryValidator,
     LtiKey,
-    Lti1p3Conf,
-    Lti1p3ConfValidator,
     Lti1p3Course,
-    Lti1p3CourseValidator,
-    Lti1p3User,
-    Lti1p3UserValidator,
-    Lti1p3Assignment,
-    Lti1p3AssignmentValidator,
-    MchoiceAnswers,
-    ParsonsAnswers,
     Question,
     QuestionGrade,
     QuestionGradeValidator,
@@ -106,9 +72,6 @@ from rsptx.db.models import (
     runestone_component_dict,
     SelectedQuestion,
     SelectedQuestionValidator,
-    ShortanswerAnswers,
-    SourceCode,
-    SourceCodeValidator,
     SubChapter,
     SubChapterValidator,
     TimedExam,
@@ -116,26 +79,12 @@ from rsptx.db.models import (
     TraceBack,
     Useinfo,
     UseinfoValidation,
-    UserChapterProgress,
-    UserChapterProgressValidator,
     UserCourse,
-    UserExperiment,
-    UserExperimentValidator,
-    UserState,
-    UserStateValidator,
-    UserSubChapterProgress,
-    UserSubChapterProgressValidator,
-    UserTopicPractice,
-    UserTopicPracticeCompletion,
-    UserTopicPracticeFeedback,
-    UserTopicPracticeValidator,
     APIToken,
     APITokenValidator,
 )
 from .course import fetch_course, create_course
 from .user import create_user
-from rsptx.data_types.which_to_grade import WhichToGradeOptions
-from rsptx.data_types.autograde import AutogradeOptions
 
 # Map from the ``event`` field of a ``LogItemIncoming`` to the database table used to store data associated with this event.
 EVENT2TABLE = {

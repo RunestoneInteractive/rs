@@ -124,6 +124,7 @@ from .question import (
 from .rsfiles import (
     fetch_source_code,
     update_source_code,
+    update_source_code_sync
 )
 
 # from .user
@@ -269,4 +270,5 @@ __all__ += [
 __all__ += [
     "fetch_source_code",
     "update_source_code",
+    "update_source_code_sync",
 ]

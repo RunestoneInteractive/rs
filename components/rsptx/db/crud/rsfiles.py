@@ -1,7 +1,8 @@
 from sqlalchemy import select, and_, or_
 
 from ..models import SourceCode, SourceCodeValidator
-from ..async_session import async_session, sync_session
+from ..async_session import async_session
+from ..sync_session import sync_session
 
 from rsptx.logging import rslogger
 

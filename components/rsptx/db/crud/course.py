@@ -1,5 +1,5 @@
 # generate imports
-from typing import Optional, List
+from typing import Optional
 from sqlalchemy import select, func, and_, delete, update
 from ..models import (
     Courses,
