@@ -36,6 +36,14 @@ from .course import (
     user_in_course,
 )
 
+from .course_attrs import (
+    copy_course_attributes,
+    create_course_attribute,
+    fetch_all_course_attributes,
+    fetch_one_course_attribute,
+    get_course_origin,
+)
+
 from .book import (
     create_user_chapter_progress_entry,
     create_user_state_entry,
@@ -72,7 +80,10 @@ from .library import (
 
 # import all functions from .lti by name
 from .lti import (
+    create_lti_course,
+    delete_lti_course,
     delete_lti1p3_course,
+    fetch_lti_version,
     fetch_lti1p3_assignments_by_rs_assignment_id,
     fetch_lti1p3_assignments_by_rs_course_id,
     fetch_lti1p3_config_by_lti_data,
@@ -91,7 +102,7 @@ from .lti import (
     upsert_lti1p3_user,
 )
 
-from .peer import fetch_last_useinfo_peergroup, get_peer_votes
+from .peer import fetch_last_useinfo_peergroup, get_peer_votes, did_send_messages
 
 from .practice import (
     create_user_topic_practice,
@@ -121,20 +132,20 @@ from .question import (
     update_question_grade_entry,
 )
 
-from .rsfiles import (
-    fetch_source_code,
-    update_source_code,
-    update_source_code_sync
+from .rsfiles import fetch_source_code, update_source_code, update_source_code_sync
+
+from .scoring import (
+    fetch_answers,
+    fetch_assignment_scores,
+    fetch_reading_assignment_spec,
+    is_assigned,
 )
 
-# from .user
-__all__ = [
-    "fetch_user",
-    "create_user",
-    "update_user",
-    "delete_user",
-]
+#
+# Define __all__ for the package
+#
 
+__all__ = []
 
 # from .assignment
 __all__ += [
@@ -172,7 +183,10 @@ __all__ += [
 # from .lti
 
 __all__ += [
+    "create_lti_course",
+    "delete_lti_course",
     "delete_lti1p3_course",
+    "fetch_lti_version",
     "fetch_lti1p3_assignments_by_rs_assignment_id",
     "fetch_lti1p3_assignments_by_rs_course_id",
     "fetch_lti1p3_config_by_lti_data",
@@ -182,9 +196,9 @@ __all__ += [
     "fetch_lti1p3_course_by_lti_id",
     "fetch_lti1p3_course_by_rs_course",
     "fetch_lti1p3_course",
-    "fetch_lti1p3_users_for_course",
     "fetch_lti1p3_grading_data_for_assignment",
     "fetch_lti1p3_user",
+    "fetch_lti1p3_users_for_course",
     "upsert_lti1p3_assignment",
     "upsert_lti1p3_config",
     "upsert_lti1p3_course",
@@ -221,6 +235,15 @@ __all__ += [
     "user_in_course",
 ]
 
+# from .course_attrs
+__all__ += [
+    "copy_course_attributes",
+    "create_course_attribute",
+    "fetch_all_course_attributes",
+    "fetch_one_course_attribute",
+    "get_course_origin",
+]
+
 # from .group
 __all__ += [
     "create_group",
@@ -234,6 +257,7 @@ __all__ += [
 __all__ += [
     "fetch_last_useinfo_peergroup",
     "get_peer_votes",
+    "did_send_messages",
 ]
 
 # from .practice
@@ -271,4 +295,21 @@ __all__ += [
     "fetch_source_code",
     "update_source_code",
     "update_source_code_sync",
+]
+
+# from .scoring
+__all__ += [
+    "fetch_answers",
+    "fetch_assignment_scores",
+    "fetch_reading_assignment_spec",
+    "is_assigned",
+]
+
+
+# from .user
+__all__ = [
+    "fetch_user",
+    "create_user",
+    "update_user",
+    "delete_user",
 ]

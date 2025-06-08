@@ -2,16 +2,18 @@ from typing import List
 from sqlalchemy import select, delete
 from sqlalchemy.orm import joinedload
 from ..models import (
+    Assignment,
+    CourseLtiMap,
+    CoursesValidator,
+    Lti1p3Assignment,
+    Lti1p3AssignmentValidator,
     Lti1p3Conf,
     Lti1p3ConfValidator,
     Lti1p3Course,
     Lti1p3CourseValidator,
     Lti1p3User,
     Lti1p3UserValidator,
-    Lti1p3Assignment,
-    Lti1p3AssignmentValidator,
-    Assignment,
-    CoursesValidator,
+    LtiKey,
 )
 from ..async_session import async_session
 
@@ -349,3 +351,63 @@ async def fetch_lti1p3_grading_data_for_assignment(
 
 # /LTI 1.3
 # -----------------------------------------------------------------------
+
+
+async def fetch_lti_version(course_id: int) -> str:
+    """
+    Check if a course uses LTI 1.1, 1.3 or none
+
+    :param course_id: int, the id of the course
+    :return: str for LTI version (1.1 or 1.3) or None
+    """
+    query = select(CourseLtiMap).where(CourseLtiMap.course_id == course_id)
+    query2 = select(Lti1p3Course).where(Lti1p3Course.rs_course_id == course_id)
+    async with async_session() as session:
+        res = await session.execute(query)
+        if len(res.all()) > 0:
+            return "1.1"
+
+        res2 = await session.execute(query2)
+        if len(res2.all()) > 0:
+            return "1.3"
+
+        return None
+
+
+async def create_lti_course(course_id: int, lti_id: str) -> CourseLtiMap:
+    """
+    Create a new course in the LTI map.
+
+    :param course_id: int, the id of the course
+    :param lti_id: str, the LTI id of the course
+    :return: CourseLtiMap, the CourseLtiMap object
+    """
+    new_entry = CourseLtiMap(course_id=course_id, lti_id=lti_id)
+    async with async_session.begin() as session:
+        session.add(new_entry)
+
+    return new_entry
+
+
+async def delete_lti_course(course_id: int) -> bool:
+    """
+    Delete a course from the LTI map.
+
+    :param course_id: int, the id of the course
+    """
+    query = select(CourseLtiMap).where(CourseLtiMap.course_id == course_id)
+    async with async_session() as session:
+        res = await session.execute(query)
+    if res:
+        lti_key = res.scalars().first().lti_id
+    else:
+        return False
+
+    d_query1 = delete(CourseLtiMap).where(CourseLtiMap.course_id == course_id)
+    d_query2 = delete(LtiKey).where(LtiKey.id == lti_key)
+    async with async_session.begin() as session:
+        await session.execute(d_query1)
+        await session.execute(d_query2)
+
+    return True
+

@@ -76,3 +76,25 @@ async def fetch_last_useinfo_peergroup(course_name: str) -> List[Useinfo]:
         # Execute the query
         results = await session.execute(query)
         return results.scalars().all()
+
+async def did_send_messages(sid: str, div_id: str, course_name: str) -> bool:
+    """
+    Fetch all messages sent to a given student.
+
+    :param sid: str, the student id
+    :return: List[SentMessageValidator], a list of SentMessageValidator objects
+    """
+    query = select(Useinfo).where(
+        and_(
+            (Useinfo.sid == sid),
+            (Useinfo.div_id == div_id),
+            (Useinfo.course_id == course_name),
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        if len(res.all()) > 0:
+            return True
+        else:
+            return False
+
