@@ -21,6 +21,7 @@ import datetime
 import json
 import uuid
 import os
+import tldextract
 
 # Third-party imports
 # -------------------
@@ -655,14 +656,17 @@ async def deep_link_entry(request: Request, course=None):
         course, with_config=False
     )
 
-    approved = await check_domain_approval(course.id, DomainApprovals.lti1p3)
+    issuer = message_launch.get_iss()
+    issuer_parsed = tldextract.extract(issuer)
+    issuer_domain = f"{issuer_parsed.domain}.{issuer_parsed.suffix}"
+    approved = await check_domain_approval(issuer_domain, DomainApprovals.lti1p3)
     if not approved:
         rslogger.debug(
             f"LTI1p3 - Failed domain approval for {course.id}"
         )
         raise HTTPException(
             status_code=403,
-            detail="The domain for this course is not approved for LTI 1.3 integration. Please make an issue at https://github.com/RunestoneInteractive/rs/issues to request approval.",
+            detail=f"The domain reported for this course ({issuer_domain}) is not approved for LTI 1.3 integration. Please make an issue at https://github.com/RunestoneInteractive/rs/issues to request approval.",
         )
 
     mapping_mismatch = False
