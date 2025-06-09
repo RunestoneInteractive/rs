@@ -455,7 +455,6 @@ async def build(config, clone, ptx, gen, manifest, course):
 @pass_config
 async def adduser(
     config,
-    instructor,
     fromfile,
     username,
     password,
