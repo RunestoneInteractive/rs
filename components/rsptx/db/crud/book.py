@@ -39,6 +39,33 @@ async def get_book_chapters(course_name: str) -> List[ChapterValidator]:
         res = await session.execute(query)
         return [ChapterValidator.from_orm(x) for x in res.scalars().fetchall()]
 
+async def fetch_subchapters(course, chap):
+    """
+    Retrieve all subchapters for a given chapter.
+
+    :param course: str, the name of the course
+    :param chap: str, the label of the chapter
+    :return: ResultProxy, the result of the query
+    """
+    # Note: we are joining two tables so this query will not result in an defined in schemas.py
+    # instead it will simply produce a bunch of tuples with the columns in the order given in the
+    # select statement.
+    query = (
+        select(SubChapter.sub_chapter_label, SubChapter.sub_chapter_name)
+        .where(
+            (Chapter.id == SubChapter.chapter_id)
+            & (Chapter.course_id == course)
+            & (Chapter.chapter_label == chap)
+        )
+        .order_by(SubChapter.sub_chapter_num)
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        rslogger.debug(f"{res=}")
+        # **Note** with this kind of query you do NOT want to call ``.scalars()`` on the result
+        return res
+
 
 async def fetch_chapter_for_subchapter(subchapter: str, base_course: str) -> str:
     """

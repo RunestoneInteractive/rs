@@ -1,5 +1,5 @@
 from sqlalchemy import select, and_
-from ..models import AuthGroup, AuthMembership
+from ..models import AuthGroup, AuthMembership, EditorBasecourse
 from ..async_session import async_session
 
 
@@ -101,3 +101,20 @@ async def is_editor(userid: int) -> bool:
         return True
     else:
         return False
+
+
+async def create_editor_for_basecourse(user_id: int, bc_name: str) -> EditorBasecourse:
+    """
+    Creates a new editor for a given basecourse.
+
+    :param user_id: The ID of the user creating the editor.
+    :type user_id: int
+    :param bc_name: The name of the basecourse for which the editor is being created.
+    :type bc_name: str
+    :return: The newly created editor for the basecourse.
+    :rtype: EditorBasecourse
+    """
+    new_ed = EditorBasecourse(user_id, bc_name)
+    async with async_session.begin() as session:
+        session.add(new_ed)
+    return new_ed

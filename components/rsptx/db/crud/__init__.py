@@ -1,4 +1,13 @@
-from .crud import *  # noqa
+from .crud import (
+    check_domain_approval,
+    create_api_token,
+    create_initial_courses_users,
+    create_invoice_request,
+    create_traceback,
+    fetch_api_token,
+    is_server_feedback,
+    EVENT2TABLE
+)
 from .user import fetch_user, create_user, update_user, delete_user
 
 from .assignment import (
@@ -25,15 +34,24 @@ from .assignment import (
 
 from .course import (
     create_course,
+    create_course_instructor,
+    create_instructor_course_entry,
     create_user_course_entry,
     delete_course_completely,
+    delete_course_instructor,
     delete_user_course_entry,
+    fetch_available_students_for_instructor_add,
     fetch_base_course,
-    fetch_course_by_id,
     fetch_course,
+    fetch_course_by_id,
+    fetch_course_instructors,
+    fetch_course_students,
     fetch_courses_for_user,
+    fetch_current_instructors_for_course,
+    fetch_instructor_courses,
     fetch_users_for_course,
-    user_in_course,
+    update_course_settings,
+    user_in_course
 )
 
 from .course_attrs import (
@@ -51,6 +69,7 @@ from .book import (
     fetch_chapter_for_subchapter,
     fetch_last_page,
     fetch_page_activity_counts,
+    fetch_subchapters,
     fetch_user_chapter_progress,
     fetch_user_sub_chapter_progress,
     get_book_chapters,
@@ -61,6 +80,7 @@ from .book import (
 
 from .group import (
     create_group,
+    create_editor_for_basecourse,
     create_membership,
     fetch_group,
     fetch_membership,
@@ -75,6 +95,8 @@ from .library import (
     fetch_books_by_author,
     fetch_library_book,
     fetch_library_books,
+    get_courses_per_basecourse,
+    get_students_per_basecourse,
     update_library_book,
 )
 
@@ -122,6 +144,7 @@ from .question import (
     fetch_matching_questions,
     fetch_previous_selections,
     fetch_question,
+    fetch_questions_for_chapter_subchapter,
     fetch_question_count_per_subchapter,
     fetch_question_grade,
     fetch_questions_by_search_criteria,
@@ -134,11 +157,37 @@ from .question import (
 
 from .rsfiles import fetch_source_code, update_source_code, update_source_code_sync
 
+from .rslogging import (
+    count_useinfo_for,
+    create_answer_table_entry,
+    create_code_entry,
+    create_useinfo_entry,
+    fetch_code,
+    fetch_last_answer_table_entry,
+    fetch_last_poll_response,
+    fetch_poll_summary,
+    fetch_top10_fitb,
+)
+
 from .scoring import (
     fetch_answers,
     fetch_assignment_scores,
     fetch_reading_assignment_spec,
     is_assigned,
+)
+
+from .selectq import (
+    create_selected_question,
+    fetch_selected_question,
+    update_selected_question,
+)
+
+from .timed import (
+    create_timed_exam_entry,
+    did_start_timed,
+    fetch_timed_assessments,
+    fetch_timed_exam,
+    reset_student_assessment,
 )
 
 #
@@ -170,6 +219,18 @@ __all__ += [
     "upsert_grade",
 ]
 
+# from .crud
+__all__ += [
+   "check_domain_approval",
+   "create_api_token",
+   "create_initial_courses_users",
+   "create_invoice_request",
+   "create_traceback",
+   "fetch_api_token",
+   "is_server_feedback",
+   "EVENT2TABLE",
+]
+
 # from .library
 __all__ += [
     "create_book_author",
@@ -177,6 +238,8 @@ __all__ += [
     "fetch_books_by_author",
     "fetch_library_book",
     "fetch_library_books",
+    "get_courses_per_basecourse",
+    "get_students_per_basecourse",
     "update_library_book",
 ]
 
@@ -213,6 +276,7 @@ __all__ += [
     "fetch_chapter_for_subchapter",
     "fetch_last_page",
     "fetch_page_activity_counts",
+    "fetch_subchapters",
     "fetch_user_chapter_progress",
     "fetch_user_sub_chapter_progress",
     "get_book_chapters",
@@ -224,14 +288,23 @@ __all__ += [
 # from .course
 __all__ += [
     "create_course",
+    "create_course_instructor",
+    "create_instructor_course_entry",
     "create_user_course_entry",
     "delete_course_completely",
+    "delete_course_instructor",
     "delete_user_course_entry",
+    "fetch_available_students_for_instructor_add",
     "fetch_base_course",
-    "fetch_course_by_id",
     "fetch_course",
+    "fetch_course_by_id",
+    "fetch_course_instructors",
+    "fetch_course_students",
     "fetch_courses_for_user",
+    "fetch_current_instructors_for_course",
+    "fetch_instructor_courses",
     "fetch_users_for_course",
+    "update_course_settings",
     "user_in_course",
 ]
 
@@ -247,6 +320,7 @@ __all__ += [
 # from .group
 __all__ += [
     "create_group",
+    "create_editor_for_basecourse",
     "create_membership",
     "fetch_group",
     "fetch_membership",
@@ -280,6 +354,7 @@ __all__ += [
     "fetch_matching_questions",
     "fetch_previous_selections",
     "fetch_question",
+    "fetch_questions_for_chapter_subchapter",
     "fetch_question_count_per_subchapter",
     "fetch_question_grade",
     "fetch_questions_by_search_criteria",
@@ -297,6 +372,19 @@ __all__ += [
     "update_source_code_sync",
 ]
 
+# from .rslogging
+__all__ += [
+    "count_useinfo_for",
+    "create_answer_table_entry",
+    "create_code_entry",
+    "create_useinfo_entry",
+    "fetch_code",
+    "fetch_last_answer_table_entry",
+    "fetch_last_poll_response",
+    "fetch_poll_summary",
+    "fetch_top10_fitb",
+]
+
 # from .scoring
 __all__ += [
     "fetch_answers",
@@ -305,7 +393,21 @@ __all__ += [
     "is_assigned",
 ]
 
+# from .selectq
+__all__ += [
+    "create_selected_question",
+    "fetch_selected_question",
+    "update_selected_question",
+]
 
+# from .timed
+__all__ += [
+    "create_timed_exam_entry",
+    "did_start_timed",
+    "fetch_timed_assessments",
+    "fetch_timed_exam",
+    "reset_student_assessment",
+]
 # from .user
 __all__ = [
     "fetch_user",

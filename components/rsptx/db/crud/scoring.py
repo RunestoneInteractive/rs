@@ -10,11 +10,12 @@ from ..models import (
     QuestionGrade,
     QuestionGradeValidator,
     DeadlineExceptionValidator,
+    runestone_component_dict
 )
 from ..async_session import async_session
 from rsptx.validation import schemas
 from rsptx.response_helpers.core import canonical_utcnow
-from .crud import runestone_component_dict, EVENT2TABLE
+from .crud import EVENT2TABLE
 from rsptx.logging import rslogger
 
 async def fetch_answers(question_id: str, event: str, course_name: str, username: str):
