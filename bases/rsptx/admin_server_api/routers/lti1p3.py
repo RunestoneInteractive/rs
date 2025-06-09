@@ -642,7 +642,9 @@ async def get_jwks(request: Request):
 # async def deep_link_entry(request: Request, course=None):
 async def deep_link_entry(request: Request, course=None):
     tool_conf = get_tool_config_mgr()
+    rslogger.info(f"Creating FastAPIRequest with request: {request.__dict__}")
     fapi_request = await FastAPIRequest.create(request, session=get_session_service())
+    rslogger.info(f"   Produced fapi_request: {fapi_request.__dict__}")
     message_launch = await FastAPIMessageLaunch.create(
         fapi_request, tool_conf, launch_data_storage=get_launch_data_storage()
     )
