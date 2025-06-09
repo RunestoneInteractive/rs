@@ -259,7 +259,7 @@ services:
     ports:
       # ports are specified host:container
       - 80:80
-      #- 443:443
+    #- 443:443
     volumes:
       - ${BOOK_PATH}:/usr/books
     depends_on:
@@ -293,7 +293,7 @@ services:
     ports:
       # ports are specified host:container
       - 8080:80
-      #- 443:443
+    #- 443:443
     volumes:
       - ${BOOK_PATH}:/usr/books
       - ./components/rsptx/templates/staticAssets:/usr/share/nginx/html/staticAssets
@@ -410,6 +410,7 @@ services:
 
     environment:
       - BOOK_PATH=/usr/books
+      - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
       - SERVER_CONFIG=${SERVER_CONFIG}
       - RUNESTONE_PATH=/usr/src/app
       - RUNESTONE_HOST=${RUNESTONE_HOST}
