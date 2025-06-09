@@ -685,12 +685,18 @@ def admin():
     else:
         course_attrs["show_points"] = True
 
-    if "ignore_lti_dates" not in course_attrs or course_attrs["ignore_lti_dates"] != "true":
+    if (
+        "ignore_lti_dates" not in course_attrs
+        or course_attrs["ignore_lti_dates"] != "true"
+    ):
         course_attrs["ignore_lti_dates"] = False
     else:
         course_attrs["ignore_lti_dates"] = True
 
-    if "no_lti_auto_grade_update" not in course_attrs or course_attrs["no_lti_auto_grade_update"] != "true":
+    if (
+        "no_lti_auto_grade_update" not in course_attrs
+        or course_attrs["no_lti_auto_grade_update"] != "true"
+    ):
         course_attrs["no_lti_auto_grade_update"] = False
     else:
         course_attrs["no_lti_auto_grade_update"] = True
@@ -854,7 +860,10 @@ def grading():
 
     course_attrs = getCourseAttributesDict(course.id, base_course)
 
-    is_lti_course = asyncio.get_event_loop().run_until_complete(fetch_lti_version(course.id)) != None
+    is_lti_course = (
+        asyncio.get_event_loop().run_until_complete(fetch_lti_version(course.id))
+        != None
+    )
 
     set_latex_preamble(base_course)
     return dict(
@@ -1814,7 +1823,9 @@ def releasegrades():
     # this is now redundant as we send lti as we grade
     if released:
         # send lti grades
-        lti_method = asyncio.get_event_loop().run_until_complete(fetch_lti_version(auth.user.course_id))
+        lti_method = asyncio.get_event_loop().run_until_complete(
+            fetch_lti_version(auth.user.course_id)
+        )
         if lti_method == "1.3":
             # need force... released still somehow shows as false in DB
             asyncio.get_event_loop().run_until_complete(
@@ -1825,7 +1836,11 @@ def releasegrades():
             lti_record = _get_lti_record(session.oauth_consumer_key)
             if assignment and lti_record:
                 send_lti_grades(
-                    assignment.id, assignment.points, auth.user.course_id, lti_record, db
+                    assignment.id,
+                    assignment.points,
+                    auth.user.course_id,
+                    lti_record,
+                    db,
                 )
     return "Success"
 
@@ -1836,9 +1851,13 @@ def releasegrades():
 )
 def push_lti_grades():
     assignmentid = request.vars["assignmentid"]
-    print(f"push_lti_grades: assignmentid={assignmentid}, course_id={auth.user.course_id}")
+    print(
+        f"push_lti_grades: assignmentid={assignmentid}, course_id={auth.user.course_id}"
+    )
     # send lti grades
-    lti_method = asyncio.get_event_loop().run_until_complete(fetch_lti_version(auth.user.course_id))
+    lti_method = asyncio.get_event_loop().run_until_complete(
+        fetch_lti_version(auth.user.course_id)
+    )
     if lti_method == "1.3":
         asyncio.get_event_loop().run_until_complete(
             attempt_lti1p3_score_updates(int(assignmentid), force=True)
@@ -2241,7 +2260,10 @@ def get_assignment():
     a_q_rows = db(
         (db.assignment_questions.assignment_id == assignment_id)
         & (db.assignment_questions.question_id == db.questions.id)
-        & (db.assignment_questions.reading_assignment == None)  # noqa: E711
+        & (
+            (db.assignment_questions.reading_assignment == None)
+            | (db.assignment_questions.reading_assignment == "F")
+        )  # noqa: E711
     ).select(orderby=db.assignment_questions.sorting_priority)
     # return json.dumps(db._lastsql)
     questions_data = []
