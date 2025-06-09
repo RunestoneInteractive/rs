@@ -17,6 +17,8 @@ import pathlib
 # -------------------
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi_proxiedheadersmiddleware import ProxiedHeadersMiddleware
+
 
 # Local application imports
 # -------------------------
@@ -40,6 +42,13 @@ template_dir = pathlib.Path(template_folder)
 app.mount(
     "/staticAssets", StaticFiles(directory=template_dir / "staticAssets"), name="static"
 )
+
+
+app = FastAPI()
+
+# This middleware must come before others that rely on scheme or client info
+app.add_middleware(ProxiedHeadersMiddleware)
+
 auth_manager.attach_middleware(app)
 
 
