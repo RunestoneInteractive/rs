@@ -17,7 +17,7 @@
     position: relative;
 }
 
-.book_title:hover {
+.book_title:hover, .book_title:focus-within {
     background-color: #c94d23;
 }
 
