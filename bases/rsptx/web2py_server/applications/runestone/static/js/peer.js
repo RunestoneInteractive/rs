@@ -164,6 +164,18 @@ function connect(event) {
                     break;
                 case "enableFaceChat":
                     console.log("got enableFaceChat message");
+                    console.log(`group = ${mess.group}`);
+                    let groupList = [];
+                    if (mess.group) {
+                        groupList = mess.group;
+                    }
+                    messarea = document.getElementById("imessage");
+                    messarea.innerHTML = `<h3>Time to talk to your group</h3>
+                    <ul>`;
+                    for (const peer of groupList) {
+                        messarea.innerHTML += `<li>${peer}</li>`;
+                    }
+                    messarea.innerHTML += `</ul>`;
                     let facechat = document.getElementById("group_select_panel");
                     if (facechat) {
                         facechat.style.display = "block";
