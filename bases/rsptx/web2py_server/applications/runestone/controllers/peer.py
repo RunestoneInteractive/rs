@@ -76,7 +76,12 @@ def dashboard():
         next = "Reset"
     else:
         next = False
-    current_question, done = _get_current_question(assignment_id, next)
+
+    current_question, done, idx = _get_current_question(assignment_id, next)
+    all_questions = _get_assignment_questions(assignment_id)
+    num_questions = len(all_questions)
+    current_qnum = idx + 1
+
     assignment = db(db.assignments.id == assignment_id).select().first()
     course = db(db.courses.course_name == auth.user.course_name).select().first()
 
@@ -120,6 +125,9 @@ def dashboard():
         course_id=auth.user.course_name,
         course=get_course_row(db.courses.ALL),
         current_question=current_question,
+        all_questions=all_questions,
+        current_qnum=current_qnum,
+        num_questions=num_questions,
         assignment_id=assignment_id,
         assignment_name=assignment.name,
         is_instructor=True,
@@ -131,7 +139,7 @@ def dashboard():
 
 def extra():
     assignment_id = request.vars.assignment_id
-    current_question, done = _get_current_question(assignment_id, False)
+    current_question, done, idx = _get_current_question(assignment_id, False)
 
     return dict(
         course_id=auth.user.course_name,
@@ -141,6 +149,14 @@ def extra():
         is_instructor=True,
     )
 
+def _get_assignment_questions(assignment_id):
+    all_questions = db(
+      db.assignment_questions.assignment_id == assignment_id
+    ).select(
+      orderby=[ db.assignment_questions.sorting_priority,
+                db.assignment_questions.id ]
+    )
+    return [ db.questions[question.question_id] for question in all_questions ]
 
 def _get_current_question(assignment_id, get_next):
     assignment = db(db.assignments.id == assignment_id).select().first()
@@ -154,22 +170,21 @@ def _get_current_question(assignment_id, get_next):
     else:
         idx = assignment.current_index
     db.commit()  # commit changes to current question to prevent race condition.
-    return _get_numbered_question(assignment_id, idx)
+    question, done = _get_numbered_question(assignment_id, idx)
+    return question, done, idx
 
 
 def _get_numbered_question(assignment_id, qnum):
-    a_qs = db(db.assignment_questions.assignment_id == assignment_id).select(
-        orderby=[db.assignment_questions.sorting_priority, db.assignment_questions.id]
-    )
+    all_questions = _get_assignment_questions(assignment_id)
+    total_questions = len(all_questions)
+
     done = "false"
-    if qnum > len(a_qs) - 1:
-        qnum = len(a_qs) - 1
-    if qnum == len(a_qs) - 1:
+    if qnum > total_questions - 1:
+        qnum = total_questions - 1
+    if qnum == total_questions - 1:
         done = "true"
 
-    current_question_id = a_qs[qnum].question_id
-    current_question = db(db.questions.id == current_question_id).select().first()
-
+    current_question = all_questions[qnum]
     return current_question, done
 
 
@@ -327,7 +342,7 @@ def percent_correct():
     logger.debug(f"num rows = {tot}")
     corr = len(df[df.correct == "T"])
     if corr == 0:
-        return json.dumps({"pct_correct": "No Correct Answers"})
+        return json.dumps({"pct_correct": 0})
     else:
         return json.dumps({"pct_correct": corr / tot * 100})
 
@@ -370,7 +385,7 @@ def peer_question():
 
     assignment_id = request.vars.assignment_id
 
-    current_question, done = _get_current_question(assignment_id, False)
+    current_question, done, idx = _get_current_question(assignment_id, False)
     assignment = db(db.assignments.id == assignment_id).select().first()
     course = db(db.courses.course_name == auth.user.course_name).select().first()
     course_attrs = getCourseAttributesDict(course.id, course.base_course)
