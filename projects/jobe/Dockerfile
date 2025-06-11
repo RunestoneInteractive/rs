@@ -45,7 +45,6 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     acl \
     apache2 \
     build-essential \
-    catch2 \
     fp-compiler \
     g++-14 \
     gcc-14 \
@@ -93,8 +92,11 @@ RUN python3 -m pip install --break-system-packages pylint beautifulsoup4 pandas 
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 60 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 60
 
-# Fix catch.hpp (use the one from catch2)
-RUN rm -f /usr/include/catch.hpp && ln -s /usr/include/catch2/catch.hpp /usr/include/catch.hpp
+# Fix catch.hpp (use the one from catch2).
+RUN rm -f /usr/include/catch.hpp
+# Note: we can't use a tag like "latest" because we actually require
+# catch version 2 (the catch2 in ubuntu is actually catch3!)
+RUN wget https://github.com/catchorg/Catch2/releases/download/v2.13.10/catch.hpp -O /usr/include/catch.hpp
 
 # Get doctest.h - could instead point to stable version like
 #   https://github.com/doctest/doctest/releases/download/v2.4.11/doctest.h
