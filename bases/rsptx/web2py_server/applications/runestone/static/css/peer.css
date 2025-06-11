@@ -53,6 +53,7 @@
     margin-top: 20px;
     margin-bottom: 20px;
     overflow: auto;
+    align-items: flex-start;
 }
 
 .pi-step-group {
@@ -133,6 +134,11 @@
     flex-direction: row;
     align-items: center;
     gap: 8px;
+}
+
+#chat-modality {
+    flex-direction: column;
+    gap: 0px;
 }
 
 .pi-step.active .pi-step-number {

@@ -426,6 +426,8 @@ function warnAndStopVote(event) {
         if (sendScore) {
             sendScore.disabled = false;
         }
+        const hideShowGraphButton = document.querySelector("#hideShowGraph");
+        hideShowGraphButton.disabled = false;
     }
     event.srcElement.disabled = true;
 }

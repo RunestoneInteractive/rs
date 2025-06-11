@@ -118,22 +118,22 @@
                         <div class="pi-step-buttons" id="chat-modality">
                             <button
                                 type="button"
-                                id="makep"
-                                class="btn btn-info"
-                                onclick="makePartners(event,false)"
-                                disabled
-                            >
-                                Enable Text Chat
-                            </button>
-                            OR
-                            <button
-                                type="button"
                                 id="facechat"
                                 class="btn btn-info"
                                 onclick="enableFaceChat(event)"
                                 disabled
                             >
                                 Enable in-person Chat
+                            </button>
+                            OR
+                            <button
+                                type="button"
+                                id="makep"
+                                class="btn btn-info"
+                                onclick="makePartners(event,false)"
+                                disabled
+                            >
+                                Enable Text Chat
                             </button>
                             {{ if enable_ab: }}
                                 OR
@@ -206,7 +206,15 @@
             <div id="messcounter"></div>
             <div id="first_answer" style="display: none"></div>
             <div id="second_answer"></div>
-            <button class="btn" type="button" onclick="hideShowGraph()">Hide/Show Graph</button>
+            <button
+                id="hideShowGraph"
+                class="btn"
+                type="button"
+                onclick="hideShowGraph()"
+                disabled
+            >
+                Hide/Show Graph
+            </button>
         </div>
     </div>
 
@@ -253,18 +261,21 @@
     }
 
     async function updateCount() {
-        // Every five seconds get the graph data
+        // Every five seconds get the graph + percent correct data
         let data = {
             div_id: "{{=XML(current_question['name'])}}",
             start_time: startTime,
+            course_name: "{{=XML(auth.user.course_name)}}"
         };
         if (startTime2 !== null) {
             data.start_time = startTime2;
         }
+
         let jsheaders = new Headers({
             "Content-type": "application/json; charset=utf-8",
             Accept: "application/json",
         });
+
         let request = new Request("/runestone/peer/num_answers", {
             method: "POST",
             headers: jsheaders,
@@ -272,6 +283,7 @@
         });
         let resp = await fetch(request);
         let spec = await resp.json();
+
         let counterel = null;
         let v = 0;
         if (startTime2 === null) {
@@ -281,12 +293,32 @@
             counterel = document.querySelector("#counter2");
             v = 2;
         }
+
+        if (v === 1) {
+            const pctRequest = new Request("/runestone/peer/percent_correct", {
+                method: "POST",
+                headers: jsheaders,
+                body: JSON.stringify(data)
+            });
+            const pctResp = await fetch(pctRequest);
+
+            if (!pctResp.ok) {
+                console.warn("percent_correct failed:", pctResp.statusText);
+                counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count}</p>`;
+            } else {
+                const pctSpec = await pctResp.json();
+                counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count} (${pctSpec.pct_correct}% Correct)</p>`;
+            }
+        }
+        else {
+            counterel.innerHTML = `<p>Vote ${v} Answers: ${spec.count}</p>`;
+        }
+
         if (spec.mess_count > 0) {
             mcounterel = document.querySelector("#messcounter");
             mcounterel.innerHTML = `<p>Messages Sent ${spec.mess_count}</p>`;
         }
         console.log(`startTime = ${startTime} startTime2 = ${startTime2} spec = ${JSON.stringify(spec, null, 2)}`)
-        counterel.innerHTML = `<p>Vote ${v} Answers: ${spec.count}</p>`;
         answerCount = spec.count;
     }
 </script>

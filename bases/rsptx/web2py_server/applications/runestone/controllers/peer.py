@@ -99,7 +99,7 @@ def dashboard():
         act="start_question",
         timestamp=datetime.datetime.utcnow(),
     )
-    
+
     is_lti = asyncio.get_event_loop().run_until_complete(fetch_lti_version(auth.user.course_id)) != None
 
     print("is_lti", is_lti)
@@ -335,7 +335,7 @@ def percent_correct():
     logger.debug(f"num rows = {tot}")
     corr = len(df[df.correct == "T"])
     if corr == 0:
-        return json.dumps({"pct_correct": "No Correct Answers"})
+        return json.dumps({"pct_correct": 0})
     else:
         return json.dumps({"pct_correct": corr / tot * 100})
 
