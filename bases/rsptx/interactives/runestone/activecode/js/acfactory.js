@@ -183,7 +183,7 @@ export default class ACFactory {
         closeBtn.addEventListener("click", function () {
             let popUp = document.getElementById("ac_modal_" + divid);
             popUp.style.display = "none";
-            document.querySelector("button.activecode-toggle").focus();
+            document.querySelector("a.activecode-toggle").focus();
         });
     }
 
