@@ -1,0 +1,282 @@
+{% extends "_base.html" %}
+
+{% block title %}
+Course Settings
+{% endblock %}
+
+{% block css %}
+<style>
+    .course-settings {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px 0;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .page-header h1 {
+        color: #333;
+        margin: 0;
+        font-size: 2.5em;
+        font-weight: 300;
+    }
+
+    .course-info {
+        background: #f0f7ff;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        border-left: 4px solid #4a90e2;
+    }
+
+    .course-info h3 {
+        margin: 0 0 5px 0;
+        color: #333;
+    }
+
+    .course-info p {
+        margin: 0;
+        color: #666;
+    }
+
+    .settings-container {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .settingsbox {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .settingsbox label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .settingsbox input[type="text"],
+    .settingsbox select {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .settingsbox input[type="checkbox"] {
+        margin-right: 8px;
+        transform: scale(1.2);
+    }
+
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .checkbox-container label {
+        margin-bottom: 0;
+        cursor: pointer;
+    }
+
+    .setting-description {
+        color: #666;
+        font-size: 12px;
+        margin-top: 4px;
+    }
+
+    .save-btn {
+        background: #4a90e2;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 20px;
+    }
+
+    .save-btn:hover {
+        background: #357abd;
+        transform: translateY(-1px);
+    }
+
+    .alert {
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        display: none;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #4a90e2;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .back-link:hover {
+        color: #357abd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="/admin/instructor/menu" class="back-link">
+    &larr; Back to Instructor Dashboard
+</a>
+
+<div class="course-settings">
+    <div class="page-header">
+        <h1>Course Settings</h1>
+    </div>
+
+    <div class="course-info">
+        <h3>{{ course.course_name }}</h3>
+        <p>Base Course: {{ course.base_course }}</p>
+    </div>
+
+    <div id="alert-container"></div>
+
+    <div class="settings-container">
+        <form id="courseSettingsForm">
+            <div class="settingsbox">
+                <label for="start_date">Term Start Date</label>
+                <input type="text" id="start_date" value="{{ start_date }}" onchange="updateCourse(this, 'new_date')">
+                <div class="setting-description">Set the start date for your course term</div>
+            </div>
+
+            <div class="settingsbox">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="downloads" {% if downloads_enabled=="true" %}checked{% endif %}
+                        onchange="updateCourse(this,'downloads_enabled')">
+                    <label for="downloads">Enable ActiveCode Downloads</label>
+                </div>
+                <div class="setting-description">Allow students to download their ActiveCode submissions</div>
+            </div>
+
+            <div class="settingsbox">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="pairs" {% if allow_pairs=="true" %}checked{% endif %}
+                        onchange="updateCourse(this,'allow_pairs')">
+                    <label for="pairs">Allow Pairs</label>
+                </div>
+                <div class="setting-description">Enable pair programming for assignments</div>
+            </div>
+
+            <div class="settingsbox">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="compare_me" {% if enable_compare_me=="true" %}checked{% endif %}
+                        onchange="updateCourse(this,'enable_compare_me')">
+                    <label for="compare_me">Enable Compare Me Button</label>
+                </div>
+                <div class="setting-description">Allow students to compare their progress with class averages</div>
+            </div>
+
+            <div class="settingsbox">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="points" {% if show_points %}checked{% endif %}
+                        onchange="updateCourse(this,'show_points')">
+                    <label for="points">Show Points in Gradebook</label>
+                </div>
+                <div class="setting-description">Display points instead of percentages (default is percent)</div>
+            </div>
+
+            <div class="settingsbox">
+                <label for="groupsize">Group Size for Peer Instruction</label>
+                <select id="groupsize" onchange="updateCourse(this,'groupsize')">
+                    <option value="2" {% if groupsize=="2" %}selected{% endif %}>2</option>
+                    <option value="3" {% if groupsize=="3" %}selected{% endif %}>3</option>
+                    <option value="4" {% if groupsize=="4" %}selected{% endif %}>4</option>
+                    <option value="5" {% if groupsize=="5" %}selected{% endif %}>5</option>
+                </select>
+                <div class="setting-description">Set the default group size for peer instruction activities</div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Function to update course settings
+    async function updateCourse(element, setting) {
+        try {
+            let value;
+            if (element.type === 'checkbox') {
+                value = element.checked ? 'true' : 'false';
+            } else {
+                value = element.value;
+            }
+
+            const response = await fetch('/admin/instructor/update_course_setting', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    setting: setting,
+                    value: value
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert('Setting updated successfully!', 'success');
+            } else {
+                showAlert('Error updating setting: ' + result.message, 'error');
+            }
+        } catch (error) {
+            showAlert('Error updating setting: ' + error.message, 'error');
+        }
+    }
+
+    function showAlert(message, type) {
+        const alertContainer = document.getElementById('alert-container');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.textContent = message;
+        alert.style.display = 'block';
+
+        alertContainer.innerHTML = '';
+        alertContainer.appendChild(alert);
+
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            alert.style.display = 'none';
+        }, 3000);
+    }
+</script>
+{% endblock %}

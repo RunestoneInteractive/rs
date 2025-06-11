@@ -1,4 +1,5 @@
 #pi-instructor-interface .row, #pi-instructor-interface #imessage {
+
     margin-right: 0px;
     margin-left: 0px;
     padding-left: 15px;
@@ -155,3 +156,6 @@
     margin-bottom: 20px;
 }
 
+.autopermalink {
+    display: none;
+}

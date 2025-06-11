@@ -28,13 +28,11 @@
 # Standard library
 # ----------------
 import re
-import os
-from typing import Dict, Type, List
-import uuid
+from typing import Dict, Type, TypeAlias
 
 # Third-party imports
 # -------------------
-from pydantic import field_validator, BaseModel
+from pydantic import field_validator
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -52,7 +50,7 @@ from sqlalchemy import (
     CHAR,
 )
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.ext.mutable import MutableList
+
 from sqlalchemy.sql.schema import UniqueConstraint
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import relationship
@@ -99,7 +97,7 @@ class Web2PyBoolean(types.TypeDecorator):
 class EncryptedString(TypeDecorator):
     impl = String
     python_type = str
-    
+
     def process_bind_param(self, value, dialect):
         if value is None:
             return None
@@ -109,14 +107,15 @@ class EncryptedString(TypeDecorator):
         if value is None:
             return None
         return fernet.decrypt(value.encode()).decode()
-    
+
+
 # Schema Definition
 # =================
 
 
 # Provide a container to store information about each type of Runestone Component. While a namedtuple would be better, this can't be used since the fields aren't modifiable after creation; see the comment on `init_graders <init_graders>`.
 class RunestoneComponentDict:
-    def __init__(self, model: Type[Base], validator: Type[BaseModelNone]):
+    def __init__(self, model: Base, validator: Type[BaseModelNone]):
         self.grader = None
         self.model = model
         self.validator = validator
@@ -158,7 +157,7 @@ class DictableMixin:
         for key, value in data.items():
             if key != "id":
                 setattr(self, key, value)
-    
+
     def dict(self):
         return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
 
@@ -193,7 +192,7 @@ class Useinfo(Base, IdMixin):
     ##sub_chapter = Column(String, unique=False, index=False)
 
 
-UseinfoValidation: Type[BaseModel] = sqlalchemy_to_pydantic(Useinfo)
+UseinfoValidation: TypeAlias = sqlalchemy_to_pydantic(Useinfo)  # type: ignore
 
 
 # Answers to specific question types
@@ -229,7 +228,7 @@ class TimedExam(Base, AnswerMixin):
     reset = Column(Web2PyBoolean)
 
 
-TimedExamValidator = sqlalchemy_to_pydantic(TimedExam)
+TimedExamValidator: TypeAlias = sqlalchemy_to_pydantic(TimedExam)  # type: ignore
 
 
 # Like an AnswerMixin, but also has a boolean correct_ field.
@@ -255,12 +254,15 @@ class MchoiceAnswers(Base, CorrectAnswerMixin):
         ),
     )
 
+
 @register_answer_table
 class MatchingAnswers(Base, CorrectAnswerMixin):
     __tablename__ = "matching_answers"
     # See answer_. TODO: what is the format?
     answer = Column(JSON, nullable=False)
-    __table_args__ = (Index("idx_div_sid_course_match", "sid", "div_id", "course_name"),)
+    __table_args__ = (
+        Index("idx_div_sid_course_match", "sid", "div_id", "course_name"),
+    )
 
 
 # An answer to a fill-in-the-blank question.
@@ -330,7 +332,7 @@ class UnittestAnswers(Base, CorrectAnswerMixin):
     __table_args__ = (Index("idx_div_sid_course_ut", "sid", "div_id", "course_name"),)
 
 
-UnittestAnswersValidation = sqlalchemy_to_pydantic(UnittestAnswers)
+UnittestAnswersValidation: TypeAlias = sqlalchemy_to_pydantic(UnittestAnswers)  # type: ignore
 
 
 # An answer to a fill-in-the-blank question.
@@ -393,7 +395,7 @@ class Code(Base, IdMixin):
     cps = Column(Float())
 
 
-CodeValidator = sqlalchemy_to_pydantic(Code)
+CodeValidator: TypeAlias = sqlalchemy_to_pydantic(Code)  # type: ignore
 
 
 # This table is used to store the initial contents of datafiles or programs that may get used
@@ -420,15 +422,16 @@ class SourceCode(Base, IdMixin):
     # For datafiles, this defaults to the filename for historical reasons.
     acid = Column(String(512), index=True, nullable=False)
     course_id = Column(String(512), index=True, nullable=False)
-    includes = Column(String(512))                              # unused
-    available_files = Column(String(512))                       # unused
+    includes = Column(String(512))  # unused
+    available_files = Column(String(512))  # unused
     main_code = Column(Text, nullable=False)
-    suffix_code = Column(Text)                                  # unused
+    suffix_code = Column(Text)  # unused
     # Filename to use when saving contents to Jobe or trying to include
     # this file in a program. It is OK to reuse the same filename for different
     filename = Column(String(512))
 
-SourceCodeValidator = sqlalchemy_to_pydantic(SourceCode)
+
+SourceCodeValidator: TypeAlias = sqlalchemy_to_pydantic(SourceCode)  # type: ignore
 
 
 # Courses
@@ -461,7 +464,7 @@ class Courses(Base, IdMixin):
     domain_name = Column(String(512))
 
 
-CoursesValidator = sqlalchemy_to_pydantic(Courses)
+CoursesValidator: TypeAlias = sqlalchemy_to_pydantic(Courses)  # type: ignore
 
 
 # Authentication and Permissions
@@ -485,7 +488,7 @@ class AuthUser(Base, IdMixin):
     accept_tcp = Column(Web2PyBoolean, nullable=False)
 
 
-BaseAuthUserValidator = sqlalchemy_to_pydantic(AuthUser)
+BaseAuthUserValidator: TypeAlias = sqlalchemy_to_pydantic(AuthUser)  # type: ignore
 
 
 class AuthUserValidator(BaseAuthUserValidator):  # type: ignore
@@ -549,7 +552,7 @@ class CourseInstructor(Base, IdMixin):
     paid = Column(Web2PyBoolean)
 
 
-CourseInstructorValidator = sqlalchemy_to_pydantic(CourseInstructor)
+CourseInstructorValidator: TypeAlias = sqlalchemy_to_pydantic(CourseInstructor)  # type: ignore
 
 
 # Enrollments
@@ -604,7 +607,7 @@ class Question(Base, IdMixin):
     tags = Column(String(512))  # comma separated list of tags
 
 
-QuestionValidator = sqlalchemy_to_pydantic(Question)
+QuestionValidator: TypeAlias = sqlalchemy_to_pydantic(Question)  # type: ignore
 
 
 class Tag(Base, IdMixin):
@@ -649,7 +652,7 @@ class Assignment(Base, IdMixin):
     kind = Column(String(128))
 
 
-AssignmentValidator = sqlalchemy_to_pydantic(Assignment)
+AssignmentValidator: TypeAlias = sqlalchemy_to_pydantic(Assignment)  # type: ignore
 
 
 class AssignmentQuestion(Base, IdMixin):
@@ -672,7 +675,7 @@ class AssignmentQuestion(Base, IdMixin):
     )  # only reading assignments will have this populated
 
 
-AssignmentQuestionValidator = sqlalchemy_to_pydantic(AssignmentQuestion)
+AssignmentQuestionValidator: TypeAlias = sqlalchemy_to_pydantic(AssignmentQuestion)  # type: ignore
 
 #
 # DeadlineException
@@ -706,7 +709,7 @@ class DeadlineException(Base, IdMixin):
     )  # multiplier for the time limit of a timed exam
 
 
-DeadlineExceptionValidator = sqlalchemy_to_pydantic(DeadlineException)
+DeadlineExceptionValidator: TypeAlias = sqlalchemy_to_pydantic(DeadlineException)  # type: ignore
 
 
 # Grading
@@ -739,7 +742,7 @@ class QuestionGrade(Base, IdMixin):
     answer_id = Column(Integer)
 
 
-QuestionGradeValidator = sqlalchemy_to_pydantic(QuestionGrade)
+QuestionGradeValidator: TypeAlias = sqlalchemy_to_pydantic(QuestionGrade)  # type: ignore
 
 
 # The Grade table holds the grade for an entire assignment
@@ -765,7 +768,7 @@ class Grade(Base, IdMixin):
     is_submit = Column(String(512))
 
 
-GradeValidator = sqlalchemy_to_pydantic(Grade)
+GradeValidator: TypeAlias = sqlalchemy_to_pydantic(Grade)  # type: ignore
 
 
 # Book Structure Tables
@@ -779,7 +782,7 @@ class Chapter(Base, IdMixin):
     chapter_num = Column(Integer, nullable=False)
 
 
-ChapterValidator = sqlalchemy_to_pydantic(Chapter)
+ChapterValidator: TypeAlias = sqlalchemy_to_pydantic(Chapter)  # type: ignore
 
 
 class SubChapter(Base, IdMixin):
@@ -794,7 +797,7 @@ class SubChapter(Base, IdMixin):
     sub_chapter_num = Column(Integer, nullable=False)
 
 
-SubChapterValidator = sqlalchemy_to_pydantic(SubChapter)
+SubChapterValidator: TypeAlias = sqlalchemy_to_pydantic(SubChapter)  # type: ignore
 
 
 # Tracking User Progress
@@ -813,7 +816,7 @@ class UserSubChapterProgress(Base, IdMixin):
     course_name = Column(String(512), index=True)
 
 
-UserSubChapterProgressValidator = sqlalchemy_to_pydantic(UserSubChapterProgress)
+UserSubChapterProgressValidator: TypeAlias = sqlalchemy_to_pydantic(UserSubChapterProgress)  # type: ignore
 
 
 class UserChapterProgress(Base, IdMixin):
@@ -827,7 +830,7 @@ class UserChapterProgress(Base, IdMixin):
     status = Column(Integer, nullable=False)
 
 
-UserChapterProgressValidator = sqlalchemy_to_pydantic(UserChapterProgress)
+UserChapterProgressValidator: TypeAlias = sqlalchemy_to_pydantic(UserChapterProgress)  # type: ignore
 
 
 class UserState(Base, IdMixin):
@@ -845,7 +848,7 @@ class UserState(Base, IdMixin):
     last_page_accessed_on = Column(DateTime)
 
 
-UserStateValidator = sqlalchemy_to_pydantic(UserState)
+UserStateValidator: TypeAlias = sqlalchemy_to_pydantic(UserState)  # type: ignore
 
 # Tables used by the ``selectquestion`` directive
 # -----------------------------------------------
@@ -868,7 +871,7 @@ class UserExperiment(Base, IdMixin):
     exp_group = Column(Integer, nullable=False)
 
 
-UserExperimentValidator = sqlalchemy_to_pydantic(UserExperiment)
+UserExperimentValidator: TypeAlias = sqlalchemy_to_pydantic(UserExperiment)  # type: ignore
 
 
 class SelectedQuestion(Base, IdMixin):
@@ -882,7 +885,7 @@ class SelectedQuestion(Base, IdMixin):
     competency = Column(String(512), nullable=True)
 
 
-SelectedQuestionValidator = sqlalchemy_to_pydantic(SelectedQuestion)
+SelectedQuestionValidator: TypeAlias = sqlalchemy_to_pydantic(SelectedQuestion)  # type: ignore
 
 
 class Competency(Base, IdMixin):
@@ -929,18 +932,19 @@ class Payment(Base, IdMixin):
     )
     charge_id = Column(String(255), nullable=False)
 
-#-----------------------------------------------------------------------
+
+# -----------------------------------------------------------------------
 # LTI 1.3
 
+
 class Lti1p3Conf(Base, IdMixin, DictableMixin):
-    """"
+    """ "
     Configuration for an LTI 1.3 platform host. May be shared across
     multiple deployments.
     """
+
     __tablename__ = "lti1p3_configs"
-    __tableargs__ = (
-        Index('issuer_client_id_idx', 'issuer', 'client_id', unique=True)
-    )
+    __tableargs__ = Index("issuer_client_id_idx", "issuer", "client_id", unique=True)
     # Identifier for the LMS platform
     issuer = Column(String(512))
     # Identifier for the client (Runestone) on the LMS platform
@@ -955,15 +959,16 @@ class Lti1p3Conf(Base, IdMixin, DictableMixin):
     product_family_code = Column(String(512))
     version = Column(String(512))
 
-Lti1p3ConfValidator = sqlalchemy_to_pydantic(Lti1p3Conf)
+
+Lti1p3ConfValidator: TypeAlias = sqlalchemy_to_pydantic(Lti1p3Conf)  # type: ignore
 
 
 class Lti1p3Course(Base, IdMixin, DictableMixin):
-    """"
+    """ "
     Data associating a use of a Runestone course with an LMS.
-    Potentially many-to-one. 
-    
-    A single LMS course might be associated with multiple RS courses 
+    Potentially many-to-one.
+
+    A single LMS course might be associated with multiple RS courses
     (to use multiple books in the course of a term).
 
     A RS course should ONLY be associated with a single LMS course.
@@ -975,10 +980,9 @@ class Lti1p3Course(Base, IdMixin, DictableMixin):
     So, we are storing necessary deployment info for each course without
     trying to dedpulicate.
     """
+
     __tablename__ = "lti1p3_courses"
-    rs_course_id = Column(
-        ForeignKey("courses.id", ondelete="CASCADE"), nullable=False
-    )
+    rs_course_id = Column(ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
     # lti information for LMS is associated
     lti1p3_config_id = Column(
         ForeignKey("lti1p3_configs.id", ondelete="CASCADE"), nullable=False
@@ -999,7 +1003,9 @@ class Lti1p3Course(Base, IdMixin, DictableMixin):
     # Allow attaching the runestone course object
     rs_course = relationship("Courses")
 
-Lti1p3CourseValidator = sqlalchemy_to_pydantic(Lti1p3Course)
+
+Lti1p3CourseValidator: TypeAlias = sqlalchemy_to_pydantic(Lti1p3Course)  # type: ignore
+
 
 class Lti1p3User(Base, IdMixin, DictableMixin):
     """
@@ -1011,6 +1017,7 @@ class Lti1p3User(Base, IdMixin, DictableMixin):
 
     So, each user mapping is associated with a particular lti1p3 course (RS<-->LMS mapping)
     """
+
     __tablename__ = "lti1p3_users"
     rs_user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False)
     lti1p3_course_id = Column(
@@ -1021,13 +1028,16 @@ class Lti1p3User(Base, IdMixin, DictableMixin):
     # Allow for attaching the RS user object to the LTI user record
     rs_user = relationship("AuthUser")
 
-Lti1p3UserValidator = sqlalchemy_to_pydantic(Lti1p3User)
+
+Lti1p3UserValidator: TypeAlias = sqlalchemy_to_pydantic(Lti1p3User)  # type: ignore
+
 
 class Lti1p3Assignment(Base, IdMixin, DictableMixin):
     """
     Runestone to LMS assignment ("lineitem") mapping. A RS assignment may be associated with
     multiple LTI assignments if there are multiple LMS courses attached to one RS course.
     """
+
     __tablename__ = "lti1p3_assignments"
     rs_assignment_id = Column(
         ForeignKey("assignments.id", ondelete="CASCADE"), nullable=False
@@ -1044,10 +1054,11 @@ class Lti1p3Assignment(Base, IdMixin, DictableMixin):
     # Allow attaching RS assignment to the LTI assignment record
     rs_assignment = relationship("Assignment")
 
-Lti1p3AssignmentValidator = sqlalchemy_to_pydantic(Lti1p3Assignment)
+
+Lti1p3AssignmentValidator: TypeAlias = sqlalchemy_to_pydantic(Lti1p3Assignment)  # type: ignore
 
 # /LTI 1.3
-#-----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 
 
 # Tracking Errors in a multi server configuration
@@ -1089,7 +1100,7 @@ class Library(Base, IdMixin):
     repo_path = Column(String(512))  # path to the repository on disk
 
 
-LibraryValidator = sqlalchemy_to_pydantic(Library)
+LibraryValidator: TypeAlias = sqlalchemy_to_pydantic(Library)  # type: ignore
 
 
 class BookAuthor(Base):
@@ -1130,7 +1141,7 @@ class CoursePractice(Base, IdMixin):
     flashcard_creation_method = Column(Integer)
 
 
-CoursePracticeValidator = sqlalchemy_to_pydantic(CoursePractice)
+CoursePracticeValidator: TypeAlias = sqlalchemy_to_pydantic(CoursePractice)  # type: ignore
 
 
 class UserTopicPractice(Base, IdMixin):
@@ -1151,7 +1162,7 @@ class UserTopicPractice(Base, IdMixin):
     timezoneoffset = Column(Integer)
 
 
-UserTopicPracticeValidator = sqlalchemy_to_pydantic(UserTopicPractice)
+UserTopicPracticeValidator: TypeAlias = sqlalchemy_to_pydantic(UserTopicPractice)  # type: ignore
 
 
 class UserTopicPracticeCompletion(Base, IdMixin):
@@ -1252,14 +1263,18 @@ class Web2pySessionRunestone(Base, IdMixin):
     unique_key = Column(String(64))
     session_data = Column(LargeBinary)
 
+
 class APIToken(Base, IdMixin):
     __tablename__ = "api_tokens"
-    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    course_id = Column(
+        Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False
+    )
     provider = Column(String(100), nullable=False)
     token = Column(EncryptedString(1024), nullable=False)
     last_used = Column(DateTime, nullable=True)
 
-APITokenValidator = sqlalchemy_to_pydantic(APIToken)
+
+APITokenValidator: TypeAlias = sqlalchemy_to_pydantic(APIToken)  # type: ignore
 
 
 # Used to track what domains are approved for which paid features.

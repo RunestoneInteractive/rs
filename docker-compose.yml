@@ -259,7 +259,7 @@ services:
     ports:
       # ports are specified host:container
       - 80:80
-      #- 443:443
+    #- 443:443
     volumes:
       - ${BOOK_PATH}:/usr/books
     depends_on:
@@ -293,7 +293,7 @@ services:
     ports:
       # ports are specified host:container
       - 8080:80
-      #- 443:443
+    #- 443:443
     volumes:
       - ${BOOK_PATH}:/usr/books
       - ./components/rsptx/templates/staticAssets:/usr/share/nginx/html/staticAssets
@@ -398,7 +398,7 @@ services:
     build:
       context: ./projects/admin_server
       dockerfile: Dockerfile
-    image: admin
+    image: ghcr.io/runestoneinteractive/rs-admin
     extra_hosts:
       - host.docker.internal:host-gateway
     container_name: admin
@@ -410,13 +410,17 @@ services:
 
     environment:
       - BOOK_PATH=/usr/books
+      - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
       - SERVER_CONFIG=${SERVER_CONFIG}
       - RUNESTONE_PATH=/usr/src/app
       - RUNESTONE_HOST=${RUNESTONE_HOST}
-      - REDIS_URI=redis://redis:6379/0
+      - JWT_SECRET=${JWT_SECRET}
+      # - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      - REDIS_URI=redis://${REDIS_HOST}:6379/0
       # Note: host.docker.internal refers back to the host so we can just use a local instance
       # of postgresql
-      - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
+      - DBURL=${DC_DBURL:-$DBURL}
       - DOCKER_COMPOSE=1
       - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
       - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}

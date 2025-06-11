@@ -1,0 +1,312 @@
+{% extends "_base.html" %}
+
+{% block title %}
+Delete Course
+{% endblock %}
+
+{% block css %}
+<style>
+    .course-delete {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px 0;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .page-header h1 {
+        color: #d9534f;
+        margin: 0;
+        font-size: 2.5em;
+        font-weight: 300;
+    }
+
+    .course-info {
+        background: #f0f7ff;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        border-left: 4px solid #4a90e2;
+    }
+
+    .course-info h3 {
+        margin: 0 0 5px 0;
+        color: #333;
+    }
+
+    .course-info p {
+        margin: 0;
+        color: #666;
+    }
+
+    .warning-box {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 6px;
+        padding: 20px;
+        margin: 20px 0;
+        border-left: 4px solid #dc3545;
+    }
+
+    .warning-box h3 {
+        margin: 0 0 15px 0;
+        color: #721c24;
+        font-size: 1.4em;
+        font-weight: bold;
+    }
+
+    .warning-box h4 {
+        margin: 15px 0 10px 0;
+        color: #721c24;
+        font-size: 1.1em;
+    }
+
+    .warning-box p {
+        margin: 0 0 10px 0;
+        color: #721c24;
+        line-height: 1.4;
+    }
+
+    .warning-box ul {
+        margin: 10px 0;
+        padding-left: 20px;
+        color: #721c24;
+    }
+
+    .warning-box li {
+        margin-bottom: 5px;
+    }
+
+    .confirmation-section {
+        background: white;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border: 2px solid #dc3545;
+        text-align: center;
+        margin-top: 30px;
+    }
+
+    .confirmation-input {
+        margin: 20px 0;
+    }
+
+    .confirmation-input label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .confirmation-input input {
+        width: 300px;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    .confirmation-input input:focus {
+        border-color: #dc3545;
+        outline: none;
+    }
+
+    .delete-btn {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        border-radius: 6px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+        min-width: 250px;
+        margin-top: 20px;
+    }
+
+    .delete-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #c82333, #bd2130);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+    }
+
+    .delete-btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .back-link {
+        color: #007bff;
+        text-decoration: none;
+        font-size: 16px;
+        margin-bottom: 20px;
+        display: inline-block;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .back-link::before {
+        content: "← ";
+    }
+
+    @media (max-width: 768px) {
+        .course-delete {
+            padding: 15px;
+        }
+
+        .confirmation-input input {
+            width: 100%;
+            max-width: 300px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="course-delete">
+    <a href="/admin/instructor/menu" class="back-link">Back to Instructor Dashboard</a>
+
+    <div class="page-header">
+        <h1>⚠️ Delete Course</h1>
+    </div>
+
+    <div class="course-info">
+        <h3>{{ course.course_name }}</h3>
+        <p>Base Course: {{ course.base_course }}</p>
+        {% if course.term_start_date %}
+        <p>Term Start: {{ course.term_start_date.strftime("%B %d, %Y") }}</p>
+        {% endif %}
+    </div>
+
+    <div class="warning-box">
+        <h3>🚨 CRITICAL WARNING - THIS ACTION CANNOT BE UNDONE</h3>
+
+        <h4>Deleting this course will permanently:</h4>
+        <ul>
+            <li><strong>Remove the course for ALL students</strong> - they will lose access immediately</li>
+            <li><strong>Delete ALL custom assignments</strong> you have created for this course</li>
+            <li><strong>Remove ALL student grades and progress</strong> for this course</li>
+            <li><strong>Delete ALL course-specific data</strong> including student responses and analytics</li>
+            <li><strong>Remove ALL instructor and TA access</strong> to this course</li>
+        </ul>
+
+        <h4>This will affect:</h4>
+        <ul>
+            <li>All sections under this course</li>
+            <li>All enrolled students (they will lose access to course materials)</li>
+            <li>All custom assignments and modifications you've made</li>
+            <li>All gradebook data and student progress tracking</li>
+        </ul>
+
+        <p><strong>Consider alternatives:</strong></p>
+        <ul>
+            <li>Archive the course instead of deleting it</li>
+            <li>Remove students individually if you only want to clean up enrollment</li>
+            <li>Export important data before proceeding with deletion</li>
+        </ul>
+    </div>
+
+    <div class="confirmation-section">
+        <h3>Confirmation Required</h3>
+        <p>To proceed with deleting <strong>{{ course.course_name }}</strong>, please type the course name exactly as
+            shown below:</p>
+
+        <div class="confirmation-input">
+            <label for="courseNameConfirm">Type: <strong>{{ course.course_name }}</strong></label>
+            <input type="text" id="courseNameConfirm" placeholder="Enter course name to confirm deletion"
+                oninput="validateConfirmation()">
+        </div>
+
+        <button id="deleteBtn" class="delete-btn" onclick="performDelete()" disabled>
+            PERMANENTLY DELETE COURSE
+        </button>
+
+        <p style="margin-top: 15px; color: #666; font-size: 14px;">
+            The course name must match exactly to enable the delete button.
+        </p>
+    </div>
+</div>
+
+<script>
+    function validateConfirmation() {
+        const input = document.getElementById('courseNameConfirm');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const expectedCourseName = '{{ course.course_name }}';
+
+        if (input.value === expectedCourseName) {
+            deleteBtn.disabled = false;
+        } else {
+            deleteBtn.disabled = true;
+        }
+    }
+
+    function performDelete() {
+        const courseName = '{{ course.course_name }}';
+
+        const finalConfirm = confirm(
+            `FINAL CONFIRMATION:\n\n` +
+            `You are about to PERMANENTLY DELETE the course "${courseName}".\n\n` +
+            `This will:\n` +
+            `• Remove ALL student access\n` +
+            `• Delete ALL assignments and grades\n` +
+            `• Erase ALL course data\n\n` +
+            `This action CANNOT be undone.\n\n` +
+            `Are you absolutely certain you want to proceed?`
+        );
+
+        if (!finalConfirm) {
+            return;
+        }
+
+        // Disable the button and show loading state
+        const deleteBtn = document.getElementById('deleteBtn');
+        const originalText = deleteBtn.textContent;
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = 'DELETING COURSE...';
+
+        // Make the API call to delete the course
+        fetch('/admin/instructor/delete_course', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                course_name: courseName,
+                confirmed: true
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Course "${courseName}" has been permanently deleted.`);
+                    // Redirect to a safe page since this course no longer exists
+                    window.location.href = '/';
+                } else {
+                    alert(`Error deleting course: ${data.message}`);
+                    deleteBtn.textContent = originalText;
+                    validateConfirmation(); // Re-enable if confirmation is still valid
+                }
+            })
+            .catch(error => {
+                alert(`Error deleting course: ${error.message}`);
+                deleteBtn.textContent = originalText;
+                validateConfirmation(); // Re-enable if confirmation is still valid
+            });
+    }
+
+    // Initialize the confirmation state
+    document.addEventListener('DOMContentLoaded', validateConfirmation);
+</script>
+{% endblock %}

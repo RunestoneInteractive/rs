@@ -60,6 +60,7 @@ jupyterlite-sphinx = "^0.8.0"
 urllib3-secure-extra = "^0.1.0"
 redis = "^4.3.0"
 gunicorn = "^21.0.0"
+aiosqlite = "^0.21.0"
 
 
 # These are for testing and development.

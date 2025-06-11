@@ -36,7 +36,7 @@
 
     </head>
     <body class="sphinxrs">
-        <a class="assistive" href="#rst-content">Skip to main content</a>
+        <a id="skip-to-content" class="assistive" href="#rst-content">Skip to main content</a>
         {{ block navbar }}
         <!-- Begin navbar -->
         <div id="navbar" class="navbar navbar-default navbar-fixed-top" role="navigation">
@@ -218,9 +218,9 @@
                         &emsp; ● <a href="/{{=request.application}}/default/privacy">Privacy Policy</a> &emsp; ●  <a href="/{{=request.application}}/default/terms">Terms of Service</a>
                     {{ pass }}
                     {{ if auth.user: }}
-                        <span class='loggedinuser'>{{=auth.user.email}}</span> | <a href="#">Back to top</a>
+                        <span class='loggedinuser'>{{=auth.user.email}}</span> | <a href="#" onclick="document.getElementById('skip-to-content').focus()">Back to top</a>
                     {{ else: }}
-                        <span class='loggedinuser'>Not logged in</span> | <a href="#">Back to top</a>
+                        <span class='loggedinuser'>Not logged in</span> | <a href="#" onclick="document.getElementById('skip-to-content').focus()">Back to top</a>
                     {{ pass }}
                 </p>
             </div>

@@ -1,7 +1,7 @@
 # *********************************
 # |docname| - Define the AdminSErver
 # *********************************
-# 
+#
 
 #
 # Imports
@@ -22,9 +22,10 @@ from fastapi.staticfiles import StaticFiles
 # -------------------------
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.templates import template_folder
+from rsptx.auth.session import auth_manager
 
 from .routers import lti1p3
-
+from .routers import instructor
 
 # FastAPI setup
 # =============
@@ -39,8 +40,11 @@ template_dir = pathlib.Path(template_folder)
 app.mount(
     "/staticAssets", StaticFiles(directory=template_dir / "staticAssets"), name="static"
 )
+auth_manager.attach_middleware(app)
+
 
 app.include_router(lti1p3.router)
+app.include_router(instructor.router)
 
 # load a common set of middleware/exception handlers
 add_exception_handlers(app)
