@@ -224,7 +224,7 @@ export default class ACFactory {
             } else {
                 if (event.key === "Escape") {
                     realDiv.style.display = "none";
-                    document.querySelector("button.activecode-toggle").focus();
+                    document.querySelector(".activecode-toggle").focus();
                 }
             }
         });
