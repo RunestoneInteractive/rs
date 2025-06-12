@@ -158,7 +158,7 @@ export default class MultipleChoice extends RunestoneBase {
         });
         // Add fieldset and legend for accessibility
         this.optsFieldSet = document.createElement("fieldset");
-        this.optsFieldSet.role = "radiogroup";
+        this.optsFieldSet.setAttribute("role", "radiogroup");
         this.optsFieldSet.setAttribute("aria-labelledby", this.divid + "_prompt");
         this.optsForm.appendChild(this.optsFieldSet);
         // generate form options
