@@ -304,6 +304,10 @@ async def addcourse(
 ):
     """Create a course in the database"""
 
+    bookrec = await fetch_library_book(basecourse)
+    if bookrec.build_system is None:
+        click.echo(f"Failed: Build the corresponding base course first!")
+        exit(1)
     done = False
     regex = r"^([\x30-\x39]|[\x41-\x5A]|[\x61-\x7A]|[_-])*$"
     if course_name:
