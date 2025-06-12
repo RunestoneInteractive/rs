@@ -8,13 +8,7 @@
 }
 
 .runestone fieldset legend {
-    font-size: 14px;
-    color: black;
-}
-
-.runestone fieldset .instructions {
     font-size: small;
-    color: #333;
 }
 
 .multiplechoice_section label > .para {

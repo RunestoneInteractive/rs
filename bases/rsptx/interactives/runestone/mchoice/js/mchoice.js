@@ -140,6 +140,7 @@ export default class MultipleChoice extends RunestoneBase {
 
     renderMCContainer() {
         this.containerDiv = document.createElement("div");
+        $(this.containerDiv).html(this.question);
         $(this.containerDiv).addClass(this.origElem.getAttribute("class"));
         this.containerDiv.id = this.divid;
     }
@@ -160,16 +161,11 @@ export default class MultipleChoice extends RunestoneBase {
         this.renderMCFormButtons();
         // Append the form to the container
         let legend = document.createElement("legend");
-        legend.innerHTML = this.question;
-
-        let instructionsDiv = document.createElement("div");
-        instructionsDiv.className = "instructions";
         if (this.multipleanswers) {
-            instructionsDiv.textContent = "Choose all that apply";
+            legend.textContent = "Choose all that apply";
         } else {
-            instructionsDiv.textContent = "Choose one";
+            legend.textContent = "Choose one";
         }
-        legend.appendChild(instructionsDiv);
         this.optsFieldSet.appendChild(legend);
         this.containerDiv.appendChild(this.optsForm);
     }
