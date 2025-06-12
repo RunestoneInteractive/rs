@@ -140,7 +140,10 @@ export default class MultipleChoice extends RunestoneBase {
 
     renderMCContainer() {
         this.containerDiv = document.createElement("div");
-        $(this.containerDiv).html(this.question);
+        this.questionDiv = document.createElement("div");
+        $(this.questionDiv).html(this.question);
+        this.questionDiv.id = this.divid + "_prompt";
+        this.containerDiv.appendChild(this.questionDiv);
         $(this.containerDiv).addClass(this.origElem.getAttribute("class"));
         this.containerDiv.id = this.divid;
     }
@@ -154,7 +157,9 @@ export default class MultipleChoice extends RunestoneBase {
             onsubmit: "return false;",
         });
         // Add fieldset and legend for accessibility
-        this.optsFieldSet = document.createElement("fieldset")
+        this.optsFieldSet = document.createElement("fieldset");
+        this.optsFieldSet.role = "radiogroup";
+        this.optsFieldSet.setAttribute("aria-labelledby", this.divid + "_prompt");
         this.optsForm.appendChild(this.optsFieldSet);
         // generate form options
         this.renderMCFormOpts();
