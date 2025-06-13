@@ -499,9 +499,9 @@ export default class MultipleChoice extends RunestoneBase {
 
     async logMCMAsubmission(sid) {
         var answer = this.answer || "";
-        var correct = this.correct || "F";
+        var correct = this.correct || false;
         var logAnswer =
-            "answer:" + answer + ":" + (correct == "T" ? "correct" : "no");
+            "answer:" + answer + ":" + (correct == true ? "correct" : "no");
         let data = {
             event: "mChoice",
             act: logAnswer,
