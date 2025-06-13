@@ -23,11 +23,6 @@ from typing import Optional
 # third party
 # -----------
 import aiofiles
-from rsptx.db.crud import (
-    create_instructor_course_entry,
-    fetch_base_course,
-    fetch_user,
-)
 from fastapi import Body, FastAPI, Request, Depends, status
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -49,20 +44,23 @@ from rsptx.author_server_api.worker import (
     anonymize_data_dump,
 )
 from rsptx.auth.session import is_instructor
+from rsptx.db.models import CoursesValidator
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.endpoint_validators import with_course, author_role_required
 
 from rsptx.db.crud import (
     create_book_author,
-    create_library_book,
-    fetch_instructor_courses,
-    fetch_books_by_author,
-    fetch_course,
-    fetch_course_by_id,
-    fetch_library_book,
-    update_library_book,
     create_course,
-    CoursesValidator,
+    create_instructor_course_entry,
+    create_library_book,
+    fetch_base_course,
+    fetch_books_by_author,
+    fetch_course_by_id,
+    fetch_course,
+    fetch_instructor_courses,
+    fetch_library_book,
+    fetch_user,
+    update_library_book,
 )
 
 
