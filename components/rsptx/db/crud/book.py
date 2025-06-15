@@ -125,7 +125,7 @@ async def fetch_page_activity_counts(
         & (Question.from_source == True)  # noqa: E712
         & (
             (Question.optional == False)  # noqa: E712
-            | (Question.optional == None)  # noqa: E711
+            | (Question.optional.is_(None))  # noqa: E711
         )
         & (Question.base_course == base_course)
     )
@@ -221,7 +221,7 @@ async def update_sub_chapter_progress(user_data: schemas.LastPageData):
             & (
                 (UserSubChapterProgress.course_name == user_data.course_name)
                 | (
-                    UserSubChapterProgress.course_name == None  # noqa 711
+                    UserSubChapterProgress.course_name.is_(None)
                 )  # Back fill for old entries without course
             )
         )
