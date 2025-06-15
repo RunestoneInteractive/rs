@@ -140,7 +140,7 @@ async def fetch_qualified_questions(
             (Question.topic == f"{chapter_label}/{sub_chapter_label}")
             | (
                 (Question.chapter == chapter_label)
-                & (Question.topic == None)  # noqa: E711
+                & (Question.topic.is_(None))
                 & (Question.subchapter == sub_chapter_label)
             )
         )

@@ -138,7 +138,7 @@ def setup(app):
         encoding = (
             dict(client_encoding="utf8") if dburl.startswith("postgresql") else {}
         )
-        engine = create_engine(dburl, convert_unicode=True, **encoding)
+        engine = create_engine(dburl, **encoding)
         Session = sessionmaker()
         engine.connect()
         Session.configure(bind=engine)
@@ -152,15 +152,13 @@ def setup(app):
     else:
         # If no exceptions are raised, then set up the database.
         meta = MetaData()
-        questions = Table("questions", meta, autoload=True, autoload_with=engine)
-        assignments = Table("assignments", meta, autoload=True, autoload_with=engine)
-        assignment_questions = Table(
-            "assignment_questions", meta, autoload=True, autoload_with=engine
-        )
-        courses = Table("courses", meta, autoload=True, autoload_with=engine)
-        competency = Table("competency", meta, autoload=True, autoload_with=engine)
-        chapters = Table("chapters", meta, autoload=True, autoload_with=engine)
-        sub_chapters = Table("sub_chapters", meta, autoload=True, autoload_with=engine)
+        questions = Table("questions", meta, autoload_with=engine)
+        assignments = Table("assignments", meta, autoload_with=engine)
+        assignment_questions = Table("assignment_questions", meta, autoload_with=engine)
+        courses = Table("courses", meta, autoload_with=engine)
+        competency = Table("competency", meta, autoload_with=engine)
+        chapters = Table("chapters", meta, autoload_with=engine)
+        sub_chapters = Table("sub_chapters", meta, autoload_with=engine)
         table_info = {
             "chapters": chapters,
             "sub_chapters": sub_chapters,
@@ -314,7 +312,7 @@ def addQuestionToDB(self):
         from_source = self.options.get("from_source", "T")
 
         id_ = self.options["divid"]
-        sel = select([questions]).where(
+        sel = select(questions).where(
             and_(questions.c.name == id_, questions.c.base_course == basecourse)
         )
         res = sess.execute(sel).first()
@@ -334,7 +332,7 @@ def addQuestionToDB(self):
             if res:
                 stmt = (
                     questions.update()
-                    .where(questions.c.id == res["id"])
+                    .where(questions.c.id == res.id)
                     .values(
                         question=self.block_text,
                         timestamp=last_changed,
@@ -354,7 +352,7 @@ def addQuestionToDB(self):
                     )
                 )
                 sess.execute(stmt)
-                question_id = res["id"]
+                question_id = res.id
             else:
                 ins = questions.insert().values(
                     base_course=basecourse,
@@ -455,12 +453,12 @@ def addQNumberToDB(app, node, qnumber):
 
 def getQuestionID(base_course, name):
 
-    sel = select([questions]).where(
+    sel = select(questions).where(
         and_(questions.c.name == name, questions.c.base_course == base_course)
     )
     res = sess.execute(sel).first()
     if res:
-        return res["id"]
+        return res.id
     else:
         return None
 
@@ -468,12 +466,12 @@ def getQuestionID(base_course, name):
 def getAssignmentID(base_course, name):
 
     course = getCourseID(base_course)
-    sel = select([assignments]).where(
+    sel = select(assignments).where(
         and_(assignments.c.name == name, assignments.c.course == course)
     )
     res = sess.execute(sel).first()
     if res:
-        return res["id"]
+        return res.id
     else:
         return None
 
@@ -490,13 +488,13 @@ def getOrInsertQuestionForPage(
 ):
     last_changed = datetime.now()
 
-    sel = select([questions]).where(
+    sel = select(questions).where(
         and_(questions.c.name == name, questions.c.base_course == base_course)
     )
     res = sess.execute(sel).first()
 
     if res:
-        id = res["id"]
+        id = res.id
         stmt = (
             questions.update()
             .where(questions.c.id == id)
@@ -550,7 +548,7 @@ def addAssignmentQuestionToDB(
     assignment_id = getAssignmentID(basecourse, assignment_name)
 
     # now insert or update the assignment_questions row
-    sel = select([assignment_questions]).where(
+    sel = select(assignment_questions).where(
         and_(
             assignment_questions.c.assignment_id == assignment_id,
             assignment_questions.c.question_id == question_id,
@@ -571,7 +569,7 @@ def addAssignmentQuestionToDB(
         # update
         stmt = (
             assignment_questions.update()
-            .where(assignment_questions.c.id == res["id"])
+            .where(assignment_questions.c.id == res.id)
             .values(**vals)
         )
         sess.execute(stmt)
@@ -595,9 +593,9 @@ def maybeAddToAssignment(self):
 
 
 def getCourseID(coursename):
-    sel = select([courses]).where(courses.c.course_name == coursename)
+    sel = select(courses).where(courses.c.course_name == coursename)
     res = sess.execute(sel).first()
-    return res["id"] if res else None
+    return res.id if res else None
 
 
 # Add an Assignment
@@ -621,7 +619,7 @@ def addAssignmentToDB(
         return
 
     course_id = getCourseID(course_name)
-    sel = select([assignments]).where(
+    sel = select(assignments).where(
         and_(assignments.c.name == name, assignments.c.course == course_id)
     )
     res = sess.execute(sel).first()
@@ -630,7 +628,7 @@ def addAssignmentToDB(
     if res:
         stmt = (
             assignments.update()
-            .where(assignments.c.id == res["id"])
+            .where(assignments.c.id == res.id)
             .values(
                 duedate=deadline,
                 points=points,
@@ -641,7 +639,7 @@ def addAssignmentToDB(
             )
         )
         sess.execute(stmt)
-        a_id = res["id"]
+        a_id = res.id
         # delete all existing AssignmentQuestions, so that you don't have any leftovers
         # this is safe because grades and comments are associated with div_ids and course_names, not assignment_questions rows.
         stmt2 = assignment_questions.delete().where(
@@ -670,16 +668,16 @@ def addAssignmentToDB(
 def addHTMLToDB(divid, basecourse, htmlsrc, feedback=None):
     if dburl:
         last_changed = datetime.now()
-        sel = select([questions]).where(
+        sel = select(questions).where(
             and_(questions.c.name == divid, questions.c.base_course == basecourse)
         )
         res = sess.execute(sel).first()
         try:
             if res:
-                if res["htmlsrc"] != htmlsrc or res["feedback"] != feedback:
+                if res.htmlsrc != htmlsrc or res.feedback != feedback:
                     stmt = (
                         questions.update()
-                        .where(questions.c.id == res["id"])
+                        .where(questions.c.id == res.id)
                         .values(
                             htmlsrc=htmlsrc, feedback=feedback, timestamp=last_changed
                         )
@@ -687,17 +685,17 @@ def addHTMLToDB(divid, basecourse, htmlsrc, feedback=None):
                     sess.execute(stmt)
         except UnicodeEncodeError:
             print("Bad character in directive {}".format(divid))
-        except:
-            print("Error while trying to add directive {} to the DB".format(divid))
+        except Exception as e:
+            print("Error while trying to add directive {} to the DB: {}".format(divid, e))
 
 
 def get_HTML_from_DB(divid, basecourse):
-    sel = select([questions]).where(
+    sel = select(questions).where(
         and_(questions.c.name == divid, questions.c.base_course == basecourse)
     )
     res = sess.execute(sel).first()
     if res:
-        return res["htmlsrc"]
+        return res.htmlsrc
     else:
         return ""
 
@@ -747,7 +745,7 @@ def update_chapter_subchapter(
         # insert row for chapter in the chapter table and get the id
         # logger.info("Adding Chapter/subchapter info for {}".format(chap))
         # check if chapter is already there
-        sel = select([chapters]).where(
+        sel = select(chapters).where(
             and_(chapters.c.course_id == cname, chapters.c.chapter_label == chap)
         )
         res = sess.execute(sel).first()
@@ -786,7 +784,7 @@ def update_chapter_subchapter(
             # 2) The chapter and subchapter labels don't match (new file name), but there is an existing q_name match,
             # because you renamed the file
             # 3) Neither match, so insert a new question
-            sel = select([questions]).where(
+            sel = select(questions).where(
                 or_(
                     and_(
                         questions.c.chapter == chap,
@@ -808,7 +806,7 @@ def update_chapter_subchapter(
                 # Something changed
                 upd = (
                     questions.update()
-                    .where(questions.c.id == res["id"])
+                    .where(questions.c.id == res.id)
                     .values(name=q_name, chapter=chap, from_source="T", subchapter=sub)
                 )
                 sess.execute(upd)

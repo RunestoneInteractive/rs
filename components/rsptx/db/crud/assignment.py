@@ -145,7 +145,7 @@ async def fetch_assignments(
         pclause = Assignment.is_peer == True  # noqa: E712
     else:
         pclause = or_(
-            Assignment.is_peer == False, Assignment.is_peer == None  # noqa: E712, E711
+            Assignment.is_peer == False, Assignment.is_peer.is_(None)  # noqa: E712, E711
         )
 
     if fetch_all:
