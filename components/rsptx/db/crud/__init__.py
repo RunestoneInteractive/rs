@@ -409,7 +409,7 @@ __all__ += [
     "reset_student_assessment",
 ]
 # from .user
-__all__ = [
+__all__ += [
     "fetch_user",
     "create_user",
     "update_user",
