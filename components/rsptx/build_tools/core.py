@@ -531,7 +531,7 @@ def manifest_data_to_db(course_name, manifest_path):
     res = sess.execute(book_author.select().where(book_author.c.book == course_name))
     book_author_data = res.first()
     # the owner is the username of the author
-    owner = book_author_data["author"]
+    owner = book_author_data.author
 
     rslogger.info(f"Cleaning up old chapters info for {course_name}")
     # Delete the chapter rows before repopulating. Subchapter rows are taken
@@ -734,7 +734,7 @@ def manifest_data_to_db(course_name, manifest_path):
                 else:
                     namekey = idchild
                 res = sess.execute(
-                    f"""select * from questions where name='{namekey}' and base_course='{course_name}'"""
+                    text(f"""select * from questions where name='{namekey}' and base_course='{course_name}'""")
                 ).first()
                 if res:
                     ins = (
@@ -800,9 +800,9 @@ def manifest_data_to_db(course_name, manifest_path):
         ww_minor = None
 
     res = sess.execute(
-        f"select * from courses where course_name ='{course_name}'"
+        text(f"select * from courses where course_name ='{course_name}'")
     ).first()
-    cid = res["id"]
+    cid = res.id
 
     # Only delete latex_macros and markup_system if they are present. Leave other attributes alone.
     to_delete = ["latex_macros", "markup_system"]
