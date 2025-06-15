@@ -373,11 +373,14 @@ def update_library(
     Session = sessionmaker()
     eng.connect()
     Session.configure(bind=eng)
+    sess = Session()
+
+    
 
     try:
-        res = eng.execute(f"select * from library where basecourse = '{course}'")
-    except Exception:
-        click.echo("Missing library table?  You may need to run an alembic migration.")
+        res = sess.execute(text("select * from library where basecourse = :course"), {"course": course})
+    except Exception as e:
+        click.echo(f"Error querying library table: {e}")
         return False
     # using the Model rather than raw sql ensures that everything is properly escaped
     build_time = canonical_utcnow()
@@ -512,13 +515,13 @@ def manifest_data_to_db(course_name, manifest_path):
     Session.configure(bind=engine)
     sess = Session()
     meta = MetaData()
-    chapters = Table("chapters", meta, autoload=True, autoload_with=engine)
-    subchapters = Table("sub_chapters", meta, autoload=True, autoload_with=engine)
-    questions = Table("questions", meta, autoload=True, autoload_with=engine)
-    book_author = Table("book_author", meta, autoload=True, autoload_with=engine)
-    source_code = Table("source_code", meta, autoload=True, autoload_with=engine)
+    chapters = Table("chapters", meta, autoload_with=engine)
+    subchapters = Table("sub_chapters", meta, autoload_with=engine)
+    questions = Table("questions", meta, autoload_with=engine)
+    book_author = Table("book_author", meta, autoload_with=engine)
+    source_code = Table("source_code", meta, autoload_with=engine)
     course_attributes = Table(
-        "course_attributes", meta, autoload=True, autoload_with=engine
+        "course_attributes", meta, autoload_with=engine
     )
 
     # Get the author name from the manifest
@@ -528,7 +531,7 @@ def manifest_data_to_db(course_name, manifest_path):
     res = sess.execute(book_author.select().where(book_author.c.book == course_name))
     book_author_data = res.first()
     # the owner is the username of the author
-    owner = book_author_data["author"]
+    owner = book_author_data.author
 
     rslogger.info(f"Cleaning up old chapters info for {course_name}")
     # Delete the chapter rows before repopulating. Subchapter rows are taken
@@ -731,7 +734,7 @@ def manifest_data_to_db(course_name, manifest_path):
                 else:
                     namekey = idchild
                 res = sess.execute(
-                    f"""select * from questions where name='{namekey}' and base_course='{course_name}'"""
+                    text(f"""select * from questions where name='{namekey}' and base_course='{course_name}'""")
                 ).first()
                 if res:
                     ins = (
@@ -797,9 +800,9 @@ def manifest_data_to_db(course_name, manifest_path):
         ww_minor = None
 
     res = sess.execute(
-        f"select * from courses where course_name ='{course_name}'"
+        text(f"select * from courses where course_name ='{course_name}'")
     ).first()
-    cid = res["id"]
+    cid = res.id
 
     # Only delete latex_macros and markup_system if they are present. Leave other attributes alone.
     to_delete = ["latex_macros", "markup_system"]

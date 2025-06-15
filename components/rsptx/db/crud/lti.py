@@ -1,8 +1,12 @@
-from typing import List
+from typing import List, Optional
+from rsptx.configuration import settings
+from pydal.validators import CRYPT
 from sqlalchemy import select, delete
 from sqlalchemy.orm import joinedload
+from ..crud import fetch_user
 from ..models import (
     Assignment,
+    AuthUserValidator,
     CourseLtiMap,
     CoursesValidator,
     Lti1p3Assignment,
@@ -347,6 +351,27 @@ async def fetch_lti1p3_grading_data_for_assignment(
         res = await session.execute(query)
         assign = res.scalars().one_or_none()
         return assign
+
+
+async def validate_user_credentials(username: str, password: str) -> Optional[AuthUserValidator]:
+    """
+    Validate a user's credentials by their username and password.
+
+    :param username: str, the username of the user
+    :param password: str, the password of the user
+    :return: Optional[AuthUserValidator], the AuthUserValidator object representing the user if valid, None otherwise
+    """
+    user = await fetch_user(username, True)
+    if not user:
+        return None
+
+    crypt = CRYPT(key=settings.web2py_private_key, salt=True)
+    if crypt(password)[0] == user.password:
+        return user
+    else:
+        return None
+
+
 
 
 # /LTI 1.3

@@ -34,7 +34,7 @@ license = "GPL"
 name = "runestone"
 readme = "README.rst"
 repository = "https://github.com/RunestoneInteractive/rs"
-version = "7.7.6"
+version = "7.8.0"
 
 # See https://python-poetry.org/docs/pyproject/#include-and-exclude.
 include = [
@@ -111,7 +111,7 @@ Paver = ">=1.2.4"
 six = ">1.12"
 Sphinx = ">=4.4.0,<6.0.0"
 sphinxcontrib-paverutils = ">=1.17"
-SQLAlchemy = "^1.4.0"
+SQLAlchemy = "^2.0.0"
 toml = "^0.10.2"
 json2xml = "^3.21.0"
 sphinx-reredirects = "^0.1.2"

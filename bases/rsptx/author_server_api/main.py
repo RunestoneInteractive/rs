@@ -29,7 +29,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from celery.result import AsyncResult
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 # Local App
 # ---------
@@ -219,7 +219,7 @@ async def _getdshop(request: Request, fname: str, user=Depends(auth_manager)):
 async def verify_author(user):
     async with async_session() as sess:
         auth_row = await sess.execute(
-            """select * from auth_group where role = 'author'"""
+            text("""select * from auth_group where role = 'author'""")
         )
         logger.debug(f"HELLO{str(auth_row)}")
         auth_group_id = auth_row.scalars().first()
@@ -227,7 +227,7 @@ async def verify_author(user):
         is_author = (
             (
                 await sess.execute(
-                    f"""select * from auth_membership where user_id = {user.id} and group_id = {auth_group_id}"""
+                    text(f"""select * from auth_membership where user_id = {user.id} and group_id = {auth_group_id}""")
                 )
             )
             .scalars()

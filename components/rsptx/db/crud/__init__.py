@@ -122,6 +122,7 @@ from .lti import (
     upsert_lti1p3_config,
     upsert_lti1p3_course,
     upsert_lti1p3_user,
+    validate_user_credentials,
 )
 
 from .peer import fetch_last_useinfo_peergroup, get_peer_votes, did_send_messages
@@ -409,7 +410,7 @@ __all__ += [
     "reset_student_assessment",
 ]
 # from .user
-__all__ = [
+__all__ += [
     "fetch_user",
     "create_user",
     "update_user",

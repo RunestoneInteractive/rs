@@ -21,6 +21,7 @@ import datetime
 import json
 import uuid
 import os
+import tldextract
 
 # Third-party imports
 # -------------------
@@ -67,7 +68,10 @@ from rsptx.db.crud import (
     create_instructor_course_entry,
     fetch_lti1p3_config_by_lti_data,
     fetch_lti1p3_course_by_lti_id,
-    fetch_lti1p3_course_by_id
+    fetch_lti1p3_course_by_id,
+    fetch_course,
+    fetch_instructor_courses,
+    validate_user_credentials
 )
 
 from rsptx.configuration import settings
@@ -279,10 +283,7 @@ async def login(request: Request):
         target_link_uri, params = target_link_uri.split("?")
         oidc_login.pass_params_to_launch({"query_params": params})
 
-    # I believe we are storing everything that needs storing without cookies
-    # leave this here as a reminder for how to do check if needed:
-    #redirect = await oidc_login.enable_check_cookies().redirect(target_link_uri)
-    redirect = await oidc_login.redirect(target_link_uri)
+    redirect = await oidc_login.enable_check_cookies().redirect(target_link_uri)
 
     rslogger.debug(f"LTI1p3 - login redirect {target_link_uri}")
     return redirect
@@ -635,12 +636,62 @@ async def get_jwks(request: Request):
     return JSONResponse(keys)
 
 
-@router.get("/dynamic-linking")
-@router.post("/dynamic-linking")
-@instructor_role_required()
-@with_course()
-# async def deep_link_entry(request: Request, course=None):
-async def deep_link_entry(request: Request, course=None):
+@router.post("/verify-user")
+async def deep_link_entry(request: Request):
+    """
+    Endpoint to verify the user is logged in and has access to the course.
+    This is used by the deep linking tool to ensure the user is authenticated.
+    """
+    data = await request.json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return JSONResponse(content={"success": False, "error": "Username and password are required"})
+    
+    user = await validate_user_credentials(username, password)
+    if not user:
+        return JSONResponse(content={"success": False, "error": "Invalid username or password"})
+
+    rslogger.debug(f"LTI1p3 - User {user.__dict__} verified successfully by verify-user")
+
+    user_nonce = "lti1p3-verify-nonce-" + str(uuid.uuid4())
+    launch_data_storage = get_launch_data_storage()
+    launch_data_storage.set_value(user_nonce, user.username)
+
+    return JSONResponse(content={"success": True, "username": user.username, "nonce": user_nonce})
+
+
+async def get_authenticated_user(
+    request: Request
+) -> AuthUserValidator:
+    """
+    Helper to either get the user from the auth manager or from a nonce.
+    If cookies are available, auth_manager will return the user. Otherwise,
+    rely on the authentication nonce provided by the rs-login workflow.
+
+    If the nonce is invalid or user is not found, return None.
+    """
+    user = None
+    try:
+        user = await auth_manager(request)
+        return user
+    except Exception as e:
+        pass
+
+    # check if we have a form submission with an authentication nonce
+    form_data = await request.form()
+    authentication_nonce = form_data.get('authentication_nonce') or ""
+    launch_data_storage = get_launch_data_storage()
+    authorized_username = launch_data_storage.get_value(authentication_nonce)
+    if not authorized_username:
+        return None
+    user = await fetch_user(authorized_username)
+    return user
+
+
+@router.post("/rs-login")
+async def deep_link_entry(request: Request):
     tool_conf = get_tool_config_mgr()
     rslogger.info(f"Creating FastAPIRequest with request: {request.__dict__}")
     fapi_request = await FastAPIRequest.create(request, session=get_session_service())
@@ -648,6 +699,50 @@ async def deep_link_entry(request: Request, course=None):
     message_launch = await FastAPIMessageLaunch.create(
         fapi_request, tool_conf, launch_data_storage=get_launch_data_storage()
     )
+    rslogger.debug(f"LTI1p3 - rs-login request: {fapi_request.__dict__}")
+    templates = Jinja2Templates(directory=template_folder)
+    tpl_kwargs = {
+        "request": request,
+        "launch_id": message_launch.get_launch_id(),
+        "authenticity_token": fapi_request.get_param('authenticity_token'),
+        "id_token": fapi_request.get_param('id_token'),
+        "state": fapi_request.get_param('state'),
+        "lti_storage_target": fapi_request.get_param('lti_storage_target'),
+    }
+    resp = templates.TemplateResponse(
+        name="admin/lti1p3/rs_login.html",
+        context=tpl_kwargs
+    )
+    return resp
+
+
+@router.get("/dynamic-linking")
+@router.post("/dynamic-linking")
+async def deep_link_entry(request: Request):
+    tool_conf = get_tool_config_mgr()
+    fapi_request = await FastAPIRequest.create(request, session=get_session_service())
+    message_launch = await FastAPIMessageLaunch.create(
+        fapi_request, tool_conf, launch_data_storage=get_launch_data_storage()
+    )
+
+    user = await get_authenticated_user(request)
+    if not user:
+        # Redirect to the rs-login page. It will submit back to this route but with
+        # an authentication nonce that will allow us to identify the user.
+        resp = RedirectResponse(
+            f"/admin/lti1p3/rs-login",
+            status_code=307
+        )
+        return resp
+
+    user_is_instructor = len(await fetch_instructor_courses(user.id, user.course_id)) > 0
+    if not user_is_instructor:
+        raise HTTPException(
+            status_code=403,
+            detail="You must be an instructor in your current Runestone course to use this tool. Make sure that you are logged into the correct course in Runestone.",
+        )
+
+    course = await fetch_course(user.course_name)
 
     lti_context = message_launch.get_context()
     # See if currently logged in RS course is already mapped to something else
@@ -655,14 +750,17 @@ async def deep_link_entry(request: Request, course=None):
         course, with_config=False
     )
 
-    approved = await check_domain_approval(course.id, DomainApprovals.lti1p3)
+    issuer = message_launch.get_iss()
+    issuer_parsed = tldextract.extract(issuer)
+    issuer_domain = f"{issuer_parsed.domain}.{issuer_parsed.suffix}"
+    approved = await check_domain_approval(issuer_domain, DomainApprovals.lti1p3)
     if not approved:
         rslogger.debug(
             f"LTI1p3 - Failed domain approval for {course.id}"
         )
         raise HTTPException(
             status_code=403,
-            detail="The domain for this course is not approved for LTI 1.3 integration. Please make an issue at https://github.com/RunestoneInteractive/rs/issues to request approval.",
+            detail=f"The domain reported for this course ({issuer_domain}) is not approved for LTI 1.3 integration. Please make an issue at https://github.com/RunestoneInteractive/rs/issues to request approval.",
         )
 
     mapping_mismatch = False
@@ -719,6 +817,11 @@ async def deep_link_entry(request: Request, course=None):
 
         assigns_dicts.append(d)
 
+    # if we used an authentication nonce to identify the user, we need to
+    # include it in the template context so it can be passed on by pick_links
+    form_data = await request.form()
+    authentication_nonce = form_data.get('authentication_nonce') or ""
+
     tpl_kwargs = {
         "launch_id": message_launch.get_launch_id(),
         "assignments": assigns_dicts,
@@ -731,6 +834,7 @@ async def deep_link_entry(request: Request, course=None):
         "mapping_mismatch": mapping_mismatch,
         "current_mapped_course_name": lti_context.get("label"),
         "request": request,
+        "authentication_nonce": authentication_nonce,
     }
 
     templates = Jinja2Templates(directory=template_folder)
@@ -752,8 +856,6 @@ def match_by_name(rs_assign, lti_lineitems):
 
 
 @router.post("/assign-select/{launch_id}")
-@instructor_role_required()
-@with_course()
 async def assign_select(launch_id: str, request: Request, course=None):
     rslogger.debug("LTI1p3 - assignment select")
     tool_conf = get_tool_config_mgr()
@@ -768,6 +870,17 @@ async def assign_select(launch_id: str, request: Request, course=None):
 
     if not message_launch.is_deep_link_launch():
         raise HTTPException(status_code=400, detail="Must be a deep link launch!")
+
+    user = await get_authenticated_user(request)
+    if not user:
+        raise HTTPException(status_code=403, detail="User information not found in request.")
+
+    course = await fetch_course(user.course_name)
+    if not course:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Course {user.course_name} not found",
+        )
 
     # Store or update the course to the database
     # This is the first time we have all the necessary information and the instructor

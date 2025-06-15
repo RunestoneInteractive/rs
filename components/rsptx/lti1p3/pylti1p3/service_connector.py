@@ -114,7 +114,6 @@ class ServiceConnector:
                 raise LtiServiceException(r)
         except Exception as e:
             raw_body = await r.text()
-            (raw_body)
             raise LtiServiceException(r)
         if r.content_type == "application/json":
             response = await r.json()
