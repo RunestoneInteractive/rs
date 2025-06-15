@@ -283,18 +283,18 @@ async def fetch_api_token(
 # DomainApprovals
 # ------------------
 async def check_domain_approval(
-    course_id: int, approval_type: attributes.InstrumentedAttribute
+    domain_name: str, approval_type: attributes.InstrumentedAttribute
 ) -> bool:
     """
-    Check if a domain approval exists for a given course and approval type.
-    :param course_id: int, the id of the course
+    Check if a domain approval exists for a given approval type.
+    :param domain_name: str, domain name to verify
     :param approval_type: sqlalchemy.orm.attributes.InstrumentedAttribute, the type of approval (e.g., 'DomainApprovals.lti1p3')
     """
-    query = (
-        select(Courses.domain_name)
-        .join(DomainApprovals, Courses.domain_name == DomainApprovals.domain_name)
-        .where((approval_type == True) & (Courses.id == course_id))  # noqa: E712
-    )
+    query = select(DomainApprovals.domain_name) \
+            .where(
+                (approval_type == True)
+                & (DomainApprovals.domain_name == domain_name)  # noqa: E712
+            )
     async with async_session() as session:
         res = await session.execute(query)
         domain = res.scalars().first()
