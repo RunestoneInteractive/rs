@@ -122,6 +122,7 @@ from .lti import (
     upsert_lti1p3_config,
     upsert_lti1p3_course,
     upsert_lti1p3_user,
+    validate_user_credentials,
 )
 
 from .peer import fetch_last_useinfo_peergroup, get_peer_votes, did_send_messages

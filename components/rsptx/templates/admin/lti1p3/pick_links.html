@@ -44,9 +44,14 @@
     </div>
 {% else %}
 
-    {% if not supports_multiple %}
-        <p>Your LMS does not appear to support multiple items. You should only add one new book link or assignment link at a time. It is OK to "remap" multiple assignments at once.</p>
-    {% endif %}
+{% if not supports_multiple %}
+    <p>Your LMS does not appear to support multiple items. You should only add one new book link or assignment link at a time. It is OK to "remap" multiple assignments at once.</p>
+{% endif %}
+
+    <div class="alert alert-danger" role="alert" id="top-level-warning" style="display: none;">
+        <p><em>Warning</em>: Behavior while linking content on a separate page may work differently. After you submit your form, you may end up on a page that has no content or shows some loading symbol. It is page your LMS displays while loading content from Runestone.</p>
+        <p>When you reach that page, leave it open, load or refresh your LMS course in another tab and verify that your content appeared in the course. Then you can close the loading page.</p>
+    </div>
 
     <form action="assign-select/{{launch_id}}" method="post">
 
@@ -106,6 +111,7 @@
         </table>
 
         <input type="hidden" name="launch_id" value="{{ launch_id }}">
+        <input type="hidden" name="authentication_nonce" value="{{ authentication_nonce }}">
 
         <button type="submit" class="btn btn-primary mt-5">Submit form</button>
 
@@ -119,6 +125,11 @@
 
 
     <script>
+        const inIframe = window.self !== window.top;
+        if (!inIframe) {
+            document.getElementById('top-level-warning').style.display = 'block';
+        }
+
         let bookLinkCount = 0;
         document.getElementById('addBookLink').addEventListener('click', function() {
             const bookLinks = document.getElementById('book-links');
