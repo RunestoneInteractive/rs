@@ -134,6 +134,18 @@ async def create_book_entry(
 # part of the request ``request.state.user`` `See FastAPI_Login Advanced <https://fastapi-login.readthedocs.io/advanced_usage/>`_
 auth_manager.attach_middleware(app)
 
+@app.get("/", response_class=RedirectResponse)
+async def root(request: Request):
+    """
+    Redirect to the author home page.
+    """
+    # check if the hostname is author.runestone.academy
+    if request.url.hostname == "author.runestone.academy":
+        # If so, redirect to the author home page
+        return RedirectResponse(url="/author/")
+    # Otherwise, redirect to the main Runestone Academy home page
+    else:
+        return RedirectResponse(url="/author/author")
 
 @app.get("/author/")
 async def home(request: Request, user=Depends(auth_manager)):
