@@ -60,6 +60,7 @@ from rsptx.db.crud import (
     fetch_instructor_courses,
     fetch_library_book,
     fetch_user,
+    is_author,
     update_library_book,
 )
 
@@ -143,7 +144,7 @@ async def root(request: Request):
     if request.url.hostname == "author.runestone.academy":
         # If so, redirect to the author home page
         return RedirectResponse(url="/author/")
-    # Otherwise, redirect to the main Runestone Academy home page
+    # Otherwise, redirect to /author/author for local
     else:
         return RedirectResponse(url="/author/author")
 
@@ -153,7 +154,7 @@ async def home(request: Request, user=Depends(auth_manager)):
 
     course = await fetch_course(user.course_name)
     if user:
-        if not await verify_author(user):
+        if not await is_author(user.id):
             return RedirectResponse(url="/notauthorized")
 
     if user:
@@ -228,29 +229,6 @@ async def _getdshop(request: Request, fname: str, user=Depends(auth_manager)):
     return FileResponse(file_path)
 
 
-async def verify_author(user):
-    async with async_session() as sess:
-        auth_row = await sess.execute(
-            text("""select * from auth_group where role = 'author'""")
-        )
-        logger.debug(f"HELLO{str(auth_row)}")
-        auth_group_id = auth_row.scalars().first()
-        logger.debug(f"FOO {str(auth_group_id)}")
-        is_author = (
-            (
-                await sess.execute(
-                    text(f"""select * from auth_membership where user_id = {user.id} and group_id = {auth_group_id}""")
-                )
-            )
-            .scalars()
-            .first()
-        )
-
-        logger.debug("debugging is author")
-        logger.debug(user)
-        logger.debug(is_author)
-    return is_author
-
 
 @app.get("/author/dump/assignments/{course}")
 async def dump_assignments(request: Request, course: str, user=Depends(auth_manager)):
@@ -286,7 +264,7 @@ async def dump_assignments(request: Request, course: str, user=Depends(auth_mana
 async def impact(request: Request, book: str, user=Depends(auth_manager)):
     # check for author status
     if user:
-        if not await verify_author(user):
+        if not await is_author(user.id):
             return RedirectResponse(url="/notauthorized")
     else:
         return RedirectResponse(url="/notauthorized")
@@ -316,7 +294,7 @@ async def subchapmap(
 ):
     # check for author status
     if user:
-        if not await verify_author(user):
+        if not await is_author(user.id):
             return RedirectResponse(url="/notauthorized")
     else:
         return RedirectResponse(url="/notauthorized")
@@ -385,10 +363,10 @@ async def editlib(request: Request, book: str, user=Depends(auth_manager)):
 @app.post("/author/anonymize_data/{book}")
 async def anondata(request: Request, book: str, user=Depends(auth_manager)):
     # Get the book and populate the form with current data
-    is_author = await verify_author(user)
+    is_authorp = await is_author(user)
     is_inst = await is_instructor(request)
 
-    if not (is_author or is_inst):
+    if not (is_authorp or is_inst):
         return RedirectResponse(url="/author/notauthorized")
 
     # Create a list of courses taught by this user to validate courses they
@@ -410,7 +388,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
     # this will either create the form with data from the submitted form or
     # from the kwargs passed if there is not form data.  So we can prepopulate
     #
-    if is_author:
+    if is_authorp:
         form = await DatashopForm.from_formdata(
             request, basecourse=book, clist=",".join(class_list)
         )
@@ -436,7 +414,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
             ready_files=ready_files,
             kind="datashop",
             course=course,
-            is_author=is_author,
+            is_author=is_authorp,
             is_instructor=is_inst,
         ),
     )
