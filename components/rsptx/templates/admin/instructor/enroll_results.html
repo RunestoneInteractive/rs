@@ -2,6 +2,20 @@
 
 {% block title %}Enrollment Results{% endblock %}
 
+{% block css %}
+<style>
+    tr.success {
+        background-color: #d4edda;
+    }
+    tr.error {
+        background-color: #f8d7da;
+    }
+    tr.duplicate {
+        background-color: #fff3cd;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="student-management">
     <a href="/admin/instructor/menu" class="back-link">Back to Instructor Dashboard</a>
@@ -23,7 +37,7 @@
             </thead>
             <tbody>
                 {% for result in results %}
-                <tr>
+                <tr class="{{ result.category }}">
                     <td>{{ result.username }}</td>
                     <td>{{ result.status }}</td>
                 </tr>

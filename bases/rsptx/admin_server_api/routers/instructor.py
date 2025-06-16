@@ -760,6 +760,7 @@ async def enroll_students(
                 {
                     "username": row[0] if row else "?",
                     "status": "error: missing fields in csv",
+                    "category": "error",
                 }
             )
             failed += 1
@@ -769,6 +770,7 @@ async def enroll_students(
                 {
                     "username": row[0] if row else "?",
                     "status": f"error: course mismatch, expected {course.course_name}, got {row[5]}",
+                    "category": "error",
                 }
             )
             failed += 1
@@ -799,7 +801,11 @@ async def enroll_students(
             # Check if user exists
             if await fetch_user(user_data.username):
                 results.append(
-                    {"username": user_data.username, "status": "already exists"}
+                    {
+                        "username": user_data.username,
+                        "status": "already exists",
+                        "category": "duplicate",
+                    }
                 )
                 failed += 1
                 continue
@@ -807,12 +813,22 @@ async def enroll_students(
             await create_user_course_entry(
                 new_user.id, course.id
             )  # Enroll the user in the course
-            results.append({"username": user_data.username, "status": "enrolled"})
+            results.append(
+                {
+                    "username": user_data.username,
+                    "status": "enrolled",
+                    "category": "success",
+                }
+            )
             enrolled += 1
         except Exception as e:
             rslogger.error(f"Error enrolling {row[0] if row else '?'}: {e}")
             results.append(
-                {"username": row[0] if row else "?", "status": f"error: {e}"}
+                {
+                    "username": row[0] if row else "?",
+                    "status": f"error: {e}",
+                    "category": "error",
+                }
             )
             failed += 1
     # Render a results page with a table
