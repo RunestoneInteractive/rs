@@ -1,0 +1,49 @@
+{% extends "_base.html" %}
+
+{% block title %}Enrollment Results{% endblock %}
+
+{% block css %}
+<style>
+    tr.success {
+        background-color: #d4edda;
+    }
+    tr.error {
+        background-color: #f8d7da;
+    }
+    tr.duplicate {
+        background-color: #fff3cd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="student-management">
+    <a href="/admin/instructor/menu" class="back-link">Back to Instructor Dashboard</a>
+    <div class="page-header">
+        <h1>Enrollment Results</h1>
+    </div>
+    <div class="messages">
+        {% if mess %}
+            <div class="alert alert-warning">{{ mess }}</div>
+        {% endif %}
+    </div>
+    <div class="settingsbox">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in results %}
+                <tr class="{{ result.category }}">
+                    <td>{{ result.username }}</td>
+                    <td>{{ result.status }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

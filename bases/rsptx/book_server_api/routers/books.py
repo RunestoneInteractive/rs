@@ -315,7 +315,7 @@ async def serve_page(
             chapter, subchapter, course_row.id
         )
         if assignment__spec:
-            activity_info["assignment_spec"] = dict(**assignment__spec)
+            activity_info["assignment_spec"] = dict(**assignment__spec._mapping)
 
     reading_list = []
     if RS_info:

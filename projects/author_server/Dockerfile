@@ -22,9 +22,9 @@ ARG texlive=1
 WORKDIR /usr/src/app
 
 # set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
 ENV CELERY_BROKER_URL=redis://redis:6379/0
 ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
 
@@ -41,7 +41,8 @@ COPY ./dist/$wheel /usr/src/app/$wheel
 # When you pip install a wheel it also installs all of the dependencies
 # which are stored in the METADATA file inside the wheel
 RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
-
+RUN playwright install-deps
+RUN playwright install
 COPY gitconfig /root/.gitconfig
 #COPY .ssh/id_rsa .
 

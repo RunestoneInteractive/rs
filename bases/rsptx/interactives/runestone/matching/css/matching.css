@@ -22,7 +22,6 @@ h2 {
     display: flex;
     justify-content: space-between;
     position: relative;
-    padding: 0 60px;
     max-width: 1000px;
     width: 100%;
     margin: 0 auto 1rem;
@@ -56,6 +55,7 @@ h2 {
     min-width: 120px;
     padding: 10px 14px;
     min-height: 50px;
+    max-width: 100%;
     background: var(--dropableBgColor, #f9f9f9);
     border: 2px solid var(--boxBorderColor);
     border-radius: 8px;
@@ -63,7 +63,6 @@ h2 {
     font-weight: bold;
     user-select: none;
     cursor: grab;
-    white-space: nowrap;
     text-align: center;
     touch-action: none;
     /* Prevents scrolling during tap+drag */

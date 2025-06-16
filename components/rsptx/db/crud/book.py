@@ -39,6 +39,7 @@ async def get_book_chapters(course_name: str) -> List[ChapterValidator]:
         res = await session.execute(query)
         return [ChapterValidator.from_orm(x) for x in res.scalars().fetchall()]
 
+
 async def fetch_subchapters(course, chap):
     """
     Retrieve all subchapters for a given chapter.
@@ -243,13 +244,11 @@ async def fetch_last_page(user: AuthUserValidator, course_name: str):
 
     query = (
         select(
-            [
-                UserState.last_page_url,
-                UserState.last_page_hash,
-                Chapter.chapter_name,
-                UserState.last_page_scroll_location,
-                SubChapter.sub_chapter_name,
-            ]
+            UserState.last_page_url,
+            UserState.last_page_hash,
+            Chapter.chapter_name,
+            UserState.last_page_scroll_location,
+            SubChapter.sub_chapter_name,
         )
         .where(
             (UserState.user_id == user.id)
