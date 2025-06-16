@@ -5,6 +5,8 @@ from fastapi import (
     Request,
     status,
     Form,
+    UploadFile,
+    File,
 )
 from fastapi.responses import (
     HTMLResponse,
@@ -15,6 +17,8 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import create_engine
 from pydantic import BaseModel
 from typing import List, Optional, Annotated
+import csv
+from io import StringIO
 
 # Local application imports
 # -------------------------
@@ -43,6 +47,9 @@ from rsptx.templates import template_folder
 from rsptx.configuration import settings
 from rsptx.endpoint_validators import with_course, instructor_role_required
 from rsptx.logging import rslogger
+from rsptx.db.crud.user import create_user, fetch_user
+from rsptx.db.models import AuthUserValidator
+from rsptx.response_helpers.core import canonical_utcnow
 
 
 # Routing
@@ -724,3 +731,100 @@ async def reset_password(
             status_code=500,
             content={"success": False, "message": "Internal server error"},
         )
+
+
+@router.post("/enroll_students")
+@instructor_role_required()
+@with_course()
+async def enroll_students(
+    request: Request,
+    user=Depends(auth_manager),
+    students: UploadFile = File(...),
+    course=None,
+):
+    """
+    Enroll multiple students from an uploaded CSV file (multipart/form-data).
+    The CSV must have columns: username,email,first_name,last_name,password,course
+    """
+    content = await students.read()
+    try:
+        csvfile = StringIO(content.decode("utf-8"))
+        reader = csv.reader(csvfile)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid CSV file: {e}")
+
+    rslogger.info(f"Enrolling students for course: {course}")
+    rslogger.info(f"user = {user}")
+    mess = ""
+    results = []
+    for row in reader:
+        rslogger.info(f"Processing row: {row}")
+        if len(row) < 6:
+            results.append(
+                {
+                    "username": row[0] if row else "?",
+                    "status": "error: missing fields in csv",
+                }
+            )
+            continue
+        if course.course_name != row[5]:
+            results.append(
+                {
+                    "username": row[0] if row else "?",
+                    "status": f"error: course mismatch, expected {course.course_name}, got {row[5]}",
+                }
+            )
+            continue
+        if len(row) > 6:
+            row = row[:6]  # Only take the first 6 columns
+            mess = "Row has more than 6 columns, truncating."
+            rslogger.warning(f"Row has more than 6 columns, truncating: {row}")
+        try:
+            user_data = AuthUserValidator(
+                username=row[0],
+                email=row[1],
+                first_name=row[2],
+                last_name=row[3],
+                password=row[4],
+                course_name=row[5],
+                # Fill in other required fields with defaults or sensible values
+                created_on=canonical_utcnow(),
+                modified_on=canonical_utcnow(),
+                registration_key="",
+                reset_password_key="",
+                registration_id="",
+                course_id=course.id,
+                active=True,
+                donated=False,
+                accept_tcp=False,
+            )
+            # Check if user exists
+            if await fetch_user(user_data.username):
+                results.append(
+                    {"username": user_data.username, "status": "already exists"}
+                )
+                continue
+            new_user = await create_user(user_data)
+            await create_user_course_entry(
+                new_user.id, course.id
+            )  # Enroll the user in the course
+            results.append({"username": user_data.username, "status": "enrolled"})
+        except Exception as e:
+            rslogger.error(f"Error enrolling {row[0] if row else '?'}: {e}")
+            results.append(
+                {"username": row[0] if row else "?", "status": f"error: {e}"}
+            )
+    # Render a results page with a table
+    from fastapi.templating import Jinja2Templates
+
+    templates = Jinja2Templates(directory=template_folder)
+    return templates.TemplateResponse(
+        "admin/instructor/enroll_results.html",
+        {
+            "request": request,
+            "results": results,
+            "course": course,
+            "user": user,
+            "mess": mess,
+        },
+    )
