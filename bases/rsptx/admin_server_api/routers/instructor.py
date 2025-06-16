@@ -4,19 +4,15 @@ from fastapi import (
     Depends,
     Request,
     status,
-    Form,
     UploadFile,
     File,
 )
 from fastapi.responses import (
     HTMLResponse,
-    RedirectResponse,
     JSONResponse,
 )
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import create_engine
 from pydantic import BaseModel
-from typing import List, Optional, Annotated
 import csv
 from io import StringIO
 
@@ -24,9 +20,7 @@ from io import StringIO
 # -------------------------
 
 from rsptx.db.crud import (
-    create_invoice_request,
     create_course_instructor,
-    delete_lti_course,
     delete_course_instructor,
     delete_user_course_entry,
     create_user_course_entry,
@@ -757,6 +751,8 @@ async def enroll_students(
     rslogger.info(f"user = {user}")
     mess = ""
     results = []
+    failed = 0
+    enrolled = 0
     for row in reader:
         rslogger.info(f"Processing row: {row}")
         if len(row) < 6:
@@ -766,6 +762,7 @@ async def enroll_students(
                     "status": "error: missing fields in csv",
                 }
             )
+            failed += 1
             continue
         if course.course_name != row[5]:
             results.append(
@@ -774,6 +771,7 @@ async def enroll_students(
                     "status": f"error: course mismatch, expected {course.course_name}, got {row[5]}",
                 }
             )
+            failed += 1
             continue
         if len(row) > 6:
             row = row[:6]  # Only take the first 6 columns
@@ -803,20 +801,25 @@ async def enroll_students(
                 results.append(
                     {"username": user_data.username, "status": "already exists"}
                 )
+                failed += 1
                 continue
             new_user = await create_user(user_data)
             await create_user_course_entry(
                 new_user.id, course.id
             )  # Enroll the user in the course
             results.append({"username": user_data.username, "status": "enrolled"})
+            enrolled += 1
         except Exception as e:
             rslogger.error(f"Error enrolling {row[0] if row else '?'}: {e}")
             results.append(
                 {"username": row[0] if row else "?", "status": f"error: {e}"}
             )
+            failed += 1
     # Render a results page with a table
-    from fastapi.templating import Jinja2Templates
-
+    if failed > 0:
+        mess = f"Enrollment completed with {enrolled} successful enrollments and {failed} failures."
+    else:
+        mess = f"All {enrolled} students enrolled successfully."
     templates = Jinja2Templates(directory=template_folder)
     return templates.TemplateResponse(
         "admin/instructor/enroll_results.html",

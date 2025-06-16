@@ -29,7 +29,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from celery.result import AsyncResult
 import pandas as pd
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 
 # Local App
 # ---------
@@ -46,7 +46,7 @@ from rsptx.author_server_api.worker import (
 from rsptx.auth.session import is_instructor
 from rsptx.db.models import CoursesValidator
 from rsptx.exceptions.core import add_exception_handlers
-from rsptx.endpoint_validators import with_course, author_role_required
+from rsptx.endpoint_validators import author_role_required
 
 from rsptx.db.crud import (
     create_book_author,
@@ -72,7 +72,6 @@ from rsptx.visualization.authorImpact import (
     get_course_graph,
 )
 from rsptx.auth.session import auth_manager
-from rsptx.db.async_session import async_session
 from rsptx.templates import template_folder
 
 logger = logging.getLogger("runestone")
