@@ -3872,13 +3872,14 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.8.0"
+version = "7.8.1"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "<4.0.0,>=3.10.0"
 groups = ["main"]
 files = [
-    {file = "runestone-7.8.0-py3-none-any.whl", hash = "sha256:5d939c2c5bf684919b469bed91e8417a7f5eb3dc346160f3035bae773c80bbf8"},
+    {file = "runestone-7.8.1-py3-none-any.whl", hash = "sha256:291420b743d360a467c51431fba6ade18c2358d9f027a91bfa60d0e7ce5d899e"},
+    {file = "runestone-7.8.1.tar.gz", hash = "sha256:f9fa60c96f35b419579ed8d16a1b1e62f323465f116415d52c544bb70bcf33b5"},
 ]
 
 [package.dependencies]
@@ -3902,14 +3903,14 @@ myst-parser = ">=1.0.0,<2.0.0"
 Paver = ">=1.2.4"
 pretext = ">=2.7.0,<3.0.0"
 psycopg2-binary = ">=2.9.6,<3.0.0"
-pydal = ">=20230521.1,<20230522.0"
+pydal = ">=20230521.1"
 pydantic = ">=2.0.0,<3.0.0"
 pydantic-settings = ">=2.0.3,<3.0.0"
 pyhumps = ">=3.8.0,<4.0.0"
 python-dotenv = ">=1.0.0,<2.0.0"
 scikit-learn = ">=1.5.1,<2.0.0"
 six = ">1.12"
-Sphinx = ">=4.4.0,<6.0.0"
+Sphinx = ">=6.2.0,<7.0.0"
 sphinx-reredirects = ">=0.1.2,<0.2.0"
 sphinxcontrib-paverutils = ">=1.17"
 SQLAlchemy = ">=2.0.0,<3.0.0"
@@ -4129,26 +4130,26 @@ files = [
 
 [[package]]
 name = "sphinx"
-version = "5.3.0"
+version = "6.2.1"
 description = "Python documentation generator"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "Sphinx-5.3.0.tar.gz", hash = "sha256:51026de0a9ff9fc13c05d74913ad66047e104f56a129ff73e174eb5c3ee794b5"},
-    {file = "sphinx-5.3.0-py3-none-any.whl", hash = "sha256:060ca5c9f7ba57a08a1219e547b269fadf125ae25b06b9fa7f66768efb652d6d"},
+    {file = "Sphinx-6.2.1.tar.gz", hash = "sha256:6d56a34697bb749ffa0152feafc4b19836c755d90a7c59b72bc7dfd371b9cc6b"},
+    {file = "sphinx-6.2.1-py3-none-any.whl", hash = "sha256:97787ff1fa3256a3eef9eda523a63dbf299f7b47e053cfcf684a1c2a8380c912"},
 ]
 
 [package.dependencies]
 alabaster = ">=0.7,<0.8"
 babel = ">=2.9"
 colorama = {version = ">=0.4.5", markers = "sys_platform == \"win32\""}
-docutils = ">=0.14,<0.20"
+docutils = ">=0.18.1,<0.20"
 imagesize = ">=1.3"
 Jinja2 = ">=3.0"
 packaging = ">=21.0"
-Pygments = ">=2.12"
-requests = ">=2.5.0"
+Pygments = ">=2.13"
+requests = ">=2.25.0"
 snowballstemmer = ">=2.0"
 sphinxcontrib-applehelp = "*"
 sphinxcontrib-devhelp = "*"
@@ -4159,8 +4160,8 @@ sphinxcontrib-serializinghtml = ">=1.1.5"
 
 [package.extras]
 docs = ["sphinxcontrib-websupport"]
-lint = ["docutils-stubs", "flake8 (>=3.5.0)", "flake8-bugbear", "flake8-comprehensions", "flake8-simplify", "isort", "mypy (>=0.981)", "sphinx-lint", "types-requests", "types-typed-ast"]
-test = ["cython", "html5lib", "pytest (>=4.6)", "typed_ast ; python_version < \"3.8\""]
+lint = ["docutils-stubs", "flake8 (>=3.5.0)", "flake8-simplify", "isort", "mypy (>=0.990)", "ruff", "sphinx-lint", "types-requests"]
+test = ["cython", "filelock", "html5lib", "pytest (>=4.6)"]
 
 [[package]]
 name = "sphinx-reredirects"
@@ -4862,4 +4863,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "b47fa5fb32f2502edeee128fae93231cde18e8d70a40c9733dd5926a9c019384"
+content-hash = "53b3cfd014bfa07e0b5da8a36cd2ad6cc5bd641408e51b62820f3dcdfa8209f2"
