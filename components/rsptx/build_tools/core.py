@@ -87,8 +87,8 @@ def _build_runestone_book(config, course, click=click):
     if "dynamic_pages" in paver_vars:
         if paver_vars["dynamic_pages"] is not True:
             dp = False
-            if "dynamic_pages" in  paver_vars['options'].build.template_args:
-                dp = paver_vars['options'].build.template_args['dynamic_pages']
+            if "dynamic_pages" in paver_vars["options"].build.template_args:
+                dp = paver_vars["options"].build.template_args["dynamic_pages"]
 
     if hasattr(click, "worker") and dp is not True:
         click.echo("dynamic_pages must be set to True in pavement.py")
@@ -106,7 +106,7 @@ def _build_runestone_book(config, course, click=click):
 
     click.echo("Running runestone build --all")
     res = subprocess.run("runestone build --all", shell=True, capture_output=True)
-    with open("cli.log", "wb") as olfile:
+    with open("author_build.log", "wb") as olfile:
         olfile.write(res.stdout)
         olfile.write(b"\n====\n")
         olfile.write(res.stderr)
@@ -124,7 +124,7 @@ def _build_runestone_book(config, course, click=click):
         return False
 
     resd = subprocess.run("runestone deploy", shell=True, capture_output=True)
-    with open("cli.log", "ab") as olfile:
+    with open("author_build.log", "ab") as olfile:
         olfile.write(res.stdout)
         olfile.write(b"\n====\n")
         olfile.write(res.stderr)
@@ -171,7 +171,9 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         click.echo("Building the book")
 
         rs.build()  # build the book, generating assets as needed
-        log_path = Path(os.environ.get("BOOK_PATH")) / rs.output_dir / "cli.log"
+        log_path = (
+            Path(os.environ.get("BOOK_PATH")) / rs.output_dir / "author_build.log"
+        )
         if not log_path.parent.exists():
             log_path.parent.mkdir(parents=True, exist_ok=True)
         click.echo(f"Writing log to {log_path}")
@@ -384,10 +386,10 @@ def update_library(
     Session.configure(bind=eng)
     sess = Session()
 
-    
-
     try:
-        res = sess.execute(text("select * from library where basecourse = :course"), {"course": course})
+        res = sess.execute(
+            text("select * from library where basecourse = :course"), {"course": course}
+        )
     except Exception as e:
         click.echo(f"Error querying library table: {e}")
         return False
@@ -529,9 +531,7 @@ def manifest_data_to_db(course_name, manifest_path):
     questions = Table("questions", meta, autoload_with=engine)
     book_author = Table("book_author", meta, autoload_with=engine)
     source_code = Table("source_code", meta, autoload_with=engine)
-    course_attributes = Table(
-        "course_attributes", meta, autoload_with=engine
-    )
+    course_attributes = Table("course_attributes", meta, autoload_with=engine)
 
     # Get the author name from the manifest
     tree = ET.parse(manifest_path)
@@ -556,7 +556,6 @@ def manifest_data_to_db(course_name, manifest_path):
         .values(from_source="F")
     )
 
-    
     rslogger.info("Populating the database with Chapter information")
     ext_img_patt = re.compile(r"""src="external""")
     gen_img_patt = re.compile(r"""src="generated""")
@@ -743,7 +742,9 @@ def manifest_data_to_db(course_name, manifest_path):
                 else:
                     namekey = idchild
                 res = sess.execute(
-                    text(f"""select * from questions where name='{namekey}' and base_course='{course_name}'""")
+                    text(
+                        f"""select * from questions where name='{namekey}' and base_course='{course_name}'"""
+                    )
                 ).first()
                 if res:
                     ins = (
