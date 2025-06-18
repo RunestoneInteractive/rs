@@ -42,6 +42,7 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 rslogger = logger
 
+
 # Because we are reusing many functions also used by `rsmanage` to do various build tasks
 # I wanted a way to have the click status messages come back to the web UI.  So,
 # we will pass in our own version of click.echo to these functions that
@@ -174,7 +175,7 @@ def git_pull(self, book, source_path=None):
         ["git", "reset", "--hard", "HEAD"], capture_output=True, cwd=work_dir
     )
     if res.returncode != 0:
-        outputlog = pathlib.Path(work_dir, "cli.log")
+        outputlog = pathlib.Path(work_dir, "author_build.log")
         with open(outputlog, "a") as olfile:
             olfile.write(res.stdout.decode("utf8"))
             olfile.write("\n====\n")
@@ -192,7 +193,7 @@ def git_pull(self, book, source_path=None):
         ["git", "clean", "--force", "-d"], capture_output=True, cwd=work_dir
     )
     if res.returncode != 0:
-        outputlog = pathlib.Path(work_dir, "cli.log")
+        outputlog = pathlib.Path(work_dir, "author_build.log")
         with open(outputlog, "a") as olfile:
             olfile.write(res.stdout.decode("utf8"))
             olfile.write("\n====\n")
@@ -212,7 +213,7 @@ def git_pull(self, book, source_path=None):
         cwd=work_dir,
     )
     if res.returncode != 0:
-        outputlog = pathlib.Path(work_dir, "cli.log")
+        outputlog = pathlib.Path(work_dir, "author_build.log")
         with open(outputlog, "a") as olfile:
             olfile.write(res.stdout.decode("utf8"))
             olfile.write("\n====\n")
@@ -289,7 +290,7 @@ def build_ptx_book(self, book, generate=False, target="runestone", source_path=N
     else:
         base_path = pathlib.Path(work_dir)
     logger.debug(f"base_path = {base_path}")
-    outputlog = pathlib.Path(base_path, "cli.log")
+    outputlog = pathlib.Path(base_path, "author_build.log")
     start_time = datetime.datetime.now()
     try:
         with open(outputlog, "w") as olfile:

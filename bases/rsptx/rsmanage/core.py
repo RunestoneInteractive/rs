@@ -432,7 +432,7 @@ async def build(config, clone, ptx, gen, manifest, course):
     if res:
         click.echo("Build Succeeded")
     else:
-        click.echo("Build Failed, see cli.log for details")
+        click.echo("Build Failed, see author_build.log for details")
 
 
 #
