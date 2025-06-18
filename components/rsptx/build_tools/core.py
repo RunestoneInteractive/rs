@@ -83,7 +83,14 @@ def _build_runestone_book(config, course, click=click):
     # process and **know** we are making a build for a runestone server. In that
     # case we need to make sure that the dynamic_pages flag is set to True in
     # pavement.py
-    if hasattr(click, "worker") and paver_vars["dynamic_pages"] is not True:
+    dp = True
+    if "dynamic_pages" in paver_vars:
+        if paver_vars["dynamic_pages"] is not True:
+            dp = False
+            if "dynamic_pages" in  paver_vars['options'].build.template_args:
+                dp = paver_vars['options'].build.template_args['dynamic_pages']
+
+    if hasattr(click, "worker") and dp is not True:
         click.echo("dynamic_pages must be set to True in pavement.py")
         return False
     if paver_vars["project_name"] != course:
@@ -159,6 +166,8 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         logger = logging.getLogger("ptxlogger")
         string_io_handler = StringIOHandler()
         logger.addHandler(string_io_handler)
+        if hasattr(click, "worker"):
+            click.add_logger(logger)
         click.echo("Building the book")
 
         rs.build()  # build the book, generating assets as needed
