@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "author_server"
-version = "1.0.0"
+version = "1.0.1"
 description = ""
 authors = ['Brad Miller <bonelake@mac.com>']
 license = ""
@@ -52,7 +52,7 @@ Starlette-WTF = "^0.4.3"
 tqdm = "^4.64.0"
 asyncpg = "^0.30.0"
 pyhumps = "^3.8.0"
-pydal = "^20230521.1"
+pydal = ">=20230521.1"
 runestone = "^7.7.0"
 pydantic-settings = "^2.0.3"
 numpy = "^1.0.0"
