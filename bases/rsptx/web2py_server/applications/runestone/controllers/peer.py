@@ -43,7 +43,7 @@ request.peer_mtime = str(mtime)
 )
 def instructor():
     assignments = db(
-        (db.assignments.is_peer == True)
+        ((db.assignments.is_peer == True) | (db.assignments.kind == "Peer"))
         & (db.assignments.course == auth.user.course_id)
     ).select(orderby=~db.assignments.duedate)
 
@@ -149,14 +149,13 @@ def extra():
         is_instructor=True,
     )
 
+
 def _get_assignment_questions(assignment_id):
-    all_questions = db(
-      db.assignment_questions.assignment_id == assignment_id
-    ).select(
-      orderby=[ db.assignment_questions.sorting_priority,
-                db.assignment_questions.id ]
+    all_questions = db(db.assignment_questions.assignment_id == assignment_id).select(
+        orderby=[db.assignment_questions.sorting_priority, db.assignment_questions.id]
     )
-    return [ db.questions[question.question_id] for question in all_questions ]
+    return [db.questions[question.question_id] for question in all_questions]
+
 
 def _get_current_question(assignment_id, get_next):
     assignment = db(db.assignments.id == assignment_id).select().first()
@@ -359,7 +358,7 @@ def student():
         create_rs_token()
 
     assignments = db(
-        (db.assignments.is_peer == True)
+        ((db.assignments.is_peer == True) | (db.assignments.kind == "Peer"))
         & (db.assignments.course == auth.user.course_id)
         & (db.assignments.visible == True)
     ).select(orderby=~db.assignments.duedate)
