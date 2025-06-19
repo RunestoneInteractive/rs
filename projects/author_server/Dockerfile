@@ -41,6 +41,13 @@ COPY ./dist/$wheel /usr/src/app/$wheel
 # When you pip install a wheel it also installs all of the dependencies
 # which are stored in the METADATA file inside the wheel
 RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
+# Now make sure we get some pretext dependencies set up
+# copy the core files to the right place
+RUN pretext --version
+# Now make sure the node deps are installed for building themes
+RUN python -c 'import pretext.utils; pretext.utils.ensure_css_node_modules()'
+# Finally make sure playwright is ready to go
+RUN apt-get update
 RUN playwright install-deps
 RUN playwright install
 COPY gitconfig /root/.gitconfig
