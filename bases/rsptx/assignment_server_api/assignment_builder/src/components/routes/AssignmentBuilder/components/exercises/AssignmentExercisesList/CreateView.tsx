@@ -41,6 +41,7 @@ export const CreateView = ({
             author: data.author ?? "",
             autograde: null,
             chapter: data.chapter,
+            subchapter: data.subchapter,
             difficulty: data.difficulty,
             htmlsrc: data.htmlsrc,
             name: data.name,

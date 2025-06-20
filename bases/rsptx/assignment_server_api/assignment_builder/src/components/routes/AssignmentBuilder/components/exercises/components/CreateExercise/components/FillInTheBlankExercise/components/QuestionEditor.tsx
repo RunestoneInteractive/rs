@@ -3,6 +3,7 @@ import { Editor } from "@components/routes/AssignmentBuilder/components/exercise
 import parse from "html-react-parser";
 import React, { FC, useState } from "react";
 
+import { useValidation } from "../../../shared/ExerciseLayout";
 import styles from "../../../shared/styles/CreateExercise.module.css";
 
 interface QuestionEditorProps {
@@ -12,6 +13,7 @@ interface QuestionEditorProps {
 
 export const QuestionEditor: FC<QuestionEditorProps> = ({ questionText, onChange }) => {
   const [text, setText] = useState(questionText);
+  const { shouldShowValidation } = useValidation();
 
   const handleChange = (value: string) => {
     setText(value);
@@ -19,6 +21,7 @@ export const QuestionEditor: FC<QuestionEditorProps> = ({ questionText, onChange
   };
 
   const isEmpty = isTipTapContentEmpty(text);
+  const shouldShowError = isEmpty && shouldShowValidation;
 
   const renderPreviewContent = () => {
     if (!text) return null;
@@ -33,7 +36,7 @@ export const QuestionEditor: FC<QuestionEditorProps> = ({ questionText, onChange
 
   return (
     <>
-      <div className={`${styles.questionEditor} ${isEmpty ? styles.emptyEditor : ""}`}>
+      <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
         <Editor
           content={text}
           onChange={handleChange}

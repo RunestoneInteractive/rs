@@ -2,6 +2,7 @@ import { Editor } from "@components/routes/AssignmentBuilder/components/exercise
 import { Checkbox } from "primereact/checkbox";
 import { FC } from "react";
 
+import { useValidation } from "../../../shared/ExerciseLayout";
 import styles from "../../../shared/styles/CreateExercise.module.css";
 import { isTipTapContentEmpty } from "../../../utils/validation";
 
@@ -18,11 +19,13 @@ export const ShortAnswerInstructions: FC<ShortAnswerInstructionsProps> = ({
   attachment,
   onAttachmentChange
 }) => {
+  const { shouldShowValidation } = useValidation();
   const isEmpty = isTipTapContentEmpty(instructions);
+  const shouldShowError = isEmpty && shouldShowValidation;
 
   return (
     <>
-      <div className={`${styles.questionEditor} ${isEmpty ? styles.emptyEditor : ""}`}>
+      <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
         <Editor
           content={instructions}
           onChange={onChange}

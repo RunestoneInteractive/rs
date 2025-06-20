@@ -100,6 +100,7 @@ export type CreateExercisesPayload = {
   author: string;
   autograde: null;
   chapter: string;
+  subchapter?: string;
   difficulty: number;
   htmlsrc: string;
   name: string;

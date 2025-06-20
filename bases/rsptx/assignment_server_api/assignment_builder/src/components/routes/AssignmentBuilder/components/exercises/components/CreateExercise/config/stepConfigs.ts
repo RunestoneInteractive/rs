@@ -291,6 +291,9 @@ export const MULTI_CHOICE_STEP_VALIDATORS: StepValidator<Partial<CreateExerciseF
     if (!data.chapter) {
       errors.push("Chapter is required");
     }
+    if (!data.subchapter) {
+      errors.push("Section is required");
+    }
     if (data.points === undefined || data.points <= 0) {
       errors.push("Points must be greater than 0");
     }

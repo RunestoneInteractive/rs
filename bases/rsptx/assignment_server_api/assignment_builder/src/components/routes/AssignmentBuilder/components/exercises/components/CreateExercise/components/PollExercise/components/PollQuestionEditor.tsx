@@ -3,18 +3,24 @@ import { FC } from "react";
 
 import styles from "../../../shared/styles/CreateExercise.module.css";
 import { isTipTapContentEmpty } from "../../../utils/validation";
+import { useValidation } from "../../../shared/ExerciseLayout";
 
 interface PollQuestionEditorProps {
   question: string;
   onChange: (question: string) => void;
 }
 
-export const PollQuestionEditor: FC<PollQuestionEditorProps> = ({ question, onChange }) => {
+export const PollQuestionEditor: FC<PollQuestionEditorProps> = ({ 
+  question, 
+  onChange
+}) => {
+  const { shouldShowValidation } = useValidation();
   const isEmpty = isTipTapContentEmpty(question);
+  const shouldShowError = isEmpty && shouldShowValidation;
 
   return (
     <>
-      <div className={`${styles.questionEditor} ${isEmpty ? styles.emptyEditor : ""}`}>
+      <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
         <Editor content={question} onChange={onChange} placeholder="Enter poll question here..." />
       </div>
 

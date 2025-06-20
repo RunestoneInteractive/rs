@@ -50,6 +50,7 @@ const getDefaultFormData = (): MatchingData => ({
   author: "",
   topic: "",
   chapter: "",
+  subchapter: "",
   tags: "",
   points: 1,
   difficulty: 3,

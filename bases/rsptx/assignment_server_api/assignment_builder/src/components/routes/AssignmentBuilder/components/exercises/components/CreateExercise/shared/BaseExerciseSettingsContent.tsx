@@ -1,3 +1,4 @@
+import { useGetSectionsForChapterQuery } from "@store/dataset/dataset.logic.api";
 import { Chips } from "primereact/chips";
 import { Dropdown } from "primereact/dropdown";
 import { InputNumber } from "primereact/inputnumber";
@@ -14,6 +15,7 @@ export interface BaseExerciseSettings {
   author: string;
   topic: string;
   chapter: string;
+  subchapter?: string;
   tags: string;
   points: number;
   difficulty: number;
@@ -33,19 +35,17 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
   const { chapters } = useExercisesSelector();
 
   // Initialize state with default values or initialData
-  const [settings, setSettings] = useState<T>(
-    () =>
-      ({
-        name: initialData?.name ?? createExerciseId(),
-        author: initialData?.author ?? "",
-        topic: initialData?.topic ?? "",
-        chapter: initialData?.chapter ?? "",
-        tags: initialData?.tags ?? "",
-        points: initialData?.points ?? 1,
-        difficulty: initialData?.difficulty ?? 3,
-        ...initialData // Spread any additional fields from initialData
-      }) as T
-  );
+  const [settings, setSettings] = useState<T>({
+    ...initialData, // Spread any additional fields from initialData
+    name: initialData?.name ?? createExerciseId(),
+    author: initialData?.author ?? "",
+    topic: initialData?.topic ?? "",
+    chapter: initialData?.chapter || chapters?.[0].value || "",
+    subchapter: initialData?.subchapter ?? "",
+    tags: initialData?.tags ?? "",
+    points: initialData?.points ?? 1,
+    difficulty: initialData?.difficulty ?? 3
+  } as T);
 
   // Handler to update a specific setting field
   const updateSetting = useCallback((field: keyof T, value: any) => {
@@ -55,12 +55,36 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
     }));
   }, []);
 
-  // Set the first chapter as default if chapters are available and no chapter is selected
+  // Set the first chapter as default if chapters are available and no valid chapter is selected
   useEffect(() => {
-    if (chapters && chapters.length > 0 && !settings.chapter) {
-      updateSetting("chapter", chapters[0].value);
+    if (chapters && chapters.length > 0) {
+      const currentChapterExists = chapters.some((option) => option.value === settings.chapter);
+
+      if (!settings.chapter || !currentChapterExists) {
+        updateSetting("chapter", chapters[0].value);
+      }
     }
   }, [chapters, settings.chapter, updateSetting]);
+
+  const { data: sectionsOptions = [], isLoading: loadingSections } = useGetSectionsForChapterQuery(
+    settings.chapter || "",
+    {
+      skip: !settings.chapter
+    }
+  );
+
+  // Set first section as default when sections are loaded and no valid section is selected
+  useEffect(() => {
+    if (sectionsOptions.length > 0) {
+      const currentSubchapterExists = sectionsOptions.some(
+        (option) => option.value === settings.subchapter
+      );
+
+      if (!settings.subchapter || !currentSubchapterExists) {
+        updateSetting("subchapter", sectionsOptions[0].value);
+      }
+    }
+  }, [sectionsOptions, settings.subchapter, updateSetting]);
 
   // Report settings changes to parent
   useEffect(() => {
@@ -75,6 +99,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
   // Check if fields have validation errors
   const nameError = !settings.name?.trim();
   const chapterError = !settings.chapter;
+  const subchapterError = !loadingSections && !settings.subchapter;
   const pointsError = settings.points <= 0;
 
   return (
@@ -111,6 +136,25 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
 
         <div className={styles.formField}>
           <span className="p-float-label">
+            <Dropdown
+              id="subchapter"
+              value={settings.subchapter}
+              options={sectionsOptions}
+              optionLabel="label"
+              className={`w-full ${subchapterError ? styles.requiredField : ""}`}
+              onChange={(e) => updateSetting("subchapter", e.value)}
+              disabled={loadingSections || sectionsOptions.length === 0}
+              placeholder={loadingSections ? "Loading sections..." : "Select a section"}
+            />
+            <label htmlFor="subchapter">Section*</label>
+          </span>
+          {subchapterError && <small className={styles.errorMessage}>Section is required</small>}
+        </div>
+      </div>
+
+      <div className={styles.settingsGridTopic}>
+        <div className={styles.formField}>
+          <span className="p-float-label">
             <InputText
               id="topic"
               value={settings.topic}
@@ -120,10 +164,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
             <label htmlFor="topic">Topic</label>
           </span>
         </div>
-      </div>
 
-      <div className={styles.settingsGrid}>
-        {/* Second row with 3 fields */}
         <div className={styles.formField}>
           <span className="p-float-label">
             <InputText
@@ -136,35 +177,37 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
           </span>
         </div>
 
-        <div className={styles.formField}>
-          <span className="p-float-label">
-            <InputNumber
-              id="points"
-              value={settings.points}
-              min={0}
-              max={100000}
-              className={`w-full ${pointsError ? styles.requiredField : ""}`}
-              onValueChange={(e) => updateSetting("points", e.value !== null ? e.value : 1)}
-            />
-            <label htmlFor="points">Points*</label>
-          </span>
-          {pointsError && (
-            <small className={styles.errorMessage}>Points must be greater than 0</small>
-          )}
-        </div>
+        <div className={styles.pointsDifficultyContainer}>
+          <div className={styles.formField}>
+            <span className="p-float-label">
+              <InputNumber
+                id="points"
+                value={settings.points}
+                min={0}
+                max={100000}
+                className={`w-full ${pointsError ? styles.requiredField : ""}`}
+                onValueChange={(e) => updateSetting("points", e.value !== null ? e.value : 1)}
+              />
+              <label htmlFor="points">Points*</label>
+            </span>
+            {pointsError && (
+              <small className={styles.errorMessage}>Points must be greater than 0</small>
+            )}
+          </div>
 
-        <div className={styles.formField}>
-          <span className="p-float-label">
-            <InputNumber
-              id="difficulty"
-              value={settings.difficulty}
-              min={1}
-              max={5}
-              className="w-full"
-              onValueChange={(e) => updateSetting("difficulty", e.value !== null ? e.value : 3)}
-            />
-            <label htmlFor="difficulty">Difficulty</label>
-          </span>
+          <div className={styles.formField}>
+            <span className="p-float-label">
+              <InputNumber
+                id="difficulty"
+                value={settings.difficulty}
+                min={1}
+                max={5}
+                className="w-full"
+                onValueChange={(e) => updateSetting("difficulty", e.value !== null ? e.value : 3)}
+              />
+              <label htmlFor="difficulty">Difficulty</label>
+            </span>
+          </div>
         </div>
       </div>
 

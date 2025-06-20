@@ -3,6 +3,7 @@ import { FC } from "react";
 
 import styles from "../../../shared/styles/CreateExercise.module.css";
 import { isTipTapContentEmpty } from "../../../utils/validation";
+import { useValidation } from "../../../shared/ExerciseLayout";
 
 interface DragAndDropInstructionsProps {
   instructions: string;
@@ -13,11 +14,13 @@ export const DragAndDropInstructions: FC<DragAndDropInstructionsProps> = ({
   instructions,
   onChange
 }) => {
+  const { shouldShowValidation } = useValidation();
   const isEmpty = isTipTapContentEmpty(instructions);
+  const shouldShowError = isEmpty && shouldShowValidation;
 
   return (
     <>
-      <div className={`${styles.questionEditor} ${isEmpty ? styles.emptyEditor : ""}`}>
+      <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
         <Editor
           content={instructions}
           onChange={onChange}
