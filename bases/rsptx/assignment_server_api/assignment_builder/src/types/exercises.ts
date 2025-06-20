@@ -81,6 +81,9 @@ export type QuestionJSON = Partial<{
   blocks: ParsonsBlock[];
   questionText: string;
   blanks: BlankWithFeedback[];
+  poll_type: string;
+  scale_min: number;
+  scale_max: number;
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;

@@ -39,13 +39,13 @@ export const AssignmentExercisesContainer = ({
   const { updateAssignmentExercises } = useUpdateAssignmentExercise();
   const [currentEditExercise, setCurrentEditExercise] = useState<Exercise | null>(null);
 
-  const { 
-    exerciseViewMode: viewMode, 
+  const {
+    exerciseViewMode: viewMode,
     exerciseType,
     exerciseId,
     exerciseStep,
     updateExerciseViewMode,
-    selectedAssignmentId 
+    selectedAssignmentId
   } = useAssignmentRouting();
 
   const setSelectedExercises = (exercises: Exercise[]) => {
@@ -70,7 +70,7 @@ export const AssignmentExercisesContainer = ({
     setShowSuccessDialog(false);
     setIsSaving(false);
     setResetExerciseForm(true);
-    // Stay in "create" mode to create another exercise
+    updateExerciseViewMode("create");
   };
 
   const handleFinishCreating = () => {

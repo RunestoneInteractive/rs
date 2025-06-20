@@ -10,6 +10,7 @@ interface AssignmentRouteParams extends Record<string, string | undefined> {
   assignmentId?: string;
   exerciseId?: string;
   exerciseType?: string;
+  exerciseSubType?: string;
   step?: string;
 }
 
@@ -20,6 +21,7 @@ interface AssignmentRouteState {
   activeTab: EditTab;
   exerciseViewMode: ExerciseViewMode;
   exerciseType: string | null;
+  exerciseSubType: string | null;
   exerciseStep: number;
   exerciseId: string | null;
 }
@@ -39,8 +41,9 @@ export const useAssignmentRouting = () => {
       activeTab: "basic",
       exerciseViewMode: "list",
       exerciseType: null,
+      exerciseSubType: null,
       exerciseStep: 0,
-      exerciseId: null,
+      exerciseId: null
     };
 
     if (path === basePath || path === `${basePath}/`) {
@@ -68,6 +71,7 @@ export const useAssignmentRouting = () => {
         } else if (path.includes("/create")) {
           state.exerciseViewMode = "create";
           state.exerciseType = params.exerciseType || null;
+          state.exerciseSubType = params.exerciseSubType || null;
           state.exerciseStep = params.step ? parseInt(params.step, 10) : 0;
         } else if (path.includes("/edit")) {
           state.exerciseViewMode = "edit";
@@ -88,106 +92,171 @@ export const useAssignmentRouting = () => {
     navigate("/builder");
   }, [navigate]);
 
-  const navigateToCreate = useCallback((step?: WizardStep) => {
-    if (step === "type") {
-      navigate("/builder/create/type");
-    } else {
-      navigate("/builder/create");
-    }
-  }, [navigate]);
+  const navigateToCreate = useCallback(
+    (step?: WizardStep) => {
+      if (step === "type") {
+        navigate("/builder/create/type");
+      } else {
+        navigate("/builder/create");
+      }
+    },
+    [navigate]
+  );
 
-  const navigateToEdit = useCallback((
-    assignmentId: string,
-    tab: EditTab = "basic"
-  ) => {
-    let path = `/builder/${assignmentId}`;
-    if (tab !== "basic") {
-      path += `/${tab}`;
-    }
-    navigate(path);
-  }, [navigate]);
+  const navigateToEdit = useCallback(
+    (assignmentId: string, tab: EditTab = "basic") => {
+      let path = `/builder/${assignmentId}`;
 
-  const navigateToExercises = useCallback((
-    assignmentId: string,
-    viewMode: ExerciseViewMode = "list",
-    options?: {
-      exerciseType?: string;
-      exerciseId?: string;
-      step?: number;
-    }
-  ) => {
-    let path = `/builder/${assignmentId}/exercises`;
-    
-    if (viewMode !== "list") {
-      path += `/${viewMode}`;
-      
-      if (viewMode === "create" && options?.exerciseType) {
-        path += `/${options.exerciseType}`;
-        if (options.step !== undefined) {
-          path += `/${options.step}`;
-        }
-      } else if (viewMode === "edit" && options?.exerciseId) {
-        path += `/${options.exerciseId}`;
-        if (options.step !== undefined) {
-          path += `/${options.step}`;
+      if (tab !== "basic") {
+        path += `/${tab}`;
+      }
+      navigate(path);
+    },
+    [navigate]
+  );
+
+  const navigateToExercises = useCallback(
+    (
+      assignmentId: string,
+      viewMode: ExerciseViewMode = "list",
+      options?: {
+        exerciseType?: string;
+        exerciseSubType?: string;
+        exerciseId?: string;
+        step?: number;
+      }
+    ) => {
+      let path = `/builder/${assignmentId}/exercises`;
+
+      if (viewMode !== "list") {
+        path += `/${viewMode}`;
+
+        if (viewMode === "create" && options?.exerciseType) {
+          path += `/${options.exerciseType}`;
+          if (options.exerciseSubType) {
+            path += `/${options.exerciseSubType}`;
+          }
+          if (options.step !== undefined) {
+            path += `/${options.step}`;
+          }
+        } else if (viewMode === "edit" && options?.exerciseId) {
+          path += `/${options.exerciseId}`;
+          if (options.step !== undefined) {
+            path += `/${options.step}`;
+          }
         }
       }
-    }
-    
-    navigate(path);
-  }, [navigate]);
 
-  const updateWizardStep = useCallback((step: WizardStep) => {
-    navigateToCreate(step);
-  }, [navigateToCreate]);
+      navigate(path);
+    },
+    [navigate]
+  );
 
-  const updateEditTab = useCallback((tab: EditTab) => {
-    if (routeState.selectedAssignmentId) {
-      navigateToEdit(routeState.selectedAssignmentId, tab);
-    }
-  }, [navigateToEdit, routeState.selectedAssignmentId]);
+  const navigateToExerciseTypeSelection = useCallback(
+    (assignmentId: string, exerciseType: string) => {
+      navigate(`/builder/${assignmentId}/exercises/create/${exerciseType}`);
+    },
+    [navigate]
+  );
 
-  const updateExerciseViewMode = useCallback((
-    viewMode: ExerciseViewMode,
-    options?: {
-      exerciseType?: string;
-      exerciseId?: string;
-      step?: number;
-    }
-  ) => {
-    if (routeState.selectedAssignmentId) {
-      navigateToExercises(routeState.selectedAssignmentId, viewMode, options);
-    }
-  }, [navigateToExercises, routeState.selectedAssignmentId]);
+  const navigateToExerciseSubTypeSelection = useCallback(
+    (assignmentId: string, exerciseType: string, exerciseSubType: string) => {
+      navigate(`/builder/${assignmentId}/exercises/create/${exerciseType}/${exerciseSubType}`);
+    },
+    [navigate]
+  );
 
-  const updateExerciseStep = useCallback((step: number) => {
-    if (routeState.selectedAssignmentId) {
-      if (routeState.exerciseViewMode === "create" && routeState.exerciseType) {
-        navigateToExercises(routeState.selectedAssignmentId, "create", {
-          exerciseType: routeState.exerciseType,
-          step
-        });
-      } else if (routeState.exerciseViewMode === "edit" && routeState.exerciseId) {
-        navigateToExercises(routeState.selectedAssignmentId, "edit", {
-          exerciseId: routeState.exerciseId,
-          step
-        });
+  const updateWizardStep = useCallback(
+    (step: WizardStep) => {
+      navigateToCreate(step);
+    },
+    [navigateToCreate]
+  );
+
+  const updateEditTab = useCallback(
+    (tab: EditTab) => {
+      if (routeState.selectedAssignmentId) {
+        navigateToEdit(routeState.selectedAssignmentId, tab);
       }
-    }
-  }, [navigateToExercises, routeState]);
+    },
+    [navigateToEdit, routeState.selectedAssignmentId]
+  );
+
+  const updateExerciseViewMode = useCallback(
+    (
+      viewMode: ExerciseViewMode,
+      options?: {
+        exerciseType?: string;
+        exerciseSubType?: string;
+        exerciseId?: string;
+        step?: number;
+      }
+    ) => {
+      if (routeState.selectedAssignmentId) {
+        navigateToExercises(routeState.selectedAssignmentId, viewMode, options);
+      }
+    },
+    [navigateToExercises, routeState.selectedAssignmentId]
+  );
+
+  const updateExerciseStep = useCallback(
+    (step: number) => {
+      if (routeState.selectedAssignmentId) {
+        if (routeState.exerciseViewMode === "create" && routeState.exerciseType) {
+          navigateToExercises(routeState.selectedAssignmentId, "create", {
+            exerciseType: routeState.exerciseType,
+            exerciseSubType: routeState.exerciseSubType || undefined,
+            step
+          });
+        } else if (routeState.exerciseViewMode === "edit" && routeState.exerciseId) {
+          navigateToExercises(routeState.selectedAssignmentId, "edit", {
+            exerciseId: routeState.exerciseId,
+            step
+          });
+        }
+      }
+    },
+    [navigateToExercises, routeState]
+  );
+
+  const updateExerciseType = useCallback(
+    (exerciseType: string) => {
+      if (routeState.selectedAssignmentId) {
+        navigateToExerciseTypeSelection(routeState.selectedAssignmentId, exerciseType);
+      }
+    },
+    [navigateToExerciseTypeSelection, routeState.selectedAssignmentId]
+  );
+
+  const updateExerciseSubType = useCallback(
+    (exerciseSubType: string) => {
+      if (routeState.selectedAssignmentId && routeState.exerciseType) {
+        navigateToExerciseSubTypeSelection(
+          routeState.selectedAssignmentId,
+          routeState.exerciseType,
+          exerciseSubType
+        );
+      }
+    },
+    [navigateToExerciseSubTypeSelection, routeState.selectedAssignmentId, routeState.exerciseType]
+  );
 
   return {
     // Current state
     ...routeState,
-    
+
     // Navigation functions
     navigateToList,
     navigateToCreate,
     navigateToEdit,
     navigateToExercises,
+    navigateToExerciseTypeSelection,
+    navigateToExerciseSubTypeSelection,
     updateWizardStep,
     updateEditTab,
     updateExerciseViewMode,
     updateExerciseStep,
+    updateExerciseType,
+    updateExerciseSubType
   };
-}; 
+};

@@ -9,18 +9,20 @@ export const RoutingDebug = () => {
   }
 
   return (
-    <div style={{
-      position: "fixed",
-      bottom: 10,
-      right: 10,
-      background: "#f0f0f0",
-      padding: "10px",
-      fontSize: "12px",
-      borderRadius: "4px",
-      zIndex: 9999,
-      maxWidth: "300px",
-      fontFamily: "monospace"
-    }}>
+    <div
+      style={{
+        position: "fixed",
+        bottom: 10,
+        right: 10,
+        background: "#f0f0f0",
+        padding: "10px",
+        fontSize: "12px",
+        borderRadius: "4px",
+        zIndex: 9999,
+        maxWidth: "300px",
+        fontFamily: "monospace"
+      }}
+    >
       <strong>Routing Debug:</strong>
       <div>Mode: {routing.mode}</div>
       <div>Assignment ID: {routing.selectedAssignmentId || "none"}</div>
@@ -28,9 +30,10 @@ export const RoutingDebug = () => {
       <div>Active Tab: {routing.activeTab}</div>
       <div>Exercise View: {routing.exerciseViewMode}</div>
       <div>Exercise Type: {routing.exerciseType || "none"}</div>
+      <div>Exercise SubType: {routing.exerciseSubType || "none"}</div>
       <div>Exercise Step: {routing.exerciseStep}</div>
       <div>Exercise ID: {routing.exerciseId || "none"}</div>
       <div>URL: {window.location.pathname}</div>
     </div>
   );
-}; 
+};
