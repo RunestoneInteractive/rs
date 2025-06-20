@@ -89,4 +89,91 @@
   border: none !important;
   box-shadow: none !important;
   outline: none !important;
+}
+
+.line-divider {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--primary-color) !important;
+  z-index: 100;
+  transform: translateY(-50%);
+  pointer-events: none;
+  opacity: 0.9;
+  cursor: pointer;
+}
+
+.line-divider::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 0;
+  right: 0;
+  height: 20px;
+  pointer-events: none;
+}
+
+.split-button-container {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 101;
+  pointer-events: auto;
+  background: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
+
+.split-button {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  max-width: 24px !important;
+  max-height: 24px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+}
+
+.split-button .p-button-icon {
+  font-size: 12px !important;
+  width: 12px !important;
+  height: 12px !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
+.line-divider:hover {
+  height: 4px;
+  opacity: 1;
+  box-shadow: 0 0 3px rgba(0,0,0,0.2);
+}
+
+.split-button-container:hover {
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+}
+
+.line-divider::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  top: -5px;
+  background-color: transparent;
+  z-index: 99;
 } 

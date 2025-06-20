@@ -61,16 +61,25 @@ export default class MultipleChoice extends RunestoneBase {
     ====  out of intermediate HTML    ====
     ====================================*/
     findQuestion() {
-        var delimiter;
-        for (var i = 0; i < this.origElem.childNodes.length; i++) {
-            if (this.origElem.childNodes[i].nodeName === "LI") {
-                delimiter = this.origElem.childNodes[i].outerHTML;
-                break;
+        // Old HTML format had question inside ul
+        // Newer format has a div.exercise-statement that is a part of the ul's parent
+        // Check for newer format...
+        const exStatement = this.origElem.parentElement.querySelector('.exercise-statement');
+        if (exStatement) {
+            this.question = exStatement;
+        } else {
+            //Older format
+            var delimiter;
+            for (var i = 0; i < this.origElem.childNodes.length; i++) {
+                if (this.origElem.childNodes[i].nodeName === "LI") {
+                    delimiter = this.origElem.childNodes[i].outerHTML;
+                    break;
+                }
             }
+            var fulltext = $(this.origElem).html();
+            var temp = fulltext.split(delimiter);
+            this.question = temp[0];
         }
-        var fulltext = $(this.origElem).html();
-        var temp = fulltext.split(delimiter);
-        this.question = temp[0];
     }
 
     findAnswers() {
@@ -131,7 +140,10 @@ export default class MultipleChoice extends RunestoneBase {
 
     renderMCContainer() {
         this.containerDiv = document.createElement("div");
-        $(this.containerDiv).html(this.question);
+        this.questionDiv = document.createElement("div");
+        $(this.questionDiv).html(this.question);
+        this.questionDiv.id = this.divid + "_prompt";
+        this.containerDiv.appendChild(this.questionDiv);
         $(this.containerDiv).addClass(this.origElem.getAttribute("class"));
         this.containerDiv.id = this.divid;
     }
@@ -145,7 +157,9 @@ export default class MultipleChoice extends RunestoneBase {
             onsubmit: "return false;",
         });
         // Add fieldset and legend for accessibility
-        this.optsFieldSet = document.createElement("fieldset")
+        this.optsFieldSet = document.createElement("fieldset");
+        this.optsFieldSet.setAttribute("role", "radiogroup");
+        this.optsFieldSet.setAttribute("aria-labelledby", this.divid + "_prompt");
         this.optsForm.appendChild(this.optsFieldSet);
         // generate form options
         this.renderMCFormOpts();
@@ -490,9 +504,9 @@ export default class MultipleChoice extends RunestoneBase {
 
     async logMCMAsubmission(sid) {
         var answer = this.answer || "";
-        var correct = this.correct || "F";
+        var correct = this.correct || false;
         var logAnswer =
-            "answer:" + answer + ":" + (correct == "T" ? "correct" : "no");
+            "answer:" + answer + ":" + (correct == true ? "correct" : "no");
         let data = {
             event: "mChoice",
             act: logAnswer,

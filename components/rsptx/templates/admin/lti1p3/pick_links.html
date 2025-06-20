@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment Selection</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css"/>
+    <style>
+        body {
+            padding: 20px;
+        }
+        h2 {
+            margin-top: 30px;
+        }
+        .subchapter {
+            background: #f0f0f0;
+        }
+        .alert p:last-child {
+            margin-bottom: 0;
+        }
+        .book-links {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .book-links li {
+            margin-bottom: 10px;
+        }
+        .table-striped tr:last-child td {
+            background: none;
+            border-bottom: none;
+            box-shadow: none;
+        }
+        tr.error td {
+            background: var(--bs-danger-bg-subtle) !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Runestone Content Linking</h1>
+
+{% if mapping_mismatch %}
+    <div class="alert alert-danger" role="alert">
+        <p>You are attempting to link to Runestone course <strong>{{rs_course_name}}</strong>, but that is linked to the LMS course <strong>{{current_mapped_course_name}}</strong>. Each Runestone course may only be linked to one LMS course. You can delete the association for the Runestone course in Runestone Admin panel under LTI Integration.</p>
+    </div>
+{% else %}
+
+{% if not supports_multiple %}
+    <p>Your LMS does not appear to support multiple items. You should only add one new book link or assignment link at a time. It is OK to "remap" multiple assignments at once.</p>
+{% endif %}
+
+    <div class="alert alert-danger" role="alert" id="top-level-warning" style="display: none;">
+        <p><em>Warning</em>: Behavior while linking content on a separate page may work differently. After you submit your form, you may end up on a page that has no content or shows some loading symbol. It is page your LMS displays while loading content from Runestone.</p>
+        <p>When you reach that page, leave it open, load or refresh your LMS course in another tab and verify that your content appeared in the course. Then you can close the loading page.</p>
+    </div>
+
+    <form action="assign-select/{{launch_id}}" method="post">
+
+        <h2>New Book Page Links</h2>
+
+        <p>Add as many content links as you like. To remove existing content links, remove them from your LMS.</p>
+
+        <button class="btn btn-secondary" type="button" id="addBookLink">Add book link</button>
+
+        <ul id="book-links" class="book-links mt-3">
+        </ul>
+        {% if book_system == 'PreTeXt' %}
+        {% endif %}
+
+        <h2>Assignment Links</h2>
+
+        <p>
+            For each Runestone assignment, choose what to do. Assignments already in use
+            cannot be removed via this interface (delete them in your LMS).
+        </p>
+
+        <table id="assign-mapping" class="table table-striped">
+            <tr>
+                <th>Runestone assignment</th>
+                <th>Current LMS assignment</th>
+                <th>Action</th>
+            </tr>
+            {% for item in assignments %}
+            <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.mapped_name }}</td>
+                <td>
+                    {% if item.already_mapped %}
+                        <input type="hidden" name="assign_{{ item.id }}" value="{{ item.mapped_value }}" class="assign-select">
+                        <select disabled>
+                            <option value="{{ item.mapped_value }}" selected>Preserve existing link</option>
+                        </select>
+                    {% else %}
+                        <select name="assign_{{ item.id }}" class="assign-select">
+                            <option value="">No Action</option>
+                            <option value="new" {{ "selected" if item.remap_suggested is not defined }}>Create new LMS activity</option>
+                            {% for l in lineitems %}
+                            <option value="{{ l.resourceLinkId }}" {{ 'selected' if l.label == item.name }}>Link to existing assignment {{ l.label }}</option>
+                            {% endfor %}
+                        </select>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td></td>
+                <td></td>
+                <td>
+                    <button type="button" class="btn btn-secondary btn-sm" id="ignoreAll">Clear suggested actions</button>
+                </td>
+            </tr>
+        </table>
+
+        <input type="hidden" name="launch_id" value="{{ launch_id }}">
+        <input type="hidden" name="authentication_nonce" value="{{ authentication_nonce }}">
+
+        <button type="submit" class="btn btn-primary mt-5">Submit form</button>
+
+        <div id="error" class="mt-3 alert alert-danger d-none"></div>
+
+        <div class="mt-3 alert alert-warning" role="alert">
+            <p>Submitting this form will associate this course with the Runestone course <strong>{{rs_course_name}}</strong>. If that does not look correct, close this window, log into the correct Runestone course, then rerun the content selection tool.</p>
+            <p>Each RS course should only be mapped to one LMS course. If you have multiple LMS courses, you will need to make multiple Runestone courses.</p>
+        </div>
+    </form>
+
+
+    <script>
+        const inIframe = window.self !== window.top;
+        if (!inIframe) {
+            document.getElementById('top-level-warning').style.display = 'block';
+        }
+
+        let bookLinkCount = 0;
+        document.getElementById('addBookLink').addEventListener('click', function() {
+            const bookLinks = document.getElementById('book-links');
+            const container = document.createElement('li');
+            const newSelect = document.createElement('select');
+            newSelect.name = `link_to_${++bookLinkCount}`;
+            newSelect.id = `link_to_${bookLinkCount}`;
+            newSelect.innerHTML = `
+                <option value="">None</option>
+                <option value="index">Book entry (index.html)</option>
+                {% for c in chapters %}
+                <option value="chapter____{{ c.id }}" class="chapter">{{ c.chapter_num }}: {{c.chapter_name}}</option>
+                    {% for sc in subchapter_dict[c.id] %}
+                    <option value="subcchapter____{{ sc.id }}" class="subchapter">{{ c.chapter_num }}.{{ sc.sub_chapter_num }}: {{sc.sub_chapter_name}}</option>
+                    {% endfor %}
+                {% endfor %}
+            `;
+            container.appendChild(newSelect);
+            bookLinks.appendChild(container);
+        });
+
+        document.getElementById('ignoreAll').addEventListener('click', function() {
+            let selects = document.querySelectorAll('select.assign-select');
+            for (var i = 0; i < selects.length; i++) {
+                selects[i].value = '';
+            }
+        });
+
+        // verify that no LMS assignment is linked to from multiple RS assignments
+        document.querySelector('form').addEventListener('submit', function(e) {
+            let selects = document.querySelectorAll('.assign-select');
+            console.log(selects);
+            const errorBox = document.getElementById('error');
+            errorBox.innerHTML = '';
+            let selectedValues = [];
+            let matches = [];
+            //identify matches
+            for (let i = 0; i < selects.length; i++) {
+                if (selects[i].value === '' || selects[i].value === 'new') {
+                    continue;
+                }
+                if (selectedValues.includes(selects[i].value)) {
+                    matches.push(selects[i].value);
+                }
+                selectedValues.push(selects[i].value);
+            }
+
+            if (matches.length > 0) {
+                e.preventDefault();
+                errorBox.innerHTML = 'You should only use each LMS assignment once.';
+                errorBox.classList.remove('d-none');
+                for (let i = 0; i < selects.length; i++) {
+                    containingRow = selects[i].closest('tr');
+                    if (matches.includes(selects[i].value)) {
+                        containingRow.classList.add('error');
+                    } else {
+                        containingRow.classList.remove('error');
+                    }
+                }
+            }
+        });
+    </script>
+{% endif %}
+</body>
+</html>

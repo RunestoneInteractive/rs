@@ -114,8 +114,29 @@ include /etc/nginx/default.d/\*.conf;
        # redirects, we set the Host: header above already.
        proxy_redirect off;
        proxy_pass http://assignment:8113/;
-
     }
+
+    # route requests to the new admin server - just lti1p3 at this point
+    # For now, /admin/ needs to contine to go to w2py server
+    location /admin/lti1p3/ {
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header Host $http_host;
+       proxy_redirect off;
+       #temporary... Need to pretend that just /admin got pulled out of URL
+       proxy_pass http://admin:8115/lti1p3/;
+    }
+
+    location /admin/instructor/ {
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header Host $http_host;
+       # we don't want nginx trying to do something clever with
+       # redirects, we set the Host: header above already.
+       proxy_redirect off;
+       proxy_pass http://admin:8115/instructor/;
+    }
+
 
     # route author requests
     # This one looks a bit different due to the author server being optional in the compose setup

@@ -16,7 +16,6 @@ import datetime
 import os
 import re
 import subprocess
-import asyncio
 from pathlib import Path
 import logging
 from io import StringIO
@@ -26,7 +25,6 @@ from shutil import copytree
 # -----------
 import click
 import lxml.etree as ET
-from lxml import ElementInclude
 import pretext
 from pretext.utils import is_earlier_version
 import pretext.project
@@ -41,7 +39,7 @@ from sqlalchemy.sql import text
 from rsptx.logging import rslogger
 from runestone.server import get_dburl
 from rsptx.db.models import Library, LibraryValidator
-from rsptx.db.crud import update_source_code
+from rsptx.db.crud import update_source_code_sync
 from rsptx.response_helpers.core import canonical_utcnow
 import pdb
 
@@ -154,7 +152,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
             target = "runestone"
         # sets output_dir to `published/<course>`
         # and {"host-platform": "runestone"} in stringparams
-        rs = check_project_ptx(course=course, target=target)
+        rs = check_project_ptx(click=click, course=course, target=target)
         if not rs:
             return False
 
@@ -375,11 +373,14 @@ def update_library(
     Session = sessionmaker()
     eng.connect()
     Session.configure(bind=eng)
+    sess = Session()
+
+    
 
     try:
-        res = eng.execute(f"select * from library where basecourse = '{course}'")
-    except Exception:
-        click.echo("Missing library table?  You may need to run an alembic migration.")
+        res = sess.execute(text("select * from library where basecourse = :course"), {"course": course})
+    except Exception as e:
+        click.echo(f"Error querying library table: {e}")
         return False
     # using the Model rather than raw sql ensures that everything is properly escaped
     build_time = canonical_utcnow()
@@ -514,13 +515,13 @@ def manifest_data_to_db(course_name, manifest_path):
     Session.configure(bind=engine)
     sess = Session()
     meta = MetaData()
-    chapters = Table("chapters", meta, autoload=True, autoload_with=engine)
-    subchapters = Table("sub_chapters", meta, autoload=True, autoload_with=engine)
-    questions = Table("questions", meta, autoload=True, autoload_with=engine)
-    book_author = Table("book_author", meta, autoload=True, autoload_with=engine)
-    source_code = Table("source_code", meta, autoload=True, autoload_with=engine)
+    chapters = Table("chapters", meta, autoload_with=engine)
+    subchapters = Table("sub_chapters", meta, autoload_with=engine)
+    questions = Table("questions", meta, autoload_with=engine)
+    book_author = Table("book_author", meta, autoload_with=engine)
+    source_code = Table("source_code", meta, autoload_with=engine)
     course_attributes = Table(
-        "course_attributes", meta, autoload=True, autoload_with=engine
+        "course_attributes", meta, autoload_with=engine
     )
 
     # Get the author name from the manifest
@@ -530,7 +531,7 @@ def manifest_data_to_db(course_name, manifest_path):
     res = sess.execute(book_author.select().where(book_author.c.book == course_name))
     book_author_data = res.first()
     # the owner is the username of the author
-    owner = book_author_data["author"]
+    owner = book_author_data.author
 
     rslogger.info(f"Cleaning up old chapters info for {course_name}")
     # Delete the chapter rows before repopulating. Subchapter rows are taken
@@ -546,6 +547,7 @@ def manifest_data_to_db(course_name, manifest_path):
         .values(from_source="F")
     )
 
+    
     rslogger.info("Populating the database with Chapter information")
     ext_img_patt = re.compile(r"""src="external""")
     gen_img_patt = re.compile(r"""src="generated""")
@@ -689,7 +691,7 @@ def manifest_data_to_db(course_name, manifest_path):
                 practice = "F"
                 if qtype == "webwork":
                     practice = "T"
-                if el and "practice" in el.attrib:
+                if el is not None and "practice" in el.attrib:
                     practice = "T"
                 autograde = ""
                 if "====" in dbtext:
@@ -732,7 +734,7 @@ def manifest_data_to_db(course_name, manifest_path):
                 else:
                     namekey = idchild
                 res = sess.execute(
-                    f"""select * from questions where name='{namekey}' and base_course='{course_name}'"""
+                    text(f"""select * from questions where name='{namekey}' and base_course='{course_name}'""")
                 ).first()
                 if res:
                     ins = (
@@ -761,15 +763,14 @@ def manifest_data_to_db(course_name, manifest_path):
                         filename = el.attrib["id"]
                     id = el.attrib["id"]
 
-                    # write datafile contents to the source_code table
-                    event_loop = asyncio.get_event_loop()
-                    event_loop.run_until_complete(
-                        update_source_code(
-                            acid=id,
-                            course_id=course_name,
-                            main_code=file_contents,
-                            filename=filename,
-                        )
+                    # manifest_data_to_db gets called from sync/async contexts
+                    # so must use sync DB access to avoid asyncio error
+                    # if process_manifest moves to async we can swap this out for async and remove the sync version
+                    update_source_code_sync(
+                        acid=id,
+                        course_id=course_name,
+                        main_code=file_contents,
+                        filename=filename,
                     )
 
             for sourceEl in subchapter.findall("./source"):
@@ -780,14 +781,12 @@ def manifest_data_to_db(course_name, manifest_path):
                 else:
                     filename = sourceEl.attrib["id"]
 
-                event_loop = asyncio.get_event_loop()
-                event_loop.run_until_complete(
-                    update_source_code(
-                        acid=id,
-                        course_id=course_name,
-                        main_code=file_contents,
-                        filename=filename,
-                    )
+                # see note above about sync/async
+                update_source_code_sync(
+                    acid=id,
+                    course_id=course_name,
+                    main_code=file_contents,
+                    filename=filename,
                 )
 
     latex = root.find("./latex-macros")
@@ -801,9 +800,9 @@ def manifest_data_to_db(course_name, manifest_path):
         ww_minor = None
 
     res = sess.execute(
-        f"select * from courses where course_name ='{course_name}'"
+        text(f"select * from courses where course_name ='{course_name}'")
     ).first()
-    cid = res["id"]
+    cid = res.id
 
     # Only delete latex_macros and markup_system if they are present. Leave other attributes alone.
     to_delete = ["latex_macros", "markup_system"]

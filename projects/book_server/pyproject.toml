@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "book_server"
-version = "2.0.0"
+version = "2.0.1"
 description = ""
 authors = ['Brad Miller <bonelake@mac.com>']
 license = ""
@@ -18,13 +18,15 @@ packages = [
     { include = "rsptx/exceptions", from = "../../components" },
     { include = "rsptx/book_server_api", from = "../../bases" },
     { include = "rsptx/practice", from = "../../components" },
-    { include = "rsptx/data_types", from = "../../components" },
+    { include = "rsptx/lti1p3", from = "../../components" },
+    { include = "rsptx/data_types", from = "../../components" }
 ]
 
 
 [tool.poetry.dependencies]
 python = "^3.10"
 aioredis = "^2.0.0"
+aiohttp = "^3.11.11"
 async-timeout = "^4.0.0"
 celery = { extras = ["redis"], version = "^5.0.0" }
 fastapi = "^0.103.0"
@@ -36,13 +38,13 @@ Jinja2 = "^3.1.0"
 aiofiles = "^0.8.0"
 alembic = "^1.0.0"
 python-dateutil = "^2.0.0"
-fastapi-login = "^1.8.0"
+fastapi-login = "^1.10.0"
+cryptography = "^3.0.0"
 pydal = ">=20210215.1"
 python-multipart = "^0.0.5"
-# asyncpg v. 0.25 has a `bug <https://github.com/MagicStack/asyncpg/issues/884>`_. Stay at v. 0.24 until it's fixed.
-asyncpg = "^0.28.0"
-SQLAlchemy = "^1.0.0"
-aiosqlite = "^0.17.0"
+asyncpg = "^0.30.0"
+SQLAlchemy = "^2.0.0"
+aiosqlite = "^0.18.0"
 redis = "^4.3.0"
 pyhumps = "^3.0.0"
 bleach = "^4.0.0"
@@ -55,6 +57,8 @@ pillow = "^10.0.0"
 pydantic-settings = "^2.0.3"
 pytz = "^2024.2"
 requests = "^2.0.0"
+jwcrypto = "^1.5.6"
+psycopg2-binary = "^2.0.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"
@@ -71,8 +75,6 @@ PyVirtualDisplay = "^3.0"
 polling2 = "^0.5.0"
 pytest-asyncio = "^0.17.0"
 pytest-env = "^0.6.0"
-# This is a Runestone Components dependency that's needed when testing PostgreSQL.
-psycopg2-binary = "^2.0.0"
 # This is used by VSCode for Python refactoring
 rope = "^0.21.0"
 runestone = { path = "../interactives", develop = true }

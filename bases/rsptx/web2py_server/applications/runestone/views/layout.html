@@ -36,7 +36,7 @@
 
     </head>
     <body class="sphinxrs">
-        <a class="assistive" href="#rst-content">Skip to main content</a>
+        <a id="skip-to-content" class="assistive" href="#rst-content">Skip to main content</a>
         {{ block navbar }}
         <!-- Begin navbar -->
         <div id="navbar" class="navbar navbar-default navbar-fixed-top" role="navigation">
@@ -124,7 +124,7 @@
                                 {{ if not settings.lti_only_mode: }}
                                 {{ if auth.user: }}
                                 <li class="divider"></li>
-                                <li><a href='/{{=request.application}}/admin/index'>Instructor's Page</a></li>
+                                <li><a href='/admin/instructor/menu'>Instructor Dashboard</a></li>
                                 {{ pass }}
                                 <li class="divider"></li>
                                 {{ pass }}
@@ -155,7 +155,7 @@
                         {{ if settings.academy_mode: }}
                             <!-- Omit the scratch activecode icon if ``no_scratch_activecode`` is True. Otherwise, include it. -->
                             {{ if "no_scratch_activecode" not in globals() or not no_scratch_activecode: }}
-                                <li id="scratch_ac_link" class="dropdown"><a href="javascript:runestoneComponents.popupScratchAC()">
+                                <li id="scratch_ac_link" class="dropdown"><a class="activecode-toggle" href="javascript:runestoneComponents.popupScratchAC()">
                                     <i class="glyphicon glyphicon-pencil" style="opacity:0.9;"><span aria-label="Scratch Activecode" class="visuallyhidden">Scratch Activecode</span></i></a></li>
                             {{pass}}
                             <!-- help menu dropdown -->
@@ -218,9 +218,9 @@
                         &emsp; ● <a href="/{{=request.application}}/default/privacy">Privacy Policy</a> &emsp; ●  <a href="/{{=request.application}}/default/terms">Terms of Service</a>
                     {{ pass }}
                     {{ if auth.user: }}
-                        <span class='loggedinuser'>{{=auth.user.email}}</span> | <a href="#">Back to top</a>
+                        <span class='loggedinuser'>{{=auth.user.email}}</span> | <a href="#" onclick="document.getElementById('skip-to-content').focus()">Back to top</a>
                     {{ else: }}
-                        <span class='loggedinuser'>Not logged in</span> | <a href="#">Back to top</a>
+                        <span class='loggedinuser'>Not logged in</span> | <a href="#" onclick="document.getElementById('skip-to-content').focus()">Back to top</a>
                     {{ pass }}
                 </p>
             </div>

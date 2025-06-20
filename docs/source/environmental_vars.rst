@@ -52,6 +52,7 @@ There are a number of other variables - none of them are important unless you ar
 * ``RUNESTONE_HOST`` *(d)* - this is the canonical host name of the server.  It is used to generate links to the server.  For development you should just set it to ``localhost``. In production it should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.
 * ``LOAD_BALANCER_HOST`` *(d)* - this is the canonical host name of the server when you are running in production with several workers.  It is used to generate links to the server. For development purposes you should not set this variable. In production it should be something like ``runestone.academy`` or ``runestone.academy:8000`` if you are running on a non-standard port.  You would typically only need to set this or RUNESTONE_HOST.
 * ``NUM_SERVERS`` *(d)* - this is the number of workers you are running. It will default to 1 if not set.  This is only important if you are running in production mode, behind a load balancer.
+* ``ALLOW_INSECURE_LOGIN`` *(d)* - this is a flag that allows users to log in without HTTPS.  This should only be used for development purposes and not in production.  This can be set to ``yes`` or ``true`` in the ``docker-compose.yml`` file for the ``runestone`` service.  If you are running in production mode, you should **not** set this variable.  Note, LTI will not work if this is set.
 
 .. note:: Host Side Development Notes
 

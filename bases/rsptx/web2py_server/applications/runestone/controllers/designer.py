@@ -40,6 +40,9 @@ def index():
         )
         sections = set()
         for course in course_list:
+            if course["shelf_section"] == None:
+                course["shelf_section"] = "Uncategorized"
+            # if the shelf_section is not in sections, add it
             if course["shelf_section"] not in sections:
                 sections.add(course["shelf_section"])
 
@@ -103,6 +106,11 @@ def build():
         else:
             login_required = "true"
 
+        if request.vars.domainname:
+            domainname = request.vars.domainname
+        else:
+            domainname = None
+
         # TODO: Update new_server after full away from old server
         cid = db.courses.update_or_insert(
             course_name=request.vars.projectname,
@@ -114,6 +122,7 @@ def build():
             courselevel=courselevel,
             state=request.vars.state,
             new_server=True,
+            domain_name=domainname,
         )
 
         origin = getCourseOrigin(base_course)

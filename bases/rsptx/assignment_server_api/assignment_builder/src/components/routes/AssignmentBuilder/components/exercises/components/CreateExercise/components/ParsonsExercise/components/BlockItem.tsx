@@ -3,7 +3,7 @@ import { Button } from "primereact/button";
 import { Checkbox, CheckboxChangeEvent } from "primereact/checkbox";
 import { InputText } from "primereact/inputtext";
 import { Tooltip } from "primereact/tooltip";
-import React, { FC, useRef, useCallback, useMemo, useState, useEffect } from "react";
+import React, { FC, useRef, useCallback, useMemo, useState, useEffect, CSSProperties } from "react";
 
 import { ParsonsBlock } from "@/utils/preview/parsonsPreview";
 
@@ -20,6 +20,7 @@ interface BlockItemProps {
   onRemove: (id: string) => void;
   onAddAlternative?: (id: string) => void;
   onCorrectChange?: (id: string, isCorrect: boolean) => void;
+  onSplitBlock?: (id: string, lineIndex: number) => void;
   showCorrectCheckbox?: boolean;
   hasAlternatives?: boolean;
   showAddAlternative?: boolean;
@@ -49,6 +50,7 @@ export const BlockItem: FC<BlockItemProps> = ({
   onRemove,
   onAddAlternative,
   onCorrectChange,
+  onSplitBlock,
   showCorrectCheckbox = false,
   hasAlternatives = false,
   showAddAlternative = true,
@@ -58,8 +60,14 @@ export const BlockItem: FC<BlockItemProps> = ({
 }) => {
   const contentRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const dividerRef = useRef<HTMLDivElement>(null);
+  const splitButtonContainerRef = useRef<HTMLDivElement>(null);
 
   const [editorHeight, setEditorHeight] = useState<number>(MIN_EDITOR_HEIGHT);
+  const [hoveredLine, setHoveredLine] = useState<number | null>(null);
+  const [hoveredLineOffset, setHoveredLineOffset] = useState<number>(0);
+  const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -136,6 +144,141 @@ export const BlockItem: FC<BlockItemProps> = ({
 
   const isTextEditor = useMemo(() => language === "text", [language]);
 
+  const findNearestLineBoundary = useCallback(
+    (y: number, monacoEditor: Element | null): { lineIndex: number; offsetY: number } | null => {
+      if (!monacoEditor) return null;
+
+      const lines = block.content.split("\n");
+
+      if (lines.length <= 1) return null;
+
+      const lineElements = monacoEditor.querySelectorAll(".view-line");
+
+      if (!lineElements || lineElements.length <= 1) return null;
+
+      let closestLine = 0;
+      let closestDistance = Infinity;
+      let closestOffset = 0;
+
+      for (let i = 0; i < lineElements.length; i++) {
+        const lineElement = lineElements[i] as HTMLElement;
+        const lineRect = lineElement.getBoundingClientRect();
+        const lineBottom = lineRect.bottom;
+
+        if (i < lineElements.length - 1) {
+          const nextLineElement = lineElements[i + 1] as HTMLElement;
+          const nextLineRect = nextLineElement.getBoundingClientRect();
+          const lineBoundary = (lineBottom + nextLineRect.top) / 2;
+
+          const distance = Math.abs(y - lineBoundary);
+
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestLine = i + 1;
+            closestOffset = lineBoundary;
+          }
+        }
+      }
+
+      return closestDistance < 10 ? { lineIndex: closestLine, offsetY: closestOffset } : null;
+    },
+    [block.content]
+  );
+
+  const handleEditorMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!editorContainerRef.current || !onSplitBlock || isDragging || hasAlternatives) return;
+
+      setCursorPosition({ x: e.clientX, y: e.clientY });
+
+      const container = editorContainerRef.current;
+      const monacoEditor = container.querySelector(".monaco-editor");
+      const tiptapEditor = container.querySelector(".ProseMirror");
+
+      if (monacoEditor) {
+        const containerRect = container.getBoundingClientRect();
+        const cursorY = e.clientY;
+
+        const boundary = findNearestLineBoundary(cursorY, monacoEditor);
+
+        if (boundary) {
+          setHoveredLine(boundary.lineIndex);
+
+          const relativeOffset = boundary.offsetY - containerRect.top;
+
+          setHoveredLineOffset(relativeOffset);
+        } else {
+          setHoveredLine(null);
+        }
+      } else {
+        setHoveredLine(null);
+      }
+    },
+    [findNearestLineBoundary, isDragging, onSplitBlock, hasAlternatives]
+  );
+
+  useEffect(() => {
+    if (!editorContainerRef.current || hoveredLine === null) return;
+
+    const handleScroll = () => {
+      if (cursorPosition && dividerRef.current && editorContainerRef.current) {
+        const container = editorContainerRef.current;
+        const containerRect = container.getBoundingClientRect();
+
+        const monacoEditor = container.querySelector(".monaco-editor");
+
+        if (monacoEditor) {
+          const boundary = findNearestLineBoundary(cursorPosition.y, monacoEditor);
+
+          if (boundary) {
+            const relativeOffset = boundary.offsetY - containerRect.top;
+
+            setHoveredLineOffset(relativeOffset);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, true);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [hoveredLine, cursorPosition, findNearestLineBoundary]);
+
+  const handleEditorMouseLeave = useCallback(() => {
+    setHoveredLine(null);
+    setCursorPosition(null);
+  }, []);
+
+  const handleSplitBlock = useCallback(
+    (lineIndex: number) => {
+      if (onSplitBlock) {
+        onSplitBlock(block.id, lineIndex);
+      }
+    },
+    [block.id, onSplitBlock]
+  );
+
+  const getDividerStyle = useCallback((): CSSProperties => {
+    const baseStyle: CSSProperties = {
+      top: `${hoveredLineOffset}px`
+    };
+
+    if (cursorPosition) {
+      return {
+        ...baseStyle,
+        pointerEvents: "none" as "none"
+      };
+    }
+
+    return baseStyle;
+  }, [hoveredLineOffset, cursorPosition]);
+
+  const getSplitButtonContainerStyle = useCallback((): CSSProperties => {
+    return { right: "0px" };
+  }, []);
+
   return (
     <div
       ref={containerRef}
@@ -192,10 +335,13 @@ export const BlockItem: FC<BlockItemProps> = ({
           </div>
         )}
 
-        <div className="flex-grow-1" style={{ width: "100%", overflow: "hidden" }}>
+        <div className="flex-grow-1 relative" style={{ width: "100%", overflow: "hidden" }}>
           {isTextEditor ? (
             <div
-              className="w-full"
+              ref={editorContainerRef}
+              className="w-full relative"
+              onMouseMove={handleEditorMouseMove}
+              onMouseLeave={handleEditorMouseLeave}
               onMouseDown={handleInputMouseDown}
               style={{ minHeight: "36px", width: "100%" }}
             >
@@ -204,10 +350,33 @@ export const BlockItem: FC<BlockItemProps> = ({
                 onChange={handleContentChange}
                 placeholder="Enter text content..."
               />
+              {hoveredLine !== null && (
+                <div ref={dividerRef} className="line-divider" style={getDividerStyle()}>
+                  <div
+                    ref={splitButtonContainerRef}
+                    className="split-button-container"
+                    style={getSplitButtonContainerStyle()}
+                  >
+                    <Button
+                      icon="pi pi-plus"
+                      onClick={() => handleSplitBlock(hoveredLine)}
+                      className="p-button-rounded p-button-primary split-button"
+                      aria-label="Split block"
+                      pt={{
+                        icon: { className: "p-button-icon" },
+                        root: { className: "p-button-root" }
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           ) : language && language !== "" ? (
             <div
-              className="w-full"
+              ref={editorContainerRef}
+              className="w-full relative"
+              onMouseMove={handleEditorMouseMove}
+              onMouseLeave={handleEditorMouseLeave}
               onMouseDown={handleInputMouseDown}
               style={{
                 minHeight: "36px",
@@ -224,6 +393,26 @@ export const BlockItem: FC<BlockItemProps> = ({
                 className="parsons-monaco-editor"
                 readOnly={false}
               />
+              {hoveredLine !== null && (
+                <div ref={dividerRef} className="line-divider" style={getDividerStyle()}>
+                  <div
+                    ref={splitButtonContainerRef}
+                    className="split-button-container"
+                    style={getSplitButtonContainerStyle()}
+                  >
+                    <Button
+                      icon="pi pi-plus"
+                      onClick={() => handleSplitBlock(hoveredLine)}
+                      className="p-button-rounded p-button-primary split-button"
+                      aria-label="Split block"
+                      pt={{
+                        icon: { className: "p-button-icon" },
+                        root: { className: "p-button-root" }
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <InputText

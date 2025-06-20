@@ -5,6 +5,7 @@
 #
 # Standard library
 # ----------------
+import asyncio
 import datetime
 import logging
 from math import ceil
@@ -18,6 +19,8 @@ import pydal
 
 # Local imports
 # -------------
+from rsptx.db.crud import fetch_lti_version
+from rsptx.lti1p3.core import attempt_lti1p3_score_update
 from outcome_request import OutcomeRequest
 
 logger = logging.getLogger(current.settings.logger)
@@ -1056,56 +1059,68 @@ def _get_lti_record(oauth_consumer_key):
             .first()
         )
 
-
+# Sends LTI 1.1 or 1.3 as appropriate
 def _try_to_send_lti_grade(student_row_num, assignment_id):
-    # try to send lti grades
-    assignment = _get_assignment(assignment_id)
+    assignment = current.db((current.db.assignments.id == assignment_id)).select().first()
     if not assignment:
         current.session.flash = (
             "Failed to find assignment object for assignment {}".format(assignment_id)
         )
         return False
-    else:
-        grade = (
-            current.db(
-                (current.db.grades.auth_user == student_row_num)
-                & (current.db.grades.assignment == assignment_id)
-            )
-            .select()
-            .first()
+    print("assignment", assignment)
+    grade = (
+        current.db(
+            (current.db.grades.auth_user == student_row_num)
+            & (current.db.grades.assignment == assignment_id)
         )
-        if not grade:
-            current.session.flash = (
-                "Failed to find grade object for user {} and assignment {}".format(
-                    student_row_num, assignment_id
-                )
+        .select()
+        .first()
+    )
+    if not grade:
+        current.session.flash = (
+            "Failed to find grade object for user {} and assignment {}".format(
+                student_row_num, assignment_id
             )
-            return False
-        else:
-            lti_record = _get_lti_record(current.session.oauth_consumer_key)
-            if (
-                (not lti_record)
-                or (not grade.lis_result_sourcedid)
-                or (not grade.lis_outcome_url)
-            ):
-                if lti_record:
-                    # if there is an LTI record then it should go to LTI but if not then this course is not hooked up to LTI, so don'e send a confusing message.
-                    current.session.flash = "Failed to send grade back to LMS (Coursera, Canvas, Blackboard...), probably because the student accessed this assignment directly rather than using a link from the LMS, or because there is an error in the assignment link in the LMS. Please report this error."
-                return False
-            else:
-                # really sending
-                # logger.debug("send_lti_grade({}, {}, {}, {}, {}, {}".format(assignment.points, grade.score, lti_record.consumer, lti_record.secret, grade.lis_outcome_url, grade.lis_result_sourcedid))
-                send_lti_grade(
-                    assignment.points,
-                    score=grade.score,
-                    consumer=lti_record.consumer,
-                    secret=lti_record.secret,
-                    outcome_url=grade.lis_outcome_url,
-                    result_sourcedid=grade.lis_result_sourcedid,
-                )
-                return True
+        )
+        return False
+    
+    course = current.db(current.db.courses.id == assignment.course).select().first()
+    lti_method = asyncio.get_event_loop().run_until_complete(fetch_lti_version(course.id))
+    if lti_method == "1.3":
+        asyncio.get_event_loop().run_until_complete(
+            attempt_lti1p3_score_update(student_row_num, assignment.id, grade.score)
+        )
+    if lti_method == "1.1":
+        _try_to_send_lti_grade1p1(assignment, assignment_id, grade)
+
+def _try_to_send_lti_grade1p1(student_row_num, assignment_id, grade):
+    # try to send lti grades for lti1.1
+
+    lti_record = _get_lti_record(current.session.oauth_consumer_key)
+    if (
+        (not lti_record)
+        or (not grade.lis_result_sourcedid)
+        or (not grade.lis_outcome_url)
+    ):
+        if lti_record:
+            # if there is an LTI record then it should go to LTI but if not then this course is not hooked up to LTI, so don'e send a confusing message.
+            current.session.flash = "Failed to send grade back to LMS (Coursera, Canvas, Blackboard...), probably because the student accessed this assignment directly rather than using a link from the LMS, or because there is an error in the assignment link in the LMS. Please report this error."
+        return False
+    else:
+        # really sending
+        # logger.debug("send_lti_grade({}, {}, {}, {}, {}, {}".format(assignment.points, grade.score, lti_record.consumer, lti_record.secret, grade.lis_outcome_url, grade.lis_result_sourcedid))
+        send_lti_grade(
+            assignment.points,
+            score=grade.score,
+            consumer=lti_record.consumer,
+            secret=lti_record.secret,
+            outcome_url=grade.lis_outcome_url,
+            result_sourcedid=grade.lis_result_sourcedid,
+        )
+        return True
 
 
+# Sends lti1.1 grade, not 1.3
 def send_lti_grade(
     assignment_points, score, consumer, secret, outcome_url, result_sourcedid
 ):
@@ -1129,6 +1144,7 @@ def send_lti_grade(
     return pct
 
 
+# Sends lti1.1 grade, not 1.3
 def send_lti_grades(assignment_id, assignment_points, course_id, lti_record, db):
     # logger.debug("sending lti grades")
     student_rows = _get_students(course_id=course_id, db=db)

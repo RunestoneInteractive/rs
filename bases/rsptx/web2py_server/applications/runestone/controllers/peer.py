@@ -10,6 +10,7 @@
 #
 # Standard library
 # ----------------
+import asyncio
 import json
 import logging
 import os
@@ -21,6 +22,7 @@ import altair as alt
 import pandas as pd
 import redis
 from dateutil.parser import parse
+from rsptx.db.crud import fetch_lti_version
 from rs_grading import _try_to_send_lti_grade
 
 logger = logging.getLogger(settings.logger)
@@ -74,7 +76,12 @@ def dashboard():
         next = "Reset"
     else:
         next = False
-    current_question, done = _get_current_question(assignment_id, next)
+
+    current_question, done, idx = _get_current_question(assignment_id, next)
+    all_questions = _get_assignment_questions(assignment_id)
+    num_questions = len(all_questions)
+    current_qnum = idx + 1
+
     assignment = db(db.assignments.id == assignment_id).select().first()
     course = db(db.courses.course_name == auth.user.course_name).select().first()
 
@@ -92,7 +99,14 @@ def dashboard():
         act="start_question",
         timestamp=datetime.datetime.utcnow(),
     )
-    is_lti = db(db.course_lti_map.course_id == auth.user.course_id).count() > 0
+
+    is_lti = (
+        asyncio.get_event_loop().run_until_complete(
+            fetch_lti_version(auth.user.course_id)
+        )
+        != None
+    )
+
     print("is_lti", is_lti)
     r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
     r.hset(f"{auth.user.course_name}_state", "mess_count", "0")
@@ -111,6 +125,9 @@ def dashboard():
         course_id=auth.user.course_name,
         course=get_course_row(db.courses.ALL),
         current_question=current_question,
+        all_questions=all_questions,
+        current_qnum=current_qnum,
+        num_questions=num_questions,
         assignment_id=assignment_id,
         assignment_name=assignment.name,
         is_instructor=True,
@@ -122,7 +139,7 @@ def dashboard():
 
 def extra():
     assignment_id = request.vars.assignment_id
-    current_question, done = _get_current_question(assignment_id, False)
+    current_question, done, idx = _get_current_question(assignment_id, False)
 
     return dict(
         course_id=auth.user.course_name,
@@ -132,6 +149,14 @@ def extra():
         is_instructor=True,
     )
 
+def _get_assignment_questions(assignment_id):
+    all_questions = db(
+      db.assignment_questions.assignment_id == assignment_id
+    ).select(
+      orderby=[ db.assignment_questions.sorting_priority,
+                db.assignment_questions.id ]
+    )
+    return [ db.questions[question.question_id] for question in all_questions ]
 
 def _get_current_question(assignment_id, get_next):
     assignment = db(db.assignments.id == assignment_id).select().first()
@@ -145,27 +170,28 @@ def _get_current_question(assignment_id, get_next):
     else:
         idx = assignment.current_index
     db.commit()  # commit changes to current question to prevent race condition.
-    return _get_numbered_question(assignment_id, idx)
+    question, done = _get_numbered_question(assignment_id, idx)
+    return question, done, idx
 
 
 def _get_numbered_question(assignment_id, qnum):
-    a_qs = db(db.assignment_questions.assignment_id == assignment_id).select(
-        orderby=[db.assignment_questions.sorting_priority, db.assignment_questions.id]
-    )
+    all_questions = _get_assignment_questions(assignment_id)
+    total_questions = len(all_questions)
+
     done = "false"
-    if qnum > len(a_qs) - 1:
-        qnum = len(a_qs) - 1
-    if qnum == len(a_qs) - 1:
+    if qnum > total_questions - 1:
+        qnum = total_questions - 1
+    if qnum == total_questions - 1:
         done = "true"
 
-    current_question_id = a_qs[qnum].question_id
-    current_question = db(db.questions.id == current_question_id).select().first()
-
+    current_question = all_questions[qnum]
     return current_question, done
 
 
 def _get_lastn_answers(num_answer, div_id, course_name, start_time, end_time=None):
     dburl = settings.database_uri.replace("postgres://", "postgresql://")
+    if "?" in dburl:
+        dburl = dburl[: dburl.index("?")]
 
     time_clause = f"""
         AND timestamp > '{start_time}'
@@ -316,7 +342,7 @@ def percent_correct():
     logger.debug(f"num rows = {tot}")
     corr = len(df[df.correct == "T"])
     if corr == 0:
-        return json.dumps({"pct_correct": "No Correct Answers"})
+        return json.dumps({"pct_correct": 0})
     else:
         return json.dumps({"pct_correct": corr / tot * 100})
 
@@ -359,7 +385,7 @@ def peer_question():
 
     assignment_id = request.vars.assignment_id
 
-    current_question, done = _get_current_question(assignment_id, False)
+    current_question, done, idx = _get_current_question(assignment_id, False)
     assignment = db(db.assignments.id == assignment_id).select().first()
     course = db(db.courses.course_name == auth.user.course_name).select().first()
     course_attrs = getCourseAttributesDict(course.id, course.base_course)
@@ -443,6 +469,7 @@ def make_pairs():
     # Create a list of groups
     group_list = []
     done = len(peeps) == 0
+    in_person_groups = []
     if is_ab:
         in_person_groups = _get_local_groups(auth.user.course_name)
         peeps_in_person = []
@@ -516,9 +543,8 @@ def make_pairs():
     # which is not broadcast!
     _broadcast_peer_answers(sid_ans)
     logger.info(f"DONE broadcasting pair information")
-    # todo: broadcast the enableFaceChat message to the in-person chatters
     if is_ab:
-        _broadcast_faceChat(peeps_in_person)
+        _broadcast_faceChat(peeps_in_person, in_person_groups)
     return json.dumps("success")
 
 
@@ -589,10 +615,16 @@ def _broadcast_peer_answers(answers):
         r.publish("peermessages", json.dumps(mess))
 
 
-def _broadcast_faceChat(peeps):
+def _broadcast_faceChat(peeps, in_person_groups):
     """
     Send the message to enable the face chat to the students in the peeps list
     """
+
+    people = db(db.auth_user.course_name == auth.user.course_name).select(
+        db.auth_user.username, db.auth_user.first_name, db.auth_user.last_name
+    )
+    # create a dictionary of people with their usernames as keys
+    peeps_dict = {p.username: f"{p.first_name} {p.last_name}" for p in people}
 
     r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
     for p in peeps:
@@ -600,12 +632,20 @@ def _broadcast_faceChat(peeps):
         # it seems odd to not have a to field in the message...
         # but it is not necessary as the client can figure out how it is to
         # based on who it is from.
+        # todo use _get_local_groups to get the in person groups
+        pgroup = set()
+        for group in in_person_groups:
+            if p in group:
+                pgroup = group
+                break
+        pgroup = [peeps_dict.get(x, x) for x in pgroup]  # convert usernames to names
         mess = {
             "type": "control",
             "from": p,
             "to": p,
             "message": "enableFaceChat",
             "broadcast": False,
+            "group": pgroup,
             "course_name": auth.user.course_name,
         }
         r.publish("peermessages", json.dumps(mess))

@@ -34,7 +34,7 @@ license = "GPL"
 name = "runestone"
 readme = "README.rst"
 repository = "https://github.com/RunestoneInteractive/rs"
-version = "7.6.5"
+version = "7.8.1"
 
 # See https://python-poetry.org/docs/pyproject/#include-and-exclude.
 include = [
@@ -109,9 +109,9 @@ CodeChat = "1.9.3"
 jinja2 = "^3.1.0"
 Paver = ">=1.2.4"
 six = ">1.12"
-Sphinx = ">=4.4.0,<6.0.0"
+Sphinx = "^6.2.0"
 sphinxcontrib-paverutils = ">=1.17"
-SQLAlchemy = "^1.4.0"
+SQLAlchemy = "^2.0.0"
 toml = "^0.10.2"
 json2xml = "^3.21.0"
 sphinx-reredirects = "^0.1.2"
@@ -124,17 +124,18 @@ jupyterlab = "^4.2.4"
 scikit-learn = "^1.5.1"
 ipyleaflet = "^0.19.2"
 aiosqlite = ">=0.18.0"
+cryptography = "^3.0.0"
 
 # Development dependencies
 # ========================
 python-dotenv = "^1.0.0"
 pydantic = "^2.0.0"
 fastapi = "^0.103.0"
-asyncpg = "^0.28.0"
+asyncpg = "^0.30.0"
 greenlet = "^3.0.0"
 dateutils = "^0.6.12"
 pyhumps = "^3.8.0"
-pydal = "^20230521.1"
+pydal = ">=20230521.1"
 pydantic-settings = "^2.0.3"
 jupyterlite-sphinx = "^0.9.3"
 [tool.poetry.dev-dependencies]
@@ -144,6 +145,9 @@ pytest = "~7"
 pylint = "~2"
 readme-renderer = ">24"
 json2xml = "~3"
+standard-asyncore = "^3.13.0"
+standard-imghdr = "^3.13.0"
+standard-cgi = "^3.13.0"
 
 
 # Scripts

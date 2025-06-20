@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment Selection</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css"/>
+    <style>
+        body {
+            padding: 20px;
+        }
+        h2 {
+            margin-top: 30px;
+        }
+        .subchapter {
+            background: #f0f0f0;
+        }
+        .alert p:last-child {
+            margin-bottom: 0;
+        }
+        .book-links {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .book-links li {
+            margin-bottom: 10px;
+        }
+        .table-striped tr:last-child td {
+            background: none;
+            border-bottom: none;
+            box-shadow: none;
+        }
+        tr.error td {
+            background: var(--bs-danger-bg-subtle) !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Runestone LTI 1.3 Login</h1>
+
+    <p>You are seeing this page because the cookies Runestone uses to authenticate you were blocked by your browser or you are not currently logged into Runestone.</p>
+
+    <p>First make sure you are logged into Runestone and have logged into the course you are trying to link to. Then relaunch the content selection tool.</p>
+
+    <p>If you still reach this page, you can either enable third party cookies in your browser, or provide your Runestone credentials below.</p>
+
+
+    <form action="dynamic-linking" method="post">
+
+        <div class="mb-3">
+            <label for="username" class="form-label">Runestone Username:</label>
+            <input type="text" id="username" name="username" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Runestone Password:</label>
+            <input type="password" id="password" name="password" class="form-control" required>
+        </div>
+
+        <input type="hidden" name="authenticity_token" value="{{ authenticity_token }}">
+        <input type="hidden" name="id_token" value="{{ id_token }}">
+        <input type="hidden" name="state" value="{{ state }}">
+        <input type="hidden" name="lti_storage_target" value="{{ lti_storage_target }}">
+        <input type="hidden" name="authentication_nonce" id="authentication_nonce">
+        <button type="button" id="submit-button" class="btn btn-primary mt-3">Submit form</button>
+    </form>
+
+    <script>
+        document.getElementById('submit-button').addEventListener('click', async function() {
+            //document.querySelector('form').submit();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            //make ajax request to authenticate to verify-user
+            let response = await fetch('verify-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            });
+
+            if (response.ok) {
+                //get body of response
+                const responseBody = await response.json();
+                if (responseBody.success) {
+                    document.getElementById('authentication_nonce').value = responseBody.nonce;
+                    document.querySelector('form').submit();
+                }
+                else {
+                    // If the response indicates failure, show an error message
+                    alert('Login failed: ' + responseBody.error);
+                }
+            } else {
+                // If the response is not OK, show an error message
+                const errorText = await response.text();
+                alert('Login failed: ' + errorText);
+            }
+        });
+    </script>
+</body>
+</html>

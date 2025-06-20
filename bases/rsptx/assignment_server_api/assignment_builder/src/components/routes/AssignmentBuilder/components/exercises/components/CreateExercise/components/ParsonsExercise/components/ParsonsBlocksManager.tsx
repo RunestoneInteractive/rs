@@ -600,6 +600,53 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
     [blocks, onChange]
   );
 
+  const handleSplitBlock = useCallback(
+    (id: string, lineIndex: number) => {
+      const blockToSplit = blocks.find((block) => block.id === id);
+
+      if (!blockToSplit) return;
+
+      if (blockToSplit.groupId) {
+        const groupBlocks = blocks.filter((block) => block.groupId === blockToSplit.groupId);
+
+        if (groupBlocks.length > 1) return;
+      }
+
+      const lines = blockToSplit.content.split("\n");
+
+      if (lines.length <= 1 || lineIndex <= 0 || lineIndex >= lines.length) return;
+
+      const topContent = lines.slice(0, lineIndex).join("\n");
+      const bottomContent = lines.slice(lineIndex).join("\n");
+
+      const updatedBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          return { ...block, content: topContent };
+        }
+        return block;
+      });
+
+      const newBlock: ParsonsBlock = {
+        id: `block-${Date.now()}`,
+        content: bottomContent,
+        indent: blockToSplit.indent,
+        groupId: blockToSplit.groupId,
+        isCorrect: false
+      };
+
+      const blockIndex = blocks.findIndex((block) => block.id === id);
+
+      const finalBlocks = [
+        ...updatedBlocks.slice(0, blockIndex + 1),
+        newBlock,
+        ...updatedBlocks.slice(blockIndex + 1)
+      ];
+
+      onChange(finalBlocks);
+    },
+    [blocks, onChange]
+  );
+
   const renderIndentationGuides = () => {
     return availableIndents.map((i) => {
       const isHighlighted = highlightedGuide === i;
@@ -759,6 +806,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
                           onContentChange={handleContentChange}
                           onRemove={handleRemoveBlock}
                           onAddAlternative={handleAddAlternative}
+                          onSplitBlock={handleSplitBlock}
                           showAddAlternative={true}
                           showDragHandle={true}
                         />
@@ -801,6 +849,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
                               onRemove={handleRemoveBlock}
                               onAddAlternative={handleAddAlternative}
                               onCorrectChange={handleCorrectChange}
+                              onSplitBlock={handleSplitBlock}
                               hasAlternatives={true}
                               showAddAlternative={blockGroup.length < MAX_ALTERNATIVES}
                               showDragHandle={isFirstInGroup}

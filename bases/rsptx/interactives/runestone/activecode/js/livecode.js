@@ -384,13 +384,14 @@ export default class LiveCode extends ActiveCode {
             }
         }
         if (this.compileAlso) {
-            // a space separated list of files that also need to be compiled
+            // a comma separated list of files that also need to be compiled
             // they also all should be part of additional_files
             // we will stick them onto the end of the compilerargs
             // so that jobe builds them into the string sent to the compiler
             // e.g. g++ [other_compile_args] [compileAlso] sourcefile -o executable
             paramobj.compileargs = paramobj.compileargs || [];
-            paramobj.compileargs.push(this.compileAlso);
+            let compileList = this.compileAlso.split(",");
+            paramobj.compileargs = paramobj.compileargs.concat(compileList);
         }
         let runspec = {
             language_id: this.language,
@@ -667,11 +668,17 @@ export default class LiveCode extends ActiveCode {
             document.createElement("div")
         );
         this.errDiv = eContainer;
+        eContainer.setAttribute("aria-live", "polite");
+        eContainer.setAttribute("aria-atomic", "true");
+        eContainer.setAttribute("role", "log");
         eContainer.className = "error alert alert-danger";
         eContainer.id = this.divid + "_errinfo";
         eContainer.appendChild(errHead[0]);
         var errText = eContainer.appendChild(document.createElement("pre"));
-        errText.innerHTML = escapeHtml(err);
+        // screenreaders seem to miss error message without the delay
+        setTimeout(() => {
+            errText.innerHTML = escapeHtml(err);
+        }, 10);
     }
     /**
      * Checks to see if file is on server

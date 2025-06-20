@@ -22,7 +22,6 @@ h2 {
     display: flex;
     justify-content: space-between;
     position: relative;
-    padding: 0 60px;
     max-width: 1000px;
     width: 100%;
     margin: 0 auto 1rem;
@@ -56,6 +55,7 @@ h2 {
     min-width: 120px;
     padding: 10px 14px;
     min-height: 50px;
+    max-width: 100%;
     background: var(--dropableBgColor, #f9f9f9);
     border: 2px solid var(--boxBorderColor);
     border-radius: 8px;
@@ -63,7 +63,6 @@ h2 {
     font-weight: bold;
     user-select: none;
     cursor: grab;
-    white-space: nowrap;
     text-align: center;
     touch-action: none;
     /* Prevents scrolling during tap+drag */
@@ -162,8 +161,6 @@ button {
     padding: 8px 16px;
     border: none;
     border-radius: 6px;
-    background: #3498db;
-    color: white;
     cursor: grab;
     transition: background 0.2s ease-in-out;
 }
@@ -222,7 +219,8 @@ button:hover {
 
 /* modal content box */
 .help-modal-content {
-    background: white;
+
+    background-color: var(--questionBgColor);
     padding: 1rem 1.5rem;
     border-radius: 6px;
     max-width: 80%;

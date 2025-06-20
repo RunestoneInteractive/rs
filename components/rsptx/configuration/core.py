@@ -64,7 +64,7 @@ class Settings(BaseSettings):
 
     # The path to the Runestone application inside web2py.
 
-    runestone_path: PosixPath = Path(
+    runestone_path: Path = Path(
         os.environ.get("RUNESTONE_PATH", Path.home())
     ).resolve()
 
@@ -153,6 +153,7 @@ class Settings(BaseSettings):
 
     # This is the secret key used for generating the JWT token.
     jwt_secret: bytes = b"supersecret"
+    fernet_secret: bytes = b"6M7llOz2ztmNV_5dZ0rOsODNACMkRLLMDb9K1MLw91w="
 
     # This is the private key web2py uses for hashing passwords.
     @property

@@ -1,6 +1,7 @@
 import { CreateExerciseFormType } from "@/types/exercises";
 
 import { DragAndDropData } from "../components/DragAndDropExercise/types";
+import { FillInTheBlankData } from "../components/FillInTheBlankExercise/types";
 import { MatchingData } from "../components/MatchingExercise/types";
 import { ParsonsData } from "../components/ParsonsExercise/ParsonsExercise";
 import { isTipTapContentEmpty } from "../utils/validation";
@@ -160,6 +161,25 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
     1: {
       title: "Content Matching",
       description: "Create blocks in both columns and connect matching items"
+    },
+    2: {
+      title: "Exercise Settings",
+      description: "Configure exercise settings such as name, points, etc."
+    },
+    3: {
+      title: "Preview",
+      description: "Preview the exercise as students will see it"
+    }
+  },
+  fillintheblank: {
+    0: {
+      title: "Create Question",
+      description:
+        "Write your question text and use {blank} to indicate where input fields should appear"
+    },
+    1: {
+      title: "Answer Fields",
+      description: "Configure the answer fields for each blank in your question"
     },
     2: {
       title: "Exercise Settings",
@@ -498,3 +518,79 @@ export const DRAG_AND_DROP_STEP_VALIDATORS: StepValidator<DragAndDropData>[] = [
 // Matching Exercise Step Validators - can use the same validators as DRAG_AND_DROP
 export const MATCHING_STEP_VALIDATORS: StepValidator<MatchingData>[] =
   DRAG_AND_DROP_STEP_VALIDATORS;
+
+// Fill in the Blank Exercise Step Validators
+export const FILL_IN_THE_BLANK_STEP_VALIDATORS: StepValidator<FillInTheBlankData>[] = [
+  (data: FillInTheBlankData) => {
+    const errors: string[] = [];
+
+    if (!data.questionText || !data.questionText.trim()) {
+      errors.push("Question text is required");
+      return errors;
+    }
+
+    const blankCount = (data.questionText.match(/{blank}/g) || []).length;
+
+    if (blankCount === 0) {
+      errors.push("Question must contain at least one {blank} placeholder");
+    }
+
+    return errors;
+  },
+  (data: FillInTheBlankData) => {
+    const errors: string[] = [];
+    const blanks = data.blanks || [];
+    const blankCount = data.questionText ? (data.questionText.match(/{blank}/g) || []).length : 0;
+
+    if (blanks.length === 0) {
+      errors.push("You must add at least one answer field");
+      return errors;
+    }
+
+    if (blanks.length < blankCount) {
+      errors.push(
+        `You have ${blankCount} blanks but only ${blanks.length} answer fields configured`
+      );
+    }
+
+    for (let i = 0; i < blanks.length; i++) {
+      const blank = blanks[i];
+
+      if (blank.graderType === "string" && (!blank.exactMatch || !blank.exactMatch.trim())) {
+        errors.push(`Answer field ${i + 1} must have an exact match value`);
+      } else if (
+        blank.graderType === "regex" &&
+        (!blank.regexPattern || !blank.regexPattern.trim())
+      ) {
+        errors.push(`Answer field ${i + 1} must have a regular expression pattern`);
+      } else if (blank.graderType === "number") {
+        if (!blank.numberMin || !blank.numberMax) {
+          errors.push(`Answer field ${i + 1} must have both minimum and maximum values`);
+        } else if (parseFloat(blank.numberMin) > parseFloat(blank.numberMax)) {
+          errors.push(`Answer field ${i + 1} has minimum value greater than maximum value`);
+        }
+      }
+    }
+
+    return errors;
+  },
+  (data: FillInTheBlankData) => {
+    const errors: string[] = [];
+
+    if (!data.name?.trim()) {
+      errors.push("Exercise name is required");
+    }
+    if (!data.chapter) {
+      errors.push("Chapter is required");
+    }
+    if (data.points === undefined || data.points <= 0) {
+      errors.push("Points must be greater than 0");
+    }
+    if (data.difficulty === undefined) {
+      errors.push("Difficulty is required");
+    }
+
+    return errors;
+  },
+  () => []
+];

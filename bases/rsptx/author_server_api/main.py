@@ -23,11 +23,6 @@ from typing import Optional
 # third party
 # -----------
 import aiofiles
-from rsptx.db.crud import (
-    create_instructor_course_entry,
-    fetch_base_course,
-    fetch_user,
-)
 from fastapi import Body, FastAPI, Request, Depends, status
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -49,19 +44,24 @@ from rsptx.author_server_api.worker import (
     anonymize_data_dump,
 )
 from rsptx.auth.session import is_instructor
+from rsptx.db.models import CoursesValidator
 from rsptx.exceptions.core import add_exception_handlers
+from rsptx.endpoint_validators import author_role_required
 
 from rsptx.db.crud import (
     create_book_author,
-    create_library_book,
-    fetch_instructor_courses,
-    fetch_books_by_author,
-    fetch_course,
-    fetch_course_by_id,
-    fetch_library_book,
-    update_library_book,
     create_course,
-    CoursesValidator,
+    create_instructor_course_entry,
+    create_library_book,
+    fetch_base_course,
+    fetch_books_by_author,
+    fetch_course_by_id,
+    fetch_course,
+    fetch_instructor_courses,
+    fetch_library_book,
+    fetch_user,
+    is_author,
+    update_library_book,
 )
 
 
@@ -72,7 +72,6 @@ from rsptx.visualization.authorImpact import (
     get_course_graph,
 )
 from rsptx.auth.session import auth_manager
-from rsptx.db.async_session import async_session
 from rsptx.templates import template_folder
 
 logger = logging.getLogger("runestone")
@@ -135,6 +134,18 @@ async def create_book_entry(
 # part of the request ``request.state.user`` `See FastAPI_Login Advanced <https://fastapi-login.readthedocs.io/advanced_usage/>`_
 auth_manager.attach_middleware(app)
 
+@app.get("/", response_class=RedirectResponse)
+async def root(request: Request):
+    """
+    Redirect to the author home page.
+    """
+    # check if the hostname is author.runestone.academy
+    if request.url.hostname == "author.runestone.academy":
+        # If so, redirect to the author home page
+        return RedirectResponse(url="/author/")
+    # Otherwise, redirect to /author/author for local
+    else:
+        return RedirectResponse(url="/author/author")
 
 @app.get("/author/")
 async def home(request: Request, user=Depends(auth_manager)):
@@ -142,12 +153,13 @@ async def home(request: Request, user=Depends(auth_manager)):
 
     course = await fetch_course(user.course_name)
     if user:
-        if not await verify_author(user):
+        if not await is_author(user.id):
             return RedirectResponse(url="/notauthorized")
 
     if user:
         name = user.first_name
         book_list = await fetch_books_by_author(user.username)
+        book_list = [b.Library for b in book_list if b.Library is not None]
     else:
         name = "unknown person"
         book_list = []
@@ -183,7 +195,9 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
         course = await fetch_course(user.course_name)
         server_config = os.environ.get("SERVER_CONFIG", "dev")
         if server_config == "production":
-            host = "https://" + os.environ.get("LOAD_BALANCER_HOST", "runestone.academy")
+            host = "https://" + os.environ.get(
+                "LOAD_BALANCER_HOST", "runestone.academy"
+            )
         else:
             host = ""
         logger.debug(f"{ready_files=}")
@@ -213,29 +227,6 @@ async def _getdshop(request: Request, fname: str, user=Depends(auth_manager)):
     file_path = pathlib.Path("downloads", "datashop", user.username, fname)
     return FileResponse(file_path)
 
-
-async def verify_author(user):
-    async with async_session() as sess:
-        auth_row = await sess.execute(
-            """select * from auth_group where role = 'author'"""
-        )
-        logger.debug(f"HELLO{str(auth_row)}")
-        auth_group_id = auth_row.scalars().first()
-        logger.debug(f"FOO {str(auth_group_id)}")
-        is_author = (
-            (
-                await sess.execute(
-                    f"""select * from auth_membership where user_id = {user.id} and group_id = {auth_group_id}"""
-                )
-            )
-            .scalars()
-            .first()
-        )
-
-        logger.debug("debugging is author")
-        logger.debug(user)
-        logger.debug(is_author)
-    return is_author
 
 
 @app.get("/author/dump/assignments/{course}")
@@ -268,10 +259,11 @@ async def dump_assignments(request: Request, course: str, user=Depends(auth_mana
 
 
 @app.get("/author/impact/{book}")
+@author_role_required()
 async def impact(request: Request, book: str, user=Depends(auth_manager)):
     # check for author status
     if user:
-        if not await verify_author(user):
+        if not await is_author(user.id):
             return RedirectResponse(url="/notauthorized")
     else:
         return RedirectResponse(url="/notauthorized")
@@ -301,7 +293,7 @@ async def subchapmap(
 ):
     # check for author status
     if user:
-        if not await verify_author(user):
+        if not await is_author(user.id):
             return RedirectResponse(url="/notauthorized")
     else:
         return RedirectResponse(url="/notauthorized")
@@ -316,9 +308,13 @@ async def subchapmap(
 
 # Called to download the log
 @app.get("/author/getlog/{book}")
-async def getlog(request: Request, book):
+async def getlog(request: Request, book, user=Depends(auth_manager)):
     book_entry = await fetch_library_book(book)
-    if book_entry and book_entry.repo_path and (pathlib.Path(book_entry.repo_path) / "cli.log").exists():
+    if (
+        book_entry
+        and book_entry.repo_path
+        and (pathlib.Path(book_entry.repo_path) / "cli.log").exists()
+    ):
         work_dir = book_entry.repo_path
     else:
         work_dir = f"/books/{book}"
@@ -341,15 +337,15 @@ def get_model_dict(model):
 
 @app.get("/author/editlibrary/{book}")
 @app.post("/author/editlibrary/{book}")
+@author_role_required()
 async def editlib(request: Request, book: str, user=Depends(auth_manager)):
     # Get the book and populate the form with current data
     book_data = await fetch_library_book(book)
     course = await fetch_course(user.course_name)
-
+    book_data_dict = get_model_dict(book_data)
     # this will either create the form with data from the submitted form or
     # from the kwargs passed if there is not form data.  So we can prepopulate
     #
-    book_data_dict = get_model_dict(book_data)
     form = await LibraryForm.from_formdata(request, **book_data_dict)
     if request.method == "POST" and await form.validate():
         print(f"Got {form.authors.data}")
@@ -366,10 +362,10 @@ async def editlib(request: Request, book: str, user=Depends(auth_manager)):
 @app.post("/author/anonymize_data/{book}")
 async def anondata(request: Request, book: str, user=Depends(auth_manager)):
     # Get the book and populate the form with current data
-    is_author = await verify_author(user)
+    is_authorp = await is_author(user)
     is_inst = await is_instructor(request)
 
-    if not (is_author or is_inst):
+    if not (is_authorp or is_inst):
         return RedirectResponse(url="/author/notauthorized")
 
     # Create a list of courses taught by this user to validate courses they
@@ -391,7 +387,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
     # this will either create the form with data from the submitted form or
     # from the kwargs passed if there is not form data.  So we can prepopulate
     #
-    if is_author:
+    if is_authorp:
         form = await DatashopForm.from_formdata(
             request, basecourse=book, clist=",".join(class_list)
         )
@@ -417,7 +413,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
             ready_files=ready_files,
             kind="datashop",
             course=course,
-            is_author=is_author,
+            is_author=is_authorp,
             is_instructor=is_inst,
         ),
     )
@@ -455,7 +451,9 @@ async def new_course(payload=Body(...), user=Depends(auth_manager)):
     if not repo_path.startswith("/books/"):
         repo_path = "/books/" + repo_path
     logger.debug(f"repo_path = {repo_path}")
-
+    # check to see if this path already exists
+    if pathlib.Path(repo_path).exists():
+        return JSONResponse({"detail": "repo_path already exists"})
     if "DEV_DBURL" not in os.environ:
         return JSONResponse({"detail": "DBURL is not set"})
     else:

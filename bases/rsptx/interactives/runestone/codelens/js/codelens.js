@@ -64,8 +64,9 @@ window.component_factory.codelens = function (opts) {
     // allTraceData is created by a series of script tags that when loaded create this
     // as a global object containing trace information.
     try {
+        let startInstr = allTraceData[divid].startingInstruction || 0;
         let vis = addVisualizerToPage(allTraceData[divid], divid, {
-            startingInstruction: 0,
+            startingInstruction: startInstr,
             editCodeBaseURL: null,
             hideCode: false,
             lang: lang,
@@ -83,8 +84,10 @@ window.component_factory.codelens = function (opts) {
         rb.logBookEvent({
             event: "codelens",
             div_id: evt.detail.divid,
-            act: `answer:${evt.detail.answer}`,
+            act: 'answer',
+            answer: evt.detail.answer,
             correct: evt.detail.correct,
+            percent: evt.detail.percent || 0,
         });
         console.log(evt);
     });
@@ -102,8 +105,9 @@ $(document).on("runestone:login-complete", function () {
             let lang = $(cl).data("params").lang;
             try {
                 if (divid in window.allTraceData) {
+                    let startInstr = allTraceData[divid].startingInstruction || 0;
                     var vis = addVisualizerToPage(allTraceData[divid], divid, {
-                        startingInstruction: 0,
+                        startingInstruction: startInstr,
                         editCodeBaseURL: null,
                         hideCode: false,
                         lang: lang,
@@ -126,8 +130,10 @@ $(document).on("runestone:login-complete", function () {
             rb.logBookEvent({
                 event: "codelens",
                 div_id: evt.detail.divid,
-                act: `answer:${evt.detail.answer}`,
+                act: 'answer',
+                answer: evt.detail.answer,
                 correct: evt.detail.correct,
+                percent: evt.detail.percent || 0,
             });
             console.log(evt);
         });

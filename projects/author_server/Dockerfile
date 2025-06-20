@@ -5,7 +5,7 @@ FROM latex_base:important
 LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
 
 # This is the name of the wheel that we build using `poetry build-project`
-ARG wheel=author_server-1.0.0-py3-none-any.whl
+ARG wheel=author_server-1.0.1-py3-none-any.whl
 
 # This demonstrates how to use a build argument to install texlive see https://stackoverflow.com/questions/34322631/how-to-pass-arguments-within-docker-compose for more info
 # The docker-compose file can also be updated to use a build object with args.  See https://docs.docker.com/compose/compose-file/#args
@@ -22,9 +22,9 @@ ARG texlive=1
 WORKDIR /usr/src/app
 
 # set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
 ENV CELERY_BROKER_URL=redis://redis:6379/0
 ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
 
@@ -41,7 +41,8 @@ COPY ./dist/$wheel /usr/src/app/$wheel
 # When you pip install a wheel it also installs all of the dependencies
 # which are stored in the METADATA file inside the wheel
 RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
-
+RUN playwright install-deps
+RUN playwright install
 COPY gitconfig /root/.gitconfig
 #COPY .ssh/id_rsa .
 

@@ -17,6 +17,7 @@ interface SortableBlockProps {
   onRemove: (id: string) => void;
   onAddAlternative?: (id: string) => void;
   onCorrectChange?: (id: string, isCorrect: boolean) => void;
+  onSplitBlock?: (id: string, lineIndex: number) => void;
   hasAlternatives?: boolean;
   showAddAlternative?: boolean;
   showDragHandle?: boolean;
@@ -33,6 +34,7 @@ export const SortableBlock: FC<SortableBlockProps> = ({
   onRemove,
   onAddAlternative,
   onCorrectChange,
+  onSplitBlock,
   hasAlternatives,
   showAddAlternative = true,
   showDragHandle = true
@@ -86,6 +88,7 @@ export const SortableBlock: FC<SortableBlockProps> = ({
         onRemove={onRemove}
         onAddAlternative={onAddAlternative}
         onCorrectChange={onCorrectChange}
+        onSplitBlock={onSplitBlock}
         showCorrectCheckbox={Boolean(block.groupId)}
         hasAlternatives={hasAlternatives}
         showAddAlternative={showAddAlternative}

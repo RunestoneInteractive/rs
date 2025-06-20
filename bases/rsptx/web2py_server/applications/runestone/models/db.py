@@ -82,9 +82,7 @@ else:
 # is required.  The Content Request launch also works in an iframe.
 if "https" in settings.server_type:
     session.secure()
-    if settings.lti_iframes is True:
-        session.samesite("None")
-
+    session.samesite("None")
 
 # This seems like it should allow us to share the session cookie across subdomains.
 # and seems to work for every browser except for Safari
@@ -153,6 +151,7 @@ else:
 db.define_table(
     "courses",
     Field("course_name", "string", unique=True),
+    Field("domain_name", "string"),
     Field("term_start_date", "date"),
     Field("institution", "string"),
     Field("base_course", "string"),
@@ -225,13 +224,17 @@ def getCourseAttributesDict(course_id, base_course=None):
         base_course = course.base_course
     attributes = db(db.course_attributes.course_id == course_id).select(**SELECT_CACHE)
     attrdict = {row.attr: row.value for row in attributes}
-    attrdict["default_language"] = (
-        db(db.library.basecourse == base_course)
-        .select(db.library.default_language)
-        .first()
-        .default_language
-    )
-    if not attrdict["default_language"]:
+    try:
+        attrdict["default_language"] = (
+            db(db.library.basecourse == base_course)
+            .select(db.library.default_language)
+            .first()
+            .default_language
+        )
+    except AttributeError as e:
+        attrdict["default_language"] = "python"
+    # appears we can get here and have a None value
+    if attrdict["default_language"] == None:
         attrdict["default_language"] = "python"
 
     return attrdict
@@ -688,6 +691,13 @@ def _create_access_token(data: dict, expires=None, scopes=None) -> bytes:
         response.cookies["access_token"] = encoded_jwt
         response.cookies["access_token"]["expires"] = 24 * 3600 * 105  # 15 weeks
         response.cookies["access_token"]["path"] = "/"
+        # if the ALLOW_INSECURE_LOGIN environment variable is set then do not set
+        # the httponly, samesite, or secure attributes on the cookie.
+        # This is useful for testing purposes, but should not be used in production.
+        if not os.environ.get("ALLOW_INSECURE_LOGIN", False):
+            response.cookies["access_token"]["httponly"] = True
+            response.cookies["access_token"]["samesite"] = "None"
+            response.cookies["access_token"]["secure"] = True
         if "LOAD_BALANCER_HOST" in os.environ:
             response.cookies["access_token"]["domain"] = os.environ[
                 "LOAD_BALANCER_HOST"

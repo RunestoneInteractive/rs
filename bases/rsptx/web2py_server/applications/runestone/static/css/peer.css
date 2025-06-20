@@ -1,0 +1,161 @@
+#pi-instructor-interface .row, #pi-instructor-interface #imessage {
+
+    margin-right: 0px;
+    margin-left: 0px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+#pi-session-status {
+    border: 1px solid #333333;
+    background-color: #F2E0C3;
+    padding: 9px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin: 5px;
+}
+
+#pi-question-indicator {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+#pi-group-size-selector {
+    gap: 5px;
+}
+
+#pi-group-size-selector label {
+    margin-bottom: 0;
+    font-weight: 500;
+}
+
+#pi-instructor-interface h3 {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+#pi-question-info {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#pi-assignment-navigation {
+    display: flex;
+    gap: 5px;
+}
+
+.pi-stepper {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    overflow: auto;
+    align-items: flex-start;
+}
+
+.pi-step-group {
+    display: flex;
+    flex-direction: row;
+    padding: 24px;
+    transition: background-color 0.3s ease;
+}
+
+.pi-step-group.middle {
+    width: 50%;
+}
+
+.pi-step-group.last {
+    width: 35%;
+}
+
+.pi-step-group.active {
+    background-color: #D7F1F999;
+    border-radius: 12px;
+}
+
+.pi-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    padding: 13px 16px 16px 16px;
+    transition: outline 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.pi-step.active:hover {
+    scale: 1.05;
+    transition: scale 0.2s ease-in-out;
+}
+
+.pi-step.active {
+    outline: 2px solid #1A6A83;
+    outline-offset: 2px;
+    border-radius: 5px;
+    margin-right: 10px;
+    margin-left: 10px;
+}
+
+.pi-step-number {
+    height: 42px;
+    width: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.pi-step-number-inner {
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #777777;
+    border: 1px solid #777777;
+    background-color: #FFFFFF;
+    font-size: 12px;
+    z-index: 100;
+}
+
+.pi-stepper-line {
+    height: 1px;
+    flex: 1;
+    background-color: #000000;
+    margin: 34px 0px 0 0px;
+}
+
+.pi-step-buttons {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+#chat-modality {
+    flex-direction: column;
+    gap: 0px;
+}
+
+.pi-step.active .pi-step-number {
+    background-color: #46B8DA80;
+}
+
+.pi-step.active .pi-step-number-inner {
+    color: #1A6A83;
+    border: 1px solid #46B8DA;
+}
+
+#pi-live-vote-graph {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.autopermalink {
+    display: none;
+}

@@ -1,8 +1,7 @@
-import React, { FC, useCallback, useMemo } from "react";
+import React, { FC, useCallback } from "react";
 
 import { CreateExerciseFormType } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
-import { generateParsonsHtmlSrc } from "@/utils/exercise/parsonsExercise";
 import { generateParsonsPreview, ParsonsBlock } from "@/utils/preview/parsonsPreview";
 
 import { PARSONS_STEP_VALIDATORS } from "../../config/stepConfigs";
@@ -24,11 +23,7 @@ const PARSONS_STEPS = [
   { label: "Preview" }
 ];
 
-export interface ParsonsData extends Partial<CreateExerciseFormType> {
-  blocks?: ParsonsBlock[];
-  language?: string;
-  instructions?: string;
-}
+export interface ParsonsData extends Partial<CreateExerciseFormType> {}
 
 const getDefaultFormData = (): ParsonsData => ({
   name: createExerciseId(),
@@ -59,7 +54,7 @@ const generatePreview = (data: ParsonsData): string => {
 };
 
 const generateExerciseHtmlSrc = (data: ParsonsData): string => {
-  return generateParsonsHtmlSrc({
+  return generateParsonsPreview({
     name: data.name || "parsons_exercise",
     instructions: data.instructions || "",
     blocks: data.blocks || [],
@@ -136,13 +131,21 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
     [updateFormData]
   );
 
+  const handleLanguageChange = useCallback(
+    (language: string) => {
+      updateFormData("language", language);
+      updateFormData("blocks", [{ id: `block-${Date.now()}`, content: "", indent: 0 }]);
+    },
+    [updateFormData]
+  );
+
   const renderStepContent = () => {
     switch (activeStep) {
       case 0:
         return (
           <ParsonsLanguageSelector
             language={formData.language || ""}
-            onChange={(language: string) => updateFormData("language", language)}
+            onChange={handleLanguageChange}
           />
         );
 

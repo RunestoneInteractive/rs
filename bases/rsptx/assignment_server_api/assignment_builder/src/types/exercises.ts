@@ -1,5 +1,8 @@
 import { FilterMatchMode } from "primereact/api";
 
+import { BlankWithFeedback } from "../components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/FillInTheBlankExercise/types";
+import { ParsonsBlock } from "../utils/preview/parsonsPreview";
+
 export const supportedExerciseTypesToEdit = [
   "mchoice",
   "poll",
@@ -7,7 +10,8 @@ export const supportedExerciseTypesToEdit = [
   "activecode",
   "dragndrop",
   "parsonsprob",
-  "matching"
+  "matching",
+  "fillintheblank"
 ];
 
 export const supportedExerciseTypes = [
@@ -74,6 +78,9 @@ export type QuestionJSON = Partial<{
   right: { id: string; label: string }[];
   correctAnswers: string[][];
   feedback: string;
+  blocks: ParsonsBlock[];
+  questionText: string;
+  blanks: BlankWithFeedback[];
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;
