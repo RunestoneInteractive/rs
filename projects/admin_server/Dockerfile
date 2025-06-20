@@ -1,5 +1,5 @@
 # pull official base image
-FROM python:3.10-bullseye
+FROM python:3.13-slim
 
 # This is the name of the wheel that we build using `poetry build-project`
 ARG wheel=admin_server-0.1.0-py3-none-any.whl
@@ -8,15 +8,15 @@ ARG wheel=admin_server-0.1.0-py3-none-any.whl
 WORKDIR /usr/src/app
 
 # set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV RUNESTONE_PATH /usr/src/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV RUNESTONE_PATH=/usr/src/app
 # When docker is run the books volume can/will be mounted
-ENV BOOK_PATH /usr/books
-ENV SERVER_CONFIG development
+ENV BOOK_PATH=/usr/books
+ENV SERVER_CONFIG=development
 # Note: host.docker.internal refers back to the host so we can just use a local instance
 # of postgresql
-ENV DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
+ENV DEV_DBURL=postgresql://runestone:runestone@host.docker.internal/runestone_dev
 ENV CELERY_BROKER_URL=redis://redis:6379/0
 ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
 

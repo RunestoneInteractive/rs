@@ -2837,14 +2837,14 @@ pyee = "12.0.0"
 
 [[package]]
 name = "pretext"
-version = "2.19.2"
+version = "2.19.1"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0.0,>=3.8.5"
 groups = ["main", "dev"]
 files = [
-    {file = "pretext-2.19.2-py3-none-any.whl", hash = "sha256:7dcd1bd9e4516ee8723db301b875517c8dee46958375024c1a80a0459d997752"},
-    {file = "pretext-2.19.2.tar.gz", hash = "sha256:faeedd19eea4fc1672a53a26cdc06aab2d3fc3cf433247fefe4ea9f1a50651fd"},
+    {file = "pretext-2.19.1-py3-none-any.whl", hash = "sha256:657d64f9fec80faea214fe84ca4fbf975361a4c3d8b85aee24ca15b69cdf68b3"},
+    {file = "pretext-2.19.1.tar.gz", hash = "sha256:d0bf6a7a99e14f0ada1fdd8a5e7906a04a63155b58297686bc9b9b8d22cb881f"},
 ]
 
 [package.dependencies]
@@ -3072,14 +3072,14 @@ files = [
 
 [[package]]
 name = "pydal"
-version = "20230521.1"
+version = "20241204.1"
 description = "pyDAL is a Database Abstraction Layer. It generates queries for SQlite, PotsgreSQL, MySQL, and other backends. It was originally part of the web2py frameworks but it is now an independent project. Example: db.define_table(\"thing\",Field(\"name\")) and db.thing.insert(name=\"Pizza\")"
 optional = false
 python-versions = ">=3.7"
 groups = ["main", "dev"]
 files = [
-    {file = "pydal-20230521.1-py2.py3-none-any.whl", hash = "sha256:37f3430fdd0650d92d637350065ba43ffba0357aa51f3db5b170f4a2105deef2"},
-    {file = "pydal-20230521.1.tar.gz", hash = "sha256:10478a61e627c5b8cb7691f7f7ebf7210845485316493d37d740c297fb6d1845"},
+    {file = "pydal-20241204.1-py2.py3-none-any.whl", hash = "sha256:416f06de17ab0a5340e11195a0583abfe484eceb067cd3ab92208d3dc5aa7683"},
+    {file = "pydal-20241204.1.tar.gz", hash = "sha256:1ba1f9e528b985e234f5b3acfd9d549998b44f7ed7ae747b9e8d4ad3047bf511"},
 ]
 
 [[package]]
@@ -3847,7 +3847,7 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.8.0"
+version = "7.8.1"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
@@ -3876,14 +3876,14 @@ myst-parser = "^1.0.0"
 Paver = ">=1.2.4"
 pretext = "^2.7.0"
 psycopg2-binary = "^2.9.6"
-pydal = "^20230521.1"
+pydal = ">=20230521.1"
 pydantic = "^2.0.0"
 pydantic-settings = "^2.0.3"
 pyhumps = "^3.8.0"
 python-dotenv = "^1.0.0"
 scikit-learn = "^1.5.1"
 six = ">1.12"
-Sphinx = ">=4.4.0,<6.0.0"
+Sphinx = "^6.2.0"
 sphinx-reredirects = "^0.1.2"
 sphinxcontrib-paverutils = ">=1.17"
 SQLAlchemy = "^2.0.0"
@@ -4208,26 +4208,26 @@ files = [
 
 [[package]]
 name = "sphinx"
-version = "5.3.0"
+version = "6.2.1"
 description = "Python documentation generator"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.8"
 groups = ["main", "dev"]
 files = [
-    {file = "Sphinx-5.3.0.tar.gz", hash = "sha256:51026de0a9ff9fc13c05d74913ad66047e104f56a129ff73e174eb5c3ee794b5"},
-    {file = "sphinx-5.3.0-py3-none-any.whl", hash = "sha256:060ca5c9f7ba57a08a1219e547b269fadf125ae25b06b9fa7f66768efb652d6d"},
+    {file = "Sphinx-6.2.1.tar.gz", hash = "sha256:6d56a34697bb749ffa0152feafc4b19836c755d90a7c59b72bc7dfd371b9cc6b"},
+    {file = "sphinx-6.2.1-py3-none-any.whl", hash = "sha256:97787ff1fa3256a3eef9eda523a63dbf299f7b47e053cfcf684a1c2a8380c912"},
 ]
 
 [package.dependencies]
 alabaster = ">=0.7,<0.8"
 babel = ">=2.9"
 colorama = {version = ">=0.4.5", markers = "sys_platform == \"win32\""}
-docutils = ">=0.14,<0.20"
+docutils = ">=0.18.1,<0.20"
 imagesize = ">=1.3"
 Jinja2 = ">=3.0"
 packaging = ">=21.0"
-Pygments = ">=2.12"
-requests = ">=2.5.0"
+Pygments = ">=2.13"
+requests = ">=2.25.0"
 snowballstemmer = ">=2.0"
 sphinxcontrib-applehelp = "*"
 sphinxcontrib-devhelp = "*"
@@ -4238,8 +4238,8 @@ sphinxcontrib-serializinghtml = ">=1.1.5"
 
 [package.extras]
 docs = ["sphinxcontrib-websupport"]
-lint = ["docutils-stubs", "flake8 (>=3.5.0)", "flake8-bugbear", "flake8-comprehensions", "flake8-simplify", "isort", "mypy (>=0.981)", "sphinx-lint", "types-requests", "types-typed-ast"]
-test = ["cython", "html5lib", "pytest (>=4.6)", "typed_ast ; python_version < \"3.8\""]
+lint = ["docutils-stubs", "flake8 (>=3.5.0)", "flake8-simplify", "isort", "mypy (>=0.990)", "ruff", "sphinx-lint", "types-requests"]
+test = ["cython", "filelock", "html5lib", "pytest (>=4.6)"]
 
 [[package]]
 name = "sphinx-reredirects"
@@ -4894,4 +4894,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "52398d88388724ef7d57e2261228753f8ae0a93a07cbc50714093baf644a1b90"
+content-hash = "a924f8e6908a03ce871423bfd0b0ffcfaeaab073af28fd630234f2824f9b881b"
