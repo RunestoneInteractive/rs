@@ -106,6 +106,8 @@ export type CreateExercisesPayload = {
   tags: string;
   topic: string;
   points: number;
+  is_reading: boolean;
+  assignment_id: number;
 };
 
 export const isExerciseType = (value: any): value is ExerciseType => {

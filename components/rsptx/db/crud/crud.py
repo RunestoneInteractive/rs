@@ -95,8 +95,16 @@ async def is_server_feedback(div_id: str, course: str) -> Optional[Dict[str, Any
         # Get the feedback, if it exists.
         feedback = query_results and query_results.Question.feedback
         # If there's feedback and a login is required (necessary for server-side grading), return the decoded feedback.
-        if feedback and query_results.Courses.login_required:
-            return json.loads(feedback)
+        try:
+            if feedback and query_results.Courses.login_required:
+                # Decode the feedback from JSON.
+                return json.loads(feedback)
+        except json.JSONDecodeError as e:
+            rslogger.error(
+                f"Failed to decode feedback for div_id {div_id} in course {course}: {e}"
+            )
+            # If decoding fails, we log the error and return None.
+            return None
         # Otherwise, grade on the client.
         return None
 
