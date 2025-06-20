@@ -48,7 +48,7 @@ export const useAssignmentRouting = () => {
 
     if (path === basePath || path === `${basePath}/`) {
       state.mode = "list";
-    } else if (path.startsWith(`${basePath}/create`)) {
+    } else if (path.includes(`${basePath}/create`)) {
       state.mode = "create";
       if (path.includes("/type")) {
         state.wizardStep = "type";

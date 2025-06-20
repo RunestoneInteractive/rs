@@ -1,5 +1,7 @@
+import { assignmentSelectors } from "@store/assignment/assignment.logic";
 import { useCreateNewExerciseMutation } from "@store/exercises/exercises.logic.api";
 import { toast } from "react-hot-toast";
+import { useSelector } from "react-redux";
 
 import { CreateExerciseFormType } from "@/types/exercises";
 import { buildQuestionJson } from "@/utils/questionJson";
@@ -26,6 +28,7 @@ export const CreateView = ({
   setIsSaving
 }: CreateViewProps) => {
   const [createNewExercise] = useCreateNewExerciseMutation();
+  const assignmentId = useSelector(assignmentSelectors.getSelectedAssignmentId);
 
   return (
     <CreateExercise
@@ -50,7 +53,9 @@ export const CreateView = ({
             source: "This question was written in the web interface",
             tags: data.tags,
             topic: data.topic,
-            points: data.points
+            points: data.points,
+            is_reading: false,
+            assignment_id: assignmentId!
           });
 
           if (response.data) {

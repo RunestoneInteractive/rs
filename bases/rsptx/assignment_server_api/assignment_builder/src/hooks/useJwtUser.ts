@@ -1,6 +1,10 @@
 import { useEffect, useCallback, useState } from "react";
 import { useDispatch } from "react-redux";
-
+// At the top of your TypeScript file or in a separate `globals.d.ts` file
+declare var eBookConfig: {
+  username?: string;
+  // add other known properties here
+};
 interface JwtPayload {
   sub: string;
   exp: number;
@@ -55,7 +59,6 @@ export const useJwtUser = (): {
   useEffect(() => {
     const getTokenFromCookies = (): string | null => {
       const cookies = document.cookie.split(";");
-
       const tokenCookie = cookies.find((cookie) => cookie.trim().startsWith("access_token="));
 
       if (!tokenCookie) return null;
@@ -67,7 +70,13 @@ export const useJwtUser = (): {
       const token = getTokenFromCookies();
 
       if (!token) {
-        console.log("No JWT token found in cookies");
+        // If no token is found, check if eBookConfig has a username
+        if (eBookConfig && eBookConfig.username) {
+          setUsername(eBookConfig.username);
+          return;
+        }
+        // If no token and no username in eBookConfig, log a message        
+        console.log("No JWT token found in cookies and no username in eBookConfig.");
         return;
       }
 

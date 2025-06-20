@@ -136,7 +136,11 @@ function App() {
           children: [
             {
               index: true,
-              element: <OldAssignmentBuilder />
+              async lazy() {
+                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+                return { Component: AssignmentBuilder };
+              }
             },
             {
               path: "builder",

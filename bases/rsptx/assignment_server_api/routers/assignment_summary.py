@@ -49,7 +49,7 @@ def create_assignment_summary(assignment_id, course, dburl):
     summary["total"] = summary.iloc[:, 3:].sum(axis=1, numeric_only=True)
     numeric_columns = summary.columns[3:]
     summary.loc["average"] = summary[numeric_columns].mean()
-    summary.replace({np.nan: ""}, inplace=True)
+    summary.replace({np.nan: 0}, inplace=True)
     summary_no_index = summary.iloc[:-1].reset_index(drop=True)
     summary = pd.concat([summary_no_index, summary.iloc[[-1]]])
 
@@ -79,8 +79,10 @@ def create_assignment_summary(assignment_id, course, dburl):
         (select div_id, sid, correct, percent from splice_answers where course_name = '{COURSE_NAME}')
         union
         (select div_id, sid, correct, percent from unittest_answers where course_name = '{COURSE_NAME}')
+        union
+        (select div_id, sid, 'F', 0.0 from shortanswer_answers where course_name = '{COURSE_NAME}')
     ) as T
-    join questions on div_id = name and base_course = '{BASE_COURSE}'
+    join questions on div_id = name 
     join assignment_questions on questions.id = assignment_questions.question_id
     where assignment_id = {ASSIGNMENT_ID}
     """,
@@ -110,8 +112,7 @@ def create_assignment_summary(assignment_id, course, dburl):
     merged = summary.merge(
         attp, on=["Student ID", "First Name", "Last Name"], how="outer"
     )
-    merged = merged.fillna(0)
-
+    merged = merged.fillna(0)    
     for col in exercises:
         # convert aaa_y columns to int
         if col + "_y" in merged.columns:
@@ -122,6 +123,7 @@ def create_assignment_summary(assignment_id, course, dburl):
         if f"{col}_x" not in merged.columns:
             merged[col] = "0.0 (0)"
             continue
+
         merged[col] = (
             merged[col + "_x"].astype(str) + " (" + merged[col + "_y"].astype(str) + ")"
         )
@@ -131,9 +133,18 @@ def create_assignment_summary(assignment_id, course, dburl):
     merged = merged[
         ["Student ID", "First Name", "Last Name"] + list(exercises) + ["total"]
     ]
-    merged.iloc[-1, 3:] = merged.iloc[-1, 3:].apply(
-        lambda x: "{:.2f}".format(float(x.split("(")[0])) if type(x) is str and "(" in x else "{:.2f}".format(float(x))
-    )
+    try:
+        merged.iloc[0, 3:] = merged.iloc[0, 3:].apply(
+            lambda x: "{:.2f}".format(float(x.split("(")[0])) if type(x) is str and "(" in x else "{:.2f}".format(float(x))
+        )
+    except Exception as e:
+        print(
+            f"Error formatting the last row of the summary. Check the data types and values. {merged.iloc[-1, 3:]} : {e}"
+        )
+    if merged.iloc[0, 0] == 0 and merged.iloc[0, 1] == 0 and merged.iloc[0, 2] == 0:
+        merged.iloc[0, 0] = ""
+        merged.iloc[0, 1] = ""
+        merged.iloc[0, 2] = "Average"
 
     return merged.to_dict(
         orient="records",

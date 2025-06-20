@@ -40,6 +40,7 @@ formatter = logging.Formatter("%(levelname)s: %(asctime)s:  %(funcName)s: %(mess
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
+rslogger = logger
 
 
 # Because we are reusing many functions also used by `rsmanage` to do various build tasks
@@ -51,11 +52,24 @@ class MyClick:
     def __init__(self, worker, state):
         self.worker = worker
         self.state = state
+        self.logger = None
         logger.debug(f"MyClick worker is {self.worker}")
 
     def echo(self, message):
         logger.debug(f"UPDATE State: {self.state} {message}")
         self.worker.update_state(state=self.state, meta={"current": message})
+        if self.logger:
+            self.logger.info(f"UPDATE State: {self.state} {message}")
+
+    def add_logger(self, logger):
+        """
+        Add a logger to the MyClick instance.
+        This is not used in this context but can be useful for debugging.
+        """
+        self.logger = logger
+        self.logger.setLevel(logging.DEBUG)
+        rslogger.debug(f"MyClick logger set to {self.logger}")
+        logger.debug(f"MyClick logger set to {self.logger}")
 
 
 # Mock the click config object. It is only used for dburl information in this context
@@ -161,7 +175,7 @@ def git_pull(self, book, source_path=None):
         ["git", "reset", "--hard", "HEAD"], capture_output=True, cwd=work_dir
     )
     if res.returncode != 0:
-        outputlog = pathlib.Path(work_dir, "cli.log")
+        outputlog = pathlib.Path(work_dir, "author_build.log")
         with open(outputlog, "a") as olfile:
             olfile.write(res.stdout.decode("utf8"))
             olfile.write("\n====\n")
@@ -179,7 +193,7 @@ def git_pull(self, book, source_path=None):
         ["git", "clean", "--force", "-d"], capture_output=True, cwd=work_dir
     )
     if res.returncode != 0:
-        outputlog = pathlib.Path(work_dir, "cli.log")
+        outputlog = pathlib.Path(work_dir, "author_build.log")
         with open(outputlog, "a") as olfile:
             olfile.write(res.stdout.decode("utf8"))
             olfile.write("\n====\n")
@@ -199,7 +213,7 @@ def git_pull(self, book, source_path=None):
         cwd=work_dir,
     )
     if res.returncode != 0:
-        outputlog = pathlib.Path(work_dir, "cli.log")
+        outputlog = pathlib.Path(work_dir, "author_build.log")
         with open(outputlog, "a") as olfile:
             olfile.write(res.stdout.decode("utf8"))
             olfile.write("\n====\n")
@@ -276,7 +290,7 @@ def build_ptx_book(self, book, generate=False, target="runestone", source_path=N
     else:
         base_path = pathlib.Path(work_dir)
     logger.debug(f"base_path = {base_path}")
-    outputlog = pathlib.Path(base_path, "cli.log")
+    outputlog = pathlib.Path(base_path, "author_build.log")
     start_time = datetime.datetime.now()
     try:
         with open(outputlog, "w") as olfile:

@@ -1,7 +1,7 @@
 import { useGetSectionsForChapterQuery } from "@store/dataset/dataset.logic.api";
 import { Chips } from "primereact/chips";
 import { Dropdown } from "primereact/dropdown";
-import { InputNumber } from "primereact/inputnumber";
+import { InputNumber, InputNumberChangeEvent } from "primereact/inputnumber";
 import { InputText } from "primereact/inputtext";
 import { ReactNode, useCallback, useEffect, useState } from "react";
 
@@ -102,6 +102,14 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
   const subchapterError = !loadingSections && !settings.subchapter;
   const pointsError = settings.points <= 0;
 
+  const defaultValues = {
+    difficulty: 1,
+    points: 3
+  };
+  const onChangeInputNumber = (e: InputNumberChangeEvent, field: "difficulty" | "points") => {
+    updateSetting(field, e.value !== null ? e.value : defaultValues[field]);
+  };
+
   return (
     <>
       <div className={styles.settingsGrid}>
@@ -186,7 +194,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
                 min={0}
                 max={100000}
                 className={`w-full ${pointsError ? styles.requiredField : ""}`}
-                onValueChange={(e) => updateSetting("points", e.value !== null ? e.value : 1)}
+                onChange={(e) => onChangeInputNumber(e, "points")}
               />
               <label htmlFor="points">Points*</label>
             </span>
@@ -203,7 +211,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
                 min={1}
                 max={5}
                 className="w-full"
-                onValueChange={(e) => updateSetting("difficulty", e.value !== null ? e.value : 3)}
+                onChange={(e) => onChangeInputNumber(e, "difficulty")}
               />
               <label htmlFor="difficulty">Difficulty</label>
             </span>

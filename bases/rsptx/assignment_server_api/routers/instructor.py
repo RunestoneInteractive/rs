@@ -60,8 +60,9 @@ from rsptx.db.crud import (
     fetch_one_assignment,
     get_peer_votes,
     search_exercises,
-    create_api_token,
+    create_api_token
 )
+from rsptx.db.crud.assignment import add_assignment_question
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
 from rsptx.configuration import settings
@@ -85,6 +86,7 @@ from rsptx.validation.schemas import (
     UpdateAssignmentExercisesPayload,
     AssignmentQuestionUpdateDict,
     ExercisesSearchRequest,
+    CreateExercisesPayload
 )
 from rsptx.logging import rslogger
 from rsptx.analytics import log_this_function
@@ -1252,6 +1254,53 @@ async def do_assignment_summary_data(
             "assignment_summary": summary_data,
             "question_metadata": question_metadata,
         },
+    )
+
+@router.post("/question")
+@instructor_role_required()
+async def question_creation(
+    request_data: CreateExercisesPayload,
+    request: Request,
+    user=Depends(auth_manager)
+):
+
+    if not request_data.author:
+        request_data.author = user.first_name + " " + user.last_name
+
+    course = await fetch_course(user.course_name)
+
+    # Exclude assignment_id and is_reading parameters
+    question_data = {key: value for key, value in request_data.model_dump().items() if key not in ("assignment_id", "is_reading")}
+
+    try:
+        question = await create_question(
+            QuestionValidator(
+                **question_data,
+                base_course=course.base_course,
+                subchapter="Exercises",
+                timestamp=canonical_utcnow(),
+                is_private=False,
+                practice=False,
+                from_source=False,
+                review_flag=False,
+                owner=user.username
+            )
+        )
+
+        await add_assignment_question(
+            data=request_data,
+            question=question
+        )
+
+    except Exception as e:
+        rslogger.error(f"Error creating question: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error creating question: {e}"
+        )
+
+    return make_json_response(
+        status=status.HTTP_201_CREATED
     )
 
 

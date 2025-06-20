@@ -4,9 +4,11 @@ import path from "path";
 
 export default defineConfig(({ mode }: { mode: string }) => {
   let basedir = "/";
+
   if (mode === "production") {
-    basedir = "/assignment/instructor/builder";
+    basedir = "/assignment/instructor/";
   }
+
   return {
     build: {
       outDir: "../react",
@@ -19,7 +21,7 @@ export default defineConfig(({ mode }: { mode: string }) => {
         "/assignment": "http://localhost"
       }
     },
-    base: basedir,
+    base: basedir,F
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
@@ -29,7 +31,7 @@ export default defineConfig(({ mode }: { mode: string }) => {
     },
     plugins: [react()],
     optimizeDeps: {
-      include: ['react', 'react-dom', 'quill']
+      include: ["react", "react-dom", "quill"]
     }
   };
 });

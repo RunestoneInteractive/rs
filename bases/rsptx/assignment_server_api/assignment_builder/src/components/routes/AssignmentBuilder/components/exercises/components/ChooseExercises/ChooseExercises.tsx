@@ -79,6 +79,8 @@ export const ChooseExercises = () => {
 
   return (
     <TreeTable
+      scrollable
+      scrollHeight="95%"
       selectionMode="checkbox"
       selectionKeys={selectedKeys}
       onSelect={handleSelect}

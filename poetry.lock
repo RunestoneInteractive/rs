@@ -3804,8 +3804,8 @@ files = [
 [package.dependencies]
 numpy = [
     {version = ">=1.22.4", markers = "python_version < \"3.11\""},
-    {version = ">=1.23.2", markers = "python_version == \"3.11\""},
     {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
+    {version = ">=1.23.2", markers = "python_version == \"3.11\""},
 ]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
@@ -4263,14 +4263,14 @@ files = [
 
 [[package]]
 name = "pretext"
-version = "2.19.2"
+version = "2.19.3"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0.0,>=3.8.5"
 groups = ["main", "dev"]
 files = [
-    {file = "pretext-2.19.2-py3-none-any.whl", hash = "sha256:7dcd1bd9e4516ee8723db301b875517c8dee46958375024c1a80a0459d997752"},
-    {file = "pretext-2.19.2.tar.gz", hash = "sha256:faeedd19eea4fc1672a53a26cdc06aab2d3fc3cf433247fefe4ea9f1a50651fd"},
+    {file = "pretext-2.19.3-py3-none-any.whl", hash = "sha256:e49623015356ce1761794f6b118178a5a0c4a2ef81520003413184bc7c903bc8"},
+    {file = "pretext-2.19.3.tar.gz", hash = "sha256:bb69516aeff3a54a156669b9285d7516448bb2f3d72fc76690f38530de1b4060"},
 ]
 
 [package.dependencies]
@@ -4656,14 +4656,14 @@ files = [
 
 [[package]]
 name = "pydal"
-version = "20230521.1"
+version = "20241204.1"
 description = "pyDAL is a Database Abstraction Layer. It generates queries for SQlite, PotsgreSQL, MySQL, and other backends. It was originally part of the web2py frameworks but it is now an independent project. Example: db.define_table(\"thing\",Field(\"name\")) and db.thing.insert(name=\"Pizza\")"
 optional = false
 python-versions = ">=3.7"
 groups = ["main", "dev"]
 files = [
-    {file = "pydal-20230521.1-py2.py3-none-any.whl", hash = "sha256:37f3430fdd0650d92d637350065ba43ffba0357aa51f3db5b170f4a2105deef2"},
-    {file = "pydal-20230521.1.tar.gz", hash = "sha256:10478a61e627c5b8cb7691f7f7ebf7210845485316493d37d740c297fb6d1845"},
+    {file = "pydal-20241204.1-py2.py3-none-any.whl", hash = "sha256:416f06de17ab0a5340e11195a0583abfe484eceb067cd3ab92208d3dc5aa7683"},
+    {file = "pydal-20241204.1.tar.gz", hash = "sha256:1ba1f9e528b985e234f5b3acfd9d549998b44f7ed7ae747b9e8d4ad3047bf511"},
 ]
 
 [[package]]
@@ -4933,8 +4933,8 @@ astroid = ">=3.3.8,<=3.4.0-dev0"
 colorama = {version = ">=0.4.5", markers = "sys_platform == \"win32\""}
 dill = [
     {version = ">=0.2", markers = "python_version < \"3.11\""},
-    {version = ">=0.3.6", markers = "python_version >= \"3.11\""},
     {version = ">=0.3.7", markers = "python_version >= \"3.12\""},
+    {version = ">=0.3.6", markers = "python_version == \"3.11\""},
 ]
 isort = ">=4.2.5,<5.13.0 || >5.13.0,<6"
 mccabe = ">=0.6,<0.8"
@@ -5621,7 +5621,7 @@ files = [
 
 [[package]]
 name = "rsmanage"
-version = "2.0.0"
+version = "2.0.1"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -5645,13 +5645,13 @@ paver = "^1.3.4"
 pgcli = "^3.5.0"
 pretext = "^2.8.2"
 psycopg2-binary = "^2.9.6"
-pydal = "^20230521.1"
+pydal = "^20241204.1"
 pydantic = {version = "^2.0.0", extras = ["dotenv"]}
 pydantic-settings = "^2.0.3"
 pyhumps = "^3.8.0"
 python-dotenv = "^1.0.0"
 redis = "^4.5.4"
-runestone = "^7.0.0"
+runestone = "^7.8.0"
 sphinx-reredirects = "^0.1.2"
 sphinxcontrib-paverutils = "^1.17.0"
 sqlalchemy = "^2.0.0"
@@ -5663,7 +5663,7 @@ url = "projects/rsmanage"
 
 [[package]]
 name = "runestone"
-version = "7.7.6"
+version = "7.8.0"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
@@ -5692,14 +5692,14 @@ myst-parser = "^1.0.0"
 Paver = ">=1.2.4"
 pretext = "^2.7.0"
 psycopg2-binary = "^2.9.6"
-pydal = "^20230521.1"
+pydal = ">=20230521.1"
 pydantic = "^2.0.0"
 pydantic-settings = "^2.0.3"
 pyhumps = "^3.8.0"
 python-dotenv = "^1.0.0"
 scikit-learn = "^1.5.1"
 six = ">1.12"
-Sphinx = ">=4.4.0,<6.0.0"
+Sphinx = "^6.2.0"
 sphinx-reredirects = "^0.1.2"
 sphinxcontrib-paverutils = ">=1.17"
 SQLAlchemy = "^2.0.0"
@@ -6065,26 +6065,26 @@ files = [
 
 [[package]]
 name = "sphinx"
-version = "5.3.0"
+version = "6.2.1"
 description = "Python documentation generator"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.8"
 groups = ["main", "dev"]
 files = [
-    {file = "Sphinx-5.3.0.tar.gz", hash = "sha256:51026de0a9ff9fc13c05d74913ad66047e104f56a129ff73e174eb5c3ee794b5"},
-    {file = "sphinx-5.3.0-py3-none-any.whl", hash = "sha256:060ca5c9f7ba57a08a1219e547b269fadf125ae25b06b9fa7f66768efb652d6d"},
+    {file = "Sphinx-6.2.1.tar.gz", hash = "sha256:6d56a34697bb749ffa0152feafc4b19836c755d90a7c59b72bc7dfd371b9cc6b"},
+    {file = "sphinx-6.2.1-py3-none-any.whl", hash = "sha256:97787ff1fa3256a3eef9eda523a63dbf299f7b47e053cfcf684a1c2a8380c912"},
 ]
 
 [package.dependencies]
 alabaster = ">=0.7,<0.8"
 babel = ">=2.9"
 colorama = {version = ">=0.4.5", markers = "sys_platform == \"win32\""}
-docutils = ">=0.14,<0.20"
+docutils = ">=0.18.1,<0.20"
 imagesize = ">=1.3"
 Jinja2 = ">=3.0"
 packaging = ">=21.0"
-Pygments = ">=2.12"
-requests = ">=2.5.0"
+Pygments = ">=2.13"
+requests = ">=2.25.0"
 snowballstemmer = ">=2.0"
 sphinxcontrib-applehelp = "*"
 sphinxcontrib-devhelp = "*"
@@ -6095,8 +6095,8 @@ sphinxcontrib-serializinghtml = ">=1.1.5"
 
 [package.extras]
 docs = ["sphinxcontrib-websupport"]
-lint = ["docutils-stubs", "flake8 (>=3.5.0)", "flake8-bugbear", "flake8-comprehensions", "flake8-simplify", "isort", "mypy (>=0.981)", "sphinx-lint", "types-requests", "types-typed-ast"]
-test = ["cython", "html5lib", "pytest (>=4.6)", "typed_ast ; python_version < \"3.8\""]
+lint = ["docutils-stubs", "flake8 (>=3.5.0)", "flake8-simplify", "isort", "mypy (>=0.990)", "ruff", "sphinx-lint", "types-requests"]
+test = ["cython", "filelock", "html5lib", "pytest (>=4.6)"]
 
 [[package]]
 name = "sphinx-click"
@@ -6378,6 +6378,42 @@ pure-eval = "*"
 
 [package.extras]
 tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
+
+[[package]]
+name = "standard-asyncore"
+version = "3.13.0"
+description = "Standard library asyncore redistribution. \"dead battery\"."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "standard_asyncore-3.13.0-py3-none-any.whl", hash = "sha256:de5743678b5331d56bbb3bb80a09e2aa49f7779ce3867072ddd79485ff765dca"},
+    {file = "standard_asyncore-3.13.0.tar.gz", hash = "sha256:03f25918feaaa3ec13e5684c5289e80682bb584effc97c6d0ecd1e2f45bd0d7d"},
+]
+
+[[package]]
+name = "standard-cgi"
+version = "3.13.0"
+description = "Standard library cgi redistribution. \"dead battery\"."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "standard_cgi-3.13.0-py3-none-any.whl", hash = "sha256:3770017d2e43b4ef94b16b50206aeb3bb33b31429e7f47e9d4c2eeb0c7800902"},
+    {file = "standard_cgi-3.13.0.tar.gz", hash = "sha256:7ba8089fdcbd7d7a46a737e24cb5e4e2892db48678ad0e5f8726699a9d4ed53a"},
+]
+
+[[package]]
+name = "standard-imghdr"
+version = "3.13.0"
+description = "Standard library imghdr redistribution. \"dead battery\"."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "standard_imghdr-3.13.0-py3-none-any.whl", hash = "sha256:30a1bff5465605bb496f842a6ac3cc1f2131bf3025b0da28d4877d6d4b7cc8e9"},
+    {file = "standard_imghdr-3.13.0.tar.gz", hash = "sha256:8d9c68058d882f6fc3542a8d39ef9ff94d2187dc90bd0c851e0902776b7b7a42"},
+]
 
 [[package]]
 name = "starlette"
@@ -7057,4 +7093,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "a7b7c1bc62c4fd19e4a36cdee9159abd30226e881e9b5cd1a2f39de1dbc54f20"
+content-hash = "bb6136d36ba310fd004537454adb5d33e150d2c98129e737d83279eb83728639"

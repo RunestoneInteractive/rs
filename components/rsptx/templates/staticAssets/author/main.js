@@ -351,6 +351,10 @@ function showLog(book) {
             let log = document.getElementById("lastlog");
             let div = document.getElementById("lastdiv");
             div.style.display = "block";
+            res.detail = res.detail.replace(/ /g, "&nbsp;");
+            res.detail = res.detail.replace(/</g, "&lt;");
+            res.detail = res.detail.replace(/>/g, "&gt;");
+            res.detail = res.detail.replace(/&/g, "&amp;");
             log.innerHTML = res.detail;
         })
         .catch((err) => console.log(err));
@@ -417,7 +421,9 @@ function getStatus(taskID) {
                     res.task_result.current = "Awaiting result status";
                 }
             }
-
+            res.task_result.current = res.task_result.current.replace(/</g, "&lt;");
+            res.task_result.current = res.task_result.current.replace(/>/g, "&gt;");
+            res.task_result.current = res.task_result.current.replace(/&/g, "&amp;");
             const html = `
       <tr>
         <td>${taskName}</td>

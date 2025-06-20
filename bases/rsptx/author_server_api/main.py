@@ -134,6 +134,7 @@ async def create_book_entry(
 # part of the request ``request.state.user`` `See FastAPI_Login Advanced <https://fastapi-login.readthedocs.io/advanced_usage/>`_
 auth_manager.attach_middleware(app)
 
+
 @app.get("/", response_class=RedirectResponse)
 async def root(request: Request):
     """
@@ -146,6 +147,7 @@ async def root(request: Request):
     # Otherwise, redirect to /author/author for local
     else:
         return RedirectResponse(url="/author/author")
+
 
 @app.get("/author/")
 async def home(request: Request, user=Depends(auth_manager)):
@@ -226,7 +228,6 @@ async def getfile(request: Request, fname: str, user=Depends(auth_manager)):
 async def _getdshop(request: Request, fname: str, user=Depends(auth_manager)):
     file_path = pathlib.Path("downloads", "datashop", user.username, fname)
     return FileResponse(file_path)
-
 
 
 @app.get("/author/dump/assignments/{course}")
@@ -313,12 +314,12 @@ async def getlog(request: Request, book, user=Depends(auth_manager)):
     if (
         book_entry
         and book_entry.repo_path
-        and (pathlib.Path(book_entry.repo_path) / "cli.log").exists()
+        and (pathlib.Path(book_entry.repo_path) / "author_build.log").exists()
     ):
         work_dir = book_entry.repo_path
     else:
         work_dir = f"/books/{book}"
-    logpath = pathlib.Path(work_dir, "cli.log")
+    logpath = pathlib.Path(work_dir, "author_build.log")
 
     if logpath.exists():
         async with aiofiles.open(logpath, "rb") as f:
