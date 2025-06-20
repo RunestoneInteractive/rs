@@ -561,10 +561,25 @@ export default class DragNDrop extends RunestoneBase {
     }
     renderFeedback() {
         for (let response of this.dropZoneDiv.childNodes) {
-            if (this.isCorrectDrop(response)) {
-                response.classList.remove("drop-incorrect");
-            } else {
-                response.classList.add("drop-incorrect");
+            // iterate over all the premises in the response
+            for (let premise of Array.from(response.childNodes).filter(
+                this.ivp
+            )) {
+                // if the premise is not in the correct category, add the class
+                if (
+                    premise.dataset.category != response.dataset.category
+                ) {
+                    premise.classList.add("drop-incorrect");
+                    premise.setAttribute("aria-invalid", "true");
+                    premise.setAttribute(
+                        "aria-describedby",
+                        premise.id
+                    );
+                } else {
+                    premise.classList.remove("drop-incorrect");
+                    premise.setAttribute("aria-invalid", "false");
+                    premise.removeAttribute("aria-describedby");
+                }
             }
         }
         if (!this.feedBackDiv) {
