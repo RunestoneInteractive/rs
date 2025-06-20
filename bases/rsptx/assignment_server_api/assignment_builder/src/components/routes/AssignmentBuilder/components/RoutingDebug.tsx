@@ -34,6 +34,8 @@ export const RoutingDebug = () => {
       <div>Exercise Step: {routing.exerciseStep}</div>
       <div>Exercise ID: {routing.exerciseId || "none"}</div>
       <div>URL: {window.location.pathname}</div>
+      <div>VITE_BASE_URL: {import.meta.env.VITE_BASE_URL}</div>
+      <div>Mode: {import.meta.env.MODE}</div>
     </div>
   );
 };
