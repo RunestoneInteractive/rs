@@ -60,9 +60,9 @@ from rsptx.db.crud import (
     fetch_one_assignment,
     get_peer_votes,
     search_exercises,
-    add_assignment_question,
-    create_api_token,
+    create_api_token
 )
+from rsptx.db.crud.assignment import add_assignment_question
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
 from rsptx.configuration import settings
