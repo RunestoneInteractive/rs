@@ -82,7 +82,7 @@ def create_assignment_summary(assignment_id, course, dburl):
         union
         (select div_id, sid, 'F', 0.0 from shortanswer_answers where course_name = '{COURSE_NAME}')
     ) as T
-    join questions on div_id = name and base_course = '{BASE_COURSE}'
+    join questions on div_id = name 
     join assignment_questions on questions.id = assignment_questions.question_id
     where assignment_id = {ASSIGNMENT_ID}
     """,
