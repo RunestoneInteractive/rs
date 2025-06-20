@@ -109,7 +109,89 @@ function App() {
             let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
 
             return { Component: AssignmentBuilder };
-          }
+          },
+          children: [
+            {
+              path: "",
+              async lazy() {
+                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+                return { Component: AssignmentBuilder };
+              }
+            },
+            {
+              path: "create",
+              async lazy() {
+                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+                return { Component: AssignmentBuilder };
+              }
+            },
+            {
+              path: "create/:step",
+              async lazy() {
+                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+                return { Component: AssignmentBuilder };
+              }
+            },
+            {
+              path: ":assignmentId",
+              async lazy() {
+                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+                return { Component: AssignmentBuilder };
+              }
+            },
+            {
+              path: ":assignmentId/:tab",
+              async lazy() {
+                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+                return { Component: AssignmentBuilder };
+              }
+            },
+            {
+              path: ":assignmentId/exercises/:viewMode",
+              async lazy() {
+                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+                return { Component: AssignmentBuilder };
+              }
+            },
+            {
+              path: ":assignmentId/exercises/:viewMode/:exerciseType",
+              async lazy() {
+                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+                return { Component: AssignmentBuilder };
+              }
+            },
+            {
+              path: ":assignmentId/exercises/:viewMode/:exerciseType/:step",
+              async lazy() {
+                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+                return { Component: AssignmentBuilder };
+              }
+            },
+            {
+              path: ":assignmentId/exercises/edit/:exerciseId",
+              async lazy() {
+                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+                return { Component: AssignmentBuilder };
+              }
+            },
+            {
+              path: ":assignmentId/exercises/edit/:exerciseId/:step",
+              async lazy() {
+                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+
+                return { Component: AssignmentBuilder };
+              }
+            }
+          ]
         },
         {
           path: "/builderV2",

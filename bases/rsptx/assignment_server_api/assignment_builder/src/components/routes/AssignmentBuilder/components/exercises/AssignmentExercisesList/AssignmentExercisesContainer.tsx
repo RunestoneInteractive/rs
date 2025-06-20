@@ -11,6 +11,8 @@ import { useUpdateAssignmentExercise } from "@/hooks/useUpdateAssignmentExercise
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
+import { useAssignmentRouting } from "../../../hooks/useAssignmentRouting";
+
 import { CreateView } from "./CreateView";
 import { EditView } from "./EditView";
 import { ErrorDisplay } from "./ErrorDisplay";
@@ -30,13 +32,21 @@ export const AssignmentExercisesContainer = ({
   const { loading, error, assignmentExercises = [], refetch } = useExercisesSelector();
   const selectedExercises = useSelector(exercisesSelectors.getSelectedExercises);
   const [globalFilter, setGlobalFilter] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [lastExerciseType, setLastExerciseType] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [resetExerciseForm, setResetExerciseForm] = useState(false);
   const { updateAssignmentExercises } = useUpdateAssignmentExercise();
   const [currentEditExercise, setCurrentEditExercise] = useState<Exercise | null>(null);
+
+  const { 
+    exerciseViewMode: viewMode, 
+    exerciseType,
+    exerciseId,
+    exerciseStep,
+    updateExerciseViewMode,
+    selectedAssignmentId 
+  } = useAssignmentRouting();
 
   const setSelectedExercises = (exercises: Exercise[]) => {
     if (startRowIndex === null) {
@@ -66,7 +76,7 @@ export const AssignmentExercisesContainer = ({
   const handleFinishCreating = () => {
     setShowSuccessDialog(false);
     setIsSaving(false);
-    setViewMode("list");
+    updateExerciseViewMode("list");
   };
 
   if (loading) return <Loader />;
@@ -92,7 +102,7 @@ export const AssignmentExercisesContainer = ({
     <div className={styles.exerciseManager}>
       <ExercisesBreadcrumb
         viewMode={viewMode}
-        setViewMode={setViewMode}
+        setViewMode={updateExerciseViewMode}
         currentEditExercise={currentEditExercise}
       />
 
@@ -104,7 +114,7 @@ export const AssignmentExercisesContainer = ({
           setSelectedExercises={setSelectedExercises}
           handleRemoveSelected={handleRemoveSelected}
           assignmentExercises={assignmentExercises}
-          setViewMode={setViewMode}
+          setViewMode={updateExerciseViewMode}
           setResetExerciseForm={setResetExerciseForm}
           setCurrentEditExercise={setCurrentEditExercise}
           startRowIndex={startRowIndex}
@@ -121,7 +131,7 @@ export const AssignmentExercisesContainer = ({
 
       {viewMode === "create" && (
         <CreateView
-          setViewMode={setViewMode}
+          setViewMode={updateExerciseViewMode}
           resetExerciseForm={resetExerciseForm}
           setResetExerciseForm={setResetExerciseForm}
           setShowSuccessDialog={setShowSuccessDialog}
@@ -134,7 +144,7 @@ export const AssignmentExercisesContainer = ({
         <EditView
           currentEditExercise={currentEditExercise}
           setCurrentEditExercise={setCurrentEditExercise}
-          setViewMode={setViewMode}
+          setViewMode={updateExerciseViewMode}
           refetch={refetch}
         />
       )}
