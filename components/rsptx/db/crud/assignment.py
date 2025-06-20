@@ -353,7 +353,6 @@ async def update_multiple_assignment_questions(
                     "author",
                     "autograde",
                     "topic",
-                    "feedback",
                     "name",
                     "difficulty",
                     "tags",
