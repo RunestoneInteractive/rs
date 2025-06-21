@@ -1305,17 +1305,6 @@ files = [
 ]
 
 [[package]]
-name = "imghdr-lts"
-version = "1.0.0"
-description = "LTS Port of Python imghdr"
-optional = false
-python-versions = ">=3.13"
-groups = ["main"]
-files = [
-    {file = "imghdr_lts-1.0.0-py3-none-any.whl", hash = "sha256:8b37c727af687f1e1d1e29d1aeb81bbe4d94176fd56b4e0fcf97f67f347d1762"},
-]
-
-[[package]]
 name = "importlib-metadata"
 version = "8.5.0"
 description = "Read metadata from Python packages"
@@ -4367,6 +4356,18 @@ pure-eval = "*"
 tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
 
 [[package]]
+name = "standard-imghdr"
+version = "3.13.0"
+description = "Standard library imghdr redistribution. \"dead battery\"."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "standard_imghdr-3.13.0-py3-none-any.whl", hash = "sha256:30a1bff5465605bb496f842a6ac3cc1f2131bf3025b0da28d4877d6d4b7cc8e9"},
+    {file = "standard_imghdr-3.13.0.tar.gz", hash = "sha256:8d9c68058d882f6fc3542a8d39ef9ff94d2187dc90bd0c851e0902776b7b7a42"},
+]
+
+[[package]]
 name = "starlette"
 version = "0.27.0"
 description = "The little ASGI library that shines."
@@ -4806,4 +4807,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "cc9f53f2382c23d4ebd5bea61174aee1994ece688a919b7e67d083a724210507"
+content-hash = "a2cf4343be6c2aa98888903ea3a24f17ae8ec1b2211ea2549992cf5fd5419448"
