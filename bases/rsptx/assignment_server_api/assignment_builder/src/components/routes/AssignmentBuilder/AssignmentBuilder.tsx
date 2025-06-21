@@ -42,7 +42,7 @@ export const AssignmentBuilder = () => {
   useGetQuestionTypeOptionsQuery();
   useGetAvailableReadingsQuery({
     skipreading: false,
-    from_source_only: true,
+    from_source_only: false,
     pages_only: false
   });
 
