@@ -3,16 +3,9 @@ import { UseFormSetValue } from "react-hook-form";
 
 import { Assignment, KindOfAssignment } from "@/types/assignment";
 
-type Mode = "list" | "create" | "edit";
-type WizardStep = "basic" | "type";
-type TabType = "basic" | "readings" | "exercises";
-
 export const useAssignmentState = () => {
-  const [mode, setMode] = useState<Mode>("list");
-  const [wizardStep, setWizardStep] = useState<WizardStep>("basic");
   const [globalFilter, setGlobalFilter] = useState("");
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>("basic");
 
   const handleTypeSelect = (type: KindOfAssignment, setValue: UseFormSetValue<Assignment>) => {
     // Reset all type-specific settings first
@@ -38,16 +31,10 @@ export const useAssignmentState = () => {
   };
 
   return {
-    mode,
-    setMode,
-    wizardStep,
-    setWizardStep,
     globalFilter,
     setGlobalFilter,
     isCollapsed,
     setIsCollapsed,
-    activeTab,
-    setActiveTab,
     handleTypeSelect
   };
 };
