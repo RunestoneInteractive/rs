@@ -2,20 +2,22 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { ActionType } from "typesafe-actions";
 
 import { RootState } from "@/store/rootReducer";
-import { TableDropdownOption } from "@/types/dataset";
+import { TableDropdownOption, SectionOption } from "@/types/dataset";
 
 export interface DatasetState {
   whichToGradeOptions: TableDropdownOption[];
   autoGradeOptions: TableDropdownOption[];
   languageOptions: TableDropdownOption[];
   questionTypeOptions: TableDropdownOption[];
+  sections: SectionOption[];
 }
 
 const INITIAL_STATE: DatasetState = {
   whichToGradeOptions: [],
   autoGradeOptions: [],
   languageOptions: [],
-  questionTypeOptions: []
+  questionTypeOptions: [],
+  sections: []
 };
 
 export const datasetSlice = createSlice({
@@ -33,6 +35,9 @@ export const datasetSlice = createSlice({
     },
     setQuestionTypeOptions: (state, action: PayloadAction<TableDropdownOption[]>) => {
       state.questionTypeOptions = action.payload;
+    },
+    setSections: (state, action: PayloadAction<SectionOption[]>) => {
+      state.sections = action.payload;
     }
   }
 });
@@ -45,5 +50,6 @@ export const datasetSelectors = {
   getWhichToGradeOptions: (state: RootState) => state.dataset.whichToGradeOptions,
   getAutoGradeOptions: (state: RootState) => state.dataset.autoGradeOptions,
   getLanguageOptions: (state: RootState) => state.dataset.languageOptions,
-  getQuestionTypeOptions: (state: RootState) => state.dataset.questionTypeOptions
+  getQuestionTypeOptions: (state: RootState) => state.dataset.questionTypeOptions,
+  getSections: (state: RootState) => state.dataset.sections
 };
