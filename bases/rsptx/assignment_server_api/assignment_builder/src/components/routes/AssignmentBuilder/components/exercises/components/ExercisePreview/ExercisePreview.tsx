@@ -28,7 +28,7 @@ export const ExercisePreview = ({
             className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 flex justify-content-center"
             style={{ maxHeight }}
           >
-            <div ref={ref} className="text-center mx-auto"></div>
+            <div ref={ref} className="text-left mx-auto"></div>
           </div>
         </div>
       </MathJax>
