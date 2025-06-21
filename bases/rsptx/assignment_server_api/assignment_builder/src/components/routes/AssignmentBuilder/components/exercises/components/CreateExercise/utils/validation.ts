@@ -23,6 +23,7 @@ export const isTipTapContentEmpty = (content: string): boolean => {
 export const validateCommonFields = (formData: {
   name?: string;
   chapter?: string;
+  subchapter?: string;
   points?: number;
   difficulty?: number;
   statement?: string;
@@ -34,6 +35,9 @@ export const validateCommonFields = (formData: {
   }
   if (!formData.chapter) {
     errors.push("Chapter is required");
+  }
+  if (!formData.subchapter) {
+    errors.push("Section is required");
   }
   if (formData.points === undefined || formData.points <= 0) {
     errors.push("Points must be greater than 0");

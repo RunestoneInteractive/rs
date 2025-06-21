@@ -23,6 +23,7 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
   author: "",
   topic: "",
   chapter: "",
+  subchapter: "",
   tags: "",
   points: 1,
   difficulty: 3,

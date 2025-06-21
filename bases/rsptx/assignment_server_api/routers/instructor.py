@@ -1277,7 +1277,6 @@ async def question_creation(
             QuestionValidator(
                 **question_data,
                 base_course=course.base_course,
-                subchapter="Exercises",
                 timestamp=canonical_utcnow(),
                 is_private=False,
                 practice=False,

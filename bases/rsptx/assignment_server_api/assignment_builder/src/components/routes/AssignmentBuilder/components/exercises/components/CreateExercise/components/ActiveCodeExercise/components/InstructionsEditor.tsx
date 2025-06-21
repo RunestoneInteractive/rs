@@ -1,6 +1,7 @@
 import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
 import { FC } from "react";
 
+import { useValidation } from "../../../shared/ExerciseLayout";
 import styles from "../../../shared/styles/CreateExercise.module.css";
 import { isTipTapContentEmpty } from "../../../utils/validation";
 
@@ -10,13 +11,13 @@ interface InstructionsEditorProps {
 }
 
 export const InstructionsEditor: FC<InstructionsEditorProps> = ({ instructions, onChange }) => {
+  const { shouldShowValidation } = useValidation();
+  const isEmpty = isTipTapContentEmpty(instructions);
+  const shouldShowError = isEmpty && shouldShowValidation;
+
   return (
     <>
-      <div
-        className={`${styles.questionEditor} ${
-          isTipTapContentEmpty(instructions) ? styles.emptyEditor : ""
-        }`}
-      >
+      <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
         <Editor
           content={instructions}
           onChange={onChange}
