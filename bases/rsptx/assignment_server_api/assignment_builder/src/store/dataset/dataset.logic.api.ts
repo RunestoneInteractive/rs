@@ -3,7 +3,8 @@ import { baseQuery } from "@store/baseQuery";
 import { datasetActions } from "@store/dataset/dataset.logic";
 import toast from "react-hot-toast";
 
-import { TableDropdownOption } from "@/types/dataset";
+import { DetailResponse } from "@/types/api";
+import { TableDropdownOption, SectionsResponse } from "@/types/dataset";
 
 export const datasetApi = createApi({
   reducerPath: "datasetApi",
@@ -73,6 +74,33 @@ export const datasetApi = createApi({
           });
         });
       }
+    }),
+    getSectionsForChapter: build.query<{ label: string; value: string }[], string>({
+      query: (chapterId) => ({
+        method: "GET",
+        url: `/assignment/instructor/sections_for_chapter/${chapterId}`
+      }),
+      transformResponse: (response: DetailResponse<SectionsResponse>) => {
+        return response.detail.sections.map((section) => ({
+          label: section.title,
+          value: section.label
+        }));
+      },
+      onQueryStarted: (_, { queryFulfilled, dispatch }) => {
+        queryFulfilled.then((response) => {
+          const originalSections = response.data.map((option) => ({
+            title: option.label,
+            label: option.value
+          }));
+
+          dispatch(datasetActions.setSections(originalSections));
+        });
+        queryFulfilled.catch(() => {
+          toast("Error getting sections for chapter", {
+            icon: "🔥"
+          });
+        });
+      }
     })
   })
 });
@@ -81,5 +109,6 @@ export const {
   useGetWhichToGradeOptionsQuery,
   useGetAutoGradeOptionsQuery,
   useGetLanguageOptionsQuery,
-  useGetQuestionTypeOptionsQuery
+  useGetQuestionTypeOptionsQuery,
+  useGetSectionsForChapterQuery
 } = datasetApi;

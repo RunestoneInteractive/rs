@@ -27,7 +27,7 @@ const main = () => {
 
   store.dispatch(
     // @ts-ignore
-    fetchChooserData({ skipreading: false, from_source_only: true, pages_only: false })
+    fetchChooserData({ skipreading: false, from_source_only: false, pages_only: false })
   );
 
   const root = createRoot(document.getElementById("root")!);

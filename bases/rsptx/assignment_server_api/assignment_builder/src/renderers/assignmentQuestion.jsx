@@ -196,7 +196,7 @@ export function AssignmentQuestion(props) {
       dispatch(deleteExercises(toRemove));
       dispatch(sendDeleteExercises(toRemove));
       dispatch(sumPoints());
-      dispatch(fetchChooserData({ skipreading: false, from_source_only: true, pages_only: false }));
+      dispatch(fetchChooserData({ skipreading: false, from_source_only: false, pages_only: false }));
       dispatch(unSelectNode(namesToRemove));
     } catch (e) {
       console.error(e);

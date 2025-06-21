@@ -67,8 +67,10 @@ export const AssignmentList = ({
 
   const typeBodyTemplate = (rowData: Assignment) => (
     <div className={styles.typeCell}>
-      <span className={classNames(styles.typeTag, styles[rowData.kind.toLowerCase()])}>
-        {rowData.kind}
+      <span
+        className={classNames(styles.typeTag, styles[rowData.kind?.toLowerCase() || "default"])}
+      >
+        {rowData.kind || "Unknown"}
       </span>
     </div>
   );

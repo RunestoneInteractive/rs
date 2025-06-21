@@ -79,6 +79,13 @@ export default class DragNDrop extends RunestoneBase {
             replaceSpan.dataset.parent_id = this.divid;
             this.premiseArray.push(replaceSpan);
             this.setDragListeners(replaceSpan);
+            // now create an error message for when the premise is dropped in the wrong place
+            let errorMessage = document.createElement("div");
+            errorMessage.classList.add("vh-dnd-error");
+            errorMessage.innerHTML = "Incorrect drop zone for " + replaceSpan.innerHTML;
+            errorMessage.setAttribute("role", "alert");
+            errorMessage.id = replaceSpan.id + "_error";
+            document.body.appendChild(errorMessage);
         }
         if (this.random) {
             // Shuffle the premiseArray if random is true
@@ -572,13 +579,16 @@ export default class DragNDrop extends RunestoneBase {
                     premise.classList.add("drop-incorrect");
                     premise.setAttribute("aria-invalid", "true");
                     premise.setAttribute(
-                        "aria-describedby",
-                        premise.id
+                        "aria-errormessage",
+                        premise.id + "_error"
                     );
+                    document.getElementById(
+                        premise.id + "_error"
+                    ).classList.remove("vh-dnd-error");
                 } else {
                     premise.classList.remove("drop-incorrect");
                     premise.setAttribute("aria-invalid", "false");
-                    premise.removeAttribute("aria-describedby");
+                    premise.removeAttribute("aria-errormessage");
                 }
             }
         }

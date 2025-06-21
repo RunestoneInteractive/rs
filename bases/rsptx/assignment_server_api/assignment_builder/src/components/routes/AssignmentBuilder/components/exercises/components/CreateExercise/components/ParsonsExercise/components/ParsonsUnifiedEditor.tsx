@@ -28,15 +28,15 @@ export const ParsonsUnifiedEditor: FC<ParsonsUnifiedEditorProps> = ({
 
   const handleContentChange = (newContent: string) => {};
 
-  const isTextContent = language === "text";
+  const isTextEditor = language === "text";
 
   return (
-    <div>
-      {isTextContent ? (
+    <>
+      {isTextEditor ? (
         <ParsonsTipTapEditor content={content} onChange={handleContentChange} />
       ) : (
         <ParsonsMonacoEditor content={content} onChange={handleContentChange} language={language} />
       )}
-    </div>
+    </>
   );
 };

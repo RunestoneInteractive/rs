@@ -13,6 +13,7 @@ import {
 } from "@store/dataset/dataset.logic.api";
 import { useGetAvailableReadingsQuery } from "@store/readings/readings.logic.api";
 import sortBy from "lodash/sortBy";
+import { useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { useDispatch } from "react-redux";
 
@@ -22,9 +23,11 @@ import { Assignment, CreateAssignmentPayload } from "@/types/assignment";
 import { AssignmentEdit } from "./components/edit/AssignmentEdit";
 import { AssignmentList } from "./components/list/AssignmentList";
 import { AssignmentWizard } from "./components/wizard/AssignmentWizard";
+import { RoutingDebug } from "./components/RoutingDebug";
 import { defaultAssignment } from "./defaultAssignment";
 import { useAssignmentForm } from "./hooks/useAssignmentForm";
 import { useAssignmentState } from "./hooks/useAssignmentState";
+import { useAssignmentRouting } from "./hooks/useAssignmentRouting";
 import { useNameValidation } from "./hooks/useNameValidation";
 
 export const AssignmentBuilder = () => {
@@ -32,9 +35,6 @@ export const AssignmentBuilder = () => {
   const { isLoading, isError, data: assignments = [] } = useGetAssignmentsQuery();
   const [createAssignment] = useCreateAssignmentMutation();
   const [updateAssignment] = useUpdateAssignmentMutation();
-  const { selectedAssignment, updateAssignment: updateSelectedAssignment } =
-    useSelectedAssignment();
-
   // Load all required data
   useGetAutoGradeOptionsQuery();
   useGetWhichToGradeOptionsQuery();
@@ -42,22 +42,42 @@ export const AssignmentBuilder = () => {
   useGetQuestionTypeOptionsQuery();
   useGetAvailableReadingsQuery({
     skipreading: false,
-    from_source_only: true,
+    from_source_only: false,
     pages_only: false
   });
 
-  // Custom hooks for state management
+  // Routing management
   const {
     mode,
-    setMode,
+    selectedAssignmentId,
     wizardStep,
-    setWizardStep,
+    activeTab,
+    exerciseViewMode,
+    navigateToList,
+    navigateToCreate,
+    navigateToEdit,
+    updateWizardStep,
+    updateEditTab,
+    updateExerciseViewMode
+  } = useAssignmentRouting();
+
+  // Get selected assignment from routing
+  const { selectedAssignment, updateAssignment: updateSelectedAssignment } =
+    useSelectedAssignment();
+  
+  // Update selected assignment ID in store when route changes
+  useEffect(() => {
+    if (selectedAssignmentId && selectedAssignmentId !== selectedAssignment?.id?.toString()) {
+      dispatch(assignmentActions.setSelectedAssignmentId(parseInt(selectedAssignmentId, 10)));
+    }
+  }, [selectedAssignmentId, selectedAssignment?.id, dispatch]);
+
+  // Custom hooks for state management
+  const {
     globalFilter,
     setGlobalFilter,
     isCollapsed,
     setIsCollapsed,
-    activeTab,
-    setActiveTab,
     handleTypeSelect
   } = useAssignmentState();
 
@@ -76,14 +96,13 @@ export const AssignmentBuilder = () => {
 
   // Event handlers
   const handleCreateNew = () => {
-    setMode("create");
+    navigateToCreate("basic");
     reset(defaultAssignment);
-    setWizardStep("basic");
   };
 
   const handleEdit = (assignment: Assignment) => {
     dispatch(assignmentActions.setSelectedAssignmentId(assignment.id));
-    setMode("edit");
+    navigateToEdit(assignment.id.toString(), "basic");
   };
 
   const handleVisibilityChange = async (assignment: Assignment, visible: boolean) => {
@@ -113,7 +132,7 @@ export const AssignmentBuilder = () => {
     };
 
     createAssignment(payload);
-    setMode("list");
+    navigateToList();
   };
 
   if (isLoading) {
@@ -130,6 +149,7 @@ export const AssignmentBuilder = () => {
 
   return (
     <div className="root">
+      <RoutingDebug />
       {mode === "list" && (
         <AssignmentList
           assignments={sortBy(assignments, (x) => x.id)}
@@ -149,12 +169,12 @@ export const AssignmentBuilder = () => {
           canProceed={canProceed}
           onBack={() => {
             if (wizardStep === "type") {
-              setWizardStep("basic");
+              updateWizardStep("basic");
             } else {
-              setMode("list");
+              navigateToList();
             }
           }}
-          onNext={() => setWizardStep("type")}
+          onNext={() => updateWizardStep("type")}
           onComplete={handleWizardComplete}
           onNameChange={handleNameChange}
           onTypeSelect={(type) => handleTypeSelect(type, setValue)}
@@ -168,8 +188,8 @@ export const AssignmentBuilder = () => {
           isCollapsed={isCollapsed}
           activeTab={activeTab}
           onCollapse={() => setIsCollapsed(!isCollapsed)}
-          onBack={() => setMode("list")}
-          onTabChange={setActiveTab}
+          onBack={() => navigateToList()}
+          onTabChange={updateEditTab}
           onTypeSelect={(type) => handleTypeSelect(type, setValue)}
           watch={watch}
         />

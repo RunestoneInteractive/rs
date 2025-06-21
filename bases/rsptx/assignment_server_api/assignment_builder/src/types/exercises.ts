@@ -81,6 +81,9 @@ export type QuestionJSON = Partial<{
   blocks: ParsonsBlock[];
   questionText: string;
   blanks: BlankWithFeedback[];
+  poll_type: string;
+  scale_min: number;
+  scale_max: number;
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;
@@ -97,6 +100,7 @@ export type CreateExercisesPayload = {
   author: string;
   autograde: null;
   chapter: string;
+  subchapter?: string;
   difficulty: number;
   htmlsrc: string;
   name: string;

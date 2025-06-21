@@ -1,6 +1,7 @@
 import { FC } from "react";
 
 import { CodeHighlighter } from "../../../shared/CodeHighlighter";
+import { useValidation } from "../../../shared/ExerciseLayout";
 import styles from "../../../shared/styles/CreateExercise.module.css";
 
 interface ParsonsMonacoEditorProps {
@@ -14,8 +15,12 @@ export const ParsonsMonacoEditor: FC<ParsonsMonacoEditorProps> = ({
   onChange,
   language
 }) => {
+  const { shouldShowValidation } = useValidation();
+  const isEmpty = !content;
+  const shouldShowError = isEmpty && shouldShowValidation;
+
   return (
-    <div className={`${styles.questionEditor} ${!content ? styles.emptyEditor : ""}`}>
+    <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
       <CodeHighlighter
         code={content}
         language={language}

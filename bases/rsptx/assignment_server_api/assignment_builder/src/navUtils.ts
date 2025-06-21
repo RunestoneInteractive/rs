@@ -9,35 +9,57 @@ const defaultEBookConfig: EBookConfig = {
   isLoggedIn: true
 };
 
-export const buildNavBar = (eBookConfig: EBookConfig) => {
+const createNavigateToPath = (navigate?: (path: string) => void) => (path: string) => {
+  if (path.startsWith("http")) {
+    window.open(path, "_blank");
+    return;
+  }
+
+  if (path.startsWith("/runestone") || path.startsWith("/ns") || path.startsWith("/assignment")) {
+    window.location.href = path;
+    return;
+  }
+
+  if (navigate) {
+    navigate(`/${path}`);
+  } else {
+    const cleanPath = path.startsWith("/") ? path : `/#/${path}`;
+
+    window.location.hash = cleanPath.replace("/#/", "#/");
+  }
+};
+
+export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) => void) => {
   const { isInstructor, course, username } = isEmptyObject(eBookConfig)
     ? defaultEBookConfig
     : eBookConfig;
+
+  const navigateToPath = createNavigateToPath(navigate);
 
   const items: Array<MenuItem> = [
     {
       label: "Home",
       icon: "pi pi-home",
-      url: "/runestone/default/index"
+      command: () => navigateToPath("/runestone/default/index")
     },
     {
       label: `Back to ${course || "Course"}`,
-      url: "/ns/books/published/" + course + "/index.html"
+      command: () => navigateToPath("/ns/books/published/" + course + "/index.html")
     },
     {
       label: "Admin",
       icon: "pi pi-cog",
-      url: "admin"
+      command: () => navigateToPath("admin")
     },
     {
       label: "Grader",
       icon: "pi pi-gauge",
-      url: "grader"
+      command: () => navigateToPath("grader")
     },
     {
       label: "Assignment Builder",
       icon: "pi pi-file-edit",
-      url: "builder"
+      command: () => navigateToPath("builder")
     },
     {
       label: "User",
@@ -50,64 +72,64 @@ export const buildNavBar = (eBookConfig: EBookConfig) => {
         {
           label: "Course Home",
           icon: "pi pi-home",
-          url: "/ns/course/index"
+          command: () => navigateToPath("/ns/course/index")
         },
         {
           label: "Assignments",
           icon: "pi pi-pencil",
-          url: "/assignment/student/chooseAssignment"
+          command: () => navigateToPath("/assignment/student/chooseAssignment")
         },
         {
           label: "Practice",
           icon: "pi pi-palette",
-          url: "/runestone/assignments/practice"
+          command: () => navigateToPath("/runestone/assignments/practice")
         },
         {
           label: "Peer Instruction (Instructor)",
-          url: "/runestone/peer/instructor.html",
+          command: () => navigateToPath("/runestone/peer/instructor.html"),
           visible: isInstructor
         },
         {
           label: "Peer Instruction (Student)",
-          url: "/runestone/peer/student.html"
+          command: () => navigateToPath("/runestone/peer/student.html")
         },
         {
           separator: true
         },
         {
           label: "Change Course",
-          url: "/runestone/default/courses"
+          command: () => navigateToPath("/runestone/default/courses")
         },
         {
           separator: true
         },
         {
           label: "Instructors Page",
-          url: "/runestone/admin/admin"
+          command: () => navigateToPath("/runestone/admin/admin")
         },
         {
           label: "Accommodations",
           icon: "pi pi-ban",
-          url: "except"
+          command: () => navigateToPath("except")
         },
         {
           label: "Progress Page",
-          url: "/runestone/dashboard/studentreport"
+          command: () => navigateToPath("/runestone/dashboard/studentreport")
         },
         {
           separator: true
         },
         {
           label: "Edit Profile",
-          url: "/runestone/default/user/profile"
+          command: () => navigateToPath("/runestone/default/user/profile")
         },
         {
           label: "Change Password",
-          url: "/runestone/default/user/change_password"
+          command: () => navigateToPath("/runestone/default/user/change_password")
         },
         {
           label: "Logout",
-          url: "/runestone/default/user/logout"
+          command: () => navigateToPath("/runestone/default/user/logout")
         }
       ]
     },
@@ -118,22 +140,25 @@ export const buildNavBar = (eBookConfig: EBookConfig) => {
         {
           label: "Instructors Guide",
           icon: "pi pi-book",
-          url: "https://guide.runestone.academy/"
+          command: () => navigateToPath("https://guide.runestone.academy/")
         },
         {
           label: "Video Tutorials",
           icon: "pi pi-video",
-          url: "https://www.youtube.com/playlist?list=PLnjfglXW2QQRG6NRsg5mq8V99MM_3j_ZU"
+          command: () =>
+            navigateToPath(
+              "https://www.youtube.com/playlist?list=PLnjfglXW2QQRG6NRsg5mq8V99MM_3j_ZU"
+            )
         },
         {
           label: "Contact Us",
           icon: "pi pi-envelope",
-          url: "https://github.com/RunestoneInteractive/rs/issues"
+          command: () => navigateToPath("https://github.com/RunestoneInteractive/rs/issues")
         },
         {
           label: "Join our Discord",
           icon: "pi pi-discord",
-          url: "https://discord.gg/f3Qmbk9P3U"
+          command: () => navigateToPath("https://discord.gg/f3Qmbk9P3U")
         }
       ]
     }
