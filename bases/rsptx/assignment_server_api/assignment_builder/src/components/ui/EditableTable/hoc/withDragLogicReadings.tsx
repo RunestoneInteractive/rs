@@ -1,10 +1,10 @@
 import { ComponentType, useState } from "react";
 
-import { useUpdateExercises } from "@/hooks/useUpdateExercises";
+import { useUpdateReadings } from "@/hooks/useUpdateReadings";
 import { Nullable } from "@/types/common";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 
-export interface WithDragLogicProps {
+export interface WithDragLogicReadingsProps {
   startItemId: Nullable<number>;
   draggingFieldName: Nullable<DraggingExerciseColumns>;
   handleMouseDown: (itemId: number, colKey: DraggingExerciseColumns) => void;
@@ -16,9 +16,11 @@ export interface WithDragLogicProps {
   ) => void;
 }
 
-export function withDragLogic<P extends WithDragLogicProps>(Component: ComponentType<P>) {
-  return function WrappedComponent(props: Omit<P, keyof WithDragLogicProps>) {
-    const { handleChange } = useUpdateExercises();
+export function withDragLogicReadings<P extends WithDragLogicReadingsProps>(
+  Component: ComponentType<P>
+) {
+  return function WrappedComponent(props: Omit<P, keyof WithDragLogicReadingsProps>) {
+    const { handleChange } = useUpdateReadings();
     const [startItemId, setStartItemId] = useState<Nullable<number>>(null);
     const [draggingFieldName, setDraggingFieldName] =
       useState<Nullable<DraggingExerciseColumns>>(null);

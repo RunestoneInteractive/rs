@@ -1,37 +1,36 @@
 import { useToastContext } from "@components/ui/ToastContext";
-import { assignmentExerciseSelectors } from "@store/assignmentExercise/assignmentExercise.logic";
 import { useUpdateAssignmentQuestionsMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { useCallback } from "react";
-import { useSelector } from "react-redux";
 
+import { useReadingsSelector } from "@/hooks/useReadingsSelector";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
-export const useUpdateExercises = () => {
+export const useUpdateReadings = () => {
   const { showToast } = useToastContext();
   const [updateExercises] = useUpdateAssignmentQuestionsMutation();
-  const assignmentExercises = useSelector(assignmentExerciseSelectors.getAssignmentExercises);
+  const { readingExercises = [] } = useReadingsSelector();
 
   const handleChange = useCallback(
-    async (exerciseId: number, fieldName: DraggingExerciseColumns, value: string | number) => {
-      const exerciseToUpdate = assignmentExercises.find((ex) => ex.id === exerciseId);
+    async (readingId: number, fieldName: DraggingExerciseColumns, value: string | number) => {
+      const readingToUpdate = readingExercises.find((reading) => reading.id === readingId);
 
-      if (!exerciseToUpdate) {
+      if (!readingToUpdate) {
         showToast({
           severity: "error",
           summary: "Error",
-          detail: "Exercise not found"
+          detail: "Reading not found"
         });
         return;
       }
 
-      if (value === exerciseToUpdate[fieldName]) {
+      if (value === readingToUpdate[fieldName]) {
         return;
       }
 
       const updatedExercise: Exercise = {
-        ...exerciseToUpdate,
-        question_json: JSON.stringify(exerciseToUpdate.question_json),
+        ...readingToUpdate,
+        question_json: JSON.stringify(readingToUpdate.question_json),
         [fieldName]: value
       };
 
@@ -41,17 +40,17 @@ export const useUpdateExercises = () => {
         showToast({
           severity: "success",
           summary: "Success",
-          detail: "Exercise updated successfully"
+          detail: "Reading updated successfully"
         });
       } else {
         showToast({
           severity: "error",
           summary: "Error",
-          detail: "Failed to update exercise"
+          detail: "Failed to update reading"
         });
       }
     },
-    [assignmentExercises, showToast, updateExercises]
+    [readingExercises, showToast, updateExercises]
   );
 
   return { handleChange };

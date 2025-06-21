@@ -1,20 +1,18 @@
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
-import { AssignmentExercisesTable } from "./AssignmentExercisesTable";
-import { ExercisesToolbar } from "./ExercisesToolbar";
-import { SetCurrentEditExercise, ViewModeSetter, MouseUpHandler } from "./types";
+import { AssignmentReadingsTable } from "./AssignmentReadingsTable";
+import { ReadingsToolbar } from "./ReadingsToolbar";
+import { SetCurrentEditReading, MouseUpHandler } from "./types";
 
-interface ExerciseListViewProps {
+interface ReadingsListViewProps {
   globalFilter: string;
   setGlobalFilter: (filter: string) => void;
-  selectedExercises: Exercise[];
-  setSelectedExercises: (exercises: Exercise[]) => void;
+  selectedReadings: Exercise[];
+  setSelectedReadings: (readings: Exercise[]) => void;
   handleRemoveSelected: () => void;
-  assignmentExercises: Exercise[];
-  setViewMode: ViewModeSetter;
-  setResetExerciseForm: (reset: boolean) => void;
-  setCurrentEditExercise: SetCurrentEditExercise;
+  assignmentReadings: Exercise[];
+  setCurrentEditReading: SetCurrentEditReading;
   startItemId: number | null;
   draggingFieldName: DraggingExerciseColumns | null;
   handleMouseDown: (itemId: number, fieldName: DraggingExerciseColumns) => void;
@@ -22,39 +20,35 @@ interface ExerciseListViewProps {
   handleChange: (itemId: number, fieldName: DraggingExerciseColumns, value: any) => void;
 }
 
-export const ExerciseListView = ({
+export const ReadingsListView = ({
   globalFilter,
   setGlobalFilter,
-  selectedExercises,
-  setSelectedExercises,
+  selectedReadings,
+  setSelectedReadings,
   handleRemoveSelected,
-  assignmentExercises,
-  setViewMode,
-  setResetExerciseForm,
-  setCurrentEditExercise,
+  assignmentReadings,
+  setCurrentEditReading,
   startItemId,
   draggingFieldName,
   handleMouseDown,
   handleMouseUp,
   handleChange
-}: ExerciseListViewProps) => {
+}: ReadingsListViewProps) => {
   return (
     <div className="surface-card p-3 border-round">
-      <ExercisesToolbar
+      <ReadingsToolbar
         globalFilter={globalFilter}
         setGlobalFilter={setGlobalFilter}
-        selectedExercises={selectedExercises}
+        selectedReadings={selectedReadings}
         handleRemoveSelected={handleRemoveSelected}
-        setViewMode={setViewMode}
-        setResetExerciseForm={setResetExerciseForm}
       />
-      <AssignmentExercisesTable
-        assignmentExercises={assignmentExercises}
-        selectedExercises={selectedExercises}
-        setSelectedExercises={setSelectedExercises}
+      <AssignmentReadingsTable
+        assignmentReadings={assignmentReadings}
+        selectedReadings={selectedReadings}
+        setSelectedReadings={setSelectedReadings}
         globalFilter={globalFilter}
-        setCurrentEditExercise={setCurrentEditExercise}
-        setViewMode={setViewMode}
+        setCurrentEditReading={setCurrentEditReading}
+        setViewMode={() => {}}
         startItemId={startItemId}
         draggingFieldName={draggingFieldName}
         handleMouseDown={handleMouseDown}

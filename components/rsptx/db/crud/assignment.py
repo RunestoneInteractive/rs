@@ -356,6 +356,7 @@ async def update_multiple_assignment_questions(
                     "name",
                     "difficulty",
                     "tags",
+                    "activities_required"
                 ]
 
                 # Check if any of the editable fields have changed
