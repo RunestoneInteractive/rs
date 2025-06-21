@@ -21,7 +21,7 @@ export default defineConfig(({ mode }: { mode: string }) => {
         "/assignment": "http://localhost"
       }
     },
-    base: basedir,F
+    base: basedir,
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
