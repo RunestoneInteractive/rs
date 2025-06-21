@@ -1,3 +1,4 @@
+import React from "react";
 import { SearchInput } from "@components/ui/SearchInput";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
@@ -6,6 +7,7 @@ import { InputSwitch } from "primereact/inputswitch";
 import { classNames } from "primereact/utils";
 
 import { Assignment } from "@/types/assignment";
+import { convertISOStringToDate } from "@/utils/date";
 
 // eslint-disable-next-line no-restricted-imports
 import styles from "../../AssignmentBuilder.module.css";
@@ -78,10 +80,12 @@ export const AssignmentList = ({
   const dueDateBodyTemplate = (rowData: Assignment) => (
     <div className={styles.dueDateCell}>
       <span className={styles.dueDateText}>
-        {new Date(rowData.duedate).toLocaleDateString(undefined, {
+        {convertISOStringToDate(rowData.duedate).toLocaleDateString(undefined, {
           year: "numeric",
           month: "short",
-          day: "numeric"
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
         })}
       </span>
     </div>
