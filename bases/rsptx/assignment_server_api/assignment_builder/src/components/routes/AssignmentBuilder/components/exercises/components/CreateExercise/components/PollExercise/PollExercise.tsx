@@ -45,6 +45,9 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
   htmlsrc: "",
   question_type: "poll",
   statement: "",
+  poll_type: "options",
+  scale_min: 1,
+  scale_max: SCALE_CONFIG.DEFAULT,
   optionList: [
     { id: `option-${Date.now()}`, choice: "" } as PollOption,
     { id: `option-${Date.now() + 1}`, choice: "" } as PollOption
@@ -68,6 +71,9 @@ export const PollExercise: FC<BaseExerciseProps> = ({
 }) => {
   // Poll-specific state
   const [pollType, setPollType] = useState<PollType>(() => {
+    if (isEdit && initialData?.poll_type) {
+      return initialData.poll_type as PollType;
+    }
     // If editing, check if it's a scale type (all options are numbers)
     if (isEdit && Array.isArray(initialData?.optionList) && initialData.optionList.length > 0) {
       const allNumbers = initialData.optionList.every((opt) => !isNaN(Number(opt.choice)));
@@ -135,9 +141,13 @@ export const PollExercise: FC<BaseExerciseProps> = ({
   const handlePollTypeChange = useCallback(
     (newType: PollType) => {
       setPollType(newType);
+      updateFormData("poll_type", newType);
 
       // Update options if changing to scale type
       if (newType === "scale" && pollType !== "scale") {
+        updateFormData("scale_min", 1);
+        updateFormData("scale_max", scaleMax);
+
         // Create scale options
         const scaleOptions = Array.from({ length: scaleMax }, (_, i) => ({
           id: `option-scale-${Date.now()}-${i}`,
@@ -150,6 +160,9 @@ export const PollExercise: FC<BaseExerciseProps> = ({
       }
       // Reset to default options when switching from scale to options
       else if (newType === "options" && pollType === "scale") {
+        updateFormData("scale_min", undefined);
+        updateFormData("scale_max", undefined);
+
         const defaultOptions = [
           { id: `option-${Date.now()}`, choice: "", feedback: "", correct: false },
           { id: `option-${Date.now() + 1}`, choice: "", feedback: "", correct: false }
@@ -164,6 +177,9 @@ export const PollExercise: FC<BaseExerciseProps> = ({
   const handleScaleMaxChange = useCallback(
     (value: number) => {
       setScaleMax(value);
+
+      updateFormData("scale_min", 1);
+      updateFormData("scale_max", value);
 
       // Update options based on new scale max
       const scaleOptions = Array.from({ length: value }, (_, i) => {
