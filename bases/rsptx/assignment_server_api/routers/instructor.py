@@ -884,8 +884,12 @@ async def search_questions(
 
 
 @router.get("/builder")
+@router.get("/builder/{path:path}")
 async def get_builder(
-    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+    request: Request, 
+    path: str = "",
+    user=Depends(auth_manager), 
+    response_class=HTMLResponse
 ):
     # get the course
     course = await fetch_course(user.course_name)
