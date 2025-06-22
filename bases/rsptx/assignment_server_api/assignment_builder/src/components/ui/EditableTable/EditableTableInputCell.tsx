@@ -10,7 +10,7 @@ export const EditableTableInputNumberCell = ({
   handleChange,
   value,
   fieldName,
-  rowIndex
+  itemId
 }: EditableCellProps<DraggingExerciseNumberColumns>) => {
   const [cellValue, setCellValue] = useState(value);
 
@@ -21,7 +21,7 @@ export const EditableTableInputNumberCell = ({
   const handleBlur = (updated: string) => {
     const updatedValue = parseInt(updated.replaceAll(",", ""));
 
-    handleChange(rowIndex, fieldName, updatedValue);
+    handleChange(itemId, fieldName, updatedValue);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -34,7 +34,7 @@ export const EditableTableInputNumberCell = ({
     <InputNumber
       className="editable-table-input"
       id={fieldName}
-      name={`${fieldName}-${rowIndex}`}
+      name={`${fieldName}-${itemId}`}
       min={0}
       value={cellValue as number}
       onChange={(e) => setCellValue(e.value ?? 0)}

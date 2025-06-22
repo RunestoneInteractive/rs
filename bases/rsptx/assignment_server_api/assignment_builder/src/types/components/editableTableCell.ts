@@ -1,23 +1,21 @@
-export const dropdownFields = ["autograde", "which_to_grade"] as const;
-export const numberFields = ["points"] as const;
-
-export type DraggingExerciseDropdownColumns = (typeof dropdownFields)[number];
-export type DraggingExerciseNumberColumns = (typeof numberFields)[number];
-
 export type DraggingExerciseColumns =
-  | DraggingExerciseNumberColumns
-  | DraggingExerciseDropdownColumns;
+  | "autograde"
+  | "which_to_grade"
+  | "points"
+  | "activities_required";
+export type DraggingExerciseDropdownColumns = "autograde" | "which_to_grade";
+export type DraggingExerciseNumberColumns = "points" | "activities_required";
 
 export const isDropdownField = (
-  fieldName: DraggingExerciseColumns
-): fieldName is DraggingExerciseDropdownColumns => {
-  return dropdownFields.includes(fieldName as DraggingExerciseDropdownColumns);
+  field: DraggingExerciseColumns
+): field is DraggingExerciseDropdownColumns => {
+  return ["autograde", "which_to_grade"].includes(field);
 };
 
 export const isNumberField = (
-  fieldName: DraggingExerciseColumns
-): fieldName is DraggingExerciseNumberColumns => {
-  return numberFields.includes(fieldName as DraggingExerciseNumberColumns);
+  field: DraggingExerciseColumns
+): field is DraggingExerciseNumberColumns => {
+  return ["points", "activities_required"].includes(field);
 };
 
 export type EditableCellProps<
@@ -25,8 +23,8 @@ export type EditableCellProps<
   TFieldValue = string | number
 > = {
   fieldName: TFieldName;
-  rowIndex: number;
-  handleChange: (rowIndex: number, fieldName: TFieldName, value: TFieldValue) => void;
+  itemId: number;
+  handleChange: (itemId: number, fieldName: TFieldName, value: TFieldValue) => void;
   hideDragIcon: VoidFunction;
   value: TFieldValue;
   questionType: string;
@@ -37,9 +35,9 @@ export type EditableCellFactoryProps<
   TFieldValue = string | number
 > = {
   fieldName: TFieldName;
-  rowIndex: number;
-  handleMouseDown: (rowIndex: number, fieldName: TFieldName) => void;
-  handleChange: (rowIndex: number, fieldName: TFieldName, value: TFieldValue) => void;
+  itemId: number;
+  handleMouseDown: (itemId: number, fieldName: TFieldName) => void;
+  handleChange: (itemId: number, fieldName: TFieldName, value: TFieldValue) => void;
   value: TFieldValue;
   questionType: string;
   isDragging: boolean;
