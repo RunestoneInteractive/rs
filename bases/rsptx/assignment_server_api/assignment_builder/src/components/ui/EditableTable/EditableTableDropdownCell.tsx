@@ -32,6 +32,7 @@ export const EditableTableDropdownCell = ({
       onChange={onChange}
       options={options}
       optionLabel="label"
+      scrollHeight="auto"
       onHide={hideDragIcon}
     />
   );

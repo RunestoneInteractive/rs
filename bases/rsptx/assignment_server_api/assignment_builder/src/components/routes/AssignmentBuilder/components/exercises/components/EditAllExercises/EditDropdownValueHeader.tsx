@@ -33,6 +33,7 @@ const EditDropdownValueHeaderComponent = ({
       onChange={(e) => onChange(e.value)}
       options={options}
       optionLabel="label"
+      scrollHeight="auto"
     />
   );
 };
