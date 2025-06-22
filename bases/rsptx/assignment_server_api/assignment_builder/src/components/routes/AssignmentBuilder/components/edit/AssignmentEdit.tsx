@@ -324,6 +324,7 @@ export const AssignmentEdit = ({
                             control={control}
                             render={({ field }) => (
                               <SelectButton
+                                allowEmpty={false}
                                 value={field.value}
                                 onChange={(e) => field.onChange(e.value)}
                                 options={[
@@ -342,6 +343,7 @@ export const AssignmentEdit = ({
                             control={control}
                             render={({ field }) => (
                               <SelectButton
+                                allowEmpty={false}
                                 value={field.value}
                                 onChange={(e) => field.onChange(e.value)}
                                 options={[
@@ -363,6 +365,7 @@ export const AssignmentEdit = ({
                           control={control}
                           render={({ field }) => (
                             <SelectButton
+                              allowEmpty={false}
                               value={field.value}
                               onChange={(e) => field.onChange(e.value)}
                               options={[

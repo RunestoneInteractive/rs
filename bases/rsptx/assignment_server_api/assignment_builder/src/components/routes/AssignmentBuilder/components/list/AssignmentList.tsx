@@ -61,7 +61,14 @@ export const AssignmentList = ({
 
   const nameBodyTemplate = (rowData: Assignment) => (
     <div className={styles.nameCell}>
-      <span className={styles.nameText}>{rowData.name}</span>
+      <span
+        className={styles.nameText}
+        style={{ cursor: "pointer", color: "#007ad9" }}
+        onClick={() => onEdit(rowData)}
+        title="Click to edit assignment"
+      >
+        {rowData.name}
+      </span>
     </div>
   );
 
@@ -182,6 +189,9 @@ export const AssignmentList = ({
         filters={{
           name: { value: globalFilter, matchMode: "contains" }
         }}
+        sortMode="single"
+        sortField="name"
+        sortOrder={1}
       >
         <Column
           field="name"

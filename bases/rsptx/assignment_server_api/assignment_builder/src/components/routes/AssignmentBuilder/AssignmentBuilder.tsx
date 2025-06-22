@@ -20,14 +20,14 @@ import { useDispatch } from "react-redux";
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { Assignment, CreateAssignmentPayload } from "@/types/assignment";
 
+import { RoutingDebug } from "./components/RoutingDebug";
 import { AssignmentEdit } from "./components/edit/AssignmentEdit";
 import { AssignmentList } from "./components/list/AssignmentList";
 import { AssignmentWizard } from "./components/wizard/AssignmentWizard";
-import { RoutingDebug } from "./components/RoutingDebug";
 import { defaultAssignment } from "./defaultAssignment";
 import { useAssignmentForm } from "./hooks/useAssignmentForm";
-import { useAssignmentState } from "./hooks/useAssignmentState";
 import { useAssignmentRouting } from "./hooks/useAssignmentRouting";
+import { useAssignmentState } from "./hooks/useAssignmentState";
 import { useNameValidation } from "./hooks/useNameValidation";
 
 export const AssignmentBuilder = () => {
@@ -36,6 +36,7 @@ export const AssignmentBuilder = () => {
   const [createAssignment] = useCreateAssignmentMutation();
   const [updateAssignment] = useUpdateAssignmentMutation();
   // Load all required data
+
   useGetAutoGradeOptionsQuery();
   useGetWhichToGradeOptionsQuery();
   useGetLanguageOptionsQuery();
@@ -64,7 +65,7 @@ export const AssignmentBuilder = () => {
   // Get selected assignment from routing
   const { selectedAssignment, updateAssignment: updateSelectedAssignment } =
     useSelectedAssignment();
-  
+
   // Update selected assignment ID in store when route changes
   useEffect(() => {
     if (selectedAssignmentId && selectedAssignmentId !== selectedAssignment?.id?.toString()) {
@@ -73,13 +74,8 @@ export const AssignmentBuilder = () => {
   }, [selectedAssignmentId, selectedAssignment?.id, dispatch]);
 
   // Custom hooks for state management
-  const {
-    globalFilter,
-    setGlobalFilter,
-    isCollapsed,
-    setIsCollapsed,
-    handleTypeSelect
-  } = useAssignmentState();
+  const { globalFilter, setGlobalFilter, isCollapsed, setIsCollapsed, handleTypeSelect } =
+    useAssignmentState();
 
   // Form management
   const { control, watch, setValue, reset, getValues, handleNameChange } = useAssignmentForm({
@@ -128,7 +124,8 @@ export const AssignmentBuilder = () => {
       time_limit: formValues.time_limit,
       nofeedback: formValues.nofeedback,
       nopause: formValues.nopause,
-      peer_async_visible: formValues.peer_async_visible
+      peer_async_visible: formValues.peer_async_visible,
+      visible: false
     };
 
     createAssignment(payload);

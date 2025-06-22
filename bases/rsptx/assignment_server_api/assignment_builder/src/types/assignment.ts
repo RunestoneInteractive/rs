@@ -41,6 +41,7 @@ export type CreateAssignmentPayload = {
   nofeedback: boolean;
   nopause: boolean;
   peer_async_visible: boolean;
+  visible: boolean;
 };
 
 export type CreateAssignmentValidationResponse = [
