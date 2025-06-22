@@ -81,7 +81,9 @@ export const AssignmentList = ({
         {new Date(rowData.duedate).toLocaleDateString(undefined, {
           year: "numeric",
           month: "short",
-          day: "numeric"
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
         })}
       </span>
     </div>
