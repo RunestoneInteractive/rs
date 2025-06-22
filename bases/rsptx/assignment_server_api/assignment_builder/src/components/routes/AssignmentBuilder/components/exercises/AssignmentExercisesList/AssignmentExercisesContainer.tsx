@@ -18,11 +18,10 @@ import { EditView } from "./EditView";
 import { ErrorDisplay } from "./ErrorDisplay";
 import { ExerciseListView } from "./ExerciseListView";
 import { ExerciseSuccessDialog } from "./ExerciseSuccessDialog";
-import { ExercisesBreadcrumb } from "./ExercisesBreadcrumb";
 import { AssignmentExercisesComponentProps, ViewMode } from "./types";
 
 export const AssignmentExercisesContainer = ({
-  startRowIndex,
+  startItemId,
   draggingFieldName,
   handleMouseDown,
   handleMouseUp,
@@ -34,22 +33,15 @@ export const AssignmentExercisesContainer = ({
   const [globalFilter, setGlobalFilter] = useState("");
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [lastExerciseType, setLastExerciseType] = useState<string>("");
-  const [isSaving, setIsSaving] = useState(false);
+  const [_, setIsSaving] = useState(false);
   const [resetExerciseForm, setResetExerciseForm] = useState(false);
   const { updateAssignmentExercises } = useUpdateAssignmentExercise();
   const [currentEditExercise, setCurrentEditExercise] = useState<Exercise | null>(null);
 
-  const {
-    exerciseViewMode: viewMode,
-    exerciseType,
-    exerciseId,
-    exerciseStep,
-    updateExerciseViewMode,
-    selectedAssignmentId
-  } = useAssignmentRouting();
+  const { exerciseViewMode: viewMode, updateExerciseViewMode } = useAssignmentRouting();
 
   const setSelectedExercises = (exercises: Exercise[]) => {
-    if (startRowIndex === null) {
+    if (startItemId === null) {
       dispatch(exercisesActions.setSelectedExercises(exercises));
     }
   };
@@ -85,27 +77,8 @@ export const AssignmentExercisesContainer = ({
     return <ErrorDisplay refetch={refetch} />;
   }
 
-  // Type casting for the drag and drop handlers
-  const typedHandleMouseDown = (rowIndex: number, fieldName: DraggingExerciseColumns) => {
-    handleMouseDown(rowIndex, fieldName as any);
-  };
-
-  const typedHandleChange = (rowIndex: number, fieldName: DraggingExerciseColumns, value: any) => {
-    handleChange(rowIndex, fieldName as any, value);
-  };
-
-  const typedHandleMouseUp = () => {
-    handleMouseUp();
-  };
-
   return (
     <div className={styles.exerciseManager}>
-      <ExercisesBreadcrumb
-        viewMode={viewMode}
-        setViewMode={updateExerciseViewMode}
-        currentEditExercise={currentEditExercise}
-      />
-
       {viewMode === "list" && (
         <ExerciseListView
           globalFilter={globalFilter}
@@ -117,11 +90,11 @@ export const AssignmentExercisesContainer = ({
           setViewMode={updateExerciseViewMode}
           setResetExerciseForm={setResetExerciseForm}
           setCurrentEditExercise={setCurrentEditExercise}
-          startRowIndex={startRowIndex}
+          startItemId={startItemId}
           draggingFieldName={draggingFieldName as DraggingExerciseColumns | null}
-          handleMouseDown={typedHandleMouseDown}
-          handleMouseUp={typedHandleMouseUp}
-          handleChange={typedHandleChange}
+          handleMouseDown={handleMouseDown}
+          handleMouseUp={handleMouseUp}
+          handleChange={handleChange}
         />
       )}
 

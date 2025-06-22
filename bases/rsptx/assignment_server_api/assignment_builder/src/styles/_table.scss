@@ -76,3 +76,9 @@
 .p-datatable-wrapper {
   overflow: visible !important;
 }
+
+.nowrap {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

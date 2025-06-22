@@ -404,7 +404,7 @@ async def new_assignment(
     new_assignment = AssignmentValidator(
         **request_data.model_dump(),
         course=course.id,
-        visible=True,
+        visible=False,
         released=False,
         from_source=False,
         is_peer=False,
@@ -884,8 +884,12 @@ async def search_questions(
 
 
 @router.get("/builder")
+@router.get("/builder/{path:path}")
 async def get_builder(
-    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+    request: Request, 
+    path: str = "",
+    user=Depends(auth_manager), 
+    response_class=HTMLResponse
 ):
     # get the course
     course = await fetch_course(user.course_name)

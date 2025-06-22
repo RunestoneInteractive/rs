@@ -10,7 +10,7 @@ import { Steps } from "primereact/steps";
 import { Control, Controller } from "react-hook-form";
 
 import { Assignment, KindOfAssignment } from "@/types/assignment";
-import { convertDateToISO, convertISOStringToDate } from "@/utils/date";
+import { convertDateToISO } from "@/utils/date";
 
 // eslint-disable-next-line no-restricted-imports
 import styles from "../../AssignmentBuilder.module.css";
@@ -110,7 +110,7 @@ export const AssignmentWizard = ({
                   hideOnDateTimeSelect
                   dateFormat="dd/mm/yy"
                   stepMinute={5}
-                  value={convertISOStringToDate(field.value)}
+                  value={field.value ? new Date(field.value) : null}
                   onChange={(e) => field.onChange(convertDateToISO(e.value!))}
                   showTime
                   showIcon
@@ -193,6 +193,7 @@ export const AssignmentWizard = ({
                       control={control}
                       render={({ field }) => (
                         <SelectButton
+                          allowEmpty={false}
                           value={field.value}
                           onChange={(e) => field.onChange(e.value)}
                           options={[
@@ -211,6 +212,7 @@ export const AssignmentWizard = ({
                       control={control}
                       render={({ field }) => (
                         <SelectButton
+                          allowEmpty={false}
                           value={field.value}
                           onChange={(e) => field.onChange(e.value)}
                           options={[
@@ -237,6 +239,7 @@ export const AssignmentWizard = ({
                       control={control}
                       render={({ field }) => (
                         <SelectButton
+                          allowEmpty={false}
                           value={field.value}
                           onChange={(e) => field.onChange(e.value)}
                           options={[

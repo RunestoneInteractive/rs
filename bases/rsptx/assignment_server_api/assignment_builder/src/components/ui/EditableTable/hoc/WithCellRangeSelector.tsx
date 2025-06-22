@@ -7,7 +7,7 @@ export const withCellRangeSelector = <P extends EditableCellFactoryProps>(
 ) => {
   return ({
     fieldName,
-    rowIndex,
+    itemId,
     handleMouseDown,
     handleChange,
     value,
@@ -25,7 +25,7 @@ export const withCellRangeSelector = <P extends EditableCellFactoryProps>(
     };
 
     const handleDragIconPress = (e: MouseEvent<HTMLElement>) => {
-      handleMouseDown(rowIndex, fieldName);
+      handleMouseDown(itemId, fieldName);
       e.stopPropagation();
     };
 
@@ -40,7 +40,7 @@ export const withCellRangeSelector = <P extends EditableCellFactoryProps>(
           {...(props as P)}
           handleChange={handleChange}
           hideDragIcon={hideDragIcon}
-          rowIndex={rowIndex}
+          itemId={itemId}
           value={value}
         />
         {isDragIconVisible && !isDragging && (

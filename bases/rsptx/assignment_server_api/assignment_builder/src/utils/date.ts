@@ -1,12 +1,6 @@
 export const convertDateToISO = (date: Date): string => {
-  return date.toISOString().replace("Z", "");
-};
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60 * 1000);
 
-export const convertISOStringToDate = (isoString: string): Date => {
-  try {
-    return new Date(`${isoString}Z`);
-  } catch (e) {
-    console.error("Invalid ISO string", isoString);
-    return new Date();
-  }
+  return localDate.toISOString().slice(0, 19); // Remove 'Z' and milliseconds
 };

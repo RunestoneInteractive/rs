@@ -13,25 +13,26 @@ export const EditableTableDropdownCell = ({
   fieldName,
   hideDragIcon,
   questionType,
-  rowIndex
+  itemId
 }: EditableCellProps<DraggingExerciseDropdownColumns>) => {
   const [dropdownValue, setDropdownValue] = useState(value);
   const { [fieldName]: options } = useTableDropdownOptions(questionType);
 
   const onChange = (event: DropdownChangeEvent) => {
     setDropdownValue(event.value);
-    handleChange(rowIndex, fieldName, event.value);
+    handleChange(itemId, fieldName, event.value);
   };
 
   return (
     <Dropdown
       className="editable-table-dropdown"
       id={fieldName}
-      name={`${fieldName}-${rowIndex}`}
+      name={`${fieldName}-${itemId}`}
       value={dropdownValue}
       onChange={onChange}
       options={options}
       optionLabel="label"
+      scrollHeight="auto"
       onHide={hideDragIcon}
     />
   );

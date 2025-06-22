@@ -1,7 +1,9 @@
 import styles from "@components/routes/AssignmentBuilder/AssignmentBuilder.module.css";
 import { ErrorState } from "@components/routes/AssignmentBuilder/components/ErrorState/ErrorState";
 import { AssignmentExercises } from "@components/routes/AssignmentBuilder/components/exercises/AssignmentExercisesList";
+import { useDialogContext } from "@components/ui/DialogContext";
 import classNames from "classnames";
+import { BreadCrumb } from "primereact/breadcrumb";
 import { Button } from "primereact/button";
 import { Calendar } from "primereact/calendar";
 import { InputNumber } from "primereact/inputnumber";
@@ -9,11 +11,12 @@ import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { SelectButton } from "primereact/selectbutton";
+import { Tooltip } from "primereact/tooltip";
 import { Control, Controller } from "react-hook-form";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
-import { convertDateToISO, convertISOStringToDate } from "@/utils/date";
+import { convertDateToISO } from "@/utils/date";
 
 import { AssignmentReadings } from "../reading/AssignmentReadings";
 
@@ -59,6 +62,24 @@ export const AssignmentEdit = ({
   watch
 }: AssignmentEditProps) => {
   const { isExercisesError, isExercisesLoading } = useExercisesSelector();
+  const { showDialog } = useDialogContext();
+
+  const onReadingsInfoClick = () => {
+    showDialog({
+      style: { width: "50vw" },
+      header: "Sections to Read",
+      children: (
+        <p className="m-0">
+          Reading assignments are meant to encourage students to do the reading, by giving them
+          points for interacting with various interactive elements that are a part of the page. The
+          number of activities required is set to 80% of the number of questions in the reading.
+          Readings assignments are meant to be <strong>formative</strong> and therefore the
+          questions are not graded for correctness, rather the students are given points for
+          interacting with them.
+        </p>
+      )
+    });
+  };
 
   if (isExercisesError) {
     return (
@@ -79,6 +100,34 @@ export const AssignmentEdit = ({
       </div>
     );
   }
+
+  const getBreadcrumbModel = () => {
+    if (activeTab === "basic") return [];
+    if (activeTab === "readings") {
+      return [
+        {
+          label: "Readings",
+          template: (item: any) => (
+            <div className="flex align-items-center gap-1">
+              <span>{item.label}</span>
+              <i
+                className="pi pi-info-circle"
+                onClick={onReadingsInfoClick}
+                data-pr-tooltip="Information about readings"
+                data-pr-position="top"
+                style={{
+                  cursor: "pointer",
+                  color: "var(--text-color-secondary)",
+                  fontSize: "0.875rem"
+                }}
+              />
+            </div>
+          )
+        }
+      ];
+    }
+    return [{ label: "Assignment Exercises" }];
+  };
 
   return (
     <div className={classNames(styles.layout, { [styles.collapsed]: isCollapsed })}>
@@ -146,6 +195,12 @@ export const AssignmentEdit = ({
           </div>
         </div>
         <div className={styles.mainContentInner}>
+          <Tooltip target="[data-pr-tooltip]" />
+          <BreadCrumb
+            model={getBreadcrumbModel()}
+            home={{ icon: "pi pi-home", command: () => onTabChange("basic") }}
+            className="mb-3"
+          />
           {activeTab === "basic" && (
             <div className={styles.formContainer}>
               <div className={styles.card}>
@@ -190,7 +245,7 @@ export const AssignmentEdit = ({
                           hideOnDateTimeSelect
                           dateFormat="dd/mm/yy"
                           stepMinute={5}
-                          value={convertISOStringToDate(field.value)}
+                          value={field.value ? new Date(field.value) : null}
                           onChange={(e) => field.onChange(convertDateToISO(e.value!))}
                           showTime
                           showIcon
@@ -269,6 +324,7 @@ export const AssignmentEdit = ({
                             control={control}
                             render={({ field }) => (
                               <SelectButton
+                                allowEmpty={false}
                                 value={field.value}
                                 onChange={(e) => field.onChange(e.value)}
                                 options={[
@@ -287,6 +343,7 @@ export const AssignmentEdit = ({
                             control={control}
                             render={({ field }) => (
                               <SelectButton
+                                allowEmpty={false}
                                 value={field.value}
                                 onChange={(e) => field.onChange(e.value)}
                                 options={[
@@ -308,6 +365,7 @@ export const AssignmentEdit = ({
                           control={control}
                           render={({ field }) => (
                             <SelectButton
+                              allowEmpty={false}
                               value={field.value}
                               onChange={(e) => field.onChange(e.value)}
                               options={[

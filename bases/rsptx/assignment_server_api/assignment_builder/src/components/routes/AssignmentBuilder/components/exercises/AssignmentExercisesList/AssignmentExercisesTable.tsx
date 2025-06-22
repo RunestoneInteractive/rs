@@ -24,11 +24,11 @@ interface AssignmentExercisesTableProps {
   globalFilter: string;
   setCurrentEditExercise: SetCurrentEditExercise;
   setViewMode: ViewModeSetter;
-  startRowIndex: number | null;
+  startItemId: number | null;
   draggingFieldName: DraggingExerciseColumns | null;
-  handleMouseDown: (rowIndex: number, fieldName: DraggingExerciseColumns) => void;
+  handleMouseDown: (itemId: number, fieldName: DraggingExerciseColumns) => void;
   handleMouseUp: MouseUpHandler;
-  handleChange: (rowIndex: number, fieldName: DraggingExerciseColumns, value: any) => void;
+  handleChange: (itemId: number, fieldName: DraggingExerciseColumns, value: any) => void;
 }
 
 export const AssignmentExercisesTable = ({
@@ -38,7 +38,7 @@ export const AssignmentExercisesTable = ({
   globalFilter,
   setCurrentEditExercise,
   setViewMode,
-  startRowIndex,
+  startItemId,
   draggingFieldName,
   handleMouseDown,
   handleMouseUp,
@@ -73,7 +73,7 @@ export const AssignmentExercisesTable = ({
   };
 
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{ position: "relative", overflow: "auto" }}>
       <DataTable<Exercise[]>
         style={{ minWidth: "100%", userSelect: "none" }}
         value={assignmentExercises}
@@ -85,7 +85,7 @@ export const AssignmentExercisesTable = ({
         }
         dataKey="id"
         scrollable
-        scrollHeight="calc(100vh - 340px)"
+        scrollHeight="calc(100vh - 320px)"
         size="small"
         rowClassName={() => "assignmentExercise_row"}
         stripedRows
@@ -151,25 +151,16 @@ export const AssignmentExercisesTable = ({
         <Column
           header="Exercise"
           bodyStyle={{
-            width: "15rem"
+            maxWidth: "20rem"
           }}
           body={(data: Exercise) => (
             <div
               style={{
-                width: "15rem",
                 maxWidth: "100%"
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  wordBreak: "break-word"
-                }}
-                className="font-medium"
-              >
-                {data.name || data.title}
-              </div>
-              <div className="text-500 text-sm">{data.qnumber}</div>
+              <div className="font-medium nowrap">{data.name || data.title}</div>
+              <div className="text-500 text-sm nowrap">{data.qnumber}</div>
             </div>
           )}
           sortField="name"
@@ -189,15 +180,15 @@ export const AssignmentExercisesTable = ({
             <EditDropdownValueHeader field="autograde" label="Autograde" defaultValue="" />
           )}
           bodyStyle={{ padding: 0 }}
-          body={(rowData: Exercise, { rowIndex }) => (
+          body={(rowData: Exercise) => (
             <EditableCellFactory
               fieldName="autograde"
-              rowIndex={rowIndex}
+              itemId={rowData.id}
               handleMouseDown={handleMouseDown}
               handleChange={handleChange}
               value={rowData.autograde}
               questionType={rowData.question_type}
-              isDragging={startRowIndex !== null}
+              isDragging={startItemId !== null}
             />
           )}
         />
@@ -212,15 +203,15 @@ export const AssignmentExercisesTable = ({
           )}
           style={{ width: "12rem" }}
           bodyStyle={{ padding: 0 }}
-          body={(rowData: Exercise, { rowIndex }) => (
+          body={(rowData: Exercise) => (
             <EditableCellFactory
               fieldName="which_to_grade"
-              rowIndex={rowIndex}
+              itemId={rowData.id}
               handleMouseDown={handleMouseDown}
               handleChange={handleChange}
               value={rowData.which_to_grade}
               questionType={rowData.question_type}
-              isDragging={startRowIndex !== null}
+              isDragging={startItemId !== null}
             />
           )}
         />
@@ -229,25 +220,27 @@ export const AssignmentExercisesTable = ({
           bodyStyle={{ padding: 0 }}
           style={{ width: "8rem" }}
           header={() => <EditInputValueHeader field="points" label="Points" defaultValue={0} />}
-          body={(data: Exercise, { rowIndex }) => (
+          body={(data: Exercise) => (
             <EditableCellFactory
               fieldName="points"
-              rowIndex={rowIndex}
+              itemId={data.id}
               handleMouseDown={handleMouseDown}
               handleChange={handleChange}
               value={data.points}
               questionType={data.question_type}
-              isDragging={startRowIndex !== null}
+              isDragging={startItemId !== null}
             />
           )}
         />
         <Column rowReorder style={{ width: "3rem" }} />
       </DataTable>
       <TableSelectionOverlay
-        startRowIndex={startRowIndex}
+        startItemId={startItemId}
         draggingFieldName={draggingFieldName}
         tableRef={dataTableRef.current!}
         handleMouseUp={handleMouseUp}
+        type="exercises"
+        exercises={assignmentExercises}
       />
     </div>
   );
