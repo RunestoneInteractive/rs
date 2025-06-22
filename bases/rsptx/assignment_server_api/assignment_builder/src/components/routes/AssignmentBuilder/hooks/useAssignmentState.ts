@@ -24,7 +24,7 @@ export const useAssignmentState = () => {
       setValue("nofeedback", false); // Default to allowing feedback
     } else if (type === "Peer") {
       setValue("is_peer", true);
-      setValue("peer_async_visible", true);
+      setValue("peer_async_visible", false);
     }
 
     setValue("kind", type);

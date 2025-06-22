@@ -18,18 +18,6 @@ import reportWebVitals from "./reportWebVitals";
  * @description This is the main function that is called when the page is loaded.
  */
 const main = () => {
-  //TODO: Move inside App.tsx
-  try {
-    store.dispatch(fetchAssignments());
-  } catch (error) {
-    console.error(error);
-  }
-
-  store.dispatch(
-    // @ts-ignore
-    fetchChooserData({ skipreading: false, from_source_only: false, pages_only: false })
-  );
-
   const root = createRoot(document.getElementById("root")!);
 
   root.render(

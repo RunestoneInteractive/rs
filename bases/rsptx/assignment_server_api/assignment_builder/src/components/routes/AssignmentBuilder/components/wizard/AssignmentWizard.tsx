@@ -193,6 +193,7 @@ export const AssignmentWizard = ({
                       control={control}
                       render={({ field }) => (
                         <SelectButton
+                          allowEmpty={false}
                           value={field.value}
                           onChange={(e) => field.onChange(e.value)}
                           options={[
@@ -211,6 +212,7 @@ export const AssignmentWizard = ({
                       control={control}
                       render={({ field }) => (
                         <SelectButton
+                          allowEmpty={false}
                           value={field.value}
                           onChange={(e) => field.onChange(e.value)}
                           options={[
@@ -237,6 +239,7 @@ export const AssignmentWizard = ({
                       control={control}
                       render={({ field }) => (
                         <SelectButton
+                          allowEmpty={false}
                           value={field.value}
                           onChange={(e) => field.onChange(e.value)}
                           options={[

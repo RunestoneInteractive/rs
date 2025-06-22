@@ -21,7 +21,7 @@ export const AssignmentBuilderCreate = () => {
 
   const { handleTypeSelect } = useAssignmentState();
 
-  const { control, watch, setValue, reset, getValues, handleNameChange } = useAssignmentForm({
+  const { control, watch, setValue, getValues, handleNameChange } = useAssignmentForm({
     selectedAssignment: null,
     mode: "create",
     onAssignmentUpdate: () => {}
@@ -57,7 +57,8 @@ export const AssignmentBuilderCreate = () => {
       time_limit: formValues.time_limit,
       nofeedback: formValues.nofeedback,
       nopause: formValues.nopause,
-      peer_async_visible: formValues.peer_async_visible
+      peer_async_visible: formValues.peer_async_visible,
+      visible: false
     };
 
     createAssignment(payload);

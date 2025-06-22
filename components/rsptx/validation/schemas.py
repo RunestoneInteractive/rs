@@ -233,7 +233,7 @@ class AssignmentIncoming(BaseModel):
     time_limit: Optional[int] = 60
     nofeedback: Optional[bool] = False
     nopause: Optional[bool] = False
-    peer_async_visible: Optional[bool] = True
+    peer_async_visible: Optional[bool] = False
 
 
 class QuestionIncoming(BaseModel):

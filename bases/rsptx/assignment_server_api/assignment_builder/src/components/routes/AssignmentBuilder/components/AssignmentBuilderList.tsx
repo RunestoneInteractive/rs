@@ -60,7 +60,7 @@ export const AssignmentBuilderList = () => {
   return (
     <AssignmentBuilderLayout>
       <AssignmentList
-        assignments={sortBy(assignments, (x) => x.id)}
+        assignments={sortBy(assignments, (x) => x.name.toLowerCase())}
         globalFilter={globalFilter}
         setGlobalFilter={setGlobalFilter}
         onCreateNew={handleCreateNew}

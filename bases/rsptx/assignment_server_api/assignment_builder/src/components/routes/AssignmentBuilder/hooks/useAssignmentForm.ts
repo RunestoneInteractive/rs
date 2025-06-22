@@ -26,6 +26,7 @@ export const useAssignmentForm = ({
     if (selectedAssignment && mode === "edit") {
       isResetRef.current = true;
       reset(selectedAssignment);
+      isResetRef.current = false;
     }
   }, [selectedAssignment, reset, mode]);
 

@@ -404,7 +404,7 @@ async def new_assignment(
     new_assignment = AssignmentValidator(
         **request_data.model_dump(),
         course=course.id,
-        visible=True,
+        visible=False,
         released=False,
         from_source=False,
         is_peer=False,
