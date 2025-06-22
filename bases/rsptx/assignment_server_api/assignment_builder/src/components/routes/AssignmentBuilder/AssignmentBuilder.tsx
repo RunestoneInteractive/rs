@@ -35,6 +35,7 @@ export const AssignmentBuilder = () => {
   const { isLoading, isError, data: assignments = [] } = useGetAssignmentsQuery();
   const [createAssignment] = useCreateAssignmentMutation();
   const [updateAssignment] = useUpdateAssignmentMutation();
+
   // Load all required data
 
   useGetAutoGradeOptionsQuery();
@@ -113,7 +114,7 @@ export const AssignmentBuilder = () => {
     }
   };
 
-  const handleWizardComplete = () => {
+  const handleWizardComplete = async () => {
     const formValues = getValues();
     const payload: CreateAssignmentPayload = {
       name: formValues.name,
@@ -127,9 +128,10 @@ export const AssignmentBuilder = () => {
       peer_async_visible: formValues.peer_async_visible,
       visible: false
     };
+    const response = await createAssignment(payload).unwrap();
+    const createdAssignmentId = response.detail.id;
 
-    createAssignment(payload);
-    navigateToList();
+    navigateToEdit(createdAssignmentId.toString());
   };
 
   if (isLoading) {
