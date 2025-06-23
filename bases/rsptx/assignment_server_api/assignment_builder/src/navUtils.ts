@@ -49,7 +49,7 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
     {
       label: "Admin",
       icon: "pi pi-cog",
-      command: () => navigateToPath("admin")
+      command: () => navigateToPath("/admin/instructor/menu")
     },
     {
       label: "Grader",
