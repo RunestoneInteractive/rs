@@ -60,7 +60,7 @@ from rsptx.db.crud import (
     fetch_one_assignment,
     get_peer_votes,
     search_exercises,
-    create_api_token
+    create_api_token,
 )
 from rsptx.db.crud.assignment import add_assignment_question
 from rsptx.auth.session import auth_manager, is_instructor
@@ -86,7 +86,7 @@ from rsptx.validation.schemas import (
     UpdateAssignmentExercisesPayload,
     AssignmentQuestionUpdateDict,
     ExercisesSearchRequest,
-    CreateExercisesPayload
+    CreateExercisesPayload,
 )
 from rsptx.logging import rslogger
 from rsptx.analytics import log_this_function
@@ -886,10 +886,10 @@ async def search_questions(
 @router.get("/builder")
 @router.get("/builder/{path:path}")
 async def get_builder(
-    request: Request, 
+    request: Request,
     path: str = "",
-    user=Depends(auth_manager), 
-    response_class=HTMLResponse
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
 ):
     # get the course
     course = await fetch_course(user.course_name)
@@ -931,29 +931,21 @@ async def get_builder(
 async def get_grader(
     request: Request, user=Depends(auth_manager), response_class=HTMLResponse
 ):
-    return await get_builder(request, user, response_class)
-
-
-@router.get("/builderV2")
-async def get_builderV2(
-    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
-):
-    await log_this_function(user)
-    return await get_builder(request, user, response_class)
+    return await get_builder(request, "/grader", user, response_class)
 
 
 @router.get("/except")
 async def get_except(
     request: Request, user=Depends(auth_manager), response_class=HTMLResponse
 ):
-    return await get_builder(request, user, response_class)
+    return await get_builder(request, "/except", user, response_class)
 
 
 @router.get("/admin")
 async def get_admin(
     request: Request, user=Depends(auth_manager), response_class=HTMLResponse
 ):
-    return await get_builder(request, user, response_class)
+    return await get_builder(request, "/admin", user, response_class)
 
 
 @router.get("/cancel_lti")
@@ -1260,12 +1252,11 @@ async def do_assignment_summary_data(
         },
     )
 
+
 @router.post("/question")
 @instructor_role_required()
 async def question_creation(
-    request_data: CreateExercisesPayload,
-    request: Request,
-    user=Depends(auth_manager)
+    request_data: CreateExercisesPayload, request: Request, user=Depends(auth_manager)
 ):
 
     if not request_data.author:
@@ -1274,7 +1265,11 @@ async def question_creation(
     course = await fetch_course(user.course_name)
 
     # Exclude assignment_id and is_reading parameters
-    question_data = {key: value for key, value in request_data.model_dump().items() if key not in ("assignment_id", "is_reading")}
+    question_data = {
+        key: value
+        for key, value in request_data.model_dump().items()
+        if key not in ("assignment_id", "is_reading")
+    }
 
     try:
         question = await create_question(
@@ -1286,25 +1281,19 @@ async def question_creation(
                 practice=False,
                 from_source=False,
                 review_flag=False,
-                owner=user.username
+                owner=user.username,
             )
         )
 
-        await add_assignment_question(
-            data=request_data,
-            question=question
-        )
+        await add_assignment_question(data=request_data, question=question)
 
     except Exception as e:
         rslogger.error(f"Error creating question: {e}")
         return make_json_response(
-            status=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error creating question: {e}"
+            status=status.HTTP_400_BAD_REQUEST, detail=f"Error creating question: {e}"
         )
 
-    return make_json_response(
-        status=status.HTTP_201_CREATED
-    )
+    return make_json_response(status=status.HTTP_201_CREATED)
 
 
 class AddTokenRequest(BaseModel):
@@ -1376,5 +1365,3 @@ async def get_add_token_page(
     }
 
     return templates.TemplateResponse("assignment/instructor/add_token.html", context)
-
-

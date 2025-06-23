@@ -15,11 +15,11 @@ const createNavigateToPath = (navigate?: (path: string) => void) => (path: strin
     return;
   }
 
-  if (path.startsWith("/runestone") || path.startsWith("/ns") || path.startsWith("/assignment")) {
+  if (path.startsWith("/runestone") || path.startsWith("/ns") || path.startsWith("/assignment") || path.startsWith("/admin")) {
     window.location.href = path;
     return;
   }
-
+  console.debug("Navigating to path:", path);
   if (navigate) {
     navigate(`/${path}`);
   } else {
@@ -104,8 +104,8 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
           separator: true
         },
         {
-          label: "Instructors Page",
-          command: () => navigateToPath("/runestone/admin/admin")
+          label: "Instructors Dashboard",
+          command: () => navigateToPath("/admin/instructor/menu")
         },
         {
           label: "Accommodations",
