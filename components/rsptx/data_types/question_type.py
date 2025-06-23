@@ -17,6 +17,7 @@ class QuestionType(Enum):
     ACTEX = ("actex", "Actex", "")
     MATCHING = ("matching", "Matching", "Create an exercise where students match items from two different sets")
     PAGE = ("page", "Page", "")
+    WEBWORK = ("webwork", "WeBWorK", "Create a WeBWorK problem for students to solve")
 
     def to_dict(self):
         return {
