@@ -280,7 +280,7 @@ export const BlankManager: FC<BlankManagerProps> = ({ blanks, onChange, question
 
         <div className={styles.questionTips}>
           <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
-          <span>Tip: Click on each answer field to configure validation and feedback.</span>
+          <span>Tip: Click on each answer field to configure validation and feedback.  Type / in the editor for a menu of options.</span>
         </div>
       </div>
     </div>

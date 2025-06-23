@@ -46,7 +46,7 @@ export const ShortAnswerInstructions: FC<ShortAnswerInstructionsProps> = ({
 
       <div className={styles.questionTips}>
         <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
-        <span>Tip: Be concise and specific with your question for better responses</span>
+        <span>Tip: Be concise and specific with your question for better responses. Type / in the editor for a menu of options.</span>
       </div>
     </>
   );
