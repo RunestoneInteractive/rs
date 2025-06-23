@@ -64,6 +64,10 @@ export default class DragNDrop extends RunestoneBase {
     populate() {
         this.responseArray = [];
         this.premiseArray = [];
+        let invisibleErrorDiv = document.createElement("div");
+        invisibleErrorDiv.classList.add("ptx-runestone-container");
+        document.body.appendChild(invisibleErrorDiv);
+
         for (let element of this.origElem.querySelectorAll(
             "[data-subcomponent='draggable']"
         )) {
@@ -85,7 +89,7 @@ export default class DragNDrop extends RunestoneBase {
             errorMessage.innerHTML = "Incorrect drop zone for " + replaceSpan.innerHTML;
             errorMessage.setAttribute("role", "alert");
             errorMessage.id = replaceSpan.id + "_error";
-            document.body.appendChild(errorMessage);
+            invisibleErrorDiv.appendChild(errorMessage);
         }
         if (this.random) {
             // Shuffle the premiseArray if random is true
