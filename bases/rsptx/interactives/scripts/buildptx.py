@@ -42,7 +42,7 @@ def build_book(target, clean, bookname):
     if (p / "project.ptx").exists():  # we are in a pretext project
         print(f"Building {bookname} in place")
     else:
-        print("You must either name a book or be in the book's folder")
+        print("Can't find project.ptx!  You must either name a book or be in the book's folder")
         exit(-1)
 
     config = Config()
