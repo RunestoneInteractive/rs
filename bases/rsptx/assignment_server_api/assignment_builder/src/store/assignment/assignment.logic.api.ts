@@ -1,4 +1,4 @@
-import { createApi } from "@reduxjs/toolkit/query/react";
+import { BaseQueryArg, createApi } from "@reduxjs/toolkit/query/react";
 import { assignmentActions } from "@store/assignment/assignment.logic";
 import { userActions } from "@store/user/userLogic";
 import toast from "react-hot-toast";
@@ -90,7 +90,7 @@ export const assignmentApi = createApi({
         queryFulfilled
           .then(({ data }) => {
             dispatch(assignmentActions.setSelectedAssignmentId(data.detail.id));
-            toast("Assignment created", { icon: "👍" });
+            toast("Assignment created", { icon: "✅" });
           })
           .catch((errorResponse) => {
             const { status, data } = errorResponse.error as {
@@ -128,6 +128,27 @@ export const assignmentApi = createApi({
           });
         });
       }
+    }),
+    removeAssignment: build.mutation<void, Assignment>({
+      query: (body) => ({
+        method: "DELETE",
+        url: `/assignment/instructor/assignments/${body.id}`
+      }),
+      invalidatesTags: (_, error) => {
+        if (!error) {
+          return [{ type: "Assignments" }];
+        }
+        return [];
+      },
+      onQueryStarted: (_, { queryFulfilled }) => {
+        queryFulfilled
+          .then(() => {
+            toast("Assignment removed successfully", { icon: "✅" });
+          })
+          .catch(() => {
+            toast("Error removing assignment", { icon: "🔥" });
+          });
+      }
     })
   })
 });
@@ -136,5 +157,6 @@ export const {
   useGetAssignmentsQuery,
   useGetAssignmentQuery,
   useUpdateAssignmentMutation,
-  useCreateAssignmentMutation
+  useCreateAssignmentMutation,
+  useRemoveAssignmentMutation
 } = assignmentApi;

@@ -62,7 +62,7 @@ from rsptx.db.crud import (
     search_exercises,
     create_api_token
 )
-from rsptx.db.crud.assignment import add_assignment_question
+from rsptx.db.crud.assignment import add_assignment_question, delete_assignment
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
 from rsptx.configuration import settings
@@ -1256,6 +1256,7 @@ async def do_assignment_summary_data(
         },
     )
 
+
 @router.post("/question")
 @instructor_role_required()
 async def question_creation(
@@ -1374,3 +1375,25 @@ async def get_add_token_page(
     return templates.TemplateResponse("assignment/instructor/add_token.html", context)
 
 
+@router.delete("/assignments/{assignment_id}")
+@instructor_role_required()
+async def remove_assignment(
+    assignment_id: int,
+    request: Request
+):
+    rslogger.debug(f"Attempting to delete assignment {assignment_id}")
+    try:
+        await delete_assignment(
+            assignment_id=assignment_id
+        )
+        rslogger.debug(f"Successfully deleted assignment {assignment_id}")
+    except Exception as e:
+        rslogger.error(f"Error deleting assignment {assignment_id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error deleting assignment: {e}"
+        )
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={"status": "success", "message": f"Assignment {assignment_id} deleted successfully"}
+    )

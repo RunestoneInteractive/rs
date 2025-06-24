@@ -1,6 +1,7 @@
 import { SearchInput } from "@components/ui/SearchInput";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
+import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import { DataTable } from "primereact/datatable";
 import { InputSwitch } from "primereact/inputswitch";
 import { classNames } from "primereact/utils";
@@ -18,6 +19,7 @@ interface AssignmentListProps {
   onEdit: (assignment: Assignment) => void;
   onDuplicate: (assignment: Assignment) => void;
   onVisibilityChange: (assignment: Assignment, visible: boolean) => void;
+  onRemove: (assignment: Assignment) => void;
 }
 
 export const AssignmentList = ({
@@ -27,7 +29,8 @@ export const AssignmentList = ({
   onCreateNew,
   onEdit,
   onDuplicate,
-  onVisibilityChange
+  onVisibilityChange,
+  onRemove
 }: AssignmentListProps) => {
   const generateUniqueCopyName = (originalName: string): string => {
     const baseNameMatch = originalName.match(/(.*?)(?:\s*\(Copy\s*(\d+)?\))?$/);
@@ -121,6 +124,23 @@ export const AssignmentList = ({
           position: "top"
         }}
       />
+      <Button
+        icon="pi pi-trash"
+        className="p-button-text p-button-sm"
+        tooltip="Delete"
+        tooltipOptions={{
+          position: "top"
+        }}
+        onClick={() => {
+          confirmDialog({
+            message: "Are you sure you want to delete assignment?",
+            header: "Confirmation",
+            icon: "pi pi-exclamation-triangle",
+            accept: () => onRemove(rowData),
+            reject: () => {}
+          });
+        }}
+      />
     </div>
   );
 
@@ -164,6 +184,7 @@ export const AssignmentList = ({
           />
         </div>
       </div>
+      <ConfirmDialog />
       <DataTable
         value={assignments}
         className={styles.table}

@@ -651,6 +651,8 @@ class Assignment(Base, IdMixin):
     peer_async_visible = Column(Web2PyBoolean, default=False)
     kind = Column(String(128))
 
+    questions = relationship("AssignmentQuestion", cascade="all, delete-orphan")
+
 
 AssignmentValidator: TypeAlias = sqlalchemy_to_pydantic(Assignment)  # type: ignore
 
