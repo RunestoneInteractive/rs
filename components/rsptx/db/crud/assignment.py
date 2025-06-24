@@ -702,3 +702,14 @@ async def upsert_grade(grade: GradeValidator) -> GradeValidator:
         return GradeValidator.from_orm(new_grade)
     else:
         return await fetch_grade(grade.auth_user, grade.assignment)
+
+
+async def delete_assignment(assignment_id: int) -> None:
+    try:
+        async with async_session.begin() as session:
+            assignment = await session.get(Assignment, assignment_id)
+            if assignment:
+                await session.delete(assignment)
+    except Exception as e:
+        rslogger.error(f"Unable to remove assignment {assignment_id}. {e}")
+        raise e
