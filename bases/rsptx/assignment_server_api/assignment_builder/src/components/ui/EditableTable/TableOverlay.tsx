@@ -41,7 +41,7 @@ export const TableSelectionOverlay: FC<TableSelectionOverlayProps> = ({
       successMessage: "reading(s)",
       errorMessage: "readings",
       selector:
-        'input, select, [id^="autograde"], [id^="which_to_grade"], [id^="points"], [id^="activities_required"]'
+        'input, select, [id^="which_to_grade"], [id^="points"], [id^="activities_required"]'
     }
   }[type];
 
