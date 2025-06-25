@@ -35,7 +35,7 @@ export const MultiChoiceQuestion: FC<MultiChoiceQuestionProps> = ({
         <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
         <span>
           Tip: Keep your question concise and specific, making sure it clearly asks what students
-          need to answer.
+          need to answer.  Type / in the editor for a menu of options.
         </span>
       </div>
     </>

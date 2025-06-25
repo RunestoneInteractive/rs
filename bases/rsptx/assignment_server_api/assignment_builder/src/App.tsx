@@ -151,16 +151,6 @@ function App() {
               },
               children: [
                 {
-                  path: "",
-                  async lazy() {
-                    let { AssignmentBuilderList } = await import(
-                      "./components/routes/AssignmentBuilder/components/AssignmentBuilderList"
-                    );
-
-                    return { Component: AssignmentBuilderList };
-                  }
-                },
-                {
                   path: "create",
                   async lazy() {
                     let { AssignmentBuilderCreate } = await import(

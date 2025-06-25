@@ -27,7 +27,7 @@ export const ParsonsInstructions: FC<ParsonsInstructionsProps> = ({ instructions
 
       <div className={styles.questionTips}>
         <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
-        <span>Tip: Be clear about how the code should be rearranged to solve the problem</span>
+        <span>Tip: Be clear about how the code should be rearranged to solve the problem. Type / in the editor for a menu of options.</span>
       </div>
     </>
   );

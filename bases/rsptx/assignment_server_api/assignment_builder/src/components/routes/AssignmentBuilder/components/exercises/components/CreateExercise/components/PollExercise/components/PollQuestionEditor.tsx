@@ -27,7 +27,7 @@ export const PollQuestionEditor: FC<PollQuestionEditorProps> = ({
       <div className={styles.questionTips}>
         <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
         <span>
-          Tip: Create a clear question that students will respond to with the poll options
+          Tip: Create a clear question that students will respond to with the poll options. Type / in the editor for a menu of options.
         </span>
       </div>
     </>
