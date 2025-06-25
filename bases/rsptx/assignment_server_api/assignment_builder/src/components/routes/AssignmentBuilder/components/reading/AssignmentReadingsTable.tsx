@@ -111,7 +111,7 @@ export const AssignmentReadingsTable = ({
           field="numQuestions"
           header="Activity count"
           style={{ maxWidth: "7rem" }}
-          body={(data: Exercise) => <div className="text-center">{data.numQuestions || 0}</div>}
+          body={(data: Exercise) => <div className="text-center">{Math.max(data.numQuestions || 0, 1)}</div>}
           sortable
         />
 
@@ -152,26 +152,6 @@ export const AssignmentReadingsTable = ({
           )}
         />
 
-        {/* Auto-grade */}
-        <Column
-          style={{ width: "12rem" }}
-          field="autograde"
-          header={() => (
-            <EditDropdownValueHeaderReadings field="autograde" label="Auto-grade" defaultValue="" />
-          )}
-          bodyStyle={{ padding: 0 }}
-          body={(rowData: Exercise) => (
-            <EditableCellFactory
-              fieldName="autograde"
-              itemId={rowData.id}
-              handleMouseDown={handleMouseDown}
-              handleChange={handleChange}
-              value={rowData.autograde}
-              questionType={rowData.question_type}
-              isDragging={startItemId !== null}
-            />
-          )}
-        />
 
         {/* Which to grade */}
         <Column
