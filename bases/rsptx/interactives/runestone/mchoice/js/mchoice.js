@@ -443,6 +443,9 @@ export default class MultipleChoice extends RunestoneBase {
 
     checkCurrentAnswer() {
         this.getSubmittedOpts();
+        if (this.givenArray.length === 0) {
+            return;
+        }
         if (this.multipleanswers) {
             this.scoreMCMASubmission();
         } else {
