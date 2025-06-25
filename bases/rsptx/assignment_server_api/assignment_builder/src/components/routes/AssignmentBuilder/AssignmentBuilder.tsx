@@ -3,6 +3,7 @@ import { assignmentActions } from "@store/assignment/assignment.logic";
 import {
   useCreateAssignmentMutation,
   useGetAssignmentsQuery,
+  useRemoveAssignmentMutation,
   useUpdateAssignmentMutation
 } from "@store/assignment/assignment.logic.api";
 import {
@@ -35,6 +36,7 @@ export const AssignmentBuilder = () => {
   const { isLoading, isError, data: assignments = [] } = useGetAssignmentsQuery();
   const [createAssignment] = useCreateAssignmentMutation();
   const [updateAssignment] = useUpdateAssignmentMutation();
+  const [removeAssignment] = useRemoveAssignmentMutation();
 
   // Load all required data
 
@@ -133,6 +135,9 @@ export const AssignmentBuilder = () => {
 
     navigateToEdit(createdAssignmentId.toString());
   };
+  const onRemove = async (assignment: Assignment) => {
+    removeAssignment(assignment);
+  };
 
   if (isLoading) {
     return (
@@ -158,6 +163,7 @@ export const AssignmentBuilder = () => {
           onEdit={handleEdit}
           onDuplicate={createAssignment}
           onVisibilityChange={handleVisibilityChange}
+          onRemove={onRemove}
         />
       )}
       {mode === "create" && (
