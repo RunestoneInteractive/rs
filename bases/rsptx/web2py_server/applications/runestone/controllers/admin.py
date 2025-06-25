@@ -2448,7 +2448,7 @@ def add__or_update_assignment_question():
         try:
             activities_required = int(request.vars.get("activities_required"))
             if activities_required == -1:
-                activities_required = max(round(activity_count * 0.8), 1)
+                activities_required = max(int(activity_count * 0.8), 1)
         except Exception:
             logger.error("No Activities set for RA %s", question_name)
             activities_required = None

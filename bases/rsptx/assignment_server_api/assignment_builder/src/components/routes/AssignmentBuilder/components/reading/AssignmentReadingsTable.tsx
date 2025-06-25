@@ -111,7 +111,7 @@ export const AssignmentReadingsTable = ({
           field="numQuestions"
           header="Activity count"
           style={{ maxWidth: "7rem" }}
-          body={(data: Exercise) => <div className="text-center">{Math.max(data.numQuestions || 0, 1)}</div>}
+          body={(data: Exercise) => <div className="text-center">{data.numQuestions || 1}</div>}
           sortable
         />
 
@@ -151,7 +151,6 @@ export const AssignmentReadingsTable = ({
             />
           )}
         />
-
 
         {/* Which to grade */}
         <Column

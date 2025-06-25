@@ -23,7 +23,7 @@ export function setReadingDefaults(exercise, currentAssignmentId, currentExercis
   exercise.reading_assignment = true;
   exercise.autograde = "interaction";
   exercise.which_to_grade = "best_answer";
-  exercise.activities_required = Math.max(Math.round(exercise.numQuestions * 0.8), 1);
+  exercise.activities_required = Math.round(exercise.numQuestions * 0.8);
   exercise.required = exercise.activities_required;
   return exercise;
 }
