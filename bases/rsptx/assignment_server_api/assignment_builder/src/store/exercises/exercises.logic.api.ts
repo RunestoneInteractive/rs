@@ -10,6 +10,8 @@ import {
   ExercisesSearchResponse
 } from "@/types/exercises";
 
+import { assignmentApi } from "../assignment/assignment.logic.api";
+
 export const exercisesApi = createApi({
   reducerPath: "exercisesAPI",
   keepUnusedDataFor: 60, //change to 0 for tests,
@@ -26,6 +28,7 @@ export const exercisesApi = createApi({
         queryFulfilled
           .then(() => {
             dispatch(assignmentExerciseApi.util.invalidateTags(["Exercises"]));
+            dispatch(assignmentApi.util.invalidateTags(["Assignment", "Assignments"]));
           })
           .catch(() => {
             toast("Error creating new exercise", {
