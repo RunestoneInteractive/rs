@@ -295,23 +295,22 @@
         }
 
         if (v === 1) {
+            counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count}</p>`;
+        }
+        else {
             const pctRequest = new Request("/runestone/peer/percent_correct", {
                 method: "POST",
                 headers: jsheaders,
                 body: JSON.stringify(data)
             });
             const pctResp = await fetch(pctRequest);
-
             if (!pctResp.ok) {
                 console.warn("percent_correct failed:", pctResp.statusText);
-                counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count}</p>`;
+                counterel.innerHTML = `<p>Vote 2 Answers: ${spec.count}</p>`;
             } else {
                 const pctSpec = await pctResp.json();
-                counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count} (${pctSpec.pct_correct}% Correct)</p>`;
+                counterel.innerHTML = `<p>Vote ${v} Answers: ${spec.count} (${pctSpec.pct_correct}% Correct)</p>`;
             }
-        }
-        else {
-            counterel.innerHTML = `<p>Vote ${v} Answers: ${spec.count}</p>`;
         }
 
         if (spec.mess_count > 0) {
