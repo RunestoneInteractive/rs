@@ -281,7 +281,7 @@ def chartdata():
         alt.Chart(df[df.rn == 1], title="First Answer")
         .mark_bar()
         .encode(
-            x="letter",
+            x=alt.X("letter", axis=alt.Axis(title="Choice", labelAngle=0)),
             y=alt.Y(
                 "sum(answer)",
                 title="Number of Students",
@@ -293,7 +293,7 @@ def chartdata():
         alt.Chart(df[df.rn == 2], title="Second Answer")
         .mark_bar()
         .encode(
-            x="letter",
+            x=alt.X("letter", axis=alt.Axis(title="Choice", labelAngle=0)),
             y=alt.Y(
                 "sum(answer)",
                 title="Number of Students",

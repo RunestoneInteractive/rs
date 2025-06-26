@@ -5,6 +5,7 @@ import { Column } from "primereact/column";
 import { DataTable, DataTableSelectionMultipleChangeEvent } from "primereact/datatable";
 import { useRef } from "react";
 
+import { Nullable } from "@/types/common";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
@@ -43,6 +44,12 @@ export const AssignmentReadingsTable = ({
 
   const handleActivitiesRequiredUpdate = (itemId: number, fieldName: string, value: number) => {
     handleChange(itemId, fieldName as DraggingExerciseColumns, value);
+  };
+
+  const getNumQuestionsOrDefault = (numQuestions: Nullable<number>): number => {
+    const defaultNumQuestions = 1;
+
+    return numQuestions ?? defaultNumQuestions;
   };
 
   return (
@@ -111,7 +118,9 @@ export const AssignmentReadingsTable = ({
           field="numQuestions"
           header="Activity count"
           style={{ maxWidth: "7rem" }}
-          body={(data: Exercise) => <div className="text-center">{data.numQuestions || 0}</div>}
+          body={(data: Exercise) => (
+            <div className="text-center">{getNumQuestionsOrDefault(data.numQuestions)}</div>
+          )}
           sortable
         />
 
@@ -123,7 +132,10 @@ export const AssignmentReadingsTable = ({
           bodyStyle={{ padding: 0 }}
           body={(data: Exercise) => (
             <ActivitiesRequiredCell
-              value={data.activities_required || 0}
+              value={
+                data.activities_required ||
+                Math.round(getNumQuestionsOrDefault(data.numQuestions) * 0.8)
+              }
               exercise={data}
               onUpdate={handleActivitiesRequiredUpdate}
               itemId={data.id}
@@ -147,27 +159,6 @@ export const AssignmentReadingsTable = ({
               handleChange={handleChange}
               value={data.points}
               questionType={data.question_type}
-              isDragging={startItemId !== null}
-            />
-          )}
-        />
-
-        {/* Auto-grade */}
-        <Column
-          style={{ width: "12rem" }}
-          field="autograde"
-          header={() => (
-            <EditDropdownValueHeaderReadings field="autograde" label="Auto-grade" defaultValue="" />
-          )}
-          bodyStyle={{ padding: 0 }}
-          body={(rowData: Exercise) => (
-            <EditableCellFactory
-              fieldName="autograde"
-              itemId={rowData.id}
-              handleMouseDown={handleMouseDown}
-              handleChange={handleChange}
-              value={rowData.autograde}
-              questionType={rowData.question_type}
               isDragging={startItemId !== null}
             />
           )}
