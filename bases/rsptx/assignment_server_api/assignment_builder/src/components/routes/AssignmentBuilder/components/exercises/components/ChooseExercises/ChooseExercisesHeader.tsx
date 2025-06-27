@@ -1,9 +1,11 @@
+import { useAssignmentRouting } from "@components/routes/AssignmentBuilder/hooks/useAssignmentRouting";
 import { chooseExercisesSelectors } from "@store/chooseExercises/chooseExercises.logic";
 import { Button } from "primereact/button";
 import { confirmPopup, ConfirmPopup } from "primereact/confirmpopup";
 import { MouseEvent } from "react";
 import { useSelector } from "react-redux";
 
+import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { useUpdateAssignmentExercise } from "@/hooks/useUpdateAssignmentExercise";
 
 export const ChooseExercisesHeader = ({ resetSelections }: { resetSelections: VoidFunction }) => {
@@ -12,7 +14,15 @@ export const ChooseExercisesHeader = ({ resetSelections }: { resetSelections: Vo
   const exercisesToAdd = useSelector(chooseExercisesSelectors.getExercisesToAdd);
   const exercisesToRemove = useSelector(chooseExercisesSelectors.getExercisesToRemove);
 
+  const { navigateToExercises } = useAssignmentRouting();
+  const { selectedAssignment } = useSelectedAssignment();
+
   const onChooseButtonClick = async (event: MouseEvent<HTMLButtonElement>) => {
+    if (!selectedAssignment) {
+      console.error("ChooseExercisesHeader: No selected assignment");
+      return;
+    }
+
     const addText = exercisesToAdd.length ? `add ${exercisesToAdd.length}` : "";
     const removeText = exercisesToRemove.length ? `remove ${exercisesToRemove.length}` : "";
     const conjunction = addText && removeText ? " and " : "";
@@ -30,6 +40,7 @@ export const ChooseExercisesHeader = ({ resetSelections }: { resetSelections: Vo
           idsToRemove: exercisesToRemove.map((x) => x.id),
           isReading: false
         });
+        navigateToExercises(selectedAssignment.id.toString());
       }
     });
   };
