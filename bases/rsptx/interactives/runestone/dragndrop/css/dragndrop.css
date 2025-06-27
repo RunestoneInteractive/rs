@@ -90,12 +90,19 @@
 
 /* Hide the error message from people but let screen readers see it */
 .vh-dnd-error {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}    
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.cardsort-statement {
+    text-align: left;
+    background-color: var(--questionBgColor);
+    padding: 10px;
+    margin-bottom: 10px;
+}

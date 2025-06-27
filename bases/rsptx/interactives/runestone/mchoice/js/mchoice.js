@@ -34,6 +34,7 @@ export default class MultipleChoice extends RunestoneBase {
             this.random = true;
         }
         this.correct = null;
+        this.didSubmit = false;
         this.answerList = [];
         this.correctList = [];
         this.correctIndexList = [];
@@ -419,6 +420,7 @@ export default class MultipleChoice extends RunestoneBase {
                 $(this.feedBackDiv).attr("class", "alert alert-info");
             }
         }
+        this.didSubmit = true;
     }
 
     getSubmittedOpts() {
@@ -573,6 +575,7 @@ export default class MultipleChoice extends RunestoneBase {
                 $(this.feedBackDiv).attr("class", "alert alert-info");
             }
         }
+        this.didSubmit = true;
     }
 
     scoreMCMFSubmission() {
