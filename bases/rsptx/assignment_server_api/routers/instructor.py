@@ -656,6 +656,7 @@ async def get_assignment_questions(
         aq["topic"] = q["topic"]
         aq["author"] = q["author"]
         aq["difficulty"] = q["difficulty"]
+        aq["is_private"] = q["is_private"]
         qlist.append(aq)
 
     rslogger.debug(f"qlist: {qlist}")
@@ -1277,7 +1278,6 @@ async def question_creation(
                 **question_data,
                 base_course=course.base_course,
                 timestamp=canonical_utcnow(),
-                is_private=False,
                 practice=False,
                 from_source=False,
                 review_flag=False,

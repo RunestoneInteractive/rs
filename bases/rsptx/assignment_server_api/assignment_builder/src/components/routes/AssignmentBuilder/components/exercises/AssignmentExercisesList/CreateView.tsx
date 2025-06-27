@@ -55,6 +55,7 @@ export const CreateView = ({
             topic: data.topic,
             points: data.points,
             is_reading: false,
+            is_private: data.is_private ?? false,
             assignment_id: assignmentId!
           });
 

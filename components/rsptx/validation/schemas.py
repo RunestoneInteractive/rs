@@ -364,6 +364,7 @@ class CreateExercisesPayload(BaseModel):
     difficulty: Optional[float] = None
     topic: Optional[str] = None
     points: Optional[int] = None
+    is_private: Optional[bool] = None
 
     is_reading: bool
     assignment_id: int

@@ -2,6 +2,7 @@ import { useGetSectionsForChapterQuery } from "@store/dataset/dataset.logic.api"
 import { Chips } from "primereact/chips";
 import { Dropdown } from "primereact/dropdown";
 import { InputNumber, InputNumberChangeEvent } from "primereact/inputnumber";
+import { InputSwitch } from "primereact/inputswitch";
 import { InputText } from "primereact/inputtext";
 import { ReactNode, useCallback, useEffect, useState } from "react";
 
@@ -19,6 +20,7 @@ export interface BaseExerciseSettings {
   tags: string;
   points: number;
   difficulty: number;
+  is_private: boolean;
 }
 
 export interface BaseExerciseSettingsContentProps<T extends BaseExerciseSettings> {
@@ -44,7 +46,8 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
     subchapter: initialData?.subchapter ?? "",
     tags: initialData?.tags ?? "",
     points: initialData?.points ?? 1,
-    difficulty: initialData?.difficulty ?? 3
+    difficulty: initialData?.difficulty ?? 3,
+    is_private: initialData?.is_private ?? false
   } as T);
 
   // Handler to update a specific setting field
@@ -234,6 +237,21 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
             />
             <label htmlFor="tags">Tags</label>
           </span>
+        </div>
+      </div>
+
+      <div className={styles.settingsGridFull}>
+        <div className={styles.formField}>
+          <div className="flex align-items-center gap-2">
+            <InputSwitch
+              id="is_private"
+              checked={settings.is_private}
+              onChange={(e) => updateSetting("is_private", e.value)}
+            />
+            <label htmlFor="is_private" className="font-medium">
+              Private Exercise
+            </label>
+          </div>
         </div>
       </div>
 

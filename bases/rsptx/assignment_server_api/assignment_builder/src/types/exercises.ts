@@ -63,6 +63,7 @@ export type Exercise = {
   difficulty: number;
   author: string;
   description: string;
+  is_private: boolean;
 };
 
 export type QuestionJSON = Partial<{
@@ -111,6 +112,7 @@ export type CreateExercisesPayload = {
   topic: string;
   points: number;
   is_reading: boolean;
+  is_private: boolean;
   assignment_id: number;
 };
 
