@@ -55,8 +55,8 @@ pyhumps = "^3.8.0"
 pydal = ">=20230521.1"
 runestone = "^7.7.0"
 pydantic-settings = "^2.0.3"
-numpy = "^1.0.0"
 standard-imghdr = "^3.13.0"
+prefig = {extras = ["text"], version = "^0.3.2"}
 
 [tool.poetry.group.dev.dependencies]
 
