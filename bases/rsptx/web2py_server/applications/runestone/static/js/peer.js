@@ -158,6 +158,7 @@ function connect(event) {
                             count = count - 1;
                         } else {
                             console.log("Timer expired. Clean up and get ready to chat!");
+                            voteStopped = true;
                             messarea.style.color = "black";
                             // if the student did not press the button in vote 1
                             if (!eBookConfig.isInstructor) {
@@ -222,6 +223,7 @@ function connect(event) {
                     break;
                 case "enableVote":
                     console.log("Got enableVote message");
+                    voteStopped = false;
                     window.componentMap[currentQuestion].submitButton.disabled = false;
                     window.componentMap[currentQuestion].submitButton.innerHTML =
                         "Submit";
