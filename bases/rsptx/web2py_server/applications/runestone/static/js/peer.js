@@ -158,6 +158,7 @@ function connect(event) {
                             count = count - 1;
                         } else {
                             console.log("Timer expired. Clean up and get ready to chat!");
+                            voteStopped = true;
                             messarea.style.color = "black";
                             // if the student did not press the button in vote 1
                             if (!eBookConfig.isInstructor) {
@@ -177,7 +178,9 @@ function connect(event) {
                             }
                             let currAnswer = window.componentMap[currentQuestion].answer;
                             if (typeof currAnswer === "undefined") {
-                                messarea.innerHTML = `<h3>You have not answered the question</h3><p>You will not be able to participate in any discussion unless you answer the question.</p>`;
+                                if (!eBookConfig.isInstructor) {
+                                    messarea.innerHTML = `<h3>You have not answered the question</h3><p>You will not be able to participate in any discussion unless you answer the question.</p>`;
+                                }
                             } else {
                                 if (getVoteNum() < 2) {
                                     messarea.innerHTML = `<h3>Please give an explanation for your answer.</h3><p>Then, discuss your answer with your group members.</p>`;
@@ -220,6 +223,7 @@ function connect(event) {
                     break;
                 case "enableVote":
                     console.log("Got enableVote message");
+                    voteStopped = false;
                     window.componentMap[currentQuestion].submitButton.disabled = false;
                     window.componentMap[currentQuestion].submitButton.innerHTML =
                         "Submit";

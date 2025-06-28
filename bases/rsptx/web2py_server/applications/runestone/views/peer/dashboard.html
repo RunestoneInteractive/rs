@@ -8,6 +8,7 @@
 />
 <script>
     eBookConfig.peer = true;
+    var voteStopped = false;
 </script>
 <div class="hidden-content" style="display: none">
     \( {{=XML(latex_macros)}} \)
@@ -307,7 +308,11 @@
                 counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count}</p>`;
             } else {
                 const pctSpec = await pctResp.json();
-                counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count} (${pctSpec.pct_correct}% Correct)</p>`;
+                let pctMessage = "";
+                if (voteStopped) {
+                    pctMessage = `(${pctSpec.pct_correct}% Correct)`;
+                }
+                counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count} ${pctMessage}</p>`;
             }
         }
         else {
