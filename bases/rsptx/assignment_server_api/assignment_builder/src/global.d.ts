@@ -6,6 +6,7 @@ declare global {
     course: string;
     username: string;
     isLoggedIn: boolean;
+    author: string;
   }>;
 
   interface Window {
