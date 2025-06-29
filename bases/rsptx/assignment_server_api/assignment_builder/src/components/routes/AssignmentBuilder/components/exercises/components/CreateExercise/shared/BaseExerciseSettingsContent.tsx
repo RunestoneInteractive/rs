@@ -181,7 +181,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
               className="w-full"
               onChange={(e) => updateSetting("author", e.target.value)}
             />
-            <label htmlFor="author">Author</label>
+            <label htmlFor="author">Author (or your name)</label>
           </span>
         </div>
 
