@@ -1,4 +1,4 @@
-{% extends "_react_base.html" %} 
+{% extends "_react_base.html" %}
 {% block title %}
 Assignment Builder
 {% endblock %}
@@ -6,20 +6,21 @@ Assignment Builder
 {% block css %}
 {% include 'common/static_assets_min.html' %}
 {% for js_import in react_imports["js"] %}
-    <script type="module" crossorigin src='/assignment/react/{{js_import}}'></script>
+<script type="module" crossorigin src='/assignment/react/{{js_import}}'></script>
 {% endfor %}
 {% for css_import in react_imports["css"] %}
-    <link rel="stylesheet" crossorigin type="text/css" href="/assignment/react/{{css_import}}" />
+<link rel="stylesheet" crossorigin type="text/css" href="/assignment/react/{{css_import}}" />
 {% endfor %}
 
-{% endblock %} 
+{% endblock %}
 
 {% block content %}
 {% include 'common/ebook_config.html' %}
-  <div class="hidden-content" style="display: none">
-    \( {{latex_preamble}} \)
-  </div>
+<div class="hidden-content process-math" style="display: none">
+  {{latex_preamble}}
+</div>
+<script>
+  eBookConfig.author = "{{user.first_name}} {{user.last_name}}";
+</script>
 <div id="root"></div>
-{% endblock %} 
-
-
+{% endblock %}
