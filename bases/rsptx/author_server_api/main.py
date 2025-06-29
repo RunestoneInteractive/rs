@@ -363,7 +363,7 @@ async def editlib(request: Request, book: str, user=Depends(auth_manager)):
 @app.post("/author/anonymize_data/{book}")
 async def anondata(request: Request, book: str, user=Depends(auth_manager)):
     # Get the book and populate the form with current data
-    is_authorp = await is_author(user)
+    is_authorp = await is_author(user.id)
     is_inst = await is_instructor(request)
 
     if not (is_authorp or is_inst):
