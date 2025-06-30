@@ -148,7 +148,10 @@ export default class DragNDrop extends RunestoneBase {
         this.containerDiv = document.createElement("div");
         this.containerDiv.id = this.divid;
         this.containerDiv.classList.add("draggable-container");
-        this.containerDiv.innerHTML = this.question;
+        this.statementDiv = document.createElement("div");
+        this.statementDiv.classList.add("cardsort-statement");
+        this.statementDiv.innerHTML = this.question;
+        this.containerDiv.appendChild(this.statementDiv);
         this.containerDiv.appendChild(document.createElement("br"));
         this.dragDropWrapDiv = document.createElement("div"); // Holds the draggables/dropzones, prevents feedback from bleeding in
         this.dragDropWrapDiv.style.display = "block";

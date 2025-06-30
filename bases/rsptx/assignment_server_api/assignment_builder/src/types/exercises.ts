@@ -64,6 +64,7 @@ export type Exercise = {
   author: string;
   description: string;
   is_private: boolean;
+  from_source: boolean;
 };
 
 export type QuestionJSON = Partial<{

@@ -74,7 +74,16 @@ export async function renderRunestoneComponent(
       previewRef.current.innerHTML = `<p>Preview not available for ${componentKind}</p>`;
     } else {
       try {
+        // Grab the preamble if it exists.  
+        // add it to opt so that it can be used by the component factory
+        // This is used for mathjax processing of the preview.
+        let preamble = document.querySelector("div.hidden-content.process-math");
+        if (preamble) {
+          preamble = preamble.innerHTML;
+          opt.preamble = preamble;
+        }
         let res = window.component_factory[componentKind](opt);
+
 
         res.multiGrader = moreOpts.multiGrader;
         if (componentKind === "activecode") {

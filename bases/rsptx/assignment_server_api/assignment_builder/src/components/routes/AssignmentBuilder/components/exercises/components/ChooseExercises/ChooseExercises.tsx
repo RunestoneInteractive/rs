@@ -56,12 +56,15 @@ export const ChooseExercises = () => {
     dispatch(chooseExercisesActions.resetSelections());
   };
 
+  const getExerciseId = (exercise: Exercise) => {
+    return exercise.question_id || exercise.id;
+  };
+
   const handleSelect = ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
     const entriesToAdd = getLeafNodes([node]).map((x) => x.data as Exercise);
 
-    const updatedSelectedExercises = uniqBy(
-      [...selectedExercises, ...entriesToAdd],
-      (n) => n.question_id || n.id
+    const updatedSelectedExercises = uniqBy([...selectedExercises, ...entriesToAdd], (n) =>
+      getExerciseId(n)
     );
 
     updateState(updatedSelectedExercises);
@@ -71,7 +74,7 @@ export const ChooseExercises = () => {
     const entriesToRemove = getLeafNodes([node]).map((x) => x.data as Exercise);
 
     const updatedSelectedExercises = selectedExercises.filter(
-      (x) => !entriesToRemove.some((y) => x.question_id === y.id)
+      (x) => !entriesToRemove.some((y) => getExerciseId(x) === y.id)
     );
 
     updateState(updatedSelectedExercises);
@@ -99,6 +102,7 @@ export const ChooseExercises = () => {
           return options.props.node.disabled ? "treetable-no-checkbox" : "";
         }}
       ></Column>
+      <Column style={{ width: "15%" }} field="qnumber" header="Question number"></Column>
       <Column style={{ width: "20%" }} field="name" header="Name"></Column>
       <Column
         style={{ width: "5rem" }}
@@ -117,8 +121,16 @@ export const ChooseExercises = () => {
           );
         }}
       ></Column>
-      <Column style={{ width: "15%" }} field="qnumber" header="Question number"></Column>
       <Column style={{ width: "15%" }} field="question_type" header="Question type"></Column>
+      <Column
+        style={{ width: "10%" }}
+        field="from_source"
+        header="Source"
+        body={({ data }: { data: Exercise }) => {
+          if (data.from_source === undefined) return;
+          return <i className={data.from_source ? "pi pi-book" : "pi pi-user"} />;
+        }}
+      />
     </TreeTable>
   );
 };

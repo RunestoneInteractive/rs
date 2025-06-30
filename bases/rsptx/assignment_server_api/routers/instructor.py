@@ -909,7 +909,6 @@ async def get_builder(
         "assignment/instructor/builder.html",
         {
             "course": course,
-            "user": user.username,
             "request": request,
             "is_instructor": user_is_instructor,
             "student_page": False,

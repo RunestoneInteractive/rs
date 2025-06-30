@@ -31,7 +31,7 @@ ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
 # install dependencies
 RUN pip install --upgrade pip
 RUN apt update
-RUN apt install -y rsync
+RUN apt install -y rsync libcairo2-dev librsvg2-bin
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 RUN apt-get install -y nodejs
 

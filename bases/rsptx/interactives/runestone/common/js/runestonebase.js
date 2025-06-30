@@ -82,6 +82,21 @@ export default class RunestoneBase {
             self.mjresolver = resolve;
         });
         this.aQueue = new AutoQueue();
+        if (opts && typeof opts.preamble !== "undefined") {
+            this.preamble = opts.preamble;
+            let y = document.createElement("div");
+            y.classList.add("hidden-content");
+            y.classList.add("process-math");
+            y.innerHTML = "\\(" + this.preamble + "\\)";
+            // This is a hack to get the preamble into the DOM so that MathJax can process it.
+            opts.orig.appendChild(y);
+            y.id = "ltx_preamble";
+            y.style.display = "none";
+            // Add the preamble to the queue object so it can prepend it to
+            // future MathJax processing
+            this.aQueue.preamble = y
+        }
+
         this.jsonHeaders = new Headers({
             "Content-type": "application/json; charset=utf-8",
             Accept: "application/json",
@@ -626,16 +641,26 @@ class AutoQueue extends Queue {
         let item = super.dequeue();
 
         if (!item) return false;
-
+        let qq = this;
         try {
             this._pendingPromise = true;
 
             let payload = await window.runestoneMathReady
                 .then(async function () {
                     console.log(
-                        `MathJax Ready -- dequeing a typesetting run for ${item.component.id}`
+                        `MathJax Ready -- dequeing a typesetting run for ${item.component.id} ${qq.preamble?.innerHTML}`
                     );
-                    return await MathJax.typesetPromise([item.component]);
+                    if (qq.preamble) {
+                        await MathJax.typesetPromise([qq.preamble])
+                        item.component.innerHTML = "<div>" +
+                            qq.preamble.innerHTML + "</div>" + item.component.innerHTML;
+                        console.log(
+                            `MathJax typeset the preamble for ${item.component.id}`
+                        );
+                        return await MathJax.typesetPromise([item.component]);
+                    } else {
+                        return await MathJax.typesetPromise([item.component]);
+                    }
                 });
 
             this._pendingPromise = false;
@@ -644,6 +669,7 @@ class AutoQueue extends Queue {
             this._pendingPromise = false;
             item.reject(e);
         } finally {
+            // If there are more items in the queue, continue processing them
             this.dequeue();
         }
 

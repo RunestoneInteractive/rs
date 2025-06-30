@@ -1,110 +1,110 @@
 // Configuration for the PI steps and helper functions to handle step progression
 const STEP_CONFIG = {
-  vote1: {
-    next: ['makep', 'facechat', 'makeabgroups'],
-    status: 'Vote 1 Stopped'
-  },
-  makep: {
-    next: ['vote2'],
-    status: 'Text Chat in Progress…'
-  },
-  facechat: {
-    next: ['vote2'],
-    status: 'In-person Chat in Progress…'
-  },
-  makeabgroups: {
-    next: ['vote2'],
-    status: 'A/B Experiment in Progress…'
-  },
-  vote2: {
-    next: ['vote3'],
-    status: 'Vote 2 in Progress…'
-  },
-  vote3: {
-    next: [],
-    status: 'Proceed to Next Question'
-  }
+    vote1: {
+        next: ['makep', 'facechat', 'makeabgroups'],
+        status: 'Vote 1 Stopped'
+    },
+    makep: {
+        next: ['vote2'],
+        status: 'Text Chat in Progress…'
+    },
+    facechat: {
+        next: ['vote2'],
+        status: 'In-person Chat in Progress…'
+    },
+    makeabgroups: {
+        next: ['vote2'],
+        status: 'A/B Experiment in Progress…'
+    },
+    vote2: {
+        next: ['vote3'],
+        status: 'Vote 2 in Progress…'
+    },
+    vote3: {
+        next: [],
+        status: 'Proceed to Next Question'
+    }
 };
 
 const CHAT_MODALITIES = ['makep', 'facechat', 'makeabgroups'];
 
 function disableButton(btn) {
-  if (btn) btn.disabled = true;
+    if (btn) btn.disabled = true;
 }
 function enableButton(btn) {
-  if (btn) btn.disabled = false;
+    if (btn) btn.disabled = false;
 }
 function setText(id, text) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = text;
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
 }
 function batchDisable(ids) {
-  ids.forEach(i => {
-    const b = document.getElementById(i);
-    if (b) b.disabled = true;
-  });
+    ids.forEach(i => {
+        const b = document.getElementById(i);
+        if (b) b.disabled = true;
+    });
 }
 function batchEnable(ids) {
-  ids.forEach(i => {
-    const b = document.getElementById(i);
-    if (b) b.disabled = false;
-  });
+    ids.forEach(i => {
+        const b = document.getElementById(i);
+        if (b) b.disabled = false;
+    });
 }
 
 function markStepComplete(btn) {
-  if (!btn) return;
-  const step = btn.closest('.pi-step');
-  if (!step) return;
-  const inner = step.querySelector('.pi-step-number-inner');
-  step.classList.remove('active');
-  if (inner) {
-    inner.textContent = '✓';
-    inner.style.backgroundColor = '#1A6A8399';
-    inner.style.color = '#FFFFFF';
-  }
-  const group = btn.closest('.pi-step-group');
-  if (group) group.classList.remove('active');
+    if (!btn) return;
+    const step = btn.closest('.pi-step');
+    if (!step) return;
+    const inner = step.querySelector('.pi-step-number-inner');
+    step.classList.remove('active');
+    if (inner) {
+        inner.textContent = '✓';
+        inner.style.backgroundColor = '#1A6A8399';
+        inner.style.color = '#FFFFFF';
+    }
+    const group = btn.closest('.pi-step-group');
+    if (group) group.classList.remove('active');
 }
 
 function markStepActive(btn) {
-  if (!btn) return;
-  const step = btn.closest('.pi-step');
-  const group = btn.closest('.pi-step-group');
-  if (step) step.classList.add('active');
-  if (group) group.classList.add('active');
+    if (!btn) return;
+    const step = btn.closest('.pi-step');
+    const group = btn.closest('.pi-step-group');
+    if (step) step.classList.add('active');
+    if (group) group.classList.add('active');
 }
 
 function handleButtonClick(event) {
-  const id = event.target.id;
-  const config = STEP_CONFIG[id];
-  if (!config) {
-    // If no config, do nothing
-    return;
-  }
+    const id = event.target.id;
+    const config = STEP_CONFIG[id];
+    if (!config) {
+        // If no config, do nothing
+        return;
+    }
 
-  // 1) Update the session‐status text
-  setText('pi-session-status', config.status);
+    // 1) Update the session‐status text
+    setText('pi-session-status', config.status);
 
-  // 2) Disable the clicked button
-  const currentBtn = document.getElementById(id);
-  disableButton(currentBtn);
+    // 2) Disable the clicked button
+    const currentBtn = document.getElementById(id);
+    disableButton(currentBtn);
 
-  // 3) If this was a “chat modality” (makep, facechat, makeabgroups), disable all chat buttons
-  if (CHAT_MODALITIES.includes(id)) {
-    batchDisable(CHAT_MODALITIES);
-  }
+    // 3) If this was a “chat modality” (makep, facechat, makeabgroups), disable all chat buttons
+    if (CHAT_MODALITIES.includes(id)) {
+        batchDisable(CHAT_MODALITIES);
+    }
 
-  // 4) Mark the current step as complete (✓, remove “active” outline)
-  markStepComplete(currentBtn);
+    // 4) Mark the current step as complete (✓, remove “active” outline)
+    markStepComplete(currentBtn);
 
-  // 5) Enable the next step(s) in config.next
-  batchEnable(config.next);
+    // 5) Enable the next step(s) in config.next
+    batchEnable(config.next);
 
-  // 6) Highlight (add “active” class) to the very first next step
-  if (Array.isArray(config.next) && config.next.length > 0) {
-    const nextBtn = document.getElementById(config.next[0]);
-    markStepActive(nextBtn);
-  }
+    // 6) Highlight (add “active” class) to the very first next step
+    if (Array.isArray(config.next) && config.next.length > 0) {
+        const nextBtn = document.getElementById(config.next[0]);
+        markStepActive(nextBtn);
+    }
 }
 
 var ws = null;
@@ -158,7 +158,18 @@ function connect(event) {
                             count = count - 1;
                         } else {
                             console.log("Timer expired. Clean up and get ready to chat!");
+                            voteStopped = true;
                             messarea.style.color = "black";
+                            // if the student did not press the button in vote 1
+                            if (!eBookConfig.isInstructor) {
+                                // If the student has not voted yet, disable the submit button
+                                let qq = window.componentMap[currentQuestion];
+                                if (qq.didSubmit == false && qq.isAnswered == true) {
+                                    qq.checkCurrentAnswer();
+                                    qq.logCurrentAnswer();
+                                }
+                            }
+
                             // hide the discussion
                             let discPanel = document.getElementById("discussion_panel");
                             console.log("voteNum is " + getVoteNum());
@@ -167,7 +178,9 @@ function connect(event) {
                             }
                             let currAnswer = window.componentMap[currentQuestion].answer;
                             if (typeof currAnswer === "undefined") {
-                                messarea.innerHTML = `<h3>You have not answered the question</h3><p>You will not be able to participate in any discussion unless you answer the question.</p>`;
+                                if (!eBookConfig.isInstructor) {
+                                    messarea.innerHTML = `<h3>You have not answered the question</h3><p>You will not be able to participate in any discussion unless you answer the question.</p>`;
+                                }
                             } else {
                                 if (getVoteNum() < 2) {
                                     messarea.innerHTML = `<h3>Please give an explanation for your answer.</h3><p>Then, discuss your answer with your group members.</p>`;
@@ -210,6 +223,7 @@ function connect(event) {
                     break;
                 case "enableVote":
                     console.log("Got enableVote message");
+                    voteStopped = false;
                     window.componentMap[currentQuestion].submitButton.disabled = false;
                     window.componentMap[currentQuestion].submitButton.innerHTML =
                         "Submit";
@@ -389,7 +403,10 @@ async function sendLtiScores(event) {
 // specific user
 async function sendMessage(event) {
     var input = document.getElementById("messageText");
-    //#ws.send(JSON.stringify(mess))
+    if (input.value.trim() === "") {
+        input.focus();
+        return;
+    }
     let mess = {
         type: "text",
         from: `${user}`,
@@ -407,6 +424,8 @@ async function sendMessage(event) {
     message.appendChild(content);
     messages.appendChild(message);
     input.value = "";
+    // focus tehe input box again
+    input.focus();
     // not needed for onclick event.preventDefault()
 }
 
