@@ -63,6 +63,7 @@ export type Exercise = {
   difficulty: number;
   author: string;
   description: string;
+  from_source: boolean;
 };
 
 export type QuestionJSON = Partial<{

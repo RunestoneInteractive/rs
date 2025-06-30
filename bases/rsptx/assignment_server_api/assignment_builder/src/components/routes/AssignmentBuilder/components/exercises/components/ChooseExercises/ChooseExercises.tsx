@@ -119,6 +119,15 @@ export const ChooseExercises = () => {
       ></Column>
       <Column style={{ width: "15%" }} field="qnumber" header="Question number"></Column>
       <Column style={{ width: "15%" }} field="question_type" header="Question type"></Column>
+      <Column
+        style={{ width: "10%" }}
+        field="from_source"
+        header="Source"
+        body={({ data }: { data: Exercise }) => {
+          if (data.from_source === undefined) return;
+          return <i className={data.from_source ? "pi pi-book" : "pi pi-user"} />;
+        }}
+      />
     </TreeTable>
   );
 };
