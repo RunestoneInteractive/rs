@@ -648,10 +648,12 @@ class AutoQueue extends Queue {
             let payload = await window.runestoneMathReady
                 .then(async function () {
                     console.log(
-                        `MathJax Ready -- dequeing a typesetting run for ${item.component.id} ${qq.preamble.innerHTML}`
+                        `MathJax Ready -- dequeing a typesetting run for ${item.component.id} ${qq.preamble?.innerHTML}`
                     );
                     if (qq.preamble) {
                         await MathJax.typesetPromise([qq.preamble])
+                        item.component.innerHTML = "<div>" +
+                            qq.preamble.innerHTML + "</div>" + item.component.innerHTML;
                         console.log(
                             `MathJax typeset the preamble for ${item.component.id}`
                         );
