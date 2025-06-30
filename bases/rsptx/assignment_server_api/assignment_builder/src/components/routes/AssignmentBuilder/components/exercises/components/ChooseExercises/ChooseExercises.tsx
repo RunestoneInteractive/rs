@@ -71,7 +71,7 @@ export const ChooseExercises = () => {
     const entriesToRemove = getLeafNodes([node]).map((x) => x.data as Exercise);
 
     const updatedSelectedExercises = selectedExercises.filter(
-      (x) => !entriesToRemove.some((y) => x.question_id === y.id)
+      (x) => !entriesToRemove.some((y) => (x.question_id || x.id) === (y.question_id || y.id))
     );
 
     updateState(updatedSelectedExercises);
@@ -99,6 +99,7 @@ export const ChooseExercises = () => {
           return options.props.node.disabled ? "treetable-no-checkbox" : "";
         }}
       ></Column>
+      <Column style={{ width: "15%" }} field="qnumber" header="Question number"></Column>
       <Column style={{ width: "20%" }} field="name" header="Name"></Column>
       <Column
         style={{ width: "5rem" }}
@@ -117,7 +118,6 @@ export const ChooseExercises = () => {
           );
         }}
       ></Column>
-      <Column style={{ width: "15%" }} field="qnumber" header="Question number"></Column>
       <Column style={{ width: "15%" }} field="question_type" header="Question type"></Column>
     </TreeTable>
   );

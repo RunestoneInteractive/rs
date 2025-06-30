@@ -591,7 +591,7 @@ async def fetch_questions_for_chapter_subchapter(
                 page_clause,
             )
         )
-        .order_by(Chapter.chapter_num, SubChapter.sub_chapter_num, Question.id)
+        .order_by(Chapter.chapter_num, SubChapter.sub_chapter_num, Question.qnumber, Question.id)
     )
     async with async_session() as session:
         res = await session.execute(query)
