@@ -270,19 +270,11 @@ function connect(event) {
                     let peerlist = document.getElementById("peerlist");
                     const ordA = 65;
                     adict = JSON.parse(mess.answer);
-                    let peersel = document.getElementById("peersel");
                     for (const key in adict) {
                         let currAnswer = adict[key];
                         let newpeer = document.createElement("p");
                         newpeer.innerHTML = `${key} answered ${currAnswer}`;
                         peerlist.appendChild(newpeer);
-                        let peeropt = document.createElement("option");
-                        peeropt.value = key;
-                        peeropt.innerHTML = key;
-                        peersel.appendChild(peeropt);
-                        peersel.addEventListener("change", function () {
-                            $(".ratingradio").prop("checked", false);
-                        });
                     }
                     break;
                 case "enableFaceChat":
