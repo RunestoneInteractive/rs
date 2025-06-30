@@ -85,10 +85,13 @@ REQ_ENV = [
     "WEB2PY_PRIVATE_KEY",
     "JWT_SECRET",
     "BOOK_PATH",
+    "FERNET_SECRET"
 ]
 OPT_ENV = [
     "DC_DEV_DBURL",
     "DC_DBURL",
+    "LTI1P3_PRIVATE_KEY",
+    "LTI1P3_PUBLIC_KEY",
 ]
 APP = "runestone"
 APP_PATH = f"applications/{APP}"
