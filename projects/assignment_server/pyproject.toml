@@ -70,7 +70,7 @@ numpy = "^2.1.0"
 cryptography = "^3.0.0"
 greenlet = "^3.2.2"
 
-[poetry.group.dev.dependencies]
+[tool.poetry.group.dev.dependencies]
 black = "~= 22.0"
 console-ctrl = "^0.1.0"
 pytest = "^7.0.0"

@@ -49,7 +49,7 @@ CodeChat = "1.9.3"
 cryptography = "^3.0.0"
 standard-imghdr = "^3.13.0"
 
-[poetry.group.dev.dependencies]
+[tool.poetry.group.dev.dependencies]
 runestone = { path = "../interactives", develop = true }
 
 [build-system]
