@@ -1,6 +1,7 @@
 import {
   useCopyQuestionMutation,
-  useValidateQuestionNameMutation
+  useValidateQuestionNameMutation,
+  useGetExercisesQuery
 } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
@@ -10,20 +11,24 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
-import { Exercise } from "@/types/exercises";
+import { Exercise, supportedExerciseTypesToEdit } from "@/types/exercises";
 
 interface CopyExerciseModalProps {
   visible: boolean;
   onHide: () => void;
   exercise: Exercise | null;
   copyToAssignment?: boolean;
+  setCurrentEditExercise?: (exercise: Exercise | null) => void;
+  setViewMode?: (mode: "list" | "browse" | "search" | "create" | "edit") => void;
 }
 
 export const CopyExerciseModal = ({
   visible,
   onHide,
   exercise,
-  copyToAssignment = false
+  copyToAssignment = false,
+  setCurrentEditExercise,
+  setViewMode
 }: CopyExerciseModalProps) => {
   const [newName, setNewName] = useState("");
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
@@ -34,6 +39,9 @@ export const CopyExerciseModal = ({
 
   const [validateQuestionName] = useValidateQuestionNameMutation();
   const [copyQuestion, { isLoading: isCopying }] = useCopyQuestionMutation();
+  const { refetch: refetchExercises } = useGetExercisesQuery(selectedAssignment?.id ?? 0, {
+    skip: !selectedAssignment?.id
+  });
 
   useEffect(() => {
     if (exercise && visible) {
@@ -81,12 +89,28 @@ export const CopyExerciseModal = ({
     if (!exercise || !isValid) return;
 
     try {
-      await copyQuestion({
+      const result = await copyQuestion({
         original_question_id: exercise.question_id ?? exercise.id,
         new_name: newName.trim(),
         assignment_id: copyToAssignment ? selectedAssignment?.id : undefined,
         copy_to_assignment: copyToAssignment
       }).unwrap();
+
+      if (setCurrentEditExercise && setViewMode && copyToAssignment && result.detail.question_id) {
+        const exercises = await refetchExercises();
+        const newExercise = exercises.data?.find(
+          (ex) => ex.question_id === result.detail.question_id
+        );
+        const canEdit =
+          newExercise &&
+          supportedExerciseTypesToEdit.includes(newExercise.question_type) &&
+          !!newExercise.question_json;
+
+        if (canEdit) {
+          setCurrentEditExercise(newExercise);
+          setViewMode("edit");
+        }
+      }
 
       toast.success("Exercise copied successfully!");
       onHide();

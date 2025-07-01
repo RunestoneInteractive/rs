@@ -178,7 +178,7 @@ export const assignmentExerciseApi = createApi({
       })
     }),
     copyQuestion: build.mutation<
-      { status: string; question_id: number; message: string },
+      DetailResponse<{ status: string; question_id: number; message: string }>,
       {
         original_question_id: number;
         new_name: string;

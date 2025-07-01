@@ -283,6 +283,8 @@ export const AssignmentExercisesTable = ({
         onHide={handleCopyModalHide}
         exercise={selectedExerciseForCopy}
         copyToAssignment={true}
+        setCurrentEditExercise={setCurrentEditExercise}
+        setViewMode={setViewMode}
       />
     </div>
   );
