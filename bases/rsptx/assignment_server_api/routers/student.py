@@ -252,7 +252,7 @@ async def doAssignment(
     # write a sql insert statement to add a visible exception for testuser1 for assignment 187
     # insert into deadline_exceptions (course_id, assignment_id, visible, time_limit, due_date, user_id)
     # values ('testcourse', 187, 1, 1, '2020-12-31 23:59:59', 1);
-    if assignment.is_timed:
+    if assignment.is_timed or assignment.kind == "Timed":
         if assignment.time_limit and deadline_exception.time_limit:
             assignment.time_limit = (
                 assignment.time_limit * deadline_exception.time_limit
@@ -277,6 +277,8 @@ async def doAssignment(
     # For each question, accumulate information, and add it to either the readings or questions data structure
     # If scores have not been released for the question or if there are no scores yet available, the scoring information will be recorded as empty strings
     qset = set()
+
+    preambles = {course.base_course: course_attrs.get("latex_macros", "")}
     for q in questions:
         if q.Question.htmlsrc:
             # This replacement is to render images
@@ -285,7 +287,9 @@ async def doAssignment(
                 'src="../_static/', 'src="' + get_course_url(course, "_static/")
             )
             htmlsrc = htmlsrc.replace("../_images", get_course_url(course, "_images"))
-            htmlsrc = htmlsrc.replace('src=\\"external', 'src=\\"' + get_course_url(course, "external"))
+            htmlsrc = htmlsrc.replace(
+                'src=\\"external', 'src=\\"' + get_course_url(course, "external")
+            )
             # htmlsrc = htmlsrc.replace(
             #     "generated/webwork", get_course_url(course, "generated/webwork")
             # )
@@ -323,6 +327,8 @@ async def doAssignment(
 
         chap_name = q.Question.chapter
         subchap_name = q.Question.subchapter
+        if q.Question.base_course not in preambles:
+            preambles[q.Question.base_course] = await addPreamble(q.Question.base_course)
 
         info = dict(
             htmlsrc=htmlsrc,
@@ -451,6 +457,11 @@ async def doAssignment(
     if timestamp > deadline:
         overdue = True
     templates = Jinja2Templates(directory=template_folder)
+    # reverse the order of the keys in the preambles dictionary so that the first key I added is now the last
+    # this will ensure that when multiple preamble definitions are used the last one is from the current course
+    preambles = dict(
+        (k, v) for k, v in reversed(preambles.items())
+    )
     context = dict(  # This is all the variables that will be used in the doAssignment.html document
         course=course,
         course_name=user.course_name,
@@ -474,7 +485,7 @@ async def doAssignment(
         ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
         webwork_js_version=course_attrs.get("webwork_js_version", "2.17"),
         request=request,
-        latex_preamble=course_attrs.get("latex_macros", ""),
+        latex_preamble_dict=preambles,
         wp_imports=get_webpack_static_imports(course),
         settings=settings,
     )
@@ -483,3 +494,28 @@ async def doAssignment(
     )
     response.set_cookie(key="RS_info", value=str(json.dumps(parsed_js)))
     return response
+
+
+async def addPreamble(base_course: str) -> str:
+    """
+    Add the preamble to the HTML source code.
+
+    :param htmlsrc: The HTML source code to which the preamble will be added.
+    :type htmlsrc: str
+    :param base_course: The base course name.
+    :type base_course: str
+    :return: The HTML source code with the preamble added.
+    :rtype: str
+    """
+
+    # get the course id fro the base course
+    course = await fetch_course(base_course)
+    if not course:
+        rslogger.error(f"Base course {base_course} not found.")
+        return ""
+    # get the course attributes
+    course_attrs = await fetch_all_course_attributes(course.id)
+    if not course_attrs:
+        rslogger.error(f"Course attributes for {base_course} not found.")
+        return ""
+    return course_attrs.get("latex_macros", "")

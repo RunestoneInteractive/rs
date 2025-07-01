@@ -100,7 +100,8 @@ async def fetch_timed_assessments(course_id: int) -> List[Tuple[str, str]]:
     """
     query = (
         select(Assignment.name, Assignment.description)
-        .where((Assignment.course == course_id) & (Assignment.is_timed == "T"))
+        .where((Assignment.course == course_id) & 
+               ((Assignment.is_timed == "T") | (Assignment.kind == "Timed")))
         .order_by(Assignment.name)
     )
 
