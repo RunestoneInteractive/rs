@@ -136,7 +136,6 @@ export const CopyExerciseModal = ({
             label="Copy Exercise"
             onClick={handleCopy}
             disabled={!isValid || isCopying || isValidating}
-            loading={isCopying}
           />
         </div>
       </div>
