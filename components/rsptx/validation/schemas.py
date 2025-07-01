@@ -367,3 +367,12 @@ class CreateExercisesPayload(BaseModel):
 
     is_reading: bool
     assignment_id: int
+
+class ValidateQuestionNameRequest(BaseModel):
+    name: str
+
+class CopyQuestionRequest(BaseModel):
+    original_question_id: int
+    new_name: str
+    assignment_id: Optional[int] = None
+    copy_to_assignment: bool = False

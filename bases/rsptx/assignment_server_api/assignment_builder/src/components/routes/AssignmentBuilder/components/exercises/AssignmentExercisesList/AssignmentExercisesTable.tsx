@@ -5,12 +5,13 @@ import { useReorderAssignmentExercisesMutation } from "@store/assignmentExercise
 import { Column } from "primereact/column";
 import { DataTable, DataTableSelectionMultipleChangeEvent } from "primereact/datatable";
 import { Tooltip } from "primereact/tooltip";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { useJwtUser } from "@/hooks/useJwtUser";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise, supportedExerciseTypesToEdit } from "@/types/exercises";
 
+import { CopyExerciseModal } from "../components/CopyExercise/CopyExerciseModal";
 import { EditDropdownValueHeader } from "../components/EditAllExercises/EditDropdownValueHeader";
 import { EditInputValueHeader } from "../components/EditAllExercises/EditInputValueHeader";
 import { ExercisePreviewModal } from "../components/ExercisePreview/ExercisePreviewModal";
@@ -47,6 +48,8 @@ export const AssignmentExercisesTable = ({
   const { username } = useJwtUser();
   const [reorderExercises] = useReorderAssignmentExercisesMutation();
   const dataTableRef = useRef<DataTable<Exercise[]>>(null);
+  const [copyModalVisible, setCopyModalVisible] = useState(false);
+  const [selectedExerciseForCopy, setSelectedExerciseForCopy] = useState<Exercise | null>(null);
 
   const getExerciseTypeTag = (type: string) => {
     if (!type) return null;
@@ -60,6 +63,21 @@ export const AssignmentExercisesTable = ({
       !!exercise.question_json
     );
   };
+
+  const getIsCopyable = (exercise: Exercise) => {
+    return !!exercise.question_json;
+  };
+
+  const handleCopyClick = (exercise: Exercise) => {
+    setSelectedExerciseForCopy(exercise);
+    setCopyModalVisible(true);
+  };
+
+  const handleCopyModalHide = () => {
+    setCopyModalVisible(false);
+    setSelectedExerciseForCopy(null);
+  };
+
   const getTooltipText = (data: Exercise) => {
     return Object.entries({
       Author: data.author,
@@ -143,6 +161,23 @@ export const AssignmentExercisesTable = ({
                     setCurrentEditExercise(data);
                     setViewMode("edit");
                   }}
+                />
+              )}
+            </div>
+          )}
+        />
+        <Column
+          style={{ width: "3rem" }}
+          body={(data: Exercise) => (
+            <div className="flex gap-2 justify-content-center">
+              {getIsCopyable(data) && (
+                <i
+                  className="pi pi-copy"
+                  style={{
+                    cursor: "pointer"
+                  }}
+                  onClick={() => handleCopyClick(data)}
+                  title="Copy exercise"
                 />
               )}
             </div>
@@ -241,6 +276,13 @@ export const AssignmentExercisesTable = ({
         handleMouseUp={handleMouseUp}
         type="exercises"
         exercises={assignmentExercises}
+      />
+
+      <CopyExerciseModal
+        visible={copyModalVisible}
+        onHide={handleCopyModalHide}
+        exercise={selectedExerciseForCopy}
+        copyToAssignment={true}
       />
     </div>
   );
