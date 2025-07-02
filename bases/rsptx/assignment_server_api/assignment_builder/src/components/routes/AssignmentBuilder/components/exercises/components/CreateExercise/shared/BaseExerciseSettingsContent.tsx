@@ -109,6 +109,13 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
     difficulty: 1,
     points: 3
   };
+  const difficultyOptions = {
+    1: "Very easy",
+    2: "Easy",
+    3: "Medium",
+    4: "Hard",
+    5: "Very Hard"
+  };
   const onChangeInputNumber = (e: InputNumberChangeEvent, field: "difficulty" | "points") => {
     updateSetting(field, e.value !== null ? e.value : defaultValues[field]);
   };
@@ -208,13 +215,15 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
 
           <div className={styles.formField}>
             <span className="p-float-label">
-              <InputNumber
+              <Dropdown
                 id="difficulty"
                 value={settings.difficulty}
-                min={1}
-                max={5}
-                className="w-full"
-                onChange={(e) => onChangeInputNumber(e, "difficulty")}
+                options={Object.entries(difficultyOptions).map(([key, label]) => ({
+                  label,
+                  value: Number(key)
+                }))}
+                optionLabel="label"
+                onChange={(e) => updateSetting("difficulty", e.value)}
               />
               <label htmlFor="difficulty">Difficulty</label>
             </span>

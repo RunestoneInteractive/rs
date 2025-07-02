@@ -60,14 +60,21 @@ export const AssignmentExercisesTable = ({
       !!exercise.question_json
     );
   };
+  const difficultyOptions = {
+    1: "Very easy",
+    2: "Easy",
+    3: "Medium",
+    4: "Hard",
+    5: "Very Hard"
+  };
   const getTooltipText = (data: Exercise) => {
     return Object.entries({
       Author: data.author,
-      Difficulty: data.difficulty,
+      Difficulty: difficultyOptions[data.difficulty as keyof typeof difficultyOptions],
       Tags: data.tags,
       Chapter: data.chapter
     })
-      .filter(([, value]) => value || value === 0)
+      .filter(([, value]) => value)
       .map(([key, value]) => `${key}: ${value}`)
       .join("\n");
   };
