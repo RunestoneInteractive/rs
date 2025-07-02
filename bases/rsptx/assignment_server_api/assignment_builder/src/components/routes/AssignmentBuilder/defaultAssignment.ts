@@ -7,7 +7,7 @@ export const defaultAssignment: CreateAssignmentPayload = {
   duedate: convertDateToISO(new Date()),
   points: 0,
   kind: "Regular",
-  time_limit: 60,
+  time_limit: null,
   nofeedback: false,
   nopause: false,
   peer_async_visible: false,

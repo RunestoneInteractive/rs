@@ -253,7 +253,7 @@ async def doAssignment(
     # insert into deadline_exceptions (course_id, assignment_id, visible, time_limit, due_date, user_id)
     # values ('testcourse', 187, 1, 1, '2020-12-31 23:59:59', 1);
     if assignment.is_timed or assignment.kind == "Timed":
-        if assignment.time_limit and deadline_exception.time_limit:
+        if assignment.time_limit is not None and deadline_exception.time_limit:
             assignment.time_limit = (
                 assignment.time_limit * deadline_exception.time_limit
             )
