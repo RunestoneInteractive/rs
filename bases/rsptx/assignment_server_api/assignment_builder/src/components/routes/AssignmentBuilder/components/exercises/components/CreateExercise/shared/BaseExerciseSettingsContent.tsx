@@ -6,6 +6,7 @@ import { InputSwitch } from "primereact/inputswitch";
 import { InputText } from "primereact/inputtext";
 import { ReactNode, useCallback, useEffect, useState } from "react";
 
+import { difficultyOptions } from "@/config/exerciseTypes";
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { createExerciseId } from "@/utils/exercise";
 
@@ -108,13 +109,6 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
   const defaultValues = {
     difficulty: 1,
     points: 3
-  };
-  const difficultyOptions = {
-    1: "Very easy",
-    2: "Easy",
-    3: "Medium",
-    4: "Hard",
-    5: "Very Hard"
   };
   const onChangeInputNumber = (e: InputNumberChangeEvent, field: "difficulty" | "points") => {
     updateSetting(field, e.value !== null ? e.value : defaultValues[field]);

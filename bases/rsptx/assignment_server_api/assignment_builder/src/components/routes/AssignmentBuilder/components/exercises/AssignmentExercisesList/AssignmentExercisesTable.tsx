@@ -7,6 +7,7 @@ import { DataTable, DataTableSelectionMultipleChangeEvent } from "primereact/dat
 import { Tooltip } from "primereact/tooltip";
 import { useRef } from "react";
 
+import { difficultyOptions } from "@/config/exerciseTypes";
 import { useJwtUser } from "@/hooks/useJwtUser";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise, supportedExerciseTypesToEdit } from "@/types/exercises";
@@ -60,13 +61,7 @@ export const AssignmentExercisesTable = ({
       !!exercise.question_json
     );
   };
-  const difficultyOptions = {
-    1: "Very easy",
-    2: "Easy",
-    3: "Medium",
-    4: "Hard",
-    5: "Very Hard"
-  };
+
   const getTooltipText = (data: Exercise) => {
     return Object.entries({
       Author: data.author,

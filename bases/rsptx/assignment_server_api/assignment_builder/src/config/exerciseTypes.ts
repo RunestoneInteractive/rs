@@ -42,3 +42,11 @@ export const generateColorScheme = (color: AvailableColor): ColorScheme => ({
 });
 
 export const colorSchemes = availableColors.map((colorName) => generateColorScheme(colorName));
+
+export const difficultyOptions = {
+  1: "Very easy",
+  2: "Easy",
+  3: "Medium",
+  4: "Hard",
+  5: "Very Hard"
+};
