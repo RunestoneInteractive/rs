@@ -404,6 +404,11 @@ async def new_assignment(
     request: Request,
     course=None,
 ):
+    if request_data.kind == "Timed":
+        request_data.is_timed = True
+    elif request_data.kind == "Peer":
+        request_data.is_peer = True
+        
     new_assignment = AssignmentValidator(
         **request_data.model_dump(),
         course=course.id,
@@ -413,7 +418,7 @@ async def new_assignment(
         is_peer=False,
         current_index=0,
         enforce_due=False,
-    )
+    )    
     try:
         res = await create_assignment(new_assignment)
         rslogger.debug(f"Created assignment: {res} {res.id}")

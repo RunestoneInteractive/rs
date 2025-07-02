@@ -257,6 +257,9 @@ async def doAssignment(
             assignment.time_limit = (
                 assignment.time_limit * deadline_exception.time_limit
             )
+    if assignment.kind == "Timed":
+        assignment.is_timed = True
+        
     questions = await fetch_assignment_questions(assignment_id)
 
     await create_useinfo_entry(
