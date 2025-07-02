@@ -619,6 +619,13 @@ def addAssignmentToDB(
         return
 
     course_id = getCourseID(course_name)
+    if is_timed == "T":
+        # if is_timed is 'T' then we want to set the kind to 'Timed'
+        # this is used in the timed.py module to get all timed assignments
+        kind = "Timed"
+    else:
+        # otherwise we set the kind to 'Assignment'
+        kind = "Regular"
     sel = select(assignments).where(
         and_(assignments.c.name == name, assignments.c.course == course_id)
     )
@@ -636,6 +643,7 @@ def addAssignmentToDB(
                 visible=visible,
                 time_limit=time_limit,
                 from_source="T",
+                kind=kind,
             )
         )
         sess.execute(stmt)
@@ -658,6 +666,7 @@ def addAssignmentToDB(
             time_limit=time_limit,
             from_source="T",
             released="F",
+            kind=kind,
         )
         res = sess.execute(ins)
         a_id = res.inserted_primary_key[0]

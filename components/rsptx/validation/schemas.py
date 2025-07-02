@@ -364,6 +364,16 @@ class CreateExercisesPayload(BaseModel):
     difficulty: Optional[float] = None
     topic: Optional[str] = None
     points: Optional[int] = None
+    is_private: Optional[bool] = None
 
     is_reading: bool
     assignment_id: int
+
+class ValidateQuestionNameRequest(BaseModel):
+    name: str
+
+class CopyQuestionRequest(BaseModel):
+    original_question_id: int
+    new_name: str
+    assignment_id: Optional[int] = None
+    copy_to_assignment: bool = False

@@ -328,8 +328,8 @@ export const AssignmentEdit = ({
                                 value={field.value}
                                 onChange={(e) => field.onChange(e.value)}
                                 options={[
-                                  { label: "Yes", value: true },
-                                  { label: "No", value: false }
+                                  { label: "Yes", value: false },
+                                  { label: "No", value: true }
                                 ]}
                                 className="p-buttonset-sm"
                               />
@@ -347,8 +347,8 @@ export const AssignmentEdit = ({
                                 value={field.value}
                                 onChange={(e) => field.onChange(e.value)}
                                 options={[
-                                  { label: "Yes", value: true },
-                                  { label: "No", value: false }
+                                  { label: "Yes", value: false },
+                                  { label: "No", value: true }
                                 ]}
                                 className="p-buttonset-sm"
                               />

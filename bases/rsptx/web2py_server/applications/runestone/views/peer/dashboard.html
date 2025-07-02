@@ -204,6 +204,10 @@
         <div id="pi-live-vote-graph" class="col-md-6">
             <div id="counter1"></div>
             <div id="counter2"></div>
+            <details id="vote1details" class="vote-details">
+                <summary style="display: list-item">Vote Details</summary>
+                <div id="vote1detailscontent"><p>Percent Correct</p></div>
+            </details>
             <div id="messcounter"></div>
             <div id="first_answer" style="display: none"></div>
             <div id="second_answer"></div>
@@ -310,9 +314,11 @@
                 const pctSpec = await pctResp.json();
                 let pctMessage = "";
                 if (voteStopped) {
-                    pctMessage = `(${pctSpec.pct_correct}% Correct)`;
+                    pctMessage = `${pctSpec.pct_correct}% Correct`;
                 }
-                counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count} ${pctMessage}</p>`;
+                counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count}</p>`;
+                let vote1detailscontent = document.querySelector("#vote1detailscontent");
+                vote1detailscontent.innerHTML = `<p>  ${pctMessage} </p>`;
             }
         }
         else {

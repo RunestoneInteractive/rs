@@ -58,7 +58,7 @@ pydantic-settings = "^2.0.3"
 standard-imghdr = "^3.13.0"
 prefig = {extras = ["text"], version = "^0.3.2"}
 
-[poetry.group.dev.dependencies]
+[tool.poetry.group.dev.dependencies]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

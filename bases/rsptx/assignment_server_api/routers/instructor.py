@@ -62,6 +62,7 @@ from rsptx.db.crud import (
     search_exercises,
     create_api_token,
 )
+from rsptx.db.crud.question import validate_question_name_unique, copy_question
 from rsptx.db.crud.assignment import add_assignment_question, delete_assignment
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
@@ -87,6 +88,8 @@ from rsptx.validation.schemas import (
     AssignmentQuestionUpdateDict,
     ExercisesSearchRequest,
     CreateExercisesPayload,
+    ValidateQuestionNameRequest,
+    CopyQuestionRequest,
 )
 from rsptx.logging import rslogger
 from rsptx.analytics import log_this_function
@@ -656,6 +659,7 @@ async def get_assignment_questions(
         aq["topic"] = q["topic"]
         aq["author"] = q["author"]
         aq["difficulty"] = q["difficulty"]
+        aq["is_private"] = q["is_private"]
         qlist.append(aq)
 
     rslogger.debug(f"qlist: {qlist}")
@@ -1276,7 +1280,6 @@ async def question_creation(
                 **question_data,
                 base_course=course.base_course,
                 timestamp=canonical_utcnow(),
-                is_private=False,
                 practice=False,
                 from_source=False,
                 review_flag=False,
@@ -1388,3 +1391,72 @@ async def remove_assignment(
         status=status.HTTP_200_OK,
         detail={"status": "success", "message": f"Assignment {assignment_id} deleted successfully"}
     )
+
+
+@router.post("/validate_question_name")
+@instructor_role_required()
+@with_course()
+async def validate_question_name(
+    request: Request,
+    request_data: ValidateQuestionNameRequest,
+    course=None
+):
+    """
+    Validate if a question name is unique within the course's base course.
+    """
+    try:
+        # Use base_course from course context instead of request data
+        is_unique = await validate_question_name_unique(
+            name=request_data.name,
+            base_course=course.base_course
+        )
+        
+        return make_json_response(
+            status=status.HTTP_200_OK,
+            detail={"is_unique": is_unique}
+        )
+    except Exception as e:
+        rslogger.error(f"Error validating question name: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error validating question name: {str(e)}"
+        )
+
+
+@router.post("/copy_question")
+@instructor_role_required()
+async def copy_question_endpoint(
+    request: Request,
+    request_data: CopyQuestionRequest,
+    user=Depends(auth_manager)
+):
+    """
+    Copy a question with a new name and owner.
+    Optionally copy it to an assignment as well.
+    """
+    try:
+        assignment_id = None
+        if request_data.copy_to_assignment and request_data.assignment_id:
+            assignment_id = request_data.assignment_id
+        
+        new_question = await copy_question(
+            original_question_id=request_data.original_question_id,
+            new_name=request_data.new_name,
+            new_owner=user.username,
+            assignment_id=assignment_id
+        )
+        
+        return make_json_response(
+            status=status.HTTP_201_CREATED,
+            detail={
+                "status": "success", 
+                "question_id": new_question.id,
+                "message": "Question copied successfully"
+            }
+        )
+    except Exception as e:
+        rslogger.error(f"Error copying question: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error copying question: {str(e)}"
+        )

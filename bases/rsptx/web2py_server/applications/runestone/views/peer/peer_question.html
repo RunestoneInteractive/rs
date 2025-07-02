@@ -6,12 +6,12 @@
 
 <script>
     eBookConfig.peer = true;
-    var assignment_id = {{=assignment_id}};
+    var assignment_id = {{=assignment_id }};
 </script>
 
 <div class="hidden-content" style="display: none">
     \( {{=XML(latex_macros)}} \)
- </div>
+</div>
 
 <h2>Peer Instruction: {{=assignment_name}}</h2>
 <div id="imessage">
@@ -43,20 +43,8 @@
         <textarea id="messageText" rows="6" style="width: 350px;">
 </textarea>
         <div class="text-center" style="width: 350px;">
-        <button id="sendpeermsg" type="button" onclick="sendMessage()">Send</button>
+            <button id="sendpeermsg" type="button" onclick="sendMessage()">Send</button>
         </div>
-        <form>
-            <div class="form-group">
-                Please provide a confidential rating of <select id="peersel" name="peercel"></select>
-                peer's explanation<br />
-                <input class="form-check-input ratingradio" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="poor" onclick="ratePeer(this)">
-                <label class="form-check-label" for="inlineRadio1">Poor</label>
-                <input class="form-check-input ratingradio" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="good" onclick="ratePeer(this)">
-                <label class="form-check-label" for="inlineRadio2">Good</label>
-                <input class="form-check-input ratingradio" type="radio" name="inlineRadioOptions" id="inlineRadio3" value="excellent" onclick="ratePeer(this)">
-                <label class="form-check-label" for="inlineRadio3">Excellent</label>
-            </div>
-        </form>
 
     </div>
     <div id="group_select_panel" class="col-md-6" style="display: none;">
@@ -66,14 +54,15 @@
     </div>
 
 </div>
-<p>Please do not leave or refresh the page during a peer instruction session. <strong>Exception:</strong> If you should have seen a new question at this point then you may continue.</p>
+<p>Please do not leave or refresh the page during a peer instruction session. <strong>Exception:</strong> If you should
+    have seen a new question at this point then you may continue.</p>
 
 <script src="/runestone/static/js/peer.js?v={{=request.peer_mtime}}"></script>
 <script>
     var user = '{{=auth.user.username}}';
     var currentQuestion = '{{=XML(current_question.name)}}';
     var vote2done = false;
-    document.addEventListener("DOMContentLoaded", function(event) {
+    document.addEventListener("DOMContentLoaded", function (event) {
         setTimeout(connect, 1000);
     });
 
@@ -102,12 +91,12 @@
     }
 
     // This says what to do when the componentMap variable from above is defined.
-    ensureComponentMap(50000).then(function() {
+    ensureComponentMap(50000).then(function () {
         console.log("componentMap is set");
         window.componentMap[currentQuestion].submitButton.innerHTML = "Submit";
         window.componentMap[currentQuestion].submitButton.addEventListener(
             "click",
-            function() {
+            function () {
                 if (studentVoteCount == 2) {
                     vote2done = true;
                     let group = document.getElementById("assignment_group").selectedOptions;
@@ -134,7 +123,7 @@
     var voteStopped = false;
     $(window).on(
         "beforeunload",
-        function(event) {
+        function (event) {
             // this actual value gets ignored by newer browsers
             if (this.done) {
                 return;

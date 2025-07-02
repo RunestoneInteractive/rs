@@ -64,7 +64,7 @@ async def is_assigned(
         (AssignmentQuestion.question_id == Question.id),
         (AssignmentQuestion.assignment_id == Assignment.id),
         (Assignment.course == course_id),
-        (Assignment.is_timed == False),  # noqa: E712
+        or_(Assignment.is_timed == False, Assignment.kind == "Timed"),  # noqa: E712
     ]
     if assignment_id is not None:
         clauses.append(Assignment.id == assignment_id)
