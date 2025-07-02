@@ -42,8 +42,8 @@ const assignmentTypeCards = [
   {
     type: "Timed" as KindOfAssignment,
     icon: "pi pi-clock",
-    description: "Exam with optional pause, feedback and time settings",
-    displayName: "Exam"
+    description: "Quiz or Exam with optional pause, feedback and time settings",
+    displayName: "Quiz/Exam"
   },
   {
     type: "Peer" as KindOfAssignment,
