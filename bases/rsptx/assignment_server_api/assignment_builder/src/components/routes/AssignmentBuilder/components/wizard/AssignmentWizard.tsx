@@ -2,12 +2,13 @@ import classNames from "classnames";
 import { Button } from "primereact/button";
 import { Calendar } from "primereact/calendar";
 import { Card } from "primereact/card";
+import { Checkbox } from "primereact/checkbox";
 import { InputNumber } from "primereact/inputnumber";
 import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
 import { SelectButton } from "primereact/selectbutton";
 import { Steps } from "primereact/steps";
-import { Control, Controller } from "react-hook-form";
+import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
 import { Assignment, KindOfAssignment } from "@/types/assignment";
 import { convertDateToISO } from "@/utils/date";
@@ -26,6 +27,7 @@ interface AssignmentWizardProps {
   onNameChange: (value: string) => void;
   onTypeSelect: (type: KindOfAssignment) => void;
   watch: (name: string) => any;
+  setValue: UseFormSetValue<Assignment>;
 }
 
 const wizardSteps = [{ label: "Basic Info" }, { label: "Assignment Type" }];
@@ -34,17 +36,20 @@ const assignmentTypeCards = [
   {
     type: "Regular" as KindOfAssignment,
     icon: "pi pi-file",
-    description: "Standard assignment with exercises and readings"
+    description: "Standard assignment with exercises and readings",
+    displayName: "Regular"
   },
   {
     type: "Timed" as KindOfAssignment,
     icon: "pi pi-clock",
-    description: "Timed quiz or exam with optional pause/feedback settings"
+    description: "Exam with optional pause, feedback and time settings",
+    displayName: "Exam"
   },
   {
     type: "Peer" as KindOfAssignment,
     icon: "pi pi-users",
-    description: "Peer instruction assignment with async options"
+    description: "Peer instruction assignment with async options",
+    displayName: "Peer"
   }
 ];
 
@@ -58,7 +63,8 @@ export const AssignmentWizard = ({
   onComplete,
   onNameChange,
   onTypeSelect,
-  watch
+  watch,
+  setValue
 }: AssignmentWizardProps) => {
   const renderBasicInfo = () => (
     <div className={styles.wizardStep}>
@@ -149,7 +155,7 @@ export const AssignmentWizard = ({
             >
               <i className={card.icon} />
               <div className={styles.typeCardContent}>
-                <h3>{card.type}</h3>
+                <h3>{card.displayName}</h3>
                 <p>{card.description}</p>
               </div>
             </Card>
@@ -169,6 +175,17 @@ export const AssignmentWizard = ({
                 <h3>Quiz/Exam Settings</h3>
                 <div className={styles.formFields} style={{ flexDirection: "row" }}>
                   <div className={styles.formField}>
+                    <label>Timed</label>
+                    <Checkbox
+                      checked={watch("time_limit") !== null}
+                      onChange={(e) => {
+                        if (e.checked) {
+                          setValue("time_limit", 60);
+                        } else {
+                          setValue("time_limit", null);
+                        }
+                      }}
+                    />
                     <label>Time Limit</label>
                     <Controller
                       name="time_limit"
@@ -182,6 +199,7 @@ export const AssignmentWizard = ({
                           showButtons
                           size={5}
                           suffix=" min"
+                          disabled={field.value === null}
                         />
                       )}
                     />

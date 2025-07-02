@@ -230,7 +230,7 @@ class AssignmentIncoming(BaseModel):
     points: int
     duedate: datetime
     kind: str
-    time_limit: Optional[int] = 60
+    time_limit: Optional[int] = None
     nofeedback: Optional[bool] = False
     nopause: Optional[bool] = False
     peer_async_visible: Optional[bool] = False

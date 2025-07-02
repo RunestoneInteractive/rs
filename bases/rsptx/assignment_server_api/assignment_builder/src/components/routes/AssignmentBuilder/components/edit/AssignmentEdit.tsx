@@ -6,13 +6,14 @@ import classNames from "classnames";
 import { BreadCrumb } from "primereact/breadcrumb";
 import { Button } from "primereact/button";
 import { Calendar } from "primereact/calendar";
+import { Checkbox } from "primereact/checkbox";
 import { InputNumber } from "primereact/inputnumber";
 import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { SelectButton } from "primereact/selectbutton";
 import { Tooltip } from "primereact/tooltip";
-import { Control, Controller } from "react-hook-form";
+import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
@@ -30,6 +31,7 @@ interface AssignmentEditProps {
   onTabChange: (tab: "basic" | "readings" | "exercises") => void;
   onTypeSelect: (type: KindOfAssignment) => void;
   watch: (name: string) => any;
+  setValue: UseFormSetValue<Assignment>;
 }
 
 const assignmentTypeCards = [
@@ -59,7 +61,8 @@ export const AssignmentEdit = ({
   onBack,
   onTabChange,
   onTypeSelect,
-  watch
+  watch,
+  setValue
 }: AssignmentEditProps) => {
   const { isExercisesError, isExercisesLoading } = useExercisesSelector();
   const { showDialog } = useDialogContext();
@@ -300,6 +303,17 @@ export const AssignmentEdit = ({
                     {watch("kind") === "Timed" && (
                       <div className={styles.formField}>
                         <div className={styles.formField}>
+                          <label>Timed</label>
+                          <Checkbox
+                            checked={watch("time_limit") !== null}
+                            onChange={(e) => {
+                              if (e.checked) {
+                                setValue("time_limit", 60);
+                              } else {
+                                setValue("time_limit", null);
+                              }
+                            }}
+                          />
                           <label>Time Limit (minutes)</label>
                           <Controller
                             name="time_limit"
@@ -313,6 +327,7 @@ export const AssignmentEdit = ({
                                 showButtons
                                 size={5}
                                 suffix=" min"
+                                disabled={field.value === null}
                               />
                             )}
                           />
