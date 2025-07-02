@@ -11,9 +11,12 @@ Do Assignment
 {% block content %}
 
 {% include 'common/ebook_config.html' %}
-<div class="hidden-content" style="display: none">
+{% for base_course, latex_preamble in latex_preamble_dict.items() %}
+<div class="hidden-content process-math" style="display: none">
     \( {{latex_preamble}} \)
- </div>
+</div>
+{% endfor %}
+
 <div id='part1'>
     <h1 id="assignment_name" style='text-align:center'>{{ assignment['name'] }}</h1>
     <p style='margin-left:2cm;'>

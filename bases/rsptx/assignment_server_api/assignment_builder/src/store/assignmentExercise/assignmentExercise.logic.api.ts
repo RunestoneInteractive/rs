@@ -169,6 +169,55 @@ export const assignmentExerciseApi = createApi({
             });
           });
       }
+    }),
+    validateQuestionName: build.mutation<DetailResponse<{ is_unique: boolean }>, { name: string }>({
+      query: (body) => ({
+        method: "POST",
+        url: "/assignment/instructor/validate_question_name",
+        body
+      })
+    }),
+    copyQuestion: build.mutation<
+      DetailResponse<{ status: string; question_id: number; message: string }>,
+      {
+        original_question_id: number;
+        new_name: string;
+        assignment_id?: number;
+        copy_to_assignment: boolean;
+      }
+    >({
+      query: (body) => ({
+        method: "POST",
+        url: "/assignment/instructor/copy_question",
+        body
+      }),
+      invalidatesTags: (_, error) => {
+        if (!error) {
+          return ["Exercises"];
+        }
+        return [];
+      },
+      onQueryStarted: (_, { queryFulfilled, dispatch, getState }) => {
+        queryFulfilled
+          .then(() => {
+            const state = getState() as RootState;
+
+            dispatch(assignmentApi.util.invalidateTags(["Assignment"]));
+
+            if (state.assignmentTemp.selectedAssignmentId) {
+              dispatch(
+                assignmentApi.endpoints.getAssignment.initiate(
+                  state.assignmentTemp.selectedAssignmentId
+                )
+              );
+            }
+          })
+          .catch(() => {
+            toast("Error copying question", {
+              icon: "🔥"
+            });
+          });
+      }
     })
   })
 });
@@ -178,5 +227,7 @@ export const {
   useUpdateAssignmentQuestionsMutation,
   useRemoveAssignmentExercisesMutation,
   useReorderAssignmentExercisesMutation,
-  useUpdateAssignmentExercisesMutation
+  useUpdateAssignmentExercisesMutation,
+  useValidateQuestionNameMutation,
+  useCopyQuestionMutation
 } = assignmentExerciseApi;

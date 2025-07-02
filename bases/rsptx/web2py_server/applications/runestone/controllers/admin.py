@@ -2159,7 +2159,17 @@ def _add_q_meta_info(qrow):
 
     return res
 
-
+def _get_assignment_kind(assignment):
+    """
+    Returns the kind of assignment, based on the assignment's `from_source` field.
+    """
+    if assignment.is_timed == 'T':
+        return "Timed"
+    elif assignment.is_peer == 'T':
+        return "Peer"
+    else:
+        return "Regular"
+    
 @auth.requires(
     lambda: verifyInstructorStatus(auth.user.course_id, auth.user),
     requires_login=True,
@@ -2206,7 +2216,8 @@ def get_assignment():
     assignment_data["nopause"] = assignment_row.nopause
     assignment_data["is_peer"] = assignment_row.is_peer
     assignment_data["peer_async_visible"] = assignment_row.peer_async_visible
-
+    assignment_data["kind"] = _get_assignment_kind(assignment_row)
+    
     # Still need to get:
     #  -- timed properties of assignment
     #  (See https://github.com/RunestoneInteractive/RunestoneServer/issues/930)

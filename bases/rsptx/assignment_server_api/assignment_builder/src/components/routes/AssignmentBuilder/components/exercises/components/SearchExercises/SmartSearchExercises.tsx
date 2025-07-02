@@ -14,11 +14,14 @@ import { InputText } from "primereact/inputtext";
 import { MultiSelect } from "primereact/multiselect";
 import { Paginator } from "primereact/paginator";
 import { ProgressSpinner } from "primereact/progressspinner";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { useSmartExerciseSearch } from "@/hooks/useSmartExerciseSearch";
 import { useUpdateAssignmentExercise } from "@/hooks/useUpdateAssignmentExercise";
 import { Exercise } from "@/types/exercises";
+
+import { CopyExerciseModal } from "../CopyExercise/CopyExerciseModal";
 
 import styles from "./SmartSearchExercises.module.css";
 
@@ -30,6 +33,8 @@ export const SmartSearchExercises = () => {
   const selectedExercises = useSelector(searchExercisesSelectors.getSelectedExercises);
   const exerciseTypes = useSelector(datasetSelectors.getQuestionTypeOptions);
   const { updateAssignmentExercises } = useUpdateAssignmentExercise();
+  const [copyModalVisible, setCopyModalVisible] = useState(false);
+  const [selectedExerciseForCopy, setSelectedExerciseForCopy] = useState<Exercise | null>(null);
 
   // Use the smart exercise search hook
   const {
@@ -67,6 +72,20 @@ export const SmartSearchExercises = () => {
         refetch();
       }
     );
+  };
+
+  const getIsCopyable = (exercise: Exercise) => {
+    return !!exercise.question_json;
+  };
+
+  const handleCopyClick = (exercise: Exercise) => {
+    setSelectedExerciseForCopy(exercise);
+    setCopyModalVisible(true);
+  };
+
+  const handleCopyModalHide = () => {
+    setCopyModalVisible(false);
+    setSelectedExerciseForCopy(null);
   };
 
   // Error state UI
@@ -121,6 +140,19 @@ export const SmartSearchExercises = () => {
       <ExercisePreviewModal
         htmlsrc={data.htmlsrc}
         triggerButton={<Button icon="pi pi-eye" rounded text aria-label="Preview exercise" />}
+      />
+    ) : null;
+  };
+
+  const renderCopyButton = (data: Exercise) => {
+    return getIsCopyable(data) ? (
+      <Button
+        icon="pi pi-copy"
+        rounded
+        text
+        aria-label="Copy exercise"
+        onClick={() => handleCopyClick(data)}
+        title="Copy exercise"
       />
     ) : null;
   };
@@ -282,6 +314,15 @@ export const SmartSearchExercises = () => {
               className="preview-column"
             />
 
+            {/* Copy button */}
+            <Column
+              headerStyle={{ width: "4rem" }}
+              style={{ width: "4rem" }}
+              body={renderCopyButton}
+              frozen={true}
+              className="copy-column"
+            />
+
             {/* Question number */}
             <Column
               field="qnumber"
@@ -361,6 +402,13 @@ export const SmartSearchExercises = () => {
           </DataTable>
         )}
       </div>
+
+      <CopyExerciseModal
+        visible={copyModalVisible}
+        onHide={handleCopyModalHide}
+        exercise={selectedExerciseForCopy}
+        copyToAssignment={false}
+      />
     </div>
   );
 };
