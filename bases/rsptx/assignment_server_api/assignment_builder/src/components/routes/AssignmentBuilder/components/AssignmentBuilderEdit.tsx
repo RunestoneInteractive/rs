@@ -69,6 +69,7 @@ export const AssignmentBuilderEdit = () => {
         onTabChange={handleTabChange}
         onTypeSelect={(type) => handleTypeSelect(type, setValue)}
         watch={watch}
+        setValue={setValue}
       />
     </AssignmentBuilderLayout>
   );

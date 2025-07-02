@@ -90,6 +90,7 @@ export const AssignmentBuilderCreate = () => {
         onNameChange={handleNameChange}
         onTypeSelect={(type) => handleTypeSelect(type, setValue)}
         watch={watch}
+        setValue={setValue}
       />
     </AssignmentBuilderLayout>
   );

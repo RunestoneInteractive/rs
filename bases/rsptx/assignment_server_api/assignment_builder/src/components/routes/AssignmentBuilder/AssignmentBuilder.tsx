@@ -56,13 +56,11 @@ export const AssignmentBuilder = () => {
     selectedAssignmentId,
     wizardStep,
     activeTab,
-    exerciseViewMode,
     navigateToList,
     navigateToCreate,
     navigateToEdit,
     updateWizardStep,
-    updateEditTab,
-    updateExerciseViewMode
+    updateEditTab
   } = useAssignmentRouting();
 
   // Get selected assignment from routing
@@ -184,6 +182,7 @@ export const AssignmentBuilder = () => {
           onNameChange={handleNameChange}
           onTypeSelect={(type) => handleTypeSelect(type, setValue)}
           watch={watch}
+          setValue={setValue}
         />
       )}
       {mode === "edit" && (
@@ -197,6 +196,7 @@ export const AssignmentBuilder = () => {
           onTabChange={updateEditTab}
           onTypeSelect={(type) => handleTypeSelect(type, setValue)}
           watch={watch}
+          setValue={setValue}
         />
       )}
     </div>
