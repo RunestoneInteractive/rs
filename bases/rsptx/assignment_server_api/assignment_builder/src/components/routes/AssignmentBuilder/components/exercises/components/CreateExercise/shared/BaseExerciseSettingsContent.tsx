@@ -6,6 +6,7 @@ import { InputSwitch } from "primereact/inputswitch";
 import { InputText } from "primereact/inputtext";
 import { ReactNode, useCallback, useEffect, useState } from "react";
 
+import { difficultyOptions } from "@/config/exerciseTypes";
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { createExerciseId } from "@/utils/exercise";
 
@@ -208,13 +209,15 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
 
           <div className={styles.formField}>
             <span className="p-float-label">
-              <InputNumber
+              <Dropdown
                 id="difficulty"
                 value={settings.difficulty}
-                min={1}
-                max={5}
-                className="w-full"
-                onChange={(e) => onChangeInputNumber(e, "difficulty")}
+                options={Object.entries(difficultyOptions).map(([key, label]) => ({
+                  label,
+                  value: Number(key)
+                }))}
+                optionLabel="label"
+                onChange={(e) => updateSetting("difficulty", e.value)}
               />
               <label htmlFor="difficulty">Difficulty</label>
             </span>
