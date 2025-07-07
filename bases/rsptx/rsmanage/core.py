@@ -85,7 +85,7 @@ REQ_ENV = [
     "WEB2PY_PRIVATE_KEY",
     "JWT_SECRET",
     "BOOK_PATH",
-    "FERNET_SECRET"
+    "FERNET_SECRET",
 ]
 OPT_ENV = [
     "DC_DEV_DBURL",
@@ -526,7 +526,9 @@ async def adduser(
         userinfo["first_name"] = first_name or click.prompt("First Name")
         userinfo["last_name"] = last_name or click.prompt("Last Name")
         userinfo["email"] = email or click.prompt("email address")
-        userinfo["course_name"] = course or click.prompt("course name")
+        userinfo["course_name"] = course or click.prompt(
+            "course name (blank for none)", default="boguscourse", show_default=False
+        )
         course = await fetch_course(userinfo["course_name"])
         new_user = AuthUserValidator(
             **userinfo,
@@ -547,6 +549,13 @@ async def adduser(
             )
             exit(1)
         else:
+            if userinfo["course_name"] == "boguscourse":
+                click.echo(
+                    click.style(
+                        "Warning:  You created a user that is not enrolled in a course. ",
+                        fg="yellow",
+                    )
+                )
             click.echo("Success")
 
 
@@ -1208,23 +1217,19 @@ async def addbookauthor(config, book, author, github):
         if lib_entry:
             github = lib_entry.github_url
             if not github:
-                click.echo(
-                    f"Warning: No github url found for {book} in library."
-                )
+                click.echo(f"Will now try to deduce the github url for {book}")
         if not github:
             # check to see if book exists under $BOOK_PATH
             github = find_github_url(book)
             if not github:
-                click.echo(
-                    f"Warning: No github url found for {book} in $BOOK_PATH. Please provide it manually."
-                )
                 book_path = click.prompt(
-                    "Please provide the path to the repository on your local machine relative to $BOOK_PATH, or leave blank if it is not cloned locally", default=""
+                    f"Could not find a GitHub URL for {book}. Please provide the path to the repository on your local machine relative to $BOOK_PATH, or leave blank if it is not cloned locally",
+                    default="",
                 )
                 github = find_github_url(book_path)
                 if not github:
                     click.echo(
-                        "Error: It appears you do not have a repository for this book. Exiting."
+                        "Error: It appears you have not cloned a repo for this book. Exiting."
                     )
                     sys.exit(-1)
                 # extract the final part of the path in book_path
@@ -1277,8 +1282,13 @@ def find_github_url(book):
         else:
             click.echo(f"No .git directory found in {book_path}")
     else:
+        click.echo(
+            click.style(f"Warning: Book path {book_path} does not exist", fg="yellow")
+        )
         return None
     return None
+
+
 # command group for mangaging the library table
 
 
@@ -1333,18 +1343,19 @@ async def library_show(ctx, book):
     click.echo(f"repo_path: {bookrec.repo_path}")
     click.echo(f"github_url: {bookrec.github_url}")
 
+
 @library.command("repo_path")
 @click.pass_context
 @click.argument("book")
-@click.option(
-    "--path", default=None, help="Path to the book on your local machine"
-)
+@click.option("--path", default=None, help="Path to the book on your local machine")
 async def library_repo_path(ctx, book, path):
     """
     Set the repo_path for the book in the library
     """
     if not path:
-        path = click.prompt("Please provide the path to the book on your local machine relative to $BOOK_PATH")
+        path = click.prompt(
+            "Please provide the path to the book on your local machine relative to $BOOK_PATH"
+        )
     print(f"Setting the repo_path to {path} for {book} in the library")
     if path.startswith("/"):
         click.echo(
@@ -1358,13 +1369,12 @@ async def library_repo_path(ctx, book, path):
     bookrec = await fetch_library_book(book)
     await update_library_book(bookrec.id, dict(repo_path=path))
 
+
 # add a new library command to set the github_url for the book
 @library.command("github")
 @click.pass_context
 @click.argument("book")
-@click.option(
-    "--url", default=None, help="GitHub URL of the book repository"
-)
+@click.option("--url", default=None, help="GitHub URL of the book repository")
 async def library_github(ctx, book, url):
     """
     Set the github_url for the book in the library
@@ -1374,6 +1384,7 @@ async def library_github(ctx, book, url):
     print(f"Setting the github_url to {url} for {book} in the library")
     bookrec = await fetch_library_book(book)
     await update_library_book(bookrec.id, dict(github_url=url))
-    
+
+
 if __name__ == "__main__":
     cli(_anyio_backend="asyncio")
