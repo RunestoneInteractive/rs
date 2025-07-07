@@ -18,11 +18,7 @@ export const MatchingInstructions: FC<MatchingInstructionsProps> = ({ instructio
   return (
     <>
       <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
-        <Editor
-          content={instructions}
-          onChange={onChange}
-          placeholder="Enter instructions here..."
-        />
+        <Editor content={instructions} onChange={onChange} />
       </div>
 
       <div className={styles.questionTips}>

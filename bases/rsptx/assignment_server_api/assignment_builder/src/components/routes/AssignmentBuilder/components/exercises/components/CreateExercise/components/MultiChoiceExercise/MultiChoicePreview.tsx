@@ -9,16 +9,20 @@ interface MultiChoicePreviewProps {
   question: string;
   options: OptionWithId[];
   questionName: string;
+  forceCheckboxes?: boolean;
 }
 
 export const MultiChoicePreview = ({
   question,
   options,
-  questionName
+  questionName,
+  forceCheckboxes
 }: MultiChoicePreviewProps) => {
   return (
     <div style={{ display: "flex", alignItems: "start", justifyContent: "center" }}>
-      <ExercisePreview htmlsrc={generateMultiChoicePreview(question, options, questionName)} />
+      <ExercisePreview
+        htmlsrc={generateMultiChoicePreview(question, options, questionName, forceCheckboxes)}
+      />
     </div>
   );
 };
