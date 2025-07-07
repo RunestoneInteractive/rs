@@ -124,10 +124,10 @@ def generate_partial_Parsons(language, Parsons_type, problem_description, unchan
     fixed_lines = [(line[0], line[1], line[2].rstrip()+ '\n') for line in fixed_lines if line[2].strip()]
     matched_fixed_lines = []
     #print("Parsons_type", Parsons_type, "unchanged_lines", unchanged_lines, "fixed_lines", fixed_lines, "distractor_tuple_dict", distractor_tuple_dict)
-    if (Parsons_type ==  "Partial_Own"):
+    if (Parsons_type ==  "Partial"):
         unchanged_lines = [(line[0], line[1], line[2].rstrip() + ' #settled\n') for line in unchanged_lines if line[2].strip()]
     # some unchanged lines might be moved to the distractor list
-    elif (Parsons_type ==  "Partial_Own_Random"):
+    elif (Parsons_type ==  "Partial_Random"):
         # check whether the unchanged lines appear in distrctor_tuple_dict, if so, remove them from unchanged_lines
         for fixed_line_key in distractor_tuple_dict.keys():
             for line in unchanged_lines:

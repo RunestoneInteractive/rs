@@ -187,5 +187,5 @@ def personalize_Parsons_block(df_question_line, code_comparison_pairs, buggy_cod
         else:
             distractors = {}
         print("distractors", distractors)
-        return "Partial_Own", distractors
+        return "Partial", distractors
     
