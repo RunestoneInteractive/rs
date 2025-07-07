@@ -1,0 +1,1840 @@
+,pair,type,Problem Name,w_question_description, Multiple_valid_check,Example_student_solution,Example_buggy_code,Example_fixed_code,Example_low_level_fixed_code,Unittest_Code,Default_Starting_Code,Default_Test_Code,Example_paired_distractor_correct,Example_paired_distractor_wrong,Edit_Distance_common,Edit_Distance_personalized,Edit_Distance_low_personalized,Edit_personalized_few,Edit_low_personalized_few,Similarity_personalized,Similarity_common,Similarity_low_level_personalized,Similarity_personalized_common_high,Similarity_personalized_low_level_high
+1,E,W,csv_read_cols_return_list_tups_cp,"Write the function ``get_cols`` that takes an input file name ``inf`` and a column index, ``col_index`` and returns a list with the items from the specified column index. Ignore the first line since it is a header. Pay attention to any leading or trailing spaces in the column values - remember to clean them before returning the values.Example Input: inf = 'airtravel.csv' col_index = 1; Example Output: ['340', '318', '362', '348', '363', '435', '491', '505', '404', '359', '310', '337']",,"import csv
+def get_cols(inf, col_index):
+    with open(inf) as inf_file:
+        csv_file = csv.reader(inf_file)
+        headers = next(csv_file)
+        temp_list = []
+        for row in csv_file:
+            temp_list.append(row[col_index].strip())
+    return temp_list","import csv
+def get_cols(inf, col_index):
+    f = open(inf)
+    f_csv = csv.reader(f)
+    header = next(f_csv)
+    l = []
+    for line in f_csv:
+        l.append(line[col_index])","import csv
+def get_cols(inf, col_index):
+    f = open(inf)
+    f_csv = csv.reader(f)
+    header = next(f_csv)
+    l = []
+    for line in f_csv:
+            l.append(line[col_index].strip())
+    f.close()
+    return l","import csv
+def get_cols(inf, col_index):
+    with open(inf) as f:
+        f_csv = csv.reader(f)
+        headers = next(f_csv)
+        l = []
+        for line in f_csv:
+            l.append(line[col_index].strip())
+    return l","import unittest
+import os
+import csv
+import io
+import sys
+
+class myTests(unittest.TestCase):
+    def setUp(self):
+        # Create the CSV file for testing purposes if it doesn't exist
+        if not os.path.exists('airtravel.csv'):
+            self.test_file = 'airtravel.csv'
+            sample_data = [
+                [""Month"", ""1958"", ""1959"", ""1960""],
+                [""JAN"", ""340"", ""360"", ""417""],
+                [""FEB"", ""318"", ""342"", ""391""],
+                [""MAR"", ""362"", ""406"", ""419""],
+                [""APR"", ""348"", ""396"", ""461""],
+                [""MAY"", ""363"", ""420"", ""472""],
+                [""JUN"", ""435"", ""472"", ""535""],
+                [""JUL"", ""491"", ""548"", ""622""],
+                [""AUG"", ""505"", ""559"", ""606""],
+                [""SEP"", ""404"", ""463"", ""508""],
+                [""OCT"", ""359"", ""407"", ""461""],
+                [""NOV"", ""310"", ""362"", ""390""],
+                [""DEC"", ""337"", ""405"", ""432""]
+            ]
+
+            # Function to format numbers with spaces for right alignment
+            def format_row(row):
+                return [row[0]] + [f""  {num}"" for num in row[1:]]
+
+            # Format all rows except the header
+            formatted_data = [sample_data[0]] + [format_row(row) for row in sample_data[1:]]
+
+            with open(self.test_file, ""w"", newline="""", encoding=""utf-8"") as f:
+                writer = csv.writer(f)
+                writer.writerows(formatted_data)
+
+    def test_get_cols(self):
+        # Run the student function and test its correctness
+        result = get_cols('airtravel.csv', 1)
+        self.assertEqual(result[0], '340', 'Expected first value in column to be 340')
+        self.assertEqual(len(result), 12, 'Expected 12 rows excluding the header')
+        self.assertEqual(result[11], '337', 'Expected last value in column to be 337')
+
+","import csv
+def get_cols(inf, col_index):",,,,27,9,19,TRUE,TRUE,0.8992248062015504,0.752,0.88,TRUE,TRUE
+2,E,W,csv_read_cols_return_list_tups_op,"Write the function ``get_cols`` that takes an input file name ``inf`` and a column index, ``col_index`` and returns a list with the items from the specified column index. Ignore the first line since it is a header. Pay attention to any leading or trailing spaces in the column values - remember to clean them before returning the values.Example Input: inf = 'airtravel.csv' col_index = 1; Example Output: ['340', '318', '362', '348', '363', '435', '491', '505', '404', '359', '310', '337']",,"import csv
+def get_cols(inf, col_index):
+    with open(inf) as inf_file:
+        csv_file = csv.reader(inf_file)
+        headers = next(csv_file)
+        temp_list = []
+        for row in csv_file:
+            temp_list.append(row[col_index].strip())
+    return temp_list","import csv
+def get_cols(inf, col_index):
+    f = open(inf)
+    f_csv = csv.reader(f)
+    header = next(f_csv)
+    l = []
+    for line in f_csv:
+        l.append(line[col_index])","import csv
+def get_cols(inf, col_index):
+    f = open(inf)
+    f_csv = csv.reader(f)
+    header = next(f_csv)
+    l = []
+    for line in f_csv:
+            l.append(line[col_index].strip())
+    f.close()
+    return l","import csv
+def get_cols(inf, col_index):
+    with open(inf) as f:
+        f_csv = csv.reader(f)
+        headers = next(f_csv)
+        l = []
+        for line in f_csv:
+            l.append(line[col_index].strip())
+    return l","import unittest
+import os
+import csv
+import io
+import sys
+
+class myTests(unittest.TestCase):
+    def setUp(self):
+        # Create the CSV file for testing purposes if it doesn't exist
+        if not os.path.exists('airtravel.csv'):
+            self.test_file = 'airtravel.csv'
+            sample_data = [
+                [""Month"", ""1958"", ""1959"", ""1960""],
+                [""JAN"", ""340"", ""360"", ""417""],
+                [""FEB"", ""318"", ""342"", ""391""],
+                [""MAR"", ""362"", ""406"", ""419""],
+                [""APR"", ""348"", ""396"", ""461""],
+                [""MAY"", ""363"", ""420"", ""472""],
+                [""JUN"", ""435"", ""472"", ""535""],
+                [""JUL"", ""491"", ""548"", ""622""],
+                [""AUG"", ""505"", ""559"", ""606""],
+                [""SEP"", ""404"", ""463"", ""508""],
+                [""OCT"", ""359"", ""407"", ""461""],
+                [""NOV"", ""310"", ""362"", ""390""],
+                [""DEC"", ""337"", ""405"", ""432""]
+            ]
+
+            # Function to format numbers with spaces for right alignment
+            def format_row(row):
+                return [row[0]] + [f""  {num}"" for num in row[1:]]
+
+            # Format all rows except the header
+            formatted_data = [sample_data[0]] + [format_row(row) for row in sample_data[1:]]
+
+            with open(self.test_file, ""w"", newline="""", encoding=""utf-8"") as f:
+                writer = csv.writer(f)
+                writer.writerows(formatted_data)
+
+    def test_get_cols(self):
+        # Run the student function and test its correctness
+        result = get_cols('airtravel.csv', 1)
+        self.assertEqual(result[0], '340', 'Expected first value in column to be 340')
+        self.assertEqual(len(result), 12, 'Expected 12 rows excluding the header')
+        self.assertEqual(result[11], '337', 'Expected last value in column to be 337')
+
+","import csv
+def get_cols(inf, col_index):",,,,27,9,19,TRUE,TRUE,0.8992248062015504,0.752,0.88,TRUE,TRUE
+3,G,W,csv_stocks_find_lowest_close_cp,"Write the function ``find_lowest_close()`` which has no input parameters and returns a tuple with the lowest closing value and the date which had that value.  In the function, it reads from the file ``stocks.txt``, which contains the monthly Dow Jones averages from 1989 to 2001. The data is in the order: ``Date, Open, High, Low, and Close``. The first line of the file contains actual data, not a header row. For example, the first line might be: ``3-Dec-01,9848.93,10220.78,9651.87,10021.57``.
+",,"import csv
+def find_lowest_close():
+    low_close = 100000
+    low_date = """"
+    inFile = open(""stocks.txt"") 
+    csv_file = csv.reader(inFile)
+    for row in csv_file:
+        date = row[0]
+        close = float(row[4])
+        if close < low_close:
+            low_close = close
+            low_date = date
+    inFile.close()
+    return (low_close, low_date)","import csv
+def find_lowest_close():
+    with open(""stocks.txt"") as f:
+        c = csv.reader(f)
+        init = next(c)
+        return float(init[-1]), init[0]","import csv
+def find_lowest_close():
+    with open(""stocks.txt"") as f:
+        c = csv.reader(f)
+        init = next(c)
+        lowest_close = float(init[-1])
+        lowest_date = init[0]
+        for row in c:
+            close_value = float(row[-1])
+            if close_value < lowest_close:
+                lowest_close = close_value
+                lowest_date = row[0]
+        return lowest_close, lowest_date","import csv
+def find_lowest_close():
+    low_close = 100000
+    low_date = """"
+    f = open(""stocks.txt"") 
+    c = csv.reader(f)
+    for row in c:
+        date = row[0]
+        close = float(row[4])
+        if close < low_close:
+            low_close = close
+            low_date = date
+    f.close()
+    return (low_close, low_date)","import unittest
+import os
+import csv
+import io
+import sys
+import textwrap
+
+
+
+class myTests(unittest.TestCase):
+
+    def setUp(self):
+        # Create the sample 'stocks.txt' file for testing
+        # Check first if the file already exists - if yes then skip
+        if os.path.exists('stocks.txt'):
+            return
+        else:
+            self.test_file = 'stocks.txt'
+            sample_data = textwrap.dedent(""""""\
+            3-Dec-01,9848.93,10220.78,9651.87,10021.57
+            1-Nov-01,9087.45,10054.58,8987.61,9851.56
+            1-Oct-01,8845.97,9626.54,8659.9,9075.14
+            4-Sep-01,9946.98,10238.5,7926.93,8847.56
+            1-Aug-01,10527.38,10663.07,9829.35,9949.75
+            2-Jul-01,10504.95,10758.14,10049.38,10522.81
+            1-Jun-01,10913.57,11236.68,10313.4,10502.4
+            1-May-01,10734.05,11436.42,10638.48,10911.94
+            2-Apr-01,9877.16,10973.15,9303.48,10734.97
+            1-Mar-01,10493.25,10940.45,9047.56,9878.78
+            1-Feb-01,10884.82,11140.09,10225.14,10495.28
+            2-Jan-01,10790.92,11224.41,10325.71,10887.36
+            1-Dec-00,10416.76,11044.7,10158.16,10787.99
+            1-Nov-00,10966.21,11152.02,10204.8,10414.49
+            2-Oct-00,10659.06,11108.79,9571.4,10971.14
+            1-Sep-00,11219.54,11518.83,10439.31,10650.92
+            1-Aug-00,10523.81,11415.99,10428.58,11215.1
+            3-Jul-00,10450.36,10980.34,10303.28,10521.98
+            1-Jun-00,10532.27,11013.05,10161.51,10447.89
+            1-May-00,10749.42,11086.72,10163.2,10522.33
+            3-Apr-00,10863.28,11600.43,10128.62,10733.91
+            1-Mar-00,10128.11,11311.28,9611.75,10921.92
+            1-Feb-00,10937.74,11228.44,9760.36,10128.31
+            3-Jan-00,11501.85,11908.5,10610.43,10940.53
+            1-Dec-99,10876.47,11658.68,10798.07,11497.12
+            1-Nov-99,10730.78,11195.34,10449.42,10877.81
+            1-Oct-99,10335.69,10883.1,9884.2,10729.86
+            1-Sep-99,10828.44,11218.39,10055.17,10336.95
+            2-Aug-99,10654.83,11428.94,10487.34,10829.28
+            1-Jul-99,10972.39,11321.61,10594.99,10655.15
+            1-Jun-99,10549.08,11120.24,10334.42,10970.8
+            3-May-99,10788.75,11244.36,10372.96,10559.74
+            1-Apr-99,9825.29,11072.25,9707.91,10789.04
+            1-Mar-99,9315.27,10158.57,9163.41,9786.16
+            1-Feb-99,9405.43,9662.77,9025.41,9306.58
+            4-Jan-99,9212.84,9759.44,8994.26,9358.83
+            1-Dec-98,9039.57,9390.75,8610.63,9181.43
+            2-Nov-98,8645.65,9457.95,8573.56,9116.55
+            1-Oct-98,7749.42,8718.25,7399.78,8592.1
+            1-Sep-98,7583.09,8253.79,7379.7,7842.62
+            3-Aug-98,8868.1,8948.17,7517.7,7539.07
+            1-Jul-98,9011.56,9412.64,8786.48,8883.29
+            1-Jun-98,8907.93,9155.04,8524.55,8952.02
+            1-May-98,9106.47,9311.98,8760.95,8899.95
+            1-Apr-98,8818.5,9287.32,8715.61,9063.37
+            2-Mar-98,8528.78,8997.11,8377.32,8799.81
+            2-Feb-98,7987.46,8616.72,7987.46,8545.72
+            2-Jan-98,7908.25,8072.91,7391.59,7906.5
+            1-Dec-97,7823.62,8209.56,7563.23,7908.25
+            3-Nov-97,7443.07,7934.53,7334.77,7823.13
+            1-Oct-97,7945.26,8218.34,6936.45,7442.08
+            2-Sep-97,7650.99,8078.36,7556.23,7945.26
+            1-Aug-97,8222.61,8340.14,7580.85,7622.42
+            1-Jul-97,7672.79,8328.99,7613.53,8222.61
+            2-Jun-97,7331.04,7868.44,7214.29,7672.79
+            1-May-97,7008.99,7430.2,6891.39,7331.04
+            1-Apr-97,6583.48,7081.23,6315.84,7008.99
+            3-Mar-97,6877.74,7158.28,6532.49,6583.48
+            3-Feb-97,6813.09,7112.87,6683.4,6877.74
+            2-Jan-97,6448.27,6953.55,6318.96,6813.09
+            2-Dec-96,6521.7,6623.96,6206.83,6448.27
+            1-Nov-96,6029.38,6606.3,5975.34,6521.7
+            1-Oct-96,5882.17,6162.8,5833.72,6029.38
+            3-Sep-96,5616.21,5952.08,5550.37,5882.17
+            1-Aug-96,5528.91,5761.95,5507.83,5616.21
+            1-Jul-96,5654.63,5769.88,5170.11,5528.91
+            3-Jun-96,5643.18,5770.61,5559.69,5654.63
+            1-May-96,5569.08,5833.04,5327.74,5643.18
+            1-Apr-96,5587.14,5737.07,5382.66,5569.08
+            1-Mar-96,5485.62,5755.86,5395.3,5587.14
+            1-Feb-96,5395.3,5693.36,5319.43,5485.62
+            2-Jan-96,5117.12,5433.24,5000.07,5395.3
+            1-Dec-95,5074.49,5266.69,5016.68,5117.12
+            1-Nov-95,4755.48,5143.13,4719.72,5074.49
+            2-Oct-95,4789.08,4845.08,4638.43,4755.48
+            1-Sep-95,4610.56,4839.48,4594.71,4789.08
+            1-Aug-95,4708.47,4772.56,4552.8,4610.56
+            3-Jul-95,4556.1,4767.99,4530.26,4708.47
+            1-Jun-95,4465.14,4614.2,4394.59,4556.1
+            1-May-95,4321.27,4480.7,4278.73,4465.14
+            3-Apr-95,4157.69,4348.94,4129.68,4321.27
+            1-Mar-95,4011.05,4213.71,3935.31,4157.69
+            1-Feb-95,3843.86,4034.62,3809.21,4011.05
+            3-Jan-95,3834.44,3955.56,3794.4,3843.86
+            1-Dec-94,3739.23,3882.21,3638.97,3834.44
+            1-Nov-94,3908.12,3919.9,3612.05,3739.23
+            3-Oct-94,3843.19,3958.25,3736.2,3908.12
+            1-Sep-94,3913.42,3972.72,3804.5,3843.19
+            1-Aug-94,3764.5,3954.54,3722.41,3913.42
+            1-Jul-94,3624.96,3782.63,3611.04,3764.5
+            1-Jun-94,3758.37,3839.88,3603.92,3624.96
+            2-May-94,3681.69,3788.76,3609.71,3758.37
+            4-Apr-94,3633.08,3733.15,3520.8,3681.69
+            1-Mar-94,3832.02,3911.78,3544.12,3635.96
+            1-Feb-94,3978.36,3998.06,3811.76,3832.02
+            3-Jan-94,3754.09,4002.84,3715.24,3978.36
+            1-Dec-93,3683.95,3818.92,3673.33,3754.09
+            1-Nov-93,3680.59,3749.9,3585.86,3683.95
+            1-Oct-93,3555.12,3713.57,3541.71,3680.59
+            1-Sep-93,3651.25,3665.5,3501.47,3555.12
+            2-Aug-93,3539.47,3681.71,3523.54,3651.25
+            1-Jul-93,3516.08,3604.86,3443.28,3539.47
+            1-Jun-93,3527.43,3577.25,3445.77,3516.08
+            3-May-93,3427.55,3582.23,3402.42,3527.43
+            1-Apr-93,3435.11,3499.41,3338.39,3427.55
+            1-Mar-93,3370.81,3497.25,3334.07,3435.11
+            1-Feb-93,3310.03,3472.94,3262.48,3370.81
+            4-Jan-93,3301.11,3338.12,3219.25,3310.03
+            1-Dec-92,3305.16,3364.87,3229.79,3301.11
+            2-Nov-92,3226.28,3326.51,3176.84,3305.16
+            1-Oct-92,3271.66,3291.39,3087.41,3226.28
+            1-Sep-92,3257.35,3391.35,3226.55,3271.66
+            3-Aug-92,3393.78,3413.23,3200.86,3257.35
+            1-Jul-92,3318.52,3414.85,3255.43,3393.78
+            1-Jun-92,3396.88,3435.27,3242.32,3318.52
+            1-May-92,3359.12,3433.98,3316.64,3396.88
+            1-Apr-92,3235.47,3387.97,3141.77,3359.12
+            2-Mar-92,3267.67,3318.42,3176.21,3235.47
+            3-Feb-92,3223.39,3307.47,3193.42,3267.67
+            2-Jan-92,3168.83,3313.51,3119.86,3223.39
+            2-Dec-91,2894.68,3204.61,2832.29,3168.83
+            1-Nov-91,3069.1,3091.91,2861.14,2894.68
+            1-Oct-91,3016.77,3091.01,2925.54,3069.1
+            3-Sep-91,3043.6,3066.64,2963.1,3016.77
+            1-Aug-91,3024.82,3068.65,2836.31,3043.6
+            1-Jul-91,2911.67,3039.58,2897.36,3024.82
+            3-Jun-91,3027.5,3057.47,2879.25,2906.75
+            1-May-91,2887.87,3044.5,2834.53,3027.5
+            1-Apr-91,2913.86,3030.45,2848.51,2887.87
+            1-Mar-91,2882.18,3017.82,2829.21,2913.86
+            1-Feb-91,2736.39,2955.2,2694.31,2882.18
+            2-Jan-91,2633.66,2747.28,2447.03,2736.39
+            3-Dec-90,2559.65,2662.62,2534.65,2633.66
+            1-Nov-90,2442.33,2581.19,2415.59,2559.65
+            1-Oct-90,2452.48,2565.35,2344.31,2442.33
+            4-Sep-90,2614.36,2665.35,2367.82,2452.48
+            1-Aug-90,2905.2,2931.19,2459.41,2614.36
+            2-Jul-90,2880.69,3024.26,2833.17,2905.2
+            1-Jun-90,2876.66,2956.93,2821.53,2880.69
+            1-May-90,2656.76,2908.21,2651.35,2876.66
+            2-Apr-90,2707.21,2793.47,2627.7,2656.76
+            1-Mar-90,2627.25,2775,2607.88,2707.21
+            1-Feb-90,2590.54,2674.32,2540.99,2627.25
+            2-Jan-90,2753.2,2834.04,2513.06,2590.54
+            1-Dec-89,2706.27,2784.77,2658.7,2753.2
+            1-Nov-89,2645.08,2718.22,2563.11,2706.27
+            2-Oct-89,2692.82,2809.08,2496.93,2645.08
+            1-Sep-89,2737.27,2768.24,2636.78,2692.82
+            1-Aug-89,2660.66,2758.73,2619.71,2737.27
+            3-Jul-89,2440.06,2668.25,2431.53,2660.66
+            1-Jun-89,2480.15,2544.95,2412.94,2440.06
+            1-May-89,2418.8,2521.63,2356.3,2480.15
+            3-Apr-89,2293.62,2433.1,2282.07,2418.8
+            1-Mar-89,2258.39,2351.07,2234.46,2293.62
+            1-Feb-89,2342.32,2369.29,2232.14,2258.39
+            3-Jan-89,2168.39,2350.18,2127.14,2342.32
+            """""")
+            
+            # Write the sample data to the file
+            with open(self.test_file, 'w') as f:
+                f.write(sample_data)
+
+
+    def test_find_lowest_close(self):
+        tup = find_lowest_close()
+        self.assertEqual(tup[1],""1-Feb-89"", ""test of date"")
+        self.assertAlmostEqual(tup[0], 2258.39, 2, ""test of value"")","import csv
+def find_lowest_close():",,,,72,40,65,TRUE,TRUE,0.6805555555555556,0.45588235294117646,0.4852941176470588,TRUE,TRUE
+4,G,W,csv_stocks_find_lowest_close_op,"Write the function ``find_lowest_close()`` which has no input parameters and returns a tuple with the lowest closing value and the date which had that value.  In the function, it reads from the file ``stocks.txt``, which contains the monthly Dow Jones averages from 1989 to 2001. The data is in the order: ``Date, Open, High, Low, and Close``. The first line of the file contains actual data, not a header row. For example, the first line might be: ``3-Dec-01,9848.93,10220.78,9651.87,10021.57``.
+",,"import csv
+def find_lowest_close():
+    low_close = 100000
+    low_date = """"
+    inFile = open(""stocks.txt"") 
+    csv_file = csv.reader(inFile)
+    for row in csv_file:
+        date = row[0]
+        close = float(row[4])
+        if close < low_close:
+            low_close = close
+            low_date = date
+    inFile.close()
+    return (low_close, low_date)","import csv
+def find_lowest_close():
+    with open(""stocks.txt"") as f:
+        c = csv.reader(f)
+        init = next(c)
+        return float(init[-1]), init[0]","import csv
+def find_lowest_close():
+    with open(""stocks.txt"") as f:
+        c = csv.reader(f)
+        init = next(c)
+        lowest_close = float(init[-1])
+        lowest_date = init[0]
+        for row in c:
+            close_value = float(row[-1])
+            if close_value < lowest_close:
+                lowest_close = close_value
+                lowest_date = row[0]
+        return lowest_close, lowest_date","import csv
+def find_lowest_close():
+    low_close = 100000
+    low_date = """"
+    f = open(""stocks.txt"") 
+    c = csv.reader(f)
+    for row in c:
+        date = row[0]
+        close = float(row[4])
+        if close < low_close:
+            low_close = close
+            low_date = date
+    f.close()
+    return (low_close, low_date)","import unittest
+import os
+import csv
+import io
+import sys
+import textwrap
+
+
+
+class myTests(unittest.TestCase):
+
+    def setUp(self):
+        # Create the sample 'stocks.txt' file for testing
+        # Check first if the file already exists - if yes then skip
+        if os.path.exists('stocks.txt'):
+            return
+        else:
+            self.test_file = 'stocks.txt'
+            sample_data = textwrap.dedent(""""""\
+            3-Dec-01,9848.93,10220.78,9651.87,10021.57
+            1-Nov-01,9087.45,10054.58,8987.61,9851.56
+            1-Oct-01,8845.97,9626.54,8659.9,9075.14
+            4-Sep-01,9946.98,10238.5,7926.93,8847.56
+            1-Aug-01,10527.38,10663.07,9829.35,9949.75
+            2-Jul-01,10504.95,10758.14,10049.38,10522.81
+            1-Jun-01,10913.57,11236.68,10313.4,10502.4
+            1-May-01,10734.05,11436.42,10638.48,10911.94
+            2-Apr-01,9877.16,10973.15,9303.48,10734.97
+            1-Mar-01,10493.25,10940.45,9047.56,9878.78
+            1-Feb-01,10884.82,11140.09,10225.14,10495.28
+            2-Jan-01,10790.92,11224.41,10325.71,10887.36
+            1-Dec-00,10416.76,11044.7,10158.16,10787.99
+            1-Nov-00,10966.21,11152.02,10204.8,10414.49
+            2-Oct-00,10659.06,11108.79,9571.4,10971.14
+            1-Sep-00,11219.54,11518.83,10439.31,10650.92
+            1-Aug-00,10523.81,11415.99,10428.58,11215.1
+            3-Jul-00,10450.36,10980.34,10303.28,10521.98
+            1-Jun-00,10532.27,11013.05,10161.51,10447.89
+            1-May-00,10749.42,11086.72,10163.2,10522.33
+            3-Apr-00,10863.28,11600.43,10128.62,10733.91
+            1-Mar-00,10128.11,11311.28,9611.75,10921.92
+            1-Feb-00,10937.74,11228.44,9760.36,10128.31
+            3-Jan-00,11501.85,11908.5,10610.43,10940.53
+            1-Dec-99,10876.47,11658.68,10798.07,11497.12
+            1-Nov-99,10730.78,11195.34,10449.42,10877.81
+            1-Oct-99,10335.69,10883.1,9884.2,10729.86
+            1-Sep-99,10828.44,11218.39,10055.17,10336.95
+            2-Aug-99,10654.83,11428.94,10487.34,10829.28
+            1-Jul-99,10972.39,11321.61,10594.99,10655.15
+            1-Jun-99,10549.08,11120.24,10334.42,10970.8
+            3-May-99,10788.75,11244.36,10372.96,10559.74
+            1-Apr-99,9825.29,11072.25,9707.91,10789.04
+            1-Mar-99,9315.27,10158.57,9163.41,9786.16
+            1-Feb-99,9405.43,9662.77,9025.41,9306.58
+            4-Jan-99,9212.84,9759.44,8994.26,9358.83
+            1-Dec-98,9039.57,9390.75,8610.63,9181.43
+            2-Nov-98,8645.65,9457.95,8573.56,9116.55
+            1-Oct-98,7749.42,8718.25,7399.78,8592.1
+            1-Sep-98,7583.09,8253.79,7379.7,7842.62
+            3-Aug-98,8868.1,8948.17,7517.7,7539.07
+            1-Jul-98,9011.56,9412.64,8786.48,8883.29
+            1-Jun-98,8907.93,9155.04,8524.55,8952.02
+            1-May-98,9106.47,9311.98,8760.95,8899.95
+            1-Apr-98,8818.5,9287.32,8715.61,9063.37
+            2-Mar-98,8528.78,8997.11,8377.32,8799.81
+            2-Feb-98,7987.46,8616.72,7987.46,8545.72
+            2-Jan-98,7908.25,8072.91,7391.59,7906.5
+            1-Dec-97,7823.62,8209.56,7563.23,7908.25
+            3-Nov-97,7443.07,7934.53,7334.77,7823.13
+            1-Oct-97,7945.26,8218.34,6936.45,7442.08
+            2-Sep-97,7650.99,8078.36,7556.23,7945.26
+            1-Aug-97,8222.61,8340.14,7580.85,7622.42
+            1-Jul-97,7672.79,8328.99,7613.53,8222.61
+            2-Jun-97,7331.04,7868.44,7214.29,7672.79
+            1-May-97,7008.99,7430.2,6891.39,7331.04
+            1-Apr-97,6583.48,7081.23,6315.84,7008.99
+            3-Mar-97,6877.74,7158.28,6532.49,6583.48
+            3-Feb-97,6813.09,7112.87,6683.4,6877.74
+            2-Jan-97,6448.27,6953.55,6318.96,6813.09
+            2-Dec-96,6521.7,6623.96,6206.83,6448.27
+            1-Nov-96,6029.38,6606.3,5975.34,6521.7
+            1-Oct-96,5882.17,6162.8,5833.72,6029.38
+            3-Sep-96,5616.21,5952.08,5550.37,5882.17
+            1-Aug-96,5528.91,5761.95,5507.83,5616.21
+            1-Jul-96,5654.63,5769.88,5170.11,5528.91
+            3-Jun-96,5643.18,5770.61,5559.69,5654.63
+            1-May-96,5569.08,5833.04,5327.74,5643.18
+            1-Apr-96,5587.14,5737.07,5382.66,5569.08
+            1-Mar-96,5485.62,5755.86,5395.3,5587.14
+            1-Feb-96,5395.3,5693.36,5319.43,5485.62
+            2-Jan-96,5117.12,5433.24,5000.07,5395.3
+            1-Dec-95,5074.49,5266.69,5016.68,5117.12
+            1-Nov-95,4755.48,5143.13,4719.72,5074.49
+            2-Oct-95,4789.08,4845.08,4638.43,4755.48
+            1-Sep-95,4610.56,4839.48,4594.71,4789.08
+            1-Aug-95,4708.47,4772.56,4552.8,4610.56
+            3-Jul-95,4556.1,4767.99,4530.26,4708.47
+            1-Jun-95,4465.14,4614.2,4394.59,4556.1
+            1-May-95,4321.27,4480.7,4278.73,4465.14
+            3-Apr-95,4157.69,4348.94,4129.68,4321.27
+            1-Mar-95,4011.05,4213.71,3935.31,4157.69
+            1-Feb-95,3843.86,4034.62,3809.21,4011.05
+            3-Jan-95,3834.44,3955.56,3794.4,3843.86
+            1-Dec-94,3739.23,3882.21,3638.97,3834.44
+            1-Nov-94,3908.12,3919.9,3612.05,3739.23
+            3-Oct-94,3843.19,3958.25,3736.2,3908.12
+            1-Sep-94,3913.42,3972.72,3804.5,3843.19
+            1-Aug-94,3764.5,3954.54,3722.41,3913.42
+            1-Jul-94,3624.96,3782.63,3611.04,3764.5
+            1-Jun-94,3758.37,3839.88,3603.92,3624.96
+            2-May-94,3681.69,3788.76,3609.71,3758.37
+            4-Apr-94,3633.08,3733.15,3520.8,3681.69
+            1-Mar-94,3832.02,3911.78,3544.12,3635.96
+            1-Feb-94,3978.36,3998.06,3811.76,3832.02
+            3-Jan-94,3754.09,4002.84,3715.24,3978.36
+            1-Dec-93,3683.95,3818.92,3673.33,3754.09
+            1-Nov-93,3680.59,3749.9,3585.86,3683.95
+            1-Oct-93,3555.12,3713.57,3541.71,3680.59
+            1-Sep-93,3651.25,3665.5,3501.47,3555.12
+            2-Aug-93,3539.47,3681.71,3523.54,3651.25
+            1-Jul-93,3516.08,3604.86,3443.28,3539.47
+            1-Jun-93,3527.43,3577.25,3445.77,3516.08
+            3-May-93,3427.55,3582.23,3402.42,3527.43
+            1-Apr-93,3435.11,3499.41,3338.39,3427.55
+            1-Mar-93,3370.81,3497.25,3334.07,3435.11
+            1-Feb-93,3310.03,3472.94,3262.48,3370.81
+            4-Jan-93,3301.11,3338.12,3219.25,3310.03
+            1-Dec-92,3305.16,3364.87,3229.79,3301.11
+            2-Nov-92,3226.28,3326.51,3176.84,3305.16
+            1-Oct-92,3271.66,3291.39,3087.41,3226.28
+            1-Sep-92,3257.35,3391.35,3226.55,3271.66
+            3-Aug-92,3393.78,3413.23,3200.86,3257.35
+            1-Jul-92,3318.52,3414.85,3255.43,3393.78
+            1-Jun-92,3396.88,3435.27,3242.32,3318.52
+            1-May-92,3359.12,3433.98,3316.64,3396.88
+            1-Apr-92,3235.47,3387.97,3141.77,3359.12
+            2-Mar-92,3267.67,3318.42,3176.21,3235.47
+            3-Feb-92,3223.39,3307.47,3193.42,3267.67
+            2-Jan-92,3168.83,3313.51,3119.86,3223.39
+            2-Dec-91,2894.68,3204.61,2832.29,3168.83
+            1-Nov-91,3069.1,3091.91,2861.14,2894.68
+            1-Oct-91,3016.77,3091.01,2925.54,3069.1
+            3-Sep-91,3043.6,3066.64,2963.1,3016.77
+            1-Aug-91,3024.82,3068.65,2836.31,3043.6
+            1-Jul-91,2911.67,3039.58,2897.36,3024.82
+            3-Jun-91,3027.5,3057.47,2879.25,2906.75
+            1-May-91,2887.87,3044.5,2834.53,3027.5
+            1-Apr-91,2913.86,3030.45,2848.51,2887.87
+            1-Mar-91,2882.18,3017.82,2829.21,2913.86
+            1-Feb-91,2736.39,2955.2,2694.31,2882.18
+            2-Jan-91,2633.66,2747.28,2447.03,2736.39
+            3-Dec-90,2559.65,2662.62,2534.65,2633.66
+            1-Nov-90,2442.33,2581.19,2415.59,2559.65
+            1-Oct-90,2452.48,2565.35,2344.31,2442.33
+            4-Sep-90,2614.36,2665.35,2367.82,2452.48
+            1-Aug-90,2905.2,2931.19,2459.41,2614.36
+            2-Jul-90,2880.69,3024.26,2833.17,2905.2
+            1-Jun-90,2876.66,2956.93,2821.53,2880.69
+            1-May-90,2656.76,2908.21,2651.35,2876.66
+            2-Apr-90,2707.21,2793.47,2627.7,2656.76
+            1-Mar-90,2627.25,2775,2607.88,2707.21
+            1-Feb-90,2590.54,2674.32,2540.99,2627.25
+            2-Jan-90,2753.2,2834.04,2513.06,2590.54
+            1-Dec-89,2706.27,2784.77,2658.7,2753.2
+            1-Nov-89,2645.08,2718.22,2563.11,2706.27
+            2-Oct-89,2692.82,2809.08,2496.93,2645.08
+            1-Sep-89,2737.27,2768.24,2636.78,2692.82
+            1-Aug-89,2660.66,2758.73,2619.71,2737.27
+            3-Jul-89,2440.06,2668.25,2431.53,2660.66
+            1-Jun-89,2480.15,2544.95,2412.94,2440.06
+            1-May-89,2418.8,2521.63,2356.3,2480.15
+            3-Apr-89,2293.62,2433.1,2282.07,2418.8
+            1-Mar-89,2258.39,2351.07,2234.46,2293.62
+            1-Feb-89,2342.32,2369.29,2232.14,2258.39
+            3-Jan-89,2168.39,2350.18,2127.14,2342.32
+            """""")
+            
+            # Write the sample data to the file
+            with open(self.test_file, 'w') as f:
+                f.write(sample_data)
+
+
+    def test_find_lowest_close(self):
+        tup = find_lowest_close()
+        self.assertEqual(tup[1],""1-Feb-89"", ""test of date"")
+        self.assertAlmostEqual(tup[0], 2258.39, 2, ""test of value"")","import csv
+def find_lowest_close():",,,,72,40,65,TRUE,TRUE,0.6805555555555556,0.45588235294117646,0.4852941176470588,TRUE,TRUE
+5,H,W,csv_write_nested_dict_cp,"Write a function ``write_nested_dict`` that takes a ``filename`` such as ``'output.csv'`` and nested dictionary, ``ndict``, and writes out the data to a csv file. The key for the outer dictionary is the four digit year as a string. Each inner dictionary has keys of 'First', 'Second', and 'Third'. The data is float. Write out a header with 'Year, First, Second, Third' and then the data in csv format. example_data = { '2024': {'First': 25.5, 'Second': 30.1, 'Third': 28.7},'2023': {'First': 32.3, 'Second': 38.9, 'Third': 40.2},} write_nested_dict('example_output.csv', example_data)",,"import csv
+def write_nested_dict(filename, ndict):
+    with open(filename, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['Year', 'First', 'Second', 'Third'])
+        for year, data in ndict.items():
+            writer.writerow([year, data['First'], data['Second'], data['Third']])","import csv
+def write_nested_dict(filename, ndict):
+    outfile = open(filename, ""w"")
+    cvs_writer = cvs.writer(outFile)
+    csv_writer.writerow(['Year', ""First"", 'Second', 'Third'])
+    for year in ndict:
+             inner_d = ndict[year]
+             inner_items = inner_d.values()
+             out_list = [year]
+             out_list.extend(inner_item)
+             cvs_writer.writerow(out_list)
+    outFile.close()","import csv
+def write_nested_dict(filename, ndict):
+    outFile = open(filename, ""w"")
+    csv_writer = csv.writer(outFile)
+    csv_writer.writerow(['Year', 'First', 'Second', 'Third'])
+    for year in ndict:
+        inner_d = ndict[year]
+        inner_items = inner_d.values()
+        out_list = [year]
+        out_list.extend(inner_items)
+        csv_writer.writerow(out_list)
+    outFile.close()","import csv
+def write_nested_dict(filename, ndict):
+    with open(filename, 'w', newline='') as outFile:
+        csv_writer = csv.writer(outFile)
+        csv_writer.writerow(['Year', 'First', 'Second', 'Third'])
+        for year, inner_dict in ndict.items():
+            csv_writer.writerow([year, inner_dict['First'], inner_dict['Second'], inner_dict['Third']])","import os
+import csv
+import unittest
+import tempfile
+
+class MyTests(unittest.TestCase):
+            def setUp(self):
+                """"""Create a temporary file for each test run to avoid conflicts.""""""
+                self.test_file = tempfile.NamedTemporaryFile(delete=False, suffix="".csv"")
+                self.filename = self.test_file.name
+                self.test_file.close()  # Close immediately; we just need the filename
+
+            def test_write_nested_dict(self):
+                """"""Test that the function correctly writes a nested dictionary to a CSV file.""""""
+                # Sample input dictionary
+                d = {
+                    '2022': {'First': 32.3, 'Second': 38.9, 'Third': 40.2},
+                    '2021': {'First': 35.8, 'Second': 41.3, 'Third': 45.3}
+                }
+                
+                # Call function to write to the unique test file
+                write_nested_dict(self.filename, d)
+                
+                # Open the file and read its contents
+                with open(self.filename, 'r', encoding=""utf-8"") as f:
+                    csv_reader = csv.reader(f)
+                    header = next(csv_reader)  # Read the header
+                    row1 = next(csv_reader)    # Read the first row of data
+                    row2 = next(csv_reader)    # Read the second row of data
+                
+                # Assertions
+                self.assertEqual(header, ['Year', 'First', 'Second', 'Third'], 'Test headers')
+                self.assertEqual(row1, ['2022', '32.3', '38.9', '40.2'], 'Test data 1')
+                self.assertEqual(row2, ['2021', '35.8', '41.3', '45.3'], 'Test data 2')
+
+            def tearDown(self):
+                """"""Remove the temporary test file after each test run.""""""
+                if os.path.exists(self.filename):
+                    os.remove(self.filename)","import csv
+def write_nested_dict(filename, ndict):",,,,69,5,67,TRUE,TRUE,0.9361702127659575,0.546448087431694,0.5683060109289617,TRUE,TRUE
+6,H,W,csv_write_nested_dict_op,"Write a function ``write_nested_dict`` that takes a ``filename`` such as ``'output.csv'`` and nested dictionary, ``ndict``, and writes out the data to a csv file. The key for the outer dictionary is the four digit year as a string. Each inner dictionary has keys of 'First', 'Second', and 'Third'. The data is float. Write out a header with 'Year, First, Second, Third' and then the data in csv format. example_data = { '2024': {'First': 25.5, 'Second': 30.1, 'Third': 28.7},'2023': {'First': 32.3, 'Second': 38.9, 'Third': 40.2},} write_nested_dict('example_output.csv', example_data)",,"import csv
+def write_nested_dict(filename, ndict):
+    with open(filename, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['Year', 'First', 'Second', 'Third'])
+        for year, data in ndict.items():
+            writer.writerow([year, data['First'], data['Second'], data['Third']])","import csv
+def write_nested_dict(filename, ndict):
+    outfile = open(filename, ""w"")
+    cvs_writer = cvs.writer(outFile)
+    csv_writer.writerow(['Year', ""First"", 'Second', 'Third'])
+    for year in ndict:
+             inner_d = ndict[year]
+             inner_items = inner_d.values()
+             out_list = [year]
+             out_list.extend(inner_item)
+             cvs_writer.writerow(out_list)
+    outFile.close()","import csv
+def write_nested_dict(filename, ndict):
+    outFile = open(filename, ""w"")
+    csv_writer = csv.writer(outFile)
+    csv_writer.writerow(['Year', 'First', 'Second', 'Third'])
+    for year in ndict:
+        inner_d = ndict[year]
+        inner_items = inner_d.values()
+        out_list = [year]
+        out_list.extend(inner_items)
+        csv_writer.writerow(out_list)
+    outFile.close()","import csv
+def write_nested_dict(filename, ndict):
+    with open(filename, 'w', newline='') as outFile:
+        csv_writer = csv.writer(outFile)
+        csv_writer.writerow(['Year', 'First', 'Second', 'Third'])
+        for year, inner_dict in ndict.items():
+            csv_writer.writerow([year, inner_dict['First'], inner_dict['Second'], inner_dict['Third']])","import os
+import csv
+import unittest
+import tempfile
+
+class MyTests(unittest.TestCase):
+            def setUp(self):
+                """"""Create a temporary file for each test run to avoid conflicts.""""""
+                self.test_file = tempfile.NamedTemporaryFile(delete=False, suffix="".csv"")
+                self.filename = self.test_file.name
+                self.test_file.close()  # Close immediately; we just need the filename
+
+            def test_write_nested_dict(self):
+                """"""Test that the function correctly writes a nested dictionary to a CSV file.""""""
+                # Sample input dictionary
+                d = {
+                    '2022': {'First': 32.3, 'Second': 38.9, 'Third': 40.2},
+                    '2021': {'First': 35.8, 'Second': 41.3, 'Third': 45.3}
+                }
+                
+                # Call function to write to the unique test file
+                write_nested_dict(self.filename, d)
+                
+                # Open the file and read its contents
+                with open(self.filename, 'r', encoding=""utf-8"") as f:
+                    csv_reader = csv.reader(f)
+                    header = next(csv_reader)  # Read the header
+                    row1 = next(csv_reader)    # Read the first row of data
+                    row2 = next(csv_reader)    # Read the second row of data
+                
+                # Assertions
+                self.assertEqual(header, ['Year', 'First', 'Second', 'Third'], 'Test headers')
+                self.assertEqual(row1, ['2022', '32.3', '38.9', '40.2'], 'Test data 1')
+                self.assertEqual(row2, ['2021', '35.8', '41.3', '45.3'], 'Test data 2')
+
+            def tearDown(self):
+                """"""Remove the temporary test file after each test run.""""""
+                if os.path.exists(self.filename):
+                    os.remove(self.filename)","import csv
+def write_nested_dict(filename, ndict):",,,,69,5,67,TRUE,TRUE,0.9361702127659575,0.546448087431694,0.5683060109289617,TRUE,TRUE
+7,I,W,csv_youngest_cp,"Write the function ``find_youngest()`` which has no input parameters and returns a tuple with the name and age at the time of winning of the youngest actress to win best actress. In the function, it reads from the file ``oscar_age_actress.csv``, which contains: ``""Index"", ""Year"", ""Age"", ""Name"", ""Movie""``.  The ``Age`` column represents the age at the time of winning. The first line explains the contents of the file.  Pay attention to the leading spaces and double quotes. The file contains an extra blank line at the end of the file.One example line -- pay attention to the leading spaces and double quotes:  2, 1929, 37, ""Mary Pickford"", ""Coquette""",,"import csv
+def find_youngest():
+    f = open(""oscar_age_actress.csv"")
+    csv_f = csv.reader(f)
+    headers = next(csv_f)
+    y_age = 100
+    y_name = """"
+    for row in csv_f:
+        if len(row) > 2:
+            age = int(row[2])
+            name = row[3].strip('"" ')
+            if age < y_age:
+                y_age = age
+                y_name = name
+    f.close()
+    return (y_name, y_age)","import csv
+def find_youngest():
+    # finish the function
+    inFile = open(""oscar_age_actress.csv"")
+    header = next(inFile)
+    reader = csv.reader(inFile)
+    youngest = 200
+    name = """"
+    for rows in reader:
+        if int(rows[1]) < youngest:
+            youngest = int(rows[2])
+            name = rows[3]
+    tup = (name, youngest)
+    return tup","import csv
+def find_youngest():
+    inFile = open(""oscar_age_actress.csv"")
+    header = next(inFile)
+    reader = csv.reader(inFile)
+    youngest = 200
+    name = """"
+    for rows in reader:
+        if len(rows) <= 1:
+            continue
+        if int(rows[2]) < youngest:  
+            youngest = int(rows[2])  
+            name = rows[3].strip(' ""\'')
+    inFile.close()
+    tup = (name, youngest)
+    return tup","import csv
+def find_youngest():
+    inFile = open(""oscar_age_actress.csv"")
+    header = next(inFile)
+    reader = csv.reader(inFile)
+    youngest = 100
+    y_name = """"
+    for rows in reader:
+        if len(rows) > 2:
+            age = int(rows[2])
+            name = rows[3].strip('"" ')
+            if age < youngest:
+                youngest = age
+                y_name = name
+    inFile.close()
+    return (y_name, youngest)","import unittest
+import os
+import csv
+import io
+import sys
+import textwrap
+
+class myTests(unittest.TestCase):
+
+    def setUp(self):
+        # Create the test CSV file if it doesn't exist
+        self.test_file = 'oscar_age_actress.csv'
+        if not os.path.exists(self.test_file):
+            sample_data = [
+            [""Index"", ""Year"", ""Age"", ""Name"", ""Movie""],  # Header row
+            [1, 1928, 22, ""Janet Gaynor"", ""Seventh Heaven, Street Angel and Sunrise: A Song of Two Humans""],
+            [2, 1929, 37, ""Mary Pickford"", ""Coquette""],
+            [3, 1930, 28, ""Norma Shearer"", ""The Divorcee""],
+            [4, 1931, 63, ""Marie Dressler"", ""Min and Bill""],
+            [5, 1932, 32, ""Helen Hayes"", ""The Sin of Madelon Claudet""],
+            [6, 1933, 26, ""Katharine Hepburn"", ""Morning Glory""],
+            [7, 1934, 31, ""Claudette Colbert"", ""It Happened One Night""],
+            [8, 1935, 27, ""Bette Davis"", ""Dangerous""],
+            [9, 1936, 27, ""Luise Rainer"", ""The Great Ziegfeld""],
+            [10, 1937, 28, ""Luise Rainer"", ""The Good Earth""],
+            [11, 1938, 30, ""Bette Davis"", ""Jezebel""],
+            [12, 1939, 26, ""Vivien Leigh"", ""Gone with the Wind""],
+            [13, 1940, 29, ""Ginger Rogers"", ""Kitty Foyle""],
+            [14, 1941, 24, ""Joan Fontaine"", ""Suspicion""],
+            [15, 1942, 38, ""Greer Garson"", ""Mrs. Miniver""],
+            [16, 1943, 25, ""Jennifer Jones"", ""The Song of Bernadette""],
+            [17, 1944, 29, ""Ingrid Bergman"", ""Gaslight""],
+            [18, 1945, 40, ""Joan Crawford"", ""Mildred Pierce""],
+            [19, 1946, 30, ""Olivia de Havilland"", ""To Each His Own""],
+            [20, 1947, 35, ""Loretta Young"", ""The Farmer's Daughter""],
+            [21, 1948, 32, ""Jane Wyman"", ""Johnny Belinda""],
+            [22, 1949, 33, ""Olivia de Havilland"", ""The Heiress""],
+            [23, 1950, 29, ""Judy Holliday"", ""Born Yesterday""],
+            [24, 1951, 38, ""Vivien Leigh"", ""A Streetcar Named Desire""],
+            [25, 1952, 54, ""Shirley Booth"", ""Come Back, Little Sheba""],
+            [26, 1953, 24, ""Audrey Hepburn"", ""Roman Holiday""],
+            [27, 1954, 25, ""Grace Kelly"", ""The Country Girl""],
+            [28, 1955, 48, ""Anna Magnani"", ""The Rose Tattoo""],
+            [29, 1956, 41, ""Ingrid Bergman"", ""Anastasia""],
+            [30, 1957, 28, ""Joanne Woodward"", ""The Three Faces of Eve""],
+            [31, 1958, 41, ""Susan Hayward"", ""I Want to Live!""],
+            [32, 1959, 39, ""Simone Signoret"", ""Room at the Top""],
+            [33, 1960, 29, ""Elizabeth Taylor"", ""BUtterfield 8""],
+            [34, 1961, 27, ""Sophia Loren"", ""Two Women""],
+            [35, 1962, 31, ""Anne Bancroft"", ""The Miracle Worker""],
+            [36, 1963, 31, ""Patricia Neal"", ""Hud""],
+            [37, 1964, 29, ""Julie Andrews"", ""Mary Poppins""],
+            [38, 1965, 25, ""Julie Christie"", ""Darling""],
+            [39, 1966, 35, ""Elizabeth Taylor"", ""Who's Afraid of Virginia Woolf?""],
+            [40, 1967, 60, ""Katharine Hepburn"", ""Guess Who's Coming to Dinner""],
+            [41, 1968, 61, ""Katharine Hepburn"", ""The Lion in Winter""],
+            [42, 1969, 26, ""Barbra Streisand"", ""Funny Girl""],
+            [43, 1970, 35, ""Maggie Smith"", ""The Prime of Miss Jean Brodie""],
+            [44, 1971, 34, ""Glenda Jackson"", ""Women in Love""],
+            [45, 1972, 34, ""Jane Fonda"", ""Klute""],
+            [46, 1973, 27, ""Liza Minnelli"", ""Cabaret""],
+            [47, 1974, 37, ""Glenda Jackson"", ""A Touch of Class""],
+            [48, 1975, 42, ""Ellen Burstyn"", ""Alice Doesn't Live Here Anymore""],
+            [49, 1976, 41, ""Louise Fletcher"", ""One Flew Over the Cuckoo's Nest""],
+            [50, 1977, 36, ""Faye Dunaway"", ""Network""],
+            [51, 1978, 32, ""Diane Keaton"", ""Annie Hall""],
+            [52, 1979, 41, ""Jane Fonda"", ""Coming Home""],
+            [53, 1980, 33, ""Sally Field"", ""Norma Rae""],
+            [54, 1981, 31, ""Sissy Spacek"", ""Coal Miner's Daughter""],
+            [55, 1982, 74, ""Katharine Hepburn"", ""On Golden Pond""],
+            [56, 1983, 33, ""Meryl Streep"", ""Sophie's Choice""],
+            [57, 1984, 49, ""Shirley MacLaine"", ""Terms of Endearment""],
+            [58, 1985, 38, ""Sally Field"", ""Places in the Heart""],
+            [59, 1986, 61, ""Geraldine Page"", ""The Trip to Bountiful""],
+            [60, 1987, 21, ""Marlee Matlin"", ""Children of a Lesser God""],
+            [61, 1988, 41, ""Cher"", ""Moonstruck""],
+            [62, 1989, 26, ""Jodie Foster"", ""The Accused""],
+            [63, 1990, 80, ""Jessica Tandy"", ""Driving Miss Daisy""],
+            [64, 1991, 42, ""Kathy Bates"", ""Misery""],
+            [65, 1992, 29, ""Jodie Foster"", ""The Silence of the Lambs""],
+            [66, 1993, 33, ""Emma Thompson"", ""Howards End""],
+            [67, 1994, 36, ""Holly Hunter"", ""The Piano""],
+            [68, 1995, 45, ""Jessica Lange"", ""Blue Sky""],
+            [69, 1996, 49, ""Susan Sarandon"", ""Dead Man Walking""],
+            [70, 1997, 39, ""Frances McDormand"", ""Fargo""],
+            [71, 1998, 34, ""Helen Hunt"", ""As Good as It Gets""],
+            [72, 1999, 26, ""Gwyneth Paltrow"", ""Shakespeare in Love""],
+            [73, 2000, 25, ""Hilary Swank"", ""Boys Don't Cry""],
+            [74, 2001, 33, ""Julia Roberts"", ""Erin Brockovich""],
+            [75, 2002, 35, ""Halle Berry"", ""Monster's Ball""],
+            [76, 2003, 35, ""Nicole Kidman"", ""The Hours""],
+            [77, 2004, 28, ""Charlize Theron"", ""Monster""],
+            [78, 2005, 30, ""Hilary Swank"", ""Million Dollar Baby""],
+            [79, 2006, 29, ""Reese Witherspoon"", ""Walk the Line""],
+            [80, 2007, 61, ""Helen Mirren"", ""The Queen""],
+            [81, 2008, 32, ""Marion Cotillard"", ""La Vie en rose""],
+            [82, 2009, 33, ""Kate Winslet"", ""The Reader""],
+            [83, 2010, 45, ""Sandra Bullock"", ""The Blind Side""],
+            [84, 2011, 29, ""Natalie Portman"", ""Black Swan""],
+            [85, 2012, 62, ""Meryl Streep"", ""The Iron Lady""],
+            [86, 2013, 22, ""Jennifer Lawrence"", ""Silver Linings Playbook""],
+            [87, 2014, 44, ""Cate Blanchett"", ""Blue Jasmine""],
+            [88, 2015, 54, ""Julianne Moore"", ""Still Alice""],
+            [89, 2016, 26, ""Brie Larson"", ""Room""],
+            []
+                ]
+
+            # Function to format each row
+            def format_row(row):
+                if not row or all(cell == """" for cell in row):  # Ensure blank lines remain blank
+                    return [""""]  # Preserve the blank line at the end
+
+                if row[0] == ""Index"":
+                    return row  # Keep header unchanged
+
+                # Format row elements
+                formatted_row = [
+                    f"" {row[0]}"",  # Index with a leading space
+                    f"" {row[1]}"",  # Year with a leading space
+                    f"" {row[2]}"",  # Age with a leading space
+                    f' ""{row[3]}""',  # Name wrapped in double quotes with leading space
+                    f' ""{row[4]}""'  # Movie wrapped in double quotes with leading space
+                ]
+
+                if int(row[0]) % 5 == 3:  # Example: Add '\t' to every row where Index % 5 == 3
+                    formatted_row[-1] += ""\t""  # Append '\t' to the last column (Movie)
+
+                return formatted_row
+
+
+            # Apply formatting
+            formatted_data = [format_row(row) for row in sample_data]
+            with open(self.test_file, ""w"", newline="""", encoding=""utf-8"") as f:
+                writer = csv.writer(f)
+                writer.writerows(formatted_data)
+
+    def test_find_youngest(self):
+        # Test the function
+        result = find_youngest()
+        self.assertEqual(result[0], ""Marlee Matlin"", ""Test for the correct youngest actress name"")
+        self.assertEqual(result[1], 21, ""Test for the correct youngest actress age"")","import csv
+def find_youngest():",,,,52,20,35,TRUE,TRUE,0.8787878787878788,0.5979381443298969,0.7628865979381443,TRUE,TRUE
+8,I,W,csv_youngest_op,"Write the function ``find_youngest()`` which has no input parameters and returns a tuple with the name and age at the time of winning of the youngest actress to win best actress. In the function, it reads from the file ``oscar_age_actress.csv``, which contains: ``""Index"", ""Year"", ""Age"", ""Name"", ""Movie""``.  The ``Age`` column represents the age at the time of winning. The first line explains the contents of the file.  Pay attention to the leading spaces and double quotes. The file contains an extra blank line at the end of the file.One example line -- pay attention to the leading spaces and double quotes:  2, 1929, 37, ""Mary Pickford"", ""Coquette""",,"import csv
+def find_youngest():
+    f = open(""oscar_age_actress.csv"")
+    csv_f = csv.reader(f)
+    headers = next(csv_f)
+    y_age = 100
+    y_name = """"
+    for row in csv_f:
+        if len(row) > 2:
+            age = int(row[2])
+            name = row[3].strip('"" ')
+            if age < y_age:
+                y_age = age
+                y_name = name
+    f.close()
+    return (y_name, y_age)","import csv
+def find_youngest():
+    # finish the function
+    inFile = open(""oscar_age_actress.csv"")
+    header = next(inFile)
+    reader = csv.reader(inFile)
+    youngest = 200
+    name = """"
+    for rows in reader:
+        if int(rows[1]) < youngest:
+            youngest = int(rows[2])
+            name = rows[3]
+    tup = (name, youngest)
+    return tup","import csv
+def find_youngest():
+    inFile = open(""oscar_age_actress.csv"")
+    header = next(inFile)
+    reader = csv.reader(inFile)
+    youngest = 200
+    name = """"
+    for rows in reader:
+        if len(rows) <= 1:
+            continue
+        if int(rows[2]) < youngest:  
+            youngest = int(rows[2])  
+            name = rows[3].strip(' ""\'')
+    inFile.close()
+    tup = (name, youngest)
+    return tup","import csv
+def find_youngest():
+    inFile = open(""oscar_age_actress.csv"")
+    header = next(inFile)
+    reader = csv.reader(inFile)
+    youngest = 100
+    y_name = """"
+    for rows in reader:
+        if len(rows) > 2:
+            age = int(rows[2])
+            name = rows[3].strip('"" ')
+            if age < youngest:
+                youngest = age
+                y_name = name
+    inFile.close()
+    return (y_name, youngest)","import unittest
+import os
+import csv
+import io
+import sys
+import textwrap
+
+class myTests(unittest.TestCase):
+
+    def setUp(self):
+        # Create the test CSV file if it doesn't exist
+        self.test_file = 'oscar_age_actress.csv'
+        if not os.path.exists(self.test_file):
+            sample_data = [
+            [""Index"", ""Year"", ""Age"", ""Name"", ""Movie""],  # Header row
+            [1, 1928, 22, ""Janet Gaynor"", ""Seventh Heaven, Street Angel and Sunrise: A Song of Two Humans""],
+            [2, 1929, 37, ""Mary Pickford"", ""Coquette""],
+            [3, 1930, 28, ""Norma Shearer"", ""The Divorcee""],
+            [4, 1931, 63, ""Marie Dressler"", ""Min and Bill""],
+            [5, 1932, 32, ""Helen Hayes"", ""The Sin of Madelon Claudet""],
+            [6, 1933, 26, ""Katharine Hepburn"", ""Morning Glory""],
+            [7, 1934, 31, ""Claudette Colbert"", ""It Happened One Night""],
+            [8, 1935, 27, ""Bette Davis"", ""Dangerous""],
+            [9, 1936, 27, ""Luise Rainer"", ""The Great Ziegfeld""],
+            [10, 1937, 28, ""Luise Rainer"", ""The Good Earth""],
+            [11, 1938, 30, ""Bette Davis"", ""Jezebel""],
+            [12, 1939, 26, ""Vivien Leigh"", ""Gone with the Wind""],
+            [13, 1940, 29, ""Ginger Rogers"", ""Kitty Foyle""],
+            [14, 1941, 24, ""Joan Fontaine"", ""Suspicion""],
+            [15, 1942, 38, ""Greer Garson"", ""Mrs. Miniver""],
+            [16, 1943, 25, ""Jennifer Jones"", ""The Song of Bernadette""],
+            [17, 1944, 29, ""Ingrid Bergman"", ""Gaslight""],
+            [18, 1945, 40, ""Joan Crawford"", ""Mildred Pierce""],
+            [19, 1946, 30, ""Olivia de Havilland"", ""To Each His Own""],
+            [20, 1947, 35, ""Loretta Young"", ""The Farmer's Daughter""],
+            [21, 1948, 32, ""Jane Wyman"", ""Johnny Belinda""],
+            [22, 1949, 33, ""Olivia de Havilland"", ""The Heiress""],
+            [23, 1950, 29, ""Judy Holliday"", ""Born Yesterday""],
+            [24, 1951, 38, ""Vivien Leigh"", ""A Streetcar Named Desire""],
+            [25, 1952, 54, ""Shirley Booth"", ""Come Back, Little Sheba""],
+            [26, 1953, 24, ""Audrey Hepburn"", ""Roman Holiday""],
+            [27, 1954, 25, ""Grace Kelly"", ""The Country Girl""],
+            [28, 1955, 48, ""Anna Magnani"", ""The Rose Tattoo""],
+            [29, 1956, 41, ""Ingrid Bergman"", ""Anastasia""],
+            [30, 1957, 28, ""Joanne Woodward"", ""The Three Faces of Eve""],
+            [31, 1958, 41, ""Susan Hayward"", ""I Want to Live!""],
+            [32, 1959, 39, ""Simone Signoret"", ""Room at the Top""],
+            [33, 1960, 29, ""Elizabeth Taylor"", ""BUtterfield 8""],
+            [34, 1961, 27, ""Sophia Loren"", ""Two Women""],
+            [35, 1962, 31, ""Anne Bancroft"", ""The Miracle Worker""],
+            [36, 1963, 31, ""Patricia Neal"", ""Hud""],
+            [37, 1964, 29, ""Julie Andrews"", ""Mary Poppins""],
+            [38, 1965, 25, ""Julie Christie"", ""Darling""],
+            [39, 1966, 35, ""Elizabeth Taylor"", ""Who's Afraid of Virginia Woolf?""],
+            [40, 1967, 60, ""Katharine Hepburn"", ""Guess Who's Coming to Dinner""],
+            [41, 1968, 61, ""Katharine Hepburn"", ""The Lion in Winter""],
+            [42, 1969, 26, ""Barbra Streisand"", ""Funny Girl""],
+            [43, 1970, 35, ""Maggie Smith"", ""The Prime of Miss Jean Brodie""],
+            [44, 1971, 34, ""Glenda Jackson"", ""Women in Love""],
+            [45, 1972, 34, ""Jane Fonda"", ""Klute""],
+            [46, 1973, 27, ""Liza Minnelli"", ""Cabaret""],
+            [47, 1974, 37, ""Glenda Jackson"", ""A Touch of Class""],
+            [48, 1975, 42, ""Ellen Burstyn"", ""Alice Doesn't Live Here Anymore""],
+            [49, 1976, 41, ""Louise Fletcher"", ""One Flew Over the Cuckoo's Nest""],
+            [50, 1977, 36, ""Faye Dunaway"", ""Network""],
+            [51, 1978, 32, ""Diane Keaton"", ""Annie Hall""],
+            [52, 1979, 41, ""Jane Fonda"", ""Coming Home""],
+            [53, 1980, 33, ""Sally Field"", ""Norma Rae""],
+            [54, 1981, 31, ""Sissy Spacek"", ""Coal Miner's Daughter""],
+            [55, 1982, 74, ""Katharine Hepburn"", ""On Golden Pond""],
+            [56, 1983, 33, ""Meryl Streep"", ""Sophie's Choice""],
+            [57, 1984, 49, ""Shirley MacLaine"", ""Terms of Endearment""],
+            [58, 1985, 38, ""Sally Field"", ""Places in the Heart""],
+            [59, 1986, 61, ""Geraldine Page"", ""The Trip to Bountiful""],
+            [60, 1987, 21, ""Marlee Matlin"", ""Children of a Lesser God""],
+            [61, 1988, 41, ""Cher"", ""Moonstruck""],
+            [62, 1989, 26, ""Jodie Foster"", ""The Accused""],
+            [63, 1990, 80, ""Jessica Tandy"", ""Driving Miss Daisy""],
+            [64, 1991, 42, ""Kathy Bates"", ""Misery""],
+            [65, 1992, 29, ""Jodie Foster"", ""The Silence of the Lambs""],
+            [66, 1993, 33, ""Emma Thompson"", ""Howards End""],
+            [67, 1994, 36, ""Holly Hunter"", ""The Piano""],
+            [68, 1995, 45, ""Jessica Lange"", ""Blue Sky""],
+            [69, 1996, 49, ""Susan Sarandon"", ""Dead Man Walking""],
+            [70, 1997, 39, ""Frances McDormand"", ""Fargo""],
+            [71, 1998, 34, ""Helen Hunt"", ""As Good as It Gets""],
+            [72, 1999, 26, ""Gwyneth Paltrow"", ""Shakespeare in Love""],
+            [73, 2000, 25, ""Hilary Swank"", ""Boys Don't Cry""],
+            [74, 2001, 33, ""Julia Roberts"", ""Erin Brockovich""],
+            [75, 2002, 35, ""Halle Berry"", ""Monster's Ball""],
+            [76, 2003, 35, ""Nicole Kidman"", ""The Hours""],
+            [77, 2004, 28, ""Charlize Theron"", ""Monster""],
+            [78, 2005, 30, ""Hilary Swank"", ""Million Dollar Baby""],
+            [79, 2006, 29, ""Reese Witherspoon"", ""Walk the Line""],
+            [80, 2007, 61, ""Helen Mirren"", ""The Queen""],
+            [81, 2008, 32, ""Marion Cotillard"", ""La Vie en rose""],
+            [82, 2009, 33, ""Kate Winslet"", ""The Reader""],
+            [83, 2010, 45, ""Sandra Bullock"", ""The Blind Side""],
+            [84, 2011, 29, ""Natalie Portman"", ""Black Swan""],
+            [85, 2012, 62, ""Meryl Streep"", ""The Iron Lady""],
+            [86, 2013, 22, ""Jennifer Lawrence"", ""Silver Linings Playbook""],
+            [87, 2014, 44, ""Cate Blanchett"", ""Blue Jasmine""],
+            [88, 2015, 54, ""Julianne Moore"", ""Still Alice""],
+            [89, 2016, 26, ""Brie Larson"", ""Room""],
+            []
+                ]
+
+            # Function to format each row
+            def format_row(row):
+                if not row or all(cell == """" for cell in row):  # Ensure blank lines remain blank
+                    return [""""]  # Preserve the blank line at the end
+
+                if row[0] == ""Index"":
+                    return row  # Keep header unchanged
+
+                # Format row elements
+                formatted_row = [
+                    f"" {row[0]}"",  # Index with a leading space
+                    f"" {row[1]}"",  # Year with a leading space
+                    f"" {row[2]}"",  # Age with a leading space
+                    f' ""{row[3]}""',  # Name wrapped in double quotes with leading space
+                    f' ""{row[4]}""'  # Movie wrapped in double quotes with leading space
+                ]
+
+                if int(row[0]) % 5 == 3:  # Example: Add '\t' to every row where Index % 5 == 3
+                    formatted_row[-1] += ""\t""  # Append '\t' to the last column (Movie)
+
+                return formatted_row
+
+
+            # Apply formatting
+            formatted_data = [format_row(row) for row in sample_data]
+            with open(self.test_file, ""w"", newline="""", encoding=""utf-8"") as f:
+                writer = csv.writer(f)
+                writer.writerows(formatted_data)
+
+    def test_find_youngest(self):
+        # Test the function
+        result = find_youngest()
+        self.assertEqual(result[0], ""Marlee Matlin"", ""Test for the correct youngest actress name"")
+        self.assertEqual(result[1], 21, ""Test for the correct youngest actress age"")","import csv
+def find_youngest():",,,,52,20,35,TRUE,TRUE,0.8787878787878788,0.5979381443298969,0.7628865979381443,TRUE,TRUE
+9,Z,W,str-mixed-example-cp,"Finish the function, ``phrase(person, thing)``, First verify whether ``person`` and ``thing`` are strings. If not, return ``False``. If ``person`` and ``thing`` are two strings, return one string with a ``person`` of your choosing followed by a ``thing`` of what that person likes to do. Make sure that ``person`` is capitalized and ``thing`` is lowercase.For example, if the ``person`` is ``Sam`` and ``thing`` is ``Likes to code``, the returned string should be ``""Sam likes to code""``.  Make sure that ``person`` is capitalized and ``thing`` is lowercase.",,"def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","def phrase(person, thing):
+    if (type(person) == str) or (type(thing) = str):
+        person = person.capitalize()
+        thing = thing.lowercase
+        return person  + thing
+    else:
+        return ""False""","def phrase(person, thing):
+    if (type(person) == str) and (type(thing) == str):
+        person = person.capitalize()
+        thing = thing.lower()
+        return person + "" "" + thing
+    else:
+        return False","def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","class myTests(unittest.TestCase):
+        def testOne(self):
+              self.assertEqual(phrase(""sam"", ""Likes to code""), ""Sam likes to code"", 'phrase(""sam"", "" Likes to code"")')
+              self.assertEqual(phrase(""mary-anne"", ""likes to sing""), ""Mary-anne likes to sing"", 'phrase(""mary-anne"", "" likes to sing"")')
+              self.assertEqual(phrase(""ANNA"", ""likes to dance""), ""Anna likes to dance"", 'phrase(""ANNA"", "" likes to dance"")')
+              self.assertEqual(phrase(1111, ""likes programming""), False, 'phrase(1111, "" likes programming"")')","def phrase(person, thing):",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+10,Z,W,str-mixed-example-solper,"Finish the function, ``phrase(person, thing)``, First verify whether ``person`` and ``thing`` are strings. If not, return ``False``. If ``person`` and ``thing`` are two strings, return one string with a ``person`` of your choosing followed by a ``thing`` of what that person likes to do. Make sure that ``person`` is capitalized and ``thing`` is lowercase.For example, if the ``person`` is ``Sam`` and ``thing`` is ``Likes to code``, the returned string should be ``""Sam likes to code""``.  Make sure that ``person`` is capitalized and ``thing`` is lowercase.",,"def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","def phrase(person, thing):
+    if (type(person) == str) or (type(thing) = str):
+        person = person.capitalize()
+        thing = thing.lowercase
+        return person  + thing
+    else:
+        return ""False""","def phrase(person, thing):
+    if (type(person) == str) and (type(thing) == str):
+        person = person.capitalize()
+        thing = thing.lower()
+        return person + "" "" + thing
+    else:
+        return False","def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","class myTests(unittest.TestCase):
+        def testOne(self):
+              self.assertEqual(phrase(""sam"", ""Likes to code""), ""Sam likes to code"", 'phrase(""sam"", "" Likes to code"")')
+              self.assertEqual(phrase(""mary-anne"", ""likes to sing""), ""Mary-anne likes to sing"", 'phrase(""mary-anne"", "" likes to sing"")')
+              self.assertEqual(phrase(""ANNA"", ""likes to dance""), ""Anna likes to dance"", 'phrase(""ANNA"", "" likes to dance"")')
+              self.assertEqual(phrase(1111, ""likes programming""), False, 'phrase(1111, "" likes programming"")')","def phrase(person, thing):",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+11,Z,W,str-mixed-example-solcode,"Finish the function, ``phrase(person, thing)``, First verify whether ``person`` and ``thing`` are strings. If not, return ``False``. If ``person`` and ``thing`` are two strings, return one string with a ``person`` of your choosing followed by a ``thing`` of what that person likes to do. Make sure that ``person`` is capitalized and ``thing`` is lowercase.For example, if the ``person`` is ``Sam`` and ``thing`` is ``Likes to code``, the returned string should be ``""Sam likes to code""``.  Make sure that ``person`` is capitalized and ``thing`` is lowercase.",,"def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","def phrase(person, thing):
+    if (type(person) == str) or (type(thing) = str):
+        person = person.capitalize()
+        thing = thing.lowercase
+        return person  + thing
+    else:
+        return ""False""","def phrase(person, thing):
+    if (type(person) == str) and (type(thing) == str):
+        person = person.capitalize()
+        thing = thing.lower()
+        return person + "" "" + thing
+    else:
+        return False","def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","class myTests(unittest.TestCase):
+        def testOne(self):
+              self.assertEqual(phrase(""sam"", ""Likes to code""), ""Sam likes to code"", 'phrase(""sam"", "" Likes to code"")')
+              self.assertEqual(phrase(""mary-anne"", ""likes to sing""), ""Mary-anne likes to sing"", 'phrase(""mary-anne"", "" likes to sing"")')
+              self.assertEqual(phrase(""ANNA"", ""likes to dance""), ""Anna likes to dance"", 'phrase(""ANNA"", "" likes to dance"")')
+              self.assertEqual(phrase(1111, ""likes programming""), False, 'phrase(1111, "" likes programming"")')","def phrase(person, thing):",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+12,Z,W,str-mixed-example-multiper,"Finish the function, ``phrase(person, thing)``, First verify whether ``person`` and ``thing`` are strings. If not, return ``False``. If ``person`` and ``thing`` are two strings, return one string with a ``person`` of your choosing followed by a ``thing`` of what that person likes to do. Make sure that ``person`` is capitalized and ``thing`` is lowercase.For example, if the ``person`` is ``Sam`` and ``thing`` is ``Likes to code``, the returned string should be ``""Sam likes to code""``.  Make sure that ``person`` is capitalized and ``thing`` is lowercase.",,"def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","def phrase(person, thing):
+    if (type(person) == str) or (type(thing) = str):
+        person = person.capitalize()
+        thing = thing.lowercase
+        return person  + thing
+    else:
+        return ""False""","def phrase(person, thing):
+    if (type(person) == str) and (type(thing) == str):
+        person = person.capitalize()
+        thing = thing.lower()
+        return person + "" "" + thing
+    else:
+        return False","def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","class myTests(unittest.TestCase):
+        def testOne(self):
+              self.assertEqual(phrase(""sam"", ""Likes to code""), ""Sam likes to code"", 'phrase(""sam"", "" Likes to code"")')
+              self.assertEqual(phrase(""mary-anne"", ""likes to sing""), ""Mary-anne likes to sing"", 'phrase(""mary-anne"", "" likes to sing"")')
+              self.assertEqual(phrase(""ANNA"", ""likes to dance""), ""Anna likes to dance"", 'phrase(""ANNA"", "" likes to dance"")')
+              self.assertEqual(phrase(1111, ""likes programming""), False, 'phrase(1111, "" likes programming"")')","def phrase(person, thing):",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+13,Z,W,str-mixed-example-multiper-execution,"When squirrels get together for a party, they like to have nuts.  A squirrel party is successful when the number of nuts is between 30 inclusive and 60 exclusive, unless it is the weekend, in which case there is no upper bound on the number of nuts.  Return ``True`` if the party with the given values is successful, or ``False`` otherwise.  For example ``party(20,False)`` should return ``False``, ``party(30, False)`` should return ``True``, and ``party(70, True)`` should return ``True``. ",,"def party(nuts, is_weekend):
+    if nuts < 30:
+        return False
+    if not is_weekend and nuts >= 60:
+        return False
+    return True","def party(nuts, is_weekend):
+    if nuts ≥ 30:
+        return False
+    elif nuts < 60:
+        return True
+    elif is_weekend:
+        return False
+    else:
+        return False","def party(nuts, is_weekend):
+    if nuts < 30:
+        return False
+    elif nuts < 60:
+        return True
+    elif is_weekend:
+        return True
+    else:
+        return False
+","def party(nuts, is_weekend):
+    if nuts < 30:
+        return False
+    elif nuts < 60:
+        return True
+    elif is_weekend:
+        return True
+    else:
+        return False","class myTests(unittest.TestCase):
+       def testOne(self):
+            self.assertEqual(party(20, False), False, ""party(20,False)"")
+            self.assertEqual(party(20, True), False, ""party(20,True)"")
+            self.assertEqual(party(30, False), True, ""party(30,False)"")
+            self.assertEqual(party(29, False), False, ""party(29,False)"")
+            self.assertEqual(party(50, True), True, ""party(50,True)"")
+            self.assertEqual(party(59, False), True, ""party(59,False)"")
+            self.assertEqual(party(60, False), False, ""party(60,False)"")
+            self.assertEqual(party(61, False), False, ""party(61,False)"")
+            self.assertEqual(party(70, False), False, ""party(70,False)"")
+            self.assertEqual(party(70, True), True, ""party(70,True)"")","def party(nuts, is_weekend):",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+14,Z,W,str-mixed-example-multiper-noindent-nonadapt,"Finish the function, ``phrase(person, thing)``, First verify whether ``person`` and ``thing`` are strings. If not, return ``False``. If ``person`` and ``thing`` are two strings, return one string with a ``person`` of your choosing followed by a ``thing`` of what that person likes to do. Make sure that ``person`` is capitalized and ``thing`` is lowercase.For example, if the ``person`` is ``Sam`` and ``thing`` is ``Likes to code``, the returned string should be ``""Sam likes to code""``.  Make sure that ``person`` is capitalized and ``thing`` is lowercase.",,"def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","def phrase(person, thing):
+    if (type(person) == str) or (type(thing) = str):
+        person = person.capitalize()
+        thing = thing.lowercase
+        return person  + thing
+    else:
+        return ""False""","def phrase(person, thing):
+    if (type(person) == str) and (type(thing) == str):
+        person = person.capitalize()
+        thing = thing.lower()
+        return person + "" "" + thing
+    else:
+        return False","def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","class myTests(unittest.TestCase):
+        def testOne(self):
+              self.assertEqual(phrase(""sam"", ""Likes to code""), ""Sam likes to code"", 'phrase(""sam"", "" Likes to code"")')
+              self.assertEqual(phrase(""mary-anne"", ""likes to sing""), ""Mary-anne likes to sing"", 'phrase(""mary-anne"", "" likes to sing"")')
+              self.assertEqual(phrase(""ANNA"", ""likes to dance""), ""Anna likes to dance"", 'phrase(""ANNA"", "" likes to dance"")')
+              self.assertEqual(phrase(1111, ""likes programming""), False, 'phrase(1111, "" likes programming"")')","def phrase(person, thing):",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+15,Z,W,str-mixed-example-solper-java,"Finish the function, ``phrase(Object person, Object thing)``.  First verify whether ``person`` and ``thing`` are instances of ``String``. If not, return ``null``.  
+If ``person`` and ``thing`` are both strings, return one string with a ``person`` of your choosing followed by a ``thing`` that person likes to do.  
+Make sure that ``person`` is capitalized (first letter uppercase, the rest lowercase), and ``thing`` is entirely lowercase.  
+For example, if the ``person`` is ``""Sam""`` and ``thing`` is ``""Likes to code""``, the returned string should be ``""Sam likes to code""``.  
+Make sure that ``person`` is capitalized and ``thing`` is lowercase.
+",,"public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (!(person instanceof String) || !(thing instanceof String)) {
+            return null;
+        }
+        String personStr = ((String) person).toLowerCase();
+        String thingStr = ((String) thing).toLowerCase();
+        personStr = Character.toUpperCase(personStr.charAt(0)) + personStr.substring(1);
+        return personStr + "" "" + thingStr;
+    }
+}
+
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (person instanceof String || thing = ""String"") {
+            String personStr = ((String) person).capitalize();
+            String thingStr = ((String) thing).lowercase;
+            return personStr + thingStr;
+        } else {
+            return ""False"";
+        }
+    }
+}
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (person instanceof String && thing instanceof String) {
+            String personStr = (String) person;
+            String thingStr = (String) thing;
+            personStr = personStr.substring(0, 1).toUpperCase() + personStr.substring(1).toLowerCase();
+            thingStr = thingStr.toLowerCase();
+            return personStr + "" "" + thingStr;
+        } else {
+            return null;
+        }
+    }
+}
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (!(person instanceof String) || !(thing instanceof String)) {
+            return null;
+        }
+        String personStr = ((String) person).toLowerCase();
+        String thingStr = ((String) thing).toLowerCase();
+        personStr = Character.toUpperCase(personStr.charAt(0)) + personStr.substring(1);
+        return personStr + "" "" + thingStr;
+    }
+}
+
+","public class PhraseBuilderTest {
+    public static void main(String[] args) {
+        if (!""Sam likes to code"".equals(PhraseBuilder.phrase(""Sam"", ""Likes to code""))) {
+            System.exit(1);
+        }
+        if (PhraseBuilder.phrase(123, ""code"") != null) {
+            System.exit(1);
+        }
+        if (!""Jane loves java"".equals(PhraseBuilder.phrase(""JANE"", ""Loves JAVA""))) {
+            System.exit(1);
+        }
+        System.exit(0); // All tests passed
+    }
+}
+","public class PhraseBuilderTest {
+    public static void main(String[] args) {
+    }
+}
+",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+16,Z,W,str-mixed-example-solcode-java,"Finish the function, ``phrase(Object person, Object thing)``.  First verify whether ``person`` and ``thing`` are instances of ``String``. If not, return ``null``.  
+If ``person`` and ``thing`` are both strings, return one string with a ``person`` of your choosing followed by a ``thing`` that person likes to do.  
+Make sure that ``person`` is capitalized (first letter uppercase, the rest lowercase), and ``thing`` is entirely lowercase.  
+For example, if the ``person`` is ``""Sam""`` and ``thing`` is ``""Likes to code""``, the returned string should be ``""Sam likes to code""``.  
+Make sure that ``person`` is capitalized and ``thing`` is lowercase.
+",,"public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (!(person instanceof String) || !(thing instanceof String)) {
+            return null;
+        }
+        String personStr = ((String) person).toLowerCase();
+        String thingStr = ((String) thing).toLowerCase();
+        personStr = Character.toUpperCase(personStr.charAt(0)) + personStr.substring(1);
+        return personStr + "" "" + thingStr;
+    }
+}
+
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (person instanceof String || thing = ""String"") {
+            String personStr = ((String) person).capitalize();
+            String thingStr = ((String) thing).lowercase;
+
+            return personStr + thingStr;
+        } else {
+            return ""False"";
+        }
+    }
+}
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (person instanceof String && thing instanceof String) {
+            String personStr = (String) person;
+            String thingStr = (String) thing;
+            personStr = personStr.substring(0, 1).toUpperCase() + personStr.substring(1).toLowerCase();
+            thingStr = thingStr.toLowerCase();
+            return personStr + "" "" + thingStr;
+        } else {
+            return null;
+        }
+    }
+}
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (!(person instanceof String) || !(thing instanceof String)) {
+            return null;
+        }
+        String personStr = ((String) person).toLowerCase();
+        String thingStr = ((String) thing).toLowerCase();
+        personStr = Character.toUpperCase(personStr.charAt(0)) + personStr.substring(1);
+        return personStr + "" "" + thingStr;
+    }
+}
+
+","public class PhraseBuilderTest {
+    public static void main(String[] args) {
+        if (!""Sam likes to code"".equals(PhraseBuilder.phrase(""Sam"", ""Likes to code""))) {
+            System.exit(1);
+        }
+        if (PhraseBuilder.phrase(123, ""code"") != null) {
+            System.exit(1);
+        }
+        if (!""Jane loves java"".equals(PhraseBuilder.phrase(""JANE"", ""Loves JAVA""))) {
+            System.exit(1);
+        }
+        System.exit(0); // All tests passed
+    }
+}
+","public class PhraseBuilderTest {
+    public static void main(String[] args) {
+    }
+}
+",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+17,Z,W,str-mixed-example-multiper-java,"Finish the function, ``phrase(Object person, Object thing)``.  First verify whether ``person`` and ``thing`` are instances of ``String``. If not, return ``null``.  
+If ``person`` and ``thing`` are both strings, return one string with a ``person`` of your choosing followed by a ``thing`` that person likes to do.  
+Make sure that ``person`` is capitalized (first letter uppercase, the rest lowercase), and ``thing`` is entirely lowercase.  
+For example, if the ``person`` is ``""Sam""`` and ``thing`` is ``""Likes to code""``, the returned string should be ``""Sam likes to code""``.  
+Make sure that ``person`` is capitalized and ``thing`` is lowercase.
+",,"public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (!(person instanceof String) || !(thing instanceof String)) {
+            return null;
+        }
+        String personStr = ((String) person).toLowerCase();
+        String thingStr = ((String) thing).toLowerCase();
+        personStr = Character.toUpperCase(personStr.charAt(0)) + personStr.substring(1);
+        return personStr + "" "" + thingStr;
+    }
+}
+
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (person instanceof String || thing = ""String"") {
+            String personStr = ((String) person).capitalize();
+            String thingStr = ((String) thing).lowercase;
+
+            return personStr + thingStr;
+        } else {
+            return ""False"";
+        }
+    }
+}
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (person instanceof String && thing instanceof String) {
+            String personStr = (String) person;
+            String thingStr = (String) thing;
+            personStr = personStr.substring(0, 1).toUpperCase() + personStr.substring(1).toLowerCase();
+            thingStr = thingStr.toLowerCase();
+            return personStr + "" "" + thingStr;
+        } else {
+            return null;
+        }
+    }
+}
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (!(person instanceof String) || !(thing instanceof String)) {
+            return null;
+        }
+        String personStr = ((String) person).toLowerCase();
+        String thingStr = ((String) thing).toLowerCase();
+        personStr = Character.toUpperCase(personStr.charAt(0)) + personStr.substring(1);
+        return personStr + "" "" + thingStr;
+    }
+}
+
+","public class PhraseBuilderTest {
+    public static void main(String[] args) {
+        if (!""Sam likes to code"".equals(PhraseBuilder.phrase(""Sam"", ""Likes to code""))) {
+            System.exit(1);
+        }
+        if (PhraseBuilder.phrase(123, ""code"") != null) {
+            System.exit(1);
+        }
+        if (!""Jane loves java"".equals(PhraseBuilder.phrase(""JANE"", ""Loves JAVA""))) {
+            System.exit(1);
+        }
+        System.exit(0); // All tests passed
+    }
+}
+
+","public class PhraseBuilderTest {
+    public static void main(String[] args) {
+    }
+}
+",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+18,,,alarmClock-multiper-java,"Given a day of the week encoded as 0=Sun, 1=Mon, 2=Tue, 閳ワ拷=Sat, and a boolean indicating if we are on vacation, return a string of the form ""7:00"" indicating when the alarm clock should ring. Weekdays, the alarm should be ""7:00"" and on the weekend it should be ""10:00"". Unless we are on vacation 閳ワ拷then on weekdays it should be ""10:00"" and weekends it should be ""off"".Example Input alarmClock(1, false) is 7:00; alarmClock(5, false) is 7:00 and alarmClock(0, false) is 10:00",TRUE,"
+public class VacayAlarmClock{
+   public static String alarmClock(int day, boolean vacation) {
+    if ((day >= 1 && day <= 5) && (vacation == false))
+        {
+            return ""7:00"";
+        }
+    else if (((day == 0 || day ==6) && vacation == false) || 
+             ((day >= 1 && day <= 5) && vacation == true))
+        {
+            return ""10:00"";
+        }
+    else 
+        {
+            return""off"";
+        }
+    }
+}
+","public class VacayAlarmClock{
+   public static String alarmClock(int x, boolean vacation) {
+       if((x > 0 && x <= 5) && !vacation){
+           return ""7:00, "";
+
+   }","public class VacayAlarmClock {
+    public static String alarmClock(int x, boolean vacation) {
+        if ((x > 0 && x <= 5) && !vacation) {
+            return ""7:00"";
+        } else if ((x == 0 || x == 6) && !vacation) {
+            return ""10:00"";
+        } else if ((x > 0 && x <= 5) && vacation) {
+            return ""10:00"";
+        } else {
+            return ""off"";
+        }
+    }
+}
+","public class VacayAlarmClock{
+   public static String alarmClock(int x, boolean vacation) {
+    if ((x >= 1 && x <= 5) && (vacation == false))
+        {
+            return ""7:00"";
+        }
+    else if (((x == 0 || x ==6) && vacation == false) || 
+             ((day >= 1 && day <= 5) && vacation == true))
+        {
+            return ""10:00"";
+        }
+    else 
+        {
+            return""off"";
+        }
+    }
+}
+","public class VacayAlarmClockTest {
+    public static void main(String[] args) {
+        if (!""7:00"".equals(VacayAlarmClock.alarmClock(1, false))) {
+            System.exit(1);
+        }
+        if (!""7:00"".equals(VacayAlarmClock.alarmClock(5, false))) {
+            System.exit(1);
+        }
+        if (!""10:00"".equals(VacayAlarmClock.alarmClock(0, false))) {
+            System.exit(1);
+        }
+        if (!""10:00"".equals(VacayAlarmClock.alarmClock(6, false))) {
+            System.exit(1);
+        }
+        if (!""10:00"".equals(VacayAlarmClock.alarmClock(2, true))) {
+            System.exit(1);
+        }
+        if (!""off"".equals(VacayAlarmClock.alarmClock(0, true))) {
+            System.exit(1);
+        }
+        if (!""off"".equals(VacayAlarmClock.alarmClock(6, true))) {
+            System.exit(1);
+        }
+        System.exit(0); 
+    }
+}
+","public class VacayAlarmClock {
+   public static String alarmClock(int day, boolean vacation) {    
+   }
+}",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+19,,,dateFashion-multiper-java,"You and your date are trying to get a table at a restaurant. The parameter you is the stylishness of your clothes, in the range 0..10, and date is the stylishness of your date閳ユ獨 clothes. The result getting the table is encoded as an int value with 0=no, 1=maybe, 2=yes. If either of you is very stylish, 8 or more, then the result is 2 (yes). With the exception that if either of you has style of 2 or less, then the result is 0 (no). Otherwise the result is 1 (maybe). For example, dateFashion(5, 10) is 2, dateFashion(8, 2) is 0, dateFashion(5, 5) is 1
+
+",TRUE,"public class DateStylishness{
+   public static int dateFashion(int you, int date) {
+           if (you <= 2 || date <=2) {
+               return 0;
+           }
+           if (you >= 8 || date >= 8) {
+               return 2;
+           }
+           return 1;
+   }
+}","public class DateStylishness{
+   public static int dateFashion(int you, int date) {
+       if(you >= 8 || date >= 8)
+       {
+           return 2;
+       }
+       else if(you <= 2 || date <= 2)
+       {
+
+","public class DateStylishness {
+   public static int dateFashion(int you, int date) {
+       if (you <= 2 || date <= 2) {
+           return 0;
+       }
+       else if (you >= 8 || date >= 8) {
+           return 2;
+       }
+       else {
+           return 1;
+       }
+   }
+}
+
+","public class DateStylishness{
+   public static int dateFashion(int you, int date) {
+           if (you <= 2 || date <=2) {
+               return 0;
+           }
+           if (you >= 8 || date >= 8) {
+               return 2;
+           }
+           return 1;
+   }
+}","public class DateStylishnessTest {
+    public static void main(String[] args) {
+        if (DateStylishness.dateFashion(5, 10) != 2) {
+            System.exit(1);
+        }
+        if (DateStylishness.dateFashion(8, 2) != 0) {
+            System.exit(1);
+        }
+        if (DateStylishness.dateFashion(5, 5) != 1) {
+            System.exit(1);
+        }
+        if (DateStylishness.dateFashion(1, 8) != 0) {
+            System.exit(1);
+        }
+        if (DateStylishness.dateFashion(9, 9) != 2) {
+            System.exit(1);
+        }
+        if (DateStylishness.dateFashion(2, 2) != 0) {
+            System.exit(1);
+        }
+        if (DateStylishness.dateFashion(3, 3) != 1) {
+            System.exit(1);
+        }
+        System.exit(0); // All tests passed
+    }
+}
+","public class DateStylishness{
+   public static int dateFashion(int you, int date) {
+   }
+}",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+20,,,has22-multiper-java,"Write the method ``has22(int[] arr)`` that takes an array of ints, ``arr`` and returns ``true`` if there are at least two items in the array ``arr`` that are adjacent and both equal to ``2``. For example, ``has22({1, 2, 2})`` returns ``true`` and ``has22({1, 2, 1, 2})`` returns ``false``.
+",,"public class Has22{
+   public static boolean has22(int[] nums){
+        for (int i = 0; i < nums.length - 1; i++) {
+           if (nums[i] == 2 && nums[i + 1] == 2) {
+               return true;
+           }
+       }
+       return false;
+   }
+}","public class Has22{
+   public static boolean has22(int[] nums){
+       for (int index = 0; index < nums.length; index--) {
+           if (nums[index] == 2) {
+               if (nums[index] == nums[index+1]) {
+                    return true;","public class Has22 {
+   public static boolean has22(int[] nums) {
+       for (int index = 0; index < nums.length - 1; index++) {
+           if (nums[index] == 2) {
+               if (nums[index] == nums[index+1]) {
+                   return true;
+               }
+           }
+       }
+       return false;
+   }
+}
+","public class Has22{
+   public static boolean has22(int[] nums){
+        for (int i = 0; i < nums.length - 1; i++) {
+           if (nums[i] == 2 && nums[i + 1] == 2) {
+               return true;
+           }
+       }
+       return false;
+   }
+}","public class Has22Test {
+    public static void main(String[] args) {
+        if (!Has22.has22(new int[]{1, 2, 2})) {
+            System.exit(1);
+        }
+        if (Has22.has22(new int[]{1, 2, 1, 2})) {
+            System.exit(1);
+        }
+        if (!Has22.has22(new int[]{2, 2, 2})) {
+            System.exit(1);
+        }
+        if (Has22.has22(new int[]{1, 3, 4})) {
+            System.exit(1);
+        }
+        if (!Has22.has22(new int[]{2, 2})) {
+            System.exit(1);
+        }
+        if (Has22.has22(new int[]{2})) {
+            System.exit(1);
+        }
+        if (Has22.has22(new int[]{})) {
+            System.exit(1);
+        }
+        if (!Has22.has22(new int[]{4, 2, 2, 5})) {
+            System.exit(1);
+        }
+        System.exit(0); // All tests passed
+    }
+}
+","public class Has22 {
+    public static boolean has22(int[] nums) {
+    }
+}
+",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+21,,,squirrelPlay-multiper-java,"The squirrels in Palo Alto spend most of the day playing. In particular, they play if the temperature is between 60 and 90 (inclusive). Unless it is summer, then the upper limit is 100 instead of 90. Given an ``int temperature`` and a ``boolean isSummer``, return ``true`` if the squirrels play and ``false`` otherwise.
+",TRUE,"public class SquirrelParty{
+   public static boolean squirrelPlay(int temp, boolean isSummer) {
+           if(temp >= 60 && temp <=90 || (temp >= 60 && temp <=100 && isSummer == true)){
+            return true;
+           }else{
+               return false;
+           }
+     }
+}","
+public class SquirrelParty{
+   public static boolean squirrelPlay(int temp, boolean isSummer) {
+        if (isSummer) {
+            return temp >= 60 && temp < 100","public class SquirrelParty { 
+    public static boolean squirrelPlay(int temp, boolean isSummer) {
+        if (isSummer) {
+            return temp >= 60 && temp <= 100;
+        } else {
+            return temp >= 60 && temp <= 90;
+        }
+    }
+}","public class SquirrelParty{
+   public static boolean squirrelPlay(int temp, boolean isSummer) {
+           if(temp >= 60 && temp <=90 || (temp >= 60 && temp <=100 && isSummer == true)){
+            return true;
+           }else{
+               return false;
+           }
+     }
+}","public class SquirrelPartyTest {
+    public static void main(String[] args) {
+        if (!SquirrelParty.squirrelPlay(70, false)) {
+            System.exit(1);
+        }
+        if (SquirrelParty.squirrelPlay(95, false)) {
+            System.exit(1);
+        }
+        if (!SquirrelParty.squirrelPlay(95, true)) {
+            System.exit(1);
+        }
+        if (SquirrelParty.squirrelPlay(59, false)) {
+            System.exit(1);
+        }
+        if (!SquirrelParty.squirrelPlay(60, false)) {
+            System.exit(1);
+        }
+        if (!SquirrelParty.squirrelPlay(90, false)) {
+            System.exit(1);
+        }
+        if (SquirrelParty.squirrelPlay(91, false)) {
+            System.exit(1);
+        }
+        if (!SquirrelParty.squirrelPlay(100, true)) {
+            System.exit(1);
+        }
+        if (SquirrelParty.squirrelPlay(101, true)) {
+            System.exit(1);
+        }
+        System.exit(0); // All tests passed
+    }
+}
+",,,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable

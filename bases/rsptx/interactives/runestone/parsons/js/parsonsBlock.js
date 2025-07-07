@@ -39,7 +39,9 @@ export default class ParsonsBlock {
             } else {
                 lineIndent = line.indent - sharedIndent;
             }
-            $(line.view).removeClass("indent1 indent2 indent3 indent4");
+            // Remove old indent classes
+            $(line.view).removeClass("indent1 indent2 indent3 indent4 indent5 indent6 indent7");
+
             if (
                 this.problem.options.language != "natural" &&
                 this.problem.options.language != "math"
@@ -69,10 +71,12 @@ export default class ParsonsBlock {
             $(view).append(labelDiv);
         }
         this.view = view;
+        // is not placeholder by default
+        this.isPlaceholder = false;
     }
     // Add a line (from another block) to this block
     addLine(line) {
-        $(line.view).removeClass("indent1 indent2 indent3 indent4");
+        $(line.view).removeClass("indent1 indent2 indent3 indent4 indent5 indent6 indent7");
         if (this.problem.noindent) {
             if (line.indent > 0) {
                 $(line.view).addClass("indent" + line.indent);
@@ -88,7 +92,7 @@ export default class ParsonsBlock {
             } else if (sharedIndent > line.indent) {
                 for (let i = 0; i < lines.length; i++) {
                     $(lines[i].view).removeClass(
-                        "indent1 indent2 indent3 indent4"
+                        "indent1 indent2 indent3 indent4 indent5 indent6 indent7"
                     );
                     // todo: if language is natural or math then don't do this
                     if (
@@ -136,7 +140,7 @@ export default class ParsonsBlock {
         for (let i = 0; i < this.lines.length; i++) {
             var line = this.lines[i];
             if (line.indent > 0) {
-                $(line.view).removeClass("indent1 indent2 indent3 indent4");
+                $(line.view).removeClass("indent1 indent2 indent3 indent4 indent5 indent6 indent7");
                 $(line.view).addClass("indent" + line.indent);
             }
         }
@@ -367,6 +371,8 @@ export default class ParsonsBlock {
                 if (this.problem.textMove) {
                     this.problem.logMove("kmove");
                     this.problem.textMove = false;
+                    // CodeTailor: update placeholders
+                    this.problem.updatePlaceholders();
                 }
                 this.problem.exitKeyboardMode();
             }
@@ -452,6 +458,7 @@ export default class ParsonsBlock {
         delete this.problem.movingY;
         this.problem.updateView();
         this.problem.logMove("move");
+        this.problem.updatePlaceholders();
     }
     // Called when a block is moved
     panMove(event) {
@@ -774,6 +781,11 @@ export default class ParsonsBlock {
             $(this.view).addClass("down");
             this.problem.textMove = false;
             this.problem.logMove("kmove");
+            if (!this.isPlaceholder) {
+
+                this.problem.updatePlaceholders();
+
+            }
         } else {
             $(this.view).removeClass("down");
             $(this.view).addClass("up");

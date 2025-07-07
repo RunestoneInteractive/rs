@@ -21,9 +21,57 @@ export default class ParsonsLine {
     constructor(problem, codestring, displaymath) {
         this.problem = problem;
         this.index = problem.lines.length;
+        // removes trailing whitespace
         var trimmed = codestring.replace(/\s*$/, "");
-        this.text = trimmed.replace(/^\s*/, "");
-        this.indent = trimmed.length - this.text.length;
+        // Actions are required only if the puzzle well be served as scaffolding puzzle in CodeTailor
+        // So here we use problem.options.scaffolding to determine if the puzzle is a scaffolding puzzle
+        if (this.problem.options.scaffolding) {
+            function hasTopLevelClass(lines) {
+                return lines.some(({ text }) => text.trimStart().toLowerCase().startsWith("class ")   // now check for “class ” at position 0
+                );
+            }
+            if (this.problem.noindent) {
+                this.text = trimmed;
+            } else {
+                // remove any leading whitespace
+                this.text = trimmed.replace(/^\s*/, "");
+            }
+            
+            if (this.problem.options.language == "java") {
+                this.text = this.text.replace(/\t/g, "    "); 
+                if (this.text.toLowerCase().startsWith("public class")) {
+                    this.indent = 0;  // Set indent to 0 for class start
+                } else {
+                    this.indent = trimmed.length - this.text.length;  // Calculate normal indentation
+                }
+            } else {
+                const allLines = this.problem.lines;
+                console.log("allLines", allLines, hasTopLevelClass(allLines));
+                // put indentation of import line as 0
+                if (this.text.toLowerCase().startsWith("import")) {
+                    this.indent = 0;  
+                }
+
+                // Check if the line is a class definition - if so, then do not set up indentation of def line as 0    
+                if (hasTopLevelClass(allLines)) {
+                    if (this.text.toLowerCase().startsWith("class")) {
+                        this.indent = 0;  // Set indent to 0 for class start
+                    } else {
+                        this.indent = trimmed.length - this.text.length;  // Calculate normal indentation
+                    }
+                } else {
+                    // Check if the line is a function definition - if so, then set up indentation of def line as 0
+                    if (this.text.toLowerCase().startsWith("def")) {
+                        this.indent = 0;  // Set indent to 0 for def start
+                    } else {
+                        this.indent = trimmed.length - this.text.length;  // Calculate normal indentation
+                    }
+                }
+            }
+        } else {
+            this.text = trimmed.replace(/^\s*/, "");
+            this.indent = trimmed.length - this.text.length;
+        }
         // Create the View
         var view;
         // TODO: this does not work with display math... Perhaps with pretext we should have html as a language and do nothing?

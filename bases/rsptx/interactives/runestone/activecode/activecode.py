@@ -100,7 +100,7 @@ TEMPLATE_START = """
 TEMPLATE_END = """
 </div>
 <textarea data-lang="%(language)s" id="%(divid)s_editor" %(autorun)s
-    %(hidecode)s %(include)s %(timelimit)s %(coach)s %(codelens)s %(enabledownload)s %(chatcodes)s %(optional)s
+    %(hidecode)s %(include)s %(timelimit)s %(coach)s %(codelens)s %(enabledownload)s %(solperpuzzle)s %(multiperpuzzle)s %(commonparsons)s %(percode)s %(noindent)s %(adaptive)s %(pexecgrade)s %(chatcodes)s %(optional)s
     data-audio='%(ctext)s' %(sourcefile)s %(datafile)s %(stdin)s %(tie)s %(dburl)s %(nopair)s
     %(cargs)s %(largs)s %(rargs)s %(iargs)s %(gradebutton)s %(caption)s %(hidehistory)s %(wasmuri)s
     %(showlastsql)s style="visibility: hidden;">
@@ -210,6 +210,12 @@ class ActiveCode(RunestoneIdDirective):
        :nocodelens: -- Do not show the codelens button
        :timelimit: -- set the time limit for this program in seconds
        :language: python, html, javascript, java, python2, python3
+       :solperpuzzle: -- CodeTailor: use an LLM prompt to generate a solution-level personalized puzzle
+       :multiperpuzzle: -- CodeTailor: use an LLM prompt to generate a multiple personalized puzzle
+       :commonparsons: -- CodeTailor: generate a parsons puzzle from an example (common) solution
+       :pexecgrade: -- CodeTailor: the scaffolding puzzle uses execution-based grading
+       :noindent: -- CodeTailor: the scaffolding puzzle should not be indented
+       :adaptive: -- CodeTailor: the scaffolding puzzle should be adaptive
        :chatcodes: -- Enable users to talk about this code snippet with others
        :tour_1: audio tour track
        :tour_2: audio tour track
@@ -257,6 +263,12 @@ class ActiveCode(RunestoneIdDirective):
             "hidecode": directives.flag,
             "language": directives.unchanged,
             "chatcodes": directives.flag,
+            "solperpuzzle": directives.flag,
+            "multiperpuzzle": directives.flag,
+            "commonparsons": directives.flag,
+            "pexecgrade": directives.flag,
+            "noindent": directives.flag,
+            "adaptive": directives.flag,
             "tour_1": directives.unchanged,
             "tour_2": directives.unchanged,
             "tour_3": directives.unchanged,
@@ -363,6 +375,38 @@ class ActiveCode(RunestoneIdDirective):
             self.options["chatcodes"] = 'data-chatcodes="true"'
         else:
             self.options["chatcodes"] = ""
+
+        # CodeTailor options start
+        if "solperpuzzle" in self.options:
+            self.options["solperpuzzle"] = 'data-solperpuzzle="true"'
+        else:
+            self.options["solperpuzzle"] = ""
+
+        if "multiperpuzzle" in self.options:
+            self.options["multiperpuzzle"] = 'data-multiperpuzzle="true"'
+        else:
+            self.options["multiperpuzzle"] = ""
+
+        if "noindent" in self.options:
+            self.options["noindent"] = 'data-noindent="true"'
+        else:
+            self.options["noindent"] = ""
+
+        if "adaptive" in self.options:
+            self.options["adaptive"] = 'data-adaptive="true"'
+        else:
+            self.options["adaptive"] = ""
+
+        if "commonparsons" in self.options:
+            self.options["commonparsons"] = 'data-commonparsons="true"'
+        else:
+            self.options["commonparsons"] = ""
+        
+        if "pexecgrade" in self.options:
+            self.options["pexecgrade"] = 'data-pexecgrade="true"'
+        else:
+            self.options["pexecgrade"] = ""
+        # CodeTailor options end
 
         if "language" not in self.options:
             self.options["language"] = "python"

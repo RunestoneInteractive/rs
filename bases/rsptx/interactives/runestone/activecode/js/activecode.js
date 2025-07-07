@@ -30,6 +30,11 @@ import "codemirror/addon/hint/show-hint.css";
 import "codemirror/addon/hint/sql-hint.js";
 import "codemirror/addon/hint/anyword-hint.js";
 import "codemirror/addon/edit/matchbrackets.js";
+// for CodeTailor
+import {
+    renderRunestoneComponent
+} from "../../common/js/renderComponent.js";
+
 import "./skulpt.min.js";
 import "./skulpt-stdlib.js";
 import PyflakesCoach from "./coach-python-pyflakes.js";
@@ -37,7 +42,7 @@ import PyflakesCoach from "./coach-python-pyflakes.js";
 import embed from "vega-embed";
 // Adapt for use outside webpack -- see https://github.com/vega/vega-embed.
 window.vegaEmbed = embed;
-
+import { render } from "less";
 var isMouseDown = false;
 var stopExecution = false;
 
@@ -70,6 +75,12 @@ export class ActiveCode extends RunestoneBase {
         this.codeCoachList = []; //list of CodeCoaches that will be used to provide feedback
         this.divid = opts.orig.id;
         this.code = $(orig).text() || "\n\n\n\n\n";
+        this.noindent = $(orig).data("noindent"); // CodeTailor: <optional> Allows the instructor to choose whether to include indentation place in the puzzle as scaffolding. 
+        this.adaptive = $(orig).data("adaptive"); // CodeTailor: <optional> Allows the instructor to choose whether to use adaptive help for the puzzle as scaffolding.
+        this.pexecgrade = $(orig).data("pexecgrade"); // CodeTailor: <optional> Allows the instructor to choose whether to use unittest grading for the puzzle as scaffolding. - this feature is still developing
+        this.solperpuzzle = $(orig).data("solperpuzzle"); // CodeTailor: <choose 1 out of three-1> Allows the instructor to choose personalization level: solution-level personalization
+        this.commonparsons = $(orig).data("commonparsons"); // CodeTailor: <choose 1 out of three-2> Allows the instructor to choose personalization level: no personalization, give the example solution-based puzzle
+        this.multiperpuzzle = $(orig).data("multiperpuzzle"); // CodeTailor: <choose 1 out of three-3> Allows the instructor to choose personalization level: multiple-level personalization (solution + block-level personalization)
         this.language = $(orig).data("lang");
         this.timelimit = $(orig).data("timelimit");
         this.highlightLines = $(orig).data("highlight-lines");
@@ -220,6 +231,10 @@ export class ActiveCode extends RunestoneBase {
         if (typeof Prism !== "undefined") {
             Prism.highlightAllUnder(this.containerDiv);
         }
+
+        // variables for Parsons help
+        this.helpLoaded = false;
+        this.prevHelpedCode = null;
     }
 
     createEditor(index) {
@@ -510,6 +525,538 @@ export class ActiveCode extends RunestoneBase {
         this.toggleAlert();
     }
 
+    // CodeTailor function part starts here //
+    async getParsonsCodeTailor() {
+        let language = this.language;
+        let code = this.editor.getValue();
+        let problem_id = this.divid;
+        let personalize_level = this.solperpuzzle
+            ? "Solution"
+            : this.commonparsons
+            ? "Common"
+            : this.multiperpuzzle
+            ? "Multiple"
+            : "unknown";
+        let adaptive = this.adaptive;
+        let noindent = this.noindent;
+        let grader = this.pexecgrade;
+        console.log("grader", this.grader)
+        let body = language + "|||sep|||" + code + "|||sep|||" + problem_id + "|||sep|||" + personalize_level + "|||sep|||" + adaptive + "|||sep|||" + noindent + "|||sep|||" + grader;
+        console.log('body:', body )
+        let promise = new Promise(function (resolve, reject) {
+            fetch('/ns/coach/parsons_scaffolding', {
+                method: 'POST',
+                body: body
+            })
+            .then((response) => {
+                return response.json();
+            })
+            .then((html) => {
+                resolve(html);
+            })
+            .catch(err => {
+                reject("Error in Parsons Scaffolding: " + err);
+            })
+        });
+        return promise;
+    }
+
+    // isNewHelp: when true, this handler was not called by pressing the button.
+    //            it was used to open a new generated help.
+    async reopenHelpBtnHandler(isNewHelp) {
+
+        function splitIntoChunks(str, chunkSize) {
+            const chunks = [];
+            let startIndex = 0;
+
+            // Adjust the chunk size to allow space for metadata (100 characters for chunkIndex and totalChunks)
+            const adjustedChunkSize = chunkSize - 100; // This leaves 100 characters for metadata
+
+            // Loop through the string in increments of `adjustedChunkSize`
+            while (startIndex < str.length) {
+                let endIndex = startIndex + adjustedChunkSize;
+
+                // Find the last line break within the chunk range to ensure we don't split a line
+                if (endIndex < str.length) {
+                    const lastLineBreakIndex = str.lastIndexOf('\n', endIndex);
+
+                    // If a line break exists and it's within the chunk range, adjust the end index
+                    if (lastLineBreakIndex > startIndex) {
+                        endIndex = lastLineBreakIndex + 1; // Include the line break in the chunk
+                    }
+                }
+
+                // Slice the string from `startIndex` to `endIndex` and add it to the chunks array
+                chunks.push(str.substring(startIndex, endIndex));
+
+                // Update the start index for the next chunk
+                startIndex = endIndex;
+            }
+
+            return chunks;
+        }
+
+        function cleanParsonsHTML(html) {
+            if (!html || typeof html !== "string") {
+                return "No valid Parsons content available";
+            }
+        
+            // Step 1: Remove <pre> tags and their attributes
+            let cleaned = html.replace(/<pre[^>]*>/g, "").replace(/<\/pre>/g, "");
+
+            // Step 2: Replace <br> tags with newlines
+            cleaned = cleaned.replace(/<br\s*\/?>/g, "\n");
+
+            // Step 3: Decode HTML entities
+            let tempDiv = document.createElement("div");
+            tempDiv.innerHTML = cleaned;
+            cleaned = tempDiv.innerText || tempDiv.textContent;
+
+            // Step 4: Trim leading/trailing whitespace and return
+            return cleaned.trim();
+        }
+
+
+        if (isNewHelp !== true) {
+            isNewHelp = false;
+        }
+        // console.log("The latestParsonsHelpID:", window.latestParsonsHelpID)
+        if (window.latestParsonsHelpID == this.divid) {
+            $('#scaffolding-container').removeClass('hidden');
+            let reopen_act = {
+                type: 'receive_help',
+                reopen: true,
+            }
+            this.logBookEvent({
+                event: "gptparsons_base_reopen",
+                act: JSON.stringify(reopen_act),
+                div_id: this.divid
+            });
+
+            return;
+        }
+        window.latestParsonsHelpID = this.divid;
+
+        // Split the helpText using the delimiter
+        // console.log("helpText", this.helpText)
+        const parts = this.helpText.split("||split||");
+
+        // solution, html, solution_generation_type, generation_result_type, test_case
+        const codeSolution = parts[0];
+        const puzzleHtml = parts[1];
+        const solutionGenerationType = parts[2];
+        const generationResultType = parts[3];
+
+        // Set personalizedAnswer and extract specific results
+        this.codeAnswer = codeSolution;
+        // this.commonAnswer = commonCodeSolution;
+        const puzzle_rst = puzzleHtml;
+
+        
+        let act = {
+            type: 'receive_help',
+            reopen: !isNewHelp,
+            code_answer: this.codeAnswer,
+            condition: this.solperpuzzle 
+                ? 'solution_personalized_parsons' 
+                : this.commonparsons 
+                    ? 'common_parsons' 
+                    : this.multiperpuzzle 
+                        ? 'multi_personalized_parsons' 
+                        : 'unknown',
+            generation_type: solutionGenerationType,
+            solution_type: generationResultType
+        };
+
+        if (this.solperpuzzle || this.multiperpuzzle || this.commonparsons) {
+            act['puzzle'] = cleanParsonsHTML(puzzle_rst);
+        } else {
+            console.warn("Neither solperpuzzle nor commonparsons is set. Puzzle will not be assigned.");
+            act['puzzle'] = "No puzzle type selected";
+        }
+        
+
+        // Function to handle sending the rest of the data and splitting large strings into chunks
+        const logActInParts = (act) => {
+            // First, send the smaller fields (non-chunked) with event name "gptparsons-0"
+            const basicData = {
+                type: act.type,
+                reopen: act.reopen,
+                condition: act.condition,
+                generation_type: act.generation_type,
+                solution_type: act.solution_type,
+            };
+
+            // First, send the smaller fields (non-chunked) with event name "gptparsons-0"
+            // // console.log("Sending basic data:", basicData);
+            this.logBookEvent({
+                event: "gptparsons_base",  // Special event name for the first log
+                act: JSON.stringify(basicData),
+                div_id: this.divid
+            });
+
+            // Split and send the code chunks
+            if (act.code_answer) {
+                let chunkIndex = 1; // Initialize a single counter for all chunks
+                const codeChunks = splitIntoChunks(act.code_answer, 512);
+                codeChunks.forEach((chunk) => {
+                    this.logBookEvent({
+                        event: `gptparsons_code_${chunkIndex}`,
+                        act: JSON.stringify({ 
+                            reopen: !isNewHelp, 
+                            type: 'code',
+                            content: chunk, 
+                            chunkIndex: chunkIndex, 
+                            totalChunks: codeChunks.length + (act.puzzle ? splitIntoChunks(act.puzzle, 512).length : 0)
+                        }),
+                        div_id: this.divid
+                    });
+                    chunkIndex++;
+                });
+            }
+
+            // Split and send the puzzle chunks if they exist
+            if (act.puzzle) {
+                const puzzleChunks = splitIntoChunks(act.puzzle, 512);
+                let puzzleIndex = 1;
+                puzzleChunks.forEach((chunk) => {
+                    this.logBookEvent({
+                        event: `gptparsons_puzzle_${puzzleIndex}`,
+                        act: JSON.stringify({ 
+                            reopen: !isNewHelp, 
+                            type: 'puzzle',
+                            content: chunk, 
+                            chunkIndex: puzzleIndex,
+                            totalChunks: puzzleChunks.length
+                        }),
+                        div_id: this.divid
+                    });
+                    puzzleIndex++;
+                });
+            }
+        }
+
+        // Log the data in parts
+        logActInParts(act);
+
+        let probDescHTML = $(this.outerDiv).find(".ac_question").last().html();
+        let puzzle_type = this.solperpuzzle ? 'solution_personalized_parsons' :
+            this.commonparsons ? 'common_parsons' :
+            this.multiperpuzzle ? 'multi_personalized_parsons' : 'unknown';
+        let puzzleScaffoldingDivid = 'help_puzzle_' + puzzle_type + '_' + this.divid;
+        var puzzleCode = `
+        <div class="runestone parsons-container ">
+        <div data-component="parsons" id="${puzzleScaffoldingDivid}" class="parsons" >
+        <div class="parsons_question parsons-text" >` + probDescHTML +
+        `</div>` + puzzle_rst + `</div></div>`
+        
+        if (!document.getElementById("parsons-scaffolding")) {
+            let scaffoldingContainer = document.createElement('div');
+            scaffoldingContainer.id = 'scaffolding-container';
+            this.outerDiv.insertBefore(scaffoldingContainer, this.outerDiv.firstChild);
+            let closeScaffoldingButton = document.createElement('button');
+            closeScaffoldingButton.classList.add('btn','btn-success');
+            closeScaffoldingButton.innerText = "Close Help";
+            closeScaffoldingButton.onclick = (event) => {
+                let clickedButton = event.currentTarget;
+
+                let close_divId = "unknown"; // a default value if we can't find the scaffolding container or inner div
+        
+                // Find the scaffolding container that the button is inside
+                let scaffoldingContainer = clickedButton.closest('#scaffolding-container');
+        
+                if (!scaffoldingContainer) {
+                    console.error('Scaffolding container not found');
+                } else {
+                    // Find the parsons-scaffolding div
+                    let parsonsScaffolding = scaffoldingContainer.querySelector('#parsons-scaffolding');
+                    
+                    if (!parsonsScaffolding) {
+                        console.error('parsons-scaffolding not found');
+                    } else {
+                        // Find the runestone.parsons-container inside the parsons-scaffolding
+                        let parsonsContainer = parsonsScaffolding.querySelector('.runestone.parsons-container');
+                        
+                        if (!parsonsContainer) {
+                            console.error('parsons-container not found');
+                        } else {
+                            // Find any div inside the parsonsContainer whose id starts with "help_parsons_"
+                            let innerDiv = parsonsContainer.querySelector('[id^="help_"]');
+                            
+                            if (!innerDiv) {
+                                console.error('Inner div with id starting with "help_parsons_" not found');
+                            } else {
+                                // Get the id from the inner div
+                                close_divId = innerDiv.id;
+                                // // console.log('Found inner div:', innerDiv);
+                            }
+                        }
+                    }
+                }
+                let act = {
+                    type: 'close_help'
+                }
+                this.logBookEvent({
+                    event: "gptparsons_close",
+                    act: JSON.stringify({ ...act }), // Clone to avoid future changes affecting the log
+                    div_id: close_divId
+                });
+                $('#scaffolding-container').addClass('hidden');
+            }
+            scaffoldingContainer.appendChild(closeScaffoldingButton);
+
+            // A copy answer button used to copy the finished Parsons solution to the clipboard
+            // CodeTailor requires to put each question on a separate page, so the copy button is unique
+            // TODO: need to update the code if one page has multiple questions
+            let copyAnswerButton = document.createElement('button');
+            copyAnswerButton.id = "copy-answer-button";
+            copyAnswerButton.classList.add('btn','btn-success', 'copy-button-hide');
+            copyAnswerButton.innerText = "Copy Answer to Clipboard";
+            copyAnswerButton.onclick = () => {
+                this.copyScaffoldingSolutionToClipboard();
+            }
+            scaffoldingContainer.appendChild(copyAnswerButton);
+            let parsonsDiv = document.createElement('div');
+            parsonsDiv.id = "parsons-scaffolding"
+            parsonsDiv.classList.add('parsons-scaffolding');
+            scaffoldingContainer.appendChild(parsonsDiv);
+        } else {
+            // if already exists: remove hidden
+            $('#scaffolding-container').removeClass('hidden');
+            $('#copy-answer-button').addClass('copy-button-hide');
+            $('#copy-answer-button').off('click').on("click", (() => {
+                this.copyScaffoldingSolutionToClipboard();
+            }));
+            $('#copy-answer-button').text('Copy Answer to Clipboard');
+        }
+
+        if (this.solperpuzzle || this.multiperpuzzle || this.commonparsons) {
+            await renderRunestoneComponent(puzzleCode, "parsons-scaffolding");
+        }
+    }
+
+    copyScaffoldingSolutionToClipboard() {
+        var temptextarea = document.createElement('textarea');
+        temptextarea.id = 'temp-textarea';
+        var scaffoldingContainer = document.querySelector('#scaffolding-container');
+        scaffoldingContainer.appendChild(temptextarea);
+        if (this.solperpuzzle || this.multiperpuzzle || this.percode || this.commonparsons) {
+            temptextarea.value = this.codeAnswer;
+        } else {
+            temptextarea.value = "No solution available";
+        }
+        console.log(this.codeAnswer);
+
+        temptextarea.select();
+        temptextarea.setSelectionRange(0, 99999);
+        try {
+            document.execCommand("copy");
+            temptextarea.remove();
+            let act = {
+                type: 'copy_help'
+            }
+            this.logBookEvent({
+                event: "gptparsons_copy",
+                act: JSON.stringify({ ...act }), // Clone to avoid future changes affecting the log
+                div_id: this.divid
+            });
+            $('#copy-answer-button').text('Copied!').prop('disabled', true);;
+
+            // Set it back to "Copy Answers to Clipboard" after 2 seconds
+            setTimeout(() => {
+                $('#copy-answer-button').text('Copy Answer to Clipboard').prop('disabled', false);
+            }, 2000);
+        } catch (err) {
+            alert('Oops! There was an issue copying to the clipboard. Please type the solution manually.');
+        }
+    }  
+
+    async parsonsBtnHandler() {
+        // Check if the button exists and hasn't been disabled already
+        if (this.parsonsBtn && !this.parsonsBtn.disabled) {
+            this.parsonsBtn.disabled = true;
+        }
+        
+        function splitIntoChunks(str, chunkSize) {
+            const chunks = [];
+            let startIndex = 0;
+
+            // Adjust the chunk size to allow space for metadata (100 characters for chunkIndex and totalChunks)
+            const adjustedChunkSize = chunkSize - 100; // leaves 100 characters for metadata
+
+            // Loop through the string in increments of `adjustedChunkSize`
+            while (startIndex < str.length) {
+                let endIndex = startIndex + adjustedChunkSize;
+
+                // Find the last line break within the chunk range to ensure we don't split a line
+                if (endIndex < str.length) {
+                    const lastLineBreakIndex = str.lastIndexOf('\n', endIndex);
+
+                    // If a line break exists and it's within the chunk range, adjust the end index
+                    if (lastLineBreakIndex > startIndex) {
+                        endIndex = lastLineBreakIndex + 1; // Include the line break in the chunk
+                    }
+                }
+
+                // Slice the string from `startIndex` to `endIndex` and add it to the chunks array
+                chunks.push(str.substring(startIndex, endIndex));
+
+                // Update the start index for the next chunk
+                startIndex = endIndex;
+            }
+
+            return chunks;
+        }
+
+        if (this.prevHelpedCode != null && this.prevHelpedCode.trim() == this.editor.getValue().trim()) {
+            // avoid regenerating for the same code
+            alert('Your code has not changed, please click "See Help Again"');
+            return;
+        }
+        let temptextarea = document.querySelector('#temp-textarea');
+        if (temptextarea) {
+            temptextarea.remove();
+        }
+        this.prevHelpedCode = this.editor.getValue();
+        
+        // Remove any existing loading prompt to reset the countdown
+        let existingLoadingPrompt = $(this.outerDiv).find("#scaffolding-loading-prompt");
+        if (existingLoadingPrompt.length) {
+            existingLoadingPrompt.remove();
+        }
+
+        // Create a new loading prompt
+        let loadingPrompt = document.createElement('div');
+        loadingPrompt.id = 'scaffolding-loading-prompt';
+
+        // Create the loading spinner element
+        let spinner = document.createElement('div');
+        spinner.id = 'loading-spinner';
+
+        // Add loading prompt and spinner to the outerDiv immediately
+        this.outerDiv.insertBefore(loadingPrompt, this.outerDiv.firstChild);
+
+        // Create and append the two lines (encouragement and countdown)
+        let encouragementText = document.createElement('div');
+        encouragementText.id = 'encouragement-text';
+        loadingPrompt.appendChild(encouragementText);
+
+        loadingPrompt.appendChild(spinner);
+
+        let countdownText = document.createElement('div');
+        countdownText.id = 'countdown-text';
+        loadingPrompt.appendChild(countdownText);
+
+        $(loadingPrompt).addClass('loading');
+        loadingPrompt.scrollIntoView();
+
+        // Display encouragement message and countdown
+        encouragementText.innerText = "Appreciate your effort! Please wait while we generate the help for you.";
+        countdownText.innerText = "Working on displaying all blocks at once for you. Time remaining: 8s";
+
+        // Array of random encouraging messages
+        const messages = [
+            "Each mistake is a step forward in mastering programming.",
+            "You're learning more every day!",
+            "Keep going, you're doing great!",
+            "Every coder was once a beginner, just like you.",
+            "Mistakes are proof that you're trying.",
+        ];
+
+        // Initialize the countdown value
+        let countdownValue = 8;
+        let messageIndex = 0; // To cycle through messages
+
+        // Clear any existing intervals (if applicable)
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval); // Clear the previous countdown interval
+        }
+        if (this.messageInterval) {
+            clearInterval(this.messageInterval); // Clear the previous message interval
+        }
+
+        // Clear any existing intervals (if applicable)
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
+        if (this.messageInterval) {
+            clearInterval(this.messageInterval);
+        }
+
+        // Message interval (changes every 1.5 seconds)
+        this.messageInterval = setInterval(() => {
+            encouragementText.innerText = messages[messageIndex];
+            messageIndex = (messageIndex + 1) % messages.length;
+        }, 1500); // Updates every 1.5 seconds
+
+        // Countdown interval (every 1 second)
+        this.countdownInterval = setInterval(() => {
+            countdownText.innerText = `Working on displaying all blocks at once for you. Time remaining: ${countdownValue}s`;
+            countdownValue--;
+
+            // If countdown reaches 0, clear the interval and update the final message
+            if (countdownValue < 0) {
+                clearInterval(this.countdownInterval);
+                clearInterval(this.messageInterval);
+                encouragementText.innerText = "Stay with it! We're working on displaying all the blocks at once for you.";
+                countdownText.innerText = ''; // Hide the countdown when done
+            }
+        }, 1000); // Updates every 1 second
+
+        let request_act = {
+            type: 'request_help',
+            code: this.editor.getValue(),
+        }
+
+        this.logBookEvent({
+            event: "gptparsons_request_base",
+            act: this.solperpuzzle 
+            ? 'solution_personalized_parsons' 
+            : this.commonparsons 
+                ? 'common_parsons' 
+                : this.multiperpuzzle 
+                    ? 'multi_personalized_parsons' 
+                    : 'unknown',
+            div_id: this.divid
+        });
+
+        // Split and send the code chunks
+        if (request_act.code) {
+            let requestChunkIndex = 1; // Initialize a single counter for all chunks
+            const codeChunks = splitIntoChunks(request_act.code, 512);
+            codeChunks.forEach((chunk) => {
+                this.logBookEvent({
+                    event: `gptparsons_request_code_${requestChunkIndex}`,
+                    act: JSON.stringify({ 
+                        type: 'code',
+                        content: chunk, 
+                        requestChunkIndex: requestChunkIndex, 
+                        totalChunks: requestChunkIndex.length + splitIntoChunks(request_act.code, 512).length
+                    }),
+                    div_id: this.divid
+                });
+                requestChunkIndex++;
+            });
+        }
+
+        this.helpText = await this.getParsonsCodeTailor();
+        $(this.outerDiv).find("#scaffolding-loading-prompt").removeClass('loading');
+        window.latestParsonsHelpID = "";
+        this.reopenHelpBtnHandler(true);
+        // check whether hold the regenerating button
+        if (!this.helpLoaded) {
+            this.helpLoaded = true;
+            $(this.outerDiv).find(".reopen-help-btn").removeClass('hide');
+            if (this.commonparsons) {
+                $(this.outerDiv).find(".parsons-scaffolding-btn").addClass("hide");
+            } else if (this.solperpuzzle || this.multiperpuzzle) {
+                $(this.outerDiv).find(".parsons-scaffolding-btn").text("Regenerate Help");
+            }
+        }
+    }
+
+    // CodeTailor function part ends here //
+
     createControls() {
         var ctrlDiv = document.createElement("div");
         var butt;
@@ -542,6 +1089,22 @@ export class ActiveCode extends RunestoneBase {
         if ($(this.origElem).data("codelens") && !this.graderactive) {
             this.enableCodeLens(ctrlDiv);
         }
+
+        // CodeTailor
+        if (this.solperpuzzle || this.commonparsons || this.multiperpuzzle) {
+                let parsonsScaffoldingBtn = document.createElement("button");
+                parsonsScaffoldingBtn.innerText = "Get Help";
+                parsonsScaffoldingBtn.classList.add("btn", "parsons-scaffolding-btn");
+                parsonsScaffoldingBtn.onclick = this.parsonsBtnHandler.bind(this);
+                ctrlDiv.appendChild(parsonsScaffoldingBtn);
+
+                let reopenScaffoldingBtn = document.createElement("button");
+                reopenScaffoldingBtn.innerText = "See Help Again";
+                reopenScaffoldingBtn.classList.add("btn", "reopen-help-btn", "hide");
+                reopenScaffoldingBtn.onclick = this.reopenHelpBtnHandler.bind(this);
+                ctrlDiv.appendChild(reopenScaffoldingBtn);
+        }
+
 
         // Code reformatting
         if (reformatable.has(this.language)) {

@@ -19,6 +19,7 @@
 ==== PROPERTIES ========================================================
 ======== problem: the Parsons problem
 ===================================================================== */
+
 "use strict";
 
 import RunestoneBase from "../../common/js/runestonebase.js";
@@ -31,6 +32,12 @@ import LineBasedGrader from "./lineGrader";
 import DAGGrader from "./dagGrader";
 import ParsonsLine from "./parsonsLine";
 import ParsonsBlock from "./parsonsBlock";
+import PlaceholderBlock from "./placeholderBlock.js";
+import PlaceholderLine from "./placeholderLine.js";
+import SettledBlock from "./settledBlock.js";
+// TODO: CodeTailor execution-based feedback
+// import ExecutionGrader from "./executionGrader.js";
+// import ExecutionGraderJava from "./executionGraderJava.js";
 
 /* =====================================================================
 ==== Parsons Object ====================================================
@@ -76,6 +83,7 @@ export default class Parsons extends RunestoneBase {
         //     }
         // }
         this.initializeOptions();
+        // TODO: update CodeTailor execution-based feedback 
         this.grader =
             this.options.grader === "dag"
                 ? new DAGGrader(this)
@@ -106,6 +114,8 @@ export default class Parsons extends RunestoneBase {
         var adaptive = $(this.origElem).data("adaptive");
         var numbered = $(this.origElem).data("numbered");
         var grader = $(this.origElem).data("grader");
+        // CodeTailor: proactively set the puzzle as scaffolding puzzle to differentiate with other puzzle practice formats
+        var scaffolding = $(this.origElem).data("scaffolding");
         options["numbered"] = numbered;
         options["grader"] = grader;
         if (maxdist !== undefined) {
@@ -130,6 +140,7 @@ export default class Parsons extends RunestoneBase {
             this.initializeAdaptive();
         }
         options["adaptive"] = adaptive;
+        options["scaffolding"] = scaffolding;
         // add locale and language
         var locale = eBookConfig.locale;
         if (locale == undefined) {
@@ -285,119 +296,329 @@ export default class Parsons extends RunestoneBase {
         }
         var solution = [];
         var indents = [];
-        for (var i = 0; i < textBlocks.length; i++) {
-            var textBlock = textBlocks[i];
-            // Figure out options based on the #option
-            // Remove the options from the code
-            // only options are #paired or #distractor
-            var options = {};
-            var distractIndex;
-            var distractHelptext = "";
-            var tagIndex;
-            var tag;
-            var dependsIndex;
-            var depends = [];
-            if (textBlock.includes("#paired:")) {
-                distractIndex = textBlock.indexOf("#paired:");
-                distractHelptext = textBlock
-                    .substring(distractIndex + 8, textBlock.length)
-                    .trim();
-                textBlock = textBlock.substring(0, distractIndex + 7);
-            } else if (textBlock.includes("#distractor:")) {
-                distractIndex = textBlock.indexOf("#distractor:");
-                distractHelptext = textBlock
-                    .substring(distractIndex + 12, textBlock.length)
-                    .trim();
-                textBlock = textBlock.substring(0, distractIndex + 11);
-            } else if (textBlock.includes("#tag:")) {
-                textBlock = textBlock.replace(/#tag:.*;.*;/, (s) =>
-                    s.replace(/\s+/g, "")
-                ); // remove whitespace in tag and depends list
-                tagIndex = textBlock.indexOf("#tag:");
-                tag = textBlock.substring(
-                    tagIndex + 5,
-                    textBlock.indexOf(";", tagIndex + 5)
-                );
-                if (tag == "") tag = "block-" + i;
-                dependsIndex = textBlock.indexOf(";depends:");
-                let dependsString = textBlock.substring(
-                    dependsIndex + 9,
-                    textBlock.indexOf(";", dependsIndex + 9)
-                );
-                depends =
-                    dependsString.length > 0 ? dependsString.split(",") : [];
-            }
-            if (textBlock.includes('class="displaymath')) {
-                options["displaymath"] = true;
-            } else {
-                options["displaymath"] = false;
-            }
-            textBlock = textBlock.replace(
-                /\s*#(paired|distractor|tag:.*;.*;)\s*/g,
-                function (mystring, arg1) {
-                    options[arg1] = true;
-                    return "";
-                }
-            );
-            // Create lines
-            var lines = [];
-            if (!options["displaymath"]) {
-                var split = textBlock.split("\n");
-            } else {
-                var split = [textBlock];
-            }
 
-            for (var j = 0; j < split.length; j++) {
-                var code = split[j];
-                let isBlank = /^\s*$/.test(code);
-                // discard up to one blank leading or trailing line
-                if (isBlank && (j == 0 || j == split.length - 1)) {
-                    continue;
+        if (this.options.scaffolding) {
+            var placeholderNeeded = false;
+            // if there is a placeholder needed to be created at the end
+            for (var i = 0; i < textBlocks.length; i++) {
+                var textBlock = textBlocks[i];
+                // Figure out options based on the #option
+                // Remove the options from the code
+                // only options are #paired or #distractor
+                var options = {};
+                var distractIndex;
+                var distractHelptext = "";
+                var tagIndex;
+                var tag;
+                var dependsIndex;
+                var depends = [];
+                if (textBlock.includes("#paired:")) {
+                    distractIndex = textBlock.indexOf("#paired:");
+                    distractHelptext = textBlock
+                        .substring(distractIndex + 8, textBlock.length)
+                        .trim();
+                    textBlock = textBlock.substring(0, distractIndex + 7);
+                } else if (textBlock.includes("#distractor:")) {
+                    distractIndex = textBlock.indexOf("#distractor:");
+                    distractHelptext = textBlock
+                        .substring(distractIndex + 12, textBlock.length)
+                        .trim();
+                    textBlock = textBlock.substring(0, distractIndex + 11);
+                } else if (textBlock.includes("#settled:")) {
+                    // #settled: fixed blocks that are included in the solution
+                    var settledIndex = textBlock.indexOf("#settled:");
+                    distractHelptext = textBlock
+                        .substring(settledIndex + 9, textBlock.length)
+                        .trim();
+                    textBlock = textBlock.substring(0, settledIndex + 8);
+                } else if (textBlock.includes("#tag:")) {
+                    textBlock = textBlock.replace(/#tag:.*;.*;/, (s) =>
+                        s.replace(/\s+/g, "")
+                    ); // remove whitespace in tag and depends list
+                    tagIndex = textBlock.indexOf("#tag:");
+                    tag = textBlock.substring(
+                        tagIndex + 5,
+                        textBlock.indexOf(";", tagIndex + 5)
+                    );
+                    if (tag == "") tag = "block-" + i;
+                    dependsIndex = textBlock.indexOf(";depends:");
+                    let dependsString = textBlock.substring(
+                        dependsIndex + 9,
+                        textBlock.indexOf(";", dependsIndex + 9)
+                    );
+                    depends =
+                        dependsString.length > 0 ? dependsString.split(",") : [];
                 }
-                var line = new ParsonsLine(
-                    this,
-                    code,
-                    options["displaymath"]
-                );
-                lines.push(line);
-                if (options["paired"]) {
-                    line.distractor = true;
-                    line.paired = true;
-                    line.distractHelptext = distractHelptext;
-                } else if (options["distractor"]) {
-                    line.distractor = true;
-                    line.paired = false;
-                    line.distractHelptext = distractHelptext;
+                if (textBlock.includes('class="displaymath')) {
+                    options["displaymath"] = true;
                 } else {
-                    line.distractor = false;
-                    line.paired = false;
-                    if (this.options.grader === "dag") {
-                        line.tag = tag;
-                        line.depends = depends;
+                    options["displaymath"] = false;
+                }
+                textBlock = textBlock.replace(
+                    /#(paired|distractor|settled|tag:.*;.*;)/,
+                    function (mystring, arg1) {
+                        options[arg1] = true;
+                        return "";
                     }
-                    solution.push(line);
+                );
+    
+                // if block is #settled: create a placeholder line (PH) before the lines,
+                //          if it is not the first block, and the previous block is not settled
+                // If lines are: settled, line 1, line 2, line 3, settled, line 4:
+                // Create settled, line 1, line 2, line 3, PH1, settled, line 4, PH2
+                // If lines are: line 1, settled, settled, line 2, line 3, line 4, settled:
+                // Create line 1, PH1, settled, settled, line 2, line 3, line 4, PH2, settled
+                if (options["settled"] && i > 0 && lines.length > 0 && !lines[lines.length - 1].isSettled) {
+                    var placeholderLine = new PlaceholderLine(this);
+                    lines.push(placeholderLine);
+                    placeholderLine.distractor = true;
+                    placeholderLine.paired = false;
+                    placeholderLine.distractHelptext = "";
+                    placeholderLine.groupWithNext = false;
+                    placeholderLine.indent = 0;
                 }
-                if ($.inArray(line.indent, indents) == -1) {
-                    indents.push(line.indent);
+    
+                if (options["settled"]) {
+                    placeholderNeeded = true;
+                }
+    
+                // Create lines
+                var lines = [];
+                if (!options["displaymath"]) {
+                    var split = textBlock.split("\n");
+                } else {
+                    var split = [textBlock];
+                }
+                for (var j = 0; j < split.length; j++) {
+                    var code = split[j];
+                    // discard blank rows
+                    if (!/^\s*$/.test(code)) {
+                        var line = new ParsonsLine(
+                            this,
+                            code,
+                            options["displaymath"]
+                        );
+                        lines.push(line);
+                        if (options["paired"]) {
+                            line.distractor = true;
+                            line.paired = true;
+                            line.distractHelptext = distractHelptext;
+                        } else if (options["distractor"]) {
+                            line.distractor = true;
+                            line.paired = false;
+                            line.distractHelptext = distractHelptext;
+                        } else if (options["settled"]) {
+                            // settled lines: fixed solution lines
+                            line.distractor = false;
+                            line.paired = false;
+                            line.isSettled = true;
+                            solution.push(line);
+                        } else {
+                            line.distractor = false;
+                            line.paired = false;
+                            if (this.options.grader === "dag") {
+                                line.tag = tag;
+                                line.depends = depends;
+                            } 
+                            solution.push(line);
+                        }
+                        if ($.inArray(line.indent, indents) == -1) {
+                            indents.push(line.indent);
+                        }
+                    }
+                }
+                if (lines.length > 0) {
+                    // Add groupWithNext
+                    for (j = 0; j < lines.length - 1; j++) {
+                        lines[j].groupWithNext = true;
+                    }
+                    lines[lines.length - 1].groupWithNext = false;
                 }
             }
-            if (lines.length > 0) {
-                // Add groupWithNext
-                for (j = 0; j < lines.length - 1; j++) {
-                    lines[j].groupWithNext = true;
-                }
-                lines[lines.length - 1].groupWithNext = false;
+            
+            if (placeholderNeeded && !lines[lines.length - 1].isSettled) {
+                // if there is a settled line before the ending lines
+                var placeholderLine = new PlaceholderLine(this);
+                lines.push(placeholderLine);
+                placeholderLine.distractor = true;
+                placeholderLine.paired = false;
+                placeholderLine.distractHelptext = "";
+                placeholderLine.groupWithNext = false;
             }
+            // CodeTailor: Normalize the indents
+            if (this.options.language === "java") {
+                let classLineIndent = null;
+                let methodLineIndent = null;
+    
+                for (let i = 0; i < this.lines.length; i++) {
+                    const lineText = this.lines[i].text;
+    
+                    if (classLineIndent === null && lineText.includes("public class")) {
+                        classLineIndent = this.lines[i].indent;
+                    }
+    
+                    if (methodLineIndent === null && lineText.includes("public static")) {
+                        methodLineIndent = this.lines[i].indent;
+                    }
+    
+                    // Break early once both are found
+                    if (classLineIndent !== null && methodLineIndent !== null) {
+                        break;
+                    }
+                }
+    
+                // Detected Java 8-space indent — will shift levels down by one.
+                if (classLineIndent === 0 && methodLineIndent === 8) {
+                    indents = indents.sort(function (a, b) {
+                        return a - b;
+                    });
+    
+                    for (let i = 0; i < this.lines.length; i++) {
+                        let line = this.lines[i];
+                        let originalIndent = line.indent;
+                        let normalizedLevel = indents.indexOf(originalIndent);
+                        if (normalizedLevel > 0) {
+                            normalizedLevel -= 1;
+                        }
+                        line.indent = normalizedLevel;
+                    } 
+                } else {
+                    indents = indents.sort(function (a, b) {
+                        return a - b;
+                    });
+                    for (let i = 0; i < this.lines.length; i++) {
+                        let line = this.lines[i];
+                        line.indent = indents.indexOf(line.indent);
+                    }
+                }
+            } else {
+                // Python - Original behavior
+                indents = indents.sort(function (a, b) {
+                    return a - b;
+                });
+                for (let i = 0; i < this.lines.length; i++) {
+                    let line = this.lines[i];
+                    line.indent = indents.indexOf(line.indent);
+                }
+            }
+            this.solution = solution;
+
+        } else {
+            // Default Parsons puzzle layout when not used as scaffolding puzzle
+            for (var i = 0; i < textBlocks.length; i++) {
+                var textBlock = textBlocks[i];
+                // Figure out options based on the #option
+                // Remove the options from the code
+                // only options are #paired or #distractor
+                var options = {};
+                var distractIndex;
+                var distractHelptext = "";
+                var tagIndex;
+                var tag;
+                var dependsIndex;
+                var depends = [];
+                if (textBlock.includes("#paired:")) {
+                    distractIndex = textBlock.indexOf("#paired:");
+                    distractHelptext = textBlock
+                        .substring(distractIndex + 8, textBlock.length)
+                        .trim();
+                    textBlock = textBlock.substring(0, distractIndex + 7);
+                } else if (textBlock.includes("#distractor:")) {
+                    distractIndex = textBlock.indexOf("#distractor:");
+                    distractHelptext = textBlock
+                        .substring(distractIndex + 12, textBlock.length)
+                        .trim();
+                    textBlock = textBlock.substring(0, distractIndex + 11);
+                } else if (textBlock.includes("#tag:")) {
+                    textBlock = textBlock.replace(/#tag:.*;.*;/, (s) =>
+                        s.replace(/\s+/g, "")
+                    ); // remove whitespace in tag and depends list
+                    tagIndex = textBlock.indexOf("#tag:");
+                    tag = textBlock.substring(
+                        tagIndex + 5,
+                        textBlock.indexOf(";", tagIndex + 5)
+                    );
+                    if (tag == "") tag = "block-" + i;
+                    dependsIndex = textBlock.indexOf(";depends:");
+                    let dependsString = textBlock.substring(
+                        dependsIndex + 9,
+                        textBlock.indexOf(";", dependsIndex + 9)
+                    );
+                    depends =
+                        dependsString.length > 0 ? dependsString.split(",") : [];
+                }
+                if (textBlock.includes('class="displaymath')) {
+                    options["displaymath"] = true;
+                } else {
+                    options["displaymath"] = false;
+                }
+                textBlock = textBlock.replace(
+                    /\s*#(paired|distractor|tag:.*;.*;)\s*/g,
+                    function (mystring, arg1) {
+                        options[arg1] = true;
+                        return "";
+                    }
+                );
+                // Create lines
+                var lines = [];
+                if (!options["displaymath"]) {
+                    var split = textBlock.split("\n");
+                } else {
+                    var split = [textBlock];
+                }
+
+                for (var j = 0; j < split.length; j++) {
+                    var code = split[j];
+                    let isBlank = /^\s*$/.test(code);
+                    // discard up to one blank leading or trailing line
+                    if (isBlank && (j == 0 || j == split.length - 1)) {
+                        continue;
+                    }
+                    var line = new ParsonsLine(
+                        this,
+                        code,
+                        options["displaymath"]
+                    );
+                    lines.push(line);
+                    if (options["paired"]) {
+                        line.distractor = true;
+                        line.paired = true;
+                        line.distractHelptext = distractHelptext;
+                    } else if (options["distractor"]) {
+                        line.distractor = true;
+                        line.paired = false;
+                        line.distractHelptext = distractHelptext;
+                    } else {
+                        line.distractor = false;
+                        line.paired = false;
+                        if (this.options.grader === "dag") {
+                            line.tag = tag;
+                            line.depends = depends;
+                        }
+                        solution.push(line);
+                    }
+                    if ($.inArray(line.indent, indents) == -1) {
+                        indents.push(line.indent);
+                    }
+                }
+                if (lines.length > 0) {
+                    // Add groupWithNext
+                    for (j = 0; j < lines.length - 1; j++) {
+                        lines[j].groupWithNext = true;
+                    }
+                    lines[lines.length - 1].groupWithNext = false;
+                }
+            }
+            // Normalize the indents
+            indents = indents.sort(function (a, b) {
+                return a - b;
+            });
+            for (i = 0; i < this.lines.length; i++) {
+                line = this.lines[i];
+                line.indent = indents.indexOf(line.indent);
+            }
+            this.solution = solution;
         }
-        // Normalize the indents
-        indents = indents.sort(function (a, b) {
-            return a - b;
-        });
-        for (i = 0; i < this.lines.length; i++) {
-            line = this.lines[i];
-            line.indent = indents.indexOf(line.indent);
-        }
-        this.solution = solution;
     }
     // Based on the blocks, create the source and answer areas
     async initializeAreas(sourceBlocks, answerBlocks, options) {
@@ -535,7 +756,8 @@ export default class Parsons extends RunestoneBase {
             //areaHeight += (blocks.length);
         }
         // + 40 to areaHeight to provide some additional buffer in case any text overflow still happens - Vincent Qiu (September 2020)
-        if (indent > 0 && indent <= 4) {
+        // Extend it to 7 indentation levels
+        if (indent > 0 && indent <= 7) {
             $(this.answerArea).addClass("answer" + indent);
         } else {
             $(this.answerArea).addClass("answer");
@@ -766,6 +988,97 @@ export default class Parsons extends RunestoneBase {
         }
         localStorage.setItem(this.storageId, JSON.stringify(toStore));
     }
+
+    async updatePlaceholders() {
+        setTimeout(() => {
+            var answerBlocks = this.answerBlocks();
+            var i, hasNormalBlock;
+            var placeholder;
+            // hide placeholder
+            for (i = 0; i < answerBlocks.length; ++i) {
+                // checking on placeholders
+                if (answerBlocks[i].isPlaceholder) {
+                    placeholder = answerBlocks[i];
+                    hasNormalBlock = false;
+                    if (i > 0 && !answerBlocks[i - 1].isSettled && !answerBlocks[i - 1].isPlaceholder) {
+                        hasNormalBlock = true;
+                    }
+                    if (i < answerBlocks.length - 1 && !answerBlocks[i + 1].isSettled && !answerBlocks[i + 1].isPlaceholder) {
+                        hasNormalBlock = true;
+                    }
+                
+                    if (hasNormalBlock) {
+                        // if a placeholder has a normal block before or after, hide it;
+                        if (!$(placeholder.view).hasClass('hide')) {
+                            $(placeholder.view).addClass("hide");
+                            for (var j = 0; j < answerBlocks.length - 1 - i; j++) {
+                                console.log('moving down')
+                                placeholder.moveDown();
+                            }
+                        }
+                    }
+     
+                }
+            }
+        }, 5);
+
+        setTimeout(() => {
+            var answerBlocks = this.answerBlocks();
+            var contentLength = 0;
+            while (contentLength < answerBlocks.length && !$(answerBlocks[contentLength].view).hasClass('hide')) {
+                contentLength++;
+            }
+            // show placeholder when needed
+            var prevIsSettled = true;
+            if (this.firstBlockSettled) {
+                prevIsSettled = false;
+            }
+            var settledCount = 0;
+            var i;
+            for (i = 0; i < contentLength; ++i) {
+                // locate two consecutive settled blocks
+                if (answerBlocks[i].isSettled && prevIsSettled) {
+                    break;
+                }
+                if (answerBlocks[i].isSettled) {
+                    prevIsSettled = true;
+                    settledCount++;
+                } else {
+                    prevIsSettled = false;
+                }
+            }
+            var placeholder;
+            if (
+                (i < contentLength) || 
+                (answerBlocks[contentLength - 1] && answerBlocks[contentLength - 1].isSettled && !this.lastBlockSettled)
+            ) {
+                // looking for the placeholder block that should be after "settledCount" number of settled blocks;
+                var placeholderIndex;
+                for (placeholderIndex = answerBlocks.length - 1; placeholderIndex >= contentLength; placeholderIndex--) {
+                    if (answerBlocks[placeholderIndex].afterSettledBlockCount == settledCount) {
+                        placeholder = answerBlocks[placeholderIndex];
+                        break;
+                    }
+                }
+                if (answerBlocks[placeholderIndex].afterSettledBlockCount != settledCount) {
+                    console.log("error moving up; no placeholder found");
+                    return;
+                }
+                if ($(placeholder.view).hasClass('hide')) {
+                    console.log("trying to move block ", placeholder)
+                    console.log("trying to move to ", i)
+                    $(placeholder.view).removeClass("hide");
+                    // should be moved right before the block answerBlocks[i]
+                    for (var j = 0; j < placeholderIndex - i; j++) {
+                        console.log('moving up')
+                        placeholder.moveUp();
+                    }
+                }
+            }
+            console.log("result blocks", this.answerBlocks())
+        }, 10);
+    }
+
     /* =====================================================================
     ==== LOGGING ===========================================================
     ===================================================================== */
@@ -1064,6 +1377,10 @@ export default class Parsons extends RunestoneBase {
         var block, line, i;
         for (i = 0; i < this.lines.length; i++) {
             line = this.lines[i];
+            // do not include place holder or settled solution lines in source blocks
+            if (line.isPlaceholderLine || line.isSettled) {
+                continue;
+            }
             lines.push(line);
             if (!line.groupWithNext) {
                 unorderedBlocks.push(new ParsonsBlock(this, lines));
@@ -1186,6 +1503,66 @@ export default class Parsons extends RunestoneBase {
         }
         return blocks;
     }
+
+    // Return a list of blocks with placeholders that should be provided in the answer area.
+    settledBlocksFromSource() {
+        var blocks = [];
+        var lines = [];
+        var answerBlocksCount = 0;
+        var line, i;
+        var settledBlocksBeforeCount = 0;
+        var prevSettledBlock = undefined;
+        var prevPlaceholderSize = 0;
+
+        for (i = 0; i < this.lines.length; i++) {
+            line = this.lines[i];
+            lines.push(line);
+            if (!line.groupWithNext) {
+                if (line.isPlaceholderLine) {
+                    // found a placeholder line. a placeholder line has at least one normal block before it.
+                    // also a placeholder line always has "groupWithNext" false.
+                    blocks.push(new PlaceholderBlock(this, lines, answerBlocksCount, settledBlocksBeforeCount));
+                    // update the number of blocks missing for the settled block above
+                    if (prevSettledBlock) {
+                        prevSettledBlock.setBlocksAfter(answerBlocksCount);
+                    }
+                    // save the current number of answer blocks to update the tooltip for the settled block below
+                    prevPlaceholderSize = answerBlocksCount;
+                    // reset answer block count
+                    answerBlocksCount = 0;
+                    lines = [];
+                } else if (line.isSettled) {
+                    if (blocks.length == 0) {
+                        this.firstBlockSettled = true;
+                    }
+                    var set = new SettledBlock(this, lines);
+                    if (!this.noindent) {
+                        set.indent = lines[0].indent;
+                    }
+                    console.log("settled block set", set);
+                    blocks.push(set);
+                    if (prevPlaceholderSize > 0) {
+                        set.setBlocksBefore(prevPlaceholderSize);
+                    }
+                    prevSettledBlock = set;
+                    settledBlocksBeforeCount++;
+                    answerBlocksCount = 0;
+                    lines = [];
+                } else {
+                    if (!lines[0].distractor) {
+                        answerBlocksCount++;
+                    }
+                    lines = [];
+                }
+            }
+        }
+        if (blocks.length > 0 && blocks[blocks.length - 1].isSettled) {
+            this.lastBlockSettled = true;
+        }
+        console.log('settledblocksfromsource', blocks)
+        return blocks;
+    }
+
     // Return a codeblock that corresponds to the hash
     blockFromHash(hash) {
         var split = hash.split("_");
@@ -1303,10 +1680,14 @@ export default class Parsons extends RunestoneBase {
         var blocks = this.answerBlocks();
         for (var i = 0; i < blocks.length; i++) {
             var block = blocks[i];
-            for (var j = 0; j < block.lines.length; j++) {
-                answerLines.push(block.lines[j]);
+            if (!block.isPlaceholder) {
+                // adding non placeholder block
+                for (var j = 0; j < block.lines.length; j++) {
+                    answerLines.push(block.lines[j]);
+                }
             }
         }
+        console.log("answerlines - inside answerlines", answerLines);
         return answerLines;
     }
     // Go up the hierarchy until you get to a block; return that block element
@@ -2624,7 +3005,9 @@ export default class Parsons extends RunestoneBase {
             );
             localStorage.setItem(this.adaptiveId + "Solved", false);
         }
-        this.initializeAreas(this.blocksFromSource(), [], {});
+        // CodeTailor: initialize the pre-placed Parsons blocks
+        this.initializeAreas(this.blocksFromSource(), this.settledBlocksFromSource(), {});
+        // Original: this.initializeAreas(this.blocksFromSource(), [], {});
         this.initializeInteractivity();
         document.body.scrollTop = scrollTop;
         if (this.runnableDiv) {
