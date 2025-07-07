@@ -5,6 +5,7 @@ The core logic of the CodeTailor backend involves capturing the student's curren
 In coach.py:
 code in editor (activecode) --> Backend captures code --> Puzzle Generation with an LLM --> Response to Frontend (a scaffolding puzzle)
 
+```text
 book_server_api/
 ├── routers/
 │   ├── personalized_parsons/
