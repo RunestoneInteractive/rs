@@ -17,7 +17,7 @@ book_server_api/
 │   │   ├── generate_parsons_block.py
 │   │   ├── get_parsons_code_distractor.py
 │   │   ├── token_compare.py
-│   │   ├── Material_Bank.csv
+│   │   ├── Question_Bank.csv
 │   │   └── requirements.txt
 ├──coach.py
 

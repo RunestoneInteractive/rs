@@ -120,7 +120,7 @@ async def parsons_scaffolding(
     csv_dir = os.path.join(script_dir, "personalized_parsons")
 
     # Build the full path to the CSV file
-    csv_path = os.path.join(csv_dir, "Material_Bank.csv")
+    csv_path = os.path.join(csv_dir, "Question_Bank.csv")
 
     df_question_bank = pd.read_csv(csv_path).fillna('')
 
