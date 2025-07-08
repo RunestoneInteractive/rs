@@ -20,12 +20,13 @@ export const mathJaxConfig = {
     ],
     processEscapes: true,
     packages: {
-      "[+]": ["ams", "newcommand", "boldsymbol"]
+      "[+]": ["ams", "newcommand", "boldsymbol", "extpfeil", "amscd", "color"]
     },
     macros: {
       R: "\\mathbb{R}",
       N: "\\mathbb{N}",
-      Z: "\\mathbb{Z}"
+      Z: "\\mathbb{Z}",
+      amp: "\\&",
     }
   },
   chtml: {
@@ -67,16 +68,6 @@ export const mathJaxConfig = {
       "annotation",
       "annotation-xml"
     ],
-    skipTags: [
-      "script",
-      "noscript",
-      "style",
-      "textarea",
-      "pre",
-      "code",
-      "annotation",
-      "annotation-xml"
-    ]
   }
 };
 
