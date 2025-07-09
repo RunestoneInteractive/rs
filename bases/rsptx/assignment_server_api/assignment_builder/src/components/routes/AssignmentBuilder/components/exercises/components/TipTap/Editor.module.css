@@ -23,6 +23,33 @@
   background: #fff;
   border-radius: 0.5rem;
   width: 100%;
+  position: relative;
+}
+
+.editorHeader {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+}
+
+.helpButton {
+  color: #6b7280 !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 4px !important;
+  min-width: auto !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.helpButton:hover {
+  background: #f3f4f6 !important;
+  color: #374151 !important;
 }
 
 .toolbar {
@@ -113,6 +140,44 @@
   min-height: 50px;
   outline: none;
   position: relative;
+  caret-color: #334155;
+}
+
+/* General cursor styles */
+.editor :global(.ProseMirror-cursor) {
+  border-left: 1px solid #334155;
+  margin-left: -1px;
+  margin-right: -1px;
+  pointer-events: none;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.editor :global(.ProseMirror-focused) {
+  outline: none;
+}
+
+/* Enhanced cursor visibility */
+.editor :global(.ProseMirror-focused .ProseMirror-cursor) {
+  border-left: 2px solid #334155;
+  margin-left: -2px;
+  margin-right: -2px;
+}
+
+.editor :global(.ProseMirror-focused pre .ProseMirror-cursor) {
+  border-left: 2px solid #334155;
+  margin-left: -2px;
+  margin-right: -2px;
+}
+
+.editor :global(.ProseMirror-focused code .ProseMirror-cursor) {
+  border-left: 2px solid #334155;
+  margin-left: -2px;
+  margin-right: -2px;
 }
 
 .editor :global(.ProseMirror p) {
@@ -182,6 +247,28 @@
   border-radius: 6px;
   font-family: monospace;
   margin: 1rem 0;
+  position: relative;
+}
+
+/* Cursor styles for code blocks */
+.editor :global(.ProseMirror pre .ProseMirror-cursor) {
+  border-left: 1px solid #334155;
+  margin-left: -1px;
+  margin-right: -1px;
+  pointer-events: none;
+  animation: blink 1s infinite;
+}
+
+.editor :global(.ProseMirror pre.ProseMirror-focused) {
+  outline: none;
+}
+
+.editor :global(.ProseMirror pre code) {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-family: inherit;
 }
 
 .editor :global(.ProseMirror code) {
@@ -190,6 +277,16 @@
   padding: 0.125rem 0.25rem;
   border-radius: 4px;
   font-family: monospace;
+  position: relative;
+}
+
+/* Cursor styles for inline code */
+.editor :global(.ProseMirror code .ProseMirror-cursor) {
+  border-left: 1px solid #334155;
+  margin-left: -1px;
+  margin-right: -1px;
+  pointer-events: none;
+  animation: blink 1s infinite;
 }
 
 .editor :global(.ProseMirror table) {

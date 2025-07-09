@@ -23,19 +23,14 @@ export const MultiChoiceQuestion: FC<MultiChoiceQuestionProps> = ({
   return (
     <>
       <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
-        <Editor
-          content={content}
-          onChange={onChange}
-          placeholder="Enter your multiple choice question here..."
-          onFocus={onFocus}
-        />
+        <Editor content={content} onChange={onChange} onFocus={onFocus} />
       </div>
 
       <div className={styles.questionTips}>
         <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
         <span>
           Tip: Keep your question concise and specific, making sure it clearly asks what students
-          need to answer.  Type / in the editor for a menu of options.
+          need to answer. Type / in the editor for a menu of options.
         </span>
       </div>
     </>

@@ -18,16 +18,15 @@ export const InstructionsEditor: FC<InstructionsEditorProps> = ({ instructions, 
   return (
     <>
       <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
-        <Editor
-          content={instructions}
-          onChange={onChange}
-          placeholder="Enter instructions here..."
-        />
+        <Editor content={instructions} onChange={onChange} />
       </div>
 
       <div className={styles.questionTips}>
         <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
-        <span>Tip: Be concise and specific with your instructions for better understanding. Type / in the editor for a menu of options.</span>
+        <span>
+          Tip: Be concise and specific with your instructions for better understanding. Type / in
+          the editor for a menu of options.
+        </span>
       </div>
     </>
   );
