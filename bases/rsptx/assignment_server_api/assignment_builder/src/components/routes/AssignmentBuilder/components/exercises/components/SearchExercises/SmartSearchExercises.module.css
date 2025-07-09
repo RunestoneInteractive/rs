@@ -204,9 +204,9 @@
 }
 
 .placeholder {
-  background: linear-gradient(90deg, 
-    var(--surface-hover) 25%, 
-    var(--surface-ground) 37%, 
+  background: linear-gradient(90deg,
+    var(--surface-hover) 25%,
+    var(--surface-ground) 37%,
     var(--surface-hover) 63%);
   background-size: 400% 100%;
   animation: placeholderAnimation 1.5s ease infinite;
@@ -371,17 +371,17 @@
     gap: 0.25rem;
     margin-bottom: 0.25rem;
   }
-  
+
   .searchField {
     flex: 3;
     min-width: 8rem;
   }
-  
+
   .typeFilter {
     flex: 2;
     min-width: 6rem;
   }
-  
+
   .statusBar {
     padding: 0.25rem;
     min-height: auto;
@@ -391,7 +391,7 @@
   .actionButtons {
     gap: 0.35rem;
   }
-  
+
   .addButton:global(.p-button), .clearButton:global(.p-button) {
     padding: 0.2rem 0.5rem !important;
     font-size: 0.75rem !important;
@@ -401,11 +401,11 @@
   .clearButton:global(.p-button) .p-button-icon {
     font-size: 0.75rem;
   }
-  
+
   .noSelectionText {
     font-size: 0.75rem;
   }
-  
+
   .paginationContainer {
     gap: 0.25rem;
   }
@@ -414,11 +414,11 @@
     font-size: 0.75rem;
     white-space: nowrap;
   }
-  
+
   .paginationControls {
     font-size: 0.75rem;
   }
-  
+
   .paginationControls :global(.p-paginator-page),
   .paginationControls :global(.p-paginator-first),
   .paginationControls :global(.p-paginator-prev),
@@ -438,44 +438,44 @@
     font-size: 0.75rem;
     padding: 0.25rem 0.5rem;
   }
-  
+
   .loadingIndicatorFixed {
     position: static;
     width: 1.5rem;
     height: 1.5rem;
   }
-  
+
   .tableWrapper {
     overflow-x: auto;
     height: calc(100% - 8rem);
   }
-  
+
   .tagContainer .tag:nth-child(n+2) {
     display: none;
   }
-  
+
   /* Override column widths for smaller screens */
   :global(.p-datatable) :global(.number-column) {
     width: 4rem !important;
     max-width: 4rem !important;
   }
-  
+
   :global(.p-datatable) :global(.name-column) {
     width: 12rem !important;
   }
-  
+
   :global(.p-datatable) :global(.type-column) {
     width: 7rem !important;
   }
-  
+
   :global(.p-datatable) :global(.author-column) {
     width: 8rem !important;
   }
-  
+
   :global(.p-datatable) :global(.tags-column) {
     width: 8rem !important;
   }
-  
+
   :global(.p-datatable) :global(.topic-column) {
     width: 8rem !important;
   }
@@ -622,4 +622,24 @@
   border-radius: 0.625rem;
   background-color: var(--primary-color);
   color: var(--primary-color-text);
-} 
+}
+
+.baseCourseFilter {
+  flex: 0 0 auto;
+  min-width: 9rem;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-color);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.checkboxLabel span {
+  font-weight: 500;
+  user-select: none;
+}
