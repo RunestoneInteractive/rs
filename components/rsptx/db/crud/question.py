@@ -182,6 +182,10 @@ async def search_exercises(
     # Base query
     query = select(Question).where(Question.question_type != "page")
 
+    # If base_course is provided, filter by base_course
+    if criteria.base_course:
+        query = query.where(Question.base_course == criteria.base_course)
+
     # If assignment_id is provided, exclude already attached exercises
     if criteria.assignment_id is not None:
         assigned_questions = (

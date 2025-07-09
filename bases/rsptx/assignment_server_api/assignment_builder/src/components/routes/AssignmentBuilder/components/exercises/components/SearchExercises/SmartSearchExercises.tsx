@@ -7,6 +7,7 @@ import {
 } from "@store/searchExercises/searchExercises.logic";
 import { FilterMatchMode, SortOrder } from "primereact/api";
 import { Button } from "primereact/button";
+import { Checkbox } from "primereact/checkbox";
 import { Chip } from "primereact/chip";
 import { Column } from "primereact/column";
 import { DataTable, DataTableFilterMetaData } from "primereact/datatable";
@@ -50,6 +51,7 @@ export const SmartSearchExercises = () => {
     onPage,
     onSort,
     onFilter,
+    toggleBaseCourse,
     refetch
   } = useSmartExerciseSearch();
 
@@ -192,6 +194,23 @@ export const SmartSearchExercises = () => {
               className="w-full"
               display="chip"
             />
+          </div>
+
+          {/* Base course filter toggle */}
+          <div className={styles.baseCourseFilter}>
+            <label className={styles.checkboxLabel}>
+              <Checkbox
+                checked={searchParams.use_base_course}
+                onChange={(e) => toggleBaseCourse(e.checked || false)}
+                tooltip={
+                  searchParams.use_base_course
+                    ? "Showing exercises from current book only"
+                    : "Showing exercises from all books"
+                }
+                tooltipOptions={{ position: "top" }}
+              />
+              <span>Current book only</span>
+            </label>
           </div>
         </div>
 
