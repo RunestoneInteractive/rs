@@ -3,7 +3,8 @@ import { Option } from "@/types/createExerciseForm";
 export const generateMultiChoicePreview = (
   questionTitle: string,
   options: Option[],
-  questionName: string
+  questionName: string,
+  forceCheckboxes?: boolean
 ): string => {
   const optionsHTML = options
     .map((option, index) => {
@@ -18,7 +19,8 @@ export const generateMultiChoicePreview = (
     })
     .join("");
 
-  const multipleAnswers = options.filter((opt) => opt.correct).length > 1 ? "true" : "false";
+  const correctAnswersCount = options.filter((opt) => opt.correct).length;
+  const multipleAnswers = forceCheckboxes || correctAnswersCount > 1 ? "true" : "false";
 
   return `<div class="runestone ">
     <ul 

@@ -1,6 +1,8 @@
 import { MathJaxContext } from "better-react-mathjax";
 import { ReactNode } from "react";
 
+import { mathJaxMacros } from "./mathMacros";
+
 interface MathJaxWrapperProps {
   children: ReactNode;
 }
@@ -22,12 +24,7 @@ export const mathJaxConfig = {
     packages: {
       "[+]": ["ams", "newcommand", "boldsymbol", "extpfeil", "amscd", "color"]
     },
-    macros: {
-      R: "\\mathbb{R}",
-      N: "\\mathbb{N}",
-      Z: "\\mathbb{Z}",
-      amp: "\\&",
-    }
+    macros: mathJaxMacros
   },
   chtml: {
     matchFontHeight: true,

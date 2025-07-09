@@ -2,7 +2,7 @@ import { TipTapImageAttributes } from "@components/routes/AssignmentBuilder/comp
 import { Editor, Extension, Range } from "@tiptap/core";
 import { ReactRenderer } from "@tiptap/react";
 import Suggestion from "@tiptap/suggestion";
-import { useCallback, useState } from "react";
+import React, { useCallback, useState, useImperativeHandle } from "react";
 import tippy from "tippy.js";
 
 import styles from "./SlashCommands.module.css";
@@ -11,7 +11,8 @@ interface CommandItem {
   title: string;
   description: string;
   icon: string;
-  command: ({ editor, range }: { editor: Editor; range: Range }) => void;
+  command?: ({ editor, range }: { editor: Editor; range: Range }) => void;
+  submenu?: CommandItem[];
 }
 
 interface CommandListProps {
@@ -21,185 +22,444 @@ interface CommandListProps {
   range: Range;
 }
 
-const CommandList = ({ items, command, editor, range }: CommandListProps) => {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+const CommandList = React.forwardRef<any, CommandListProps>(
+  ({ items, command, editor, range }, ref) => {
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [showSubmenu, setShowSubmenu] = useState<number | null>(null);
+    const [submenuSelectedIndex, setSubmenuSelectedIndex] = useState(0);
 
-  const selectItem = useCallback(
-    (index: number) => {
-      const item = items[index];
+    const selectItem = useCallback(
+      (index: number) => {
+        const item = items[index];
 
-      if (item) {
-        command(item);
-      }
-    },
-    [items, command]
-  );
+        if (item) {
+          if (item.submenu) {
+            setShowSubmenu(index);
+            setSubmenuSelectedIndex(0);
+          } else if (item.command) {
+            command(item);
+          }
+        }
+      },
+      [items, command]
+    );
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    const navigationKeys = ["ArrowUp", "ArrowDown", "Enter"];
+    const selectSubmenuItem = useCallback(
+      (index: number) => {
+        const parentItem = items[showSubmenu!];
+        const submenuItem = parentItem?.submenu?.[index];
 
-    if (!navigationKeys.includes(e.key)) {
-      return;
-    }
+        if (submenuItem && submenuItem.command) {
+          command(submenuItem);
+        }
+      },
+      [items, showSubmenu, command]
+    );
 
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSelectedIndex((selectedIndex + items.length - 1) % items.length);
-      return true;
-    }
+    const onKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (showSubmenu !== null) {
+          // Submenu navigation
+          const submenuItems = items[showSubmenu]?.submenu || [];
 
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSelectedIndex((selectedIndex + 1) % items.length);
-      return true;
-    }
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setSubmenuSelectedIndex(
+              (prev) => (prev + submenuItems.length - 1) % submenuItems.length
+            );
+            return true;
+          }
 
-    if (e.key === "Enter") {
-      e.preventDefault();
-      selectItem(selectedIndex);
-      return true;
-    }
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setSubmenuSelectedIndex((prev) => (prev + 1) % submenuItems.length);
+            return true;
+          }
 
-    return false;
-  };
+          if (e.key === "Enter") {
+            e.preventDefault();
+            selectSubmenuItem(submenuSelectedIndex);
+            return true;
+          }
 
-  // Expose selectItem and selectedIndex for external use
-  (CommandList as any).selectItem = selectItem;
-  (CommandList as any).selectedIndex = selectedIndex;
+          if (e.key === "Escape" || e.key === "ArrowLeft") {
+            e.preventDefault();
+            setShowSubmenu(null);
+            return true;
+          }
+        } else {
+          // Main menu navigation
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setSelectedIndex((prev) => (prev + items.length - 1) % items.length);
+            return true;
+          }
 
-  return (
-    <div className={styles.commandList} onKeyDown={onKeyDown}>
-      {items.map((item: any, index: number) => (
-        <button
-          className={styles.commandItem}
-          key={index}
-          onClick={() => selectItem(index)}
-          data-selected={index === selectedIndex}
-        >
-          <i className={`fa-solid ${item.icon}`} />
-          <div>
-            <div className={styles.commandTitle}>{item.title}</div>
-            <div className={styles.commandDescription}>{item.description}</div>
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setSelectedIndex((prev) => (prev + 1) % items.length);
+            return true;
+          }
+
+          if (e.key === "Enter") {
+            e.preventDefault();
+            selectItem(selectedIndex);
+            return true;
+          }
+
+          if (e.key === "ArrowRight") {
+            e.preventDefault();
+            const item = items[selectedIndex];
+
+            if (item?.submenu) {
+              setShowSubmenu(selectedIndex);
+              setSubmenuSelectedIndex(0);
+            }
+            return true;
+          }
+        }
+
+        return false;
+      },
+      [items, selectedIndex, showSubmenu, submenuSelectedIndex, selectItem, selectSubmenuItem]
+    );
+
+    // Expose functions for external use
+    useImperativeHandle(ref, () => ({
+      selectItem: showSubmenu !== null ? selectSubmenuItem : selectItem,
+      selectedIndex: showSubmenu !== null ? submenuSelectedIndex : selectedIndex,
+      onKeyDown: onKeyDown
+    }));
+
+    return (
+      <div className={styles.commandList} onKeyDown={onKeyDown}>
+        {items.map((item: any, index: number) => (
+          <div key={index} className={styles.commandItemWrapper}>
+            <button
+              className={styles.commandItem}
+              onClick={() => selectItem(index)}
+              onMouseEnter={() => {
+                setSelectedIndex(index);
+                if (item.submenu) {
+                  setShowSubmenu(index);
+                  setSubmenuSelectedIndex(0);
+                } else {
+                  setShowSubmenu(null);
+                }
+              }}
+              data-selected={index === selectedIndex}
+            >
+              <i className={`fa-solid ${item.icon}`} />
+              <div>
+                <div className={styles.commandTitle}>{item.title}</div>
+                <div className={styles.commandDescription}>{item.description}</div>
+              </div>
+              {item.submenu && (
+                <i
+                  className="fa-solid fa-chevron-right"
+                  style={{ marginLeft: "auto", opacity: 0.5 }}
+                />
+              )}
+            </button>
+
+            {showSubmenu === index && item.submenu && (
+              <div className={styles.submenu}>
+                {item.submenu.map((submenuItem: any, submenuIndex: number) => (
+                  <button
+                    key={submenuIndex}
+                    className={styles.submenuItem}
+                    onClick={() => selectSubmenuItem(submenuIndex)}
+                    onMouseEnter={() => setSubmenuSelectedIndex(submenuIndex)}
+                    data-selected={submenuIndex === submenuSelectedIndex}
+                  >
+                    <i className={`fa-solid ${submenuItem.icon}`} />
+                    <div>
+                      <div className={styles.commandTitle}>{submenuItem.title}</div>
+                      <div className={styles.commandDescription}>{submenuItem.description}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        </button>
-      ))}
-    </div>
-  );
-};
+        ))}
+      </div>
+    );
+  }
+);
 
+// Simplified to 5 main categories with submenus
 export const items: CommandItem[] = [
   {
-    title: "Text",
-    description: "Just start typing with plain text.",
-    icon: "fa-text",
-    command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).run();
-    }
+    title: "Text Formatting",
+    description: "Format text with bold, italic, etc.",
+    icon: "fa-font",
+    submenu: [
+      {
+        title: "Bold Text",
+        description: "Make text bold",
+        icon: "fa-bold",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).toggleBold().run();
+        }
+      },
+      {
+        title: "Italic Text",
+        description: "Make text italic",
+        icon: "fa-italic",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).toggleItalic().run();
+        }
+      },
+      {
+        title: "Underline",
+        description: "Underline text",
+        icon: "fa-underline",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).toggleUnderline().run();
+        }
+      },
+      {
+        title: "Highlight",
+        description: "Highlight text",
+        icon: "fa-highlighter",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).toggleHighlight().run();
+        }
+      },
+      {
+        title: "Strikethrough",
+        description: "Strike through text",
+        icon: "fa-strikethrough",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).toggleStrike().run();
+        }
+      },
+      {
+        title: "Clear Formatting",
+        description: "Remove all text formatting",
+        icon: "fa-eraser",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).clearNodes().unsetAllMarks().run();
+        }
+      }
+    ]
   },
   {
-    title: "Bullet List",
-    description: "Create a simple bullet list.",
-    icon: "fa-list-ul",
-    command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).toggleBulletList().run();
-    }
+    title: "Headings",
+    description: "Create different sized headings",
+    icon: "fa-heading",
+    submenu: [
+      {
+        title: "Heading 1",
+        description: "Large heading",
+        icon: "fa-heading",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).setHeading({ level: 1 }).run();
+        }
+      },
+      {
+        title: "Heading 2",
+        description: "Medium heading",
+        icon: "fa-heading",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).setHeading({ level: 2 }).run();
+        }
+      },
+      {
+        title: "Heading 3",
+        description: "Small heading",
+        icon: "fa-heading",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run();
+        }
+      },
+      {
+        title: "Heading 4",
+        description: "Extra small heading",
+        icon: "fa-heading",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).setHeading({ level: 4 }).run();
+        }
+      }
+    ]
   },
   {
-    title: "Numbered List",
-    description: "Create a numbered list.",
-    icon: "fa-list-ol",
-    command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).toggleOrderedList().run();
-    }
+    title: "Lists & Structure",
+    description: "Create lists and structure content",
+    icon: "fa-list",
+    submenu: [
+      {
+        title: "Bullet List",
+        description: "Create a bullet list",
+        icon: "fa-list-ul",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).toggleBulletList().run();
+        }
+      },
+      {
+        title: "Numbered List",
+        description: "Create a numbered list",
+        icon: "fa-list-ol",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).toggleOrderedList().run();
+        }
+      },
+      {
+        title: "Quote",
+        description: "Add a blockquote",
+        icon: "fa-quote-left",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).toggleBlockquote().run();
+        }
+      },
+      {
+        title: "Horizontal Rule",
+        description: "Add a horizontal line",
+        icon: "fa-minus",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).setHorizontalRule().run();
+        }
+      }
+    ]
   },
   {
-    title: "Upload Image",
-    description: "Upload an image from your computer.",
+    title: "Code & Math",
+    description: "Insert code blocks and math expressions",
+    icon: "fa-code",
+    submenu: [
+      {
+        title: "Code Block",
+        description: "Insert a code block",
+        icon: "fa-code",
+        command: ({ editor, range }) => {
+          const language = prompt(
+            "Enter programming language (e.g., python, javascript, java) or leave empty for default:"
+          );
+
+          if (language !== null) {
+            // User didn't cancel
+            const trimmedLanguage = language.trim();
+
+            if (trimmedLanguage) {
+              editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .setCodeBlock({ language: trimmedLanguage })
+                .run();
+            } else {
+              editor.chain().focus().deleteRange(range).setCodeBlock().run();
+            }
+          }
+        }
+      },
+      {
+        title: "Inline Code",
+        description: "Insert inline code",
+        icon: "fa-terminal",
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).toggleCode().run();
+        }
+      },
+      {
+        title: "Math Expression",
+        description: "Add mathematical formulas (LaTeX)",
+        icon: "fa-square-root-variable",
+        command: ({ editor, range }) => {
+          const formula = prompt("Enter LaTeX formula:");
+
+          if (formula) {
+            editor
+              .chain()
+              .focus()
+              .deleteRange(range)
+              .insertContent({ type: "inlineMath", attrs: { latex: formula } })
+              .run();
+          }
+        }
+      }
+    ]
+  },
+  {
+    title: "Media & Links",
+    description: "Insert images, links and media",
     icon: "fa-image",
-    command: ({ editor, range }) => {
-      const input = document.createElement("input");
+    submenu: [
+      {
+        title: "Link",
+        description: "Insert a hyperlink",
+        icon: "fa-link",
+        command: ({ editor, range }) => {
+          const url = prompt("Enter URL:");
 
-      input.type = "file";
-      input.accept = "image/*";
-
-      input.onchange = async () => {
-        const file = input.files?.[0];
-
-        if (file) {
-          const reader = new FileReader();
-
-          reader.onload = () => {
-            const imageAttributes: TipTapImageAttributes = {
-              src: reader.result as string,
-              alt: file.name,
-              title: "",
-              width: "320",
-              height: "auto",
-              style: "float: none"
-            };
-
-            editor.chain().focus().deleteRange(range).setImage(imageAttributes).run();
-          };
-          reader.readAsDataURL(file);
+          if (url) {
+            editor.chain().focus().deleteRange(range).setLink({ href: url }).run();
+          }
         }
-      };
+      },
+      {
+        title: "Upload Image",
+        description: "Upload and insert an image",
+        icon: "fa-image",
+        command: ({ editor, range }) => {
+          const input = document.createElement("input");
 
-      input.click();
-    }
-  },
-  {
-    title: "Insert Image by URL",
-    description: "Add an image from the internet using URL.",
-    icon: "fa-link",
-    command: ({ editor, range }) => {
-      const url = window.prompt("Enter image URL:");
+          input.type = "file";
+          input.accept = "image/*";
 
-      if (url) {
-        const img = new Image();
+          input.onchange = async () => {
+            const file = input.files?.[0];
 
-        img.onload = () => {
-          const imageAttributes: TipTapImageAttributes = {
-            src: url,
-            alt: "Image from URL",
-            title: "",
-            width: "320",
-            height: "auto",
-            style: "float: none"
+            if (file) {
+              const reader = new FileReader();
+
+              reader.onload = () => {
+                const imageAttributes: TipTapImageAttributes = {
+                  src: reader.result as string,
+                  alt: file.name,
+                  title: "",
+                  width: "320",
+                  height: "auto",
+                  style: "float: none"
+                };
+
+                editor.chain().focus().deleteRange(range).setImage(imageAttributes).run();
+              };
+              reader.readAsDataURL(file);
+            }
           };
 
-          editor.chain().focus().deleteRange(range).setImage(imageAttributes).run();
-        };
-        img.onerror = () => {
-          window.alert("Failed to load image. Please check the URL and try again.");
-        };
-        img.src = url;
-      }
-    }
-  },
-  {
-    title: "YouTube Video",
-    description: "Add a YouTube video.",
-    icon: "fa-video",
-    command: ({ editor, range }) => {
-      const url = window.prompt("Enter YouTube video URL:");
+          input.click();
+        }
+      },
+      {
+        title: "Image by URL",
+        description: "Insert an image from URL",
+        icon: "fa-link",
+        command: ({ editor, range }) => {
+          const url = prompt("Enter image URL:");
 
-      if (url) {
-        const videoId = url.match(
-          /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
-        )?.[1];
+          if (url) {
+            const attrs: TipTapImageAttributes = { src: url };
 
-        if (videoId) {
-          editor.chain().focus().deleteRange(range).run();
-          editor.commands.setYoutubeVideo({
-            src: url,
-            width: 320,
-            height: 240
-          });
-        } else {
-          window.alert("Invalid YouTube URL");
+            editor.chain().focus().deleteRange(range).setImage(attrs).run();
+          }
+        }
+      },
+      {
+        title: "YouTube Video",
+        description: "Embed a YouTube video",
+        icon: "fa-video",
+        command: ({ editor, range }) => {
+          const url = prompt("Enter YouTube URL:");
+
+          if (url) {
+            editor.chain().focus().deleteRange(range).setYoutubeVideo({ src: url }).run();
+          }
         }
       }
-    }
+    ]
   }
 ];
 
@@ -214,6 +474,10 @@ export const renderItems = () => {
         editor: props.editor
       });
 
+      if (!props.clientRect) {
+        return;
+      }
+
       popup = tippy("body", {
         getReferenceClientRect: props.clientRect,
         appendTo: () => document.body,
@@ -225,61 +489,40 @@ export const renderItems = () => {
       });
     },
 
-    onUpdate: (props: any) => {
+    onUpdate(props: any) {
       component?.updateProps(props);
+
+      if (!props.clientRect) {
+        return;
+      }
 
       popup?.[0].setProps({
         getReferenceClientRect: props.clientRect
       });
     },
 
-    onKeyDown: (props: { event: KeyboardEvent }) => {
-      const { event } = props;
-
-      if (event.key === "Escape") {
-        if (popup?.[0] && !popup[0].state.isDestroyed) {
-          popup[0].hide();
-        }
+    onKeyDown(props: any) {
+      if (props.event.key === "Escape") {
+        popup?.[0].hide();
         return true;
       }
 
-      if (["ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
-        event.preventDefault();
-        event.stopPropagation();
+      // Handle navigation keys
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(props.event.key)) {
+        props.event.preventDefault();
 
-        if (event.key === "Enter") {
-          const selectItem = (CommandList as any).selectItem;
-          const selectedIndex = (CommandList as any).selectedIndex;
+        const commandListRef = (component as any)?.ref;
 
-          if (selectItem && typeof selectedIndex === "number") {
-            selectItem(selectedIndex);
-            if (popup?.[0] && !popup[0].state.isDestroyed) {
-              popup[0].hide();
-            }
-            return true;
-          }
-        }
-
-        const commandList = popup?.[0]?.popper?.querySelector(`.${styles.commandList}`);
-
-        if (commandList) {
-          commandList.dispatchEvent(
-            new KeyboardEvent("keydown", {
-              key: event.key,
-              bubbles: true
-            })
-          );
-          return true;
+        if (commandListRef?.onKeyDown) {
+          return commandListRef.onKeyDown(props.event);
         }
       }
 
       return false;
     },
 
-    onExit: () => {
-      if (popup?.[0] && !popup[0].state.isDestroyed) {
-        popup[0].destroy();
-      }
+    onExit() {
+      popup?.[0].destroy();
       component?.destroy();
     }
   };
@@ -299,7 +542,12 @@ export const Command = Extension.create({
           return items.filter(
             (item) =>
               item.title.toLowerCase().includes(query.toLowerCase()) ||
-              item.description.toLowerCase().includes(query.toLowerCase())
+              item.description.toLowerCase().includes(query.toLowerCase()) ||
+              item.submenu?.some(
+                (subitem) =>
+                  subitem.title.toLowerCase().includes(query.toLowerCase()) ||
+                  subitem.description.toLowerCase().includes(query.toLowerCase())
+              )
           );
         },
         render: renderItems

@@ -86,6 +86,7 @@ export type QuestionJSON = Partial<{
   poll_type: string;
   scale_min: number;
   scale_max: number;
+  forceCheckboxes: boolean;
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;

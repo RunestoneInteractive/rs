@@ -26,11 +26,7 @@ export const ShortAnswerInstructions: FC<ShortAnswerInstructionsProps> = ({
   return (
     <>
       <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
-        <Editor
-          content={instructions}
-          onChange={onChange}
-          placeholder="Enter instructions here..."
-        />
+        <Editor content={instructions} onChange={onChange} />
       </div>
 
       <div className="flex align-items-center mt-4">
@@ -46,7 +42,10 @@ export const ShortAnswerInstructions: FC<ShortAnswerInstructionsProps> = ({
 
       <div className={styles.questionTips}>
         <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
-        <span>Tip: Be concise and specific with your question for better responses. Type / in the editor for a menu of options.</span>
+        <span>
+          Tip: Be concise and specific with your question for better responses. Type / in the editor
+          for a menu of options.
+        </span>
       </div>
     </>
   );
