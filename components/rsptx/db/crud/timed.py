@@ -155,7 +155,7 @@ async def reset_student_assessment(
                 .where(Assignment.name == assessment_name)
             )
             question_result = await session.execute(assessment_questions_query)
-            question_names = [row.name for row in question_result.scalars().all()]
+            question_names = [row for row in question_result.scalars().all()]
 
             # Delete selected_questions records for all questions in this exam
             if question_names:
@@ -168,6 +168,6 @@ async def reset_student_assessment(
             return True
 
     except Exception as e:
-        rslogger.error(f"Error deleting course {course_name}: {e}")
+        rslogger.error(f"Error resetting exam {course_name}: {e}")
         return False
 

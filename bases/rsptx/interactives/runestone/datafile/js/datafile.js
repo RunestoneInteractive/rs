@@ -44,6 +44,12 @@ class DataFile extends RunestoneBase {
                 this.containerDiv.dataset.filename = this.fileName
             }
         }
+        // search for a parent div with the class 'datafile_caption' in plain javascript
+        let captionDiv = this.containerDiv.parentElement.querySelector(".datafile_caption");
+        if (captionDiv && this.displayClass === "none") {
+            // hide the captionDiv if the datafile is hidden
+            captionDiv.style.display = "none";
+        }
         this.indicate_component_ready();
     }
     /*=====================================

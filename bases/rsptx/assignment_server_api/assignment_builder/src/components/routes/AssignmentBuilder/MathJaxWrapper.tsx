@@ -22,7 +22,7 @@ export const mathJaxConfig = {
     ],
     processEscapes: true,
     packages: {
-      "[+]": ["ams", "newcommand", "boldsymbol"]
+      "[+]": ["ams", "newcommand", "boldsymbol", "extpfeil", "amscd", "color"]
     },
     macros: mathJaxMacros
   },
@@ -65,16 +65,6 @@ export const mathJaxConfig = {
       "annotation",
       "annotation-xml"
     ],
-    skipTags: [
-      "script",
-      "noscript",
-      "style",
-      "textarea",
-      "pre",
-      "code",
-      "annotation",
-      "annotation-xml"
-    ]
   }
 };
 
