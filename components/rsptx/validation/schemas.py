@@ -234,7 +234,8 @@ class AssignmentIncoming(BaseModel):
     nofeedback: Optional[bool] = False
     nopause: Optional[bool] = False
     peer_async_visible: Optional[bool] = False
-
+    is_peer: Optional[bool] = False
+    is_timed: Optional[bool] = False
 
 class QuestionIncoming(BaseModel):
     id: Optional[int] = None

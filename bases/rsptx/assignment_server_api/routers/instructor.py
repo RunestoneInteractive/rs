@@ -415,7 +415,6 @@ async def new_assignment(
         visible=False,
         released=False,
         from_source=False,
-        is_peer=False,
         current_index=0,
         enforce_due=False,
     )    
