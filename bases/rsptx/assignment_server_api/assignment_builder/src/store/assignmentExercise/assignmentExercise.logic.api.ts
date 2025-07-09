@@ -155,7 +155,7 @@ export const assignmentExerciseApi = createApi({
           .then(() => {
             const state = getState() as RootState;
 
-            dispatch(assignmentApi.util.invalidateTags(["Assignment"]));
+            dispatch(assignmentApi.util.invalidateTags(["Assignment", "Assignments"]));
 
             dispatch(
               assignmentApi.endpoints.getAssignment.initiate(
