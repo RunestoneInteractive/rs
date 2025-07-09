@@ -80,7 +80,7 @@ export const ExerciseLayout = ({
             {activeStep === steps.length - 1 ? (
               <Button
                 label="Save"
-                icon="pi pi-check"
+                icon="pi pi-save"
                 onClick={onSave}
                 disabled={isSaving}
                 loading={isSaving}
