@@ -38,6 +38,7 @@ from rsptx.db.crud import (
     create_book_author,
     create_course,
     create_course_attribute,
+    create_domain_approval,
     create_editor_for_basecourse,
     create_instructor_course_entry,
     create_library_book,
@@ -62,7 +63,7 @@ from rsptx.db.crud import (
     update_user,
     update_library_book,
 )
-from rsptx.db.models import CoursesValidator, AuthUserValidator
+from rsptx.db.models import CoursesValidator, AuthUserValidator, DomainApprovals
 from rsptx.db.async_session import init_models, term_models
 from rsptx.configuration import settings
 from rsptx.build_tools.core import _build_runestone_book, _build_ptx_book
@@ -874,6 +875,31 @@ async def instructors(config, course):
 
     for row in res:
         print(row.id, row.username, row.first_name, row.last_name, row.email)
+
+
+@cli.command()
+@click.argument("domain", default=None)
+@pass_config
+async def approvedomain(config, domain):
+    """
+    Approve a domain for LTI 1.3
+    """
+    if domain:
+        print(f"Domain approval for {domain}")
+    else:
+        domain = click.prompt("Domain to approve")
+
+    res = None
+    try:
+        res = await create_domain_approval(domain, DomainApprovals.lti1p3)
+    except Exception as e:
+        print(f"Error fetching domain approval: {e}")
+        sys.exit(-1)
+
+    if res:
+        print(f"Domain {domain} approved for LTI 1.3")
+    else:
+        print(f"Domain {domain} already approved for LTI 1.3")
 
 
 #

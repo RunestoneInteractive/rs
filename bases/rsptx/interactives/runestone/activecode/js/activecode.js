@@ -171,6 +171,9 @@ export class ActiveCode extends RunestoneBase {
                     ? suffLength + 1
                     : suffLength;
             this.suffix = this.code.substring(suffStart + markerLength);
+            if (this.suffix.trim() === "") {
+                this.suffix = null; // no suffix
+            }
             this.code = this.code.substring(0, suffStart);
         }
         let visibleSuffixStart = this.code.indexOf("===!");
