@@ -2937,14 +2937,14 @@ text = ["pycairo (>=1.20,<2.0) ; python_version >= \"3.9\"", "pycairo (>=1.20,<=
 
 [[package]]
 name = "pretext"
-version = "2.20.0"
+version = "2.22.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
-python-versions = "<4.0.0,>=3.8.5"
+python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "pretext-2.20.0-py3-none-any.whl", hash = "sha256:b51f9abe73ab1d2c087ed6aa37c88b7467db8fb64833d3cd41421515690be1bb"},
-    {file = "pretext-2.20.0.tar.gz", hash = "sha256:d6bd08dfd67f0e0b76f97e7dde61835e029ddbe29dd8fac86d935a770fff162f"},
+    {file = "pretext-2.22.0-py3-none-any.whl", hash = "sha256:13fe1f7f4c4bda41f6439b1a7f230260980eae52583c099f234ceb99c0dfee11"},
+    {file = "pretext-2.22.0.tar.gz", hash = "sha256:1d74e903cb05d87e31fadde4deb58bc0792ae73173b0887668bbcbbe1038ae58"},
 ]
 
 [package.dependencies]
@@ -2967,8 +2967,9 @@ requests = ">=2,<3"
 single-version = ">=1,<2"
 
 [package.extras]
+all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.3.2,<0.4.0)"]
 homepage = ["pelican[markdown] (>=4.10,<5.0)"]
-prefigure = ["prefig[pycairo] (>=0.2.10,<0.3.0)"]
+prefigure = ["prefig[text] (>=0.3.2,<0.4.0)"]
 
 [[package]]
 name = "prometheus-client"
@@ -3983,14 +3984,14 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.8.4"
+version = "7.8.5"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "<4.0.0,>=3.10.0"
 groups = ["main"]
 files = [
-    {file = "runestone-7.8.4-py3-none-any.whl", hash = "sha256:3580c16850a7e2983644f42e5778d0f34d6602f9efca762646785d3a65048ac6"},
-    {file = "runestone-7.8.4.tar.gz", hash = "sha256:64323f6023bc73ddd759a25cbcf78a0a3d873be8372ac04b9ad7fad1b1911585"},
+    {file = "runestone-7.8.5-py3-none-any.whl", hash = "sha256:5167d56236e8860c9b283d9effe73d4bfd5bb84efbf415e549506ff64fcb2648"},
+    {file = "runestone-7.8.5.tar.gz", hash = "sha256:e52b644db21b0bbc9ce80ee1802c05737e8ad06b5d43c4fcc479b5694fa1da82"},
 ]
 
 [package.dependencies]
