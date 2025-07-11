@@ -2937,14 +2937,14 @@ text = ["pycairo (>=1.20,<2.0) ; python_version >= \"3.9\"", "pycairo (>=1.20,<=
 
 [[package]]
 name = "pretext"
-version = "2.22.0"
+version = "2.23.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "pretext-2.22.0-py3-none-any.whl", hash = "sha256:13fe1f7f4c4bda41f6439b1a7f230260980eae52583c099f234ceb99c0dfee11"},
-    {file = "pretext-2.22.0.tar.gz", hash = "sha256:1d74e903cb05d87e31fadde4deb58bc0792ae73173b0887668bbcbbe1038ae58"},
+    {file = "pretext-2.23.0-py3-none-any.whl", hash = "sha256:25379e2f8b381d22b43690e73e88f486407e3e932b7c94447044f53c7eac4cc9"},
+    {file = "pretext-2.23.0.tar.gz", hash = "sha256:cbf08c9e9e90c2247bc31a508471ea74e14739d702d4ac3fe1c7a61a8f9962ff"},
 ]
 
 [package.dependencies]
@@ -5032,4 +5032,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "3665438856387aedc6a57055f04ab031bad908efd0616961ba390da3c2c1b861"
+content-hash = "7a216d1b8639537d8f5c7182a9518568ade802d998c80a37fc10dfe47a4e87a5"
