@@ -17,7 +17,7 @@ export const ParsonsTipTapEditor: FC<ParsonsTipTapEditorProps> = ({ content, onC
 
   return (
     <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
-      <Editor content={content} onChange={onChange} placeholder="Enter text content here..." />
+      <Editor content={content} onChange={onChange} />
     </div>
   );
 };

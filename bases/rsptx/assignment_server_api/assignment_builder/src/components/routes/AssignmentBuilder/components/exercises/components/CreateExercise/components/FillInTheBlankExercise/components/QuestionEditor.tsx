@@ -37,12 +37,7 @@ export const QuestionEditor: FC<QuestionEditorProps> = ({ questionText, onChange
   return (
     <>
       <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
-        <Editor
-          content={text}
-          onChange={handleChange}
-          placeholder="Enter your question text with {blank} placeholders..."
-          enableBlankOption
-        />
+        <Editor content={text} onChange={handleChange} enableBlankOption />
       </div>
 
       <div className={styles.questionTips}>

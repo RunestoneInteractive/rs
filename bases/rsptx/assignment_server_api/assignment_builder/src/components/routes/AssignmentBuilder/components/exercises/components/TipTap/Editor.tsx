@@ -1,7 +1,8 @@
 import { MathExtension } from "@aarkue/tiptap-math-extension";
 import { TipTapImage } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Plugins/Image";
+import { katexMacros } from "@components/routes/AssignmentBuilder/mathMacros";
+import { Extension } from "@tiptap/core";
 import FontFamily from "@tiptap/extension-font-family";
-import HardBreak from "@tiptap/extension-hard-break";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -10,13 +11,18 @@ import Underline from "@tiptap/extension-underline";
 import Youtube from "@tiptap/extension-youtube";
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { Button } from "primereact/button";
 import { useEffect } from "react";
+import CodeBlockPrism from "tiptap-extension-code-block-prism";
+
+import "prismjs/plugins/line-numbers/prism-line-numbers.css";
 
 import "tippy.js/dist/tippy.css";
 import "katex/dist/katex.min.css";
 
 import styles from "./Editor.module.css";
 import { Command, items } from "./SlashCommands";
+import { TipTapDocModal, useTipTapDocModal } from "./TipTapDocModal";
 
 const customStyles = `
   .tippy-box {
@@ -33,10 +39,21 @@ const customStyles = `
   .katex { font-size: 1.1em; }
 `;
 
+const TabExtension = Extension.create({
+  name: "tab",
+
+  addKeyboardShortcuts() {
+    return {
+      Tab: () => {
+        return this.editor.commands.insertContent("\t");
+      }
+    };
+  }
+});
+
 interface PollEditorProps {
   content: string;
   onChange: (content: string) => void;
-  placeholder?: string;
   onFocus?: () => void;
   enableBlankOption?: boolean;
 }
@@ -45,9 +62,10 @@ export const Editor = ({
   content,
   onChange,
   onFocus,
-  placeholder,
   enableBlankOption = false
 }: PollEditorProps) => {
+  const { visible, showModal, hideModal } = useTipTapDocModal();
+
   useEffect(() => {
     const styleElement = document.createElement("style");
 
@@ -79,6 +97,7 @@ export const Editor = ({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        codeBlock: false,
         bulletList: {
           HTMLAttributes: {
             class: "list-disc list-outside ml-4"
@@ -99,32 +118,14 @@ export const Editor = ({
             class: "border-l-4 border-stone-700"
           }
         },
-        codeBlock: {
-          HTMLAttributes: {
-            class: "bg-gray-100 rounded p-2 font-mono text-sm"
-          }
-        },
-        // Disable hardBreak from StarterKit to avoid conflicts with our custom configuration
-        hardBreak: false
+        hardBreak: {
+          keepMarks: false
+        }
       }),
-      // Add custom HardBreak extension that uses Enter key for line breaks
-      HardBreak.extend({
-        addKeyboardShortcuts() {
-          return {
-            Enter: () => {
-              // For lists and other block elements, use default behavior
-              if (
-                this.editor.isActive("orderedList") ||
-                this.editor.isActive("bulletList") ||
-                this.editor.isActive("heading") ||
-                this.editor.isActive("codeBlock")
-              ) {
-                return false;
-              }
-              // Otherwise insert a hard break (line break)
-              return this.editor.commands.setHardBreak();
-            }
-          };
+      CodeBlockPrism.configure({
+        defaultLanguage: "javascript",
+        HTMLAttributes: {
+          class: "line-numbers"
         }
       }),
       Underline,
@@ -155,8 +156,7 @@ export const Editor = ({
           if (node.type.name === "heading") {
             return `Heading ${node.attrs.level}`;
           }
-          /* eslint-disable-next-line */
-          return placeholder || 'Press "/" for commands...';
+          return 'Press "/" for commands';
         },
         includeChildren: true
       }),
@@ -177,13 +177,12 @@ export const Editor = ({
         delimiters: "dollar",
         katexOptions: {
           throwOnError: false,
-          macros: {
-            "\\R": "\\mathbb{R}",
-            "\\N": "\\mathbb{N}",
-            "\\Z": "\\mathbb{Z}"
-          }
+          strict: false,
+          trust: true,
+          macros: katexMacros
         }
-      })
+      }),
+      TabExtension
     ],
     content,
     onUpdate: ({ editor: uEditor }) => {
@@ -200,6 +199,18 @@ export const Editor = ({
 
   return (
     <div className={styles.editorContainer}>
+      <div className={styles.editorHeader}>
+        <Button
+          icon="pi pi-question-circle"
+          text
+          size="small"
+          onClick={showModal}
+          className={styles.helpButton}
+          tooltip="Editor Help"
+          tooltipOptions={{ position: "left" }}
+        />
+      </div>
+
       <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className={styles.bubbleMenu}>
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -225,6 +236,12 @@ export const Editor = ({
         >
           <i className="fa-solid fa-highlighter" />
         </button>
+        <button
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          className={editor.isActive("codeBlock") ? styles.isActive : ""}
+        >
+          <i className="fa-solid fa-code" />
+        </button>
         {enableBlankOption && (
           <button onClick={() => editor.chain().focus().insertContent("{blank}").run()}>
             <i className="fa-solid fa-square-plus" />
@@ -233,6 +250,8 @@ export const Editor = ({
       </BubbleMenu>
 
       <EditorContent editor={editor} className={styles.editor} />
+
+      <TipTapDocModal visible={visible} onHide={hideModal} />
     </div>
   );
 };

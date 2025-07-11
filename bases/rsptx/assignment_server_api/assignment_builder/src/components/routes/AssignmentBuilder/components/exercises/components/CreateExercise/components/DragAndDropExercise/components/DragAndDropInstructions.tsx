@@ -1,9 +1,9 @@
 import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
 import { FC } from "react";
 
+import { useValidation } from "../../../shared/ExerciseLayout";
 import styles from "../../../shared/styles/CreateExercise.module.css";
 import { isTipTapContentEmpty } from "../../../utils/validation";
-import { useValidation } from "../../../shared/ExerciseLayout";
 
 interface DragAndDropInstructionsProps {
   instructions: string;
@@ -21,11 +21,7 @@ export const DragAndDropInstructions: FC<DragAndDropInstructionsProps> = ({
   return (
     <>
       <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
-        <Editor
-          content={instructions}
-          onChange={onChange}
-          placeholder="Enter instructions here..."
-        />
+        <Editor content={instructions} onChange={onChange} />
       </div>
 
       <div className={styles.questionTips}>

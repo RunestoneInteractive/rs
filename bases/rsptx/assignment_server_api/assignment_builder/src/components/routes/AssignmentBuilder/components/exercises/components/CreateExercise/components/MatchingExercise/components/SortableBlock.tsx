@@ -127,11 +127,7 @@ export const SortableBlock: FC<SortableBlockProps> = ({
         <i className="fa-solid fa-grip-vertical" />
       </div>
       <div className={styles.blockContent}>
-        <Editor
-          content={block.content}
-          onChange={handleContentChange}
-          placeholder="Enter content..."
-        />
+        <Editor content={block.content} onChange={handleContentChange} />
         {isConnected && connectionPartnerIds.length > 0 && (
           <div
             className={styles.connectionBadge}

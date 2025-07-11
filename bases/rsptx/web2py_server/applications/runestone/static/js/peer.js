@@ -180,6 +180,8 @@ function connect(event) {
                             if (typeof currAnswer === "undefined") {
                                 if (!eBookConfig.isInstructor) {
                                     messarea.innerHTML = `<h3>You have not answered the question</h3><p>You will not be able to participate in any discussion unless you answer the question.</p>`;
+                                } else {
+                                    messarea.innerHTML = ``;
                                 }
                             } else {
                                 if (getVoteNum() < 2) {

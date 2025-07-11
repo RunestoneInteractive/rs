@@ -345,11 +345,7 @@ export const BlockItem: FC<BlockItemProps> = ({
               onMouseDown={handleInputMouseDown}
               style={{ minHeight: "36px", width: "100%" }}
             >
-              <Editor
-                content={block.content}
-                onChange={handleContentChange}
-                placeholder="Enter text content..."
-              />
+              <Editor content={block.content} onChange={handleContentChange} />
               {hoveredLine !== null && (
                 <div ref={dividerRef} className="line-divider" style={getDividerStyle()}>
                   <div

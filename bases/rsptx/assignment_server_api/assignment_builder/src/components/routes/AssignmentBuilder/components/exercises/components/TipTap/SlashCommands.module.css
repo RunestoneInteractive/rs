@@ -2,7 +2,7 @@
   background: white;
   border-radius: 6px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 3px 6px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  overflow: visible;
   padding: 4px;
   width: 280px;
 }
@@ -42,4 +42,49 @@
 .commandDescription {
   color: #64748b;
   font-size: 0.75rem;
-} 
+}
+
+.commandItemWrapper {
+  position: relative;
+}
+
+.submenu {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), 0 6px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  padding: 4px;
+  width: 280px;
+  z-index: 10000;
+  margin-left: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.submenuItem {
+  align-items: center;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: #0f172a;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  text-align: left;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.submenuItem:hover,
+.submenuItem[data-selected="true"] {
+  background: #f1f5f9;
+}
+
+.submenuItem i {
+  color: #64748b;
+  font-size: 1rem;
+  width: 24px;
+}

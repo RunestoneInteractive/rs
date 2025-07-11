@@ -1,6 +1,7 @@
 from .crud import (
     check_domain_approval,
     create_api_token,
+    create_domain_approval,
     create_initial_courses_users,
     create_invoice_request,
     create_traceback,
@@ -224,6 +225,7 @@ __all__ += [
 __all__ += [
    "check_domain_approval",
    "create_api_token",
+   "create_domain_approval",
    "create_initial_courses_users",
    "create_invoice_request",
    "create_traceback",

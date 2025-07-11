@@ -69,11 +69,7 @@ const SortableOption = ({
       </div>
       <div className={styles.optionContent}>
         <div className={editorContainerClass}>
-          <Editor
-            content={option.choice}
-            onChange={handleContentChange}
-            placeholder="Enter option text..."
-          />
+          <Editor content={option.choice} onChange={handleContentChange} />
         </div>
       </div>
       <div className={styles.optionActions}>

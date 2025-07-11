@@ -36,6 +36,7 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
   htmlsrc: "",
   question_type: "mchoice",
   statement: "",
+  forceCheckboxes: false,
   optionList: [
     { id: `option-${Date.now()}`, choice: "", feedback: "", correct: false } as OptionWithId,
     { id: `option-${Date.now() + 1}`, choice: "", feedback: "", correct: false } as OptionWithId
@@ -47,7 +48,8 @@ const generateExerciseHtmlSrc = (data: Partial<CreateExerciseFormType>): string 
   return generateMultiChoicePreview(
     data.statement || "",
     (data.optionList || []) as OptionWithId[],
-    data.name || ""
+    data.name || "",
+    data.forceCheckboxes
   );
 };
 
@@ -144,6 +146,7 @@ export const MultiChoiceExercise: FC<BaseExerciseProps> = ({
             question={formData.statement || ""}
             options={(formData.optionList || []) as OptionWithId[]}
             questionName={formData.name || ""}
+            forceCheckboxes={formData.forceCheckboxes}
           />
         );
       default:
