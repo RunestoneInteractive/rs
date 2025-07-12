@@ -632,6 +632,9 @@ def push(config):
     with open(".last_version", "w") as f:
         f.write(config.version)
 
+    console.print("Will now prune old images and containers", style="green")
+    subprocess.run(["docker", "system", "prune", "--force"], check=True)
+
 
 @cli.command()
 @pass_config
