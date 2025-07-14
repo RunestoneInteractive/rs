@@ -504,7 +504,6 @@ async def add_assignment_question(
         data: CreateExercisesPayload,
         question: Question
 ) -> None:
-    print(type(question))
     async with async_session() as session:
         assignment_result = await session.execute(
             select(Assignment).where(
