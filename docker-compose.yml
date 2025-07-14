@@ -5,8 +5,11 @@
 # Do not set environment variables in this file. Most people will want to set them in a .env file
 # Unless you are developing or modifying a production system you should not need to modify this file.
 #
-version: '3.9'
 
+# Support for logging to fluentd is provided, but you will need to set up a fluentd server
+# and set the FLUENTD_ADDRESS environment variable to point to it.
+# fluentd is a log collector so that we can aggregate logs from multiple hosts running the composed application.
+# see: https://betterstack.com/community/guides/logging/fluentd-explained/ to get started
 x-json-file-logging: &json-file-logging
   driver: "json-file"
   options:
@@ -93,8 +96,10 @@ services:
     #command: tail -f /var/log/lastlog
     restart: always
     logging:
-      <<: *json-file-logging
-      # Additional logging options can be added here if needed
+      <<: *fluent-logging
+      options:
+        tag: runestone.book
+    # Additional logging options can be added here if needed
 
     volumes:
       - ${BOOK_PATH}:/usr/books
@@ -155,7 +160,9 @@ services:
 
     restart: always
     logging:
-      <<: *json-file-logging
+      <<: *fluent-logging
+      options:
+        tag: runestone.runestone
     volumes:
       - ${BOOK_PATH}:/usr/books
 
@@ -211,7 +218,9 @@ services:
     #command: tail -f /var/log/lastlog
     restart: always
     logging:
-      <<: *json-file-logging
+      <<: *fluent-logging
+      options:
+        tag: runestone.assignment
     volumes:
       - ${BOOK_PATH}:/usr/books
 
@@ -260,7 +269,9 @@ services:
       - host.docker.internal:host-gateway
     restart: always
     logging:
-      <<: *json-file-logging
+      <<: *fluent-logging
+      options:
+        tag: runestone.nginx
     ports:
       # ports are specified host:container
       - 80:80
@@ -341,6 +352,10 @@ services:
       - host.docker.internal:host-gateway
     ports:
       - 8114:8114
+    logging:
+      <<: *fluent-logging
+      options:
+        tag: runestone.author
     command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8114
     volumes:
       - ${BOOK_PATH}:/books
@@ -371,6 +386,10 @@ services:
     hostname: worker_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
+    logging:
+      <<: *fluent-logging
+      options:
+        tag: runestone.worker
     command: celery -A rsptx.author_server_api.worker.celery worker
     volumes:
       - ${BOOK_PATH}:/books
@@ -408,6 +427,10 @@ services:
       - host.docker.internal:host-gateway
     container_name: admin
     restart: unless-stopped
+    logging:
+      <<: *fluent-logging
+      options:
+        tag: runestone.admin
     ports:
       - "8115:8115"
     volumes:
