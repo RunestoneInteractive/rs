@@ -8,6 +8,7 @@
 
 # Support for logging to fluentd is provided, but you will need to set up a fluentd server
 # and set the FLUENTD_ADDRESS environment variable to point to it.
+# Then you will need to update each of the services that you want to log to fluentd
 # fluentd is a log collector so that we can aggregate logs from multiple hosts running the composed application.
 # see: https://betterstack.com/community/guides/logging/fluentd-explained/ to get started
 x-json-file-logging: &json-file-logging
@@ -96,7 +97,7 @@ services:
     #command: tail -f /var/log/lastlog
     restart: always
     logging:
-      <<: *fluent-logging
+      <<: *json-file-logging
       options:
         tag: runestone.book
     # Additional logging options can be added here if needed
@@ -160,7 +161,7 @@ services:
 
     restart: always
     logging:
-      <<: *fluent-logging
+      <<: *json-file-logging
       options:
         tag: runestone.runestone
     volumes:
@@ -218,7 +219,7 @@ services:
     #command: tail -f /var/log/lastlog
     restart: always
     logging:
-      <<: *fluent-logging
+      <<: *json-file-logging
       options:
         tag: runestone.assignment
     volumes:
@@ -269,7 +270,7 @@ services:
       - host.docker.internal:host-gateway
     restart: always
     logging:
-      <<: *fluent-logging
+      <<: *json-file-logging
       options:
         tag: runestone.nginx
     ports:
@@ -353,7 +354,7 @@ services:
     ports:
       - 8114:8114
     logging:
-      <<: *fluent-logging
+      <<: *json-file-logging
       options:
         tag: runestone.author
     command: uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8114
@@ -387,7 +388,7 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     logging:
-      <<: *fluent-logging
+      <<: *json-file-logging
       options:
         tag: runestone.worker
     command: celery -A rsptx.author_server_api.worker.celery worker
@@ -428,7 +429,7 @@ services:
     container_name: admin
     restart: unless-stopped
     logging:
-      <<: *fluent-logging
+      <<: *json-file-logging
       options:
         tag: runestone.admin
     ports:
