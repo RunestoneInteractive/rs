@@ -110,6 +110,7 @@ module.exports = (env, argv) => {
                 // Delete everything in the output directory on each build in production mode.
                 // Do not do so in dev mode when building to an out
                 clean: !is_dev_mode || env.builddir === undefined,
+                chunkFilename: is_dev_mode ? "[id].js" : "[id].[contenthash].js",
             },
             // See the `SplitChunksPlugin docs <https://webpack.js.org/guides/code-splitting/#splitchunksplugin>`_.
             optimization: {
