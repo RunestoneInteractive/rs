@@ -31,9 +31,7 @@ export const readingsApi = createApi({
             dispatch(exercisesActions.setAvailableExercises(data));
           })
           .catch(() => {
-            toast("Error searching available readings", {
-              icon: "🔥"
-            });
+            toast.error("Error searching available readings", { duration: Infinity });
           });
       }
     })
