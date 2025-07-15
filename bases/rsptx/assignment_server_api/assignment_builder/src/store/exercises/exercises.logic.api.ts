@@ -31,9 +31,7 @@ export const exercisesApi = createApi({
             dispatch(assignmentApi.util.invalidateTags(["Assignment", "Assignments"]));
           })
           .catch(() => {
-            toast("Error creating new exercise", {
-              icon: "🔥"
-            });
+            toast.error("Error creating new exercise", { duration: Infinity });
           });
       }
     }),
@@ -56,9 +54,7 @@ export const exercisesApi = createApi({
       },
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
-          toast("Error searching exercises", {
-            icon: "🔥"
-          });
+          toast.error("Error searching exercises", { duration: Infinity });
         });
       }
     })
