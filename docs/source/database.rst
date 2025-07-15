@@ -12,7 +12,7 @@ The database is a critical component as it is the glue that ties together the va
 Install Postgresql with docker-compose
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is the default option and requires the least manual work.  Just make sure that you have your ``CONTAINER_PROFILES`` varaible set to include ``basic`` This is how it is set up in the ``sample.env`` file.  The database will be running as a docker container, and if you ever destroy the container all of the data in the database will be lost.  The default environment variables are set up so that you can access the database from outside the container on port 2345.  If you want to do this you will need to install ``psql`` on your host machine.
+This is the default option and requires the least manual work.  Just make sure that you have your ``COMPOSE_PROFILES`` varaible set to include ``basic`` This is how it is set up in the ``sample.env`` file.  The database will be running as a docker container, and if you ever destroy the container all of the data in the database will be lost.  The default environment variables are set up so that you can access the database from outside the container on port 2345.  If you want to do this you will need to install ``psql`` on your host machine.
 
 You need to initialize the database with ``rsmanage initdb`` or ``docker compose run rsmanage rsmanage initdb`` to do it all inside the containerized application.  This will create the database tables and add the initial data.
 

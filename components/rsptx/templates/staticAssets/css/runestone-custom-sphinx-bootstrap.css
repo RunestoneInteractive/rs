@@ -158,7 +158,7 @@ div.section {
      * the CM editors to no more than the size needed
      * unless resized) */
     max-height: 30em;
-    min-width: 30em;
+    min-width: 5em;
 }
 
 .ac_section .CodeMirror pre {

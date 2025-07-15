@@ -141,7 +141,7 @@
     border: solid 2px;
     margin-bottom: 10px;
     max-width: 100%;
-    min-width: 30em;
+    min-width: 5em;
     min-height: 100px;
     /* best way to control height is let CodeMirror-scroll do it */
     height: auto;

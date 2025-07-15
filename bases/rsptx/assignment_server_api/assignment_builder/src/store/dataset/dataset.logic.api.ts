@@ -21,9 +21,7 @@ export const datasetApi = createApi({
           dispatch(datasetActions.setWhichToGradeOptions(response.data));
         });
         queryFulfilled.catch(() => {
-          toast("Error getting which_to_grade options", {
-            icon: "🔥"
-          });
+          toast.error("Error getting which_to_grade options", { duration: Infinity });
         });
       }
     }),
@@ -37,9 +35,7 @@ export const datasetApi = createApi({
           dispatch(datasetActions.setAutoGradeOptions(response.data));
         });
         queryFulfilled.catch(() => {
-          toast("Error getting autograde options", {
-            icon: "🔥"
-          });
+          toast.error("Error getting autograde options", { duration: Infinity });
         });
       }
     }),
@@ -53,9 +49,7 @@ export const datasetApi = createApi({
           dispatch(datasetActions.setLanguageOptions(response.data));
         });
         queryFulfilled.catch(() => {
-          toast("Error getting language options", {
-            icon: "🔥"
-          });
+          toast.error("Error getting language options", { duration: Infinity });
         });
       }
     }),
@@ -69,9 +63,7 @@ export const datasetApi = createApi({
           dispatch(datasetActions.setQuestionTypeOptions(response.data));
         });
         queryFulfilled.catch(() => {
-          toast("Error getting question type options", {
-            icon: "🔥"
-          });
+          toast.error("Error getting question type options", { duration: Infinity });
         });
       }
     }),
@@ -96,9 +88,7 @@ export const datasetApi = createApi({
           dispatch(datasetActions.setSections(originalSections));
         });
         queryFulfilled.catch(() => {
-          toast("Error getting sections for chapter", {
-            icon: "🔥"
-          });
+          toast.error("Error getting sections for chapter", { duration: Infinity });
         });
       }
     })

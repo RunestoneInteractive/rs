@@ -47,9 +47,7 @@ export const assignmentExerciseApi = createApi({
             dispatch(chooseExercisesActions.resetSelections());
           })
           .catch(() => {
-            toast("Unable to fetch exercises", {
-              icon: "🔥"
-            });
+            toast.error("Unable to fetch exercises", { duration: Infinity });
           });
       }
     }),
@@ -79,9 +77,7 @@ export const assignmentExerciseApi = createApi({
             );
           })
           .catch(() => {
-            toast("Error updating assignment exercises", {
-              icon: "🔥"
-            });
+            toast.error("Error updating assignment exercises", { duration: Infinity });
           });
       }
     }),
@@ -112,9 +108,7 @@ export const assignmentExerciseApi = createApi({
       },
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
-          toast("Error reordering assignment exercise", {
-            icon: "🔥"
-          });
+          toast.error("Error reordering assignment exercise", { duration: Infinity });
         });
       }
     }),
@@ -132,9 +126,7 @@ export const assignmentExerciseApi = createApi({
       },
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
-          toast("Error creating assignment exercise", {
-            icon: "🔥"
-          });
+          toast.error("Error creating assignment exercise", { duration: Infinity });
         });
       }
     }),
@@ -164,9 +156,7 @@ export const assignmentExerciseApi = createApi({
             );
           })
           .catch(() => {
-            toast("Error updating assignment exercises", {
-              icon: "🔥"
-            });
+            toast.error("Error updating assignment exercises", { duration: Infinity });
           });
       }
     }),
@@ -213,9 +203,7 @@ export const assignmentExerciseApi = createApi({
             }
           })
           .catch(() => {
-            toast("Error copying question", {
-              icon: "🔥"
-            });
+            toast.error("Error copying question", { duration: Infinity });
           });
       }
     })
