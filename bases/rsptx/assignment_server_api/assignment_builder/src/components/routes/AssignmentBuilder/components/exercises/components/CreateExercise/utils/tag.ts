@@ -9,9 +9,7 @@ export const addLanguageTag = (
     existingTags
       .split(",")
       .map((tag) => tag.trim())
-      .filter(Boolean) || [];
-
-  tagsArray.filter((tag) => tag != oldLanguage);
+      .filter((tag) => tag && tag != oldLanguage) || [];
 
   if (!tagsArray.includes(language)) {
     tagsArray.push(language);
