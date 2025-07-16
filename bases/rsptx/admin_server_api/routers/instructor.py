@@ -25,6 +25,7 @@ from rsptx.db.crud import (
     delete_user_course_entry,
     create_user_course_entry,
     fetch_all_course_attributes,
+    fetch_base_course,
     fetch_course,
     fetch_available_students_for_instructor_add,
     fetch_course_by_id,
@@ -151,12 +152,15 @@ async def get_copy_assignments(
     instructor_course_relationships = await fetch_instructor_courses(user.id)
     instructor_course_list = []
 
+    base_course = await fetch_base_course(course.base_course)
+    instructor_course_list.append(base_course)
     # For each course where the user is an instructor, get the full course information
     for course_relation in instructor_course_relationships:
         temp_course = await fetch_course_by_id(course_relation.course)
         if temp_course:  # Make sure the course exists
             instructor_course_list.append(temp_course)
 
+    instructor_course_list.sort(key=lambda x: x.course_name)
     context = {
         "course": course,
         "user": user,
