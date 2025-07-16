@@ -605,7 +605,7 @@ async def htmlsrc(
         else:
             htmlsrc = res.htmlsrc
     else:
-        rslogger.error(f"HTML Source not found for {acid} in course ??")
+        rslogger.error(f"HTML Source not found for {acid} in {count=} for {studentId} {assignment_id=}")
         htmlsrc = "<p>No preview available</p>"
 
     return make_json_response(detail=htmlsrc)
