@@ -446,7 +446,9 @@ async def getCompletionStatus(request: Request, lastPageUrl: str, isPtxBook: boo
         else:
             last_page_chapter = lastPageUrl.split("/")[-2]
         if last_page_chapter is None:
-            rslogger.error(f"Unparseable page - cannot determine chapter: {lastPageUrl}")
+            rslogger.debug(
+                f"Unparseable page - cannot determine chapter: {lastPageUrl}"
+            )
             return make_json_response(
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Unparseable page - cannot determine chapter: {lastPageUrl}",
@@ -625,7 +627,9 @@ async def get_source_code(
     """
     course = await fetch_course(course_id)
 
-    rslogger.debug(f"get_source_code: course_name:{course.course_name} acid: {acid} filename: {filename} course_name:{course.course_name}")
+    rslogger.debug(
+        f"get_source_code: course_name:{course.course_name} acid: {acid} filename: {filename} course_name:{course.course_name}"
+    )
 
     db_result = await fetch_source_code(
         base_course=course.base_course,
