@@ -9,7 +9,7 @@ import { Toaster } from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
 
 import { selectAllAssignments } from "../state/assignment/assignSlice";
-import { setSelected, selectSelectedAssignments } from "../state/assignment/assignSlice";
+import { setSelected, selectSelectedAssignments, fetchAssignments } from "../state/assignment/assignSlice";
 import {
   fetchClassRoster,
   selectRoster,
@@ -24,6 +24,7 @@ export function ExceptionScheduler() {
   const dispatch = useDispatch();
 
   dispatch(fetchClassRoster());
+  dispatch(fetchAssignments());
   const [checked, setChecked] = useState(false);
   const [tlMult, setTlMult] = useState(null);
   const [extraDays, setExtraDays] = useState(null);
