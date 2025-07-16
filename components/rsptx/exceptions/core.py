@@ -45,8 +45,9 @@ def add_exception_handlers(app):
         if tz_cookie:
             try:
                 vals = json.loads(tz_cookie)
-                request.state.tz_offset = vals["tz_offset"]
-                rslogger.info(f"Timzone offset: {request.state.tz_offset}")
+                if "tz_offset" in vals:
+                    request.state.tz_offset = vals["tz_offset"]
+                    rslogger.info(f"Timezone offset: {request.state.tz_offset}")
             except Exception as e:
                 rslogger.error(f"Failed to parse cookie data {tz_cookie} error was {e}")
         response = await call_next(request)
