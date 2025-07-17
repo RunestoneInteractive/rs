@@ -996,7 +996,7 @@ async def assign_select(launch_id: str, request: Request, course=None):
                 dlr.set_target("window")
 
                 line_item = LineItem()
-                update_line_item_from_assignment(line_item, assign, course, use_pts)
+                update_line_item_from_assignment(line_item, assign, course, use_pts, push_duedate=True)
                 dlr.set_lineitem(line_item)
 
                 # add to list of things for LMS to create
