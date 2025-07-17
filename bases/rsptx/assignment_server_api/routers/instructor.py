@@ -39,6 +39,7 @@ from rsptx.db.crud import (
     fetch_questions_by_search_criteria,
     fetch_question_count_per_subchapter,
     fetch_all_course_attributes,
+    fetch_all_deadline_exceptions,
     create_assignment_question,
     create_deadline_exception,
     create_question,
@@ -1463,4 +1464,27 @@ async def copy_question_endpoint(
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error copying question: {str(e)}"
+        )
+
+@router.get("/accommodations")
+@instructor_role_required()
+@with_course()
+async def get_accommodations(
+    request: Request,
+    course=None
+):
+    """
+    Get accommodations for a specific course.
+    """
+    try:
+        accommodations = await fetch_all_deadline_exceptions(course.id)
+        return make_json_response(
+            status=status.HTTP_200_OK,
+            detail={"accommodations": accommodations}
+        )
+    except Exception as e:
+        rslogger.error(f"Error fetching accommodations: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error fetching accommodations: {str(e)}"
         )
