@@ -95,6 +95,13 @@ class DeepLinkResource:
             if submission_review:
                 line_item["submissionReview"] = submission_review
 
+            # if line item has a end date, include it in the resource
+            # as both availability and submission end dates
+            end_date_time = self._lineitem.get_end_date_time()
+            if end_date_time:
+                res["available"] = {"endDateTime": end_date_time}
+                res["submission"] = {"endDateTime": end_date_time}
+
             res["lineItem"] = line_item
 
         if self._icon_url:
