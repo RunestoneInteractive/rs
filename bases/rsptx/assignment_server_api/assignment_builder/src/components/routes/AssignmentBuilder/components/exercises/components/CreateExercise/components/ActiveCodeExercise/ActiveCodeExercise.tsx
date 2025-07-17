@@ -9,6 +9,7 @@ import { ACTIVE_CODE_STEP_VALIDATORS } from "../../config/stepConfigs";
 import { useBaseExercise } from "../../hooks/useBaseExercise";
 import { useExerciseStepNavigation } from "../../hooks/useExerciseStepNavigation";
 import { ExerciseLayout } from "../../shared/ExerciseLayout";
+import { addLanguageTag } from "../../utils/tag";
 import { validateCommonFields } from "../../utils/validation";
 
 import { ActiveCodeExerciseSettings } from "./ActiveCodeExerciseSettings";
@@ -100,6 +101,13 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
     isEdit
   });
 
+  const handleLanguageChange = (language: string) => {
+    const updatedTags = addLanguageTag(formData.tags || "", language, formData.language);
+
+    updateFormData("language", language);
+    updateFormData("tags", updatedTags);
+  };
+
   // Use our centralized navigation and validation hook
   const { validation, handleNext, handleStepSelect, handleSave, stepsValidity } =
     useExerciseStepNavigation({
@@ -120,10 +128,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
     switch (activeStep) {
       case 0: // Language
         return (
-          <LanguageSelector
-            language={formData.language || ""}
-            onChange={(language: string) => updateFormData("language", language)}
-          />
+          <LanguageSelector language={formData.language || ""} onChange={handleLanguageChange} />
         );
 
       case 1: // Instructions

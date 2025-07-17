@@ -211,16 +211,25 @@ async def search_exercises(
 
             # Process global search (search in multiple fields)
             if field == "global":
-                search_fields = ["name", "author", "topic", "tags"]
-                or_conditions = []
+                search_fields = ["name", "author", "topic", "tags", "htmlsrc"]
 
-                for search_field in search_fields:
-                    if hasattr(Question, search_field):
-                        column = getattr(Question, search_field)
-                        or_conditions.append(column.ilike(f"%{filter_value}%"))
+                search_terms = filter_value.strip().split()
 
-                if or_conditions:
-                    query = query.where(or_(*or_conditions))
+                if search_terms:
+                    and_conditions = []
+
+                    for term in search_terms:
+                        term_or_conditions = [
+                            getattr(Question, search_field).ilike(f"%{term}%")
+                            for search_field in search_fields
+                            if hasattr(Question, search_field)
+                        ]
+
+                        if term_or_conditions:
+                            and_conditions.append(or_(*term_or_conditions))
+
+                    if and_conditions:
+                        query = query.where(and_(*and_conditions))
 
             # Process specific field filters
             elif hasattr(Question, field):

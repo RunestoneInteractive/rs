@@ -5,6 +5,9 @@ import { InputNumber } from "primereact/inputnumber";
 import { InputSwitch } from "primereact/inputswitch";
 import { ListBox } from "primereact/listbox";
 import { useState } from "react";
+import { DataTable } from "primereact/datatable";
+import { Column } from "primereact/column";
+
 import { Toaster } from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
 
@@ -14,22 +17,31 @@ import {
   fetchClassRoster,
   selectRoster,
   selectSelectedStudents,
-  saveException
+  saveException,
+  fetchAccommodations,
+  selectAccommodations
 } from "../state/student/studentSlice";
 import { setSelectedStudents as setStudents } from "../state/student/studentSlice";
 
 export function ExceptionScheduler() {
   let students = useSelector(selectSelectedStudents);
   let assignments = useSelector(selectSelectedAssignments);
+  let accommodations = useSelector(selectAccommodations);
   const dispatch = useDispatch();
-
+  // Add this useEffect to fetch accommodations when component mounts
+  React.useEffect(() => {
+    dispatch(fetchAccommodations());
   dispatch(fetchClassRoster());
   dispatch(fetchAssignments());
+  }, [dispatch]);
+
+
   const [checked, setChecked] = useState(false);
   const [tlMult, setTlMult] = useState(null);
   const [extraDays, setExtraDays] = useState(null);
   const [helpVisible, setHelpVisible] = useState(false);
   const saveAllExceptions = () => {
+    const savePromises = [];
     for (let student of students) {
       if (assignments.length === 0) {
         console.log(`Saving exception: ${student.username} ${tlMult}, ${extraDays}, ${checked}`);
@@ -41,7 +53,7 @@ export function ExceptionScheduler() {
           assignment_id: null
         };
 
-        dispatch(saveException(exception));
+        savePromises.push(dispatch(saveException(exception)));
       } else {
         for (let assignment of assignments) {
           console.log(`Saving exception: ${student.username} ${tlMult}, ${extraDays}, ${checked}`);
@@ -53,10 +65,22 @@ export function ExceptionScheduler() {
             assignment_id: assignment.id
           };
 
-          dispatch(saveException(exception));
+          savePromises.push(dispatch(saveException(exception)));
         }
       }
     }
+    Promise.all(savePromises)
+      .then(() => {
+        console.log("All exceptions saved successfully.");
+        dispatch(fetchAccommodations());
+        // Clear the form
+        setTlMult(null);
+        setExtraDays(null);
+        setChecked(false);
+      })
+      .catch((error) => {
+        console.error("Error saving exceptions:", error);
+      });
   };
 
   let style = {
@@ -145,6 +169,39 @@ export function ExceptionScheduler() {
         </div>
       </div>
       <Button label="Save" onClick={saveAllExceptions} />
+      {/* Add the accommodations table here */}
+      <div style={{ marginTop: "2rem" }}>
+        <h3>Current Accommodations</h3>
+        <DataTable
+          value={accommodations}
+          paginator
+          rows={10}
+          emptyMessage="No accommodations found."
+          className="p-datatable-striped"
+        >
+          <Column field="sid" header="Student ID" sortable />
+          <Column field="assignment_id" header="Assignment" sortable />
+          <Column
+            field="time_limit"
+            header="Time Multiplier"
+            sortable
+            body={(rowData) => rowData.time_limit ? `${rowData.time_limit}x` : 'N/A'}
+          />
+          <Column
+            field="duedate"
+            header="Extra Days"
+            sortable
+            body={(rowData) => rowData.duedate ? `${rowData.duedate} days` : 'N/A'}
+          />
+          <Column
+            field="visible"
+            header="Special Access"
+            sortable
+            body={(rowData) => rowData.visible ? 'Yes' : 'No'}
+          />
+        </DataTable>
+      </div>
+
     </div>
   );
 }
