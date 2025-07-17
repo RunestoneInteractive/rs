@@ -3,7 +3,8 @@ from fastapi import HTTPException, status
 from asyncpg.exceptions import UniqueViolationError
 from rsptx.validation import schemas
 from rsptx.validation.schemas import (
-    AssignmentQuestionUpdateDict, CreateExercisesPayload,
+    AssignmentQuestionUpdateDict,
+    CreateExercisesPayload,
 )
 from rsptx.data_types.which_to_grade import WhichToGradeOptions
 from rsptx.data_types.autograde import AutogradeOptions
@@ -106,6 +107,52 @@ async def create_deadline_exception(
     return DeadlineExceptionValidator.from_orm(new_entry)
 
 
+async def fetch_all_deadline_exceptions(
+    course_id: int, assignment_id: Optional[int] = None
+) -> List[dict]:
+    """
+    Fetch all deadline exceptions for a given course_id and optional assignment_id.
+
+    :param course_id: int, the id of the course
+    :param assignment_id: Optional[int], the id of the assignment
+    :return: List[dict], a list of deadline exception dictionaries
+    """
+    # Build base query with explicit column selection and outer join
+    # outer join allows for null assignment_ids which can happen if the accommodation
+    # is not tied to a specific assignment
+    query = (
+        select(
+            DeadlineException.course_id,
+            DeadlineException.sid,
+            DeadlineException.time_limit,
+            DeadlineException.duedate,
+            DeadlineException.visible,
+            Assignment.name.label("assignment_name"),
+        )
+        .select_from(DeadlineException)
+        .outerjoin(Assignment, Assignment.id == DeadlineException.assignment_id)
+        .where(DeadlineException.course_id == course_id)
+    )
+
+    # Add assignment filter if provided
+    if assignment_id is not None:
+        query = query.where(DeadlineException.assignment_id == assignment_id)
+
+    async with async_session() as session:
+        result = await session.execute(query)
+        return [
+            {
+                "course_id": row.course_id,
+                "sid": row.sid,
+                "time_limit": row.time_limit,
+                "duedate": row.duedate,
+                "visible": row.visible,
+                "assignment_id": row.assignment_name,
+            }
+            for row in result.fetchall()
+        ]
+
+
 async def get_repo_path(book: str) -> Optional[str]:
     """
     Get the repo_path for a book from the library table
@@ -145,7 +192,8 @@ async def fetch_assignments(
         pclause = Assignment.is_peer == True  # noqa: E712
     else:
         pclause = or_(
-            Assignment.is_peer == False, Assignment.is_peer.is_(None)  # noqa: E712, E711
+            Assignment.is_peer == False,
+            Assignment.is_peer.is_(None),  # noqa: E712, E711
         )
 
     if fetch_all:
@@ -356,7 +404,7 @@ async def update_multiple_assignment_questions(
                     "name",
                     "difficulty",
                     "tags",
-                    "activities_required"
+                    "activities_required",
                 ]
 
                 # Check if any of the editable fields have changed
@@ -500,20 +548,20 @@ async def update_assignment_exercises(
             "total_points": assignment.points,
         }
 
+
 async def add_assignment_question(
-        data: CreateExercisesPayload,
-        question: Question
+    data: CreateExercisesPayload, question: Question
 ) -> None:
     async with async_session() as session:
         assignment_result = await session.execute(
-            select(Assignment).where(
-                Assignment.id == data.assignment_id
-            )
+            select(Assignment).where(Assignment.id == data.assignment_id)
         )
         assignment = assignment_result.scalar_one_or_none()
 
         if not assignment:
-            raise Exception(f"The assignment with id {data.assignment_id} is not found.")
+            raise Exception(
+                f"The assignment with id {data.assignment_id} is not found."
+            )
 
         # Get the maximum sorting_priority considering isReading
         query_max_priority = select(
@@ -524,7 +572,7 @@ async def add_assignment_question(
         )
         max_priority_result = await session.execute(query_max_priority)
         max_sort_priority = (
-                max_priority_result.scalar() or 0
+            max_priority_result.scalar() or 0
         )  # If there are no records, start from 0
 
         session.add(
@@ -539,7 +587,7 @@ async def add_assignment_question(
                 which_to_grade="best_answer",
                 reading_assignment=data.is_reading,
                 sorting_priority=max_sort_priority,
-                activities_required=None
+                activities_required=None,
             )
         )
         assignment.points += data.points
