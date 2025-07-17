@@ -9,6 +9,7 @@ import { useBaseExercise } from "../../hooks/useBaseExercise";
 import { useExerciseStepNavigation } from "../../hooks/useExerciseStepNavigation";
 import { ExerciseLayout } from "../../shared/ExerciseLayout";
 import { ExerciseComponentProps } from "../../types/ExerciseTypes";
+import { addLanguageTag } from "../../utils/tag";
 import { validateCommonFields } from "../../utils/validation";
 
 import { ParsonsExerciseSettings } from "./ParsonsExerciseSettings";
@@ -134,10 +135,13 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
 
   const handleLanguageChange = useCallback(
     (language: string) => {
+      const updatedTags = addLanguageTag(formData.tags || "", language, formData.language);
+
       updateFormData("language", language);
+      updateFormData("tags", updatedTags);
       updateFormData("blocks", [{ id: `block-${Date.now()}`, content: "", indent: 0 }]);
     },
-    [updateFormData]
+    [updateFormData, formData.language, formData.tags]
   );
 
   const renderStepContent = () => {

@@ -9,9 +9,9 @@ import { FilterMatchMode, SortOrder } from "primereact/api";
 import { Button } from "primereact/button";
 import { Checkbox } from "primereact/checkbox";
 import { Chip } from "primereact/chip";
+import { Chips } from "primereact/chips";
 import { Column } from "primereact/column";
 import { DataTable, DataTableFilterMetaData } from "primereact/datatable";
-import { InputText } from "primereact/inputtext";
 import { MultiSelect } from "primereact/multiselect";
 import { Paginator } from "primereact/paginator";
 import { ProgressSpinner } from "primereact/progressspinner";
@@ -171,10 +171,14 @@ export const SmartSearchExercises = () => {
           <div className={styles.searchField}>
             <span className={styles.searchWrapper}>
               <i className={styles.searchIcon + " pi pi-search"} />
-              <InputText
-                value={(filters.global as DataTableFilterMetaData).value}
-                onChange={(e) => onGlobalFilterChange(e.target.value)}
-                placeholder="Search..."
+              <Chips
+                value={
+                  (filters.global as DataTableFilterMetaData).value
+                    ? (filters.global as DataTableFilterMetaData).value.split(" ").filter(Boolean)
+                    : []
+                }
+                onChange={(e) => onGlobalFilterChange(e.value?.join(" ") || "")}
+                placeholder="Search terms..."
                 className={styles.searchInput + " w-full"}
               />
             </span>
@@ -300,7 +304,7 @@ export const SmartSearchExercises = () => {
             onSelectionChange={(e) => setSelectedExercises(e.value as Exercise[])}
             className={styles.table}
             filters={filters}
-            globalFilterFields={["name", "question_type", "author", "topic", "tags"]}
+            globalFilterFields={["name", "question_type", "author", "topic", "tags", "htmlsrc"]}
             emptyMessage={
               <div className={styles.emptyMessage}>
                 <i
