@@ -4,6 +4,7 @@ Bases
 Bases define the API for a server that a user will interact with. Including things like routes to web pages and API endpoints.  
 
 .. toctree::
+   :numbered:
    :maxdepth: 4
 
    book_server_api
@@ -15,6 +16,7 @@ Components
 Components are shared pieces of code that can be used by multiple bases.  They are not meant to be used directly by a user.  They are meant to be used by a base to provide functionality to a user.
 
 .. toctree::
+   :numbered:
    :maxdepth: 4
 
    cl_utils
