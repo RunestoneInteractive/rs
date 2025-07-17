@@ -176,7 +176,6 @@ export function ExceptionScheduler() {
           value={accommodations}
           paginator
           rows={10}
-          dataKey="sid"
           emptyMessage="No accommodations found."
           className="p-datatable-striped"
         >
