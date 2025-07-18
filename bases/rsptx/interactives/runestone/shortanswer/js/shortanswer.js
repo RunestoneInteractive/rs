@@ -332,9 +332,9 @@ export default class ShortAnswer extends RunestoneBase {
         // Get the URL from the S3 API -- saved when we display in grader mode
         if (this.attachURL) {
             //window.open(this.attachURL, "_blank");
-             //<embed src="example.pdf" type="application/pdf" width="100%" height="600px" />
+            //<embed src="example.pdf" type="application/pdf" width="100%" height="600px" />
             const image_window = window.open("", "_blank")
-            if (this.attachURL.endsWith('.pdf')) {
+            if (this.attachURL.indexOf('.pdf?') !== -1) {
                 const embed = image_window.document.createElement("embed");
                 embed.setAttribute("src", this.attachURL);
                 embed.setAttribute("type", "application/pdf");
