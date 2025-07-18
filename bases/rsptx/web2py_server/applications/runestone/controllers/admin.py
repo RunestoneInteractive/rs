@@ -1763,6 +1763,14 @@ def htmlsrc():
         response = client.list_objects(Bucket=settings.bucket, Prefix=prepath)
         logger.debug(f"response = {response}")
         if response and "Contents" in response:
+            if len(response["Contents"]) == 0:
+                logger.debug(f"No attachments found for {prepath}")
+                url = ""
+            elif len(response["Contents"]) > 1:
+                # sort by last modified date
+                response["Contents"].sort(
+                    key=lambda x: x["LastModified"], reverse=True
+                )
             obj = response["Contents"][0]
             logger.debug("key = {obj['Key']}")
             url = client.generate_presigned_url(

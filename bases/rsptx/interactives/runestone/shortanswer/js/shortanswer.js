@@ -46,6 +46,9 @@ export default class ShortAnswer extends RunestoneBase {
             if (typeof Prism !== "undefined") {
                 Prism.highlightAllUnder(this.containerDiv);
             }
+            if (this.attachment) {
+                this.getAttachmentName();
+            }
         }
     }
 
@@ -130,6 +133,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.fieldSet.appendChild(this.feedbackDiv);
         if (this.attachment) {
             let attachDiv = document.createElement("div")
+            this.attachDiv = attachDiv;
             if (this.graderactive) {
                 // If in grading mode make a button to create a popup with the image
                 let viewButton = document.createElement("button")
@@ -309,8 +313,44 @@ export default class ShortAnswer extends RunestoneBase {
         this.jTextArea.disabled = true;
     }
 
+    async getAttachmentName() {
+        // Get the attachment name from the /ns/assessment/has_attachment endpoint
+        let requestUrl = `/ns/assessment/has_attachment/${this.divid}`;
+        if (this.sid) {
+            requestUrl += `?sid=${this.sid}`;
+        }
+        const response = await fetch(requestUrl);
+        if (!response.ok) {
+            console.error("Error fetching attachment name:", response.statusText);
+            return null;
+        }
+        const obj = await response.json();
+            if (obj.detail.hasAttachment) {
+            // Return the S3 key for the attachment
+            let filename = obj.detail.hasAttachment;
+            // filename is everthing after the last slash
+            filename = filename.substring(filename.lastIndexOf("/") + 1);
+            let fmess = document.createElement("span");
+            fmess.innerHTML = `Attachment: ${filename}`;
+            this.attachDiv.appendChild(fmess);
+        }
+    }
+
     async uploadFile() {
         const files = this.fileUpload.files
+        // get the suffix from the file name
+        const fileName = files[0].name;
+        const suffix = fileName.split('.').pop();
+        // if the suffix is not in the list of allowed suffixes, return
+        if (!['jpg', 'jpeg', 'png', 'gif', 'pdf'].includes(suffix)) {
+            alert("File type not allowed. Please upload a jpg, jpeg, png, gif, or pdf file.");
+            return;
+        }
+        // if the file size is greater than 5MB, return
+        if (files[0].size > 5 * 1024 * 1024) {
+            alert("File size exceeds 5MB limit. Please upload a smaller file.");
+            return;
+        }
         const data = new FormData()
         if (this.fileUpload.files.length > 0) {
             data.append('file', files[0])
