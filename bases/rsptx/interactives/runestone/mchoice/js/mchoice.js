@@ -146,6 +146,7 @@ export default class MultipleChoice extends RunestoneBase {
         this.questionDiv.id = this.divid + "_prompt";
         this.containerDiv.appendChild(this.questionDiv);
         $(this.containerDiv).addClass(this.origElem.getAttribute("class"));
+        $(this.containerDiv).addClass("mchoice");
         this.containerDiv.id = this.divid;
     }
 

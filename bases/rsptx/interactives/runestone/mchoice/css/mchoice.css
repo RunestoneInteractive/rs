@@ -18,3 +18,8 @@
 .multiplechoice_section .exercise-interactives {
     margin-top: 1em;
 }
+/* The timed assessment strips off the container with the .multiplechoice_section class,
+   so we need to apply the same styles to the .timedAssessment class */
+.timedAssessment .mchoice label > .para {
+    display: inline;
+}
