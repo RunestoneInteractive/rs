@@ -1095,7 +1095,7 @@ def _try_to_send_lti_grade(student_row_num, assignment_id):
 
 def _try_to_send_lti_grade1p1(student_row_num, assignment_id, grade):
     # try to send lti grades for lti1.1
-
+    assignment = _get_assignment(assignment_id)
     lti_record = _get_lti_record(current.session.oauth_consumer_key)
     if (
         (not lti_record)
