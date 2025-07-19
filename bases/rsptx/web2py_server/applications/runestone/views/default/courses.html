@@ -96,10 +96,10 @@
         <form action="/{{=request.application}}/default/coursechooser/{{=course['course_name']}}" method="post">
             {{ if course["is_instructor"]:}}
             <button class="ac_opt book-btn btn btn-default instructor" type="submit" name=course
-                value={{=course["course_name"]}}>{{=course["course_name"]}}</button><br />
+                value={{=course["course_name"]}}>{{=course["course_name"]}} {{=course["access"]}}</button><br />
             {{else:}}
             <button class="ac_opt book-btn btn btn-default" type="submit" name=course
-                value={{=course["course_name"]}}>{{=course["course_name"]}}</button><br />
+                value={{=course["course_name"]}}>{{=course["course_name"]}}{{=course["access"]}}</button><br />
             {{pass}}
         </form>
         {{pass}}
@@ -115,10 +115,10 @@
         <form action="/{{=request.application}}/default/coursechooser/{{=course['course_name']}}" method="post">
             {{ if course["is_instructor"]:}}
             <button class="ac_opt book-btn btn btn-default instructor" type="submit" name=course
-                value={{=course["course_name"]}}>{{=course["course_name"]}}</button><br />
+                value={{=course["course_name"]}}>{{=course["course_name"]}} {{=course["access"]}}</button><br />
             {{else:}}
             <button class="ac_opt book-btn btn btn-default" type="submit" name=course
-                value={{=course["course_name"]}}>{{=course["course_name"]}}</button><br />
+                value={{=course["course_name"]}}>{{=course["course_name"]}} {{=course["access"]}}</button><br />
             {{pass}}
         </form>
 
@@ -130,6 +130,8 @@
         <form action="/{{=request.application}}/default/remove" method="post">
             <button class="ac_opt course-btn btn btn-default" name="remove" type="submit">Drop a Course</button>
         </form>
+
+        <p>⏱️ indicates courses you have accessed in the last 30 days.  Lighter blue boxes indicate you are an instructor for that course.</p>
 
     </div>
 
