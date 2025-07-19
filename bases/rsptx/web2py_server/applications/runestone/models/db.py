@@ -7,13 +7,18 @@ import jwt
 import os
 import random
 import re
-
+import sys
 from gluon import current
 import logging
 
-
+handler = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter(
+    "%(levelname)s - %(asctime)s - %(module)s - %(funcName)s - %(lineno)d - %(message)s"
+)
+handler.setFormatter(formatter)
 logger = logging.getLogger(settings.logger)
 logger.setLevel(settings.log_level)
+logger.addHandler(handler)
 
 
 from gluon.tools import Auth, Crud, Service, PluginManager, prettydate  # noqa: F401
