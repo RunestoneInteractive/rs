@@ -572,6 +572,8 @@ def admin_logger(logger):
         else:
             sid = "Anonymous"
             course = "boguscourse"
+        if not course:
+            course = "unknown"
         try:
             db.useinfo.insert(
                 sid=sid,
@@ -583,7 +585,7 @@ def admin_logger(logger):
             )
         except Exception as e:
             logger.error(
-                f"failed to insert log record for {request.controller} {request.function}: {e}"
+                f"failed to insert log record for user {sid} {request.controller} {request.function}: {e}"
             )
             db.rollback()
 
