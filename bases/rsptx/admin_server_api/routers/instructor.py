@@ -157,7 +157,8 @@ async def get_copy_assignments(
     # For each course where the user is an instructor, get the full course information
     for course_relation in instructor_course_relationships:
         temp_course = await fetch_course_by_id(course_relation.course)
-        if temp_course:  # Make sure the course exists
+        # Make sure the course exists and has the same base course
+        if temp_course and temp_course.base_course == base_course.course_name:  
             instructor_course_list.append(temp_course)
 
     instructor_course_list.sort(key=lambda x: x.course_name)
