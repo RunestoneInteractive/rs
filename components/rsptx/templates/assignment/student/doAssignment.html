@@ -7,6 +7,9 @@ Do Assignment
 {% include 'common/static_assets.html' %}
 
 <link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
+{% if origin == "PreTeXt" %}
+<link href="/ns/books/published/{{ course.base_course }}/_static/pretext/css/theme.css" rel="stylesheet" media="screen" />
+{% endif %}
 {% endblock %} 
 {% block content %}
 
@@ -119,9 +122,15 @@ Do Assignment
                     style="display: none;"
                     >
                     {% for q in questioninfo %}
+                        {% if q['question_type'] == 'webwork' or origin == "PreTeXt" %}
+                            <div class="runestone-sphinx ptx-content">
+                                {{ q.htmlsrc|safe }}
+                            </div>
+                        {% else %}
                         <div class="runestone-sphinx">
                         {{ q.htmlsrc|safe }}
                         </div>
+                        {% endif %}
                     {% endfor %}
                     </ul>
                 {% else %}
@@ -152,7 +161,7 @@ Do Assignment
                             {% endif %}
                             </div>
                         </div>
-                            {% if q['question_type'] == 'webwork' %}
+                            {% if q['question_type'] == 'webwork' or origin == "PreTeXt" %}
                             <div class='oneq full-width runestone-sphinx ptx-content' id='{{ loop.index }}'>
                             {% else %}
                             <div class='oneq full-width runestone-sphinx' id='{{ loop.index }}'>
