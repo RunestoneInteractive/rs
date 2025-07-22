@@ -297,7 +297,7 @@ def index():
                     ),
                 )
         except Exception as e:
-            logger.error(f"Select Course got Error {e}")
+            logger.error(f"Select Course {course.course_name} got Error {e}")
             session.flash = f"{course.course_name} is not set up to track your progress"
         # todo:  check course.course_name make sure it is valid if not then redirect to a nicer page.
 

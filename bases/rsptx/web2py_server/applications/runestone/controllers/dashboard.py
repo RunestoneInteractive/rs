@@ -1068,8 +1068,7 @@ def active():
             hours=float(session.timezoneoffset) if "timezoneoffset" in session else 0
         )
         newres.append(dict(timestamp=time_local, sid=row[1], div_id=div_id))
-    print(newres)
-    logger.error(newres)
+
     return dict(activestudents=newres, course=course)
 
 
