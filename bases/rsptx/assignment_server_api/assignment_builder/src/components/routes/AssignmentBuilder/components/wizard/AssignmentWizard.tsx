@@ -10,6 +10,7 @@ import { SelectButton } from "primereact/selectbutton";
 import { Steps } from "primereact/steps";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
+import { getDateFormat } from "@/config/dateFormats";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
 import { convertDateToISO } from "@/utils/date";
 
@@ -114,7 +115,7 @@ export const AssignmentWizard = ({
               render={({ field }) => (
                 <Calendar
                   hideOnDateTimeSelect
-                  dateFormat="dd/mm/yy"
+                  dateFormat={getDateFormat()}
                   stepMinute={5}
                   value={field.value ? new Date(field.value) : null}
                   onChange={(e) => field.onChange(convertDateToISO(e.value!))}
