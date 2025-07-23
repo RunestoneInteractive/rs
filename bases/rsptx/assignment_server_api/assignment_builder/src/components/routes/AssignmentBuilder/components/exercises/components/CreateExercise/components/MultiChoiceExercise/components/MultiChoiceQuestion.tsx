@@ -21,7 +21,14 @@ export const MultiChoiceQuestion: FC<MultiChoiceQuestionProps> = ({
   const shouldShowError = isEmpty && shouldShowValidation;
 
   return (
-    <>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        gap: "1rem"
+      }}
+    >
       <div className={`${styles.questionEditor} ${shouldShowError ? styles.emptyEditor : ""}`}>
         <Editor content={content} onChange={onChange} onFocus={onFocus} />
       </div>
@@ -33,6 +40,6 @@ export const MultiChoiceQuestion: FC<MultiChoiceQuestionProps> = ({
           need to answer. Type / in the editor for a menu of options.
         </span>
       </div>
-    </>
+    </div>
   );
 };

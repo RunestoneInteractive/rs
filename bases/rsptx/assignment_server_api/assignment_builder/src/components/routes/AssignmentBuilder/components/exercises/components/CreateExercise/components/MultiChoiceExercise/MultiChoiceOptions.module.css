@@ -11,7 +11,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.25rem 0.25rem 0 0;
+  padding: 1rem 1.5rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .optionsHeader h3 {
@@ -56,9 +58,10 @@
   flex-direction: column;
   position: relative;
   overflow-y: auto;
-  min-height: 0;
   overflow-x: hidden;
-  padding: 0.5rem;
+  height: 0;
+  padding: 1.5rem;
+  box-sizing: border-box;
 }
 
 .optionsList {
@@ -77,6 +80,7 @@
   border-radius: 0.375rem;
   background-color: #f8fafc;
   position: relative;
+  flex-shrink: 0;
 }
 
 .optionContainer:hover {
@@ -92,6 +96,7 @@
   padding: 0.5rem 0.25rem;
   height: 100%;
   align-self: stretch;
+  flex-shrink: 0;
 }
 
 .dragHandle:hover {
@@ -115,6 +120,7 @@
   gap: 0.5rem 1rem;
   align-items: center;
   width: 100%;
+  min-width: 0;
 }
 
 .optionNumber {
@@ -125,12 +131,12 @@
 }
 
 .editorSection {
-  flex: 2;
+  flex: 1;
   min-width: 200px;
 }
 
 .feedbackSection {
-  flex: 2;
+  flex: 1;
   min-width: 200px;
 }
 
@@ -173,6 +179,7 @@
   align-items: center;
   justify-content: flex-end;
   min-width: 140px;
+  flex-shrink: 0;
 }
 
 .checkboxContainer {
@@ -240,4 +247,31 @@
   border: 1px dashed #3b82f6;
   box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
   background-color: #eff6ff;
-} 
+}
+
+@media (max-width: 768px) {
+  .optionsContent {
+    padding: 1rem;
+  }
+
+  .optionContainer {
+    padding: 0.75rem;
+  }
+
+  .horizontalLayout {
+    gap: 0.75rem;
+    flex-direction: column;
+  }
+
+  .editorSection,
+  .feedbackSection {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .controlsSection {
+    justify-content: flex-start;
+    min-width: auto;
+    width: 100%;
+  }
+}

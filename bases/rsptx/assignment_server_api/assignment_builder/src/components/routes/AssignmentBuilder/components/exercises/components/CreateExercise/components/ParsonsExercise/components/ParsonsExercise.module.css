@@ -1,0 +1,36 @@
+.addButton {
+    font-size: 0.875rem;
+    padding: 0.4rem 0.75rem;
+    background: #fff;
+    border: 1px dashed #cbd5e1;
+    color: #3b82f6;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.addButton:hover {
+    background: #f0f7ff;
+    border-color: #3b82f6;
+    color: #2563eb;
+    transform: translateY(-1px);
+}
+
+.addButton:focus {
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.addButton i {
+    font-size: 0.75rem;
+}
+
+.optionsHeader {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0.25rem 0 0;
+}
