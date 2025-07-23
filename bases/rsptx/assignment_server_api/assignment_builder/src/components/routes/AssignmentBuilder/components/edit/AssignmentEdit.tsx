@@ -15,10 +15,9 @@ import { SelectButton } from "primereact/selectbutton";
 import { Tooltip } from "primereact/tooltip";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
-import { getDateFormat } from "@/config/dateFormats";
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
-import { convertDateToISO } from "@/utils/date";
+import { convertDateToISO, getDateFormat } from "@/utils/date";
 
 import { AssignmentReadings } from "../reading/AssignmentReadings";
 

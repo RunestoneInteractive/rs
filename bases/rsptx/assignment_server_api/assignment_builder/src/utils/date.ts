@@ -4,3 +4,7 @@ export const convertDateToISO = (date: Date): string => {
 
   return localDate.toISOString().slice(0, 19); // Remove 'Z' and milliseconds
 };
+
+export const getDateFormat = (locale = navigator.language) => {
+  return locale.endsWith("US") ? "mm/dd/yy" : "dd/mm/yy";
+};

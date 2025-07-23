@@ -10,9 +10,8 @@ import { SelectButton } from "primereact/selectbutton";
 import { Steps } from "primereact/steps";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
-import { getDateFormat } from "@/config/dateFormats";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
-import { convertDateToISO } from "@/utils/date";
+import { convertDateToISO, getDateFormat } from "@/utils/date";
 
 // eslint-disable-next-line no-restricted-imports
 import styles from "../../AssignmentBuilder.module.css";
