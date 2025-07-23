@@ -565,12 +565,13 @@ def manifest_data_to_db(course_name, manifest_path):
     chap = 0
     for chapter in root.findall("./chapter"):
         rslogger.info(chapter)
+        cnum = chapter.find("./number").text
         chap += 1
         rslogger.debug(
             f"{chapter.tag} {chapter.find('./id').text} {chapter.find('./title').text}"
         )
         ins = chapters.insert().values(
-            chapter_name=chapter.find("./title").text,
+            chapter_name=f"{cnum} {chapter.find('./title').text}",
             course_id=course_name,
             chapter_label=chapter.find("./id").text,
             chapter_num=chap,
@@ -585,7 +586,7 @@ def manifest_data_to_db(course_name, manifest_path):
         #  sub_chapter_num    | integer
         for subchapter in chapter.findall("./subchapter"):
             subchap += 1
-
+            scnum = subchapter.find("./number").text
             chap_xmlid = subchapter.find("./id").text
             rslogger.debug(f"subchapter {chap_xmlid}")
             if not chap_xmlid:
@@ -602,6 +603,7 @@ def manifest_data_to_db(course_name, manifest_path):
                         for y in subchapter.findall("./title/*")
                     ]
                 )
+            titletext = scnum + " " + titletext.strip()
             ins = subchapters.insert().values(
                 sub_chapter_name=titletext,
                 chapter_id=chapid,
