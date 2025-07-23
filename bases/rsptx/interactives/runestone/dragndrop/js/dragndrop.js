@@ -286,7 +286,14 @@ export default class DragNDrop extends RunestoneBase {
                 if (this.answerState[response.id]) {
                     for (let premise of this.answerState[response.id]) {
                         placedPremises.push(premise);
-                        response.appendChild(this.findPremise(premise));
+                        let foundPremise = this.findPremise(premise);
+                        if (foundPremise) {
+                            response.appendChild(foundPremise);
+                        } else {
+                            console.warn(
+                                `Premise with ID ${premise} not found in premiseArray`
+                            );
+                        }
                     }
                 }
             }
@@ -304,6 +311,23 @@ export default class DragNDrop extends RunestoneBase {
                 return premise;
             }
         }
+    }
+
+    countSavedPremises() {
+        // Count how many premises are saved in the answerState
+        let count = 0;
+        let names = {};
+        for (let response of this.answerState) {
+            if (response.length > 0) {
+                for (let premise of response) {
+                    if (!names[premise]) {
+                        count++;
+                        names[premise] = true;
+                    }
+                }
+            }
+        }
+        return count;
     }
 
     setDragListeners(dgSpan) {
