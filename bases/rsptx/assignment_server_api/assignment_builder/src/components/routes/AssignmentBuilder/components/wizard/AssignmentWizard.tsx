@@ -11,7 +11,7 @@ import { Steps } from "primereact/steps";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
 import { Assignment, KindOfAssignment } from "@/types/assignment";
-import { convertDateToISO } from "@/utils/date";
+import { convertDateToISO, getDateFormat } from "@/utils/date";
 
 // eslint-disable-next-line no-restricted-imports
 import styles from "../../AssignmentBuilder.module.css";
@@ -114,7 +114,7 @@ export const AssignmentWizard = ({
               render={({ field }) => (
                 <Calendar
                   hideOnDateTimeSelect
-                  dateFormat="dd/mm/yy"
+                  dateFormat={getDateFormat()}
                   stepMinute={5}
                   value={field.value ? new Date(field.value) : null}
                   onChange={(e) => field.onChange(convertDateToISO(e.value!))}
