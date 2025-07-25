@@ -45,6 +45,12 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
     ...(data.question_type === "fillintheblank" && {
       questionText: data.questionText,
       blanks: data.blanks
+    }),
+    ...(data.question_type === "selectquestion" && {
+      questionList: data.questionList,
+      abExperimentName: data.abExperimentName,
+      toggleOptions: data.toggleOptions,
+      dataLimitBasecourse: data.dataLimitBasecourse
     })
   };
 
