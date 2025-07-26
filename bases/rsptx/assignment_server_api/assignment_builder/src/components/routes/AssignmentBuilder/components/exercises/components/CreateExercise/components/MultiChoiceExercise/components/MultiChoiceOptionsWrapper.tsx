@@ -17,11 +17,11 @@ export const MultiChoiceOptionsWrapper: FC<MultiChoiceOptionsWrapperProps> = ({
   statement
 }) => {
   return (
-    <div className={styles.twoColumnLayout}>
-      <div className={styles.statementColumn}>
+    <div className={styles.verticalLayout}>
+      <div className={styles.statementSection}>
         <StatementPreview statement={statement} />
       </div>
-      <div className={styles.optionsColumn}>
+      <div className={styles.optionsSection}>
         <MultiChoiceOptions options={options} onChange={onChange} />
       </div>
     </div>

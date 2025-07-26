@@ -3,7 +3,7 @@
   flex-direction: column;
   position: relative;
   background: #fff;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .optionsHeader {
@@ -54,49 +54,54 @@
 
 .optionsContent {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow-y: auto;
-  overflow-x: hidden;
-  height: 0;
   padding: 1.5rem;
-  box-sizing: border-box;
+  background: white;
+  overflow: visible;
 }
 
 .optionsList {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.75rem 0.5rem;
+  gap: 1rem;
 }
 
 .optionContainer {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 0.75rem;
-  padding: 0.75rem;
+  padding: 1rem;
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  background-color: #f8fafc;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
   position: relative;
-  flex-shrink: 0;
 }
 
 .optionContainer:hover {
-  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.optionContainer:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .dragHandle {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: grab;
+  width: 2rem;
   color: #94a3b8;
+  cursor: grab;
+  transition: color 0.2s ease;
   padding: 0.5rem 0.25rem;
-  height: 100%;
-  align-self: stretch;
-  flex-shrink: 0;
+  border-radius: 0.25rem;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
 }
 
 .dragHandle:hover {
@@ -152,11 +157,8 @@
   border: 1px solid #e2e8f0;
   border-radius: 0.375rem;
   background-color: white;
-  overflow: hidden;
+  overflow: visible;
   min-height: 2.5rem;
-  /* Make editors more compact */
-  max-height: 3.5rem;
-  overflow-y: auto;
 }
 
 .editorContainer > div {
@@ -165,8 +167,6 @@
 
 .editorContainer :global(.ProseMirror) {
   min-height: 2rem;
-  max-height: 3rem;
-  overflow-y: auto;
 }
 
 .emptyEditor {
@@ -250,16 +250,35 @@
 }
 
 @media (max-width: 768px) {
+  .optionsContainer {
+    overflow: visible;
+  }
+
+  .optionsHeader {
+    padding: 0.75rem 1rem;
+  }
+
+  .optionsHeader h3 {
+    font-size: 0.95rem;
+  }
+
+  .addButton {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.6rem;
+  }
+
   .optionsContent {
-    padding: 1rem;
+    padding: 0.75rem;
+    overflow: visible;
   }
 
   .optionContainer {
     padding: 0.75rem;
+    margin-bottom: 0.75rem;
   }
 
   .horizontalLayout {
-    gap: 0.75rem;
+    gap: 0.5rem;
     flex-direction: column;
   }
 
@@ -269,9 +288,19 @@
     width: 100%;
   }
 
+  .editorContainer {
+    overflow: visible;
+  }
+
   .controlsSection {
     justify-content: flex-start;
     min-width: auto;
     width: 100%;
+    gap: 0.5rem;
+  }
+
+  .optionLabel {
+    font-size: 0.7rem;
+    margin-bottom: 0.2rem;
   }
 }
