@@ -51,11 +51,11 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
       icon: "pi pi-cog",
       command: () => navigateToPath("/admin/instructor/menu")
     },
-    {
-      label: "Grader",
-      icon: "pi pi-gauge",
-      command: () => navigateToPath("grader")
-    },
+    // {
+    //   label: "Grader",
+    //   icon: "pi pi-gauge",
+    //   command: () => navigateToPath("grader")
+    // },
     {
       label: "Assignment Builder",
       icon: "pi pi-file-edit",
