@@ -47,7 +47,7 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
       command: () => navigateToPath("/ns/books/published/" + course + "/index.html")
     },
     {
-      label: "Admin",
+      label: "Dashboard",
       icon: "pi pi-cog",
       command: () => navigateToPath("/admin/instructor/menu")
     },
