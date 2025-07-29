@@ -512,7 +512,6 @@ def manifest_data_to_db(course_name, manifest_path):
         course_name {string} -- Name of the course (should be a base course)
         manifest_path {path} -- path to runestone-manifest.xml file
     """
-
     try:
         DBURL = get_dburl()
     except KeyError:
@@ -525,6 +524,25 @@ def manifest_data_to_db(course_name, manifest_path):
     engine.connect()
     Session.configure(bind=engine)
     sess = Session()
+
+    # Initialize database tables and metadata
+    db_context = _initialize_db_context(engine, sess, course_name, manifest_path)
+
+    # Clean up old data
+    print("Cleaning up old data...")
+    _cleanup_old_data(sess, db_context, course_name)
+
+    # Process chapters and content
+    _process_chapters(sess, db_context, course_name, manifest_path)
+
+    # Set course attributes
+    _set_course_attributes(sess, db_context, course_name, manifest_path)
+
+    sess.commit()
+
+
+def _initialize_db_context(engine, sess, course_name, manifest_path):
+    """Initialize database tables and extract metadata from manifest."""
     meta = MetaData()
     chapters = Table("chapters", meta, autoload_with=engine)
     subchapters = Table("sub_chapters", meta, autoload_with=engine)
@@ -532,6 +550,8 @@ def manifest_data_to_db(course_name, manifest_path):
     book_author = Table("book_author", meta, autoload_with=engine)
     source_code = Table("source_code", meta, autoload_with=engine)
     course_attributes = Table("course_attributes", meta, autoload_with=engine)
+    assignments = Table("assignments", meta, autoload_with=engine)
+    assignment_questions = Table("assignment_questions", meta, autoload_with=engine)
 
     # Get the author name from the manifest
     tree = ET.parse(manifest_path)
@@ -539,270 +559,581 @@ def manifest_data_to_db(course_name, manifest_path):
     author = extract_docinfo(docinfo, "author")
     res = sess.execute(book_author.select().where(book_author.c.book == course_name))
     book_author_data = res.first()
-    # the owner is the username of the author
-    owner = book_author_data.author
+    owner = book_author_data.author  # the owner is the username of the author
 
+    # Compile image patterns
+    ext_img_patt = re.compile(r"""src="external""")
+    gen_img_patt = re.compile(r"""src="generated""")
+
+    course = sess.execute(
+        text(f"select * from courses where course_name ='{course_name}'")
+    ).first()
+
+    return {
+        "chapters": chapters,
+        "subchapters": subchapters,
+        "questions": questions,
+        "book_author": book_author,
+        "source_code": source_code,
+        "course_attributes": course_attributes,
+        "assignments": assignments,
+        "assignment_questions": assignment_questions,
+        "author": author,
+        "owner": owner,
+        "course": course,
+        "ext_img_patt": ext_img_patt,
+        "gen_img_patt": gen_img_patt,
+    }
+
+
+def _cleanup_old_data(sess, db_context, course_name):
+    """Clean up old chapters and mark existing questions as not from source."""
     rslogger.info(f"Cleaning up old chapters info for {course_name}")
-    # Delete the chapter rows before repopulating. Subchapter rows are taken
-    # care of by postgres with the ON DELETE CASCADE clause
 
-    sess.execute(chapters.delete().where(chapters.c.course_id == course_name))
-
-    # Mark existing questions as from_source = 'F' all questions in the manifest will be updated
-    # and marked as from_source = 'T' if they are in the manifest.
+    # Delete the chapter rows before repopulating
     sess.execute(
-        questions.update()
-        .where(questions.c.base_course == course_name)
+        db_context["chapters"]
+        .delete()
+        .where(db_context["chapters"].c.course_id == course_name)
+    )
+
+    # Mark existing questions as from_source = 'F'
+    sess.execute(
+        db_context["questions"]
+        .update()
+        .where(db_context["questions"].c.base_course == course_name)
         .values(from_source="F")
     )
 
+
+def _process_chapters(sess, db_context, course_name, manifest_path):
+    """Process all chapters from the manifest."""
     rslogger.info("Populating the database with Chapter information")
-    ext_img_patt = re.compile(r"""src="external""")
-    gen_img_patt = re.compile(r"""src="generated""")
 
     tree = ET.parse(manifest_path)
     root = tree.getroot()
     chap = 0
+
     for chapter in root.findall("./chapter"):
-        rslogger.info(chapter)
-        cnum = chapter.find("./number").text
         chap += 1
-        rslogger.debug(
-            f"{chapter.tag} {chapter.find('./id').text} {chapter.find('./title').text}"
-        )
-        ins = chapters.insert().values(
+        chapid = _process_single_chapter(sess, db_context, chapter, chap, course_name)
+        _process_subchapters(sess, db_context, chapter, chapid, course_name)
+
+
+def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
+    """Process a single chapter and return its database ID."""
+    rslogger.info(chapter)
+    cnum = chapter.find("./number").text
+
+    rslogger.debug(
+        f"{chapter.tag} {chapter.find('./id').text} {chapter.find('./title').text}"
+    )
+
+    ins = (
+        db_context["chapters"]
+        .insert()
+        .values(
             chapter_name=f"{cnum} {chapter.find('./title').text}",
             course_id=course_name,
             chapter_label=chapter.find("./id").text,
-            chapter_num=chap,
+            chapter_num=chap_num,
         )
+    )
+    res = sess.execute(ins)
+    return res.inserted_primary_key[0]
+
+
+def _process_subchapters(sess, db_context, chapter, chapid, course_name):
+    """Process all subchapters for a given chapter."""
+    subchap = 0
+
+    for subchapter in chapter.findall("./subchapter"):
+        # check if this subchapter has a time-limit attribute
+        if "data-time" in subchapter.attrib:
+            _process_single_timed_assignment(
+                sess, db_context, chapter, subchapter, course_name
+            )
+            continue
+        # look for a subsubchapter with a time-limit attribute
+        # at this point (7/28/2025) the only reason for a subsubchapter
+        # is to have a timed assignment, so we can skip the rest of the
+        for subsubchapter in subchapter.findall("./subsubchapter"):
+            if "data-time" in subsubchapter.attrib:
+                _process_single_timed_assignment(
+                    sess, db_context, chapter, subsubchapter, course_name
+                )
+                continue
+        subchap += 1
+        _process_single_subchapter(
+            sess, db_context, chapter, subchapter, chapid, subchap, course_name
+        )
+
+
+def _process_single_subchapter(
+    sess, db_context, chapter, subchapter, chapid, subchap_num, course_name
+):
+    """Process a single subchapter and its contents."""
+    scnum = subchapter.find("./number").text
+    chap_xmlid = subchapter.find("./id").text
+    rslogger.debug(f"subchapter {chap_xmlid}")
+
+    if not chap_xmlid:
+        rslogger.error(f"Missing id tag in subchapter {subchapter}")
+
+    # Build subchapter title
+    titletext = subchapter.find("./title").text
+    if not titletext:
+        rslogger.debug(f"constructing title for subchapter {chap_xmlid}")
+        titletext = " ".join(
+            [ET.tostring(y).decode("utf8") for y in subchapter.findall("./title/*")]
+        )
+    titletext = scnum + " " + titletext.strip()
+
+    # Insert subchapter
+    ins = (
+        db_context["subchapters"]
+        .insert()
+        .values(
+            sub_chapter_name=titletext,
+            chapter_id=chapid,
+            sub_chapter_label=subchapter.find("./id").text,
+            skipreading="F",
+            sub_chapter_num=subchap_num,
+        )
+    )
+    sess.execute(ins)
+
+    # Add page entry to questions table
+    _add_page_question(sess, db_context, chapter, subchapter, course_name)
+
+    # Process questions in this subchapter
+    _process_questions(sess, db_context, chapter, subchapter, course_name)
+
+    # Process source elements
+    _process_source_elements(sess, subchapter, course_name)
+
+
+def _upsert_assignment(sess, db_context, assignment_data):
+    """Insert or update an assignment in the database.
+
+    Args:
+        sess: Database session
+        db_context: Database context containing table references
+        assignment_data: Dictionary containing assignment data
+
+    Returns:
+        Assignment ID (either new or existing)
+    """
+    assignments_table = db_context["assignments"]
+
+    # Check if assignment already exists
+    existing_query = assignments_table.select().where(
+        and_(
+            assignments_table.c.name == assignment_data["name"],
+            assignments_table.c.course == assignment_data["course"],
+        )
+    )
+    existing_result = sess.execute(existing_query).first()
+
+    if existing_result:
+        # Update existing assignment
+        update_stmt = (
+            assignments_table.update()
+            .where(assignments_table.c.id == existing_result.id)
+            .values(**assignment_data)
+        )
+        sess.execute(update_stmt)
+        return existing_result.id
+    else:
+        # Insert new assignment
+        insert_stmt = assignments_table.insert().values(**assignment_data)
+        result = sess.execute(insert_stmt)
+        return result.inserted_primary_key[0]
+
+
+def _upsert_assignment_question(
+    sess, db_context, assignment_id, question_id, sorting_priority
+):
+    """Insert or update an assignment question in the database.
+
+    Args:
+        sess: Database session
+        db_context: Database context containing table references
+        assignment_id: ID of the assignment
+        question_id: ID of the question
+        sorting_priority: Sorting priority for the question in the assignment
+
+    Returns:
+        Assignment question ID (either new or existing)
+    """
+    assignment_questions_table = db_context["assignment_questions"]
+
+    # Check if assignment question already exists
+    existing_query = assignment_questions_table.select().where(
+        and_(
+            assignment_questions_table.c.assignment_id == assignment_id,
+            assignment_questions_table.c.question_id == question_id,
+        )
+    )
+    existing_result = sess.execute(existing_query).first()
+
+    assignment_question_data = {
+        "assignment_id": assignment_id,
+        "question_id": question_id,
+        "points": 1,
+        "sorting_priority": sorting_priority,
+        "which_to_grade": "last_answer",
+        "autograde": "pct_correct",
+    }
+
+    if existing_result:
+        # Update existing assignment question
+        update_stmt = (
+            assignment_questions_table.update()
+            .where(assignment_questions_table.c.id == existing_result.id)
+            .values(**assignment_question_data)
+        )
+        sess.execute(update_stmt)
+        return existing_result.id
+    else:
+        # Insert new assignment question
+        insert_stmt = assignment_questions_table.insert().values(
+            **assignment_question_data
+        )
+        result = sess.execute(insert_stmt)
+        return result.inserted_primary_key[0]
+
+
+def _process_single_timed_assignment(
+    sess, db_context, chapter, subchapter, course_name
+):
+    """Process a timed assignment subchapter."""
+    rslogger.info("Processing timed assignment subchapter")
+    titletext = subchapter.find("./title").text.strip()
+    if not titletext:
+        titletext = "Timed Assignment"
+    timed_id = subchapter.find("./id").text
+    time_limit = subchapter.attrib.get("data-time", "0")
+    # no-result, no-feedback, no-pause
+    show_feedback = "F" if subchapter.attrib.get("data-no-feedback", "") else "T"
+    pause = "F" if subchapter.attrib.get("data-no-pause", "") else "T"
+
+    # Prepare assignment data
+    assignment_data = {
+        "name": timed_id,
+        "is_timed": "T",
+        "is_peer": "F",
+        "time_limit": time_limit,
+        "nopause": pause,
+        "nofeedback": show_feedback,
+        "duedate": datetime.datetime.now() + datetime.timedelta(days=7),
+        "course": db_context["course"].id,
+        "kind": "Timed",
+        "released": "F",
+        "visible": "T",
+        "from_source": "T",
+    }
+
+    # Upsert the assignment
+    assignment_id = _upsert_assignment(sess, db_context, assignment_data)
+
+    # Now search for questions in this subchapter
+    qnum = 0
+    for question in subchapter.findall("./question"):
+        qnum += 1
+        # Extract question content
+        dbtext = " ".join(
+            [ET.tostring(y).decode("utf8") for y in question.findall("./htmlsrc/*")]
+        )
+        qlabel = " ".join([y.text for y in question.findall("./label")])
+        rslogger.debug(f"found label= {qlabel}")
+
+        # Get question element and metadata
+        el, idchild, old_ww_id, qtype = _extract_question_metadata(question, dbtext)
+
+        # Handle webwork case where we need to update dbtext
+        if qtype == "webwork" and el is not None:
+            dbtext = ET.tostring(el).decode("utf8")
+
+        # Build question data
+        valudict = dict(
+            base_course=course_name,
+            name=idchild,
+            timestamp=datetime.datetime.now(),
+            is_private="F",
+            question_type=qtype,
+            htmlsrc=dbtext,
+            autograde=_determine_autograde(dbtext),
+            from_source="T",
+            chapter=chapter.find("./id").text,
+            subchapter=subchapter.find("./id").text,
+            topic=f"{chapter.find('./id').text}/{subchapter.find('./id').text}",
+            qnumber=qlabel,
+            optional="F",
+            practice="F",
+            author=db_context["author"],
+            owner=db_context["owner"],
+        )
+
+        # Insert or update question
+        namekey = old_ww_id if old_ww_id else idchild
+        qid = _upsert_question(sess, db_context, namekey, valudict, course_name)
+        print(f"Adding question {qid} to assignment {assignment_id}")
+        # Add the question to the assignment_questions table
+        _upsert_assignment_question(sess, db_context, assignment_id, qid, qnum)
+
+
+def _add_page_question(sess, db_context, chapter, subchapter, course_name):
+    """Add a page entry to the questions table for this chapter/subchapter."""
+    name = f"{chapter.find('./title').text}/{subchapter.find('./title').text}"
+
+    res = sess.execute(
+        text(
+            "select * from questions where name = :name and base_course = :course_name"
+        ),
+        dict(name=name, course_name=course_name),
+    ).first()
+
+    valudict = dict(
+        base_course=course_name,
+        name=name,
+        timestamp=datetime.datetime.now(),
+        is_private="F",
+        question_type="page",
+        subchapter=subchapter.find("./id").text,
+        chapter=chapter.find("./id").text,
+        from_source="T",
+        author=db_context["author"],
+        owner=db_context["owner"],
+    )
+
+    if res:
+        ins = (
+            db_context["questions"]
+            .update()
+            .where(
+                and_(
+                    db_context["questions"].c.name == name,
+                    db_context["questions"].c.base_course == course_name,
+                )
+            )
+            .values(**valudict)
+        )
+    else:
+        ins = db_context["questions"].insert().values(**valudict)
+
+    sess.execute(ins)
+
+
+def _process_questions(sess, db_context, chapter, subchapter, course_name):
+    """Process all questions in a subchapter."""
+    for question in subchapter.findall("./question"):
+        _process_single_question(
+            sess, db_context, chapter, subchapter, question, course_name
+        )
+
+
+def _process_single_question(
+    sess, db_context, chapter, subchapter, question, course_name
+):
+    """Process a single question element."""
+    # Extract question content
+    dbtext = " ".join(
+        [ET.tostring(y).decode("utf8") for y in question.findall("./htmlsrc/*")]
+    )
+    qlabel = " ".join([y.text for y in question.findall("./label")])
+    rslogger.debug(f"found label= {qlabel}")
+
+    # Get question element and metadata
+    el, idchild, old_ww_id, qtype = _extract_question_metadata(question, dbtext)
+
+    # Handle webwork case where we need to update dbtext
+    if qtype == "webwork" and el is not None:
+        dbtext = ET.tostring(el).decode("utf8")
+
+    # Determine question properties
+    optional = "T" if ("optional" in question.attrib or qtype == "datafile") else "F"
+    practice = _determine_practice_flag(qtype, el)
+    autograde = _determine_autograde(dbtext)
+
+    # Fix image URLs
+    dbtext = _fix_image_urls(dbtext, db_context, course_name)
+
+    # Build question data
+    sbc = subchapter.find("./id").text
+    cpt = chapter.find("./id").text
+    valudict = dict(
+        base_course=course_name,
+        name=idchild,
+        timestamp=datetime.datetime.now(),
+        is_private="F",
+        question_type=qtype,
+        htmlsrc=dbtext,
+        autograde=autograde,
+        from_source="T",
+        chapter=cpt,
+        subchapter=sbc,
+        topic=f"{cpt}/{sbc}",
+        qnumber=qlabel,
+        optional=optional,
+        practice=practice,
+        author=db_context["author"],
+        owner=db_context["owner"],
+    )
+
+    # Insert or update question
+    namekey = old_ww_id if old_ww_id else idchild
+    _upsert_question(sess, db_context, namekey, valudict, course_name)
+
+    # Handle datafile content
+    if qtype == "datafile":
+        _handle_datafile(el, course_name)
+
+
+def _extract_question_metadata(question, dbtext):
+    """Extract metadata from a question element."""
+    el = question.find(".//*[@data-component]")
+    old_ww_id = None
+
+    if el is not None:
+        idchild = el.attrib.get("id", "fix_me")
+        if "the-id-on-the-webwork" in el.attrib:
+            old_ww_id = el.attrib["the-id-on-the-webwork"]
+    else:
+        el = question.find("./div")
+        if el is None:
+            idchild = "fix_me"
+            rslogger.error(
+                f"no id found for question: \n{ET.tostring(question).decode('utf8')}"
+            )
+        else:
+            idchild = el.attrib.get("id", "fix_me")
+
+    # Determine question type
+    try:
+        qtype = el.attrib["data-component"]
+        if qtype == "codelens":
+            id_el = el.find("./*[@class='pytutorVisualizer']")
+            idchild = id_el.attrib["id"]
+        qtype = QT_MAP.get(qtype, qtype)
+    except Exception:
+        if el is not None:
+            qtype = "webwork"
+            # Note: dbtext will be updated with ET.tostring(el) in the calling function if needed
+        else:
+            qtype = "unknown"
+
+    return el, idchild, old_ww_id, qtype
+
+
+def _determine_practice_flag(qtype, el):
+    """Determine if this is a practice question."""
+    if qtype == "webwork":
+        return "T"
+    if el is not None and "practice" in el.attrib:
+        return "T"
+    return "F"
+
+
+def _determine_autograde(dbtext):
+    """Determine autograde setting based on content."""
+    if "====" in dbtext:
+        extraCode = dbtext.partition("====")[2]
+        for utKeyword in ["assert", "unittest", "TEST_CASE", "junit"]:
+            if utKeyword in extraCode:
+                return "unittest"
+    return ""
+
+
+def _fix_image_urls(dbtext, db_context, course_name):
+    """Fix image URLs in the content to be relative to the book."""
+    dbtext = db_context["ext_img_patt"].sub(
+        f"""src="/ns/books/published/{course_name}/external""", dbtext
+    )
+    dbtext = db_context["gen_img_patt"].sub(
+        f"""src="/ns/books/published/{course_name}/generated""", dbtext
+    )
+    return dbtext
+
+
+def _upsert_question(sess, db_context, namekey, valudict, course_name):
+    """Insert or update a question in the database."""
+    res = sess.execute(
+        text(
+            f"select * from questions where name='{namekey}' and base_course='{course_name}'"
+        )
+    ).first()
+
+    if res:
+        # delete name and base_course from valudict to avoid conflicts
+        valudict.pop("name", None)
+        valudict.pop("base_course", None)
+        # Update existing question
+        result_id = res.id
+        rslogger.debug(f"Updating question {namekey} in {course_name}")
+        ins = (
+            db_context["questions"]
+            .update()
+            .where(
+                and_(
+                    db_context["questions"].c.name == namekey,
+                    db_context["questions"].c.base_course == course_name,
+                )
+            )
+            .values(**valudict)
+        )
+        sess.execute(ins)
+    else:
+        ins = db_context["questions"].insert().values(**valudict)
         res = sess.execute(ins)
-        chapid = res.inserted_primary_key[0]
-        subchap = 0
-        #  sub_chapter_name   | character varying(512)
-        #  chapter_id         | integer
-        #  sub_chapter_label  | character varying(512)
-        #  skipreading        | character(1)
-        #  sub_chapter_num    | integer
-        for subchapter in chapter.findall("./subchapter"):
-            subchap += 1
-            scnum = subchapter.find("./number").text
-            chap_xmlid = subchapter.find("./id").text
-            rslogger.debug(f"subchapter {chap_xmlid}")
-            if not chap_xmlid:
-                rslogger.error(f"Missing id tag in subchapter {subchapter}")
+        result_id = res.inserted_primary_key[0]
 
-            titletext = subchapter.find("./title").text
-            if not titletext:
-                rslogger.debug(f"constructing title for subchapter {chap_xmlid}")
-                # ET.tostring  converts the tag and everything to text
-                # el.text gets the text inside the element
-                titletext = " ".join(
-                    [
-                        ET.tostring(y).decode("utf8")
-                        for y in subchapter.findall("./title/*")
-                    ]
-                )
-            titletext = scnum + " " + titletext.strip()
-            ins = subchapters.insert().values(
-                sub_chapter_name=titletext,
-                chapter_id=chapid,
-                sub_chapter_label=subchapter.find("./id").text,
-                skipreading="F",
-                sub_chapter_num=subchap,
-            )
-            sess.execute(ins)
+    return result_id
 
-            # Now add this chapter / subchapter to the questions table as a page entry
-            name = f"{chapter.find('./title').text}/{subchapter.find('./title').text}"
-            res = sess.execute(
-                text(
-                    """select * from questions where name = :name and base_course = :course_name"""
-                ),
-                dict(name=name, course_name=course_name),
-            ).first()
-            valudict = dict(
-                base_course=course_name,
-                name=name,
-                timestamp=datetime.datetime.now(),
-                is_private="F",
-                question_type="page",
-                subchapter=subchapter.find("./id").text,
-                chapter=chapter.find("./id").text,
-                from_source="T",
-                author=author,
-                owner=owner,
-            )
-            if res:
-                ins = (
-                    questions.update()
-                    .where(
-                        and_(
-                            questions.c.name == name,
-                            questions.c.base_course == course_name,
-                        )
-                    )
-                    .values(**valudict)
-                )
-            else:
-                ins = questions.insert().values(**valudict)
-            sess.execute(ins)
 
-            for question in subchapter.findall("./question"):
-                dbtext = " ".join(
-                    [
-                        ET.tostring(y).decode("utf8")
-                        for y in question.findall("./htmlsrc/*")
-                    ]
-                )
-                qlabel = " ".join([y.text for y in question.findall("./label")])
-                rslogger.debug(f"found label= {qlabel}")
-                rslogger.debug("looking for data-component")
-                # pdb.set_trace()
+def _handle_datafile(el, course_name):
+    """Handle datafile-specific processing."""
+    if "data-isimage" in el.attrib:
+        file_contents = el.attrib["src"]
+        if file_contents.startswith("data:"):
+            file_contents = file_contents.split("base64,")[1]
+    else:
+        file_contents = el.text
 
-                el = question.find(".//*[@data-component]")
-                old_ww_id = None
-                # Unbelievably if find finds something it evals to False!!
-                if el is not None:
-                    if "id" in el.attrib:
-                        idchild = el.attrib["id"]
-                    else:
-                        idchild = "fix_me"
-                    if "the-id-on-the-webwork" in el.attrib:
-                        old_ww_id = el.attrib["the-id-on-the-webwork"]
-                else:
-                    el = question.find("./div")
-                    if el is None:
-                        idchild = "fix_me"
-                        rslogger.error(
-                            f"no id found for question: \n{ET.tostring(question).decode('utf8')}"
-                        )
-                    elif "id" in el.attrib:
-                        idchild = el.attrib["id"]
-                    else:
-                        idchild = "fix_me"
-                try:
-                    qtype = el.attrib["data-component"]
-                    if qtype == "codelens":
-                        # pdb.set_trace()
-                        id_el = el.find("./*[@class='pytutorVisualizer']")
-                        idchild = id_el.attrib["id"]
-                    # translate qtype to question_type
-                    qtype = QT_MAP.get(qtype, qtype)
-                except Exception:
-                    if el is not None:
-                        qtype = "webwork"
-                        dbtext = ET.tostring(el).decode("utf8")
+    filename = el.attrib.get("data-filename", el.attrib["id"])
+    id = el.attrib["id"]
 
-                if "optional" in question.attrib or qtype == "datafile":
-                    optional = "T"
-                else:
-                    optional = "F"
-                practice = "F"
-                if qtype == "webwork":
-                    practice = "T"
-                if el is not None and "practice" in el.attrib:
-                    practice = "T"
-                autograde = ""
-                if "====" in dbtext:
-                    extraCode = dbtext.partition("====")[2]  # text after ====
-                    # keywords for sql, py, cpp, java respectively
-                    for utKeyword in ["assert", "unittest", "TEST_CASE", "junit"]:
-                        if utKeyword in extraCode:
-                            autograde = "unittest"
-                            break
-                # chapter and subchapter are elements
-                # fix image urls in dbtext to be relative to the book
-                dbtext = ext_img_patt.sub(
-                    f"""src="/ns/books/published/{course_name}/external""", dbtext
-                )
-                dbtext = gen_img_patt.sub(
-                    f"""src="/ns/books/published/{course_name}/generated""", dbtext
-                )
-                sbc = subchapter.find("./id").text
-                cpt = chapter.find("./id").text
-                valudict = dict(
-                    base_course=course_name,
-                    name=idchild,
-                    timestamp=datetime.datetime.now(),
-                    is_private="F",
-                    question_type=qtype,
-                    htmlsrc=dbtext,
-                    autograde=autograde,
-                    from_source="T",
-                    chapter=cpt,
-                    subchapter=sbc,
-                    topic=f"{cpt}/{sbc}",
-                    qnumber=qlabel,
-                    optional=optional,
-                    practice=practice,
-                    author=author,
-                    owner=owner,
-                )
-                if old_ww_id:
-                    namekey = old_ww_id
-                else:
-                    namekey = idchild
-                res = sess.execute(
-                    text(
-                        f"""select * from questions where name='{namekey}' and base_course='{course_name}'"""
-                    )
-                ).first()
-                if res:
-                    ins = (
-                        questions.update()
-                        .where(
-                            and_(
-                                questions.c.name == namekey,
-                                questions.c.base_course == course_name,
-                            )
-                        )
-                        .values(**valudict)
-                    )
-                else:
-                    ins = questions.insert().values(**valudict)
-                sess.execute(ins)
-                if qtype == "datafile":
-                    if "data-isimage" in el.attrib:
-                        file_contents = el.attrib["src"]
-                        if file_contents.startswith("data:"):
-                            file_contents = file_contents.split("base64,")[1]
-                    else:
-                        file_contents = el.text
-                    if "data-filename" in el.attrib:
-                        filename = el.attrib["data-filename"]
-                    else:
-                        filename = el.attrib["id"]
-                    id = el.attrib["id"]
+    update_source_code_sync(
+        acid=id,
+        course_id=course_name,
+        main_code=file_contents,
+        filename=filename,
+    )
 
-                    # manifest_data_to_db gets called from sync/async contexts
-                    # so must use sync DB access to avoid asyncio error
-                    # if process_manifest moves to async we can swap this out for async and remove the sync version
-                    update_source_code_sync(
-                        acid=id,
-                        course_id=course_name,
-                        main_code=file_contents,
-                        filename=filename,
-                    )
 
-            for sourceEl in subchapter.findall("./source"):
-                id = sourceEl.attrib["id"]
-                file_contents = sourceEl.text
-                if "filename" in sourceEl.attrib:
-                    filename = sourceEl.attrib["filename"]
-                else:
-                    filename = sourceEl.attrib["id"]
+def _process_source_elements(sess, subchapter, course_name):
+    """Process source elements in a subchapter."""
+    for sourceEl in subchapter.findall("./source"):
+        id = sourceEl.attrib["id"]
+        file_contents = sourceEl.text
+        filename = sourceEl.attrib.get("filename", sourceEl.attrib["id"])
 
-                # see note above about sync/async
-                update_source_code_sync(
-                    acid=id,
-                    course_id=course_name,
-                    main_code=file_contents,
-                    filename=filename,
-                )
+        update_source_code_sync(
+            acid=id,
+            course_id=course_name,
+            main_code=file_contents,
+            filename=filename,
+        )
+
+
+def _set_course_attributes(sess, db_context, course_name, manifest_path):
+    """Set course attributes from the manifest."""
+    tree = ET.parse(manifest_path)
+    root = tree.getroot()
 
     latex = root.find("./latex-macros")
     rslogger.info("Setting attributes for this base course")
+
     ww_meta = root.find("./webwork-version")
     if ww_meta is not None:
         ww_major = ww_meta.attrib["major"]
@@ -816,36 +1147,53 @@ def manifest_data_to_db(course_name, manifest_path):
     ).first()
     cid = res.id
 
-    # Only delete latex_macros and markup_system if they are present. Leave other attributes alone.
+    # Delete and recreate specific attributes
     to_delete = ["latex_macros", "markup_system"]
     if ww_major:
-        to_delete.append("webwork_js_version")
-        to_delete.append("ptx_js_version")
+        to_delete.extend(["webwork_js_version", "ptx_js_version"])
+
     sess.execute(
-        course_attributes.delete().where(
+        db_context["course_attributes"]
+        .delete()
+        .where(
             and_(
-                course_attributes.c.course_id == cid,
-                course_attributes.c.attr.in_(to_delete),
+                db_context["course_attributes"].c.course_id == cid,
+                db_context["course_attributes"].c.attr.in_(to_delete),
             )
         )
     )
-    if ww_major:
-        ins = course_attributes.insert().values(
-            course_id=cid, attr="webwork_js_version", value=f"{ww_major}.{ww_minor}"
-        )
-        ins = course_attributes.insert().values(
-            course_id=cid, attr="ptx_js_version", value="0.3"
-        )
 
-    ins = course_attributes.insert().values(
-        course_id=cid, attr="latex_macros", value=latex.text
+    # Insert new attributes
+    if ww_major:
+        ins = (
+            db_context["course_attributes"]
+            .insert()
+            .values(
+                course_id=cid, attr="webwork_js_version", value=f"{ww_major}.{ww_minor}"
+            )
+        )
+        sess.execute(ins)
+        ins = (
+            db_context["course_attributes"]
+            .insert()
+            .values(course_id=cid, attr="ptx_js_version", value="0.3")
+        )
+        sess.execute(ins)
+
+    if latex is not None:
+        ins = (
+            db_context["course_attributes"]
+            .insert()
+            .values(course_id=cid, attr="latex_macros", value=latex.text)
+        )
+        sess.execute(ins)
+
+    ins = (
+        db_context["course_attributes"]
+        .insert()
+        .values(course_id=cid, attr="markup_system", value="PreTeXt")
     )
     sess.execute(ins)
-    ins = course_attributes.insert().values(
-        course_id=cid, attr="markup_system", value="PreTeXt"
-    )
-    sess.execute(ins)
-    sess.commit()
 
 
 class StringIOHandler(logging.Handler):
