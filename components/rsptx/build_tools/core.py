@@ -565,6 +565,10 @@ def _initialize_db_context(engine, sess, course_name, manifest_path):
     ext_img_patt = re.compile(r"""src="external""")
     gen_img_patt = re.compile(r"""src="generated""")
 
+    course = sess.execute(
+        text(f"select * from courses where course_name ='{course_name}'")
+    ).first()
+
     return {
         "chapters": chapters,
         "subchapters": subchapters,
@@ -576,6 +580,7 @@ def _initialize_db_context(engine, sess, course_name, manifest_path):
         "assignment_questions": assignment_questions,
         "author": author,
         "owner": owner,
+        "course": course,
         "ext_img_patt": ext_img_patt,
         "gen_img_patt": gen_img_patt,
     }
@@ -649,6 +654,15 @@ def _process_subchapters(sess, db_context, chapter, chapid, course_name):
                 sess, db_context, chapter, subchapter, course_name
             )
             continue
+        # look for a subsubchapter with a time-limit attribute
+        # at this point (7/28/2025) the only reason for a subsubchapter
+        # is to have a timed assignment, so we can skip the rest of the
+        for subsubchapter in subchapter.findall("./subsubchapter"):
+            if "data-time" in subsubchapter.attrib:
+                _process_single_timed_assignment(
+                    sess, db_context, chapter, subsubchapter, course_name
+                )
+                continue
         subchap += 1
         _process_single_subchapter(
             sess, db_context, chapter, subchapter, chapid, subchap, course_name
@@ -699,15 +713,174 @@ def _process_single_subchapter(
     _process_source_elements(sess, subchapter, course_name)
 
 
+def _upsert_assignment(sess, db_context, assignment_data):
+    """Insert or update an assignment in the database.
+
+    Args:
+        sess: Database session
+        db_context: Database context containing table references
+        assignment_data: Dictionary containing assignment data
+
+    Returns:
+        Assignment ID (either new or existing)
+    """
+    assignments_table = db_context["assignments"]
+
+    # Check if assignment already exists
+    existing_query = assignments_table.select().where(
+        and_(
+            assignments_table.c.name == assignment_data["name"],
+            assignments_table.c.course == assignment_data["course"],
+        )
+    )
+    existing_result = sess.execute(existing_query).first()
+
+    if existing_result:
+        # Update existing assignment
+        update_stmt = (
+            assignments_table.update()
+            .where(assignments_table.c.id == existing_result.id)
+            .values(**assignment_data)
+        )
+        sess.execute(update_stmt)
+        return existing_result.id
+    else:
+        # Insert new assignment
+        insert_stmt = assignments_table.insert().values(**assignment_data)
+        result = sess.execute(insert_stmt)
+        return result.inserted_primary_key[0]
+
+
+def _upsert_assignment_question(
+    sess, db_context, assignment_id, question_id, sorting_priority
+):
+    """Insert or update an assignment question in the database.
+
+    Args:
+        sess: Database session
+        db_context: Database context containing table references
+        assignment_id: ID of the assignment
+        question_id: ID of the question
+        sorting_priority: Sorting priority for the question in the assignment
+
+    Returns:
+        Assignment question ID (either new or existing)
+    """
+    assignment_questions_table = db_context["assignment_questions"]
+
+    # Check if assignment question already exists
+    existing_query = assignment_questions_table.select().where(
+        and_(
+            assignment_questions_table.c.assignment_id == assignment_id,
+            assignment_questions_table.c.question_id == question_id,
+        )
+    )
+    existing_result = sess.execute(existing_query).first()
+
+    assignment_question_data = {
+        "assignment_id": assignment_id,
+        "question_id": question_id,
+        "points": 1,
+        "sorting_priority": sorting_priority,
+        "which_to_grade": "last_answer",
+        "autograde": "pct_correct",
+    }
+
+    if existing_result:
+        # Update existing assignment question
+        update_stmt = (
+            assignment_questions_table.update()
+            .where(assignment_questions_table.c.id == existing_result.id)
+            .values(**assignment_question_data)
+        )
+        sess.execute(update_stmt)
+        return existing_result.id
+    else:
+        # Insert new assignment question
+        insert_stmt = assignment_questions_table.insert().values(
+            **assignment_question_data
+        )
+        result = sess.execute(insert_stmt)
+        return result.inserted_primary_key[0]
+
+
 def _process_single_timed_assignment(
     sess, db_context, chapter, subchapter, course_name
 ):
     """Process a timed assignment subchapter."""
     rslogger.info("Processing timed assignment subchapter")
-    scnum = subchapter.find("./number").text
     titletext = subchapter.find("./title").text.strip()
     if not titletext:
         titletext = "Timed Assignment"
+    timed_id = subchapter.find("./id").text
+    time_limit = subchapter.attrib.get("data-time", "0")
+    # no-result, no-feedback, no-pause
+    show_feedback = "F" if subchapter.attrib.get("data-no-feedback", "") else "T"
+    pause = "F" if subchapter.attrib.get("data-no-pause", "") else "T"
+
+    # Prepare assignment data
+    assignment_data = {
+        "name": timed_id,
+        "is_timed": "T",
+        "is_peer": "F",
+        "time_limit": time_limit,
+        "nopause": pause,
+        "nofeedback": show_feedback,
+        "duedate": datetime.datetime.now() + datetime.timedelta(days=7),
+        "course": db_context["course"].id,
+        "kind": "Timed",
+        "released": "F",
+        "visible": "T",
+        "from_source": "T",
+    }
+
+    # Upsert the assignment
+    assignment_id = _upsert_assignment(sess, db_context, assignment_data)
+
+    # Now search for questions in this subchapter
+    qnum = 0
+    for question in subchapter.findall("./question"):
+        qnum += 1
+        # Extract question content
+        dbtext = " ".join(
+            [ET.tostring(y).decode("utf8") for y in question.findall("./htmlsrc/*")]
+        )
+        qlabel = " ".join([y.text for y in question.findall("./label")])
+        rslogger.debug(f"found label= {qlabel}")
+
+        # Get question element and metadata
+        el, idchild, old_ww_id, qtype = _extract_question_metadata(question, dbtext)
+
+        # Handle webwork case where we need to update dbtext
+        if qtype == "webwork" and el is not None:
+            dbtext = ET.tostring(el).decode("utf8")
+
+        # Build question data
+        valudict = dict(
+            base_course=course_name,
+            name=idchild,
+            timestamp=datetime.datetime.now(),
+            is_private="F",
+            question_type=qtype,
+            htmlsrc=dbtext,
+            autograde=_determine_autograde(dbtext),
+            from_source="T",
+            chapter=chapter.find("./id").text,
+            subchapter=subchapter.find("./id").text,
+            topic=f"{chapter.find('./id').text}/{subchapter.find('./id').text}",
+            qnumber=qlabel,
+            optional="F",
+            practice="F",
+            author=db_context["author"],
+            owner=db_context["owner"],
+        )
+
+        # Insert or update question
+        namekey = old_ww_id if old_ww_id else idchild
+        qid = _upsert_question(sess, db_context, namekey, valudict, course_name)
+        print(f"Adding question {qid} to assignment {assignment_id}")
+        # Add the question to the assignment_questions table
+        _upsert_assignment_question(sess, db_context, assignment_id, qid, qnum)
 
 
 def _add_page_question(sess, db_context, chapter, subchapter, course_name):
@@ -892,6 +1065,12 @@ def _upsert_question(sess, db_context, namekey, valudict, course_name):
     ).first()
 
     if res:
+        # delete name and base_course from valudict to avoid conflicts
+        valudict.pop("name", None)
+        valudict.pop("base_course", None)
+        # Update existing question
+        result_id = res.id
+        rslogger.debug(f"Updating question {namekey} in {course_name}")
         ins = (
             db_context["questions"]
             .update()
@@ -903,10 +1082,13 @@ def _upsert_question(sess, db_context, namekey, valudict, course_name):
             )
             .values(**valudict)
         )
+        sess.execute(ins)
     else:
         ins = db_context["questions"].insert().values(**valudict)
+        res = sess.execute(ins)
+        result_id = res.inserted_primary_key[0]
 
-    sess.execute(ins)
+    return result_id
 
 
 def _handle_datafile(el, course_name):
