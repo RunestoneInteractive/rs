@@ -5737,7 +5737,7 @@ numpy = "^1.0.0"
 pandas = "^2.3.0"
 paver = "^1.3.4"
 pgcli = "^3.5.0"
-pretext = "^2.8.2"
+pretext = "^2.23.0"
 psycopg2-binary = "^2.9.10"
 pydal = "^20241204.1"
 pydantic = {version = "^2.0.0", extras = ["dotenv"]}
@@ -5758,7 +5758,7 @@ url = "projects/rsmanage"
 
 [[package]]
 name = "runestone"
-version = "7.8.4"
+version = "7.9.3"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
