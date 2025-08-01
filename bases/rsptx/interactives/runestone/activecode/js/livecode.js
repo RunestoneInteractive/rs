@@ -571,9 +571,10 @@ export default class LiveCode extends ActiveCode {
         let passedTests = 0;
         // we will stop on the first error
         this.errinfo = null;
+        const trimLines = (s) => s.split("\n").map( s => s.trimEnd()).join("\n")
         for (let result of resultList) {
-            const produced = result.stdout.trim();
-            const desired = result.test.out.trim();
+            const produced = trimLines(result.stdout);
+            const desired = trimLines(result.test.out);
             const tr = document.createElement("tr");
             const td1 = document.createElement("td");
             td1.classList.add("ac-feedback");
