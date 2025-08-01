@@ -344,6 +344,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-runestone}
 
   latex_base:
+    profiles: [ "author" ]
     build:
       context: ./projects/latex_base
       dockerfile: Dockerfile
