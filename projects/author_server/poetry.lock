@@ -2937,14 +2937,14 @@ text = ["pycairo (>=1.20,<2.0) ; python_version >= \"3.9\"", "pycairo (>=1.20,<=
 
 [[package]]
 name = "pretext"
-version = "2.25.0"
+version = "2.25.1"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "pretext-2.25.0-py3-none-any.whl", hash = "sha256:af35ea1ef2d702542196f35bf8016c04acfbdb3121cb6249c7c1cd4847ef81cd"},
-    {file = "pretext-2.25.0.tar.gz", hash = "sha256:f5fbdd7da1a4d3867c6b4460faf1d3102f4b16b710d0a5ec17755e02ad72b4cc"},
+    {file = "pretext-2.25.1-py3-none-any.whl", hash = "sha256:b343f7e1f65f46b5e840c18cc94d210675cba82946bb00741cd0936de2046b52"},
+    {file = "pretext-2.25.1.tar.gz", hash = "sha256:e08029a9528d6e46fa672137c3e837f41866e765b8889125cbf3e5d9f0a476a7"},
 ]
 
 [package.dependencies]
@@ -2967,9 +2967,9 @@ requests = ">=2,<3"
 single-version = ">=1,<2"
 
 [package.extras]
-all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.3.6,<0.4.0)"]
+all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.3.9,<0.4.0)"]
 homepage = ["pelican[markdown] (>=4.10,<5.0)"]
-prefigure = ["prefig[text] (>=0.3.6,<0.4.0)"]
+prefigure = ["prefig[text] (>=0.3.9,<0.4.0)"]
 
 [[package]]
 name = "prometheus-client"
@@ -3984,13 +3984,14 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.9.3"
+version = "7.9.4"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "<4.0.0,>=3.10.0"
 groups = ["main"]
 files = [
-    {file = "runestone-7.9.3-py3-none-any.whl", hash = "sha256:5c8f68184f62e516852fe9580bff4949f9cfc56f8934a2e9fc9a43b1a7294940"},
+    {file = "runestone-7.9.4-py3-none-any.whl", hash = "sha256:985a7a097cd9426e760133dbb5e4076511acf135f288e7974bd08f5f01e88907"},
+    {file = "runestone-7.9.4.tar.gz", hash = "sha256:171a8d1588477329fdcdf412a1cbd5a1c8114b175d1de18deaa2b9b80c2bad30"},
 ]
 
 [package.dependencies]
