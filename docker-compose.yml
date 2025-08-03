@@ -346,7 +346,7 @@ services:
   latex_base:
     profiles: [ "author" ]
     build:
-      context: ./projects/latex_base
+      context: ./projects/latex_image
       dockerfile: Dockerfile
     image: ghcr.io/runestoneinteractive/latex_base:important
     extra_hosts:
