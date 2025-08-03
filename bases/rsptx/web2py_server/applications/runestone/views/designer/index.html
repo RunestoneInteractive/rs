@@ -2,36 +2,42 @@
 
 {{extend 'layout.html'}}
 <style>
-h3 {
-	color: #ab1059;
-}
+	h3 {
+		color: #ab1059;
+	}
 </style>
 {{if 'message' in globals():}}
-<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" />
+<link rel="stylesheet" type="text/css"
+	href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 
 
 <div class="col-md-8 col-md-offset-2">
-<h1>{{=message}}</h1>
+	<h1>{{=message}}</h1>
 
-<p><strong>For Instructors ONLY</strong> If you are an independent learner you DO NOT need to build your own course. If you are a student and think that building your own course will show you the answers, YOU ARE WRONG.</p>
-<p>
-	This page allows you to select a book for your own class. Once you have selected and built the book, you will be able to create assignments for your students. These assignments will be published right in the book. As the instructor, You can grade your students homework, and have access to a dashboard that allows you to monitor student progress. To begin, enter a course name below. Selecting an appropriate course level will help us to recommend questions and practice exercises from the question bank.
-</p>
+	<p><strong>For Instructors ONLY</strong> If you are an independent learner you DO NOT need to build your own course.
+		If you are a student and think that building your own course will show you the answers, YOU ARE WRONG.</p>
+	<p>
+		This page allows you to select a book for your own class. Once you have selected and built the book, you will be
+		able to create assignments for your students. These assignments will be published right in the book. As the
+		instructor, You can grade your students homework, and have access to a dashboard that allows you to monitor
+		student progress. To begin, enter a course name below. Selecting an appropriate course level will help us to
+		recommend questions and practice exercises from the question bank.
+	</p>
 </div>
 
 <script type="text/javascript">
 	function validateForm() {
-	    var x = document.forms["mainform"]["projectname"].value;
-	    var basecourse = document.forms["mainform"]["coursetype"].value;
+		var x = document.forms["mainform"]["projectname"].value;
+		var basecourse = document.forms["mainform"]["coursetype"].value;
 		let instid = document.forms["mainform"]["institution"].value;
-		let level =  document.forms["mainform"]["courselevel"].value;
+		let level = document.forms["mainform"]["courselevel"].value;
 
 
-	    if (basecourse == "") {
-	        alert('Error: You must select a book for your course')
-	        return false;
-	    }
+		if (basecourse == "") {
+			alert('Error: You must select a book for your course')
+			return false;
+		}
 
 		if (instid == "") {
 			alert('Error: You must provide the name of your Institution. This is used for help your students find the correct course')
@@ -54,21 +60,21 @@ h3 {
 		}
 
 
-	    unhide_img('spinner');
-	    return true
+		unhide_img('spinner');
+		return true
 	}
 
 	function suggested_course_name() {
 		let d = new Date();
-		const getSeason = d => Math.floor(((d.getMonth()+1) / 12 * 4)) % 4
+		const getSeason = d => Math.floor(((d.getMonth() + 1) / 12 * 4)) % 4
 		let season = ['winter', 'spring', 'summer', 'fall'][getSeason(d)]
 
 		var basecourse = document.forms["mainform"]["coursetype"].value;
 		let instid = document.forms["mainform"]["institution"].value;
 		let suggestedCourse = ""
 
-		if ( instid ) {
-			suggestedCourse += instid.toLowerCase().replace(/ /g,'');
+		if (instid) {
+			suggestedCourse += instid.toLowerCase().replace(/ /g, '');
 		}
 		if (basecourse) {
 			suggestedCourse += "_" + basecourse.toLowerCase();
@@ -82,20 +88,24 @@ h3 {
 
 </script>
 <div class="col-md-8 col-md-offset-2">
-	<form name="mainform" action="/{{=request.application}}/{{=request.controller}}/build" method="get" onsubmit="return validateForm();">
+	<form name="mainform" action="/{{=request.application}}/{{=request.controller}}/build" method="get"
+		onsubmit="return validateForm();">
 
 		<div class="form-group row">
 			<div class="col-md-8">
 				<h3>Step 1</h3>
-				<p><i>Tell us the name of your Institution and your US State. We may use this to verify your status as an instructor. The state is required by non-profit tax codes.</i></p>
+				<p><i>Tell us the name of your Institution and your US State. We may use this to verify your status as
+						an instructor. The state is required by non-profit tax codes.</i></p>
 				<label for="institution">Institution (required)</label>
-				<input type="text" class="form-control" placeholder="Your school" name="institution" id="institution" onchange="suggested_course_name()" />
+				<input type="text" class="form-control" placeholder="Your school" name="institution" id="institution"
+					onchange="suggested_course_name()" />
 				<label for="state">United States - State</label>
 				<select id="state" name="state" required>
 					<option value="">Choose</option>
 					<option value="NA">Not in the United States</option>
 					<option value="AL">Alabama</option>
 					<option value="AK">Alaska</option>
+					<option value="AS">American Samoa</option>
 					<option value="AZ">Arizona</option>
 					<option value="AR">Arkansas</option>
 					<option value="CA">California</option>
@@ -105,6 +115,7 @@ h3 {
 					<option value="DC">District Of Columbia</option>
 					<option value="FL">Florida</option>
 					<option value="GA">Georgia</option>
+					<option value="GU">Guam</option>
 					<option value="HI">Hawaii</option>
 					<option value="ID">Idaho</option>
 					<option value="IL">Illinois</option>
@@ -120,6 +131,7 @@ h3 {
 					<option value="MN">Minnesota</option>
 					<option value="MS">Mississippi</option>
 					<option value="MO">Missouri</option>
+					<option value="MP">Northern Mariana Islands</option>
 					<option value="MT">Montana</option>
 					<option value="NE">Nebraska</option>
 					<option value="NV">Nevada</option>
@@ -133,6 +145,7 @@ h3 {
 					<option value="OK">Oklahoma</option>
 					<option value="OR">Oregon</option>
 					<option value="PA">Pennsylvania</option>
+					<option value="PR">Puerto Rico</option>
 					<option value="RI">Rhode Island</option>
 					<option value="SC">South Carolina</option>
 					<option value="SD">South Dakota</option>
@@ -141,25 +154,33 @@ h3 {
 					<option value="UT">Utah</option>
 					<option value="VT">Vermont</option>
 					<option value="VA">Virginia</option>
+					<option value="VI">Virgin Islands</option>
 					<option value="WA">Washington</option>
 					<option value="WV">West Virginia</option>
 					<option value="WI">Wisconsin</option>
 					<option value="WY">Wyoming</option>
 				</select>
-				
-				<p><i>Optionally, specify the domain of your institution. Some features (like LTI1p3) are only enabled for particular domains. If you know your domain has approval for such a feature, specify it here. To request a domain be given access to a feature, please make an issue at <a href="https://github.com/RunestoneInteractive/rs/issues">https://github.com/RunestoneInteractive/rs/issues</a>.</i></p>
-				<p><i>If you do not need any of the features that require approval, you can leave the domain blank.</i></p>
+
+				<p><i>Optionally, specify the domain of your institution. Some features (like LTI1p3) are only enabled
+						for particular domains. If you know your domain has approval for such a feature, specify it
+						here. To request a domain be given access to a feature, please make an issue at <a
+							href="https://github.com/RunestoneInteractive/rs/issues">https://github.com/RunestoneInteractive/rs/issues</a>.</i>
+				</p>
+				<p><i>If you do not need any of the features that require approval, you can leave the domain blank.</i>
+				</p>
 
 				<div class="form-group row">
 					<div class="col-md-6">
 						<label for="domainname">Course Domain</label>
-						<input type="text" class="form-control" placeholder="" name="domainname" id="domainname" size="50" />
+						<input type="text" class="form-control" placeholder="" name="domainname" id="domainname"
+							size="50" />
 					</div>
 				</div>
 
 				<hr />
 				<h3>Step 2</h3>
-				<p><i>Tell us approximately what level you are teaching at. This is important for research and providing you with appropriate questions.</i></p>
+				<p><i>Tell us approximately what level you are teaching at. This is important for research and providing
+						you with appropriate questions.</i></p>
 				<label for="courselevel">Course Level (required)</label>
 				<select id="courselevel" class="form-control" name="courselevel">
 					<option value="unknown" disabled selected>Please Select</option>
@@ -180,39 +201,41 @@ h3 {
 			{{ for section in sorted(sections): }}
 			<h4>{{=section}}</h4>
 			{{ for course in course_list: }}
-				{{ if course["shelf_section"] == section:}}
-					<div class="radio">
-						<label>
-							<input type="radio" name="coursetype" value="{{=course["basecourse"]}}" />
-							{{=course["title"]}}
-							{{ if course["subtitle"]:}}
-							: {{=course["subtitle"]}}
-							{{ pass }}
-							{{ if course["authors"]: }}
-							by {{=course["authors"]}}
-							{{pass}}
-						</label>
-					</div>
-				{{ pass }}
+			{{ if course["shelf_section"] == section:}}
+			<div class="radio">
+				<label>
+					<input type="radio" name="coursetype" value="{{=course[" basecourse"]}}" />
+					{{=course["title"]}}
+					{{ if course["subtitle"]:}}
+					: {{=course["subtitle"]}}
+					{{ pass }}
+					{{ if course["authors"]: }}
+					by {{=course["authors"]}}
+					{{pass}}
+				</label>
+			</div>
+			{{ pass }}
 			{{pass}}
 			{{ pass }}
 
 		</div>
 		<script>
-		var rad = document.forms.mainform.coursetype;
-		var prev = null;
-		for (var i = 0; i < rad.length; i++) {
-			rad[i].addEventListener('change', suggested_course_name);
-		}
+			var rad = document.forms.mainform.coursetype;
+			var prev = null;
+			for (var i = 0; i < rad.length; i++) {
+				rad[i].addEventListener('change', suggested_course_name);
+			}
 		</script>
 		<hr />
 		<h3>Step 4</h3>
 
-		<p><i>Choose a name for your course.  This is our <strong>suggestion</strong> for your course name it will be the name your students use when they register.  Feel free to change it if it does not work for you.</i></p>
+		<p><i>Choose a name for your course. This is our <strong>suggestion</strong> for your course name it will be the
+				name your students use when they register. Feel free to change it if it does not work for you.</i></p>
 		<div class="form-group row">
 			<div class="col-md-6">
 				<label for="projectname">Course Name</label>
-				<input type="text" class="form-control" placeholder="myproject" name="projectname" id="projectname" size="50" />
+				<input type="text" class="form-control" placeholder="myproject" name="projectname" id="projectname"
+					size="50" />
 			</div>
 		</div>
 		<!--
@@ -224,7 +247,8 @@ h3 {
 		</div> -->
 		<hr />
 		<h3>Step 5</h3>
-		<p><i>Choose Options and set your start date.  An accurate start date is important when you copy questions from previous courses as well as for educational research.</i></p>
+		<p><i>Choose Options and set your start date. An accurate start date is important when you copy questions from
+				previous courses as well as for educational research.</i></p>
 		<div class="form-group">
 			<div class="checkbox">
 				<label>
@@ -251,7 +275,8 @@ h3 {
 		<div class="form-group row">
 			<div class="col-md-3">
 				<label for="startdate">Term start date </label>
-				<input type="text" name="startdate" id="startdate" class="form-control" data-date-format="mm/dd/yyyy" placeholder="{{=datetime.date.today().strftime('%m/%d/%Y')}}" onkeydown="return false" />
+				<input type="text" name="startdate" id="startdate" class="form-control" data-date-format="mm/dd/yyyy"
+					placeholder="{{=datetime.date.today().strftime('%m/%d/%Y')}}" onkeydown="return false" />
 			</div>
 		</div>
 
@@ -264,10 +289,11 @@ h3 {
 				<p>
 					<label>
 						<input type="checkbox" name="invoice" value="false" id="invoice-me" />
-						Please invoice my school or department</label
-					>
+						Please invoice my school or department</label>
 					for a small support fee of $10 per registered student. About a week after your start date we will
-					<strong>email you</strong> an invoice. If a different amount works better for you, just respond to the invoice email and let us know, we are happy to work within your budget. Please do not pay this out of your own pocket!!
+					<strong>email you</strong> an invoice. If a different amount works better for you, just respond to
+					the invoice email and let us know, we are happy to work within your budget. Please do not pay this
+					out of your own pocket!!
 				</p>
 				<p>
 					Thanks for your consideration!
@@ -276,14 +302,14 @@ h3 {
 		</div>
 		<h3>Step 7</h3>
 		<p><i>Click Submit to create your course.</i></p>
-		<input type="submit" class="btn btn-default" value="Submit" style="margin-bottom: 30px;"/>
+		<input type="submit" class="btn btn-default" value="Submit" style="margin-bottom: 30px;" />
 	</form>
 </div>
 
 <script type="text/javascript">
 	$('#startdate').datepicker();
 	let checkbox = document.getElementById("invoice-me")
-	checkbox.addEventListener("change", function() {
+	checkbox.addEventListener("change", function () {
 		if (this.checked) {
 			let res = confirm("Checking this box means you want us to email you an Invoice (Thank you!!).  If you want to keep using Runestone for free just click cancel")
 			if (res === false) {
