@@ -115,6 +115,6 @@ target "latex_base" {
     context    = "./projects/latex_image"
     dockerfile = "Dockerfile"
     platforms  = ["linux/amd64", "linux/arm64"]
-    tags       = ["ghcr.io/runestoneinteractive/latex_base:important", "ghcr.io/runestoneinteractive/latex_base:${VERSION}"]
+    tags       = ["ghcr.io/runestoneinteractive/latex_base:important"]
     push       = true
 }
