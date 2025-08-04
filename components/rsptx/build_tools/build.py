@@ -134,7 +134,6 @@ def cli(config, verbose, all, core, service, clean):
             "pgbouncer",
             "interactives",
             "db",
-            "latex_base",
         ]
         if not os.path.exists(
             "bases/rsptx/interactives/runestone/dist/webpack_static_imports.json"
