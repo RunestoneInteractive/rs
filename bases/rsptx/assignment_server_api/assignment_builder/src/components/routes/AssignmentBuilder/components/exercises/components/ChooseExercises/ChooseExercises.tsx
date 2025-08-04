@@ -14,7 +14,12 @@ import { useDispatch, useSelector } from "react-redux";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { Exercise } from "@/types/exercises";
-import { getLeafNodes, getSelectedKeys, filterExercisesByQuestionType } from "@/utils/exercise";
+import {
+  getLeafNodes,
+  getSelectedKeys,
+  filterExercisesByQuestionType,
+  filterOutExercisesByQuestionType
+} from "@/utils/exercise";
 
 export const ChooseExercises = () => {
   const dispatch = useDispatch();
@@ -25,9 +30,9 @@ export const ChooseExercises = () => {
   const selectedKeys = useSelector(chooseExercisesSelectors.getSelectedKeys);
   const selectedExercises = useSelector(chooseExercisesSelectors.getSelectedExercises);
 
-  const filteredExercises = filterExercisesByQuestionType(
-    availableExercises,
-    selectedQuestionTypes
+  const filteredExercises = filterOutExercisesByQuestionType(
+    filterExercisesByQuestionType(availableExercises, selectedQuestionTypes),
+    ["datafile"]
   );
 
   const updateState = (selEx: Exercise[]) => {
@@ -114,9 +119,9 @@ export const ChooseExercises = () => {
         bodyClassName={(_, options) => {
           return options.props.node.disabled ? "treetable-no-checkbox" : "";
         }}
-      ></Column>
-      <Column style={{ width: "15%" }} field="qnumber" header="Question number"></Column>
-      <Column style={{ width: "20%" }} field="name" header="Name"></Column>
+      />
+      <Column style={{ width: "15%" }} field="qnumber" header="Question number" />
+      <Column style={{ width: "20%" }} field="name" header="Name" />
       <Column
         style={{ width: "5rem" }}
         field="htmlsrc"
@@ -133,8 +138,8 @@ export const ChooseExercises = () => {
             />
           );
         }}
-      ></Column>
-      <Column style={{ width: "15%" }} field="question_type" header="Question type"></Column>
+      />
+      <Column style={{ width: "15%" }} field="question_type" header="Question type" />
       <Column
         style={{ width: "10%" }}
         field="from_source"

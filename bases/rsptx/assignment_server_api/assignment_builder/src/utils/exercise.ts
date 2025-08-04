@@ -149,3 +149,17 @@ export const filterExercisesByQuestionType = (
     }))
     .filter((node) => shouldIncludeNode(node, selectedQuestionTypes));
 };
+
+export const filterOutExercisesByQuestionType = (
+  nodes: TreeNode[],
+  questionTypes: string[]
+): TreeNode[] => {
+  return nodes
+    .map((node) => ({
+      ...node,
+      children: node.children
+        ? filterOutExercisesByQuestionType(node.children, questionTypes)
+        : undefined
+    }))
+    .filter((node) => !questionTypes.includes(node.data?.question_type));
+};
