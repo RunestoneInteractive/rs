@@ -169,6 +169,9 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         if hasattr(click, "worker"):
             click.add_logger(logger)
         click.echo("Building the book")
+        if gen:
+            click.echo("Generating assets")
+            rs.generate_assets()
 
         rs.build()  # build the book, generating assets as needed
         log_path = (
