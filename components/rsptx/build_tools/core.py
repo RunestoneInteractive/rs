@@ -677,6 +677,8 @@ def _process_single_subchapter(
 ):
     """Process a single subchapter and its contents."""
     scnum = subchapter.find("./number").text
+    if not scnum:
+        scnum = ""
     chap_xmlid = subchapter.find("./id").text
     rslogger.debug(f"subchapter {chap_xmlid}")
 
