@@ -373,14 +373,19 @@ export default class ShortAnswer extends RunestoneBase {
         if (this.attachURL) {
             //window.open(this.attachURL, "_blank");
             //<embed src="example.pdf" type="application/pdf" width="100%" height="600px" />
+            //switch to 
             const image_window = window.open("", "_blank")
             if (this.attachURL.indexOf('.pdf?') !== -1) {
-                const embed = image_window.document.createElement("embed");
-                embed.setAttribute("src", this.attachURL);
+                const embed = image_window.document.createElement("object");
+                embed.setAttribute("data", this.attachURL);
                 embed.setAttribute("type", "application/pdf");
                 embed.setAttribute("width", "800px");
                 embed.setAttribute("height", "1040px");
                 image_window.document.body.appendChild(embed);
+                let alt = image_window.document.createElement("a");
+                alt.setAttribute("href", this.attachURL);
+                alt.innerText = "Download PDF";
+                embed.appendChild(alt);
             }
             else {
                 const img = image_window.document.createElement("img");

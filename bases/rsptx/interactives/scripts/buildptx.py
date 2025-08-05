@@ -27,9 +27,20 @@ class Config:
 
 @click.command()
 @click.option("--target", default="runestone", help="The target to build for")
-@click.option("--clean", is_flag=True, default=False, help="Clean the build directory before building")
+@click.option(
+    "--clean",
+    is_flag=True,
+    default=False,
+    help="Clean the build directory before building",
+)
+@click.option(
+    "--generate",
+    is_flag=True,
+    default=False,
+    help="Generate the assets before building",
+)
 @click.argument("bookname")
-def build_book(target, clean, bookname):
+def build_book(target, clean, generate, bookname):
     p = pathlib.Path.cwd()
 
     if clean:
@@ -42,13 +53,15 @@ def build_book(target, clean, bookname):
     if (p / "project.ptx").exists():  # we are in a pretext project
         print(f"Building {bookname} in place")
     else:
-        print("Can't find project.ptx!  You must either name a book or be in the book's folder")
+        print(
+            "Can't find project.ptx!  You must either name a book or be in the book's folder"
+        )
         exit(-1)
 
     config = Config()
     assert bookname
 
-    res = _build_ptx_book(config, False, "runestone-manifest.xml", bookname)
+    res = _build_ptx_book(config, generate, "runestone-manifest.xml", bookname)
     if not res:
         print("build failed")
         exit(-1)
@@ -70,13 +83,12 @@ if __name__ == "__main__":
     build_book()
 
 
-
 def remove_unmatched(path, patterns, verbose=False):
     """
     Recursively remove files and directories under the given path that do NOT match
     any of the given glob patterns. Directories that match a pattern are preserved along
     with their contents.
-    
+
     Args:
         path (str): The directory path whose contents will be processed.
         patterns (list of str): List of glob patterns (e.g., ['*.txt', 'keep_dir']) that should be kept.
@@ -94,7 +106,7 @@ def remove_unmatched(path, patterns, verbose=False):
         full_entry = os.path.join(path, entry)
         # Determine if the entry matches any pattern.
         entry_matches = any(fnmatch.fnmatch(entry, pat) for pat in patterns)
-        
+
         if os.path.isdir(full_entry):
             if entry_matches:
                 # Directory matches a pattern: leave it and its contents untouched.
@@ -111,6 +123,5 @@ def remove_unmatched(path, patterns, verbose=False):
             # For files, remove if no pattern matches.
             if not entry_matches:
                 if verbose:
-                    print(f"Removing file: {full_entry}") 
+                    print(f"Removing file: {full_entry}")
                 os.remove(full_entry)
-

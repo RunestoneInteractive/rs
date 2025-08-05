@@ -46,6 +46,7 @@ from rsptx.db.crud import (
     create_useinfo_entry,
     fetch_chapter_for_subchapter,
     fetch_course,
+    fetch_library_book,
     fetch_library_books,
     fetch_page_activity_counts,
     fetch_reading_assignment_spec,
@@ -382,6 +383,11 @@ async def serve_page(
         serve_google_ad = False
     else:
         serve_google_ad = serve_ad
+
+    # If the pagepath is empty, we want to serve the default main_page
+    if pagepath.strip() == "":
+        lib_entry = await fetch_library_book(course_row.base_course)
+        pagepath = lib_entry.main_page if lib_entry else "index.html"
 
     headers = {"Cache-Control": "no-cache, no-store, must-revalidate"}
     context = dict(

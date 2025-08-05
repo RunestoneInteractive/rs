@@ -174,17 +174,16 @@ export const MultiChoiceOptions = ({ options, onChange }: MultiChoiceOptionsProp
   };
 
   return (
-    <div className={styles.optionsContainer} style={{ margin: "-2rem" }}>
+    <div className={styles.optionsContainer}>
       <div className={styles.optionsHeader}>
-        <div className="flex justify-content-end w-full">
-          <Button
-            label="Add Option"
-            icon="pi pi-plus"
-            className={styles.addButton}
-            onClick={handleAddOption}
-            aria-label="Add new answer option"
-          />
-        </div>
+        <h3>Answer Options</h3>
+        <Button
+          label="Add Option"
+          icon="pi pi-plus"
+          className={styles.addButton}
+          onClick={handleAddOption}
+          aria-label="Add new answer option"
+        />
       </div>
 
       <div className={styles.optionsContent}>

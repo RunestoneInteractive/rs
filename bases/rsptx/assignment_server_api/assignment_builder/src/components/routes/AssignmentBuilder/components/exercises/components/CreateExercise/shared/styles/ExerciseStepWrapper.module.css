@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100%;
   margin: 0 auto;
 }
 
@@ -11,6 +12,8 @@
   border: 1px solid #e2e8f0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .stepHeader {
@@ -28,6 +31,9 @@
 
 .stepContent {
   padding: 1rem;
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
 }
 
 .contentSection {
@@ -35,10 +41,12 @@
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 @media screen and (max-width: 768px) {
   .stepContent {
     padding: 0.5rem;
   }
-} 
+}

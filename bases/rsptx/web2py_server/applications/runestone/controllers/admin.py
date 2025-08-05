@@ -1735,9 +1735,10 @@ def htmlsrc():
         else:
             htmlsrc = res.htmlsrc
     else:
-        logger.error(
-            "HTML Source not found for %s in course %s", acid, auth.user.course_name
-        )
+        if res and res.question_type != "page":
+            logger.error(
+                "HTML Source not found for %s in course %s", acid, auth.user.course_name
+            )
         htmlsrc = "<p>No preview available</p>"
     if (
         htmlsrc and htmlsrc[0:2] == "\\x"

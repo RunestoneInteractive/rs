@@ -114,7 +114,7 @@ async def create_editor_for_basecourse(user_id: int, bc_name: str) -> EditorBase
     :return: The newly created editor for the basecourse.
     :rtype: EditorBasecourse
     """
-    new_ed = EditorBasecourse(user_id, bc_name)
+    new_ed = EditorBasecourse(editor=user_id, base_course=bc_name)
     async with async_session.begin() as session:
         session.add(new_ed)
     return new_ed
