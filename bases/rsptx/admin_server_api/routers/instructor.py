@@ -158,7 +158,7 @@ async def get_copy_assignments(
     for course_relation in instructor_course_relationships:
         temp_course = await fetch_course_by_id(course_relation.course)
         # Make sure the course exists and has the same base course
-        if temp_course and temp_course.base_course == base_course.course_name:  
+        if temp_course and temp_course.base_course == base_course.course_name:
             instructor_course_list.append(temp_course)
 
     instructor_course_list.sort(key=lambda x: x.course_name)
@@ -660,35 +660,68 @@ async def post_add_instructor(
 async def remove_student(
     request: Request,
     user=Depends(auth_manager),
+    response_class=HTMLResponse,
     course=None,
 ):
     """
     Remove one or more students from the current course.
     Expects form data with student_id (can be a single value or a list).
     """
+    templates = Jinja2Templates(directory=template_folder)
+
     try:
         form = await request.form()
-        student_ids = form.getlist("student_id")
+        student_ids = form.getlist("student_list")
         if not student_ids:
-            return JSONResponse(
-                status_code=400,
-                content={"success": False, "message": "student_id is required"},
-            )
-        bc = await fetch_course(course.base_course)
-        for sid in student_ids:
-            await delete_user_course_entry(int(sid), course.id)
-            await create_user_course_entry(int(sid), bc.id)
-        return JSONResponse(
-            content={
-                "success": True,
-                "message": f"Removed {len(student_ids)} student(s) from course",
+            context = {
+                "course": course,
+                "user": user,
+                "request": request,
+                "success": False,
+                "message": "No students were selected for removal.",
+                "base_course_name": course.base_course,
+                "settings": settings,
             }
+            return templates.TemplateResponse(
+                "admin/instructor/remove_students_results.html", context
+            )
+
+        bc = await fetch_course(course.base_course)
+        removed_students = []
+
+        for sid in student_ids:
+            student = await fetch_user(sid)
+            if student:
+                await delete_user_course_entry(int(student.id), course.id)
+                await create_user_course_entry(int(student.id), bc.id)
+                removed_students.append(f"{student.first_name} {student.last_name}")
+
+        context = {
+            "course": course,
+            "user": user,
+            "request": request,
+            "success": True,
+            "message": f"Successfully removed {len(removed_students)} student(s) from course.",
+            "base_course_name": bc.course_name,
+            "settings": settings,
+        }
+        return templates.TemplateResponse(
+            "admin/instructor/remove_students_results.html", context
         )
+
     except Exception as e:
         rslogger.error(f"Error removing student(s): {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "message": "Internal server error"},
+        context = {
+            "course": course,
+            "user": user,
+            "request": request,
+            "success": False,
+            "message": "An error occurred while removing students. Please try again.",
+            "base_course_name": course.base_course,
+            "settings": settings,
+        }
+        return templates.TemplateResponse(
+            "admin/instructor/remove_students_results.html", context
         )
 
 
