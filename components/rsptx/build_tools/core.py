@@ -627,7 +627,8 @@ def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
     """Process a single chapter and return its database ID."""
     rslogger.info(chapter)
     cnum = chapter.find("./number").text
-
+    if not cnum:
+        cnum = ""
     rslogger.debug(
         f"{chapter.tag} {chapter.find('./id').text} {chapter.find('./title').text}"
     )
