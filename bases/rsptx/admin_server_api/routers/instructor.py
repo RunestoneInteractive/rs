@@ -36,6 +36,11 @@ from rsptx.db.crud import (
     fetch_timed_assessments,
     reset_student_assessment,
     delete_course_completely,
+    create_assignment,
+    create_assignment_question,
+    fetch_one_assignment,
+    fetch_assignments,
+    fetch_assignment_questions,
 )
 from rsptx.auth.session import auth_manager
 from rsptx.templates import template_folder
@@ -43,8 +48,13 @@ from rsptx.configuration import settings
 from rsptx.endpoint_validators import with_course, instructor_role_required
 from rsptx.logging import rslogger
 from rsptx.db.crud.user import create_user, fetch_user
-from rsptx.db.models import AuthUserValidator
+from rsptx.db.models import (
+    AuthUserValidator,
+    AssignmentValidator,
+    AssignmentQuestionValidator,
+)
 from rsptx.response_helpers.core import canonical_utcnow
+import datetime
 
 
 # Routing
@@ -885,3 +895,181 @@ async def enroll_students(
             "mess": mess,
         },
     )
+
+
+# Assignment Copy Models
+class CopyAssignmentRequest(BaseModel):
+    course: str
+    oldassignment: str  # assignment id or "-1" for all assignments
+
+
+@router.post("/copy_assignment")
+@instructor_role_required()
+@with_course()
+async def copy_assignment(
+    request: Request,
+    copy_data: CopyAssignmentRequest,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Copy assignment(s) from another course to the current course.
+    Can copy a single assignment or all assignments from the source course.
+    """
+    try:
+        # Check if the source course is a base course
+        rslogger.debug(f"Copying assignments from course: {copy_data.course}")
+        source_course = await fetch_course(copy_data.course)
+        if not source_course:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "Source course not found"},
+            )
+
+        copy_base_course = source_course.course_name == source_course.base_course
+
+        # Verify instructor has access to source course (unless it's a base course)
+        if not copy_base_course:
+            instructor_courses = await fetch_instructor_courses(user.id)
+            has_access = any(ic.course == source_course.id for ic in instructor_courses)
+            if not has_access:
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "success": False,
+                        "message": "Not authorized to copy from this course",
+                    },
+                )
+
+        res = None
+        if copy_data.oldassignment == "-1":
+            # Copy all assignments
+            assignments = await fetch_assignments(copy_data.course, fetch_all=True)
+            source_assignments = [a for a in assignments if not a.from_source]
+
+            if not source_assignments:
+                return JSONResponse(
+                    status_code=404,
+                    content={"success": False, "message": "No assignments to copy"},
+                )
+
+            for assignment in source_assignments:
+                res = await _copy_one_assignment(
+                    copy_data.course, assignment.id, course
+                )
+                if res != "success":
+                    break
+        else:
+            # Copy single assignment
+            res = await _copy_one_assignment(
+                copy_data.course, int(copy_data.oldassignment), course
+            )
+
+        if res is None:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "No assignments to copy"},
+            )
+        elif res == "success":
+            return JSONResponse(
+                content={
+                    "success": True,
+                    "message": "Assignment(s) copied successfully",
+                },
+            )
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "message": f"Copy failed: {res}"},
+            )
+
+    except Exception as e:
+        rslogger.error(f"Error copying assignment: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": "Internal server error"},
+        )
+
+
+async def _copy_one_assignment(
+    source_course_name: str, old_assignment_id: int, target_course
+) -> str:
+    """
+    Copy a single assignment from source course to target course.
+    Adjusts the due date based on the difference in course start dates.
+
+    :param source_course_name: Name of the source course
+    :param old_assignment_id: ID of the assignment to copy
+    :param target_course: Target course object
+    :return: "success" if successful, error message if failed
+    """
+    try:
+        # Get course information
+        source_course = await fetch_course(source_course_name)
+        old_assignment = await fetch_one_assignment(old_assignment_id)
+
+        # Calculate due date adjustment based on course start dates
+        if source_course.term_start_date and target_course.term_start_date:
+            due_delta = old_assignment.duedate - datetime.datetime.combine(
+                source_course.term_start_date, datetime.time()
+            )
+            due_date = (
+                datetime.datetime.combine(
+                    target_course.term_start_date, datetime.time()
+                )
+                + due_delta
+            )
+        else:
+            # If start dates are not available, use the original due date
+            due_date = old_assignment.duedate
+
+        # Create new assignment with copied data
+        new_assignment_data = AssignmentValidator(
+            course=target_course.id,
+            name=old_assignment.name,
+            duedate=due_date,
+            description=old_assignment.description,
+            points=old_assignment.points,
+            threshold_pct=old_assignment.threshold_pct,
+            is_timed=old_assignment.is_timed,
+            is_peer=old_assignment.is_peer,
+            time_limit=old_assignment.time_limit,
+            from_source=old_assignment.from_source,
+            nofeedback=old_assignment.nofeedback,
+            nopause=old_assignment.nopause,
+            released=old_assignment.released,
+            visible=old_assignment.visible,
+            allow_self_autograde=old_assignment.allow_self_autograde,
+            current_index=0,
+            enforce_due=old_assignment.enforce_due,
+            peer_async_visible=old_assignment.peer_async_visible,
+            kind=old_assignment.kind,
+        )
+
+        new_assignment = await create_assignment(new_assignment_data)
+
+        # Copy assignment questions
+        assignment_questions = await fetch_assignment_questions(old_assignment_id)
+
+        for question_data in assignment_questions:
+            question, assignment_question = question_data
+
+            new_assignment_question_data = AssignmentQuestionValidator(
+                assignment_id=new_assignment.id,
+                question_id=assignment_question.question_id,
+                points=assignment_question.points,
+                timed=assignment_question.timed,
+                autograde=assignment_question.autograde,
+                which_to_grade=assignment_question.which_to_grade,
+                reading_assignment=assignment_question.reading_assignment,
+                sorting_priority=assignment_question.sorting_priority,
+                activities_required=assignment_question.activities_required,
+            )
+
+            await create_assignment_question(new_assignment_question_data)
+
+        return "success"
+
+    except Exception as e:
+        rslogger.error(f"Error copying assignment {old_assignment_id}: {e}")
+        return f"failed: {str(e)}"
