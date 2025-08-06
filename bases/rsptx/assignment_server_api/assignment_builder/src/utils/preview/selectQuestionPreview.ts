@@ -51,13 +51,12 @@ export const generateSelectQuestionPreview = ({
     html += ` data-toggleoptions="${toggleStr}"`;
   }
 
-  const questionLabels = questions
-    .filter((q) => q.label)
-    .map((q) => `${q.questionId}:${q.label}`)
-    .join(",");
+  const hasAnyLabels = questions.some((q) => q.label);
 
-  if (questionLabels) {
-    html += ` data-togglelabels="${questionLabels}"`;
+  if (hasAnyLabels) {
+    const questionLabels = questions.map((q) => q.label || q.questionId).join(", ");
+
+    html += ` data-togglelabels="togglelabels: ${questionLabels}"`;
   }
 
   if (dataLimitBasecourse) {
