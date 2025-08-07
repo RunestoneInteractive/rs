@@ -59,6 +59,15 @@ pytz = "^2024.2"
 requests = "^2.0.0"
 jwcrypto = "^1.5.6"
 psycopg2-binary = "^2.0.0"
+fuzzywuzzy= "0.18.0"
+localconfig = "1.1.4"
+multi_await = "1.0.4"
+openai= "1.95.1"
+pandas= "^1.5.3"
+python-dotenv = "1.1.1"
+typing_extensions = "4.14.1"
+
+
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"
