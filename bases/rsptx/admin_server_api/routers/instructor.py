@@ -1,5 +1,6 @@
 from fastapi import (
     APIRouter,
+    Body,
     HTTPException,
     Depends,
     Request,
@@ -41,6 +42,8 @@ from rsptx.db.crud import (
     fetch_one_assignment,
     fetch_assignments,
     fetch_assignment_questions,
+    fetch_question,
+    update_question,
 )
 from rsptx.auth.session import auth_manager
 from rsptx.templates import template_folder
@@ -1073,3 +1076,34 @@ async def _copy_one_assignment(
     except Exception as e:
         rslogger.error(f"Error copying assignment {old_assignment_id}: {e}")
         return f"failed: {str(e)}"
+
+
+class FlagQuestionRequest(BaseModel):
+    question_name: str
+
+
+@router.post("/flag_question")
+@instructor_role_required()
+@with_course()
+async def flag_question(
+    request: Request,
+    body: FlagQuestionRequest,
+    user=Depends(auth_manager),
+    course=None,
+):
+    qname = body.question_name
+    rslogger.debug(f"Flagging question: {qname} in course: {course.course_name}")
+    question = await fetch_question(qname, basecourse=course.base_course)
+    question.review_flag = True
+    try:
+        await update_question(question)
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"An error occurred: {str(e)}"},
+        )
+    return JSONResponse(
+        status_code=200,
+        content={"success": True, "message": "Question flagged successfully"},
+    )
