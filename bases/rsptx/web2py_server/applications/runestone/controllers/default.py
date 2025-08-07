@@ -297,7 +297,7 @@ def index():
                     ),
                 )
         except Exception as e:
-            logger.error(f"Select Course got Error {e}")
+            logger.error(f"Select Course {course.course_name} got Error {e}")
             session.flash = f"{course.course_name} is not set up to track your progress"
         # todo:  check course.course_name make sure it is valid if not then redirect to a nicer page.
 
@@ -347,13 +347,25 @@ def start():
 def courses():
     if "access_token" not in request.cookies:
         # The user is only partially logged in.
-        logger.error(f"Missing Access Token: {auth.user.username} adding one Now")
+        logger.warning(f"Missing Access Token: {auth.user.username} adding one Now")
         create_rs_token()
 
     if request.vars.requested_course:
         # We have a mismatch between the requested course and the current course
         # in the database
         response.flash = f"You requested {request.vars.requested_course} but are logged in to {request.vars.current_course}"
+
+    # Get recently accessed courses
+    res = db(
+        (db.useinfo.sid == auth.user.username)
+        & (db.useinfo.timestamp > datetime.datetime.now() - datetime.timedelta(days=30))
+    ).select(
+        db.useinfo.course_id,
+        db.useinfo.timestamp.max().with_alias("last_acc"),
+        groupby=db.useinfo.course_id,
+    )
+    access_dict = {row.useinfo.course_id: row.last_acc for row in res}
+
     res = db(db.user_courses.user_id == auth.user.id).select(
         db.user_courses.course_id, orderby=~db.user_courses.id
     )
@@ -367,14 +379,24 @@ def courses():
     for row in res:
         classes = db(db.courses.id == row.course_id).select()
         for part in classes:
+            if part.course_name in access_dict:
+                access_string = "⏱️"
+            else:   
+                access_string = ""
             if part.base_course == part.course_name:
                 bclist.append(
-                    {"course_name": part.course_name, "is_instructor": part.id in iset}
+                    {"course_name": part.course_name, "is_instructor": part.id in iset, "access": access_string}
                 )
             else:
                 classlist.append(
-                    {"course_name": part.course_name, "is_instructor": part.id in iset}
+                    {"course_name": part.course_name, "is_instructor": part.id in iset, "access": access_string}
                 )
+    # sort bclist by access_dict[course_name] reversed and then by course_name ascending
+    # we sort everything ascending so we make the timestamp negative to reverse the order
+    # we get courses accessed in the last 90 days first then everything else in alphabetical order
+    long_ago = datetime.datetime(1970, 1, 1)
+    bclist.sort(key=lambda x: (-access_dict.get(x["course_name"], long_ago).timestamp(), x["course_name"].lower()))
+    classlist.sort(key=lambda x: (-access_dict.get(x["course_name"], long_ago).timestamp(), x["course_name"].lower()))
     pagepath = request.vars.requested_path
     if not pagepath:
         pagepath = "index.html"

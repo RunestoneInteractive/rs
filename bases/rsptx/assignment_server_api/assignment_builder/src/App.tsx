@@ -2,7 +2,7 @@ import "./App.css";
 import { DialogContextProvider } from "@components/ui/DialogContext";
 import { ToastContextProvider } from "@components/ui/ToastContext";
 import { Menubar } from "primereact/menubar";
-import { Toaster } from "react-hot-toast";
+import { ToastBar, Toaster, toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 import {
   createBrowserRouter,
@@ -291,7 +291,15 @@ function App() {
     <ToastContextProvider>
       <DialogContextProvider>
         <RouterProvider router={router} future={{ v7_startTransition: true }} />
-        <Toaster toastOptions={{ duration: 3000 }} />
+        <Toaster toastOptions={{ duration: 3000 }}>
+          {(t) => {
+            return (
+              <div className="w-auto cursor-pointer" onClick={() => toast.dismiss(t.id)}>
+                <ToastBar toast={t} />
+              </div>
+            );
+          }}
+        </Toaster>
       </DialogContextProvider>
     </ToastContextProvider>
   );

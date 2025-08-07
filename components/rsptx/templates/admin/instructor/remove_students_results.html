@@ -1,0 +1,161 @@
+{% extends "_base.html" %}
+
+{% block title %}
+Student Removal Results
+{% endblock %}
+
+{% block css %}
+<style>
+    .student-management {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px 0;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .page-header h1 {
+        color: #333;
+        margin: 0;
+        font-size: 2.5em;
+        font-weight: 300;
+    }
+
+    .course-info {
+        background: #f0f7ff;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        border-left: 4px solid #4a90e2;
+    }
+
+    .course-info h3 {
+        margin: 0 0 5px 0;
+        color: #333;
+    }
+
+    .course-info p {
+        margin: 0;
+        color: #666;
+    }
+
+    .result-box {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 6px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .result-box.error {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+    }
+
+    .result-box h3 {
+        margin-top: 0;
+        color: #155724;
+    }
+
+    .result-box.error h3 {
+        color: #721c24;
+    }
+
+    .result-message {
+        font-size: 1.1em;
+        margin: 10px 0;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #4a90e2;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .back-link:hover {
+        color: #357abd;
+        text-decoration: underline;
+    }
+
+    .back-link::before {
+        content: "← ";
+        margin-right: 5px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        margin: 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: #4a90e2;
+        color: white;
+    }
+
+    .btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .actions {
+        text-align: center;
+        margin-top: 30px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="student-management">
+    <a href="/admin/instructor/manage_students" class="back-link">Back to Manage Students</a>
+
+    <div class="page-header">
+        <h1>Student Removal Results</h1>
+    </div>
+
+    <div class="course-info">
+        <h3>{{ course.course_name }}</h3>
+        <p>Base Course: {{ course.base_course }}</p>
+    </div>
+
+    {% if success %}
+    <div class="result-box">
+        <h3>✓ Students Removed Successfully</h3>
+        <div class="result-message">
+            {{ message }}
+        </div>
+        <p>The removed students have been transferred to the "{{ base_course_name }}" (open) course for the same book.
+            Their data has been preserved but they will no longer appear in your course roster or gradebook.</p>
+    </div>
+    {% else %}
+    <div class="result-box error">
+        <h3>✗ Error Removing Students</h3>
+        <div class="result-message">
+            {{ message }}
+        </div>
+        <p>Please try again or contact support if the problem persists.</p>
+    </div>
+    {% endif %}
+
+    <div class="actions">
+        <a href="/admin/instructor/manage_students" class="btn btn-primary">Return to Student Management</a>
+        <a href="/admin/instructor/menu" class="btn btn-primary">Return to Instructor Dashboard</a>
+    </div>
+</div>
+{% endblock %}

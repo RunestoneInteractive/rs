@@ -23,6 +23,7 @@ export const ExerciseSuccessDialog = ({
     </div>
   );
 
+  if (!showSuccessDialog) return null;
   return (
     <Dialog
       visible={showSuccessDialog}

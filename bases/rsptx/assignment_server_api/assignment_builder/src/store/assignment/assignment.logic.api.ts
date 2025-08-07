@@ -40,9 +40,7 @@ export const assignmentApi = createApi({
             return;
           }
 
-          toast("Unable to fetch assignments", {
-            icon: "🔥"
-          });
+          toast.error("Unable to fetch assignments", { duration: Infinity });
         });
       }
     }),
@@ -68,9 +66,7 @@ export const assignmentApi = createApi({
             return;
           }
 
-          toast("Unable to fetch assignment", {
-            icon: "🔥"
-          });
+          toast.error("Unable to fetch assignment", { duration: Infinity });
         });
       }
     }),
@@ -90,7 +86,7 @@ export const assignmentApi = createApi({
         queryFulfilled
           .then(({ data }) => {
             dispatch(assignmentActions.setSelectedAssignmentId(data.detail.id));
-            toast("Assignment created", { icon: "✅" });
+            toast.success("Assignment created");
           })
           .catch((errorResponse) => {
             const { status, data } = errorResponse.error as {
@@ -99,13 +95,13 @@ export const assignmentApi = createApi({
             };
 
             if (status === HttpStatusCode.UNPROCESSABLE_CONTENT) {
-              toast(`Error ${data.detail[0].msg} for input ${data.detail[0].loc.join()}`);
+              toast.error(`Error ${data.detail[0].msg} for input ${data.detail[0].loc.join()}`, {
+                duration: Infinity
+              });
               return;
             }
 
-            toast("Error creating assignment", {
-              icon: "🔥"
-            });
+            toast.error("Error creating assignment", { duration: Infinity });
           });
       }
     }),
@@ -123,9 +119,7 @@ export const assignmentApi = createApi({
       },
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
-          toast("Error updating assignment", {
-            icon: "🔥"
-          });
+          toast.error("Error updating assignment", { duration: Infinity });
         });
       }
     }),
@@ -143,10 +137,10 @@ export const assignmentApi = createApi({
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled
           .then(() => {
-            toast("Assignment removed successfully", { icon: "✅" });
+            toast.success("Assignment removed successfully");
           })
           .catch(() => {
-            toast("Error removing assignment", { icon: "🔥" });
+            toast.error("Error removing assignment", { duration: Infinity });
           });
       }
     })

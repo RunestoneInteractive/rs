@@ -9,19 +9,26 @@ import { differenceBy } from "lodash";
 import uniqBy from "lodash/uniqBy";
 import { Column } from "primereact/column";
 import { TreeTable, TreeTableEvent } from "primereact/treetable";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { Exercise } from "@/types/exercises";
-import { getLeafNodes, getSelectedKeys } from "@/utils/exercise";
+import { getLeafNodes, getSelectedKeys, filterExercisesByQuestionType } from "@/utils/exercise";
 
 export const ChooseExercises = () => {
   const dispatch = useDispatch();
   const { assignmentExercises = [] } = useExercisesSelector();
   const availableExercises = useSelector(exercisesSelectors.getAvailableExercises);
+  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<string[]>([]);
 
   const selectedKeys = useSelector(chooseExercisesSelectors.getSelectedKeys);
   const selectedExercises = useSelector(chooseExercisesSelectors.getSelectedExercises);
+
+  const filteredExercises = filterExercisesByQuestionType(
+    availableExercises,
+    selectedQuestionTypes
+  );
 
   const updateState = (selEx: Exercise[]) => {
     dispatch(chooseExercisesActions.setSelectedExercises(selEx));
@@ -29,7 +36,7 @@ export const ChooseExercises = () => {
     dispatch(
       chooseExercisesActions.setSelectedKeys({
         ...selectedKeys,
-        ...getSelectedKeys(availableExercises, selEx)
+        ...getSelectedKeys(filteredExercises, selEx)
       })
     );
 
@@ -49,7 +56,7 @@ export const ChooseExercises = () => {
   const resetSelections = () => {
     dispatch(
       chooseExercisesActions.setSelectedKeys(
-        getSelectedKeys(availableExercises, assignmentExercises)
+        getSelectedKeys(filteredExercises, assignmentExercises)
       )
     );
     dispatch(chooseExercisesActions.setSelectedExercises(assignmentExercises));
@@ -88,10 +95,16 @@ export const ChooseExercises = () => {
       selectionKeys={selectedKeys}
       onSelect={handleSelect}
       onUnselect={handleUnselect}
-      value={availableExercises}
+      value={filteredExercises}
       resizableColumns
       className="table_sticky-header"
-      header={<ChooseExercisesHeader resetSelections={resetSelections} />}
+      header={
+        <ChooseExercisesHeader
+          resetSelections={resetSelections}
+          selectedQuestionTypes={selectedQuestionTypes}
+          onQuestionTypeChange={setSelectedQuestionTypes}
+        />
+      }
     >
       <Column
         style={{ width: "45%" }}

@@ -693,14 +693,16 @@ async def addinstructor(config, username, course):
 
 
 @cli.command()
-@click.option("--username", help="user to promote to instructor")
-@click.option("--basecourse", help="name of base course")
+@click.option("--username", help="user to promote to instructor", default=None)
+@click.option("--basecourse", help="name of base course", default=None)
 @pass_config
 async def addeditor(config, username, basecourse):
     """
     Add an existing user as an editor for a given base course
     """
 
+    username = username or click.prompt("Username")
+    basecourse = basecourse or click.prompt("Base Course name")
     res = await fetch_user(username)
     if res:
         userid = res.id
@@ -726,7 +728,7 @@ async def addeditor(config, username, basecourse):
         )
         sys.exit(-1)
 
-    if not is_editor(userid):
+    if not await is_editor(userid):
         await create_membership(role, userid)
         click.echo(click.style(f"made {username} an editor", fg="green"))
     else:
@@ -734,13 +736,14 @@ async def addeditor(config, username, basecourse):
 
     try:
         await create_editor_for_basecourse(userid, basecourse)
-    except Exception:
+    except Exception as e:
         click.echo(
             click.style(
                 f"could not add {username} as editor - They probably already are",
                 fg="red",
             )
         )
+        print(f"Error: {e}")
         sys.exit(-1)
 
     click.echo(click.style(f"made {username} an editor for {basecourse}", fg="green"))

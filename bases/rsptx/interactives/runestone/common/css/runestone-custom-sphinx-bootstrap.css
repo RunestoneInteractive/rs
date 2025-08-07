@@ -1217,3 +1217,7 @@ legend {
     color: var(--grayToWhite, #333);
     border-bottom-color: var(--grayToWhite, #333);
 }
+
+.autopermalink {
+    display: none;
+}

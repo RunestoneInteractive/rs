@@ -39,8 +39,8 @@ export default class ParsonsBlock {
             } else {
                 lineIndent = line.indent - sharedIndent;
             }
-            // Remove old indent classes
-            $(line.view).removeClass("indent1 indent2 indent3 indent4 indent5 indent6 indent7");
+
+            $(line.view).removeClass("indent1 indent2 indent3 indent4 indent5 indent6");
 
             if (
                 this.problem.options.language != "natural" &&
@@ -76,7 +76,9 @@ export default class ParsonsBlock {
     }
     // Add a line (from another block) to this block
     addLine(line) {
-        $(line.view).removeClass("indent1 indent2 indent3 indent4 indent5 indent6 indent7");
+
+        $(line.view).removeClass("indent1 indent2 indent3 indent4 indent5 indent6");
+
         if (this.problem.noindent) {
             if (line.indent > 0) {
                 $(line.view).addClass("indent" + line.indent);
@@ -92,7 +94,7 @@ export default class ParsonsBlock {
             } else if (sharedIndent > line.indent) {
                 for (let i = 0; i < lines.length; i++) {
                     $(lines[i].view).removeClass(
-                        "indent1 indent2 indent3 indent4 indent5 indent6 indent7"
+                        "indent1 indent2 indent3 indent4 indent5 indent6"
                     );
                     // todo: if language is natural or math then don't do this
                     if (
@@ -140,7 +142,7 @@ export default class ParsonsBlock {
         for (let i = 0; i < this.lines.length; i++) {
             var line = this.lines[i];
             if (line.indent > 0) {
-                $(line.view).removeClass("indent1 indent2 indent3 indent4 indent5 indent6 indent7");
+                $(line.view).removeClass("indent1 indent2 indent3 indent4 indent5 indent6");
                 $(line.view).addClass("indent" + line.indent);
             }
         }

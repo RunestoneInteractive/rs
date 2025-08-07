@@ -2937,14 +2937,14 @@ text = ["pycairo (>=1.20,<2.0) ; python_version >= \"3.9\"", "pycairo (>=1.20,<=
 
 [[package]]
 name = "pretext"
-version = "2.23.0"
+version = "2.25.1"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "pretext-2.23.0-py3-none-any.whl", hash = "sha256:25379e2f8b381d22b43690e73e88f486407e3e932b7c94447044f53c7eac4cc9"},
-    {file = "pretext-2.23.0.tar.gz", hash = "sha256:cbf08c9e9e90c2247bc31a508471ea74e14739d702d4ac3fe1c7a61a8f9962ff"},
+    {file = "pretext-2.25.1-py3-none-any.whl", hash = "sha256:b343f7e1f65f46b5e840c18cc94d210675cba82946bb00741cd0936de2046b52"},
+    {file = "pretext-2.25.1.tar.gz", hash = "sha256:e08029a9528d6e46fa672137c3e837f41866e765b8889125cbf3e5d9f0a476a7"},
 ]
 
 [package.dependencies]
@@ -2959,7 +2959,7 @@ pdfCropMargins = ">=1.0.9,<1.1.0"
 plastex = ">=3,<4"
 playwright = ">=1,<2"
 psutil = ">=7,<8"
-pydantic-xml = ">=2"
+pydantic-xml = "2.14.3"
 pyMuPDF = ">=1.24,<2.0"
 PyPDF2 = ">=2.5,<2.6"
 qrcode = ">=7,<8"
@@ -2967,9 +2967,9 @@ requests = ">=2,<3"
 single-version = ">=1,<2"
 
 [package.extras]
-all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.3.2,<0.4.0)"]
+all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.3.9,<0.4.0)"]
 homepage = ["pelican[markdown] (>=4.10,<5.0)"]
-prefigure = ["prefig[text] (>=0.3.2,<0.4.0)"]
+prefigure = ["prefig[text] (>=0.3.9,<0.4.0)"]
 
 [[package]]
 name = "prometheus-client"
@@ -3330,18 +3330,18 @@ yaml = ["pyyaml (>=6.0.1)"]
 
 [[package]]
 name = "pydantic-xml"
-version = "2.13.1"
+version = "2.14.3"
 description = "pydantic xml extension"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "pydantic_xml-2.13.1-py3-none-any.whl", hash = "sha256:f880394e090cef43e55aa848b285ea9807011f768d682188807a741b978d7326"},
-    {file = "pydantic_xml-2.13.1.tar.gz", hash = "sha256:225d96ce8288abf84d34aa5c70cd4a834c389a7efb071f95301cbba41bfbec15"},
+    {file = "pydantic_xml-2.14.3-py3-none-any.whl", hash = "sha256:4a0017f88bd7304695d9faa69b3127e67ea49064692113249ee9dd69ab8bd5aa"},
+    {file = "pydantic_xml-2.14.3.tar.gz", hash = "sha256:6aa4bb20905d9e5809fd195a048be76788a73dcd611aef50cf364cdb24d3141e"},
 ]
 
 [package.dependencies]
-pydantic = ">=2.6.0"
+pydantic = ">=2.6.0,<2.10.0b1 || >2.10.0b1"
 pydantic-core = ">=2.15.0"
 
 [package.extras]
@@ -3984,14 +3984,14 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.8.5"
+version = "7.9.4"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "<4.0.0,>=3.10.0"
 groups = ["main"]
 files = [
-    {file = "runestone-7.8.5-py3-none-any.whl", hash = "sha256:5167d56236e8860c9b283d9effe73d4bfd5bb84efbf415e549506ff64fcb2648"},
-    {file = "runestone-7.8.5.tar.gz", hash = "sha256:e52b644db21b0bbc9ce80ee1802c05737e8ad06b5d43c4fcc479b5694fa1da82"},
+    {file = "runestone-7.9.4-py3-none-any.whl", hash = "sha256:985a7a097cd9426e760133dbb5e4076511acf135f288e7974bd08f5f01e88907"},
+    {file = "runestone-7.9.4.tar.gz", hash = "sha256:171a8d1588477329fdcdf412a1cbd5a1c8114b175d1de18deaa2b9b80c2bad30"},
 ]
 
 [package.dependencies]

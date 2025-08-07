@@ -66,11 +66,43 @@ export const saveException = createAsyncThunk("student/saveException", async (ex
   }
 });
 
+export const fetchAccommodations = createAsyncThunk(
+  "student/fetchAccommodations",
+  async () => {
+    let jsheaders = new Headers({
+      "Content-type": "application/json; charset=utf-8",
+      Accept: "application/json"
+    });
+    let data = {
+      headers: jsheaders,
+      method: "GET"
+    };
+    let resp = await fetch("/assignment/instructor/accommodations", data);
+
+    if (!resp.ok) {
+      console.warn("Error fetching accommodations");
+      toast("Error fetching accommodations", {
+        icon: "🔥",
+        duration: 5000
+      });
+      return [];
+    }
+    let result = await resp.json();
+
+    if (result.detail.accommodations) {
+      console.log("accommodations fetched");
+      return result.detail.accommodations;
+    }
+    return [];
+  }
+);
+
 export const studentSlice = createSlice({
   name: "student",
   initialState: {
     roster: [],
-    selectedStudents: []
+    selectedStudents: [],
+    accommodations: []
   },
   reducers: {
     setRoster: (state, action) => {
@@ -78,6 +110,9 @@ export const studentSlice = createSlice({
     },
     setSelectedStudents: (state, action) => {
       state.selectedStudents = action.payload;
+    },
+    setAccommodations: (state, action) => {
+      state.accommodations = action.payload;
     }
   },
   extraReducers(builder) {
@@ -87,17 +122,27 @@ export const studentSlice = createSlice({
       })
       .addCase(fetchClassRoster.rejected, (state, action) => {
         console.warn("Fetching Roster failed", action.error.message);
-      });
+      })
+      .addCase(fetchAccommodations.fulfilled, (state, action) => {
+        state.accommodations = action.payload;
+      })
+      .addCase(fetchAccommodations.rejected, (state, action) => {
+        console.warn("Fetching Accommodations failed", action.error.message);
+      })
+      
   }
 });
 
-export const { setRoster, setSelectedStudents } = studentSlice.actions;
+export const { setRoster, setSelectedStudents, setAccommodations } = studentSlice.actions;
 
 export const selectRoster = (state) => {
   return state.student.roster;
 };
 export const selectSelectedStudents = (state) => {
   return state.student.selectedStudents;
+};
+export const selectAccommodations = (state) => {
+  return state.student.accommodations;
 };
 
 export default studentSlice.reducer;

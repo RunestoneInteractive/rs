@@ -135,6 +135,9 @@ async function flushQueue() {
     const flushedPromise = toFlush.map(async (item) => {
         try {
             await module_map[item.component_name]();
+            console.log(
+                `Runestone component ${item.component_name} has been loaded`
+            );
             return item;
         } catch (e) {
             item.reject(e);
@@ -214,6 +217,9 @@ export async function runestone_import(component_name) {
     if (module_map_cache[component_name]) {
         return module_map_cache[component_name];
     }
+    console.log(
+        `Runestone component ${component_name} is being queued for import`
+    );
     const promise = queueImport(component_name);
     module_map_cache[component_name] = promise;
     return promise;

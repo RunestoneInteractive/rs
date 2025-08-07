@@ -24,10 +24,13 @@ from typing import Optional, Dict, Any
 from bleach import clean
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
+import boto3
+import botocore
 
 # Local application imports
 # -------------------------
 from rsptx.logging import rslogger
+from rsptx.configuration import settings
 from rsptx.db.crud import (
     EVENT2TABLE,
     count_matching_questions,
@@ -605,7 +608,62 @@ async def htmlsrc(
         else:
             htmlsrc = res.htmlsrc
     else:
-        rslogger.error(f"HTML Source not found for {acid} in course ??")
+        rslogger.error(f"HTML Source not found for {acid} in {count=} for {studentId} {assignment_id=}")
         htmlsrc = "<p>No preview available</p>"
 
     return make_json_response(detail=htmlsrc)
+
+@router.get("/has_attachment/{div_id}")
+async def has_attachment(
+    request: Request,
+    div_id: str,
+    sid: Optional[str] = None,
+):
+    """
+    Check if a specific div has an attachment.
+    """
+    if sid is not None:
+        sid = sid.strip()
+    if request.state.user:
+        if sid is None:
+            sid = request.state.user.username
+        course_name = request.state.user.course_name
+    else:
+        return make_json_response(detail={"hasAttachment": False})
+
+    has_attachment = await check_attachment(sid, div_id, course_name)
+    return make_json_response(detail={"hasAttachment": has_attachment})
+
+
+async def check_attachment(sid: str, div_id: str, course: str) -> str:
+    """
+    Check if a specific div has an attachment.
+    """
+    session = boto3.session.Session()
+    client = session.client(
+        "s3",
+        config=botocore.config.Config(s3={"addressing_style": "virtual"}),
+        region_name=settings.region,
+        endpoint_url="https://nyc3.digitaloceanspaces.com",
+        aws_access_key_id=settings.spaces_key,
+        aws_secret_access_key=settings.spaces_secret,
+    )
+
+    prepath = f"{course}/{div_id}/{sid}"
+    rslogger.debug(f"checking path {prepath}")
+    response = client.list_objects(Bucket=settings.bucket, Prefix=prepath)
+    rslogger.debug(f"response = {response}")
+    if response and "Contents" in response:
+        if len(response["Contents"]) == 0:
+            return ""
+        elif len(response["Contents"]) > 1:
+            # order by last modified date
+            response["Contents"].sort(key=lambda x: x["LastModified"], reverse=True)
+        # Get the first object which should be the most recent
+        rslogger.debug(f"Contents: {response['Contents']}")
+        obj = response["Contents"][0]
+
+        rslogger.debug(f"key = {obj['Key']}")
+        return obj['Key']
+    return None
+

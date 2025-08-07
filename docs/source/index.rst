@@ -7,6 +7,7 @@ Welcome to Runestone Documentation
 ==================================
 
 .. toctree::
+   :numbered:
    :maxdepth: 2
 
    readme
@@ -33,6 +34,7 @@ API Documentation
 =================
 
 .. toctree::
+   :numbered:
    :maxdepth: 2
    :caption: Contents:
 

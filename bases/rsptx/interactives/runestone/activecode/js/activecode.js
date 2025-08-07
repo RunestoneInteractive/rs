@@ -62,6 +62,8 @@ CodeMirror.commands.autocomplete = function (cm) {
     cm.showHint({ hint: CodeMirror.hint.anyword });
 };
 
+const codeIndent = () => Number(window.getComputedStyle(document.body).getPropertyValue('--code-editor-indentation') || 4);
+
 // separate into constructor and init
 export class ActiveCode extends RunestoneBase {
     constructor(opts) {
@@ -280,7 +282,7 @@ export class ActiveCode extends RunestoneBase {
             value: this.code,
             lineNumbers: true,
             mode: edmode,
-            indentUnit: 4,
+            indentUnit: codeIndent(),
             matchBrackets: true,
             autoMatchParens: true,
             gutters: gutterList,

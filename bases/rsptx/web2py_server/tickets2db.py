@@ -29,6 +29,7 @@ elif os.environ["WEB2PY_CONFIG"] == "development":
 else:
     # no need to run during testing
     sys.exit(0)
+db_string = db_string.replace("?ssl=disable", "")
 
 engine = create_engine(db_string)
 Session = sessionmaker()

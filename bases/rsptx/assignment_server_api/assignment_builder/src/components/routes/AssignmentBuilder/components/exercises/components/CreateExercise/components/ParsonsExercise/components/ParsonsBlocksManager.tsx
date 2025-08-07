@@ -1,4 +1,3 @@
-import styles from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/MultiChoiceExercise/MultiChoiceOptions.module.css";
 import {
   DndContext,
   closestCenter,
@@ -33,6 +32,7 @@ import React, { FC, useState, useCallback, useRef, useMemo } from "react";
 import { ParsonsBlock } from "@/utils/preview/parsonsPreview";
 
 import { BlockItem } from "./BlockItem";
+import styles from "./ParsonsExercise.module.css";
 import { SortableBlock } from "./SortableBlock";
 
 const MAX_INDENT_LEVELS = 10;
@@ -696,6 +696,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
 
   const containerStyle = {
     minHeight: "300px",
+    maxHeight: "500px",
     position: "relative" as const,
     padding: 0,
     overflow: "auto",

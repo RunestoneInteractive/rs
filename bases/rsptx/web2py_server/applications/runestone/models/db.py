@@ -7,13 +7,18 @@ import jwt
 import os
 import random
 import re
-
+import sys
 from gluon import current
 import logging
 
-
+handler = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter(
+    "%(levelname)s - %(asctime)s - %(module)s - %(funcName)s - %(lineno)d - %(message)s"
+)
+handler.setFormatter(formatter)
 logger = logging.getLogger(settings.logger)
 logger.setLevel(settings.log_level)
+logger.addHandler(handler)
 
 
 from gluon.tools import Auth, Crud, Service, PluginManager, prettydate  # noqa: F401
@@ -567,6 +572,8 @@ def admin_logger(logger):
         else:
             sid = "Anonymous"
             course = "boguscourse"
+        if not course:
+            course = "unknown"
         try:
             db.useinfo.insert(
                 sid=sid,
@@ -578,7 +585,7 @@ def admin_logger(logger):
             )
         except Exception as e:
             logger.error(
-                f"failed to insert log record for {request.controller} {request.function}: {e}"
+                f"failed to insert log record for user {sid} {request.controller} {request.function}: {e}"
             )
             db.rollback()
 

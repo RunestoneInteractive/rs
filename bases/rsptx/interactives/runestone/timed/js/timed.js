@@ -39,28 +39,52 @@ export default class Timed extends RunestoneBase {
             this.limitedTime = true;
         }
         this.showFeedback = true;
-        if ($(this.origElem).is("[data-no-feedback]")) {
+        if (this.origElem.hasAttribute("data-no-feedback")) {
             this.showFeedback = false;
         }
+        // check for attribute data-show-feedback = yes
+        if (this.origElem.hasAttribute("data-show-feedback")) {
+            if (this.origElem.getAttribute("data-show-feedback") === "yes") {
+                this.showFeedback = true;
+            } else {
+                this.showFeedback = false;
+            }
+        }
         this.showResults = false;
-        if ($(this.origElem).is("[data-result]")) {
+        if (this.origElem.hasAttribute("data-result")) {
             this.showResults = false;
         }
         this.random = false;
-        if ($(this.origElem).is("[data-random]")) {
+        if (this.origElem.hasAttribute("data-random")) {
             this.random = true;
         }
         this.showTimer = true;
-        if ($(this.origElem).is("[data-no-timer]")) {
+        if (this.origElem.hasAttribute("data-no-timer")) {
             this.showTimer = false;
         }
+        if (this.origElem.hasAttribute("data-timer")) {
+            if (
+                this.origElem.getAttribute("data-timer") === "yes"
+            ) {
+                this.showTimer = true;
+            } else {
+                this.showTimer = false;
+            }
+        }
         this.fullwidth = false;
-        if ($(this.origElem).is("[data-fullwidth]")) {
+        if (this.origElem.hasAttribute("data-fullwidth")) {
             this.fullwidth = true;
         }
         this.nopause = false;
-        if ($(this.origElem).is("[data-no-pause]")) {
+        if (this.origElem.hasAttribute("data-no-pause")) {
             this.nopause = true;
+        }
+        if (this.origElem.hasAttribute("data-pause")) {
+            if (this.origElem.getAttribute("data-pause") === "yes") {
+                this.nopause = false;
+            } else {
+                this.nopause = true;
+            }
         }
         eBookConfig.enableScratchAC = false;
         this.running = 0;
@@ -163,13 +187,13 @@ export default class Timed extends RunestoneBase {
     }
 
     disableCutCopyPaste() {
-        document.addEventListener("cut", function(e) {
+        document.addEventListener("cut", function (e) {
             e.preventDefault();
         });
-        document.addEventListener("copy", function(e) {
+        document.addEventListener("copy", function (e) {
             e.preventDefault();
         });
-        document.addEventListener("paste", function(e) {
+        document.addEventListener("paste", function (e) {
             e.preventDefault();
         });
     }

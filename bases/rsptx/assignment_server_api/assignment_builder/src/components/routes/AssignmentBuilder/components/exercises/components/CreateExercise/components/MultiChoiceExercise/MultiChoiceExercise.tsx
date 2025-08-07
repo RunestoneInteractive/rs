@@ -131,6 +131,7 @@ export const MultiChoiceExercise: FC<BaseExerciseProps> = ({
           <MultiChoiceOptionsWrapper
             options={(formData.optionList || []) as OptionWithId[]}
             onChange={handleOptionsChange}
+            statement={formData.statement || ""}
           />
         );
       case 2:

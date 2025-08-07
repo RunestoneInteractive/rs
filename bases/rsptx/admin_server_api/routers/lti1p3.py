@@ -28,7 +28,7 @@ import tldextract
 import aiohttp
 from aiohttp import ClientResponseError
 from fastapi import APIRouter, Depends, Request, HTTPException, status
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, HTMLResponse
+from fastapi.responses import Response, HTMLResponse, JSONResponse, RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 import jwt
@@ -144,7 +144,7 @@ async def login_or_create_user(
     launch: FastAPIMessageLaunch,
     lti_course: Lti1p3Course,
     course: CoursesValidator
-):
+) -> tuple[Lti1p3User, str]:
     """
     Helper function for routes that bring an LMS user to Runestone.
     """
@@ -229,11 +229,17 @@ async def login_or_create_user(
     # or the domain name, they will resolve to an internal IP that makes sense on
     # the host, not the container.
     domain = get_domain()
+    web2py_session_cookie = None
     url = f"https://{domain}/default/w2py_login?token={encoded_jwt}"
     async with aiohttp.ClientSession() as session:
         try:
             resp = await session.get(url)
             resp.raise_for_status()
+            cookies = resp._headers.getall('Set-Cookie')
+            for cookie in cookies:
+                if "session_id_runestone" in cookie:
+                    rslogger.debug(f"LTI1p3 - session_id_runestone cookie set: {cookie}")
+                    web2py_session_cookie = cookie.split(";")[0]  # Get the cookie name=value part
         except Exception as e:
             rslogger.error(f"LTI1p3 - Error logging in to w2p server: {e}")
             raise HTTPException(
@@ -241,8 +247,15 @@ async def login_or_create_user(
                 detail=f"Error logging in to w2p server '{e}'",
             )
 
-    return lti_user
+    return lti_user, web2py_session_cookie
 
+
+def add_w2py_session_cookie(response: Response, cookie: str):
+    """
+    Add the w2p session cookie to the response.
+    """
+    cookie_parts = cookie.split("=")
+    response.set_cookie(cookie_parts[0], cookie_parts[1], httponly=True, samesite="lax")
 
 def check_launch_data(
     launch: FastAPIMessageLaunch, key: str, default_value: str = None
@@ -329,7 +342,7 @@ async def launch(request: Request):
     course = lti_course.rs_course
 
     # identify and create/login the user
-    lti_user = await login_or_create_user(message_launch, lti_course, course)
+    lti_user, web2py_session_cookie = await login_or_create_user(message_launch, lti_course, course)
     rs_user = lti_user.rs_user
     in_course = await user_in_course(rs_user.id, course.id)
     if not in_course:
@@ -410,6 +423,8 @@ async def launch(request: Request):
         data={"sub": rs_user.username}, expires=datetime.timedelta(hours=12)
     )
     auth_manager.set_cookie(response, access_token)
+
+    add_w2py_session_cookie(response, web2py_session_cookie)
 
     rslogger.debug(f"LTI1p3 - launch sending user to {redirect_to}")
     return response
@@ -905,7 +920,7 @@ async def assign_select(launch_id: str, request: Request, course=None):
 
     # Make sure we have an LTI mapping for the user. They should already exist and
     # be in the course, but this will make sure we have an LTI1p3User record
-    await login_or_create_user(message_launch, lti_course, course)
+    user_confirmation, web2py_session_cookie = await login_or_create_user(message_launch, lti_course, course)
 
     # Now start building the response
     domain = get_domain()
@@ -996,7 +1011,7 @@ async def assign_select(launch_id: str, request: Request, course=None):
                 dlr.set_target("window")
 
                 line_item = LineItem()
-                update_line_item_from_assignment(line_item, assign, course, use_pts)
+                update_line_item_from_assignment(line_item, assign, course, use_pts, push_duedate=True)
                 dlr.set_lineitem(line_item)
 
                 # add to list of things for LMS to create
@@ -1022,7 +1037,9 @@ async def assign_select(launch_id: str, request: Request, course=None):
                 )
     deep_link = message_launch.get_deep_link()
     response_html = deep_link.output_response_form(response_list)
-    return HTMLResponse(content=response_html, status_code=200)
+    response = HTMLResponse(content=response_html, status_code=200)
+    add_w2py_session_cookie(response, web2py_session_cookie)
+    return response
 
 
 @router.get("/remove-association")

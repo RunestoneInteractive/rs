@@ -1,8 +1,10 @@
 # pull official base image
 #FROM python:3.10-bullseye
-FROM latex_base:important
+#FROM latex_base:important
+#FROM ghcr.io/runestoneinteractive/latex_base:important
+FROM pretextbook/pretext-full:latest
 
-LABEL org.opencontainers.image.source https://github.com/RunestoneInteractive/rs
+LABEL org.opencontainers.image.source=https://github.com/RunestoneInteractive/rs
 
 # This is the name of the wheel that we build using `poetry build-project`
 ARG wheel=author_server-1.0.1-py3-none-any.whl

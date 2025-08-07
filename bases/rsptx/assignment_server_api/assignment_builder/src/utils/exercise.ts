@@ -128,3 +128,24 @@ export const getExercisesWithoutReadings = (exercises: Exercise[]) => {
     (exercise) => exercise.sorting_priority
   );
 };
+
+const shouldIncludeNode = (node: TreeNode, selectedTypes: string[]): boolean =>
+  !node.children?.length
+    ? selectedTypes.includes(node.data?.question_type)
+    : node.children.length > 0;
+
+export const filterExercisesByQuestionType = (
+  nodes: TreeNode[],
+  selectedQuestionTypes: string[] = []
+): TreeNode[] => {
+  if (selectedQuestionTypes.length === 0) return nodes;
+
+  return nodes
+    .map((node) => ({
+      ...node,
+      children: node.children
+        ? filterExercisesByQuestionType(node.children, selectedQuestionTypes)
+        : undefined
+    }))
+    .filter((node) => shouldIncludeNode(node, selectedQuestionTypes));
+};
