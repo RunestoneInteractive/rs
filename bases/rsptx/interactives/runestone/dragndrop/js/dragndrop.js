@@ -67,10 +67,11 @@ export default class DragNDrop extends RunestoneBase {
         let invisibleErrorDiv = document.createElement("div");
         invisibleErrorDiv.classList.add("ptx-runestone-container");
         document.body.appendChild(invisibleErrorDiv);
-
-        for (let element of this.origElem.querySelectorAll(
+        console.log("Populating DragNDrop with premises and responses");
+        this.cards = this.origElem.querySelectorAll(
             "[data-subcomponent='draggable']"
-        )) {
+        );
+        for (let element of this.cards) {
             let replaceSpan = document.createElement("span");
             replaceSpan.innerHTML = element.innerHTML;
             replaceSpan.id = element.id;
@@ -150,7 +151,11 @@ export default class DragNDrop extends RunestoneBase {
         this.containerDiv.classList.add("draggable-container");
         this.statementDiv = document.createElement("div");
         this.statementDiv.classList.add("cardsort-statement");
-        this.statementDiv.innerHTML = this.question;
+        try {
+            this.statementDiv.innerHTML = this.question;
+        } catch (error) {
+            console.error("Error setting statementDiv innerHTML:", error);
+        }
         this.containerDiv.appendChild(this.statementDiv);
         this.containerDiv.appendChild(document.createElement("br"));
         this.dragDropWrapDiv = document.createElement("div"); // Holds the draggables/dropzones, prevents feedback from bleeding in
@@ -176,6 +181,7 @@ export default class DragNDrop extends RunestoneBase {
     finishSettingUp() {
         this.appendReplacementSpans();
         this.createFeedbackDiv();
+        console.log("Replacing origElem with containerDiv");
         this.origElem.parentNode.replaceChild(this.containerDiv, this.origElem);
         if (!this.hasStoredDropzones) {
             this.minheight = this.draggableDiv.offsetHeight;
