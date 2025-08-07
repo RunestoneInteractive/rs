@@ -22,6 +22,7 @@ ENV DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_de
 ENV CELERY_BROKER_URL=redis://redis:6379/0
 ENV CELERY_RESULT_BACKEND=redis://redis:6379/0
 
+RUN echo 'export PS1="\[\e[1;32m\]\u@\h:\[\e[1;34m\]\w \[\e[0m\]\$ "' >> ~/.bashrc
 # install dependencies
 RUN pip install --upgrade pip
 RUN apt update
