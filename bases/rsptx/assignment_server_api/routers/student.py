@@ -15,6 +15,7 @@
 import datetime
 from typing import Optional
 import json
+import re
 
 # Third-party imports
 # -------------------
@@ -313,6 +314,10 @@ async def doAssignment(
                     'data-knowl="./',
                     f'data-knowl="/ns/books/published/{course.base_course}/',
                 )
+            # check if the htmlsrc contains a self closing iframe tag (using a regex) and if so, replace it with a regular iframe tag
+            if re.search(r'<iframe[^>]*?\/>', htmlsrc):
+                htmlsrc = re.sub(r'<iframe([^>]*?)\/>', r'<iframe\1>  </iframe>', htmlsrc)
+
         else:
             htmlsrc = None
 
