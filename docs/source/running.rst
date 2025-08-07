@@ -38,7 +38,9 @@ The Runestone server uses docker compose to start up a number of containers that
         document-id or basecourse : foobar
         Runestone username of an author or admin: : testuser1
 
-    If the course already exists in the database, it will ask you if you want to use a different name.
+    If the course already exists in the database you will get an error message and the command will exit. 
+
+    Note: This command sets up a "base course" This is not a course you would normally teach out of.  You would normally create a course to teach from throught the web interface or using the ``addcourse`` sub command.  
 
 #. Run the following command: ``docker compose run --rm rsmanage rsmanage build overview``  (replace ``overview`` with the name of the course you added in the previous step).  If you are building a PreTeXt book you will need to run ``docker compose run --rm rsmanage rsmanage build --ptx overview``
 
