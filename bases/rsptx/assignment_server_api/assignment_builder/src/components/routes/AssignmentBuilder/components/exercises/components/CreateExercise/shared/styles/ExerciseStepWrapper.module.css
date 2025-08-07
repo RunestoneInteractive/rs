@@ -30,7 +30,7 @@
 }
 
 .stepContent {
-  padding: 2rem;
+  padding: 1rem;
   flex: 1;
   overflow: auto;
   min-height: 0;
@@ -47,6 +47,6 @@
 
 @media screen and (max-width: 768px) {
   .stepContent {
-    padding: 1.5rem;
+    padding: 0.5rem;
   }
 }

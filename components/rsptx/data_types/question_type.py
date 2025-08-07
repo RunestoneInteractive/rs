@@ -7,7 +7,7 @@ class QuestionType(Enum):
     VIDEO = ("video", "Video", "")
     CODELENS = ("codelens", "Codelens", "")
     YOUTUBE = ("youtube", "Youtube", "")
-    SELECTQUESTION = ("selectquestion", "Select question", "")
+    SELECTQUESTION = ("selectquestion", "Select question", "Create a question that allows students to select from a list of options")
     CLICKABLEAREA = ("clickablearea", "Clickable Area", "Create an exercise where students identify areas in text or images")
     DRAGNDROP = ("dragndrop", "Drag and Drop", "Create an exercise where students match or order items by dragging")
     FILLINTHEBLANK = ("fillintheblank", "Fill in the blank", "Create a text with missing words that students need to fill in")

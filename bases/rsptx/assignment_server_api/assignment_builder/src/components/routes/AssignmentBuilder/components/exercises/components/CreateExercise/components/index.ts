@@ -9,3 +9,4 @@ export * from "./PollExercise/PollExercise";
 export { ShortAnswerExercise } from "./ShortAnswerExercise/ShortAnswerExercise";
 export * from "./MultiChoiceExercise";
 export { MatchingExercise } from "./MatchingExercise/MatchingExercise";
+export { SelectQuestionExercise } from "./SelectQuestionExercise/SelectQuestionExercise";
