@@ -34,7 +34,7 @@ class OIDCLogin(t.Generic[REQ, TCONF, SES, COOK, RED]):
     _cookies_check: bool = False
     _cookies_check_loading_text: str = "Loading..."
     _cookies_unavailable_msg_main_text: str = (
-        "Your browser prohibits saving cookies in the iframes."
+        "Your browser blocked cookies in this iframe."
     )
     _cookies_unavailable_msg_click_text: str = (
         "Click here to open content in the new tab."
