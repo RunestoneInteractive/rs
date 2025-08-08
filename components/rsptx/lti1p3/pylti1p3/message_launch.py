@@ -715,7 +715,7 @@ class MessageLaunch(t.Generic[REQ, TCONF, SES, COOK]):
             state_from_request, id_token_hash
         ):
             state_from_cookie = self._cookie_service.get_cookie(state_from_request)
-            if state_from_request != state_from_cookie:
+            if state_from_cookie and state_from_request != state_from_cookie:
                 # Error if state doesn't match.
                 raise LtiException("State not found")
 
