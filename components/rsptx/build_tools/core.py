@@ -664,7 +664,12 @@ def _process_subchapters(sess, db_context, chapter, chapid, course_name):
         for subsubchapter in subchapter.findall("./subsubchapter"):
             if "data-time" in subsubchapter.attrib:
                 _process_single_timed_assignment(
-                    sess, db_context, chapter, subsubchapter, course_name
+                    sess,
+                    db_context,
+                    chapter,
+                    subsubchapter,
+                    course_name,
+                    parent=subchapter,
                 )
                 continue
         subchap += 1
@@ -811,7 +816,7 @@ def _upsert_assignment_question(
 
 
 def _process_single_timed_assignment(
-    sess, db_context, chapter, subchapter, course_name
+    sess, db_context, chapter, subchapter, course_name, parent=None
 ):
     """Process a timed assignment subchapter."""
     rslogger.info("Processing timed assignment subchapter")
@@ -862,6 +867,10 @@ def _process_single_timed_assignment(
             dbtext = ET.tostring(el).decode("utf8")
 
         # Build question data
+        if parent is not None:
+            subchap_label = parent.find("./id").text
+        else:
+            subchap_label = subchapter.find("./id").text
         valudict = dict(
             base_course=course_name,
             name=idchild,
@@ -872,7 +881,7 @@ def _process_single_timed_assignment(
             autograde=_determine_autograde(dbtext),
             from_source="T",
             chapter=chapter.find("./id").text,
-            subchapter=subchapter.find("./id").text,
+            subchapter=subchap_label,
             topic=f"{chapter.find('./id').text}/{subchapter.find('./id').text}",
             qnumber=qlabel,
             optional="F",
