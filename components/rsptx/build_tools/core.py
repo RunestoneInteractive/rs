@@ -893,8 +893,7 @@ def _process_single_timed_assignment(
         # Insert or update question
         namekey = old_ww_id if old_ww_id else idchild
         qid = _upsert_question(sess, db_context, namekey, valudict, course_name)
-        print(f"Adding question {qid} to assignment {assignment_id}")
-        # Add the question to the assignment_questions table
+        # Add or update the question to the assignment_questions table
         _upsert_assignment_question(sess, db_context, assignment_id, qid, qnum)
 
 
