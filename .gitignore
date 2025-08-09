@@ -31,3 +31,4 @@ _build
 .vite
 *.tgz
 **/test/_static
+bake.log
