@@ -1051,11 +1051,19 @@ def _determine_practice_flag(qtype, el):
 
 def _determine_autograde(dbtext):
     """Determine autograde setting based on content."""
+    extraCode = ""
     if "====" in dbtext:
         extraCode = dbtext.partition("====")[2]
+    elif "===!" in dbtext:
+        extraCode = dbtext.partition("===!")[2]
+    if extraCode:
         for utKeyword in ["assert", "unittest", "TEST_CASE", "junit"]:
             if utKeyword in extraCode:
                 return "unittest"
+
+    if "===iotests===" in dbtext:
+        return "unittest"
+
     return ""
 
 
