@@ -29,28 +29,25 @@ export const generateParsonsPreview = ({
   noindent = false,
   questionLabel
 }: ParsonsPreviewProps): string => {
-  const safeId = name.replace(/\s+/g, "_").replace(/[^\w]/g, "");
+  const safeId = name.replace(/\s+/g, "_").replace(/\W/g, "");
 
   const processedBlocks: ParsonsBlock[] = [];
-  const groupMap: Record<string, ParsonsBlock[]> = {};
+  const seenGroupIds = new Set<string>();
 
   blocks.forEach((block) => {
-    if (block.groupId) {
-      if (!groupMap[block.groupId]) {
-        groupMap[block.groupId] = [];
-      }
-      groupMap[block.groupId].push(block);
-    } else {
+    if (!block.groupId) {
       processedBlocks.push(block);
+      return;
     }
-  });
+    if (seenGroupIds.has(block.groupId)) return;
 
-  Object.values(groupMap).forEach((groupBlocks) => {
+    seenGroupIds.add(block.groupId);
+    const groupBlocks = blocks.filter((b) => b.groupId === block.groupId);
     const correctBlock = groupBlocks.find((b) => b.isCorrect) || groupBlocks[0];
 
     processedBlocks.push({
       ...correctBlock,
-      content: correctBlock.content.trim()
+      content: correctBlock.content.replace(/\s+$/, "")
     });
 
     groupBlocks
@@ -58,7 +55,7 @@ export const generateParsonsPreview = ({
       .forEach((altBlock) => {
         processedBlocks.push({
           ...altBlock,
-          content: altBlock.content.trim(),
+          content: altBlock.content.replace(/\s+$/, ""),
           isPaired: true,
           isDistractor: true
         });
