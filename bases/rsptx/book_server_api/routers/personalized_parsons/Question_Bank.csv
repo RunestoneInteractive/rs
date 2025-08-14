@@ -1,0 +1,358 @@
+pair,type,Problem Name,w_question_description, Multiple_valid_check,Example_student_solution,Example_buggy_code,Example_fixed_code,Example_low_level_fixed_code,Unittest_Code,Default_Starting_Code,Default_Test_Code,Example_paired_distractor_correct,Example_paired_distractor_wrong,Edit_Distance_common,Edit_Distance_personalized,Edit_Distance_low_personalized,Edit_personalized_few,Edit_low_personalized_few,Similarity_personalized,Similarity_common,Similarity_low_level_personalized,Similarity_personalized_common_high,Similarity_personalized_low_level_high
+Z,W,str-mixed-example-solper,"Finish the function, ``phrase(person, thing)``, First verify whether ``person`` and ``thing`` are strings. If not, return ``False``. If ``person`` and ``thing`` are two strings, return one string with a ``person`` of your choosing followed by a ``thing`` of what that person likes to do. Make sure that ``person`` is capitalized and ``thing`` is lowercase.For example, if the ``person`` is ``Sam`` and ``thing`` is ``Likes to code``, the returned string should be ``""Sam likes to code""``.  Make sure that ``person`` is capitalized and ``thing`` is lowercase.",,"def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","def phrase(person, thing):
+    if (type(person) == str) or (type(thing) = str):
+        person = person.capitalize()
+        thing = thing.lowercase
+        return person  + thing
+    else:
+        return ""False""","def phrase(person, thing):
+    if (type(person) == str) and (type(thing) == str):
+        person = person.capitalize()
+        thing = thing.lower()
+        return person + "" "" + thing
+    else:
+        return False","def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","class myTests(unittest.TestCase):
+        def testOne(self):
+              self.assertEqual(phrase(""sam"", ""Likes to code""), ""Sam likes to code"", 'phrase(""sam"", "" Likes to code"")')
+              self.assertEqual(phrase(""mary-anne"", ""likes to sing""), ""Mary-anne likes to sing"", 'phrase(""mary-anne"", "" likes to sing"")')
+              self.assertEqual(phrase(""ANNA"", ""likes to dance""), ""Anna likes to dance"", 'phrase(""ANNA"", "" likes to dance"")')
+              self.assertEqual(phrase(1111, ""likes programming""), False, 'phrase(1111, "" likes programming"")')","def phrase(person, thing):",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+Z,W,str-mixed-example-solcode,"Finish the function, ``phrase(person, thing)``, First verify whether ``person`` and ``thing`` are strings. If not, return ``False``. If ``person`` and ``thing`` are two strings, return one string with a ``person`` of your choosing followed by a ``thing`` of what that person likes to do. Make sure that ``person`` is capitalized and ``thing`` is lowercase.For example, if the ``person`` is ``Sam`` and ``thing`` is ``Likes to code``, the returned string should be ``""Sam likes to code""``.  Make sure that ``person`` is capitalized and ``thing`` is lowercase.",,"def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","def phrase(person, thing):
+    if (type(person) == str) or (type(thing) = str):
+        person = person.capitalize()
+        thing = thing.lowercase
+        return person  + thing
+    else:
+        return ""False""","def phrase(person, thing):
+    if (type(person) == str) and (type(thing) == str):
+        person = person.capitalize()
+        thing = thing.lower()
+        return person + "" "" + thing
+    else:
+        return False","def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","class myTests(unittest.TestCase):
+        def testOne(self):
+              self.assertEqual(phrase(""sam"", ""Likes to code""), ""Sam likes to code"", 'phrase(""sam"", "" Likes to code"")')
+              self.assertEqual(phrase(""mary-anne"", ""likes to sing""), ""Mary-anne likes to sing"", 'phrase(""mary-anne"", "" likes to sing"")')
+              self.assertEqual(phrase(""ANNA"", ""likes to dance""), ""Anna likes to dance"", 'phrase(""ANNA"", "" likes to dance"")')
+              self.assertEqual(phrase(1111, ""likes programming""), False, 'phrase(1111, "" likes programming"")')","def phrase(person, thing):",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+Z,W,str-mixed-example-multiper,"Finish the function, ``phrase(person, thing)``, First verify whether ``person`` and ``thing`` are strings. If not, return ``False``. If ``person`` and ``thing`` are two strings, return one string with a ``person`` of your choosing followed by a ``thing`` of what that person likes to do. Make sure that ``person`` is capitalized and ``thing`` is lowercase.For example, if the ``person`` is ``Sam`` and ``thing`` is ``Likes to code``, the returned string should be ``""Sam likes to code""``.  Make sure that ``person`` is capitalized and ``thing`` is lowercase.",,"def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","def phrase(person, thing):
+    if (type(person) == str) or (type(thing) = str):
+        person = person.capitalize()
+        thing = thing.lowercase
+        return person  + thing
+    else:
+        return ""False""","def phrase(person, thing):
+    if (type(person) == str) and (type(thing) == str):
+        person = person.capitalize()
+        thing = thing.lower()
+        return person + "" "" + thing
+    else:
+        return False","def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","class myTests(unittest.TestCase):
+        def testOne(self):
+              self.assertEqual(phrase(""sam"", ""Likes to code""), ""Sam likes to code"", 'phrase(""sam"", "" Likes to code"")')
+              self.assertEqual(phrase(""mary-anne"", ""likes to sing""), ""Mary-anne likes to sing"", 'phrase(""mary-anne"", "" likes to sing"")')
+              self.assertEqual(phrase(""ANNA"", ""likes to dance""), ""Anna likes to dance"", 'phrase(""ANNA"", "" likes to dance"")')
+              self.assertEqual(phrase(1111, ""likes programming""), False, 'phrase(1111, "" likes programming"")')","def phrase(person, thing):",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+Z,W,str-mixed-example-multiper-execution,"When squirrels get together for a party, they like to have nuts.  A squirrel party is successful when the number of nuts is between 30 inclusive and 60 exclusive, unless it is the weekend, in which case there is no upper bound on the number of nuts.  Return ``True`` if the party with the given values is successful, or ``False`` otherwise.  For example ``party(20,False)`` should return ``False``, ``party(30, False)`` should return ``True``, and ``party(70, True)`` should return ``True``. ",,"def party(nuts, is_weekend):
+    if nuts < 30:
+        return False
+    if not is_weekend and nuts >= 60:
+        return False
+    return True","def party(nuts, is_weekend):
+    if nuts 鈮�30:
+        return False
+    elif nuts < 60:
+        return True
+    elif is_weekend:
+        return False
+    else:
+        return False","def party(nuts, is_weekend):
+    if nuts < 30:
+        return False
+    elif nuts < 60:
+        return True
+    elif is_weekend:
+        return True
+    else:
+        return False
+","def party(nuts, is_weekend):
+    if nuts < 30:
+        return False
+    elif nuts < 60:
+        return True
+    elif is_weekend:
+        return True
+    else:
+        return False","class myTests(unittest.TestCase):
+       def testOne(self):
+            self.assertEqual(party(20, False), False, ""party(20,False)"")
+            self.assertEqual(party(20, True), False, ""party(20,True)"")
+            self.assertEqual(party(30, False), True, ""party(30,False)"")
+            self.assertEqual(party(29, False), False, ""party(29,False)"")
+            self.assertEqual(party(50, True), True, ""party(50,True)"")
+            self.assertEqual(party(59, False), True, ""party(59,False)"")
+            self.assertEqual(party(60, False), False, ""party(60,False)"")
+            self.assertEqual(party(61, False), False, ""party(61,False)"")
+            self.assertEqual(party(70, False), False, ""party(70,False)"")
+            self.assertEqual(party(70, True), True, ""party(70,True)"")","def party(nuts, is_weekend):",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+Z,W,str-mixed-example-multiper-noindent-nonadapt,"Finish the function, ``phrase(person, thing)``, First verify whether ``person`` and ``thing`` are strings. If not, return ``False``. If ``person`` and ``thing`` are two strings, return one string with a ``person`` of your choosing followed by a ``thing`` of what that person likes to do. Make sure that ``person`` is capitalized and ``thing`` is lowercase.For example, if the ``person`` is ``Sam`` and ``thing`` is ``Likes to code``, the returned string should be ``""Sam likes to code""``.  Make sure that ``person`` is capitalized and ``thing`` is lowercase.",,"def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","def phrase(person, thing):
+    if (type(person) == str) or (type(thing) = str):
+        person = person.capitalize()
+        thing = thing.lowercase
+        return person  + thing
+    else:
+        return ""False""","def phrase(person, thing):
+    if (type(person) == str) and (type(thing) == str):
+        person = person.capitalize()
+        thing = thing.lower()
+        return person + "" "" + thing
+    else:
+        return False","def phrase(person, thing):
+    if type(person) == str and type(thing) == str:
+        return person.capitalize() + ' ' + thing.lower()
+    return False","class myTests(unittest.TestCase):
+        def testOne(self):
+              self.assertEqual(phrase(""sam"", ""Likes to code""), ""Sam likes to code"", 'phrase(""sam"", "" Likes to code"")')
+              self.assertEqual(phrase(""mary-anne"", ""likes to sing""), ""Mary-anne likes to sing"", 'phrase(""mary-anne"", "" likes to sing"")')
+              self.assertEqual(phrase(""ANNA"", ""likes to dance""), ""Anna likes to dance"", 'phrase(""ANNA"", "" likes to dance"")')
+              self.assertEqual(phrase(1111, ""likes programming""), False, 'phrase(1111, "" likes programming"")')","def phrase(person, thing):",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+Z,W,str-mixed-example-solper-java,"Finish the function, ``phrase(Object person, Object thing)``.  First verify whether ``person`` and ``thing`` are instances of ``String``. If not, return ``null``.  
+If ``person`` and ``thing`` are both strings, return one string with a ``person`` of your choosing followed by a ``thing`` that person likes to do.  
+Make sure that ``person`` is capitalized (first letter uppercase, the rest lowercase), and ``thing`` is entirely lowercase.  
+For example, if the ``person`` is ``""Sam""`` and ``thing`` is ``""Likes to code""``, the returned string should be ``""Sam likes to code""``.  
+Make sure that ``person`` is capitalized and ``thing`` is lowercase.
+",,"public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (!(person instanceof String) || !(thing instanceof String)) {
+            return null;
+        }
+        String personStr = ((String) person).toLowerCase();
+        String thingStr = ((String) thing).toLowerCase();
+        personStr = Character.toUpperCase(personStr.charAt(0)) + personStr.substring(1);
+        return personStr + "" "" + thingStr;
+    }
+}
+
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (person instanceof String || thing = ""String"") {
+            String personStr = ((String) person).capitalize();
+            String thingStr = ((String) thing).lowercase;
+            return personStr + thingStr;
+        } else {
+            return ""False"";
+        }
+    }
+}
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (person instanceof String && thing instanceof String) {
+            String personStr = (String) person;
+            String thingStr = (String) thing;
+            personStr = personStr.substring(0, 1).toUpperCase() + personStr.substring(1).toLowerCase();
+            thingStr = thingStr.toLowerCase();
+            return personStr + "" "" + thingStr;
+        } else {
+            return null;
+        }
+    }
+}
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (!(person instanceof String) || !(thing instanceof String)) {
+            return null;
+        }
+        String personStr = ((String) person).toLowerCase();
+        String thingStr = ((String) thing).toLowerCase();
+        personStr = Character.toUpperCase(personStr.charAt(0)) + personStr.substring(1);
+        return personStr + "" "" + thingStr;
+    }
+}
+
+","public class PhraseBuilderTest {
+    public static void main(String[] args) {
+        if (!""Sam likes to code"".equals(PhraseBuilder.phrase(""Sam"", ""Likes to code""))) {
+            System.exit(1);
+        }
+        if (PhraseBuilder.phrase(123, ""code"") != null) {
+            System.exit(1);
+        }
+        if (!""Jane loves java"".equals(PhraseBuilder.phrase(""JANE"", ""Loves JAVA""))) {
+            System.exit(1);
+        }
+        System.exit(0); // All tests passed
+    }
+}
+","public class PhraseBuilderTest {
+    public static void main(String[] args) {
+    }
+}
+",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+Z,W,str-mixed-example-solcode-java,"Finish the function, ``phrase(Object person, Object thing)``.  First verify whether ``person`` and ``thing`` are instances of ``String``. If not, return ``null``.  
+If ``person`` and ``thing`` are both strings, return one string with a ``person`` of your choosing followed by a ``thing`` that person likes to do.  
+Make sure that ``person`` is capitalized (first letter uppercase, the rest lowercase), and ``thing`` is entirely lowercase.  
+For example, if the ``person`` is ``""Sam""`` and ``thing`` is ``""Likes to code""``, the returned string should be ``""Sam likes to code""``.  
+Make sure that ``person`` is capitalized and ``thing`` is lowercase.
+",,"public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (!(person instanceof String) || !(thing instanceof String)) {
+            return null;
+        }
+        String personStr = ((String) person).toLowerCase();
+        String thingStr = ((String) thing).toLowerCase();
+        personStr = Character.toUpperCase(personStr.charAt(0)) + personStr.substring(1);
+        return personStr + "" "" + thingStr;
+    }
+}
+
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (person instanceof String || thing = ""String"") {
+            String personStr = ((String) person).capitalize();
+            String thingStr = ((String) thing).lowercase;
+
+            return personStr + thingStr;
+        } else {
+            return ""False"";
+        }
+    }
+}
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (person instanceof String && thing instanceof String) {
+            String personStr = (String) person;
+            String thingStr = (String) thing;
+            personStr = personStr.substring(0, 1).toUpperCase() + personStr.substring(1).toLowerCase();
+            thingStr = thingStr.toLowerCase();
+            return personStr + "" "" + thingStr;
+        } else {
+            return null;
+        }
+    }
+}
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (!(person instanceof String) || !(thing instanceof String)) {
+            return null;
+        }
+        String personStr = ((String) person).toLowerCase();
+        String thingStr = ((String) thing).toLowerCase();
+        personStr = Character.toUpperCase(personStr.charAt(0)) + personStr.substring(1);
+        return personStr + "" "" + thingStr;
+    }
+}
+
+","public class PhraseBuilderTest {
+    public static void main(String[] args) {
+        if (!""Sam likes to code"".equals(PhraseBuilder.phrase(""Sam"", ""Likes to code""))) {
+            System.exit(1);
+        }
+        if (PhraseBuilder.phrase(123, ""code"") != null) {
+            System.exit(1);
+        }
+        if (!""Jane loves java"".equals(PhraseBuilder.phrase(""JANE"", ""Loves JAVA""))) {
+            System.exit(1);
+        }
+        System.exit(0); // All tests passed
+    }
+}
+","public class PhraseBuilderTest {
+    public static void main(String[] args) {
+    }
+}
+",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
+Z,W,str-mixed-example-multiper-java,"Finish the function, ``phrase(Object person, Object thing)``.  First verify whether ``person`` and ``thing`` are instances of ``String``. If not, return ``null``.  
+If ``person`` and ``thing`` are both strings, return one string with a ``person`` of your choosing followed by a ``thing`` that person likes to do.  
+Make sure that ``person`` is capitalized (first letter uppercase, the rest lowercase), and ``thing`` is entirely lowercase.  
+For example, if the ``person`` is ``""Sam""`` and ``thing`` is ``""Likes to code""``, the returned string should be ``""Sam likes to code""``.  
+Make sure that ``person`` is capitalized and ``thing`` is lowercase.
+",,"public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (!(person instanceof String) || !(thing instanceof String)) {
+            return null;
+        }
+        String personStr = ((String) person).toLowerCase();
+        String thingStr = ((String) thing).toLowerCase();
+        personStr = Character.toUpperCase(personStr.charAt(0)) + personStr.substring(1);
+        return personStr + "" "" + thingStr;
+    }
+}
+
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (person instanceof String || thing = ""String"") {
+            String personStr = ((String) person).capitalize();
+            String thingStr = ((String) thing).lowercase;
+
+            return personStr + thingStr;
+        } else {
+            return ""False"";
+        }
+    }
+}
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (person instanceof String && thing instanceof String) {
+            String personStr = (String) person;
+            String thingStr = (String) thing;
+            personStr = personStr.substring(0, 1).toUpperCase() + personStr.substring(1).toLowerCase();
+            thingStr = thingStr.toLowerCase();
+            return personStr + "" "" + thingStr;
+        } else {
+            return null;
+        }
+    }
+}
+","public class PhraseBuilder {
+    public static String phrase(Object person, Object thing) {
+        if (!(person instanceof String) || !(thing instanceof String)) {
+            return null;
+        }
+        String personStr = ((String) person).toLowerCase();
+        String thingStr = ((String) thing).toLowerCase();
+        personStr = Character.toUpperCase(personStr.charAt(0)) + personStr.substring(1);
+        return personStr + "" "" + thingStr;
+    }
+}
+
+","public class PhraseBuilderTest {
+    public static void main(String[] args) {
+        if (!""Sam likes to code"".equals(PhraseBuilder.phrase(""Sam"", ""Likes to code""))) {
+            System.exit(1);
+        }
+        if (PhraseBuilder.phrase(123, ""code"") != null) {
+            System.exit(1);
+        }
+        if (!""Jane loves java"".equals(PhraseBuilder.phrase(""JANE"", ""Loves JAVA""))) {
+            System.exit(1);
+        }
+        System.exit(0); // All tests passed
+    }
+}
+
+","public class PhraseBuilderTest {
+    public static void main(String[] args) {
+    }
+}
+",,,,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable,Not applicable
