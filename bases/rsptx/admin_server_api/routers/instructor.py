@@ -793,7 +793,7 @@ async def enroll_students(
     """
     content = await students.read()
     try:
-        csvfile = StringIO(content.decode("utf-8"))
+        csvfile = StringIO(content.decode("utf-8-sig"))
         reader = csv.reader(csvfile)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid CSV file: {e}")
