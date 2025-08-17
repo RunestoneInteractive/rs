@@ -66,7 +66,7 @@ def build_book(target, clean, generate, bookname):
     if not generate:
         generate = True if os.environ.get("GENERATE_ASSETS", False) else False
 
-    res = _build_ptx_book(config, generate, "runestone-manifest.xml", bookname)
+    res = _build_ptx_book(config, generate, "runestone-manifest.xml", bookname, target=target)
     if not res:
         print("build failed")
         exit(-1)
