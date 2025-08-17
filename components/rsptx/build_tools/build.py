@@ -827,6 +827,8 @@ def dev(ctx, config):
 def bake(ctx, config):
     ctx.invoke(wheel)
     for service in config.ym["services"]:
+        if service == "nginx_dstart_dev":
+            continue
         if "image" not in config.ym["services"][service]:
             continue
         image = config.ym["services"][service]["image"]
