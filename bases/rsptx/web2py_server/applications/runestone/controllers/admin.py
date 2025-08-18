@@ -2543,6 +2543,19 @@ def _get_question_id(question_name, course_id, assignment_id=None):
     # first try to just get the question by name.
     question = db((db.questions.name == question_name)).select(db.questions.id)
     # if there is more than one then use the course_id
+    # pretext does not have numbers on the question names in the question table
+    if not question or len(question) == 0:
+        # check if question name starts with a number
+        # if it does then strip the leading numeric characters and search again        
+        if question_name[0].isdigit():
+            # strip leading numbers and whitespace
+            ql = question_name.split("/")
+            question_name = ""
+            for i in range(len(ql)):
+                ql[i] = ql[i].lstrip("0123456789. ")
+            question_name = "/".join(ql)
+            logger.debug(f"stripped question_name = {question_name}")
+            question = db((db.questions.name == question_name)).select(db.questions.id)
     if len(question) > 1:
         # prefer to use the assignment if it is there, but when adding a question by name
         # it will not be in the assignment so this will fail and we fall back to using
@@ -2570,9 +2583,11 @@ def _get_question_id(question_name, course_id, assignment_id=None):
             .select(db.questions.id)
             .first()
         )
-    else:
+    elif len(question) == 1:
         question = question[0]
-
+    else:
+        question = None
+    
     if question:
         return int(question.id)
     else:

@@ -4039,19 +4039,22 @@ test = ["flake8", "mypy", "pytest"]
 
 [[package]]
 name = "sphinxcontrib-paverutils"
-version = "1.17.0"
+version = "1.18.1"
 description = "Sphinx/Paver integration"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "sphinxcontrib-paverutils-1.17.0.tar.gz", hash = "sha256:daafc4440018c34b0ab3fe55b72e6c1c484a23622fb3caf73f08f77fb458c149"},
-    {file = "sphinxcontrib_paverutils-1.17.0-py2.py3-none-any.whl", hash = "sha256:447c412d827bf4d899d56febde45db969c783d49efe9824fed4be5f2fccc4bfb"},
+    {file = "sphinxcontrib_paverutils-1.18.1-py2.py3-none-any.whl", hash = "sha256:c0851ae12a1915f11a895186073b403ba0a0402a05bd89db69e7dc7206f96822"},
+    {file = "sphinxcontrib_paverutils-1.18.1.tar.gz", hash = "sha256:8abaed9b77cf1e477c647193d2eb876947dc8313ee2b6439d6fc0ffcb0552953"},
 ]
 
 [package.dependencies]
-Paver = ">=1.02.0"
-Sphinx = ">=1.7.1"
+paver = ">=1.02.0"
+sphinx = ">=1.7.1"
+
+[package.extras]
+test = ["ruff"]
 
 [[package]]
 name = "sphinxcontrib-qthelp"
@@ -4766,4 +4769,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10.0"
-content-hash = "6d36b5f35e4dd0c2afa2b9481493b3b5d95c56ea06512a5a410384f27e2b91d4"
+content-hash = "b65363225038b9807d11953275a520dcef275a9189dc9f7660807ac490761474"

@@ -255,7 +255,7 @@ def add_w2py_session_cookie(response: Response, cookie: str):
     Add the w2p session cookie to the response.
     """
     cookie_parts = cookie.split("=")
-    response.set_cookie(cookie_parts[0], cookie_parts[1], httponly=True, samesite="lax")
+    response.set_cookie(cookie_parts[0], cookie_parts[1], httponly=True, samesite="None", secure=True)
 
 def check_launch_data(
     launch: FastAPIMessageLaunch, key: str, default_value: str = None

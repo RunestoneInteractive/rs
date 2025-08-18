@@ -152,23 +152,36 @@
         };
 
         // Show loading state
-        $("#copyButton").html('<i class="fas fa-spinner fa-spin"></i> Copying...').prop('disabled', true);
+        const copyButton = document.getElementById("copyButton");
+        copyButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Copying...';
+        copyButton.disabled = true;
 
-        $.post("/runestone/admin/copy_assignment", data, function (response) {
-            if (response == "success") {
-                showMessage("Assignment(s) copied successfully!", "success");
-                // Reset form
-                $("#courseSelection").val("");
-                $("#assignSelection").empty();
-            } else {
-                showMessage(`Copy Failed: ${response}`, "error");
-            }
-        }).fail(function () {
-            showMessage("Copy failed due to server error", "error");
-        }).always(function () {
-            // Reset button state
-            $("#copyButton").html('<i class="fas fa-copy"></i> Copy Assignment').prop('disabled', true);
-        });
+        fetch("/admin/instructor/copy_assignment", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage("Assignment(s) copied successfully!", "success");
+                    // Reset form
+                    document.getElementById("courseSelection").value = "";
+                    document.getElementById("assignSelection").innerHTML = "";
+                } else {
+                    showMessage(`Copy Failed: ${data.message}`, "error");
+                }
+            })
+            .catch(error => {
+                showMessage("Copy failed due to server error", "error");
+            })
+            .finally(() => {
+                // Reset button state
+                copyButton.innerHTML = '<i class="fas fa-copy"></i> Copy Assignment';
+                copyButton.disabled = true;
+            });
     }
 
     // Function to show messages

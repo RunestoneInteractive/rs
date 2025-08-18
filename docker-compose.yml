@@ -192,6 +192,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
       - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
+      - SERVER_PROTOCOL=${SERVER_PROTOCOL:-http://}
     depends_on:
       redis:
         condition: service_started

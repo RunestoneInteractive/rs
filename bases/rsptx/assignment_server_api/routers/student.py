@@ -15,6 +15,7 @@
 import datetime
 from typing import Optional
 import json
+import re
 
 # Third-party imports
 # -------------------
@@ -222,6 +223,18 @@ async def doAssignment(
         )
 
         return RedirectResponse("/assignment/student/chooseAssignment")
+    user_is_instructor = await is_instructor(request, user=user)
+
+    if assignment.is_peer or assignment.kind == "Peer":
+        # if student redirects to peer assignment
+        if not user_is_instructor:
+            return RedirectResponse(
+                f"/runestone/peer/peer_question?assignment_id={assignment_id}"
+            )
+        else:
+            return RedirectResponse(
+                f"/runestone/peer/dashboard?assignment_id={assignment_id}"
+            )
 
     deadline_exception = await check_for_exceptions(user, assignment_id)
 
@@ -259,7 +272,7 @@ async def doAssignment(
             )
     if assignment.kind == "Timed":
         assignment.is_timed = True
-        
+
     questions = await fetch_assignment_questions(assignment_id)
 
     await create_useinfo_entry(
@@ -313,6 +326,12 @@ async def doAssignment(
                     'data-knowl="./',
                     f'data-knowl="/ns/books/published/{course.base_course}/',
                 )
+            # check if the htmlsrc contains a self closing iframe tag (using a regex) and if so, replace it with a regular iframe tag
+            if re.search(r"<iframe[^>]*?\/>", htmlsrc):
+                htmlsrc = re.sub(
+                    r"<iframe([^>]*?)\/>", r"<iframe\1>  </iframe>", htmlsrc
+                )
+
         else:
             htmlsrc = None
 
@@ -331,7 +350,9 @@ async def doAssignment(
         chap_name = q.Question.chapter
         subchap_name = q.Question.subchapter
         if q.Question.base_course not in preambles:
-            preambles[q.Question.base_course] = await addPreamble(q.Question.base_course)
+            preambles[q.Question.base_course] = await addPreamble(
+                q.Question.base_course
+            )
 
         info = dict(
             htmlsrc=htmlsrc,
@@ -418,11 +439,6 @@ async def doAssignment(
     else:
         parsed_js = {}
     parsed_js["readings"] = readings_names
-    # But to set the cookie you do NOT use ``.value``
-
-    # By not setting expire this remains/becomes a session cookie
-
-    user_is_instructor = await is_instructor(request, user=user)
 
     c_origin = course_attrs.get("markup_system", "Runestone")
     print("ORIGIN", c_origin)
@@ -462,9 +478,7 @@ async def doAssignment(
     templates = Jinja2Templates(directory=template_folder)
     # reverse the order of the keys in the preambles dictionary so that the first key I added is now the last
     # this will ensure that when multiple preamble definitions are used the last one is from the current course
-    preambles = dict(
-        (k, v) for k, v in reversed(preambles.items())
-    )
+    preambles = dict((k, v) for k, v in reversed(preambles.items()))
     context = dict(  # This is all the variables that will be used in the doAssignment.html document
         course=course,
         course_name=user.course_name,

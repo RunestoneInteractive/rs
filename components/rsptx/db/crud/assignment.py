@@ -12,7 +12,7 @@ from rsptx.data_types.autograde import AutogradeOptions
 import logging
 from sqlalchemy import select, update, delete, and_, or_, func
 from sqlalchemy.exc import IntegrityError
-
+from .question import fetch_question_count_per_subchapter
 # Models and validators
 from ..models import (
     Assignment,
@@ -484,13 +484,20 @@ async def update_assignment_exercises(
         if payload.idsToAdd:
             for i, question_id in enumerate(payload.idsToAdd, start=1):
                 # Assume we have a way to get the points for the question
-                question_points_query = select(Question.difficulty).where(
-                    Question.id == question_id
-                )
-                question_points_result = await session.execute(question_points_query)
-                question_points = (
-                    question_points_result.scalar() or 1
-                )  # If the question is not found, 1 point
+                question_info_query = select(
+                    Question.difficulty, Question.chapter, Question.subchapter, Question.base_course
+                ).where(Question.id == question_id)
+                question_info_result = await session.execute(question_info_query)
+                question_info = question_info_result.first()
+
+                difficulty, chapter, subchapter, base_course = question_info
+                question_points = difficulty or 1
+
+                default_activities_required = None
+                if payload.isReading:
+                    counts = await fetch_question_count_per_subchapter(base_course)
+                    activity_count = counts.get(chapter, {}).get(subchapter, 0)
+                    default_activities_required = max(int(activity_count * 0.8), 1)
 
                 new_question = AssignmentQuestion(
                     assignment_id=payload.assignmentId,
@@ -504,7 +511,7 @@ async def update_assignment_exercises(
                     reading_assignment=payload.isReading,
                     sorting_priority=max_sort_priority
                     + i,  # Increment from max_sort_priority
-                    activities_required=None,
+                    activities_required=default_activities_required,
                 )
                 new_questions.append(new_question)
                 points_to_add += question_points  # Increase by the number of points

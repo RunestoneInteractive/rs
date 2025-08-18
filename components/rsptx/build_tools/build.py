@@ -819,5 +819,45 @@ def dev(ctx, config):
     ctx.invoke(restart)
 
 
+# Bake
+# build multi-architecture images and push them to the registry
+@cli.command()
+@pass_config
+@click.pass_context
+def bake(ctx, config):
+    ctx.invoke(wheel)
+    for service in config.ym["services"]:
+        if service == "nginx_dstart_dev":
+            continue
+        if "image" not in config.ym["services"][service]:
+            continue
+        image = config.ym["services"][service]["image"]
+        if "ghcr.io" not in image:
+            continue
+        console.print(f"Baking {image}...")
+        command_list = [
+            "docker",
+            "buildx",
+            "bake",
+            "--push",
+            "--file",
+            "docker-bake.hcl",
+            f"rs-{service}",
+        ]
+        ret = subprocess.run(
+            command_list,
+            capture_output=True,
+        )
+        if ret.returncode != 0:
+            console.print(
+                f"Failed to bake {image}, see bake.log for details", style="bold red"
+            )
+            with open("bake.log", "w") as f:
+                f.write(ret.stdout.decode(stdout_err_encoding))
+                f.write("\n")
+                f.write(ret.stderr.decode(stdout_err_encoding))
+                f.write("\n")
+            exit(1)
+
 if __name__ == "__main__":
     cli()

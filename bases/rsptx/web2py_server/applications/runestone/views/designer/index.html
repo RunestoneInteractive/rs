@@ -204,7 +204,7 @@
 			{{ if course["shelf_section"] == section:}}
 			<div class="radio">
 				<label>
-					<input type="radio" name="coursetype" value="{{=course[" basecourse"]}}" />
+					<input type="radio" name="coursetype" value="{{=course["basecourse"]}}" />
 					{{=course["title"]}}
 					{{ if course["subtitle"]:}}
 					: {{=course["subtitle"]}}

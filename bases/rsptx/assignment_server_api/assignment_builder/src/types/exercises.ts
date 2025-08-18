@@ -1,7 +1,7 @@
+import { BlankWithFeedback } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/FillInTheBlankExercise";
 import { FilterMatchMode } from "primereact/api";
 
-import { BlankWithFeedback } from "../components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/FillInTheBlankExercise/types";
-import { ParsonsBlock } from "../utils/preview/parsonsPreview";
+import { ParsonsBlock } from "@/utils/preview/parsonsPreview";
 
 export const supportedExerciseTypesToEdit = [
   "mchoice",
@@ -23,7 +23,8 @@ export const supportedExerciseTypes = [
   "clickablearea",
   "poll",
   "shortanswer",
-  "matching"
+  "matching",
+  "selectquestion"
 ] as const;
 
 export type ExerciseType = (typeof supportedExerciseTypes)[number];
@@ -32,6 +33,11 @@ export interface Option {
   choice: string;
   feedback?: string;
   correct?: boolean;
+}
+
+export interface QuestionWithLabel {
+  questionId: string;
+  label?: string;
 }
 
 export type Exercise = {
@@ -87,6 +93,10 @@ export type QuestionJSON = Partial<{
   scale_min: number;
   scale_max: number;
   forceCheckboxes: boolean;
+  questionList: string[];
+  abExperimentName: string;
+  toggleOptions: string[];
+  dataLimitBasecourse: boolean;
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;

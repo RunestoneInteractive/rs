@@ -19,7 +19,7 @@
 # You still need to pull or build them locally the old way during development.
 
 variable "VERSION" {
-    default = "8.0.0"
+    default = "8.0.2"
 }
 
 group "default" {
@@ -34,7 +34,6 @@ group "default" {
     "rs-author",
     "rs-worker",
     "rs-admin",
-    "latex_base",
   ]
 }
 

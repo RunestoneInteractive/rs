@@ -28,7 +28,11 @@ export class MatchingProblem extends RunestoneBase {
             this.boxesRenderedResolve = resolve;
         });
         this.workspace = this.createWorkspace(container);
-        this.statement = this.createStatement(container);
+        try {
+            this.statement = this.createStatement(container);
+        } catch (error) {
+            console.error("Error setting statement:", error);
+        }   
         this.connList = this.createConnList(container);
         this.ariaLive = this.createAriaLive(container);
         this.controlDiv = this.createControlDiv(container);

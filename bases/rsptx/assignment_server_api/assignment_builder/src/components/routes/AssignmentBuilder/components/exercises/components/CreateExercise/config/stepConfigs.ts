@@ -189,8 +189,25 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
       title: "Preview",
       description: "Preview the exercise as students will see it"
     }
+  },
+  selectquestion: {
+    0: {
+      title: "AB Experiment & Questions",
+      description: "Configure question list, AB experiment"
+    },
+    1: {
+      title: "Toggle Options",
+      description: "Configure toggle options for the exercise"
+    },
+    2: {
+      title: "Settings",
+      description: "Configure exercise settings such as name, points, etc."
+    },
+    3: {
+      title: "Preview",
+      description: "Preview the exercise as students will see it"
+    }
   }
-  // Add more exercise types here
 };
 
 export const getStepConfig = (exerciseType: string, step: number): StepConfig | undefined => {
@@ -578,6 +595,42 @@ export const FILL_IN_THE_BLANK_STEP_VALIDATORS: StepValidator<FillInTheBlankData
     return errors;
   },
   (data: FillInTheBlankData) => {
+    const errors: string[] = [];
+
+    if (!data.name?.trim()) {
+      errors.push("Exercise name is required");
+    }
+    if (!data.chapter) {
+      errors.push("Chapter is required");
+    }
+    if (data.points === undefined || data.points <= 0) {
+      errors.push("Points must be greater than 0");
+    }
+    if (data.difficulty === undefined) {
+      errors.push("Difficulty is required");
+    }
+
+    return errors;
+  },
+  () => []
+];
+
+export const SELECT_QUESTION_STEP_VALIDATORS: StepValidator<any>[] = [
+  (data) => {
+    const errors: string[] = [];
+
+    if (!data.questionList || data.questionList.length === 0) {
+      errors.push("Please add at least one question to the list");
+    }
+
+    return errors;
+  },
+  () => {
+    const errors: string[] = [];
+
+    return errors;
+  },
+  (data) => {
     const errors: string[] = [];
 
     if (!data.name?.trim()) {

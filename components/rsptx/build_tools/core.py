@@ -171,7 +171,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         click.echo("Building the book")
         if gen:
             click.echo("Generating assets")
-            rs.generate_assets(skip_cache=True)
+            rs.generate_assets(only_changed=False, skip_cache=True)
 
         rs.build()  # build the book, generating assets as needed
         log_path = (
@@ -627,7 +627,8 @@ def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
     """Process a single chapter and return its database ID."""
     rslogger.info(chapter)
     cnum = chapter.find("./number").text
-
+    if not cnum:
+        cnum = ""
     rslogger.debug(
         f"{chapter.tag} {chapter.find('./id').text} {chapter.find('./title').text}"
     )
@@ -663,7 +664,12 @@ def _process_subchapters(sess, db_context, chapter, chapid, course_name):
         for subsubchapter in subchapter.findall("./subsubchapter"):
             if "data-time" in subsubchapter.attrib:
                 _process_single_timed_assignment(
-                    sess, db_context, chapter, subsubchapter, course_name
+                    sess,
+                    db_context,
+                    chapter,
+                    subsubchapter,
+                    course_name,
+                    parent=subchapter,
                 )
                 continue
         subchap += 1
@@ -810,7 +816,7 @@ def _upsert_assignment_question(
 
 
 def _process_single_timed_assignment(
-    sess, db_context, chapter, subchapter, course_name
+    sess, db_context, chapter, subchapter, course_name, parent=None
 ):
     """Process a timed assignment subchapter."""
     rslogger.info("Processing timed assignment subchapter")
@@ -861,6 +867,10 @@ def _process_single_timed_assignment(
             dbtext = ET.tostring(el).decode("utf8")
 
         # Build question data
+        if parent is not None:
+            subchap_label = parent.find("./id").text
+        else:
+            subchap_label = subchapter.find("./id").text
         valudict = dict(
             base_course=course_name,
             name=idchild,
@@ -871,7 +881,7 @@ def _process_single_timed_assignment(
             autograde=_determine_autograde(dbtext),
             from_source="T",
             chapter=chapter.find("./id").text,
-            subchapter=subchapter.find("./id").text,
+            subchapter=subchap_label,
             topic=f"{chapter.find('./id').text}/{subchapter.find('./id').text}",
             qnumber=qlabel,
             optional="F",
@@ -883,8 +893,7 @@ def _process_single_timed_assignment(
         # Insert or update question
         namekey = old_ww_id if old_ww_id else idchild
         qid = _upsert_question(sess, db_context, namekey, valudict, course_name)
-        print(f"Adding question {qid} to assignment {assignment_id}")
-        # Add the question to the assignment_questions table
+        # Add or update the question to the assignment_questions table
         _upsert_assignment_question(sess, db_context, assignment_id, qid, qnum)
 
 
@@ -1042,11 +1051,19 @@ def _determine_practice_flag(qtype, el):
 
 def _determine_autograde(dbtext):
     """Determine autograde setting based on content."""
+    extraCode = ""
     if "====" in dbtext:
         extraCode = dbtext.partition("====")[2]
+    elif "===!" in dbtext:
+        extraCode = dbtext.partition("===!")[2]
+    if extraCode:
         for utKeyword in ["assert", "unittest", "TEST_CASE", "junit"]:
             if utKeyword in extraCode:
                 return "unittest"
+
+    if "===iotests===" in dbtext:
+        return "unittest"
+
     return ""
 
 

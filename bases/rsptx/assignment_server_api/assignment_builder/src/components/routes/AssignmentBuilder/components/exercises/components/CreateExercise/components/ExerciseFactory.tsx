@@ -11,7 +11,8 @@ import {
   PollExercise,
   ShortAnswerExercise,
   MultiChoiceExercise,
-  MatchingExercise
+  MatchingExercise,
+  SelectQuestionExercise
 } from ".";
 
 export const ExerciseFactory: FC<ExerciseComponentProps> = (props) => {
@@ -34,6 +35,8 @@ export const ExerciseFactory: FC<ExerciseComponentProps> = (props) => {
       return <ShortAnswerExercise {...props} />;
     case "matching":
       return <MatchingExercise {...props} />;
+    case "selectquestion":
+      return <SelectQuestionExercise {...props} />;
     default:
       throw new Error(`Unknown exercise type: ${props.type}`);
   }

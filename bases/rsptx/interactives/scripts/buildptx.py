@@ -61,7 +61,12 @@ def build_book(target, clean, generate, bookname):
     config = Config()
     assert bookname
 
-    res = _build_ptx_book(config, generate, "runestone-manifest.xml", bookname)
+    # To suppor the general build process I want to set an environment variable to force all 
+    # pxx books to regenerate their assets.
+    if not generate:
+        generate = True if os.environ.get("GENERATE_ASSETS", False) else False
+
+    res = _build_ptx_book(config, generate, "runestone-manifest.xml", bookname, target=target)
     if not res:
         print("build failed")
         exit(-1)
