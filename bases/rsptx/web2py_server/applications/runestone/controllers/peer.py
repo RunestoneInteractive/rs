@@ -846,6 +846,6 @@ def send_lti_scores():
     assignment_id = request.vars.assignment_id
     grades = db(db.grades.assignment == assignment_id).select()
     for sid in grades:
-        _try_to_send_lti_grade(sid, assignment_id)
+        _try_to_send_lti_grade(sid, assignment_id, force=True)
 
     return json.dumps("success")
