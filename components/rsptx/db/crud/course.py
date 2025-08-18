@@ -213,7 +213,7 @@ async def delete_user_course_entry(user_id: int, course_id: int) -> None:
 # Course Deletion Functions
 # -----------------------------------------------------------------------
 
-
+import pdb
 async def delete_course_completely(course_name: str) -> bool:
     """
     Completely delete a course and all associated data.
@@ -299,7 +299,7 @@ async def delete_course_completely(course_name: str) -> bool:
             )
 
             # Delete coding answers
-            await session.execute(delete(Code).where(Code.course_id == course_name))
+            await session.execute(delete(Code).where(Code.course_id == course_id))
 
             # Note: PollAnswer model not found in imports, skipping poll responses deletion
             # await session.execute(delete(PollAnswer).where(PollAnswer.course_name == course_name))
@@ -310,7 +310,7 @@ async def delete_course_completely(course_name: str) -> bool:
                 AuthUser.course_id == course_id
             )
             student_result = await session.execute(student_query)
-            student_usernames = [row.username for row in student_result.scalars().all()]
+            student_usernames = [username for username in student_result.scalars().all()]
 
             if student_usernames:
                 await session.execute(
@@ -332,7 +332,7 @@ async def delete_course_completely(course_name: str) -> bool:
                 Assignment.course == course_id
             )
             assignment_result = await session.execute(assignment_query)
-            assignment_ids = [row.id for row in assignment_result.scalars().all()]
+            assignment_ids = [aid for aid in assignment_result.scalars().all()]
 
             if assignment_ids:
                 await session.execute(
@@ -382,34 +382,17 @@ async def delete_course_completely(course_name: str) -> bool:
                 )
             )
 
-            # 6. Delete payment/invoice data if exists
-            rslogger.info("Deleting payment data...")
-            # Note: We may want to preserve some payment data for accounting purposes
-            # For now, we'll delete invoice requests but preserve actual payments
-            if student_usernames:
-                student_ids_query = select(AuthUser.id).where(
-                    AuthUser.username.in_(student_usernames)
-                )
-                student_ids_result = await session.execute(student_ids_query)
-                student_ids = [row.id for row in student_ids_result.scalars().all()]
-
-                if student_ids:
-                    await session.execute(
-                        delete(InvoiceRequest).where(
-                            InvoiceRequest.user_id.in_(student_ids)
-                        )
-                    )
 
             # 7. Update student enrollments - move them to a default course or mark them inactive
             rslogger.info("Updating student enrollments...")
             # Instead of deleting users, we'll move them to a default "orphaned" course
             # or set their course_id to None/default
-
+            base_course = await fetch_base_course(course.base_course)
             # Option 1: Set course_id to None (they become unenrolled)
             await session.execute(
                 update(AuthUser)
                 .where(AuthUser.course_id == course_id)
-                .values(course_id=None, active="F")
+                .values(course_id=base_course.id, course_name=base_course.course_name, active="F")
             )
 
             # Option 2: Alternative - move to a default "orphaned students" course

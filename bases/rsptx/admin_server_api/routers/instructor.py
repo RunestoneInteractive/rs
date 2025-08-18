@@ -461,7 +461,7 @@ async def post_reset_assessment(
 # Course Deletion Model
 class CourseDeleteRequest(BaseModel):
     course_name: str
-    confirmation: str
+    confirmed: bool
 
 
 @router.get("/course_delete")
@@ -530,12 +530,12 @@ async def post_delete_course(
             )
 
         # Verify the confirmation
-        if delete_data.confirmation != "DELETE":
+        if not delete_data.confirmed:
             return JSONResponse(
                 status_code=400,
                 content={
                     "success": False,
-                    "message": "Invalid confirmation. Must be 'DELETE'",
+                    "message": "Invalid confirmation. Must be 'True'",
                 },
             )
 
