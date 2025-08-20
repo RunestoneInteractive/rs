@@ -58,7 +58,8 @@ export const AssignmentBuilderCreate = () => {
       nofeedback: formValues.nofeedback,
       nopause: formValues.nopause,
       peer_async_visible: formValues.peer_async_visible,
-      visible: false
+      visible: false,
+      released: true
     };
 
     createAssignment(payload);

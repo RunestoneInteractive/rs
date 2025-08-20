@@ -42,6 +42,7 @@ export type CreateAssignmentPayload = {
   nopause: boolean;
   peer_async_visible: boolean;
   visible: boolean;
+  released: boolean;
 };
 
 export type CreateAssignmentValidationResponse = [

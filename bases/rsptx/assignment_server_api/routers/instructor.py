@@ -414,7 +414,7 @@ async def new_assignment(
         **request_data.model_dump(),
         course=course.id,
         visible=False,
-        released=False,
+        released=True,
         from_source=False,
         current_index=0,
         enforce_due=False,

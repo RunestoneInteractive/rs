@@ -114,6 +114,18 @@ export const AssignmentBuilder = () => {
     }
   };
 
+  const handleReleasedChange = async (assignment: Assignment, released: boolean) => {
+    try {
+      await updateAssignment({
+        ...assignment,
+        released
+      });
+      toast.success(`Assignment ${released ? "released" : "not released"} for students`);
+    } catch (error) {
+      toast.error("Failed to update assignment release status");
+    }
+  };
+
   const handleWizardComplete = async () => {
     const formValues = getValues();
     const payload: CreateAssignmentPayload = {
@@ -126,7 +138,8 @@ export const AssignmentBuilder = () => {
       nofeedback: formValues.nofeedback,
       nopause: formValues.nopause,
       peer_async_visible: formValues.peer_async_visible,
-      visible: false
+      visible: false,
+      released: true
     };
     const response = await createAssignment(payload).unwrap();
     const createdAssignmentId = response.detail.id;
@@ -161,6 +174,7 @@ export const AssignmentBuilder = () => {
           onEdit={handleEdit}
           onDuplicate={createAssignment}
           onVisibilityChange={handleVisibilityChange}
+          onReleasedChange={handleReleasedChange}
           onRemove={onRemove}
         />
       )}

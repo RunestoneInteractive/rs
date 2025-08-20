@@ -19,6 +19,7 @@ interface AssignmentListProps {
   onEdit: (assignment: Assignment) => void;
   onDuplicate: (assignment: Assignment) => void;
   onVisibilityChange: (assignment: Assignment, visible: boolean) => void;
+  onReleasedChange: (assignment: Assignment, released: boolean) => void;
   onRemove: (assignment: Assignment) => void;
 }
 
@@ -30,6 +31,7 @@ export const AssignmentList = ({
   onEdit,
   onDuplicate,
   onVisibilityChange,
+  onReleasedChange,
   onRemove
 }: AssignmentListProps) => {
   const generateUniqueCopyName = (originalName: string): string => {
@@ -54,6 +56,20 @@ export const AssignmentList = ({
         checked={rowData.visible}
         onChange={(e) => onVisibilityChange(rowData, e.value)}
         tooltip={rowData.visible ? "Visible to students" : "Hidden from students"}
+        tooltipOptions={{
+          position: "top"
+        }}
+        className={styles.smallSwitch}
+      />
+    </div>
+  );
+
+  const releasedBodyTemplate = (rowData: Assignment) => (
+    <div className="flex align-items-center justify-content-center">
+      <InputSwitch
+        checked={rowData.released}
+        onChange={(e) => onReleasedChange(rowData, e.value)}
+        tooltip={rowData.released ? "Released to students" : "Not released to students"}
         tooltipOptions={{
           position: "top"
         }}
@@ -247,6 +263,12 @@ export const AssignmentList = ({
           header="Visible"
           body={visibilityBodyTemplate}
           className={styles.visibilityColumn}
+        />
+        <Column
+          field="released"
+          header="Released"
+          body={releasedBodyTemplate}
+          className={styles.releasedColumn}
         />
         <Column header="Preview" body={previewBodyTemplate} className={styles.previewColumn} />
         <Column body={actionsBodyTemplate} className={styles.actionsColumn} />
