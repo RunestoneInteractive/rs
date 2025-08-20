@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 
-import { CreateExerciseFormType } from "@/types/exercises";
+import { CreateExerciseFormType, Option } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
+import { OptionWithId } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components";
 
 export type UseBaseExerciseProps<T extends Partial<CreateExerciseFormType>> = {
   initialData?: T;
@@ -17,6 +18,19 @@ export type UseBaseExerciseProps<T extends Partial<CreateExerciseFormType>> = {
   resetForm?: boolean;
   onFormReset?: () => void;
   isEdit?: boolean;
+};
+
+const handleOptionIds = (options?: OptionWithId[] | Option[]) => {
+  const opts = options ?? [];
+  return opts.map((opt) => {
+    if (!("id" in opt) || !opt.id) {
+      return {
+        ...opt,
+        id: `option-${crypto.randomUUID()}`
+      };
+    }
+    return opt as OptionWithId;
+  });
 };
 
 export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
@@ -34,13 +48,18 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
   isEdit = false
 }: UseBaseExerciseProps<T>) => {
   const [formData, setFormData] = useState<T>(() => {
-    if (initialData) {
-      return {
-        ...getDefaultFormData(),
-        ...initialData
-      };
-    }
-    return getDefaultFormData();
+    const mergedData = initialData
+      ? {
+          ...getDefaultFormData(),
+          ...initialData
+        }
+      : getDefaultFormData();
+
+    return {
+      ...mergedData,
+      // Ensure options have IDs if they are present
+      optionList: handleOptionIds(mergedData.optionList)
+    };
   });
 
   const [activeStep, setActiveStep] = useState(0);
