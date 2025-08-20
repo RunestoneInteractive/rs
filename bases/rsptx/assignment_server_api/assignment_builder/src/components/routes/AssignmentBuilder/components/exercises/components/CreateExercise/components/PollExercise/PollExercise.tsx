@@ -50,8 +50,8 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
   scale_min: 1,
   scale_max: SCALE_CONFIG.DEFAULT,
   optionList: [
-    { id: `option-${Date.now()}`, choice: "" } as PollOption,
-    { id: `option-${Date.now() + 1}`, choice: "" } as PollOption
+    { id: `option-${crypto.randomUUID()}`, choice: "" } as PollOption,
+    { id: `option-${crypto.randomUUID()}`, choice: "" } as PollOption
   ]
 });
 
@@ -165,8 +165,8 @@ export const PollExercise: FC<BaseExerciseProps> = ({
         updateFormData("scale_max", undefined);
 
         const defaultOptions = [
-          { id: `option-${Date.now()}`, choice: "", feedback: "", correct: false },
-          { id: `option-${Date.now() + 1}`, choice: "", feedback: "", correct: false }
+          { id: `option-${crypto.randomUUID()}`, choice: "", feedback: "", correct: false },
+          { id: `option-${crypto.randomUUID()}`, choice: "", feedback: "", correct: false }
         ] as PollOption[];
 
         updateFormData("optionList", defaultOptions);

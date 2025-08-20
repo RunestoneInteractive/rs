@@ -128,7 +128,7 @@ export const PollOptions = ({
 
   const handleAdd = () => {
     const newOption: PollOption = {
-      id: `option-${Date.now()}`,
+      id: `option-${crypto.randomUUID()}`,
       choice: ""
     };
 
