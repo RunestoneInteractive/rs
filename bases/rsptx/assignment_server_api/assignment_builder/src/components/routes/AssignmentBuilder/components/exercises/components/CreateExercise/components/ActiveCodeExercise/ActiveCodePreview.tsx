@@ -10,6 +10,7 @@ interface ActiveCodePreviewProps {
   starter_code: string;
   suffix_code: string;
   name: string;
+  stdin?: string;
 }
 
 export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
@@ -18,7 +19,8 @@ export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
   prefix_code,
   starter_code,
   suffix_code,
-  name
+  name,
+  stdin
 }) => {
   return (
     <div style={{ display: "flex", alignItems: "start", justifyContent: "center" }}>
@@ -29,7 +31,8 @@ export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
           prefix_code,
           starter_code,
           suffix_code,
-          name
+          name,
+          stdin
         )}
       />
     </div>

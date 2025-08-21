@@ -97,6 +97,7 @@ export type QuestionJSON = Partial<{
   abExperimentName: string;
   toggleOptions: string[];
   dataLimitBasecourse: boolean;
+  stdin: string;
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;
