@@ -143,6 +143,27 @@ export const assignmentApi = createApi({
             toast.error("Error removing assignment", { duration: Infinity });
           });
       }
+    }),
+    duplicateAssignment: build.mutation<DetailResponse<{ id: number; name: string }>, number>({
+      query: (assignmentId) => ({
+        method: "POST",
+        url: `/assignment/instructor/assignments/${assignmentId}/duplicate`
+      }),
+      invalidatesTags: (_, error) => {
+        if (!error) {
+          return [{ type: "Assignments" }];
+        }
+        return [];
+      },
+      onQueryStarted: (_, { queryFulfilled }) => {
+        queryFulfilled
+          .then(({ data }) => {
+            toast.success(`Assignment duplicated as "${data.detail.name}"`);
+          })
+          .catch(() => {
+            toast.error("Error duplicating assignment", { duration: Infinity });
+          });
+      }
     })
   })
 });
@@ -152,5 +173,6 @@ export const {
   useGetAssignmentQuery,
   useUpdateAssignmentMutation,
   useCreateAssignmentMutation,
-  useRemoveAssignmentMutation
+  useRemoveAssignmentMutation,
+  useDuplicateAssignmentMutation
 } = assignmentApi;
