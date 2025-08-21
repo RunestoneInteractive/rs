@@ -18,6 +18,7 @@ import { InstructionsEditor } from "./components/InstructionsEditor";
 import { LanguageSelector } from "./components/LanguageSelector";
 import { PrefixCodeEditor } from "./components/PrefixCodeEditor";
 import { StarterCodeEditor } from "./components/StarterCodeEditor";
+import { StdinEditor } from "./components/StdinEditor";
 import { SuffixCodeEditor } from "./components/SuffixCodeEditor";
 
 // Define the steps for ActiveCode exercise
@@ -27,6 +28,7 @@ const ACTIVE_CODE_STEPS = [
   { label: "Hidden Prefix" },
   { label: "Starter Code" },
   { label: "Hidden Suffix" },
+  { label: "Standard Input" },
   { label: "Settings" },
   { label: "Preview" }
 ];
@@ -48,7 +50,8 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
   prefix_code: "",
   suffix_code: "",
   instructions: "",
-  language: ""
+  language: "",
+  stdin: ""
 });
 
 // Create a wrapper for generateActiveCodePreview to match the expected type
@@ -59,7 +62,8 @@ const generatePreview = (data: Partial<CreateExerciseFormType>): string => {
     data.prefix_code || "",
     data.starter_code || "",
     data.suffix_code || "",
-    data.name || ""
+    data.name || "",
+    data.stdin || ""
   );
 };
 
@@ -166,10 +170,18 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
           />
         );
 
-      case 5: // Settings
+      case 5: // Standard Input
+        return (
+          <StdinEditor
+            stdin={formData.stdin || ""}
+            onChange={(stdin: string) => updateFormData("stdin", stdin)}
+          />
+        );
+
+      case 6: // Settings
         return <ActiveCodeExerciseSettings formData={formData} onChange={handleSettingsChange} />;
 
-      case 6: // Preview
+      case 7: // Preview
         return (
           <ActiveCodePreview
             instructions={formData.instructions || ""}
@@ -178,6 +190,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
             prefix_code={formData.prefix_code || ""}
             suffix_code={formData.suffix_code || ""}
             name={formData.name || ""}
+            stdin={formData.stdin || ""}
           />
         );
 
