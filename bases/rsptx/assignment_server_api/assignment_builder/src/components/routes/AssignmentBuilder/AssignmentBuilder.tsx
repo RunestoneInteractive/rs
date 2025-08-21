@@ -4,7 +4,8 @@ import {
   useCreateAssignmentMutation,
   useGetAssignmentsQuery,
   useRemoveAssignmentMutation,
-  useUpdateAssignmentMutation
+  useUpdateAssignmentMutation,
+  useDuplicateAssignmentMutation
 } from "@store/assignment/assignment.logic.api";
 import {
   useGetAutoGradeOptionsQuery,
@@ -37,6 +38,7 @@ export const AssignmentBuilder = () => {
   const [createAssignment] = useCreateAssignmentMutation();
   const [updateAssignment] = useUpdateAssignmentMutation();
   const [removeAssignment] = useRemoveAssignmentMutation();
+  const [duplicateAssignment] = useDuplicateAssignmentMutation();
 
   // Load all required data
 
@@ -100,6 +102,10 @@ export const AssignmentBuilder = () => {
   const handleEdit = (assignment: Assignment) => {
     dispatch(assignmentActions.setSelectedAssignmentId(assignment.id));
     navigateToEdit(assignment.id.toString(), "basic");
+  };
+
+  const handleDuplicate = async (assignment: Assignment) => {
+    await duplicateAssignment(assignment.id);
   };
 
   const handleVisibilityChange = async (assignment: Assignment, visible: boolean) => {
@@ -172,7 +178,7 @@ export const AssignmentBuilder = () => {
           setGlobalFilter={setGlobalFilter}
           onCreateNew={handleCreateNew}
           onEdit={handleEdit}
-          onDuplicate={createAssignment}
+          onDuplicate={handleDuplicate}
           onVisibilityChange={handleVisibilityChange}
           onReleasedChange={handleReleasedChange}
           onRemove={onRemove}

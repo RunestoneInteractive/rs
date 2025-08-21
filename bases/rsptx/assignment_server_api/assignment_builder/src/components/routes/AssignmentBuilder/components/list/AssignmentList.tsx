@@ -34,22 +34,6 @@ export const AssignmentList = ({
   onReleasedChange,
   onRemove
 }: AssignmentListProps) => {
-  const generateUniqueCopyName = (originalName: string): string => {
-    const baseNameMatch = originalName.match(/(.*?)(?:\s*\(Copy\s*(\d+)?\))?$/);
-
-    if (!baseNameMatch) return `${originalName} (Copy)`;
-    const baseName = baseNameMatch[1];
-    let copyNumber = baseNameMatch[2] ? parseInt(baseNameMatch[2]) : 1;
-    const existingNames = new Set(assignments.map((a) => a.name));
-    let newName = `${baseName} (Copy)`;
-
-    while (existingNames.has(newName)) {
-      copyNumber++;
-      newName = `${baseName} (Copy ${copyNumber})`;
-    }
-    return newName;
-  };
-
   const visibilityBodyTemplate = (rowData: Assignment) => (
     <div className="flex align-items-center justify-content-center">
       <InputSwitch
@@ -134,15 +118,7 @@ export const AssignmentList = ({
       />
       <Button
         icon="pi pi-copy"
-        onClick={() => {
-          const copy = {
-            ...rowData,
-            name: generateUniqueCopyName(rowData.name),
-            id: 0
-          };
-
-          onDuplicate(copy);
-        }}
+        onClick={() => onDuplicate(rowData)}
         className="p-button-text p-button-sm"
         tooltip="Duplicate"
         tooltipOptions={{

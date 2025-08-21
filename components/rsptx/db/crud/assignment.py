@@ -767,3 +767,98 @@ async def delete_assignment(assignment_id: int) -> None:
     except Exception as e:
         rslogger.error(f"Unable to remove assignment {assignment_id}. {e}")
         raise e
+
+
+async def duplicate_assignment(
+    original_assignment_id: int,
+    course_id: int,
+    existing_assignment_names: set
+) -> tuple[AssignmentValidator, str]:
+    """
+    Duplicate an assignment with all its exercises and readings.
+
+    :param original_assignment_id: int, the ID of the assignment to duplicate
+    :param course_id: int, the ID of the course
+    :param existing_assignment_names: set, set of existing assignment names to avoid duplicates
+    :return: tuple[AssignmentValidator, str], the new assignment and its name
+    """
+    from .question import fetch_assignment_questions
+
+    async with async_session.begin() as session:
+        # Fetch the original assignment
+        original_assignment_result = await session.execute(
+            select(Assignment).where(Assignment.id == original_assignment_id)
+        )
+        original_assignment = original_assignment_result.scalar_one_or_none()
+
+        if not original_assignment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Assignment {original_assignment_id} not found"
+            )
+
+        # Generate unique copy name
+        base_name_match = original_assignment.name
+        if " (Copy" in base_name_match:
+            base_name = base_name_match.split(" (Copy")[0]
+        else:
+            base_name = base_name_match
+
+        copy_number = 1
+        new_name = f"{base_name} (Copy)"
+        while new_name in existing_assignment_names:
+            copy_number += 1
+            new_name = f"{base_name} (Copy {copy_number})"
+
+        # Create the new assignment with copied data
+        new_assignment_data = AssignmentValidator(
+            name=new_name,
+            description=original_assignment.description,
+            duedate=original_assignment.duedate,
+            points=original_assignment.points,
+            kind=original_assignment.kind,
+            time_limit=original_assignment.time_limit,
+            nofeedback=original_assignment.nofeedback,
+            nopause=original_assignment.nopause,
+            peer_async_visible=original_assignment.peer_async_visible,
+            course=course_id,
+            visible=False,  # Start as hidden
+            released=original_assignment.released,
+            from_source=False,
+            current_index=0,
+            enforce_due=original_assignment.enforce_due,
+            is_timed=original_assignment.is_timed,
+            is_peer=original_assignment.is_peer
+        )
+
+        # Create the new assignment
+        new_assignment = Assignment(**new_assignment_data.dict())
+        session.add(new_assignment)
+        await session.flush()  # Get the ID without committing
+
+        # Copy assignment questions
+        assignment_questions = await fetch_assignment_questions(original_assignment_id)
+
+        for question_data in assignment_questions:
+            assignment_question = question_data.AssignmentQuestion
+
+            new_assignment_question = AssignmentQuestion(
+                assignment_id=new_assignment.id,
+                question_id=assignment_question.question_id,
+                points=assignment_question.points,
+                timed=assignment_question.timed,
+                autograde=assignment_question.autograde,
+                which_to_grade=assignment_question.which_to_grade,
+                reading_assignment=assignment_question.reading_assignment,
+                sorting_priority=assignment_question.sorting_priority,
+                activities_required=assignment_question.activities_required,
+            )
+
+            session.add(new_assignment_question)
+
+        await session.commit()
+
+        rslogger.debug(f"Successfully duplicated assignment {original_assignment_id} as {new_assignment.id}")
+
+        return AssignmentValidator.from_orm(new_assignment), new_name
+
