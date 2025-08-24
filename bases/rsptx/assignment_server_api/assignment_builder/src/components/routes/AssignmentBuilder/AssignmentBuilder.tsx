@@ -4,7 +4,8 @@ import {
   useCreateAssignmentMutation,
   useGetAssignmentsQuery,
   useRemoveAssignmentMutation,
-  useUpdateAssignmentMutation
+  useUpdateAssignmentMutation,
+  useDuplicateAssignmentMutation
 } from "@store/assignment/assignment.logic.api";
 import {
   useGetAutoGradeOptionsQuery,
@@ -37,6 +38,7 @@ export const AssignmentBuilder = () => {
   const [createAssignment] = useCreateAssignmentMutation();
   const [updateAssignment] = useUpdateAssignmentMutation();
   const [removeAssignment] = useRemoveAssignmentMutation();
+  const [duplicateAssignment] = useDuplicateAssignmentMutation();
 
   // Load all required data
 
@@ -102,6 +104,10 @@ export const AssignmentBuilder = () => {
     navigateToEdit(assignment.id.toString(), "basic");
   };
 
+  const handleDuplicate = async (assignment: Assignment) => {
+    await duplicateAssignment(assignment.id);
+  };
+
   const handleVisibilityChange = async (assignment: Assignment, visible: boolean) => {
     try {
       await updateAssignment({
@@ -111,6 +117,18 @@ export const AssignmentBuilder = () => {
       toast.success(`Assignment ${visible ? "visible" : "hidden"} for students`);
     } catch (error) {
       toast.error("Failed to update assignment visibility");
+    }
+  };
+
+  const handleReleasedChange = async (assignment: Assignment, released: boolean) => {
+    try {
+      await updateAssignment({
+        ...assignment,
+        released
+      });
+      toast.success(`Assignment ${released ? "released" : "not released"} for students`);
+    } catch (error) {
+      toast.error("Failed to update assignment release status");
     }
   };
 
@@ -126,7 +144,8 @@ export const AssignmentBuilder = () => {
       nofeedback: formValues.nofeedback,
       nopause: formValues.nopause,
       peer_async_visible: formValues.peer_async_visible,
-      visible: false
+      visible: false,
+      released: true
     };
     const response = await createAssignment(payload).unwrap();
     const createdAssignmentId = response.detail.id;
@@ -159,8 +178,9 @@ export const AssignmentBuilder = () => {
           setGlobalFilter={setGlobalFilter}
           onCreateNew={handleCreateNew}
           onEdit={handleEdit}
-          onDuplicate={createAssignment}
+          onDuplicate={handleDuplicate}
           onVisibilityChange={handleVisibilityChange}
+          onReleasedChange={handleReleasedChange}
           onRemove={onRemove}
         />
       )}

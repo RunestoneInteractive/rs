@@ -142,7 +142,7 @@ export const MultiChoiceOptions = ({ options, onChange }: MultiChoiceOptionsProp
     onChange([
       ...options,
       {
-        id: `option-${Date.now()}`,
+        id: `option-${crypto.randomUUID()}`,
         choice: "",
         feedback: "",
         correct: false

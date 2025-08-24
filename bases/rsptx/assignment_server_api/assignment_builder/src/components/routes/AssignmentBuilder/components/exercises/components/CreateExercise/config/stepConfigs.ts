@@ -103,10 +103,14 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
       description: "Add code that runs after the student's code but is hidden from them"
     },
     5: {
+      title: "Standard Input",
+      description: "Provide input data for programs that read from stdin"
+    },
+    6: {
       title: "Exercise Settings",
       description: "Configure exercise settings such as name, points, etc."
     },
-    6: {
+    7: {
       title: "Preview",
       description: "Preview the exercise as students will see it"
     }
@@ -386,6 +390,8 @@ export const ACTIVE_CODE_STEP_VALIDATORS: StepValidator<Partial<CreateExerciseFo
   // Starter Code
   () => [],
   // Hidden Suffix
+  () => [],
+  // Standard Input
   () => [],
   // Settings
   (data) => {

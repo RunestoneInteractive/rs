@@ -1059,9 +1059,12 @@ def _get_lti_record(oauth_consumer_key):
             .first()
         )
 
+
 # Sends LTI 1.1 or 1.3 as appropriate
-def _try_to_send_lti_grade(student_row_num, assignment_id):
-    assignment = current.db((current.db.assignments.id == assignment_id)).select().first()
+def _try_to_send_lti_grade(student_row_num, assignment_id, force=False):
+    assignment = (
+        current.db((current.db.assignments.id == assignment_id)).select().first()
+    )
     if not assignment:
         current.session.flash = (
             "Failed to find assignment object for assignment {}".format(assignment_id)
@@ -1083,15 +1086,20 @@ def _try_to_send_lti_grade(student_row_num, assignment_id):
             )
         )
         return False
-    
+
     course = current.db(current.db.courses.id == assignment.course).select().first()
-    lti_method = asyncio.get_event_loop().run_until_complete(fetch_lti_version(course.id))
+    lti_method = asyncio.get_event_loop().run_until_complete(
+        fetch_lti_version(course.id)
+    )
     if lti_method == "1.3":
         asyncio.get_event_loop().run_until_complete(
-            attempt_lti1p3_score_update(student_row_num, assignment.id, grade.score)
+            attempt_lti1p3_score_update(
+                student_row_num, assignment.id, grade.score, force=force
+            )
         )
     if lti_method == "1.1":
         _try_to_send_lti_grade1p1(assignment, assignment_id, grade)
+
 
 def _try_to_send_lti_grade1p1(student_row_num, assignment_id, grade):
     # try to send lti grades for lti1.1

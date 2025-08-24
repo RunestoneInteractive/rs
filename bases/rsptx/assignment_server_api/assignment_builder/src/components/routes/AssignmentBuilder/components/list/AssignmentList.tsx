@@ -19,6 +19,7 @@ interface AssignmentListProps {
   onEdit: (assignment: Assignment) => void;
   onDuplicate: (assignment: Assignment) => void;
   onVisibilityChange: (assignment: Assignment, visible: boolean) => void;
+  onReleasedChange: (assignment: Assignment, released: boolean) => void;
   onRemove: (assignment: Assignment) => void;
 }
 
@@ -30,30 +31,29 @@ export const AssignmentList = ({
   onEdit,
   onDuplicate,
   onVisibilityChange,
+  onReleasedChange,
   onRemove
 }: AssignmentListProps) => {
-  const generateUniqueCopyName = (originalName: string): string => {
-    const baseNameMatch = originalName.match(/(.*?)(?:\s*\(Copy\s*(\d+)?\))?$/);
-
-    if (!baseNameMatch) return `${originalName} (Copy)`;
-    const baseName = baseNameMatch[1];
-    let copyNumber = baseNameMatch[2] ? parseInt(baseNameMatch[2]) : 1;
-    const existingNames = new Set(assignments.map((a) => a.name));
-    let newName = `${baseName} (Copy)`;
-
-    while (existingNames.has(newName)) {
-      copyNumber++;
-      newName = `${baseName} (Copy ${copyNumber})`;
-    }
-    return newName;
-  };
-
   const visibilityBodyTemplate = (rowData: Assignment) => (
     <div className="flex align-items-center justify-content-center">
       <InputSwitch
         checked={rowData.visible}
         onChange={(e) => onVisibilityChange(rowData, e.value)}
         tooltip={rowData.visible ? "Visible to students" : "Hidden from students"}
+        tooltipOptions={{
+          position: "top"
+        }}
+        className={styles.smallSwitch}
+      />
+    </div>
+  );
+
+  const releasedBodyTemplate = (rowData: Assignment) => (
+    <div className="flex align-items-center justify-content-center">
+      <InputSwitch
+        checked={rowData.released}
+        onChange={(e) => onReleasedChange(rowData, e.value)}
+        tooltip={rowData.released ? "Released to students" : "Not released to students"}
         tooltipOptions={{
           position: "top"
         }}
@@ -118,15 +118,7 @@ export const AssignmentList = ({
       />
       <Button
         icon="pi pi-copy"
-        onClick={() => {
-          const copy = {
-            ...rowData,
-            name: generateUniqueCopyName(rowData.name),
-            id: 0
-          };
-
-          onDuplicate(copy);
-        }}
+        onClick={() => onDuplicate(rowData)}
         className="p-button-text p-button-sm"
         tooltip="Duplicate"
         tooltipOptions={{
@@ -247,6 +239,12 @@ export const AssignmentList = ({
           header="Visible"
           body={visibilityBodyTemplate}
           className={styles.visibilityColumn}
+        />
+        <Column
+          field="released"
+          header="Released"
+          body={releasedBodyTemplate}
+          className={styles.releasedColumn}
         />
         <Column header="Preview" body={previewBodyTemplate} className={styles.previewColumn} />
         <Column body={actionsBodyTemplate} className={styles.actionsColumn} />

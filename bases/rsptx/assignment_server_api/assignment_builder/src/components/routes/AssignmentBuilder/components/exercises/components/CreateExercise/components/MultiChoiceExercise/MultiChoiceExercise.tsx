@@ -38,8 +38,18 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
   statement: "",
   forceCheckboxes: false,
   optionList: [
-    { id: `option-${Date.now()}`, choice: "", feedback: "", correct: false } as OptionWithId,
-    { id: `option-${Date.now() + 1}`, choice: "", feedback: "", correct: false } as OptionWithId
+    {
+      id: `option-${crypto.randomUUID()}`,
+      choice: "",
+      feedback: "",
+      correct: false
+    } as OptionWithId,
+    {
+      id: `option-${crypto.randomUUID()}`,
+      choice: "",
+      feedback: "",
+      correct: false
+    } as OptionWithId
   ]
 });
 

@@ -33,6 +33,7 @@ from typing import List, Optional, Annotated
 from rsptx.db.crud import (
     create_invoice_request,
     delete_lti_course,
+    duplicate_assignment,
     fetch_assignment_questions,
     fetch_assignments,
     fetch_problem_data,
@@ -414,7 +415,7 @@ async def new_assignment(
         **request_data.model_dump(),
         course=course.id,
         visible=False,
-        released=False,
+        released=True,
         from_source=False,
         current_index=0,
         enforce_due=False,
@@ -1487,4 +1488,42 @@ async def get_accommodations(
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error fetching accommodations: {str(e)}"
+        )
+
+
+@router.post("/assignments/{assignment_id}/duplicate")
+@instructor_role_required()
+@with_course()
+async def duplicate_assignment_endpoint(
+    assignment_id: int,
+    request: Request,
+    course=None,
+):
+    """
+    Duplicate an assignment with all its exercises and readings.
+    """
+    try:
+        assignments = await fetch_assignments(course.course_name, fetch_all=True)
+        existing_names = {assignment.name for assignment in assignments}
+
+        new_assignment, new_name = await duplicate_assignment(
+            original_assignment_id=assignment_id,
+            course_id=course.id,
+            existing_assignment_names=existing_names
+        )
+
+        return make_json_response(
+            status=status.HTTP_201_CREATED,
+            detail={
+                "status": "success",
+                "id": new_assignment.id,
+                "name": new_name
+            }
+        )
+
+    except Exception as e:
+        rslogger.error(f"Error duplicating assignment {assignment_id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error duplicating assignment: {str(e)}"
         )
