@@ -21,6 +21,18 @@ from pyflakes import checker as pyflakes_checker
 # -------------------------
 from rsptx.logging import rslogger
 
+# CodeTailor related imports
+# -------------------------
+from fastapi.responses import JSONResponse
+from rsptx.logging import rslogger
+from .personalized_parsons.end_to_end import get_parsons_help
+from typing import Optional
+import re
+from fastapi import status
+
+from .assessment import get_question_source, SelectQRequest
+# Import function for fetching api - comment out for DEV purposes
+from rsptx.db.crud.crud import fetch_api_token
 
 # .. _APIRouter config:
 #
@@ -65,3 +77,161 @@ async def python_check(request: Request):
         resultMessage = f"{filename}:{str(e.lineno)}:{str(e.offset)}: {e.args[0]}\n"
 
     return resultMessage
+
+
+
+# Starting here -- Added code for CodeTailor ---
+DEV_API_KEY = ""
+# for dev/test -- replace with your own key for local testing
+
+def extract_parsons_code(html_block):
+    """
+    Given the full HTML/pre block for a Parsons problem extracted from DB,
+    return only the Parsons code part.
+    """
+    # Remove all HTML tags and extract the code lines
+    text = re.sub(r"<.*?>", "", html_block, flags=re.DOTALL)
+    lines = text.strip().splitlines()
+    if "-----" in lines:
+        idx = lines.index("-----")
+        code_lines = lines[idx+1:]
+    else:
+        code_lines = lines
+
+    clean_lines = [line for line in code_lines if line.strip() and line.strip() != "====="]
+    return "\n".join(clean_lines)
+
+
+@router.get("/get_question_html")
+async def get_question_html(request: Request, div_id: str):
+    """
+    Fetch and return just the HTML for a single question (case 1).
+    No grading — points are set to 0.
+    Falls back to 'LLM-example' if the question is not found.
+    """
+    request_data = SelectQRequest(
+        selector_id=div_id,
+        questions=div_id, 
+        points=0,
+        proficiency=None,
+        min_difficulty=None,
+        max_difficulty=None,
+        not_seen_ever=False,
+        autogradable=None,
+        primary=None,
+        AB=None,
+        toggleOptions=None,
+        timedWrapper=None,
+        limitBaseCourse=None,
+    )
+
+    result = await get_question_source(request, request_data)
+
+    html = None
+    if isinstance(result, dict):
+        html = result.get("detail")
+    else:
+        html = getattr(result, "detail", None)
+
+    # Handle missing or error cases
+    if not html or "No Questions" in html or "not in the database" in html:
+        return {"html": "LLM-example"}
+    
+    return {"html": html}
+
+
+@router.post("/parsons_scaffolding")
+async def parsons_scaffolding(
+    request: Request,
+    course: Optional[str] = None,
+):
+    # Import api key and handles errors
+    api_token = None
+    try:
+        if course is None or course == "personalized_parsons" or course == "overview":  # the test course for development
+            # Dev/Test mode testing
+            rslogger.info("CodeTailor: Using predefined dev API key")
+            api_token = DEV_API_KEY
+        else:
+            api_token = await fetch_api_token( # handles decryption already - comment out for DEV purposes
+                course_id=course.id,
+                provider='openai', # hardcoded as openai for now, prompt structures are different for different providers
+                                   # if we found instructors tend to use other platforms, we need to handle this later
+            )
+    except Exception as e:
+        rslogger.error(f"Codetailor: Error fetching API tokens: {e}")
+        return JSONResponse(
+            content={"error": f"Error fetching API tokens: {str(e)}"},
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    if api_token is None:
+        return JSONResponse(
+            content={"error": "CodeTailor: No openai API found"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Start to process the request from activecode.js
+    req_bytes = await request.body()
+    req = req_bytes.decode("utf-8")
+    data = await request.json()
+
+    language = data.get("language") # Capture the question language from the front end
+    student_code = data.get("student_code") # Capture the student code from the front end
+    problem_id = data.get("problem_id") # Capture the problem name from the front end
+    personalization_level = data.get("personalization_level") # Capture the personalization level set by the instructor from the front end
+    parsonsexample = data.get("parsonsexample") # Capture whether the scaffolding puzzle is a pre-defined example or LLM-example
+    problem_description = data.get("problem_description") # Capture the problem description from the front end
+    internal_test_case = data.get("internal_test_case") # Capture the internal test case from the front end
+    print("start_to: get_parsons_help", api_token, language, personalization_level)
+
+    adaptive_attr = 'data-adaptive="true"' 
+    no_indent_attr = 'data-noindent="false"' 
+    language_attr = f'data-language="{language}"'
+    # this scaffolding_attr is used in the parsons.js to determine whether the Parsons puzzle is created as automatic scaffolding puzzle or not
+    scaffolding_attr = f'data-scaffolding="true"'
+    parsons_attrs = f"{language_attr} {adaptive_attr} {no_indent_attr} {scaffolding_attr}".strip()
+
+    # extract the HTML of the example Parsons problem, otherwise it is "LLM-example"
+    parsonsexample_html = None
+    if parsonsexample != "LLM-example":
+        result = await get_question_html(request, div_id=parsonsexample)
+        parsonsexample_html = result["html"]
+        parsonsexample_code = extract_parsons_code(parsonsexample_html)
+        print("Fetched Parsons Example HTML:", parsonsexample_html[:200])
+    else:
+        parsonsexample_code = "LLM-example"
+
+
+    def parsons_help(language, student_code, problem_id, problem_description, internal_test_case, parsonsexample_code, personalization_level):
+        """
+        Call the get_parsons_help function to get the personalized Parsons puzzle and the solution code.
+        """
+        input_dict = {
+            "Problem Name": problem_id,
+            "Problem Description": problem_description,
+            "Unittest_Code": internal_test_case,
+            "Example": parsonsexample_code,  # This is the html of the example Parsons problem
+            "CF (Code)": student_code
+        }
+        return get_parsons_help(api_token, language, input_dict, personalization_level)
+
+    if personalization_level in ["Solution", "Multiple"]:
+        personalized_code_solution, personalized_Parsons_block, personalized_solution_generation_type, personalized_generation_result_type = parsons_help(language, student_code, problem_id, problem_description, internal_test_case, parsonsexample_code, personalization_level)
+        if personalized_code_solution == "":
+            return "emptyHelpCode" + "||split||" + "emptyHelpParsons" + "||split||" + personalization_level + "||split||" + personalized_generation_result_type
+        if personalized_Parsons_block == "Correct_Code":
+            return personalized_code_solution + "||split||" + "correctCode" + "||split||" + personalization_level + "||split||" + personalized_generation_result_type
+        else:
+            personalized_Parsons_block = re.sub(r'<(?=\S)', '< ', personalized_Parsons_block)
+            personalized_Parsons_html = f"""
+            <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
+            {personalized_Parsons_block}
+            </pre>
+            """
+            print("personalized_Parsons_html", personalized_Parsons_html, "personalization_level", personalization_level, "personalized_generation_result_type", personalized_generation_result_type)
+            return personalized_code_solution + "||split||" + personalized_Parsons_html + "||split||" + personalization_level + "||split||" + personalized_generation_result_type
+    else:
+        # Handle the case where personalization_level is not valid
+        rslogger.error(f"Invalid personalization_level: {personalization_level}")
+        return JSONResponse(content={"error": "Invalid personalization_level"}, status_code=400)
