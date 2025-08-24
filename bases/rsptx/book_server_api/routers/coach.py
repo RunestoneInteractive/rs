@@ -24,7 +24,6 @@ from rsptx.logging import rslogger
 # CodeTailor related imports
 # -------------------------
 from fastapi.responses import JSONResponse
-from rsptx.logging import rslogger
 from .personalized_parsons.end_to_end import get_parsons_help
 from typing import Optional
 import re
@@ -156,7 +155,7 @@ async def parsons_scaffolding(
             api_token = await fetch_api_token( # handles decryption already - comment out for DEV purposes
                 course_id=course.id,
                 provider='openai', # hardcoded as openai for now, prompt structures are different for different providers
-                                   # if we found instructors tend to use other platforms, we need to handle this later
+                                   # if we find instructors tend to use other platforms, we need to handle this later
             )
     except Exception as e:
         rslogger.error(f"Codetailor: Error fetching API tokens: {e}")
@@ -197,8 +196,8 @@ async def parsons_scaffolding(
     if parsonsexample != "LLM-example":
         result = await get_question_html(request, div_id=parsonsexample)
         parsonsexample_html = result["html"]
+        # Unable to test locally as it requires DB access
         parsonsexample_code = extract_parsons_code(parsonsexample_html)
-        print("Fetched Parsons Example HTML:", parsonsexample_html[:200])
     else:
         parsonsexample_code = "LLM-example"
 
