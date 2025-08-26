@@ -19,7 +19,7 @@
 # You still need to pull or build them locally the old way during development.
 
 variable "VERSION" {
-    default = "8.0.3"
+    default = "8.0.5"
 }
 
 group "default" {
