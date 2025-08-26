@@ -1041,7 +1041,7 @@ async def _copy_one_assignment(
             nofeedback=old_assignment.nofeedback,
             nopause=old_assignment.nopause,
             released=old_assignment.released,
-            visible=old_assignment.visible,
+            visible=False,
             allow_self_autograde=old_assignment.allow_self_autograde,
             current_index=0,
             enforce_due=old_assignment.enforce_due,
