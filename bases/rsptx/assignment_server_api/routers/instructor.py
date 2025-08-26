@@ -238,7 +238,7 @@ async def review_peer_assignment(
         "origin": course_origin,
         "questions": questions_list,
         "ptx_js_version": course_attrs.get("ptx_js_version", "0.2"),
-        "webwork_js_version": course_attrs.get("webwork_js_version", "2.17"),
+        "webwork_js_version": course_attrs.get("webwork_js_version", "2.20"),
         "latex_preamble": course_attrs.get("latex_macros", ""),
         "wp_imports": get_webpack_static_imports(course),
         "settings": settings,
@@ -926,7 +926,7 @@ async def get_builder(
             "settings": settings,
             "latex_preamble": course_attrs.get("latex_macros", ""),
             "ptx_js_version": course_attrs.get("ptx_js_version", "0.2"),
-            "webwork_js_version": course_attrs.get("webwork_js_version", "2.17"),
+            "webwork_js_version": course_attrs.get("webwork_js_version", "2.20"),
             "user": user,
         },
     )
@@ -1279,6 +1279,16 @@ async def question_creation(
         for key, value in request_data.model_dump().items()
         if key not in ("assignment_id", "is_reading")
     }
+
+    if question_data["autograde"] and question_data["autograde"] != "unittest":
+        rslogger.error(f"Bad value for autograde: {question_data['autograde']}")
+        
+    question_json = question_data["question_json"]
+    if question_json["suffix_code"]:
+        for utKeyword in ["assert", "unittest", "TEST_CASE", "junit"]:
+            if utKeyword in question_json["suffix_code"]:
+                question_data["autograde"] = 'unittest'
+                break
 
     try:
         question = await create_question(
