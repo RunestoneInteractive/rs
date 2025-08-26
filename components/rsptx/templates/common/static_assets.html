@@ -16,10 +16,10 @@ I don't know if any of the following are needed anymore.
     <script src='/ns/books/published/{{course.course_name}}/_static/{{js_import}}'></script>
 {% endfor %}
 
-{% if ptx_js_version and webwork_js_version  %}
-    <script src="https://pretextbook.org/js/{{ptx_js_version}}/pretext-webwork/{{webwork_js_version}}/pretext-webwork.js"></script>
+{% if webwork_js_version  %}
+    <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/pretext-webwork/{{webwork_js_version}}/pretext-webwork.js"></script>
 {% else %}
-    <script src="https://pretextbook.org/js/0.3/pretext-webwork/2.18/pretext-webwork.js"></script>
+    <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/pretext-webwork/2.20/pretext-webwork.js"></script>
 {% endif %}
 
 <script src="https://webwork-hosting.runestone.academy/webwork2_files/node_modules/iframe-resizer/js/iframeResizer.min.js"></script>

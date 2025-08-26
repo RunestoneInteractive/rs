@@ -885,7 +885,7 @@ def grading():
         question_points=json.dumps(question_points),
         is_instructor=True,
         ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
-        webwork_js_version=course_attrs.get("webwork_js_version", "2.17"),
+        webwork_js_version=course_attrs.get("webwork_js_version", "2.20"),
         default_language=course_attrs.get("default_language", "python"),
         course=course,
         selected_assignment=selected_assignment,

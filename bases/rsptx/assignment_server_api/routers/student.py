@@ -500,7 +500,7 @@ async def doAssignment(
         overdue=overdue,
         enforce_pastdue=enforce_pastdue,
         ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
-        webwork_js_version=course_attrs.get("webwork_js_version", "2.17"),
+        webwork_js_version=course_attrs.get("webwork_js_version", "2.20"),
         request=request,
         latex_preamble_dict=preambles,
         wp_imports=get_webpack_static_imports(course),
