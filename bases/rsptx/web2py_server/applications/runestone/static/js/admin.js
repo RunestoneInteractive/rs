@@ -2550,7 +2550,7 @@ function push_lti_grades() {
         data,
         function (mess, stat, w) {
             alert(
-                `${mess} Grades are now hidden from students for ${assignment}`
+                `${mess} Grades have been sent for ${assignment}`
             );
         }
     );
