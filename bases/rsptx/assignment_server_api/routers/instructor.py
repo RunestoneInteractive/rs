@@ -1284,7 +1284,7 @@ async def question_creation(
         rslogger.error(f"Bad value for autograde: {question_data['autograde']}")
         
     question_json = question_data["question_json"]
-    if question_json["suffix_code"]:
+    if "suffix_code" in question_json and question_json["suffix_code"]:
         for utKeyword in ["assert", "unittest", "TEST_CASE", "junit"]:
             if utKeyword in question_json["suffix_code"]:
                 question_data["autograde"] = 'unittest'
