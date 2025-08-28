@@ -401,7 +401,11 @@ async def get_assessment_reset(
     assessments = [
         {"name": name, "description": desc} for name, desc in assessment_tuples
     ]
-
+    base_course = await fetch_course(course.base_course)
+    assessment_tuples = await fetch_timed_assessments(base_course.id)
+    assessments += [
+        {"name": name, "description": desc} for name, desc in assessment_tuples
+    ]
     context = {
         "course": course,
         "user": user,
@@ -1026,7 +1030,16 @@ async def _copy_one_assignment(
             # If start dates are not available, use the original due date
             due_date = old_assignment.duedate
 
-        # Create new assignment with copied data
+        # Fix potential backward incompatibility with assignment kinds
+        if old_assignment.kind == "Regular":
+            old_assignment.is_timed = False  # Regular assignments cannot be timed
+            old_assignment.is_peer = False  # Regular assignments cannot be peer
+        if old_assignment.kind == "Timed":
+            old_assignment.is_peer = False
+            old_assignment.is_timed = True  # Timed assignments must be timed
+        if old_assignment.kind == "Peer":
+            old_assignment.is_peer = True
+            old_assignment.is_timed = False  # Peer assignments cannot be timed
         new_assignment_data = AssignmentValidator(
             course=target_course.id,
             name=old_assignment.name,
@@ -1094,6 +1107,11 @@ async def flag_question(
     qname = body.question_name
     rslogger.debug(f"Flagging question: {qname} in course: {course.course_name}")
     question = await fetch_question(qname, basecourse=course.base_course)
+    if not question:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "Question not found"},
+        )
     question.review_flag = True
     try:
         await update_question(question)
