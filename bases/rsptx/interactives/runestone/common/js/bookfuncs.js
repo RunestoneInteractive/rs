@@ -58,8 +58,9 @@ function addReadingList() {
                 name: "link",
                 class: "btn btn-lg ' + 'buttonConfirmCompletion'",
                 href: nxt_link,
-                text: `Continue to page ${position + 2
-                    } of ${num_readings} in the reading assignment.`,
+                text: `Continue to page ${
+                    position + 2
+                } of ${num_readings} in the reading assignment.`,
             });
         } else {
             l = $("<div />", {
@@ -155,7 +156,11 @@ class PageProgressBar {
             $("#scprogresstotal").text(this.total);
             $("#scprogressposs").text(this.possible);
             $("#subchapterprogress").progressbar("option", "value", val);
-            if (this.assignment_spec && this.total >= this.assignment_spec.activities_required) {
+            if (
+                this.assignment_spec &&
+                this.assignment_spec.activities_required !== null &&
+                this.total >= this.assignment_spec.activities_required
+            ) {
                 console.log("Required activities completed");
                 this.sendCompletedReadingScore().then(() => {
                     console.log("Reading score sent");
@@ -164,7 +169,7 @@ class PageProgressBar {
             if (
                 val == 100.0 &&
                 $("#completionButton").text().toLowerCase() ===
-                "mark as completed"
+                    "mark as completed"
             ) {
                 $("#completionButton").click();
             }
@@ -183,12 +188,14 @@ class PageProgressBar {
                 method: "POST",
                 body: JSON.stringify(data),
                 headers: headers,
-            }
+            },
         );
         try {
             let response = await fetch(request);
             if (!response.ok) {
-                console.error(`Failed to send reading score! ${response.statusText}`);
+                console.error(
+                    `Failed to send reading score! ${response.statusText}`,
+                );
             }
             data = await response.json();
         } catch (e) {
@@ -213,7 +220,7 @@ async function handlePageSetup() {
                 method: "POST",
                 body: JSON.stringify(data),
                 headers: headers,
-            }
+            },
         );
         try {
             let response = await fetch(request);
@@ -266,7 +273,7 @@ function setupNavbarLoggedIn() {
     $("#passwordlink").show();
     $("#registerlink").hide();
     $("li.loginout").html(
-        '<a href="' + eBookConfig.app + '/default/user/logout">Log Out</a>'
+        '<a href="' + eBookConfig.app + '/default/user/logout">Log Out</a>',
     );
 }
 $(document).on("runestone:login", setupNavbarLoggedIn);
@@ -280,7 +287,7 @@ function setupNavbarLoggedOut() {
         $("#ip_dropdown_link").hide();
         $("#inst_peer_link").hide();
         $("li.loginout").html(
-            '<a href="' + eBookConfig.app + '/default/user/login">Login</a>'
+            '<a href="' + eBookConfig.app + '/default/user/login">Login</a>',
         );
         $(".footer").html("user not logged in");
     }
@@ -314,7 +321,7 @@ $(function () {
     } else {
         if (typeof eBookConfig === "undefined") {
             console.log(
-                "eBookConfig is not defined.  This page must not be set up for Runestone"
+                "eBookConfig is not defined.  This page must not be set up for Runestone",
             );
         }
     }
@@ -327,7 +334,7 @@ window.addEventListener("load", function () {
     $(".video-play-overlay").each(function () {
         $(this).css(
             "background-image",
-            "url('{{pathto('_static/play_overlay_icon.png', 1)}}')"
+            "url('{{pathto('_static/play_overlay_icon.png', 1)}}')",
         );
     });
 
