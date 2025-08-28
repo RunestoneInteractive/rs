@@ -538,6 +538,9 @@ def manifest_data_to_db(course_name, manifest_path):
     # Process chapters and content
     _process_chapters(sess, db_context, course_name, manifest_path)
 
+    # And appendices. They should not have questions, but may have source code/datafiles
+    _process_appendices(sess, db_context, course_name, manifest_path)
+
     # Set course attributes
     _set_course_attributes(sess, db_context, course_name, manifest_path)
 
@@ -621,6 +624,21 @@ def _process_chapters(sess, db_context, course_name, manifest_path):
         chap += 1
         chapid = _process_single_chapter(sess, db_context, chapter, chap, course_name)
         _process_subchapters(sess, db_context, chapter, chapid, course_name)
+
+
+def _process_appendices(sess, db_context, course_name, manifest_path):
+    """Process all appendices from the manifest."""
+    rslogger.info("Populating the database with Appendix information")
+
+    tree = ET.parse(manifest_path)
+    root = tree.getroot()
+
+    for appendix in root.findall("./appendix"):
+        _process_source_elements(sess, appendix, course_name)
+        
+        for data_file in appendix.findall("./datafile"):
+            el = data_file.find(".//*[@data-component]")
+            _handle_datafile(el, course_name)
 
 
 def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
