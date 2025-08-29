@@ -1,9 +1,12 @@
+import { sanitizeId } from "@/utils/sanitize";
+
 export const generatePollPreview = (
   questionTitle: string,
   options: string[],
   questionName: string,
   pollType: "options" | "scale" = "options"
 ): string => {
+  const safeId = sanitizeId(questionName);
   // Function to strip paragraph tags and clean HTML
   const stripParagraphTags = (html: string): string => {
     // Replace opening and closing paragraph tags
@@ -19,7 +22,7 @@ export const generatePollPreview = (
 
     return `
 <div class="runestone ">
-<ul data-component="poll" id="pollid1" data-comment class='' data-results='instructor' data-question_label="${questionName}" >
+<ul data-component="poll" id="pollid1" data-comment class='' data-results='instructor' data-question_label="${safeId}" >
  ${questionTitle}
 ${optionsHTML}
 </ul></div>`;
@@ -35,7 +38,7 @@ ${optionsHTML}
 
     return `
 <div class="runestone ">
-<ul data-component="poll" id="ps-poll-${questionName}" data-comment class='' data-results='preview' data-question_label="${questionName}" >
+<ul data-component="poll" id="ps-poll-${safeId}" data-comment class='' data-results='preview' data-question_label="${safeId}" >
 ${questionTitle}
 ${optionsHTML}
 </ul></div>`;

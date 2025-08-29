@@ -9,6 +9,7 @@ import { ReactNode, useCallback, useEffect, useState } from "react";
 import { difficultyOptions } from "@/config/exerciseTypes";
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { createExerciseId } from "@/utils/exercise";
+import { validateIdName } from "@/utils/sanitize";
 
 import styles from "./styles/CreateExerciseSettings.module.css";
 
@@ -101,7 +102,8 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
   };
 
   // Check if fields have validation errors
-  const nameError = !settings.name?.trim();
+  const nameValidationError = validateIdName(settings.name);
+  const nameError = !!nameValidationError;
   const chapterError = !settings.chapter;
   const subchapterError = !loadingSections && !settings.subchapter;
   const pointsError = settings.points <= 0;
@@ -128,7 +130,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
             />
             <label htmlFor="name">Exercise Name*</label>
           </span>
-          {nameError && <small className={styles.errorMessage}>Name is required</small>}
+          {nameError && <small className={styles.errorMessage}>{nameValidationError}</small>}
         </div>
 
         <div className={styles.formField}>

@@ -1,4 +1,5 @@
 import { Option } from "@/types/createExerciseForm";
+import { sanitizeId } from "@/utils/sanitize";
 
 export const generateMultiChoicePreview = (
   questionTitle: string,
@@ -6,6 +7,7 @@ export const generateMultiChoicePreview = (
   questionName: string,
   forceCheckboxes?: boolean
 ): string => {
+  const safeId = sanitizeId(questionName);
   const optionsHTML = options
     .map((option, index) => {
       const letter = String.fromCharCode(97 + index); // a, b, c, d...
@@ -14,7 +16,7 @@ export const generateMultiChoicePreview = (
       return `
     <li 
     data-component="answer" 
-    ${correctAttr} id="${questionName}_opt_${letter}">${option.choice}</li><li data-component="feedback">${option.feedback || ""}</li>
+    ${correctAttr} id="${safeId}_opt_${letter}">${option.choice}</li><li data-component="feedback">${option.feedback || ""}</li>
     `;
     })
     .join("");
@@ -25,7 +27,7 @@ export const generateMultiChoicePreview = (
   return `<div class="runestone ">
     <ul 
      data-component="multiplechoice"
-     data-question_label="${questionName}" data-multipleanswers="${multipleAnswers}"  id="${questionName}"  style="visibility: hidden;">
+     data-question_label="${safeId}" data-multipleanswers="${multipleAnswers}"  id="${safeId}"  style="visibility: hidden;">
     <p>${questionTitle}</p>
 ${optionsHTML}
     </ul>

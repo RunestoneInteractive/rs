@@ -1,4 +1,5 @@
 import { ItemWithLabel } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/DragAndDropExercise/types";
+import { sanitizeId } from "../sanitize";
 
 interface DragAndDropPreviewProps {
   left: ItemWithLabel[];
@@ -27,7 +28,7 @@ export const generateDragAndDropPreview = ({
   name,
   statement
 }: DragAndDropPreviewProps): string => {
-  const safeId = (name || "exercise_" + Date.now()).replace(/\s+/g, "_").replace(/[^\w]/g, "");
+  const safeId = sanitizeId(name, "exercise_" + Date.now());
   let html = "";
 
   const usedLeftItems = new Set<string>();

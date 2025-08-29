@@ -1,3 +1,5 @@
+import { sanitizeId } from "../sanitize";
+
 export interface ParsonsBlock {
   id: string;
   content: string;
@@ -29,7 +31,7 @@ export const generateParsonsPreview = ({
   noindent = false,
   questionLabel
 }: ParsonsPreviewProps): string => {
-  const safeId = name.replace(/\s+/g, "_");
+  const safeId = sanitizeId(name);
 
   const processedBlocks: ParsonsBlock[] = [];
   const seenGroupIds = new Set<string>();
