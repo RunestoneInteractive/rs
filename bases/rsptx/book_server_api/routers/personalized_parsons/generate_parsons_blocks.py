@@ -19,9 +19,9 @@ def generate_Parsons_block(personalize_level, language, Parsons_type, question_i
         Parsons_type (str): The type of Parsons puzzles ("Full" or "Partial").
         question_info (str): The problem description or question information.
         fixed_code (str): The fixed code.
-        unchanged_lines (list): List of unchanged lines (tuples of (line number, length, code)).
-        fixed_lines (list): List of fixed lines (tuples of (line number, length, code)).
-        distractors (list): List of distractor code snippets.
+        unchanged_lines (list): List of tuples representing unchanged lines in the format (line number, code length, code).
+        fixed_lines (list): List of tuples representing fixed lines in the format (line number, code length, code).
+        distractors (dict): A dictionary where keys are fixed line tuples (line number, code length, code) and values are distractor lines (str).
     Output: Parsons_puzzle (str): The generated Parsons puzzle in string format.
     """
     if Parsons_type == "Full":
@@ -148,9 +148,9 @@ def generate_partial_Parsons(personalize_level, language, Parsons_type, question
         language (str): The programming language of the code ("python" or "java") - does not affect the current implementation.
         Parsons_type (str): The type of Parsons puzzles ("Full" or "Partial").
         question_info (str): The problem description or question information.
-        unchanged_lines (list): List of unchanged lines (tuples of (line number, length, code)).
-        fixed_lines (list): List of fixed lines (tuples of (line number, length, code)).
-        distractor_tuple_dict (dict): Dictionary of distractor code snippets with their corresponding correct lines as keys.
+        unchanged_lines (list): List of tuples representing unchanged lines in the format (line number, code length, code).
+        fixed_lines (list): List of tuples representing fixed lines in the format (line number, code length, code).
+        distractor_tuple_dict (dict): A dictionary where keys are fixed line tuples (line number, code length, code) and values are distractor lines (str).
     Output: Parsons_puzzle (str): The generated Parsons puzzle in string format.
     """
     fixed_lines = [(line[0], line[1], line[2].rstrip()+ '\n') for line in fixed_lines if line[2].strip()]
@@ -256,7 +256,7 @@ def extract_distractor_Parsons_block(distractor_block_stack):
     """
     Extract distractor Parsons blocks from the distractor block stack.
     If there is only one distractor, return two separate blocks: fixed_line_block and distractor_line_block.
-    If there are multiple distractors, return the combined blocks with only the last distractor line kept.
+    If there are multiple distractors, return the combined blocks with only the last distractor mark "#paired" kept.
     """
     count_distractor = sum(1 for block_tuple in distractor_block_stack if "#paired" in block_tuple[1])
 

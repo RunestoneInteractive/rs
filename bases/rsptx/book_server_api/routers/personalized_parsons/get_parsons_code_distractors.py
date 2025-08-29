@@ -3,9 +3,9 @@ def generate_code_with_distrator(unchanged_lines, fixed_lines, distractor_tuple)
     """
     Generate code with a single distractor line inserted at the appropriate position.
     Inputs:
-        unchanged_lines (list): List of tuples representing unchanged lines in the format (line_number, similarity_score, code).
-        fixed_lines (list): List of tuples representing fixed lines in the format (line_number, similarity_score, code).
-        distractor_tuple (tuple): A tuple containing the key fixed line and the distractor line in the format ((line_number, similarity_score, code), distractor_line).
+        unchanged_lines (list): List of tuples representing unchanged lines in the format (line_number, code_length, code).
+        fixed_lines (list): List of tuples representing fixed lines in the format (line_number, code_length, code).
+        distractor_tuple (tuple): A tuple containing the fixed line and the distractor line in the format ((line_number, code_length, code), distractor_line).
     Output:
         str: The code with the distractor line inserted.
     """

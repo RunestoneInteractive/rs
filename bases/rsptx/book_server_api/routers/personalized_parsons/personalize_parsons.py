@@ -19,10 +19,11 @@ def compare_code(buggy_code, fixed_code, default_start_code, language):
         default_start_code (str): The default starting code to be ignored in the comparison. It's "" right now.
         language (str): The programming language of the code ('python' or 'java').
     Outputs:
-        code_comparison_pairs (list): A list of CodeComparison namedtuples representing the differences between the buggy and fixed code.
-        fixed_lines (list): A list of tuples representing the fixed lines in the format (line_number, similarity_score, code).
-        removed_lines (list): A list of tuples representing the removed lines in the format (line_number, similarity_score, code).
-        unchanged_lines (list): A list of tuples representing the unchanged lines in the format (line_number, similarity_score, code).
+        code_comparison_pairs (list): A list of CodeComparison namedtuples representing the differences between the student buggy and fixed code
+                                      Each item includes student_removed (tuple[int, int, str]), fixed_modified (tuple[int, int, str]), line_similarity (float)
+        fixed_lines (list): A list of tuples representing the fixed lines in the format (line number, code length, code).
+        removed_lines (list): A list of tuples representing the removed lines in the format (line number, code length, code).
+        unchanged_lines (list): A list of tuples representing the unchanged lines in the format (line number, code length, code).
         total_similarity (float): The overall similarity score between the buggy code and the fixed code.
     """
 
@@ -122,7 +123,7 @@ def find_distractor(fixed_line, removed_lines, language):
     Find a distractor line from the removed lines that is similar to the fixed line.
     Inputs:
         fixed_line (str): The fixed line of code.
-        removed_lines (list): A list of tuples representing the removed lines in the format (line_number, similarity_score, code).
+        removed_lines (list): A list of tuples representing the removed lines in the format (line number, code length, code).
         language (str): The programming language of the code ('python' or 'java').
     Outputs:
         highest_similarity (float): The similarity threshold of the distractor line.
@@ -144,11 +145,11 @@ def find_distractor(fixed_line, removed_lines, language):
 
 def generate_unique_distractor_dict(distractor_dict):
     """
-    Generate a unique distractor dictionary by selecting the highest similarity distractor for each unique distractor line.
+    Generate a unique distractor dictionary by selecting the highest similarity distractor.
     Input:
         distractor_dict (dict): A dictionary where keys are fixed lines and values are tuples of (similarity_score, distractor_line).
     Output:
-        result_distractor_dict (dict): A dictionary with unique distractor lines and their highest similarity scores.
+        result_distractor_dict (dict): A dictionary where keys are fixed line tuples and values are distractor lines.
     """
 
     value_groups = {}
@@ -217,13 +218,13 @@ def personalize_Parsons_block(language, problem_description, code_comparison_pai
         problem_description (str): The description of the problem.
         code_comparison_pairs (list): A list of CodeComparison namedtuples representing the differences
         buggy_code (str): The student's buggy code.
-        fixed_lines (list): A list of tuples representing the fixed lines in the format (line
-        removed_lines (list): A list of tuples representing the removed lines in the format (line_number, similarity_score, code).
-        unchanged_lines (list): A list of tuples representing the unchanged lines in the format (line
+        fixed_lines (list): A list of tuples representing the fixed lines in the format (line_number, code length, code).
+        removed_lines (list): A list of tuples representing the removed lines in the format (line_number, code length, code).
+        unchanged_lines (list): A list of tuples representing the unchanged lines in the format (line_number, code length, code)
         total_similarity (float): The overall similarity score between the buggy code and the fixed code.
     Outputs:
         puzzle_type (str): The type of Parsons puzzle to generate ("Full", "Correct", "Partial").
-        distractors (dict): A dictionary where keys are fixed lines and values are distractor lines.
+        distractors (dict): A dictionary where keys are fixed line tuples and values are distractor lines.
     """
     distractors = {}
 
