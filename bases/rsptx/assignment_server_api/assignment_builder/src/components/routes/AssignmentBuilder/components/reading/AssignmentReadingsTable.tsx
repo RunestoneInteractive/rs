@@ -81,8 +81,10 @@ export const AssignmentReadingsTable = ({
         }
         reorderableRows
         onRowReorder={(e) => reorderReadings(e.value.map((reading) => reading.id))}
+        resizableColumns
+        columnResizeMode="fit"
       >
-        <Column selectionMode="multiple" style={{ width: "3rem" }} />
+        <Column resizeable={false} selectionMode="multiple" style={{ width: "3rem" }} />
 
         {/* Chapter */}
         <Column
@@ -97,6 +99,7 @@ export const AssignmentReadingsTable = ({
             </div>
           )}
           sortable
+          resizeable
         />
 
         {/* Subchapter */}
@@ -111,10 +114,12 @@ export const AssignmentReadingsTable = ({
             </div>
           )}
           sortable
+          resizeable
         />
 
         {/* Activity count (read-only) */}
         <Column
+          resizeable={false}
           field="numQuestions"
           header="Activity count"
           style={{ maxWidth: "7rem" }}
@@ -126,6 +131,7 @@ export const AssignmentReadingsTable = ({
 
         {/* # required (editable, no bulk edit) */}
         <Column
+          resizeable={false}
           field="activities_required"
           header="# required"
           style={{ maxWidth: "7rem" }}
@@ -145,6 +151,7 @@ export const AssignmentReadingsTable = ({
 
         {/* Points */}
         <Column
+          resizeable={false}
           field="points"
           bodyStyle={{ padding: 0 }}
           style={{ maxWidth: "7rem" }}
@@ -166,6 +173,7 @@ export const AssignmentReadingsTable = ({
 
         {/* Which to grade */}
         <Column
+          resizeable={false}
           field="which_to_grade"
           header={() => (
             <EditDropdownValueHeaderReadings
@@ -189,7 +197,7 @@ export const AssignmentReadingsTable = ({
           )}
         />
 
-        <Column rowReorder style={{ width: "3rem" }} />
+        <Column resizeable={false} rowReorder style={{ width: "3rem" }} />
       </DataTable>
       <TableSelectionOverlay
         startItemId={startItemId}

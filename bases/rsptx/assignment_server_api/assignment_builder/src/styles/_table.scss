@@ -13,6 +13,22 @@
   }
 }
 
+.header-gridlines-only {
+  .p-treetable-thead > tr > th {
+    border-right: 1px solid var(--surface-border);
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .p-treetable-thead > tr > th:last-child {
+    border-right: none;
+  }
+
+  .p-treetable-tbody > tr > td {
+    border-right: none;
+    border-bottom: 1px solid var(--surface-border);
+  }
+}
+
 .editable-table-cell {
   .editable-table-input,
   .editable-table-dropdown,
