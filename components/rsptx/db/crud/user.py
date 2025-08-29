@@ -17,8 +17,9 @@ async def fetch_user(
     """
     Retrieve a user by their username (user_name)
 
-    fallback_to_registration is for LTI logins to match existing instructor accounts.
-    If user_name is not found, try to find the user by their registration_id (initial email).
+    fallback_to_registration is for LTI logins to match accounts with usernames that have
+    been modified.
+    If user_name is not found, try to find the user by their registration_id (initial id).
 
     :param user_name: str, the username of the user
     :return: AuthUserValidator, the AuthUserValidator object representing the user
