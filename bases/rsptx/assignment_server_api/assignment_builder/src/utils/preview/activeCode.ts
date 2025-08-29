@@ -1,3 +1,5 @@
+import { sanitizeId } from "../sanitize";
+
 export const generateActiveCodePreview = (
   instructions: string,
   language: string,
@@ -7,8 +9,7 @@ export const generateActiveCodePreview = (
   name: string,
   stdin?: string
 ): string => {
-  // Sanitize ID by replacing spaces and special chars with underscores
-  const safeId = name.replace(/[^a-zA-Z0-9-]/g, "_");
+  const safeId = sanitizeId(name);
 
   // Add data-stdin attribute to textarea if stdin is provided
   const stdinAttr = stdin && stdin.trim() ? ` data-stdin="${stdin}"` : "";

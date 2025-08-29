@@ -2,6 +2,7 @@ import {
   BlankWithFeedback,
   GraderType
 } from "@/components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/FillInTheBlankExercise/types";
+import { sanitizeId } from "../sanitize";
 
 const escapeJsonString = (str: string): string => {
   return str.replace(/"/g, '\\"');
@@ -20,7 +21,7 @@ export const generateFillInTheBlankPreview = ({
   name,
   questionLabel
 }: FillInTheBlankPreviewProps): string => {
-  const safeId = (name || "fitb_" + Date.now()).replace(/\s+/g, "_").replace(/[^\w]/g, "");
+  const safeId = sanitizeId(name, "fitb_" + Date.now());
 
   const blankNames = blanks.reduce(
     (acc, _, index) => {
