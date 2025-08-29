@@ -399,7 +399,6 @@ async def update_multiple_assignment_questions(
                     "chapter",
                     "subchapter",
                     "author",
-                    "autograde",
                     "topic",
                     "name",
                     "difficulty",

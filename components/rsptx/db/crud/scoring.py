@@ -10,13 +10,14 @@ from ..models import (
     QuestionGrade,
     QuestionGradeValidator,
     DeadlineExceptionValidator,
-    runestone_component_dict
+    runestone_component_dict,
 )
 from ..async_session import async_session
 from rsptx.validation import schemas
 from rsptx.response_helpers.core import canonical_utcnow
 from .crud import EVENT2TABLE
 from rsptx.logging import rslogger
+
 
 async def fetch_answers(question_id: str, event: str, course_name: str, username: str):
     """
@@ -64,7 +65,7 @@ async def is_assigned(
         (AssignmentQuestion.question_id == Question.id),
         (AssignmentQuestion.assignment_id == Assignment.id),
         (Assignment.course == course_id),
-        or_(Assignment.is_timed == False, Assignment.kind == "Timed"),  # noqa: E712
+        or_(Assignment.is_timed == False, Assignment.kind != "Timed"),  # noqa: E712
     ]
     if assignment_id is not None:
         clauses.append(Assignment.id == assignment_id)
@@ -175,4 +176,3 @@ async def fetch_assignment_scores(
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return [QuestionGradeValidator.from_orm(q) for q in res.scalars()]
-

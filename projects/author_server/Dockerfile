@@ -49,9 +49,9 @@ RUN pretext --version
 # Now make sure the node deps are installed for building themes
 RUN python -c 'import pretext.utils; pretext.utils.ensure_css_node_modules()'
 # Finally make sure playwright is ready to go
-RUN apt-get update
-RUN playwright install-deps
-RUN playwright install
+#RUN apt-get update
+#RUN playwright install-deps
+#RUN playwright install
 COPY gitconfig /root/.gitconfig
 #COPY .ssh/id_rsa .
 

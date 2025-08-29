@@ -1045,6 +1045,24 @@ files = [
 ]
 
 [[package]]
+name = "citeproc-py"
+version = "0.9.0"
+description = "Citations and bibliography formatter"
+optional = false
+python-versions = ">=3.9"
+groups = ["main", "dev"]
+files = [
+    {file = "citeproc_py-0.9.0-py3-none-any.whl", hash = "sha256:4737a2adbbb8ba13e2abd6c24c29095b7d0c36722e7d377f7b046323bfc4d4f9"},
+    {file = "citeproc_py-0.9.0.tar.gz", hash = "sha256:58781d8a563e87ca7cceb43d08beaca10dcdf9f3cf77ddf3b17894071edc27c8"},
+]
+
+[package.dependencies]
+lxml = "*"
+
+[package.extras]
+full = ["citeproc-py-styles"]
+
+[[package]]
 name = "cli-helpers"
 version = "2.3.1"
 description = "Helpers for building command-line apps"
@@ -4287,17 +4305,18 @@ files = [
 
 [[package]]
 name = "pretext"
-version = "2.27.0"
+version = "2.29.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main", "dev"]
 files = [
-    {file = "pretext-2.27.0-py3-none-any.whl", hash = "sha256:593d739c4a655aab606423606cd233412ea55877a3744356a563d80ce8b1026b"},
-    {file = "pretext-2.27.0.tar.gz", hash = "sha256:5d2d98c5f30653cce3c18ea28788914a9f894ded852cc556f975140fbee47e60"},
+    {file = "pretext-2.29.0-py3-none-any.whl", hash = "sha256:2effb23b9cce1a96f0d42a439091c354b74036b0c6dc4ef1ca6eb5cc8623c00f"},
+    {file = "pretext-2.29.0.tar.gz", hash = "sha256:ea1c019bcb401c0b86ac6b2568e230a9cbefe4f20804c0e5827ea0ed9f532776"},
 ]
 
 [package.dependencies]
+citeproc-py = ">=0,<1"
 click = ">=8,<9"
 click-log = ">=0.4,<0.5"
 coloraide = ">=4,<5"
@@ -4317,9 +4336,9 @@ requests = ">=2,<3"
 single-version = ">=1,<2"
 
 [package.extras]
-all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.3.9,<0.4.0)"]
+all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.4,<0.5)"]
 homepage = ["pelican[markdown] (>=4.10,<5.0)"]
-prefigure = ["prefig[text] (>=0.3.9,<0.4.0)"]
+prefigure = ["prefig[text] (>=0.4,<0.5)"]
 
 [[package]]
 name = "prometheus-client"

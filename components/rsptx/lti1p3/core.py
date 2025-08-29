@@ -190,7 +190,10 @@ async def _send_lti1p3_score_updates(lti_assign: Lti1p3Assignment, updates: List
             update_line_item_from_assignment(line_item, rs_assignment, rs_course, use_pts)
             
             rslogger.debug(f"LTI1p3 - Update LineItem {lti_assign.lti_lineitem_id} for assignment {rs_assignment.id}")
-            await ags.update_lineitem(line_item)
+            try:
+                await ags.update_lineitem(line_item)
+            except Exception as e:
+                rslogger.error(f"LTI1p3 - update_lineitem failed: {e}")
 
             for lti_user, score in updates:
                 rslogger.debug(f"LTI1p3 - Sending LTI grade update for RS user id {lti_user.rs_user_id} on assignment {rs_assignment.id}, score {score}")
@@ -200,7 +203,9 @@ async def _send_lti1p3_score_updates(lti_assign: Lti1p3Assignment, updates: List
 
                 # Send the grade
                 g = Grade().set_score_given(score).set_score_maximum(max_score).set_user_id(lti_user.lti_user_id).set_timestamp(time_now()).set_activity_progress("Completed").set_grading_progress("FullyGraded")
-
-                res = await ags.put_grade(g, line_item)
+                try:
+                    res = await ags.put_grade(g, line_item)
+                except Exception as e:
+                    rslogger.error(f"LTI1p3 - put_grade failed: {e}. RS user id {lti_user.rs_user_id} on assignment {rs_assignment.id}, score {score}.")
     except Exception as e:
         rslogger.error(f"LTI1p3 - grade update failed: {e}")

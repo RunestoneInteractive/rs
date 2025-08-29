@@ -29,7 +29,7 @@ export const generateParsonsPreview = ({
   noindent = false,
   questionLabel
 }: ParsonsPreviewProps): string => {
-  const safeId = name.replace(/\s+/g, "_").replace(/\W/g, "");
+  const safeId = name.replace(/\s+/g, "_");
 
   const processedBlocks: ParsonsBlock[] = [];
   const seenGroupIds = new Set<string>();
