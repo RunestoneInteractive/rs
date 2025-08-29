@@ -317,10 +317,12 @@ export const SmartSearchExercises = () => {
             rowHover
             filterDisplay="menu"
             tableStyle={{ tableLayout: "fixed" }} // Fixed table layout
-            reorderableColumns
+            resizableColumns
+            columnResizeMode="fit"
           >
             {/* Multiple selection column */}
             <Column
+              resizeable={false}
               selectionMode="multiple"
               headerStyle={{ width: "3rem" }}
               style={{ width: "3rem" }}
@@ -330,6 +332,7 @@ export const SmartSearchExercises = () => {
 
             {/* Preview */}
             <Column
+              resizeable={false}
               headerStyle={{ width: "4rem" }}
               style={{ width: "4rem" }}
               body={renderPreview}
@@ -339,6 +342,7 @@ export const SmartSearchExercises = () => {
 
             {/* Copy button */}
             <Column
+              resizeable={false}
               headerStyle={{ width: "4rem" }}
               style={{ width: "4rem" }}
               body={renderCopyButton}
@@ -348,6 +352,7 @@ export const SmartSearchExercises = () => {
 
             {/* Question number */}
             <Column
+              resizeable={false}
               field="qnumber"
               header="Number"
               headerStyle={{ width: "7rem" }}
@@ -369,10 +374,12 @@ export const SmartSearchExercises = () => {
               showFilterMenu={true}
               filterMenuStyle={{ width: "15rem" }}
               className="name-column"
+              resizeable
             />
 
             {/* Question type */}
             <Column
+              resizeable={false}
               field="question_type"
               header="Type"
               sortable

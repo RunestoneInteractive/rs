@@ -102,7 +102,7 @@ export const ChooseExercises = () => {
       onUnselect={handleUnselect}
       value={filteredExercises}
       resizableColumns
-      className="table_sticky-header"
+      className="table_sticky-header header-gridlines-only"
       header={
         <ChooseExercisesHeader
           resetSelections={resetSelections}
