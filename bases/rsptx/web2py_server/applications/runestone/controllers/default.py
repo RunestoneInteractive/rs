@@ -189,7 +189,6 @@ def w2py_login():
     """
     logger.debug("Generating web2py token")
     token = request.vars["token"]
-    print(token)
     try:
         if not token:
             err = "No token provided to w2py_login"
