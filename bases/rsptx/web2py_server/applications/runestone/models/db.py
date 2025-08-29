@@ -18,7 +18,9 @@ formatter = logging.Formatter(
 handler.setFormatter(formatter)
 logger = logging.getLogger(settings.logger)
 logger.setLevel(settings.log_level)
-logger.addHandler(handler)
+logger.propagate = False
+if not logger.handlers:
+    logger.addHandler(handler)
 
 
 from gluon.tools import Auth, Crud, Service, PluginManager, prettydate  # noqa: F401

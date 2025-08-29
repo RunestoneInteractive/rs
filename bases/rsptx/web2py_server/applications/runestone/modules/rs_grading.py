@@ -25,7 +25,7 @@ from outcome_request import OutcomeRequest
 
 logger = logging.getLogger(current.settings.logger)
 logger.setLevel(current.settings.log_level)
-
+logger.propagate = False
 
 def _profile(start, msg):
     delta = datetime.datetime.now() - start
