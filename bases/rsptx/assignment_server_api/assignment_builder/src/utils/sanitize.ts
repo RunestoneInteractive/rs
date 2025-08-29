@@ -1,10 +1,7 @@
 export const sanitizeId = (name: string, fallback?: string): string => {
   const nameToUse = name || fallback || `generated_${Date.now()}`;
 
-  let sanitized = nameToUse
-    .replace(/[^a-zA-Z0-9\-_]/g, "_") // Replace invalid characters (including spaces) with underscore
-    .replace(/_+/g, "_") // Collapse multiple underscores to single
-    .replace(/^_+|_+$/g, ""); // Remove leading and trailing underscores
+  let sanitized = nameToUse.replace(/[^a-zA-Z0-9\-_]/g, ""); // Remove invalid characters
 
   // Ensure ID starts with a letter (HTML spec requirement)
   if (!/^[a-zA-Z]/.test(sanitized)) {
