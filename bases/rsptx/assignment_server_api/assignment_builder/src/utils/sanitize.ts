@@ -2,7 +2,7 @@ export const sanitizeId = (name: string, fallback?: string): string => {
   const nameToUse = name || fallback || `generated_${Date.now()}`;
 
   let sanitized = nameToUse
-    .replace(/[^a-zA-Z0-9\-_]/g, "_") // Replace invalid characters with underscore
+    .replace(/[^a-zA-Z0-9\-_]/g, "_") // Replace invalid characters (including spaces) with underscore
     .replace(/_+/g, "_") // Collapse multiple underscores to single
     .replace(/^_+|_+$/g, ""); // Remove leading and trailing underscores
 
@@ -24,8 +24,8 @@ export const validateIdName = (name: string): string | null => {
   }
 
   // Check if name contains only valid characters for HTML ID
-  if (!/^[a-zA-Z0-9\-_\s]+$/.test(name)) {
-    return "Name can only contain letters, numbers, hyphens, underscores, and spaces";
+  if (!/^[a-zA-Z0-9\-_]+$/.test(name)) {
+    return "Name can only contain letters, numbers, hyphens, and underscores";
   }
 
   if (!/^[a-zA-Z]/.test(name)) {
