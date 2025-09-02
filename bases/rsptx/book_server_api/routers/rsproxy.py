@@ -197,6 +197,11 @@ async def pytutor_trace(
             "The request to the trace server timed out, you will need to rerun the build"
         )
         return Response(status_code=500, content="", media_type="application/json")
+    except Exception as e:
+        rslogger.error(f"Unknown error occurred while getting trace: {e}")
+        return Response(
+            status_code=500, content="Error in pytutor_trace", media_type="application/json"
+        )
     if r.status_code == 200:
         if lang == "java":
             return Response(
