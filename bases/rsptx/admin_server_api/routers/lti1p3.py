@@ -238,9 +238,7 @@ async def login_or_create_user(
     url = f"https://{domain}/default/w2py_login?token={encoded_jwt}"
     async with aiohttp.ClientSession() as session:
         try:
-            rslogger.info(f"LTI1p3 - TEMP - Logging in to w2p server at {url}")
             resp = await session.get(url)
-            rslogger.info(f"LTI1p3 - TEMP - got response from w2p server: {resp.__dict__}")
             resp.raise_for_status()
             cookies = resp._headers.getall('Set-Cookie')
             for cookie in cookies:

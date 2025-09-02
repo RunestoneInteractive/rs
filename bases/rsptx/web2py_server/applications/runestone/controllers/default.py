@@ -189,26 +189,22 @@ def w2py_login():
     """
     logger.debug("Generating web2py token")
     token = request.vars["token"]
-    logger.info(f"LTI1p3 - TEMP - w2py_login got token: {token}")
     try:
         if not token:
             err = "No token provided to w2py_login"
             raise Exception(err)
 
         decoded = jwt.decode(token, settings.jwt_secret, "HS256")
-        logger.info(f"LTI1p3 - TEMP - w2py_login decoded token: {decoded}")
         if not decoded:
             err = "Invalid token provided to w2py_login"
             raise Exception(err)
 
         user = db(db.auth_user.registration_id == decoded["registration_id"]).select().first()
-        logger.info(f"LTI1p3 - TEMP - w2py_login found user: {user}")
         if not user:
             err = "Unkonwn user in token provided to w2py_login"
             raise Exception(err)
 
         auth.login_user(user)
-        logger.info(f"LTI1p3 - TEMP - w2py_login logged in user: {user.username}")
         return "User logged in"
     except Exception as e:
         logger.error(f"Error in w2py_login: {e}")
