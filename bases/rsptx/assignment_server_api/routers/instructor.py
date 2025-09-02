@@ -304,7 +304,7 @@ async def get_assignment_gb(
 
     assignments = pd.read_sql(
         """
-    select id, name from assignments where course = %s order by duedate, id
+    select id, name, points from assignments where course = %s order by duedate, id
                     """,
         eng,
         params=(classid,),
@@ -319,6 +319,10 @@ async def get_assignment_gb(
         eng,
         params=(classid,),
     )
+    apoints = {}
+    for ix, row in assignments.iterrows():
+        rslogger.debug(f"AROW = {row['name']}, {row.points}")
+        apoints[row['name']] = row.points if row.points is not None else 0
 
     assignments.index = assignments.id
     aname = assignments.name.to_dict()
@@ -333,6 +337,11 @@ async def get_assignment_gb(
     )
 
     cols = pt.columns.to_list()
+    cols_plus_points = []
+    for c in cols:
+        cols_plus_points.append(c + f" ({apoints.get(c,"0")} pts)")
+    
+
     pt["first_name"] = pt.index.map(sfirst)
     pt["last_name"] = pt.index.map(slast)
     pt["email"] = pt.index.map(semail)
@@ -340,7 +349,7 @@ async def get_assignment_gb(
     pt = pt.sort_values(by=["last_name", "first_name"])
     pt = pt[["first_name", "last_name", "email", "username"] + cols]
     pt = pt.reset_index()
-    pt = pt.drop(columns=["sid"], axis=1)
+    pt = pt.drop(columns=["sid"], axis=1)    
     pt.columns.name = None
 
     names = {}
@@ -350,13 +359,16 @@ async def get_assignment_gb(
 
     # pt = pt.drop(columns=["username"], axis=1)
     templates = Jinja2Templates(directory=template_folder)
+    # rename the columns in cols to cols_plus_points
+    rename_dict = {old: new for old, new in zip(cols, cols_plus_points)}
+    pt = pt.rename(columns=rename_dict)
 
     return templates.TemplateResponse(
         "assignment/instructor/gradebook.html",
         {
             "table_html": pt.to_html(
                 table_id="table",
-                columns=["first_name", "last_name", "email", "username"] + cols,
+                columns=["first_name", "last_name", "email", "username"] + cols_plus_points,
                 index=False,
                 na_rep="",
             ),
