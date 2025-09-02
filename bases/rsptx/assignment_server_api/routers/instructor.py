@@ -348,7 +348,7 @@ async def get_assignment_gb(
         if type(row.first_name) is str and type(row.last_name) is str:
             names[row.username] = row.first_name + " " + row.last_name
 
-    pt = pt.drop(columns=["username"], axis=1)
+    # pt = pt.drop(columns=["username"], axis=1)
     templates = Jinja2Templates(directory=template_folder)
 
     return templates.TemplateResponse(
@@ -356,7 +356,7 @@ async def get_assignment_gb(
         {
             "table_html": pt.to_html(
                 table_id="table",
-                columns=["first_name", "last_name", "email"] + cols,
+                columns=["first_name", "last_name", "email", "username"] + cols,
                 index=False,
                 na_rep="",
             ),
