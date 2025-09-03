@@ -430,8 +430,7 @@ async def new_assignment(
         released=True,
         from_source=False,
         current_index=0,
-        enforce_due=False,
-    )    
+    )
     try:
         res = await create_assignment(new_assignment)
         rslogger.debug(f"Created assignment: {res} {res.id}")

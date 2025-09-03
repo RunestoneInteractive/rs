@@ -12,5 +12,6 @@ export const defaultAssignment: CreateAssignmentPayload = {
   nopause: false,
   peer_async_visible: false,
   visible: false,
-  released: true
+  released: true,
+  enforce_due: false
 };

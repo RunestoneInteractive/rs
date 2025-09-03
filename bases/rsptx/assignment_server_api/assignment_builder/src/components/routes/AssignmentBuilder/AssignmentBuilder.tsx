@@ -132,6 +132,18 @@ export const AssignmentBuilder = () => {
     }
   };
 
+  const handleEnforceDueChange = async (assignment: Assignment, enforce_due: boolean) => {
+    try {
+      await updateAssignment({
+        ...assignment,
+        enforce_due
+      });
+      toast.success(`Late submissions ${enforce_due ? "not allowed" : "allowed"}`);
+    } catch (error) {
+      toast.error("Failed to update late submission settings");
+    }
+  };
+
   const handleWizardComplete = async () => {
     const formValues = getValues();
     const payload: CreateAssignmentPayload = {
@@ -145,7 +157,8 @@ export const AssignmentBuilder = () => {
       nopause: formValues.nopause,
       peer_async_visible: formValues.peer_async_visible,
       visible: false,
-      released: true
+      released: true,
+      enforce_due: formValues.enforce_due || false
     };
     const response = await createAssignment(payload).unwrap();
     const createdAssignmentId = response.detail.id;
@@ -181,6 +194,7 @@ export const AssignmentBuilder = () => {
           onDuplicate={handleDuplicate}
           onVisibilityChange={handleVisibilityChange}
           onReleasedChange={handleReleasedChange}
+          onEnforceDueChange={handleEnforceDueChange}
           onRemove={onRemove}
         />
       )}
