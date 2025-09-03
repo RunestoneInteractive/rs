@@ -380,9 +380,11 @@ export default class RunestoneBase {
                 );
                 try {
                     let response = await fetch(request);
+                    console.log(`Response from server: ${response.status}`);
                     if (response.ok) {
                         data = await response.json();
                         data = data.detail;
+                        console.log(`Data from server: ${JSON.stringify(data)} calling repopulateFromStorage`);
                         this.repopulateFromStorage(data);
                         this.attempted = true;
                         if (typeof data.correct !== "undefined") {
@@ -390,12 +392,14 @@ export default class RunestoneBase {
                         } else {
                             this.correct = null;
                         }
+                        console.log(`resolving checkServer with server data`);
                         this.csresolver("server");
                     } else {
                         console.log(
                             `HTTP Error getting results: ${response.statusText}`
                         );
                         this.checkLocalStorage(); // just go right to local storage
+                        console.log(`resolving checkServer with local data`);
                         this.csresolver("local");
                     }
                 } catch (err) {
@@ -408,10 +412,12 @@ export default class RunestoneBase {
                 }
             } else {
                 this.loadData({});
+                console.log(`resolving checkServer no answer given`);
                 this.csresolver("not taken");
             }
         } else {
             this.checkLocalStorage(); // just go right to local storage
+            console.log(`resolving checkServer with local data`);
             this.csresolver("local");
         }
 
