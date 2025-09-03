@@ -85,7 +85,7 @@ include /etc/nginx/default.d/\*.conf;
     location /ns/ {
         # rewrite to remove /ns as bookserver does not expect it.
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto https;
         proxy_set_header Host $http_host;
         # we don't want nginx trying to do something clever with
         # redirects, we set the Host: header above already.
@@ -108,7 +108,7 @@ include /etc/nginx/default.d/\*.conf;
     # route assignment requests
     location /assignment/ {
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header X-Forwarded-Proto https;
        proxy_set_header Host $http_host;
        # we don't want nginx trying to do something clever with
        # redirects, we set the Host: header above already.
@@ -120,7 +120,7 @@ include /etc/nginx/default.d/\*.conf;
     # For now, /admin/ needs to contine to go to w2py server
     location /admin/lti1p3/ {
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header X-Forwarded-Proto https;
        proxy_set_header Host $http_host;
        proxy_redirect off;
        #temporary... Need to pretend that just /admin got pulled out of URL
@@ -129,7 +129,7 @@ include /etc/nginx/default.d/\*.conf;
 
     location /admin/instructor/ {
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header X-Forwarded-Proto https;
        proxy_set_header Host $http_host;
        # we don't want nginx trying to do something clever with
        # redirects, we set the Host: header above already.
@@ -147,7 +147,7 @@ include /etc/nginx/default.d/\*.conf;
        resolver 127.0.0.11 valid=30s; # use the docker dns resolver
        set $aserver http://author:8114;
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header X-Forwarded-Proto https;
        proxy_set_header Host $http_host;
        # we don't want nginx trying to do something clever with
        # redirects, we set the Host: header above already.
