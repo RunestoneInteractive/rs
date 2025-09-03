@@ -20,6 +20,7 @@ interface AssignmentListProps {
   onDuplicate: (assignment: Assignment) => void;
   onVisibilityChange: (assignment: Assignment, visible: boolean) => void;
   onReleasedChange: (assignment: Assignment, released: boolean) => void;
+  onEnforceDueChange: (assignment: Assignment, enforce_due: boolean) => void;
   onRemove: (assignment: Assignment) => void;
 }
 
@@ -32,6 +33,7 @@ export const AssignmentList = ({
   onDuplicate,
   onVisibilityChange,
   onReleasedChange,
+  onEnforceDueChange,
   onRemove
 }: AssignmentListProps) => {
   const visibilityBodyTemplate = (rowData: Assignment) => (
@@ -54,6 +56,20 @@ export const AssignmentList = ({
         checked={rowData.released}
         onChange={(e) => onReleasedChange(rowData, e.value)}
         tooltip={rowData.released ? "Released to students" : "Not released to students"}
+        tooltipOptions={{
+          position: "top"
+        }}
+        className={styles.smallSwitch}
+      />
+    </div>
+  );
+
+  const enforceDueBodyTemplate = (rowData: Assignment) => (
+    <div className="flex align-items-center justify-content-center">
+      <InputSwitch
+        checked={rowData.enforce_due}
+        onChange={(e) => onEnforceDueChange(rowData, e.value)}
+        tooltip={rowData.enforce_due ? "Due date is enforced" : "Due date is not enforced"}
         tooltipOptions={{
           position: "top"
         }}
@@ -226,6 +242,12 @@ export const AssignmentList = ({
           sortable
           body={dueDateBodyTemplate}
           className={styles.dueDateColumn}
+        />
+        <Column
+          field="enforce_due"
+          header="Enforce Due Date"
+          body={enforceDueBodyTemplate}
+          className={styles.enforceDueColumn}
         />
         <Column
           field="points"
