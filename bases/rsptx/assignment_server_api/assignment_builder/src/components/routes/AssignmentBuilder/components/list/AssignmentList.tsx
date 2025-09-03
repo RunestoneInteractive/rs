@@ -67,9 +67,11 @@ export const AssignmentList = ({
   const enforceDueBodyTemplate = (rowData: Assignment) => (
     <div className="flex align-items-center justify-content-center">
       <InputSwitch
-        checked={rowData.enforce_due}
-        onChange={(e) => onEnforceDueChange(rowData, e.value)}
-        tooltip={rowData.enforce_due ? "Due date is enforced" : "Due date is not enforced"}
+        checked={!rowData.enforce_due}
+        onChange={(e) => onEnforceDueChange(rowData, !e.value)}
+        tooltip={
+          !rowData.enforce_due ? "Late submissions are allowed" : "Late submissions are not allowed"
+        }
         tooltipOptions={{
           position: "top"
         }}
@@ -244,8 +246,15 @@ export const AssignmentList = ({
           className={styles.dueDateColumn}
         />
         <Column
+          style={{ width: "12px" }}
           field="enforce_due"
-          header="Enforce Due Date"
+          header={
+            <div style={{ lineHeight: "1.2", textAlign: "center" }}>
+              Allow Late
+              <br />
+              Submissions
+            </div>
+          }
           body={enforceDueBodyTemplate}
           className={styles.enforceDueColumn}
         />
@@ -257,12 +266,14 @@ export const AssignmentList = ({
           className={styles.pointsColumn}
         />
         <Column
+          style={{ width: "12px" }}
           field="visible"
           header="Visible"
           body={visibilityBodyTemplate}
           className={styles.visibilityColumn}
         />
         <Column
+          style={{ width: "12px" }}
           field="released"
           header="Released"
           body={releasedBodyTemplate}

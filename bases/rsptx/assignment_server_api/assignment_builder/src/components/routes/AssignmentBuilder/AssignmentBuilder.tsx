@@ -138,9 +138,9 @@ export const AssignmentBuilder = () => {
         ...assignment,
         enforce_due
       });
-      toast.success(`Due date enforcement ${enforce_due ? "enabled" : "disabled"}`);
+      toast.success(`Late submissions ${enforce_due ? "not allowed" : "allowed"}`);
     } catch (error) {
-      toast.error("Failed to update due date enforcement");
+      toast.error("Failed to update late submission settings");
     }
   };
 
