@@ -163,3 +163,26 @@ export const filterOutExercisesByQuestionType = (
     }))
     .filter((node) => !questionTypes.includes(node.data?.question_type));
 };
+
+const shouldIncludeFromSourceNode = (node: TreeNode, fromSourceOnly: boolean): boolean =>
+  !node.children?.length
+    ? fromSourceOnly
+      ? node.data?.from_source === true
+      : true
+    : node.children.length > 0;
+
+export const filterExercisesByFromSource = (
+  nodes: TreeNode[],
+  fromSourceOnly: boolean = false
+): TreeNode[] => {
+  if (!fromSourceOnly) return nodes;
+
+  return nodes
+    .map((node) => ({
+      ...node,
+      children: node.children
+        ? filterExercisesByFromSource(node.children, fromSourceOnly)
+        : undefined
+    }))
+    .filter((node) => shouldIncludeFromSourceNode(node, fromSourceOnly));
+};
