@@ -681,6 +681,24 @@ files = [
 ]
 
 [[package]]
+name = "citeproc-py"
+version = "0.9.0"
+description = "Citations and bibliography formatter"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "citeproc_py-0.9.0-py3-none-any.whl", hash = "sha256:4737a2adbbb8ba13e2abd6c24c29095b7d0c36722e7d377f7b046323bfc4d4f9"},
+    {file = "citeproc_py-0.9.0.tar.gz", hash = "sha256:58781d8a563e87ca7cceb43d08beaca10dcdf9f3cf77ddf3b17894071edc27c8"},
+]
+
+[package.dependencies]
+lxml = "*"
+
+[package.extras]
+full = ["citeproc-py-styles"]
+
+[[package]]
 name = "click"
 version = "8.1.7"
 description = "Composable command line interface toolkit"
@@ -2937,17 +2955,18 @@ text = ["pycairo (>=1.20,<2.0) ; python_version >= \"3.9\"", "pycairo (>=1.20,<=
 
 [[package]]
 name = "pretext"
-version = "2.27.0"
+version = "2.29.1"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "pretext-2.27.0-py3-none-any.whl", hash = "sha256:593d739c4a655aab606423606cd233412ea55877a3744356a563d80ce8b1026b"},
-    {file = "pretext-2.27.0.tar.gz", hash = "sha256:5d2d98c5f30653cce3c18ea28788914a9f894ded852cc556f975140fbee47e60"},
+    {file = "pretext-2.29.1-py3-none-any.whl", hash = "sha256:e6cc9edfdcbdfb7febe52e4ce58c2951e123dfa33719d66ee3f8080994df9f1c"},
+    {file = "pretext-2.29.1.tar.gz", hash = "sha256:e9f2ef4edda06dd3489cdb79afcf367fecf8c0f91c68afef4c950652e6ea4069"},
 ]
 
 [package.dependencies]
+citeproc-py = ">=0,<1"
 click = ">=8,<9"
 click-log = ">=0.4,<0.5"
 coloraide = ">=4,<5"
@@ -2967,9 +2986,9 @@ requests = ">=2,<3"
 single-version = ">=1,<2"
 
 [package.extras]
-all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.3.9,<0.4.0)"]
+all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.4,<0.5)"]
 homepage = ["pelican[markdown] (>=4.10,<5.0)"]
-prefigure = ["prefig[text] (>=0.3.9,<0.4.0)"]
+prefigure = ["prefig[text] (>=0.4,<0.5)"]
 
 [[package]]
 name = "prometheus-client"

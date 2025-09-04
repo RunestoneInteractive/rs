@@ -62,7 +62,7 @@ cssselect = ">= 1.0"
 dash = { extras = ["celery", "diskcache"], version = "^2.7.0" }
 dash-bootstrap-components = "^1.2.1"
 diff-match-patch = ">= 20110725.1"
-fastapi = "^0.103.0"
+fastapi = "^0.115.0"
 fastapi-login = "^1.10.0"
 gunicorn = "^20.1.0"
 ipyleaflet = "^0.19.2"
