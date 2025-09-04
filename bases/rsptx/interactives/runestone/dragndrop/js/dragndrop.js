@@ -673,6 +673,7 @@ export default class DragNDrop extends RunestoneBase {
 
     checkLocalStorage() {
         if (this.graderactive) {
+            this.finishSettingUp();
             return;
         }
         var storedObj;
