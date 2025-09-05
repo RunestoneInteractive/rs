@@ -35,15 +35,24 @@
   display: flex;
   gap: 0.75rem;
   margin-bottom: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .searchField {
   flex: 2;
 }
 
+.filtersContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .typeFilter {
-  flex: 1;
-  min-width: 12.5rem;
+  font-size: 0.875rem;
+  min-width: 250px;
+  max-width: 250px;
 }
 
 .statusBar {
@@ -627,6 +636,9 @@
 .baseCourseFilter {
   flex: 0 0 auto;
   min-width: 9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .checkboxLabel {
@@ -642,4 +654,14 @@
 .checkboxLabel span {
   font-weight: 500;
   user-select: none;
+}
+
+.switchLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.inputSwitch {
+  transform: scale(0.8);
 }
