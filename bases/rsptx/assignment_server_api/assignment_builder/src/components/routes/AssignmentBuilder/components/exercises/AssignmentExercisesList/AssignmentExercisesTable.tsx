@@ -104,7 +104,7 @@ export const AssignmentExercisesTable = ({
         }
         dataKey="id"
         scrollable
-        scrollHeight="calc(100vh - 320px)"
+        scrollHeight="calc(100vh - 280px)"
         size="small"
         rowClassName={() => "assignmentExercise_row"}
         stripedRows

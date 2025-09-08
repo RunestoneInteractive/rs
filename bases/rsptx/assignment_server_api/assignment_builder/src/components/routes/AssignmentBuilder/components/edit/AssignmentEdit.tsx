@@ -199,11 +199,6 @@ export const AssignmentEdit = ({
         </div>
         <div className={styles.mainContentInner}>
           <Tooltip target="[data-pr-tooltip]" />
-          <BreadCrumb
-            model={getBreadcrumbModel()}
-            home={{ icon: "pi pi-home", command: () => onTabChange("basic") }}
-            className="mb-3"
-          />
           {activeTab === "basic" && (
             <div className={styles.formContainer}>
               <div className={styles.card}>
