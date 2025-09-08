@@ -824,7 +824,21 @@ def dev(ctx, config):
 @cli.command()
 @pass_config
 @click.pass_context
-def bake(ctx, config):
+@click.option("--version", default=None, help="Version tag to apply to images")
+def bake(ctx, config, version):
+    if version:
+        console.print(f"Will tag this bake with version {version}")
+    else:
+        version = click.prompt(
+            "No version specified.  Enter a version to continue or Ctrl-C to abort",
+            default="latest",
+            show_default=False,
+        )
+    if version:
+        os.environ["VERSION"] = version
+        with open(".last_version", "w") as f:
+            f.write(version)
+    # we need to build the wheels first
     ctx.invoke(wheel)
     for service in config.ym["services"]:
         if service == "nginx_dstart_dev":
