@@ -380,3 +380,4 @@ class CopyQuestionRequest(BaseModel):
     new_name: str
     assignment_id: Optional[int] = None
     copy_to_assignment: bool = False
+    htmlsrc: Optional[str] = None

@@ -12,6 +12,7 @@ import toast from "react-hot-toast";
 
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { Exercise, supportedExerciseTypesToEdit } from "@/types/exercises";
+import { regenerateHtmlSrc } from "@/utils/htmlRegeneration";
 
 interface CopyExerciseModalProps {
   visible: boolean;
@@ -89,11 +90,22 @@ export const CopyExerciseModal = ({
     if (!exercise || !isValid) return;
 
     try {
+      // Generate new HTML source with the new name if the exercise type is supported
+      let newHtmlSrc: string | undefined;
+      if (exercise.question_json && supportedExerciseTypesToEdit.includes(exercise.question_type)) {
+        try {
+          newHtmlSrc = regenerateHtmlSrc(exercise, newName.trim());
+        } catch (htmlError) {
+          console.error("Failed to regenerate HTML source:", htmlError);
+        }
+      }
+
       const result = await copyQuestion({
         original_question_id: exercise.question_id ?? exercise.id,
         new_name: newName.trim(),
         assignment_id: copyToAssignment ? selectedAssignment?.id : undefined,
-        copy_to_assignment: copyToAssignment
+        copy_to_assignment: copyToAssignment,
+        htmlsrc: newHtmlSrc
       }).unwrap();
 
       if (setCurrentEditExercise && setViewMode && copyToAssignment && result.detail.question_id) {

@@ -707,7 +707,8 @@ async def copy_question(
     original_question_id: int, 
     new_name: str, 
     new_owner: str,
-    assignment_id: Optional[int] = None
+    assignment_id: Optional[int] = None,
+    htmlsrc: Optional[str] = None
 ) -> QuestionValidator:
     """
     Copy a question to create a new one with the same content but different name and owner.
@@ -716,6 +717,7 @@ async def copy_question(
     :param new_name: str, the name for the new question
     :param new_owner: str, the username of the new owner
     :param assignment_id: Optional[int], the assignment ID if copying to an assignment
+    :param htmlsrc: Optional[str], the HTML source to use for the new question (if provided, overrides original)
     :return: QuestionValidator, the newly created question
     """
     async with async_session() as session:
@@ -726,6 +728,9 @@ async def copy_question(
         
         if not original_question:
             raise ValueError(f"Original question with ID {original_question_id} not found")
+
+        # Use provided htmlsrc or fall back to original
+        question_htmlsrc = htmlsrc if htmlsrc is not None else original_question.htmlsrc
 
         # Create new question with copied data
         new_question = Question(
@@ -738,7 +743,7 @@ async def copy_question(
             timestamp=canonical_utcnow(),
             question_type=original_question.question_type,
             is_private=original_question.is_private,
-            htmlsrc=original_question.htmlsrc,
+            htmlsrc=question_htmlsrc,
             autograde=original_question.autograde,
             practice=original_question.practice,
             topic=original_question.topic,

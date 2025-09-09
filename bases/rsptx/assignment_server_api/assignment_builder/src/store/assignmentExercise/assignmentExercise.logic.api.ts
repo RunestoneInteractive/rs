@@ -174,6 +174,7 @@ export const assignmentExerciseApi = createApi({
         new_name: string;
         assignment_id?: number;
         copy_to_assignment: boolean;
+        htmlsrc?: string;
       }
     >({
       query: (body) => ({
