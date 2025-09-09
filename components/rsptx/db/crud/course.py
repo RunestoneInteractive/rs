@@ -657,3 +657,16 @@ async def fetch_course_students(course_id: int) -> List[AuthUserValidator]:
         res = await session.execute(query)
     student_list = [AuthUserValidator.from_orm(x) for x in res.scalars().fetchall()]
     return student_list
+
+async def fetch_basecourse_courses(base_course: str) -> List[CoursesValidator]:
+    """
+    Retrieve a list of courses that share the same base course.
+
+    :param base_course: str, the name of the base course
+    :return: List[CoursesValidator], a list of CoursesValidator objects representing the courses
+    """
+    query = select(Courses).where(Courses.base_course == base_course)
+    async with async_session() as session:
+        res = await session.execute(query)
+    course_list = [CoursesValidator.from_orm(x) for x in res.scalars().fetchall()]
+    return course_list
