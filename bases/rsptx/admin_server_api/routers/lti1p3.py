@@ -811,6 +811,9 @@ async def deep_link_entry(request: Request):
     ags = message_launch.get_ags()
     l_items = await ags.get_lineitems()
     l_items.sort(key=lambda li: li.get("label"))
+    # build lookup dicts for line items
+    l_items_resourceId_dict = {li.get("resourceId"): li for li in l_items}
+    l_items_label_dict = {li.get("label"): li for li in l_items}
 
     link_data = message_launch.get_dls()
     supports_multiple = link_data.get("accept_multiple", False)
@@ -823,17 +826,24 @@ async def deep_link_entry(request: Request):
     for a in assignments:
         d = a.__dict__
 
-        lti_name_match = match_by_name(a, l_items)
-        if lti_name_match:
-            desired_resource_id = get_assignment_score_resource_id(course, a)
-            if desired_resource_id == lti_name_match.get("resourceId"):
-                d["already_mapped"] = True
-                d["mapped_value"] = lti_name_match.get("resourceLinkId")
-                d["mapped_name"] = lti_name_match.get("label")
-            else:
-                d["remap_suggested"] = True
-                d["mapped_value"] = lti_name_match.get("resourceLinkId")
-                d["mapped_name"] = lti_name_match.get("label")
+        # this is the resource_id that RS sets on LMS line items
+        # we need it to match if this is a linked assignment
+        # can't rely on our own records in lti1p3_assignments table as
+        # they are not set until first assignment launch and instructor may
+        # rerun content selection multiple times before that
+        desired_resource_id = get_assignment_score_resource_id(course, a)
+        lti_id_match = l_items_resourceId_dict.get(desired_resource_id, None)
+        lti_name_match = l_items_label_dict.get(a.name, None)
+
+        if lti_id_match:
+            # this is already linked
+            d["already_mapped"] = True
+            d["mapped_value"] = lti_id_match.get("resourceLinkId")
+            d["mapped_name"] = lti_id_match.get("label")
+        elif lti_name_match:
+            # not mapped, but name matches, suggest a remap
+            d["remap_suggested"] = True
+            d["mapped_name"] = ""
 
         assigns_dicts.append(d)
 
@@ -863,16 +873,6 @@ async def deep_link_entry(request: Request):
         context=tpl_kwargs
     )
     return resp
-
-
-def match_by_name(rs_assign, lti_lineitems):
-    """
-    Find a line item in the LMS that matches the name of the Runestone assignment
-    """
-    for l in lti_lineitems:
-        if rs_assign.name == l.get("label"):
-            return l
-    return None
 
 
 @router.post("/assign-select/{launch_id}")
