@@ -1470,7 +1470,8 @@ async def copy_question_endpoint(
             original_question_id=request_data.original_question_id,
             new_name=request_data.new_name,
             new_owner=user.username,
-            assignment_id=assignment_id
+            assignment_id=assignment_id,
+            htmlsrc=request_data.htmlsrc
         )
         
         return make_json_response(
