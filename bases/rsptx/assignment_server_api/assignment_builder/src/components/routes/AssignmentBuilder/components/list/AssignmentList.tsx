@@ -20,6 +20,7 @@ interface AssignmentListProps {
   onDuplicate: (assignment: Assignment) => void;
   onVisibilityChange: (assignment: Assignment, visible: boolean) => void;
   onReleasedChange: (assignment: Assignment, released: boolean) => void;
+  onEnforceDueChange: (assignment: Assignment, enforce_due: boolean) => void;
   onRemove: (assignment: Assignment) => void;
 }
 
@@ -32,6 +33,7 @@ export const AssignmentList = ({
   onDuplicate,
   onVisibilityChange,
   onReleasedChange,
+  onEnforceDueChange,
   onRemove
 }: AssignmentListProps) => {
   const visibilityBodyTemplate = (rowData: Assignment) => (
@@ -54,6 +56,22 @@ export const AssignmentList = ({
         checked={rowData.released}
         onChange={(e) => onReleasedChange(rowData, e.value)}
         tooltip={rowData.released ? "Released to students" : "Not released to students"}
+        tooltipOptions={{
+          position: "top"
+        }}
+        className={styles.smallSwitch}
+      />
+    </div>
+  );
+
+  const enforceDueBodyTemplate = (rowData: Assignment) => (
+    <div className="flex align-items-center justify-content-center">
+      <InputSwitch
+        checked={!rowData.enforce_due}
+        onChange={(e) => onEnforceDueChange(rowData, !e.value)}
+        tooltip={
+          !rowData.enforce_due ? "Late submissions are allowed" : "Late submissions are not allowed"
+        }
         tooltipOptions={{
           position: "top"
         }}
@@ -228,6 +246,19 @@ export const AssignmentList = ({
           className={styles.dueDateColumn}
         />
         <Column
+          style={{ width: "12px" }}
+          field="enforce_due"
+          header={
+            <div style={{ lineHeight: "1.2", textAlign: "center" }}>
+              Allow Late
+              <br />
+              Submissions
+            </div>
+          }
+          body={enforceDueBodyTemplate}
+          className={styles.enforceDueColumn}
+        />
+        <Column
           field="points"
           header="Points"
           sortable
@@ -235,12 +266,14 @@ export const AssignmentList = ({
           className={styles.pointsColumn}
         />
         <Column
+          style={{ width: "12px" }}
           field="visible"
           header="Visible"
           body={visibilityBodyTemplate}
           className={styles.visibilityColumn}
         />
         <Column
+          style={{ width: "12px" }}
           field="released"
           header="Released"
           body={releasedBodyTemplate}

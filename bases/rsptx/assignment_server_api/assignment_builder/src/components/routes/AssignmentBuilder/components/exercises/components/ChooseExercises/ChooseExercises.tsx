@@ -18,7 +18,8 @@ import {
   getLeafNodes,
   getSelectedKeys,
   filterExercisesByQuestionType,
-  filterOutExercisesByQuestionType
+  filterOutExercisesByQuestionType,
+  filterExercisesByFromSource
 } from "@/utils/exercise";
 
 export const ChooseExercises = () => {
@@ -26,13 +27,17 @@ export const ChooseExercises = () => {
   const { assignmentExercises = [] } = useExercisesSelector();
   const availableExercises = useSelector(exercisesSelectors.getAvailableExercises);
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<string[]>([]);
+  const [fromSourceOnly, setFromSourceOnly] = useState<boolean>(false);
 
   const selectedKeys = useSelector(chooseExercisesSelectors.getSelectedKeys);
   const selectedExercises = useSelector(chooseExercisesSelectors.getSelectedExercises);
 
-  const filteredExercises = filterOutExercisesByQuestionType(
-    filterExercisesByQuestionType(availableExercises, selectedQuestionTypes),
-    ["datafile"]
+  const filteredExercises = filterExercisesByFromSource(
+    filterOutExercisesByQuestionType(
+      filterExercisesByQuestionType(availableExercises, selectedQuestionTypes),
+      ["datafile"]
+    ),
+    fromSourceOnly
   );
 
   const updateState = (selEx: Exercise[]) => {
@@ -102,12 +107,14 @@ export const ChooseExercises = () => {
       onUnselect={handleUnselect}
       value={filteredExercises}
       resizableColumns
-      className="table_sticky-header"
+      className="table_sticky-header header-gridlines-only"
       header={
         <ChooseExercisesHeader
           resetSelections={resetSelections}
           selectedQuestionTypes={selectedQuestionTypes}
           onQuestionTypeChange={setSelectedQuestionTypes}
+          fromSourceOnly={fromSourceOnly}
+          onFromSourceChange={setFromSourceOnly}
         />
       }
     >
@@ -123,7 +130,7 @@ export const ChooseExercises = () => {
       <Column style={{ width: "15%" }} field="qnumber" header="Question number" />
       <Column style={{ width: "20%" }} field="name" header="Name" />
       <Column
-        style={{ width: "5rem" }}
+        style={{ width: "6rem" }}
         field="htmlsrc"
         header="Preview"
         body={({ data }: { data: Exercise }) => {
@@ -144,6 +151,7 @@ export const ChooseExercises = () => {
         style={{ width: "10%" }}
         field="from_source"
         header="Source"
+        sortable
         body={({ data }: { data: Exercise }) => {
           if (data.from_source === undefined) return;
           return <i className={data.from_source ? "pi pi-book" : "pi pi-user"} />;

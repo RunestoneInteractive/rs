@@ -236,6 +236,7 @@ class AssignmentIncoming(BaseModel):
     peer_async_visible: Optional[bool] = False
     is_timed: Optional[bool] = False
     is_peer: Optional[bool] = False
+    enforce_due: Optional[bool] = False
 
 
 class QuestionIncoming(BaseModel):

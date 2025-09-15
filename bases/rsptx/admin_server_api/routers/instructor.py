@@ -56,7 +56,7 @@ from rsptx.db.models import (
     AssignmentValidator,
     AssignmentQuestionValidator,
 )
-from rsptx.response_helpers.core import canonical_utcnow
+from rsptx.response_helpers.core import canonical_utcnow, make_json_response
 import datetime
 
 
@@ -1125,3 +1125,15 @@ async def flag_question(
         status_code=200,
         content={"success": True, "message": "Question flagged successfully"},
     )
+
+
+
+@router.get("/sectest")
+async def root(request: Request, response_class: JSONResponse):
+    rslogger.debug("Received request for /sectest")
+    rslogger.debug(f"scheme: {request.url.scheme}, is_secure: {request.url.scheme == 'https'}")
+    return make_json_response(detail = {
+        "scheme": request.url.scheme,
+        "is_secure": request.url.scheme == "https",
+        "headers": dict(request.headers),
+    })

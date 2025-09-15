@@ -455,6 +455,7 @@ services:
       - DOCKER_COMPOSE=1
       - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
       - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
+      - FORWARDED_ALLOW_IPS=*
 
     depends_on:
       redis:

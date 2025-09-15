@@ -769,6 +769,13 @@ def course_students():
     requires_login=True,
 )
 def grading():
+    # check for jwt token
+    if "access_token" not in request.cookies:
+        # we know they are logged in, but they may not have a token, which will cause odd results
+        # so we will create one for them
+        logger.error(f"Missing Access Token: {auth.user.username} adding one Now")
+        create_rs_token()
+
     response.title = "Grading"
     assignments = {}
     assignments_query = db(db.assignments.course == auth.user.course_id).select()

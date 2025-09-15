@@ -7,11 +7,11 @@ import {
 } from "@store/searchExercises/searchExercises.logic";
 import { FilterMatchMode, SortOrder } from "primereact/api";
 import { Button } from "primereact/button";
-import { Checkbox } from "primereact/checkbox";
 import { Chip } from "primereact/chip";
 import { Chips } from "primereact/chips";
 import { Column } from "primereact/column";
 import { DataTable, DataTableFilterMetaData } from "primereact/datatable";
+import { InputSwitch } from "primereact/inputswitch";
 import { MultiSelect } from "primereact/multiselect";
 import { Paginator } from "primereact/paginator";
 import { ProgressSpinner } from "primereact/progressspinner";
@@ -184,8 +184,24 @@ export const SmartSearchExercises = () => {
             </span>
           </div>
 
-          {/* Exercise type filter */}
-          <div className={styles.typeFilter}>
+          <div className={styles.filtersContainer}>
+            <div className={styles.baseCourseFilter}>
+              <label htmlFor="source-switch" className={styles.switchLabel}>
+                {searchParams.use_base_course ? "Book exercises" : "All Exercises"}
+              </label>
+              <InputSwitch
+                inputId="source-switch"
+                checked={searchParams.use_base_course}
+                onChange={(e) => toggleBaseCourse(e.value || false)}
+                className={styles.inputSwitch}
+                tooltip={
+                  searchParams.use_base_course
+                    ? "Showing exercises from current book only"
+                    : "Showing exercises from all books"
+                }
+                tooltipOptions={{ position: "bottom" }}
+              />
+            </div>
             <MultiSelect
               value={(filters.question_type as DataTableFilterMetaData).value}
               options={exerciseTypes}
@@ -194,27 +210,14 @@ export const SmartSearchExercises = () => {
                   question_type: { value: e.value, matchMode: FilterMatchMode.IN }
                 });
               }}
-              placeholder="Type"
-              className="w-full"
-              display="chip"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Exercise types"
+              className={styles.typeFilter}
+              panelClassName="text-sm"
+              maxSelectedLabels={1}
+              selectedItemsLabel="{0} exercise types selected"
             />
-          </div>
-
-          {/* Base course filter toggle */}
-          <div className={styles.baseCourseFilter}>
-            <label className={styles.checkboxLabel}>
-              <Checkbox
-                checked={searchParams.use_base_course}
-                onChange={(e) => toggleBaseCourse(e.checked || false)}
-                tooltip={
-                  searchParams.use_base_course
-                    ? "Showing exercises from current book only"
-                    : "Showing exercises from all books"
-                }
-                tooltipOptions={{ position: "top" }}
-              />
-              <span>Current book only</span>
-            </label>
           </div>
         </div>
 
@@ -317,10 +320,12 @@ export const SmartSearchExercises = () => {
             rowHover
             filterDisplay="menu"
             tableStyle={{ tableLayout: "fixed" }} // Fixed table layout
-            reorderableColumns
+            resizableColumns
+            columnResizeMode="fit"
           >
             {/* Multiple selection column */}
             <Column
+              resizeable={false}
               selectionMode="multiple"
               headerStyle={{ width: "3rem" }}
               style={{ width: "3rem" }}
@@ -330,6 +335,7 @@ export const SmartSearchExercises = () => {
 
             {/* Preview */}
             <Column
+              resizeable={false}
               headerStyle={{ width: "4rem" }}
               style={{ width: "4rem" }}
               body={renderPreview}
@@ -339,6 +345,7 @@ export const SmartSearchExercises = () => {
 
             {/* Copy button */}
             <Column
+              resizeable={false}
               headerStyle={{ width: "4rem" }}
               style={{ width: "4rem" }}
               body={renderCopyButton}
@@ -348,6 +355,7 @@ export const SmartSearchExercises = () => {
 
             {/* Question number */}
             <Column
+              resizeable={false}
               field="qnumber"
               header="Number"
               headerStyle={{ width: "7rem" }}
@@ -369,10 +377,12 @@ export const SmartSearchExercises = () => {
               showFilterMenu={true}
               filterMenuStyle={{ width: "15rem" }}
               className="name-column"
+              resizeable
             />
 
             {/* Question type */}
             <Column
+              resizeable={false}
               field="question_type"
               header="Type"
               sortable

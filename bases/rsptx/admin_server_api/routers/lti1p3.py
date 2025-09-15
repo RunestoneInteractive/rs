@@ -153,12 +153,13 @@ async def login_or_create_user(
     if email != "":
         user = await fetch_user(email, fallback_to_registration=True)
         user_name = email  # if needed to make a new record
+        reg_id_for_user = email
     else:
         # no email, rely on the unique "sub" field provided by the LMS combined with LTI course id to identify users
         sub = check_launch_data(launch, "sub")
         user_name = "anon-" + str(lti_course.id) + "-" + sub
-        email = ""
-        user = await fetch_user(user_name, fallback_to_registration=False)
+        reg_id_for_user = user_name
+        user = await fetch_user(user_name, fallback_to_registration=True)
 
     # make sure we found a user
     if not user:
@@ -175,7 +176,7 @@ async def login_or_create_user(
             "modified_on": canonical_utcnow(),
             "registration_key": "",
             "reset_password_key": "",
-            "registration_id": email,
+            "registration_id": reg_id_for_user,
             "course_id": course.id,
             "course_name": course.course_name,
             "active": True,
@@ -220,8 +221,12 @@ async def login_or_create_user(
             f"LTI1p3 - Marked {user.username} ({user.id}) as instructor in {course.id}"
         )
 
-    # finally, make sure that w2p server knows they are logged in
-    to_encode = dict(registration_id=user.registration_id)
+    # Finally, make sure that w2p server knows they are logged in
+    # need registration id. If user.registration_id is set, trust it.
+    # But if user was generated without a registration_id,
+    # fall back on the one we decided based on launch data
+    reg_id_to_encode = user.registration_id if user.registration_id else reg_id_for_user
+    to_encode = dict(registration_id=reg_id_for_user)
     jwt_secret = settings.jwt_secret
     encoded_jwt = jwt.encode(to_encode, jwt_secret, "HS256")
     # Assuming we are running in docker, we need to connect out to the machine

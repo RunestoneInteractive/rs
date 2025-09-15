@@ -186,7 +186,7 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
             psfail, wsfail = failures
 
             if wsfail is not None:
-                rslogger.error(f"PEERCOMM websocket fail {wsfail}")
+                rslogger.info(f"PEERCOMM websocket fail {wsfail}")
                 # The fail is more than likely a runtime error from a page close or refresh
                 # RuntimeError('Cannot call "receive" once a disconnect message has been received.')
                 manager.disconnect(username)

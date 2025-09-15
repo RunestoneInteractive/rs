@@ -189,7 +189,6 @@ def w2py_login():
     """
     logger.debug("Generating web2py token")
     token = request.vars["token"]
-    print(token)
     try:
         if not token:
             err = "No token provided to w2py_login"
@@ -209,7 +208,7 @@ def w2py_login():
         return "User logged in"
     except Exception as e:
         logger.error(f"Error in w2py_login: {e}")
-        raise HTTP(400, err)
+        raise HTTP(500, err)
 
 def index():
     #    print("REFERER = ", request.env.http_referer)

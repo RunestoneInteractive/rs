@@ -28,7 +28,7 @@ export type Assignment = {
   allow_self_autograde: null;
   from_source: boolean;
   current_index: number;
-  enforce_due: null;
+  enforce_due: boolean;
 };
 
 export type CreateAssignmentPayload = {
@@ -43,6 +43,7 @@ export type CreateAssignmentPayload = {
   peer_async_visible: boolean;
   visible: boolean;
   released: boolean;
+  enforce_due: boolean;
 };
 
 export type CreateAssignmentValidationResponse = [

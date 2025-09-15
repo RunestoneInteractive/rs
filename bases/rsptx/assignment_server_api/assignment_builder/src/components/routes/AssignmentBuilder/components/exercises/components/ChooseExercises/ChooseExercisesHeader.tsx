@@ -3,6 +3,7 @@ import { chooseExercisesSelectors } from "@store/chooseExercises/chooseExercises
 import { datasetSelectors } from "@store/dataset/dataset.logic";
 import { Button } from "primereact/button";
 import { confirmPopup, ConfirmPopup } from "primereact/confirmpopup";
+import { InputSwitch } from "primereact/inputswitch";
 import { MultiSelect } from "primereact/multiselect";
 import { MouseEvent } from "react";
 import { useSelector } from "react-redux";
@@ -14,12 +15,16 @@ interface ChooseExercisesHeaderProps {
   resetSelections: () => void;
   selectedQuestionTypes: string[];
   onQuestionTypeChange: (selectedTypes: string[]) => void;
+  fromSourceOnly: boolean;
+  onFromSourceChange: (fromSourceOnly: boolean) => void;
 }
 
 export const ChooseExercisesHeader = ({
   resetSelections,
   selectedQuestionTypes,
-  onQuestionTypeChange
+  onQuestionTypeChange,
+  fromSourceOnly,
+  onFromSourceChange
 }: ChooseExercisesHeaderProps) => {
   const { updateAssignmentExercises } = useUpdateAssignmentExercise();
 
@@ -71,10 +76,25 @@ export const ChooseExercisesHeader = ({
             label="Choose exercises"
             size="small"
             severity="warning"
+            className="text-sm"
           />
         )}
       </div>
       <div className="flex align-items-center gap-2">
+        <div className="flex align-items-center gap-2">
+          <label htmlFor="source-switch" className="text-sm font-medium text-gray-700">
+            {fromSourceOnly ? "Book exercises" : "All Exercises"}
+          </label>
+          <InputSwitch
+            inputId="source-switch"
+            checked={fromSourceOnly}
+            onChange={(e) => onFromSourceChange(e.value)}
+            className="p-inputswitch-sm"
+            style={{ transform: "scale(0.8)" }}
+            tooltip="Show only exercises from the source material"
+            tooltipOptions={{ position: "bottom" }}
+          />
+        </div>
         <MultiSelect
           value={selectedQuestionTypes}
           options={questionTypeOptions}
@@ -82,16 +102,28 @@ export const ChooseExercisesHeader = ({
           optionLabel="label"
           optionValue="value"
           placeholder="Exercise types"
-          display="chip"
+          className="text-sm"
+          style={{
+            minWidth: "250px",
+            maxWidth: "250px"
+          }}
+          panelClassName="text-sm"
+          maxSelectedLabels={1}
+          selectedItemsLabel="{0} exercise types selected"
         />
         <Button
           icon="pi pi-replay"
           rounded
-          size="small"
           tooltipOptions={{ showDelay: 500, position: "left" }}
           tooltip="Reset selection"
           disabled={!hasAnyChanges}
           onClick={resetSelections}
+          style={{
+            width: "16px",
+            height: "16px",
+            fontSize: "0.75rem",
+            padding: "16px"
+          }}
         />
       </div>
     </div>

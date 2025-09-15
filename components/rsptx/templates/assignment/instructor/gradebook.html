@@ -3,15 +3,12 @@
 Grade Book
 {% endblock %}
 {% block css %}
-
+<link href="https://cdn.datatables.net/v/dt/dt-2.3.3/fc-5.0.4/fh-4.0.3/datatables.min.css" rel="stylesheet" integrity="sha384-Vjo6w3LvETxs8325VejWKrmS6Ftn1oJGtDL8U5c99JYHS/jhfUFPjRAxXyLzDI2i" crossorigin="anonymous">
 <link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
-<link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet">
 
 {% endblock %} 
 {% block content %}
-<h1>Grade Book (Alpha) for Large courses</h1>
-<p>Note: This is a very early version of a gradebook that (hopefully) can stand up to courses with 1000 plus students.
-Feedback and ideas on the Discord are very welcome, but right now the main goal of this page is to support some very large classes</p>
+<h1>Grade Book for {{course.course_name}}</h1>
 
 {{table_html|safe}}
 
@@ -25,21 +22,36 @@ Feedback and ideas on the Discord are very welcome, but right now the main goal 
 {% endfor %}
 </ol>
 
-<script src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI=" crossorigin="anonymous"></script>
-<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
+ 
+<script src="https://cdn.datatables.net/v/dt/dt-2.3.3/fc-5.0.4/fh-4.0.3/datatables.min.js" integrity="sha384-RshOJ4bI2YJrQsNAkDx7oG/ElamRAHG6nwX6JSlUI9ePWip7Ko2s8CerHqEo3xZm" crossorigin="anonymous"></script>
+
 <script type="text/javascript" src="/staticAssets/js/jquery.tabletoCSV.js"></script>
 <script>
+    var gbTable;
     $(document).ready( function () {
-        $('#table').DataTable({
+        let t = document.getElementById('table');
+        t.classList.add('stripe');
+        gbTable = new DataTable("#table",{
             paging: false,    
             scrollY: 400,
             scrollX: true,
+            fixedHeader: true,
+            fixedColumns:   {
+                start: 2
+            },
         });
+        // hide teh username column
+        gbTable.column(3).visible(false);
     });
+
 
     $(function () {
         $("#export").click(function () {
+            // temporarily show the username column so it gets exported
+            gbTable.column(3).visible(true);
             $("#table").tableToCSV();
+            gbTable.column(3).visible(false);
         });
     });
 

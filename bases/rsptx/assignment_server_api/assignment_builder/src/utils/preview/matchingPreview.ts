@@ -1,3 +1,5 @@
+import { sanitizeId } from "../sanitize";
+
 interface ItemWithLabel {
   id: string;
   label: string;
@@ -30,7 +32,7 @@ export const generateMatchingPreview = ({
   name,
   statement
 }: MatchingPreviewProps): string => {
-  const safeId = (name || "exercise_" + Date.now()).replace(/\s+/g, "_").replace(/[^\w]/g, "");
+  const safeId = sanitizeId(name, "exercise_" + Date.now());
 
   const jsonData = {
     statement:

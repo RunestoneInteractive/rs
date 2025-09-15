@@ -104,7 +104,7 @@ export const AssignmentExercisesTable = ({
         }
         dataKey="id"
         scrollable
-        scrollHeight="calc(100vh - 320px)"
+        scrollHeight="calc(100vh - 280px)"
         size="small"
         rowClassName={() => "assignmentExercise_row"}
         stripedRows
@@ -120,9 +120,12 @@ export const AssignmentExercisesTable = ({
         }
         reorderableRows
         onRowReorder={(e) => reorderExercises(e.value.map((exercise) => exercise.id))}
+        resizableColumns
+        columnResizeMode="fit"
       >
-        <Column selectionMode="multiple" style={{ width: "3rem" }} />
+        <Column resizeable={false} selectionMode="multiple" style={{ width: "3rem" }} />
         <Column
+          resizeable={false}
           style={{ width: "2rem" }}
           body={(data: Exercise) => (
             <div className="flex gap-2 justify-content-center">
@@ -136,6 +139,7 @@ export const AssignmentExercisesTable = ({
           )}
         />
         <Column
+          resizeable={false}
           style={{ width: "3rem" }}
           body={(data: Exercise) => (
             <div className="flex gap-2 justify-content-center">
@@ -149,6 +153,7 @@ export const AssignmentExercisesTable = ({
           )}
         />
         <Column
+          resizeable={false}
           style={{ width: "3rem" }}
           body={(data: Exercise) => (
             <div className="flex gap-2 justify-content-center">
@@ -168,6 +173,7 @@ export const AssignmentExercisesTable = ({
           )}
         />
         <Column
+          resizeable={false}
           style={{ width: "3rem" }}
           body={(data: Exercise) => (
             <div className="flex gap-2 justify-content-center">
@@ -201,8 +207,10 @@ export const AssignmentExercisesTable = ({
           )}
           sortField="name"
           sortable
+          resizeable
         />
         <Column
+          resizeable={false}
           field="question_type"
           header="Type"
           body={(data: Exercise) => getExerciseTypeTag(data.question_type)}
@@ -210,6 +218,7 @@ export const AssignmentExercisesTable = ({
           style={{ width: "12rem" }}
         />
         <Column
+          resizeable={false}
           style={{ width: "12rem" }}
           field="autograde"
           header={() => (
@@ -229,6 +238,7 @@ export const AssignmentExercisesTable = ({
           )}
         />
         <Column
+          resizeable={false}
           field="which_to_grade"
           header={() => (
             <EditDropdownValueHeader
@@ -252,6 +262,7 @@ export const AssignmentExercisesTable = ({
           )}
         />
         <Column
+          resizeable={false}
           field="points"
           bodyStyle={{ padding: 0 }}
           style={{ width: "8rem" }}
@@ -268,7 +279,7 @@ export const AssignmentExercisesTable = ({
             />
           )}
         />
-        <Column rowReorder style={{ width: "3rem" }} />
+        <Column resizeable={false} rowReorder style={{ width: "3rem" }} />
       </DataTable>
       <TableSelectionOverlay
         startItemId={startItemId}

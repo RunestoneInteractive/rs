@@ -68,7 +68,7 @@ from rs_practice import _get_qualified_questions
 
 logger = logging.getLogger(settings.logger)
 logger.setLevel(settings.log_level)
-
+logger.propagate = False
 
 EVENT_TABLE = {
     "mChoice": "mchoice_answers",
@@ -488,7 +488,6 @@ def runlog():  # Log errors and runs with code
 
 
 def gethist():
-
     """
     return the history of saved code by this user for a particular acid
     :Parameters:
@@ -662,9 +661,11 @@ def updatelastpage():
             if len(questions) > 0:
                 now = datetime.datetime.utcnow()
                 now_local = now - datetime.timedelta(
-                    hours=float(session.timezoneoffset)
-                    if "timezoneoffset" in session
-                    else 0
+                    hours=(
+                        float(session.timezoneoffset)
+                        if "timezoneoffset" in session
+                        else 0
+                    )
                 )
                 existing_flashcards = db(
                     (db.user_topic_practice.user_id == auth.user.id)
@@ -689,9 +690,11 @@ def updatelastpage():
                         last_presented=now - datetime.timedelta(1),
                         last_completed=now - datetime.timedelta(1),
                         creation_time=now,
-                        timezoneoffset=float(session.timezoneoffset)
-                        if "timezoneoffset" in session
-                        else 0,
+                        timezoneoffset=(
+                            float(session.timezoneoffset)
+                            if "timezoneoffset" in session
+                            else 0
+                        ),
                     )
                 if completionFlag == "0" and not existing_flashcards.isempty():
                     existing_flashcards.delete()

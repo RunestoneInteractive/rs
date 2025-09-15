@@ -1,4 +1,5 @@
 import { QuestionWithLabel } from "@/types/exercises";
+import { sanitizeId } from "../sanitize";
 
 interface SelectQuestionPreviewWithLabelsProps {
   name: string;
@@ -27,13 +28,13 @@ export const generateSelectQuestionPreview = ({
   toggleOptions,
   dataLimitBasecourse
 }: SelectQuestionPreviewProps): string => {
-  const safeId = (name || `selectquestion_${Date.now()}`).replace(/\s+/g, "_").replace(/\W/g, "");
+  const safeId = sanitizeId(name, `selectquestion_${Date.now()}`);
 
   const questions: QuestionWithLabel[] = Array.isArray(questionList)
     ? questionList.map((item) => (typeof item === "string" ? { questionId: item } : item))
     : [];
 
-  let html = "<div class=\"runestone sqcontainer %(optclass)s\"><div data-component=\"selectquestion\"";
+  let html = '<div class="runestone sqcontainer %(optclass)s"><div data-component="selectquestion"';
 
   html += ` id=${safeId}`;
 
