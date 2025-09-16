@@ -853,15 +853,49 @@ def send_lti_scores():
 
 def get_gpt_response():
     """
-    Temporary endpoint to verify routing and JSON response.
-    Expects ?message=... and echoes it back.
-    Replace with per-course LLM call once wiring is confirmed.
+    Proto endpoint for PI chat.
+    Accepts:
+      - GET ?message=...  (quick test)
+      - POST JSON { "messages": [ { "role": "user"/"assistant"/"system", "content": "..." }, ... ] }
+
+    Returns JSON { ok: bool, reply: str, tokens_used: int, echo?: str }
     """
-    msg = request.vars.message or ''
-    return response.json(dict(ok=True, echo=msg))
+    if request.env.request_method == "GET":
+        msg = request.vars.message or ""
+        return response.json(dict(ok=True, echo=msg, reply="(echo mode) " + msg, tokens_used=0))
+
+    try:
+        data = request.body.read().decode("utf-8") if hasattr(request, "body") else request.post_vars.get("payload")
+    except Exception:
+        data = None
+
+    import json
+    try:
+        payload = json.loads(data or "{}")
+    except Exception:
+        payload = {}
+
+    messages = payload.get("messages", [])
+    if not isinstance(messages, list) or not messages:
+        return response.json(dict(ok=False, error="messages[] required"))
+
+    user_last = ""
+    for m in reversed(messages):
+        if m.get("role") == "user":
+            user_last = m.get("content", "")
+            break
+
+    reply = f"Okay, here's how I'd think about it: {user_last}"
+    return response.json(dict(ok=True, reply=reply, tokens_used=0))
 
 def ping():
     """
     Public probe. Returns plain text.
     """
     return "test"
+
+def llm_test():
+    """
+    Simple page to test LLM endpoint with JS.
+    """
+    return dict()

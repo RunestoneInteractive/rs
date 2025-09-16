@@ -1,0 +1,6 @@
+services:
+  runestone:
+    volumes:
+      - ./bases/rsptx/web2py_server/applications/runestone/controllers:/usr/local/lib/python3.10/site-packages/rsptx/web2py_server/applications/runestone/controllers
+      - ./bases/rsptx/web2py_server/applications/runestone/views:/usr/local/lib/python3.10/site-packages/rsptx/web2py_server/applications/runestone/views
+      - ./bases/rsptx/web2py_server/applications/runestone/static/js:/usr/local/lib/python3.10/site-packages/rsptx/web2py_server/applications/runestone/static/js
