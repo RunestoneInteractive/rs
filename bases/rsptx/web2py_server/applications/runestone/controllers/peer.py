@@ -849,3 +849,13 @@ def send_lti_scores():
         _try_to_send_lti_grade(sid, assignment_id, force=True)
 
     return json.dumps("success")
+
+
+def get_gpt_response():
+    """
+    Temporary endpoint to verify routing and JSON response.
+    Expects ?message=... and echoes it back.
+    Replace with per-course LLM call once wiring is confirmed.
+    """
+    msg = request.vars.message or ''
+    return response.json(dict(ok=True, echo=msg))
