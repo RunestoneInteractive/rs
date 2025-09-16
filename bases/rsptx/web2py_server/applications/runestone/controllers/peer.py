@@ -859,3 +859,9 @@ def get_gpt_response():
     """
     msg = request.vars.message or ''
     return response.json(dict(ok=True, echo=msg))
+
+def ping():
+    """
+    Public probe. Returns plain text.
+    """
+    return "test"
