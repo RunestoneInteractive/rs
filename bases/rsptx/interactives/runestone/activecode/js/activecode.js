@@ -590,15 +590,26 @@ export class ActiveCode extends RunestoneBase {
             internal_test_case: internal_test_case
         };
         console.log('body:', body)
-        let promise = new Promise(function (resolve, reject) {
+        // CodeTailor: create a promise that rejects if the fetch takes too long
+        let promise = new Promise((resolve, reject) => {
+            // a controller object that allows to abort one or more Web request
+            const scaffoldingController = new AbortController();
+            const timeoutMessage = "Sorry, we are not able to generate Parsons blocks for you at this time.";
+            const timeoutId = setTimeout(() => {
+                scaffoldingController.abort();
+                reject(timeoutMessage);
+            }, 180000); // 180 seconds timeout for CodeTailor
+            // Send the request to the server
             fetch(`/ns/coach/parsons_scaffolding?course=${eBookConfig.course}`, {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify(body)
+                body: JSON.stringify(body),
+                signal: scaffoldingController.signal
             })
             .then((response) => {
+                clearTimeout(timeoutId); // Clear the timeout if the request completes in time
                 if (!response.ok) {
                     return response.text().then(text => {
                         throw new Error(`HTTP ${response.status} - ${text}`);
@@ -607,7 +618,15 @@ export class ActiveCode extends RunestoneBase {
                 return response.json();
             })
             .then((data) => resolve(data))
-            .catch(err => reject("Error in Parsons Scaffolding: " + err));
+            .catch(err => {
+                clearTimeout(timeoutId);
+                console.log("Error or timeout waiting for Parsons scaffolding response", err, this.divid);
+                const loadingBarDiv = document.getElementById("scaffolding-loading-prompt-" + this.divid);
+                $(loadingBarDiv).find("#loading-spinner").remove();
+                $(loadingBarDiv).find("#encouragement-text").text("⚠️ " + timeoutMessage);
+                $(loadingBarDiv).find("#countdown-text").text("🫶 Please contact the teaching staff for help!");
+                reject("Error in Parsons Scaffolding: " + err)
+            });
         });
         return promise;
     }
@@ -954,14 +973,15 @@ export class ActiveCode extends RunestoneBase {
         this.prevHelpedCode = this.editor.getValue();
         
         // Remove any existing loading prompt to reset the countdown
-        let existingLoadingPrompt = $(this.outerDiv).find("#scaffolding-loading-prompt");
+        let existingLoadingPrompt = $(this.outerDiv).find("#scaffolding-loading-prompt-" + this.divid);
         if (existingLoadingPrompt.length) {
             existingLoadingPrompt.remove();
         }
 
         // Create a new loading prompt
         let loadingPrompt = document.createElement('div');
-        loadingPrompt.id = 'scaffolding-loading-prompt';
+        loadingPrompt.id = 'scaffolding-loading-prompt-' + this.divid;
+        loadingPrompt.classList.add('scaffolding-loading-prompt');
 
         // Create the loading spinner element
         let spinner = document.createElement('div');
@@ -984,26 +1004,9 @@ export class ActiveCode extends RunestoneBase {
         $(loadingPrompt).addClass('loading');
         loadingPrompt.scrollIntoView();
 
-        // Display encouragement message and countdown
+        // Display encouragement message
         encouragementText.innerText = "Appreciate your effort! Please wait while we generate the help for you.";
         countdownText.innerText = "Working hard on displaying all blocks at once for you...";
-
-        // Array of random encouraging messages
-        const messages = [
-            "Each mistake is a step forward in mastering programming.",
-            "You're learning more every day!",
-            "Keep going, you're doing great!",
-            "Every coder was once a beginner, just like you.",
-            "Mistakes are proof that you're trying.",
-            "Believe in yourself and all that you are.",
-            "Your potential is limitless.",
-            "Great things take time, keep coding!",
-        ];
-        let messageIndex = 0;
-        this.messageInterval = setInterval(() => {
-            encouragementText.innerText = messages[messageIndex];
-            messageIndex = (messageIndex + 1) % messages.length;
-        }, 1500); // Updates every 1.5 seconds
 
         let request_act = {
             type: 'request_help',
@@ -1036,7 +1039,7 @@ export class ActiveCode extends RunestoneBase {
         }
 
         this.helpText = await this.getParsonsCodeTailor();
-        $(this.outerDiv).find("#scaffolding-loading-prompt").removeClass('loading');
+        $(this.outerDiv).find("#scaffolding-loading-prompt-" + this.divid).removeClass('loading');
         window.latestParsonsHelpID = "";
         this.reopenHelpBtnHandler(true);
         // check whether hold the regenerating button
@@ -1048,7 +1051,6 @@ export class ActiveCode extends RunestoneBase {
             }
         }
     }
-
     // CodeTailor function part ends here //
 
     createControls() {
