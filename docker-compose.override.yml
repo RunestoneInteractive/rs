@@ -1,5 +1,7 @@
 services:
   runestone:
+    env_file:
+      - .env
     volumes:
       - ./bases/rsptx/web2py_server/applications/runestone/controllers:/usr/local/lib/python3.10/site-packages/rsptx/web2py_server/applications/runestone/controllers
       - ./bases/rsptx/web2py_server/applications/runestone/views:/usr/local/lib/python3.10/site-packages/rsptx/web2py_server/applications/runestone/views

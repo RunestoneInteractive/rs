@@ -851,27 +851,57 @@ def send_lti_scores():
     return json.dumps("success")
 
 
+
+
+import os, json
+import requests
+
+def _get_openai_key():
+    return os.environ.get("OPENAI_API_KEY", "").strip()
+
+def _call_openai(messages):
+    """
+    Minimal HTTP call. No SDK needed.
+    messages: list of {role, content}
+    returns reply string
+    """
+    api_key = _get_openai_key()
+    if not api_key:
+        return None
+
+    url = "https://api.openai.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": messages,
+        "temperature": 0.4,
+        "max_tokens": 300,
+    }
+    resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+    return data["choices"][0]["message"]["content"].strip()
+
 def get_gpt_response():
     """
-    Proto endpoint for PI chat.
-    Accepts:
-      - GET ?message=...  (quick test)
-      - POST JSON { "messages": [ { "role": "user"/"assistant"/"system", "content": "..." }, ... ] }
 
-    Returns JSON { ok: bool, reply: str, tokens_used: int, echo?: str }
+    GET ?message=...  -> echo mode
+    POST JSON {"messages":[...]} -> calls OpenAI if OPENAI_API_KEY is set, else stub
     """
     if request.env.request_method == "GET":
         msg = request.vars.message or ""
-        return response.json(dict(ok=True, echo=msg, reply="(echo mode) " + msg, tokens_used=0))
+        return response.json(dict(ok=True, echo=msg, reply="(echo) " + msg, tokens_used=0))
 
     try:
-        data = request.body.read().decode("utf-8") if hasattr(request, "body") else request.post_vars.get("payload")
+        raw = request.body.read().decode("utf-8")
     except Exception:
-        data = None
+        raw = "{}"
 
-    import json
     try:
-        payload = json.loads(data or "{}")
+        payload = json.loads(raw or "{}")
     except Exception:
         payload = {}
 
@@ -879,15 +909,17 @@ def get_gpt_response():
     if not isinstance(messages, list) or not messages:
         return response.json(dict(ok=False, error="messages[] required"))
 
-    user_last = ""
-    for m in reversed(messages):
-        if m.get("role") == "user":
-            user_last = m.get("content", "")
-            break
-
-    reply = f"Okay, here's how I'd think about it: {user_last}"
-    return response.json(dict(ok=True, reply=reply, tokens_used=0))
-
+    try:
+        reply = _call_openai(messages)
+        if reply is None:
+            user_last = next((m.get("content","") for m in reversed(messages) if m.get("role")=="user"), "")
+            reply = f"(stub) Here is how to think about it: {user_last}"
+        return response.json(dict(ok=True, reply=reply, tokens_used=0))
+    except requests.HTTPError as e:
+        return response.json(dict(ok=False, error=f"HTTP {e.response.status_code}: {e.response.text[:200]}"))
+    except Exception as e:
+        return response.json(dict(ok=False, error=str(e)[:200]))
+    
 def ping():
     """
     Public probe. Returns plain text.
