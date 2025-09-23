@@ -919,6 +919,18 @@ async def get_builder(
     if not user_is_instructor:
         return RedirectResponse(url="/")
 
+    # verify that the instructor is allowed to access this assignment
+    assignment_id = int(path) if path.isdigit() else None
+    if assignment_id:
+        assignment = await fetch_one_assignment(assignment_id)
+        if assignment and (
+            assignment.course != course.id
+        ):
+                rslogger.error(
+                    f"Illegal Attempt to access assignment {assignment_id} by {user.username}"
+                )
+                return RedirectResponse(url="/")
+
     reactdir = pathlib.Path(__file__).parent.parent / "react"
     templates = Jinja2Templates(directory=template_folder)
     wp_imports = get_webpack_static_imports(course)
