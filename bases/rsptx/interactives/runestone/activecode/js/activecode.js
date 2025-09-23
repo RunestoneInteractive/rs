@@ -1711,7 +1711,7 @@ Yet another is that there is an internal error.  The internal error message is: 
         if (this.is_toggle && this.runCount == 3) {
             if (
                 this.errinfo != "success" ||
-                this.unit_results.substring(8, 11) != 100.0
+                this?.unit_results.substring(8, 11) != 100.0
             ) {
                 setTimeout(function () {
                     alert(
