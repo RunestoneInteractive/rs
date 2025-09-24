@@ -354,6 +354,9 @@ def courses():
         # in the database
         response.flash = f"You requested {request.vars.requested_course} but are logged in to {request.vars.current_course}"
 
+    if request.vars.bad_course:
+        response.flash = f"Sorry, {request.vars.bad_course} is not a valid course page"
+
     # Get recently accessed courses
     res = db(
         (db.useinfo.sid == auth.user.username)

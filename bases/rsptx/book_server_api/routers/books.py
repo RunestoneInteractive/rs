@@ -244,7 +244,9 @@ async def serve_page(
     course_row = await fetch_course(course_name)
     # check for some error conditions
     if not course_row:
-        raise HTTPException(status_code=404, detail=f"Course {course_name} not found")
+        return RedirectResponse(
+            url=f"/runestone/default/courses?bad_course={course_name}", status_code=307
+        )
     else:
         # The course requires a login but the user is not logged in
         if course_row.login_required and not user:
@@ -427,9 +429,8 @@ async def serve_page(
     try:
         return templates.TemplateResponse(pagepath, context, headers=headers)
     except TemplateNotFound:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Page {pagepath} not found in base course {course_row.base_course}.",
+        return RedirectResponse(
+            url=f"/runestone/default/courses?bad_course={pagepath}", status_code=307
         )
 
 
