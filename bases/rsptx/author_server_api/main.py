@@ -54,6 +54,7 @@ from rsptx.db.crud import (
     create_instructor_course_entry,
     create_library_book,
     fetch_base_course,
+    fetch_basecourse_courses,
     fetch_books_by_author,
     fetch_course_by_id,
     fetch_course,
@@ -377,6 +378,11 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
     for c in courses:
         the_course = await fetch_course_by_id(c.course)
         class_list.append(the_course.course_name)
+    if is_authorp:
+        bc_courses = await fetch_basecourse_courses(user.course_name)
+        for c in bc_courses:
+            if c.course_name not in class_list:
+                class_list.append(c.course_name)
 
     lf_path = pathlib.Path("downloads", "datashop", user.username)
     logger.debug(f"WORKING DIR = {lf_path}")
