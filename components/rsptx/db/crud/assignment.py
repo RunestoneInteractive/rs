@@ -122,6 +122,7 @@ async def fetch_all_deadline_exceptions(
     # is not tied to a specific assignment
     query = (
         select(
+            DeadlineException.id,
             DeadlineException.course_id,
             DeadlineException.sid,
             DeadlineException.time_limit,
@@ -148,6 +149,7 @@ async def fetch_all_deadline_exceptions(
                 "duedate": row.duedate,
                 "visible": row.visible,
                 "assignment_id": row.assignment_name,
+                "row_id": row.id,
             }
             for row in result.fetchall()
         ]
