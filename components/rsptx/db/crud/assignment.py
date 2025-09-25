@@ -154,7 +154,16 @@ async def fetch_all_deadline_exceptions(
             for row in result.fetchall()
         ]
 
+async def delete_deadline_exception(entry_id: int) -> None:
+    """
+    Delete a deadline exception by its ID.
 
+    :param entry_id: int, the ID of the deadline exception to delete
+    """
+    stmt = delete(DeadlineException).where(DeadlineException.id == entry_id)
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+        
 async def get_repo_path(book: str) -> Optional[str]:
     """
     Get the repo_path for a book from the library table

@@ -19,7 +19,8 @@ import {
   selectSelectedStudents,
   saveException,
   fetchAccommodations,
-  selectAccommodations
+  selectAccommodations,
+  deleteAccommodations
 } from "../state/student/studentSlice";
 import { setSelectedStudents as setStudents } from "../state/student/studentSlice";
 
@@ -31,8 +32,8 @@ export function ExceptionScheduler() {
   // Add this useEffect to fetch accommodations when component mounts
   React.useEffect(() => {
     dispatch(fetchAccommodations());
-  dispatch(fetchClassRoster());
-  dispatch(fetchAssignments());
+    dispatch(fetchClassRoster());
+    dispatch(fetchAssignments());
   }, [dispatch]);
 
 
@@ -40,6 +41,7 @@ export function ExceptionScheduler() {
   const [tlMult, setTlMult] = useState(null);
   const [extraDays, setExtraDays] = useState(null);
   const [helpVisible, setHelpVisible] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState(null);
   const saveAllExceptions = () => {
     const savePromises = [];
     for (let student of students) {
@@ -178,7 +180,11 @@ export function ExceptionScheduler() {
           rows={10}
           emptyMessage="No accommodations found."
           className="p-datatable-striped"
+          selectionMode='checkbox'
+          selection={selectedStudents}
+          onSelectionChange={(e) => setSelectedStudents(e.value)}
         >
+          <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
           <Column field="sid" header="Student ID" sortable />
           <Column field="assignment_id" header="Assignment" sortable />
           <Column
@@ -200,6 +206,23 @@ export function ExceptionScheduler() {
             body={(rowData) => rowData.visible ? 'Yes' : 'No'}
           />
         </DataTable>
+        <Button
+          label="Delete Selected"
+          className="p-button-danger"
+          onClick={() => {
+            if (selectedStudents && selectedStudents.length > 0) {
+              let toDelete = []
+              selectedStudents.forEach((accommodation) => {
+                toDelete.push(accommodation.row_id)
+              });
+              console.log(`deleting accommodations ${toDelete.join(", ")}`);
+              dispatch(deleteAccommodations(toDelete)).then(() => {
+                dispatch(fetchAccommodations());
+                setSelectedStudents(null);
+              });
+            }
+          }}
+        />
       </div>
 
     </div>

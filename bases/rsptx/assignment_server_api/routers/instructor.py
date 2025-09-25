@@ -43,6 +43,7 @@ from rsptx.db.crud import (
     fetch_all_deadline_exceptions,
     create_assignment_question,
     create_deadline_exception,
+    delete_deadline_exception,
     create_question,
     delete_course_instructor,
     fetch_course,
@@ -1522,6 +1523,31 @@ async def get_accommodations(
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error fetching accommodations: {str(e)}"
+        )
+
+@router.delete("/accommodation/{accommodation_id}")
+@instructor_role_required()
+@with_course()
+async def delete_accommodations(
+    request: Request,
+    accommodation_id: int,
+    course=None
+):
+    """
+    Delete accommodations
+    """
+    rslogger.debug(f"Got a request to delete accommodation {accommodation_id}")
+    try:
+        await delete_deadline_exception(accommodation_id)
+        return make_json_response(
+            status=status.HTTP_200_OK,
+            detail={"status": "success", "message": f"Accommodation {accommodation_id} deleted successfully"}
+        )
+    except Exception as e:
+        rslogger.error(f"Error deleting accommodation {accommodation_id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error deleting accommodation: {str(e)}"
         )
 
 
