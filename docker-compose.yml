@@ -22,6 +22,8 @@ x-fluent-logging: &fluent-logging
   options:
     fluentd-address: host.docker.internal:24224
     tag: runestone
+    max-size: "1024m"
+    max-file: "3"
 
 services:
 
@@ -429,7 +431,7 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     container_name: admin
-    restart: unless-stopped
+    restart: always
     logging:
       <<: *json-file-logging
       options:
