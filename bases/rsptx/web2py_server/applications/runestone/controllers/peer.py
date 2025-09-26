@@ -853,8 +853,20 @@ def send_lti_scores():
 
 
 
+
 import os, json
 import requests
+
+# --- helper to sanitize long, messy text we include in prompts ---
+def clean_text(s):
+    try:
+        s = s or ""
+        s = str(s)
+        # collapse whitespace per-line, avoid huge payloads
+        s = "\n".join(line.strip() for line in s.splitlines())
+        return s[:2000]
+    except Exception:
+        return ""
 
 def _get_openai_key():
     return os.environ.get("OPENAI_API_KEY", "").strip()
@@ -906,11 +918,47 @@ def get_gpt_response():
         payload = {}
 
     messages = payload.get("messages", [])
+    context = payload.get("context") or {}
+
+    messages_with_context = messages
+    try:
+        if isinstance(context, dict) and context.get("ok") is True:
+            course = context.get("course")
+            basecourse = context.get("basecourse")
+            username = context.get("username")
+            comp_id = context.get("id")
+            comp_type = context.get("type")
+            prompt_txt = clean_text(context.get("prompt"))
+            code_txt = clean_text(context.get("code"))
+            choices = context.get("choices") or []
+            selected = context.get("selected")
+            out_txt = clean_text(context.get("output"))
+            err_txt = clean_text(context.get("error"))
+            coach_txt = clean_text(context.get("coach"))
+
+            sys_ctx = (
+                "You are a friendly peer in a Runestone ebook helping with the CURRENT exercise. "
+                "Be concise, guide reasoning, and avoid giving full solutions. If the user asks 'what is this asking me to do', "
+                "summarize the task in plain language, then suggest first steps.\n\n"
+                f"Course: {course} | Basecourse: {basecourse} | User: {username}\n"
+                f"Component: {comp_type} | ID: {comp_id}\n"
+                f"Prompt:\n{prompt_txt}\n\n"
+                + (f"Starter/Current Code:\n{code_txt}\n\n" if code_txt else "")
+                + ("Choices:\n- " + "\n- ".join(map(str, choices)) + (f"\n\nSelected: {selected}" if selected else "") + "\n\n" if choices else "")
+                + (f"Last Run Output:\n{out_txt}\n\n" if out_txt else "")
+                + (f"Last Run Error:\n{err_txt}\n\n" if err_txt else "")
+                + (f"Coach/Guidance:\n{coach_txt}\n\n" if coach_txt else "")
+                + "Rules: Never reveal solutions verbatim. Encourage peer-instruction style hints."
+            )
+
+            messages_with_context = [{"role": "system", "content": sys_ctx}] + messages
+    except Exception:
+        messages_with_context = messages
     if not isinstance(messages, list) or not messages:
         return response.json(dict(ok=False, error="messages[] required"))
 
     try:
-        reply = _call_openai(messages)
+        reply = _call_openai(messages_with_context)
         if reply is None:
             user_last = next((m.get("content","") for m in reversed(messages) if m.get("role")=="user"), "")
             reply = f"(stub) Here is how to think about it: {user_last}"
