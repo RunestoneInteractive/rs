@@ -155,6 +155,11 @@ Manage Students
         margin-bottom: 6px;
     }
 
+    .student-list {
+        font-family: Verdana, serif;
+        overflow-x: hidden;
+    }
+
     @media (max-width: 768px) {
 
         .col-md-4,
@@ -183,10 +188,10 @@ Manage Students
         <div class="col-md-4">
             <form id="removeStudents" method="POST" action="/admin/instructor/remove_students">
                 <h3 style="text-align: center">Students</h3>
-                <select id="studentList" class="form-control" size="10" name="student_list" multiple>
+                <select id="studentList" class="form-control student-list" size="10" name="student_list" multiple>
                     <option value="None" selected>--Select Student(s) for Action--</option>
                     {% for person in students: %}
-                    <option value="{{person.username}}">{{ person.first_name }} {{ person.last_name }}</option>
+                    <option value="{{person.username}}">{{ person.first_name }} {{ person.last_name }} ({{person.username}})</option>
                     {% endfor %}
                 </select>
                 <div style="text-align: center">
