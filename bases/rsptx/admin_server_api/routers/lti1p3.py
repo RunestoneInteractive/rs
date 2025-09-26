@@ -332,13 +332,22 @@ async def launch(request: Request):
             query_params[key] = value
 
     # identify the course
-    # lti_context_dict = message_launch.get_context()
-    lti_course_id = query_params.get("lti_course_id", None)
+    lti_context_dict = message_launch.get_context()
+    rslogger.debug(f"LTI1p3 - launch context: {lti_context_dict}")
+    # ideally, LMS provides a context.id that can be used to identify the course
+    lti_course_id_reported = lti_context_dict.get("id", None)
     lti_course = None
-    if lti_course_id:
-        lti_course = await fetch_lti1p3_course_by_id(
-            int(lti_course_id), with_config=False, with_rs_course=True
+    if lti_course_id_reported:
+        lti_course = await fetch_lti1p3_course_by_lti_id(
+            lti_course_id_reported, with_config=False, with_rs_course=True
         )
+    # if that does not work, we will fall back on checking the query param
+    if not lti_course:
+        lti_course_id = query_params.get("lti_course_id", None)
+        if lti_course_id:
+            lti_course = await fetch_lti1p3_course_by_id(
+                int(lti_course_id), with_config=False, with_rs_course=True
+            )
     if not lti_course:
         raise HTTPException(
             status_code=400,
@@ -695,6 +704,7 @@ async def get_authenticated_user(
     user = None
     try:
         user = await auth_manager(request)
+        rslogger.debug(f"LTI1p3 - User {user.__dict__} verified successfully by auth_manager")
         return user
     except Exception as e:
         pass
@@ -929,6 +939,9 @@ async def assign_select(launch_id: str, request: Request, course=None):
 
     # Now start building the response
     domain = get_domain()
+    # lti_course_id is added to launch URL as a fallback to identify the course when
+    # LMS does not provide context info on launch. Relying on it will likely cause issues if
+    # the content is copied to another course.
     launch_url = f"https://{domain}/admin/lti1p3/launch?lti_course_id={lti_course.id}"
     lib_entry = await fetch_library_book(course.base_course)
 
