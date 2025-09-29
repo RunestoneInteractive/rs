@@ -55,7 +55,7 @@ services:
   # to set the PGBOUNCER_DEFAULT_POOL_SIZE environment variable to a larger number.
   pgbouncer:
     profiles: [ "production" ]
-    image: bitnami/pgbouncer:latest
+    image: bitnamilegacy/pgbouncer:1.24.1-debian-12-r10
     restart: always
     ports:
       - 6432:6432
