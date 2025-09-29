@@ -420,7 +420,23 @@ async def doAssignment(
                 questionslist.append(info)
                 questions_score += info["score"]
                 qset.add(q.Question.name)
-
+    # Just to be sure we are current, we will update the total score for the assignment
+    current_grade = await fetch_grade(user.id, assignment_id)
+    if current_grade and current_grade.score != (readings_score + questions_score):
+        rslogger.debug(f"Updating total score for {user.id} assignment {assignment_id} to {current_grade.score}")
+        current_grade.score = readings_score + questions_score
+        await upsert_grade(current_grade)
+    elif not current_grade:
+        new_grade = GradeValidator(
+            auth_user=user.id,
+            assignment=assignment_id,
+            is_submit="",
+            manual_total=False,
+            score=readings_score + questions_score,
+        )
+        await upsert_grade(new_grade)
+        rslogger.debug(f"Creating total score for {user.id} assignment {assignment_id} to {new_grade.score}")
+        
     # put readings into a session variable, to enable next/prev button
     readings_names = []
     for chapname in readings:
