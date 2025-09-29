@@ -142,6 +142,13 @@ class PageProgressBar {
         $("#subchapterprogress").progressbar({
             value: value,
         });
+        // Handle the case where there are no interactive objects on the page.
+        // but we still need to give the student points for reading the page.
+        if (this?.assignment_spec?.activities_required === 0) {
+            this.sendCompletedReadingScore().then(() => {
+                console.log("Reading score sent for page with no activities");
+            });
+        }
         if (!eBookConfig.isLoggedIn) {
             $("#subchapterprogress>div").addClass("loggedout");
         }
