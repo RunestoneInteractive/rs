@@ -58,9 +58,8 @@ function addReadingList() {
                 name: "link",
                 class: "btn btn-lg ' + 'buttonConfirmCompletion'",
                 href: nxt_link,
-                text: `Continue to page ${
-                    position + 2
-                } of ${num_readings} in the reading assignment.`,
+                text: `Continue to page ${position + 2
+                    } of ${num_readings} in the reading assignment.`,
             });
         } else {
             l = $("<div />", {
@@ -147,6 +146,14 @@ class PageProgressBar {
         if (this?.assignment_spec?.activities_required === 0) {
             this.sendCompletedReadingScore().then(() => {
                 console.log("Reading score sent for page with no activities");
+                // wait a tick then mark the page complete
+                // this is needed to let the progress bar update before marking complete
+                setTimeout(() => {
+                    let cb = document.getElementById("completionButton");
+                    if (cb && cb.textContent.toLowerCase() === "mark as completed") {
+                        cb.click();
+                    }
+                }, 500);
             });
         }
         if (!eBookConfig.isLoggedIn) {
@@ -176,7 +183,7 @@ class PageProgressBar {
             if (
                 val == 100.0 &&
                 $("#completionButton").text().toLowerCase() ===
-                    "mark as completed"
+                "mark as completed"
             ) {
                 $("#completionButton").click();
             }
