@@ -4,6 +4,11 @@
 {{include '_sphinx_static_files.html'}}
 {{end}}
 
+<link
+    rel="stylesheet"
+    href="{{=URL('static','css/peer.css')}}?v={{=request.peer_mtime}}"
+/>
+
 <script>
     eBookConfig.peer = true;
     var assignment_id = {{=assignment_id }};
@@ -14,46 +19,49 @@
 </div>
 
 <h2>Peer Instruction: {{=assignment_name}}</h2>
-<div id="imessage">
 
-</div>
-<div class="row">
-    <div class="col-md-6">
-        <form action="/runestone/peer/peer_question" method="GET" id="nextqform">
-            <input type="hidden" name="assignment_id" value={{=assignment_id}}>
-        </form>
-    </div>
-</div>
+<div id="pi-student-interface">
+    <div id="imessage" />
 
-<div class="row">
-    <div class='oneq col-md-6 runestone-sphinx'>
-        {{=XML(current_question['htmlsrc'])}}
-    </div>
-    <div id="discussion_panel" class='col-md-6' style="display: none">
-        <p>Your answer <span id="first_answer"></span></p>
-        <div id="peerlist">
+    <div class="row">
+        <div class="col-md-6">
+            <form action="/runestone/peer/peer_question" method="GET" id="nextqform">
+                <input type="hidden" name="assignment_id" value={{=assignment_id}}>
+            </form>
         </div>
-        <p>Please discuss the answers with your group members</p>
-        <div>
-            <ul id="messages" class="conversation">
+    </div>
 
-            </ul>
+    <div class="row">
+        <div class='oneq col-md-6 runestone-sphinx'>
+            {{=XML(current_question['htmlsrc'])}}
         </div>
 
-        <textarea id="messageText" rows="6" style="width: 350px;">
-</textarea>
-        <div class="text-center" style="width: 350px;">
-            <button id="sendpeermsg" type="button" onclick="sendMessage()">Send</button>
+        <div id="discussion_panel" class='col-md-6' style="display: none">
+            <p>Your answer <span id="first_answer"></span></p>
+            <div id="peerlist">
+            </div>
+            <p>Please discuss the answers with your group members</p>
+            <div>
+                <ul id="messages" class="conversation">
+
+                </ul>
+            </div>
+
+            <textarea id="messageText" rows="6" style="width: 350px;">
+            </textarea>
+            <div class="text-center" style="width: 350px;">
+                <button id="sendpeermsg" type="button" onclick="sendMessage()">Send</button>
+            </div>
         </div>
 
+        <div id="group_select_panel" class="col-md-6" style="display: none;">
+            <p><strong>In person discussion:</strong> select the people in your discussion group.</p>
+            <select id="assignment_group" multiple class="assignment_partner_select" style="width: 95%">
+            </select>
+        </div>
     </div>
-    <div id="group_select_panel" class="col-md-6" style="display: none;">
-        <p><strong>In person discussion:</strong> select the people in your discussion group.</p>
-        <select id="assignment_group" multiple class="assignment_partner_select" style="width: 95%">
-        </select>
-    </div>
-
 </div>
+
 <p>Please do not leave or refresh the page during a peer instruction session. <strong>Exception:</strong> If you should
     have seen a new question at this point then you may continue.</p>
 
