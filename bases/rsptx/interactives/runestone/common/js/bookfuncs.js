@@ -101,7 +101,7 @@ class PageProgressBar {
             this.activities = actDict;
         } else {
             let activities = { page: 0 };
-            $(".runestone").each(function (idx, e) {
+            document.querySelectorAll(".runestone").forEach(function (e) {
                 activities[e.firstElementChild.id] = 0;
             });
             this.activities = activities;
@@ -113,7 +113,8 @@ class PageProgressBar {
                 /.*\/(index.html|toctree.html|Exercises.html|search.html)$/i
             )
         ) {
-            $("#scprogresscontainer").hide();
+            const scprogresscontainer = document.getElementById("scprogresscontainer");
+            if (scprogresscontainer) scprogresscontainer.style.display = "none";
         }
         this.renderProgress();
     }
@@ -131,16 +132,31 @@ class PageProgressBar {
 
     renderProgress() {
         let value = 0;
-        $("#scprogresstotal").text(this.total);
-        $("#scprogressposs").text(this.possible);
+        const scprogresstotal = document.getElementById("scprogresstotal");
+        if (scprogresstotal) scprogresstotal.textContent = this.total;
+        const scprogressposs = document.getElementById("scprogressposs");
+        if (scprogressposs) scprogressposs.textContent = this.possible;
         try {
             value = (100 * this.total) / this.possible;
         } catch (e) {
             value = 0;
         }
-        $("#subchapterprogress").progressbar({
-            value: value,
-        });
+        // Replace #subchapterprogress div with a native <progress> element if not already done
+        let subchapterprogress = document.getElementById("subchapterprogress");
+        if (subchapterprogress && subchapterprogress.tagName !== "PROGRESS") {
+            // Replace the div with a <progress> element
+            const progressElem = document.createElement("progress");
+            progressElem.id = "subchapterprogress";
+            progressElem.max = 100;
+            progressElem.value = value;
+            // Copy over any classes from the old div
+            progressElem.className = subchapterprogress.className;
+            subchapterprogress.replaceWith(progressElem);
+            subchapterprogress = progressElem;
+        } else if (subchapterprogress) {
+            subchapterprogress.max = 100;
+            subchapterprogress.value = value;
+        }
         // Handle the case where there are no interactive objects on the page.
         // but we still need to give the student points for reading the page.
         if (this?.assignment_spec?.activities_required === 0) {
@@ -157,7 +173,8 @@ class PageProgressBar {
             });
         }
         if (!eBookConfig.isLoggedIn) {
-            $("#subchapterprogress>div").addClass("loggedout");
+            const subchapterDiv = document.getElementById("subchapterprogress");
+            if (subchapterDiv) subchapterDiv.classList.add("loggedout");
         }
     }
 
@@ -167,9 +184,14 @@ class PageProgressBar {
         if (this.activities[div_id] === 1) {
             this.total++;
             let val = (100 * this.total) / this.possible;
-            $("#scprogresstotal").text(this.total);
-            $("#scprogressposs").text(this.possible);
-            $("#subchapterprogress").progressbar("option", "value", val);
+            const scprogresstotal2 = document.getElementById("scprogresstotal");
+            if (scprogresstotal2) scprogresstotal2.textContent = this.total;
+            const scprogressposs2 = document.getElementById("scprogressposs");
+            if (scprogressposs2) scprogressposs2.textContent = this.possible;
+            let subchapterprogress2 = document.getElementById("subchapterprogress");
+            if (subchapterprogress2 && subchapterprogress2.tagName === "PROGRESS") {
+                subchapterprogress2.value = val;
+            }
             if (
                 this.assignment_spec &&
                 this.assignment_spec.activities_required !== null &&
@@ -290,7 +312,7 @@ function setupNavbarLoggedIn() {
         '<a href="' + eBookConfig.app + '/default/user/logout">Log Out</a>',
     );
 }
-$(document).on("runestone:login", setupNavbarLoggedIn);
+document.addEventListener("runestone:login", setupNavbarLoggedIn);
 
 function setupNavbarLoggedOut() {
     if (eBookConfig.useRunestoneServices) {
@@ -306,7 +328,7 @@ function setupNavbarLoggedOut() {
         $(".footer").html("user not logged in");
     }
 }
-$(document).on("runestone:logout", setupNavbarLoggedOut);
+document.addEventListener("runestone:logout", setupNavbarLoggedOut);
 
 function notifyRunestoneComponents() {
     // Runestone components wait until login process is over to load components because of storage issues. This triggers the `dynamic import machinery`, which then sends the login complete signal when this and all dynamic imports are finished.
@@ -328,7 +350,7 @@ function placeAdCopy() {
 }
 
 // initialize stuff
-$(function () {
+document.addEventListener("DOMContentLoaded", function () {
     if (eBookConfig) {
         handlePageSetup();
         placeAdCopy();
@@ -345,19 +367,15 @@ $(function () {
 // todo:  This could be further distributed but making a video.js file just for one function seems dumb.
 window.addEventListener("load", function () {
     // add the video play button overlay image
-    $(".video-play-overlay").each(function () {
-        $(this).css(
-            "background-image",
-            "url('{{pathto('_static/play_overlay_icon.png', 1)}}')",
-        );
+    document.querySelectorAll(".video-play-overlay").forEach(function (el) {
+        el.style.backgroundImage = "url('{{pathto('_static/play_overlay_icon.png', 1)}}')";
     });
 
     // This function is needed to allow the dropdown search bar to work;
     // The default behaviour is that the dropdown menu closes when something in
     // it (like the search bar) is clicked
-    $(function () {
-        // Fix input element click problem
-        $(".dropdown input, .dropdown label").click(function (e) {
+    document.querySelectorAll(".dropdown input, .dropdown label").forEach(function (el) {
+        el.addEventListener("click", function (e) {
             e.stopPropagation();
         });
     });
