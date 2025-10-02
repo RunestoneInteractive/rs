@@ -37,20 +37,39 @@
         </div>
 
         <div id="discussion_panel" class='col-md-6' style="display: none">
-            <p>Your answer <span id="first_answer"></span></p>
-            <div id="peerlist">
-            </div>
-            <p>Please discuss the answers with your group members</p>
-            <div>
-                <ul id="messages" class="conversation">
-
-                </ul>
+             <div id="discussion-panel-heading">
+                <p>Peer Text Chat</p>
             </div>
 
-            <textarea id="messageText" rows="6" style="width: 350px;">
-            </textarea>
-            <div class="text-center" style="width: 350px;">
-                <button id="sendpeermsg" type="button" onclick="sendMessage()">Send</button>
+            <div id="discussion-panel-peer-votes">
+                <div id="discussion-panel-peer-votes-content">
+                    <p><strong>Here is what everyone answered:</strong></p>
+                    <div id="peerlist">
+                        <p>You: <strong><span id="first_answer"></span></strong></p>
+                    </div>
+                    <p><strong>Please discuss your answers now :)</strong></p>
+                </div>
+            </div>
+
+            <div id="discussion-panel-messages">
+                <ul id="messages" class="conversation" />
+                <div id="peer-message-box">
+                    <!-- <textarea id="messageText" rows="6" style="width: 350px;" /> -->
+                    <input type="text" id="messageText" placeholder="Type your explanation here...">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        fill="currentColor"
+                        id="sendpeermsg"
+                        class="bi bi-arrow-up-circle-fill disabled"
+                        viewBox="0 0 16 16"
+                        aria-label="Send message"
+                        onclick="sendMessage()"
+                    >
+                        <path d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0m-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707z"/>
+                    </svg>
+                </div>
             </div>
         </div>
 

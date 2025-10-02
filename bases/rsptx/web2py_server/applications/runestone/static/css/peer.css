@@ -169,7 +169,7 @@
 /* ------------------- */
 /* Student's interface */
 /* ------------------- */
-#peer-question-student-interface .row, #pi-student-interface #imessage {
+#pi-student-interface .row, #pi-student-interface #imessage {
     margin-right: 0px;
     margin-left: 0px;
     padding-right: 15px;
@@ -328,8 +328,4 @@
 #sendpeermsg.disabled {
     pointer-events: none;
     opacity: 0.5;
-}
-
-#peer-rating {
-    display: none;
 }
