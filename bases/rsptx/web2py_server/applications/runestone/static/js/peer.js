@@ -1,4 +1,4 @@
-// Configuration for the PI steps and helper functions to handle step progression
+// Configuration for the PI steps and helper functions to handle step progression in the instructor's interface
 const STEP_CONFIG = {
     vote1: {
         next: ['makep', 'facechat', 'makeabgroups'],
@@ -107,6 +107,40 @@ function handleButtonClick(event) {
     }
 }
 
+// Function to render incoming and outgoing messages for the text chat
+function renderMessage({ from, text, direction }) {
+    const message = document.createElement("div");
+    message.classList.add(`${direction}-mess`);
+
+    // Sender container
+    const sender = document.createElement("div");
+    sender.classList.add("sender");
+
+    // Sender initials
+    const senderInitials = document.createElement("div");
+    senderInitials.classList.add("sender-initials");
+    let initials = from.split(" ").map(n => n.charAt(0)).join("").toUpperCase();
+    senderInitials.textContent = initials;
+
+    // Sender name
+    const senderName = document.createElement("div");
+    senderName.classList.add("sender-name");
+    senderName.textContent = from;
+
+    sender.appendChild(senderInitials);
+    sender.appendChild(senderName);
+
+    // Message content
+    const content = document.createElement("div");
+    content.classList.add("content");
+    content.textContent = text;
+
+    message.appendChild(sender);
+    message.appendChild(content);
+
+    return message;
+}
+
 var ws = null;
 var alertSet = false;
 function connect(event) {
@@ -119,15 +153,16 @@ function connect(event) {
     ws.onclose = function () {
         console.log("Websocket Closed")
         alert(
-            "You have been disconnected from the peer instruction server. Will Reconnect."
+            "You have been disconnected from the peer instruction server. Will reconnect."
         );
         connect();
     };
 
     ws.onmessage = function (event) {
         var messages = document.getElementById("messages");
-        var message = document.createElement("li");
+        var message = document.createElement("div");
         message.classList.add("incoming-mess");
+
         let mess = JSON.parse(event.data);
         // This is an easy to code solution for broadcasting that could go out to
         // multiple courses.  It would be better to catch that on the server side
@@ -138,8 +173,39 @@ function connect(event) {
         }
         if (mess.type === "text") {
             if (!(mess.time in messageTrail)) {
-                var content = document.createTextNode(`${mess.from}: ${mess.message}`);
+                // Create sender message element
+                var sender = document.createElement("div");
+                sender.classList.add("sender");
+
+                // Create thumbnail element for the sender's initials
+                var sender_initials = document.createElement("div");
+                sender_initials.classList.add("sender-initials");
+                let initials = mess.from
+                    .split(" ") // Split name on spaces
+                    .map(name => name.charAt(0)) // Get the first letter of each name
+                    .join("") // Join initials together
+                    .toUpperCase(); // Convert to uppercase
+                sender_initials.textContent = initials;
+
+                // Create sender name element
+                var sender_name = document.createElement("div");
+                sender_name.classList.add("sender-name");
+                sender_name.textContent = mess.from;
+
+                // Append sender's initials and name to the message element
+                sender.appendChild(sender_initials);
+                sender.appendChild(sender_name);
+
+                // Create sender message content element
+                var content = document.createElement("div");
+                content.classList.add("content");
+                content.textContent = mess.message;
+
+                // Append sender and content to message
+                message.appendChild(sender);
                 message.appendChild(content);
+
+                // Append message to messages container
                 messages.appendChild(message);
                 messageTrail[mess.time] = mess.message;
             }
@@ -275,7 +341,7 @@ function connect(event) {
                     for (const key in adict) {
                         let currAnswer = adict[key];
                         let newpeer = document.createElement("p");
-                        newpeer.innerHTML = `${key} answered ${currAnswer}`;
+                        newpeer.innerHTML = `${key}: <strong>${currAnswer}</strong>`;
                         peerlist.appendChild(newpeer);
                     }
                     break;
@@ -397,30 +463,70 @@ async function sendLtiScores(event) {
 // specific user
 async function sendMessage(event) {
     var input = document.getElementById("messageText");
-    if (input.value.trim() === "") {
+    var sendButton = document.getElementById("sendpeermsg");
+    var messageText = input.value.trim();
+
+    if (messageText === "") {
         input.focus();
         return;
     }
+
     let mess = {
         type: "text",
         from: `${user}`,
-        message: input.value,
+        message: messageText,
         time: Date.now(),
         broadcast: false,
         course_name: eBookConfig.course,
         div_id: currentQuestion,
     };
+
     await publishMessage(mess);
+
     var messages = document.getElementById("messages");
-    var message = document.createElement("li");
+    var message = document.createElement("div");
     message.classList.add("outgoing-mess");
-    var content = document.createTextNode(`${user}: ${input.value}`);
+
+    // Create sender element
+    var sender = document.createElement("div");
+    sender.classList.add("sender");
+
+    // Create sender initials element
+    var sender_initials = document.createElement("div");
+    sender_initials.classList.add("sender-initials");
+    let initials = user
+        .split(" ") // Split name into parts
+        .map(name => name.charAt(0)) // Get the first letter of each part
+        .join("") // Join initials together
+        .toUpperCase(); // Convert to uppercase
+    sender_initials.textContent = initials;
+
+    // Create sender name element
+    var sender_name = document.createElement("div");
+    sender_name.classList.add("sender-name");
+    sender_name.textContent = user;
+
+    // Append sender initials and name to sender
+    sender.appendChild(sender_initials);
+    sender.appendChild(sender_name);
+
+    // Create message content element
+    var content = document.createElement("div");
+    content.classList.add("content");
+    content.textContent = messageText;
+
+    // Append sender and content to message
+    message.appendChild(sender);
     message.appendChild(content);
+
+    // Append message to messages container
     messages.appendChild(message);
+
     input.value = "";
-    // focus tehe input box again
     input.focus();
-    // not needed for onclick event.preventDefault()
+
+    // Disable the send button after sending a message
+    sendButton.classList.add("disabled");
 }
 
 function warnAndStopVote(event) {
@@ -731,11 +837,25 @@ async function setupPeerGroup() {
 
 $(function () {
     let tinput = document.getElementById("messageText");
-    if (tinput) {
-        tinput.addEventListener("keyup", function (event) {
-            if (event.keyCode === 13) {
+    let sendButton = document.getElementById("sendpeermsg");
+
+    if (tinput && sendButton) {
+        tinput.addEventListener("input", function () {
+            let message = this.value.trim();
+            if (message !== "") {
+                sendButton.classList.remove("disabled");
+            } else {
+                sendButton.classList.add("disabled");
+            }
+        });
+
+        tinput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
                 event.preventDefault();
-                document.getElementById("sendpeermsg").click();
+                let message = this.value.trim();
+                if (message != "") {
+                    document.getElementById("sendpeermsg").click();
+                }
             }
         });
     }

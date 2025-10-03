@@ -38,16 +38,16 @@
 
         <div id="discussion_panel" class='col-md-6' style="display: none">
              <div id="discussion-panel-heading">
-                <p>Peer Text Chat</p>
+                <p>Peer Chat</p>
             </div>
 
             <div id="discussion-panel-peer-votes">
                 <div id="discussion-panel-peer-votes-content">
-                    <p><strong>Here is what everyone answered:</strong></p>
+                    <p>Here is what everyone answered:</p>
                     <div id="peerlist">
                         <p>You: <strong><span id="first_answer"></span></strong></p>
                     </div>
-                    <p><strong>Please discuss your answers now :)</strong></p>
+                    <p>Please discuss your answers now :)</p>
                 </div>
             </div>
 
@@ -56,19 +56,24 @@
                 <div id="peer-message-box">
                     <!-- <textarea id="messageText" rows="6" style="width: 350px;" /> -->
                     <input type="text" id="messageText" placeholder="Type your explanation here...">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        fill="currentColor"
+                    <button
                         id="sendpeermsg"
-                        class="bi bi-arrow-up-circle-fill disabled"
-                        viewBox="0 0 16 16"
-                        aria-label="Send message"
+                        class="disabled"
                         onclick="sendMessage()"
+                        aria-label="Send message"
                     >
-                        <path d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0m-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707z"/>
-                    </svg>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            fill="currentColor"
+                            class="bi bi-arrow-up-circle-fill"
+                            viewBox="0 0 16 16"
+                            aria-hidden="true"
+                        >
+                            <path d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0m-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707z"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -158,7 +163,7 @@
             event.preventDefault();
             event.returnValue =
                 "Please do not leave or refresh the page during a peer instruction session.";
-            return "Please do not leave or refresh the page during a peer instruction session.  Exception: If you should have seen a new question at this point then you may continue.";
+            return "Please do not leave or refresh the page during a peer instruction session. Exception: If you should have seen a new question at this point then you may continue.";
         }.bind(this)
     );
 
