@@ -227,15 +227,15 @@
 #discussion-panel-messages #messages {
     margin: 0;
     padding-left: 0;
-    min-height: 20vh;
+    padding-right: 10px;
+    min-height: 15vh;
     max-height: 35vh;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    justify-content: end;
 }
 
-#discussion-panel-messages #messages > div {
+#discussion-panel-messages #messages > li {
     margin-top: 8px;
 }
 
@@ -244,7 +244,7 @@
     margin-top: 16px;
 }
 
-#discussion-panel-messages #messages > div:first-child {
+#discussion-panel-messages #messages > li:first-child {
     margin-top: 0;
 }
 
@@ -266,7 +266,7 @@
 
 #discussion-panel-messages #messages .sender {
     display: flex;
-    font-size: 10px;
+    font-size: 11px;
     gap: 8px;
     align-items: center;
 }
@@ -323,8 +323,10 @@
 }
 
 #sendpeermsg {
-    font-size: 24px;
-    cursor: pointer;
+    background: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
 }
 
 #sendpeermsg.disabled {

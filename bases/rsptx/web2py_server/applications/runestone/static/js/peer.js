@@ -110,7 +110,7 @@ function handleButtonClick(event) {
 // Function to render incoming and outgoing messages for the text chat
 function renderMessage({ from, text, direction }) {
     // Create message element
-    const message = document.createElement("div");
+    const message = document.createElement("li");
     message.classList.add(`${direction}-mess`);
 
     // Sender container
@@ -126,7 +126,7 @@ function renderMessage({ from, text, direction }) {
     // Sender name
     const senderName = document.createElement("div");
     senderName.classList.add("sender-name");
-    senderName.textContent = from;
+    senderName.textContent = direction === "outgoing" ? "You" : from;
 
     sender.appendChild(senderInitials);
     sender.appendChild(senderName);
@@ -180,6 +180,7 @@ function connect(event) {
 
                 // Append message to messages container
                 messages.appendChild(message);
+                messages.scrollTop = messages.scrollHeight;
                 messageTrail[mess.time] = mess.message;
             }
         } else if (mess.type === "control") {
@@ -465,6 +466,7 @@ async function sendMessage(event) {
 
     // Append message to messages container
     messages.appendChild(message);
+    messages.scrollTop = messages.scrollHeight;
 
     input.value = "";
     input.focus();
