@@ -109,6 +109,7 @@ function handleButtonClick(event) {
 
 // Function to render incoming and outgoing messages for the text chat
 function renderMessage({ from, text, direction }) {
+    // Create message element
     const message = document.createElement("div");
     message.classList.add(`${direction}-mess`);
 
@@ -116,7 +117,7 @@ function renderMessage({ from, text, direction }) {
     const sender = document.createElement("div");
     sender.classList.add("sender");
 
-    // Sender initials
+    // Thumbnail using sender initials
     const senderInitials = document.createElement("div");
     senderInitials.classList.add("sender-initials");
     let initials = from.split(" ").map(n => n.charAt(0)).join("").toUpperCase();
@@ -135,6 +136,7 @@ function renderMessage({ from, text, direction }) {
     content.classList.add("content");
     content.textContent = text;
 
+    // Append sender and content to message
     message.appendChild(sender);
     message.appendChild(content);
 
@@ -159,10 +161,7 @@ function connect(event) {
     };
 
     ws.onmessage = function (event) {
-        var messages = document.getElementById("messages");
-        var message = document.createElement("div");
-        message.classList.add("incoming-mess");
-
+        const messages = document.getElementById("messages");
         let mess = JSON.parse(event.data);
         // This is an easy to code solution for broadcasting that could go out to
         // multiple courses.  It would be better to catch that on the server side
@@ -173,37 +172,11 @@ function connect(event) {
         }
         if (mess.type === "text") {
             if (!(mess.time in messageTrail)) {
-                // Create sender message element
-                var sender = document.createElement("div");
-                sender.classList.add("sender");
-
-                // Create thumbnail element for the sender's initials
-                var sender_initials = document.createElement("div");
-                sender_initials.classList.add("sender-initials");
-                let initials = mess.from
-                    .split(" ") // Split name on spaces
-                    .map(name => name.charAt(0)) // Get the first letter of each name
-                    .join("") // Join initials together
-                    .toUpperCase(); // Convert to uppercase
-                sender_initials.textContent = initials;
-
-                // Create sender name element
-                var sender_name = document.createElement("div");
-                sender_name.classList.add("sender-name");
-                sender_name.textContent = mess.from;
-
-                // Append sender's initials and name to the message element
-                sender.appendChild(sender_initials);
-                sender.appendChild(sender_name);
-
-                // Create sender message content element
-                var content = document.createElement("div");
-                content.classList.add("content");
-                content.textContent = mess.message;
-
-                // Append sender and content to message
-                message.appendChild(sender);
-                message.appendChild(content);
+                let message = renderMessage({
+                    from: mess.from,
+                    text: mess.message,
+                    direction: "incoming"
+                });
 
                 // Append message to messages container
                 messages.appendChild(message);
@@ -462,9 +435,10 @@ async function sendLtiScores(event) {
 // the server can then broadcast the message or send it to a
 // specific user
 async function sendMessage(event) {
-    var input = document.getElementById("messageText");
-    var sendButton = document.getElementById("sendpeermsg");
-    var messageText = input.value.trim();
+    const messages = document.getElementById("messages");
+    const input = document.getElementById("messageText");
+    const sendButton = document.getElementById("sendpeermsg");
+    const messageText = input.value.trim();
 
     if (messageText === "") {
         input.focus();
@@ -483,41 +457,11 @@ async function sendMessage(event) {
 
     await publishMessage(mess);
 
-    var messages = document.getElementById("messages");
-    var message = document.createElement("div");
-    message.classList.add("outgoing-mess");
-
-    // Create sender element
-    var sender = document.createElement("div");
-    sender.classList.add("sender");
-
-    // Create sender initials element
-    var sender_initials = document.createElement("div");
-    sender_initials.classList.add("sender-initials");
-    let initials = user
-        .split(" ") // Split name into parts
-        .map(name => name.charAt(0)) // Get the first letter of each part
-        .join("") // Join initials together
-        .toUpperCase(); // Convert to uppercase
-    sender_initials.textContent = initials;
-
-    // Create sender name element
-    var sender_name = document.createElement("div");
-    sender_name.classList.add("sender-name");
-    sender_name.textContent = user;
-
-    // Append sender initials and name to sender
-    sender.appendChild(sender_initials);
-    sender.appendChild(sender_name);
-
-    // Create message content element
-    var content = document.createElement("div");
-    content.classList.add("content");
-    content.textContent = messageText;
-
-    // Append sender and content to message
-    message.appendChild(sender);
-    message.appendChild(content);
+    let message = renderMessage({
+        from: user,
+        text: messageText,
+        direction: "outgoing"
+    });
 
     // Append message to messages container
     messages.appendChild(message);

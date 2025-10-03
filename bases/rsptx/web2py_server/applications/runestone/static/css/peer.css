@@ -227,7 +227,9 @@
 #discussion-panel-messages #messages {
     margin: 0;
     padding-left: 0;
-    min-height: 25vh;
+    min-height: 20vh;
+    max-height: 35vh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     justify-content: end;
