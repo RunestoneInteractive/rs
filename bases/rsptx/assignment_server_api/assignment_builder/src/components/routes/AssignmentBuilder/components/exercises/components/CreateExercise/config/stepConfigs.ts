@@ -1,5 +1,6 @@
 import { CreateExerciseFormType } from "@/types/exercises";
 
+import { ClickableAreaData } from "../components/ClickableAreaExercise/types";
 import { DragAndDropData } from "../components/DragAndDropExercise/types";
 import { FillInTheBlankData } from "../components/FillInTheBlankExercise/types";
 import { MatchingData } from "../components/MatchingExercise/types";
@@ -205,6 +206,24 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
     },
     2: {
       title: "Settings",
+      description: "Configure exercise settings such as name, points, etc."
+    },
+    3: {
+      title: "Preview",
+      description: "Preview the exercise as students will see it"
+    }
+  },
+  clickablearea: {
+    0: {
+      title: "Create Statement",
+      description: "Write the instructions for the clickable area exercise"
+    },
+    1: {
+      title: "Define Clickable Areas",
+      description: "Specify the areas that should be clickable in the exercise"
+    },
+    2: {
+      title: "Exercise Settings",
       description: "Configure exercise settings such as name, points, etc."
     },
     3: {
@@ -637,6 +656,40 @@ export const SELECT_QUESTION_STEP_VALIDATORS: StepValidator<any>[] = [
     return errors;
   },
   (data) => {
+    const errors: string[] = [];
+
+    if (!data.name?.trim()) {
+      errors.push("Exercise name is required");
+    }
+    if (!data.chapter) {
+      errors.push("Chapter is required");
+    }
+    if (data.points === undefined || data.points <= 0) {
+      errors.push("Points must be greater than 0");
+    }
+    if (data.difficulty === undefined) {
+      errors.push("Difficulty is required");
+    }
+
+    return errors;
+  },
+  () => []
+];
+
+export const CLICKABLE_AREA_STEP_VALIDATORS: StepValidator<ClickableAreaData>[] = [
+  (data: ClickableAreaData) => {
+    const errors: string[] = [];
+
+    if (!data.questionText || data.questionText.trim() === "") {
+      errors.push("Content is required");
+    }
+    if (!data.clickableAreas || data.clickableAreas.length === 0) {
+      errors.push("At least one clickable area is required");
+    }
+
+    return errors;
+  },
+  (data: ClickableAreaData) => {
     const errors: string[] = [];
 
     if (!data.name?.trim()) {
