@@ -6,10 +6,12 @@
     rel="stylesheet"
     href="{{=URL('static','css/peer.css')}}?v={{=request.peer_mtime}}"
 />
+
 <script>
     eBookConfig.peer = true;
     var voteStopped = false;
 </script>
+
 <div class="hidden-content" style="display: none">
     \( {{=XML(latex_macros)}} \)
  </div>
@@ -124,7 +126,7 @@
                                 onclick="enableFaceChat(event)"
                                 disabled
                             >
-                                Enable in-person Chat
+                                Enable In-Person Chat
                             </button>
                             OR
                             <button
@@ -145,7 +147,7 @@
                                     onclick="makePartners(event, true)"
                                     disabled
                                 >
-                                    Run AB Experiment
+                                    Run A/B Experiment
                                 </button>
                             {{ pass }}
                         </div>

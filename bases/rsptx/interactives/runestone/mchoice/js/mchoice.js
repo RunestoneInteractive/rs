@@ -415,7 +415,7 @@ export default class MultipleChoice extends RunestoneBase {
                 studentVoteCount > 1) {
                 this.renderMCMAFeedBack();
             } else {
-                $(this.feedBackDiv).html("<p>Your Answer has been recorded</p>");
+                $(this.feedBackDiv).html("<p>Your answer has been recorded</p>");
                 $(this.feedBackDiv).attr("class", "alert alert-info");
             }
         }
@@ -570,7 +570,7 @@ export default class MultipleChoice extends RunestoneBase {
                 studentVoteCount > 1) {
                 this.renderMCMAFeedBack();
             } else {
-                $(this.feedBackDiv).html("<p>Your Answer has been recorded</p>");
+                $(this.feedBackDiv).html("<p>Your answer has been recorded</p>");
                 $(this.feedBackDiv).attr("class", "alert alert-info");
             }
         }
