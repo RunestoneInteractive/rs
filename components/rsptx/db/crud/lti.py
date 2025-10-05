@@ -88,7 +88,6 @@ async def upsert_lti1p3_course(course: Lti1p3Course) -> Lti1p3Course:
         )
         res = await session.execute(query)
         existing_course = res.scalars().one_or_none()
-        await session.commit()
         if existing_course:
             existing_course.update_from_dict(course.dict())
             # Validate now that we have built full object
