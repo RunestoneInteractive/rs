@@ -164,22 +164,22 @@ async def fetch_lti1p3_course_by_id(
         return dep
 
 
-async def fetch_lti1p3_course_by_lti_id(
-    lti_id: str, with_config: bool = True, with_rs_course: bool = False
-) -> Lti1p3Course:
+async def fetch_lti1p3_courses_by_lti_course_id(
+    lti_course_id: str, with_config: bool = True, with_rs_course: bool = False
+) -> List[Lti1p3Course]:
     """
     Retrieve an LTI1.3 platform config by its lti identifier
     Also optionally fetches the associated Lti1p3Conf and/or Course
     """
-    query = select(Lti1p3Course).where(Lti1p3Course.lti1p3_course_id == lti_id)
+    query = select(Lti1p3Course).where(Lti1p3Course.lti1p3_course_id == lti_course_id)
     if with_config:
         query = query.options(joinedload(Lti1p3Course.lti_config))
     if with_rs_course:
         query = query.options(joinedload(Lti1p3Course.rs_course))
     async with async_session() as session:
         res = await session.execute(query)
-        dep = res.scalars().one_or_none()
-        return dep
+        courses = res.scalars().all()
+        return courses
 
 
 async def fetch_lti1p3_course_by_lti_data(
