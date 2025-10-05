@@ -341,13 +341,6 @@ async def launch(request: Request):
         lti_course = await fetch_lti1p3_course_by_lti_id(
             lti_course_id_reported, with_config=False, with_rs_course=True
         )
-    # if that does not work, we will fall back on checking the query param
-    if not lti_course:
-        lti_course_id = query_params.get("lti_course_id", None)
-        if lti_course_id:
-            lti_course = await fetch_lti1p3_course_by_id(
-                int(lti_course_id), with_config=False, with_rs_course=True
-            )
     if not lti_course:
         raise HTTPException(
             status_code=400,
@@ -939,12 +932,7 @@ async def assign_select(launch_id: str, request: Request, course=None):
 
     # Now start building the response
     domain = get_domain()
-    # lti_course_id is added to launch URL as a fallback to identify the course when
-    # LMS does not provide context info on launch. Relying on it will likely cause issues if
-    # the content is copied to another course.
-    launch_url = f"https://{domain}/admin/lti1p3/launch?lti_course_id={lti_course.id}"
-    lib_entry = await fetch_library_book(course.base_course)
-
+    launch_url = f"https://{domain}/admin/lti1p3/launch"
     lib_entry = await fetch_library_book(course.base_course)
     if lib_entry.build_system == "Runestone":
         book_system = "Runestone"
@@ -989,7 +977,7 @@ async def assign_select(launch_id: str, request: Request, course=None):
                 page_name = f"Chapter {chapter.chapter_num}.{subchapter.sub_chapter_num}: {subchapter.sub_chapter_name}"
 
         dlr = DeepLinkResource()
-        dlr.set_url(launch_url + f"&book_page={page}")
+        dlr.set_url(launch_url + f"?book_page={page}")
         dlr.set_title(f"{lib_entry.title} - {page_name}")
         dlr.set_target("window")
 
