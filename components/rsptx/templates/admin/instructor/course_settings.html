@@ -347,6 +347,12 @@ Course Settings
             }
             hint.textContent = msg;
         }
+
+        // If there is no courseTz, save browserTz automatically
+        if (!courseTz || courseTz.trim() === '') {
+            // Only save if not already set
+            updateCourse(select, 'timezone');
+        }
     })();
 </script>
 {% endblock %}
