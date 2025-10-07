@@ -462,6 +462,8 @@ class Courses(Base, IdMixin):
     state = Column(String(128))  # the US State in which the course is taught
     # Use to track what domain based features are enabled for this course.
     domain_name = Column(String(512))
+    # Store the IANA time zone name for the course.  Default to UTC
+    timezone = Column(String(128), default="UTC")
 
 
 CoursesValidator: TypeAlias = sqlalchemy_to_pydantic(Courses)  # type: ignore
