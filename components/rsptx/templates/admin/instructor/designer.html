@@ -1,0 +1,292 @@
+{% extends "_base.html" %}
+
+{% block title %}Course Creator{% endblock %}
+
+{% block css %}
+<style>
+    .designer-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 30px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .designer-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .designer-header h1 {
+        color: #ab1059;
+        font-size: 2.5em;
+        font-weight: 300;
+        margin: 0;
+    }
+    .step-title {
+        color: #4a90e2;
+        font-size: 1.3em;
+        margin-top: 30px;
+        margin-bottom: 10px;
+    }
+    .form-section {
+        margin-bottom: 25px;
+    }
+    .alert {
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    .alert-danger {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    .btn-primary {
+        background: #4a90e2;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 20px;
+    }
+    .btn-primary:hover {
+        background: #357abd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="designer-container">
+    <div class="designer-header">
+        <h1>Course Creator</h1>
+        <p><strong>For Instructors ONLY</strong> If you are an independent learner you DO NOT need to build your own course.<br>
+        If you are a student and think that building your own course will show you the answers, YOU ARE WRONG.</p>
+    </div>
+    <div id="formerrors" class="alert alert-danger"></div>
+    <form id="designerForm" method="post">
+        <div class="form-section">
+            <div class="step-title">Step 1: Institution Info</div>
+            <label for="institution">Institution (required)</label>
+            <input type="text" class="form-control" name="institution" id="institution" onchange="suggestedCourseName()" required>
+            <label for="state">United States - State</label>
+            <select id="state" name="state" required>
+                <option value="">Choose</option>
+                <option value="NA">Not in the United States</option>
+                <option value="AL">Alabama</option>
+                <option value="AK">Alaska</option>
+                <option value="AS">American Samoa</option>
+                <option value="AZ">Arizona</option>
+                <option value="AR">Arkansas</option>
+                <option value="CA">California</option>
+                <option value="CO">Colorado</option>
+                <option value="CT">Connecticut</option>
+                <option value="DE">Delaware</option>
+                <option value="DC">District Of Columbia</option>
+                <option value="FL">Florida</option>
+                <option value="GA">Georgia</option>
+                <option value="GU">Guam</option>
+                <option value="HI">Hawaii</option>
+                <option value="ID">Idaho</option>
+                <option value="IL">Illinois</option>
+                <option value="IN">Indiana</option>
+                <option value="IA">Iowa</option>
+                <option value="KS">Kansas</option>
+                <option value="KY">Kentucky</option>
+                <option value="LA">Louisiana</option>
+                <option value="ME">Maine</option>
+                <option value="MD">Maryland</option>
+                <option value="MA">Massachusetts</option>
+                <option value="MI">Michigan</option>
+                <option value="MN">Minnesota</option>
+                <option value="MS">Mississippi</option>
+                <option value="MO">Missouri</option>
+                <option value="MP">Northern Mariana Islands</option>
+                <option value="MT">Montana</option>
+                <option value="NE">Nebraska</option>
+                <option value="NV">Nevada</option>
+                <option value="NH">New Hampshire</option>
+                <option value="NJ">New Jersey</option>
+                <option value="NM">New Mexico</option>
+                <option value="NY">New York</option>
+                <option value="NC">North Carolina</option>
+                <option value="ND">North Dakota</option>
+                <option value="OH">Ohio</option>
+                <option value="OK">Oklahoma</option>
+                <option value="OR">Oregon</option>
+                <option value="PA">Pennsylvania</option>
+                <option value="PR">Puerto Rico</option>
+                <option value="RI">Rhode Island</option>
+                <option value="SC">South Carolina</option>
+                <option value="SD">South Dakota</option>
+                <option value="TN">Tennessee</option>
+                <option value="TX">Texas</option>
+                <option value="UT">Utah</option>
+                <option value="VT">Vermont</option>
+                <option value="VA">Virginia</option>
+                <option value="VI">Virgin Islands</option>
+                <option value="WA">Washington</option>
+                <option value="WV">West Virginia</option>
+                <option value="WI">Wisconsin</option>
+                <option value="WY">Wyoming</option>
+            </select>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label for="domainname" style="margin-bottom: 0; white-space: nowrap;">Your Institution's Internet Domain</label>
+                <input type="text" class="form-control" name="domainname" id="domainname" style="flex: 1; min-width: 200px;" required>
+            </div>
+            <label for="timezone">Your Timezone</label>
+            <select name="timezone" id="timezone" class="form-control" required></select>
+
+        </div>
+        <div class="form-section">
+            <div class="step-title">Step 2: Course Level</div>
+            <label for="courselevel">Course Level (required)</label>
+            <select id="courselevel" class="form-control" name="courselevel" required>
+                <option value="unknown" disabled selected>Please Select</option>
+                <option value="grad">Graduate</option>
+                <option value="undergradadv">Undergraduate Advanced</option>
+                <option value="undergradintro">Undergraduate Introductory</option>
+                <option value="communitycollege">Community College</option>
+                <option value="high">High School</option>
+                <option value="middle">Middle School</option>
+            </select>
+        </div>
+        <div class="form-section">
+            <div class="step-title">Step 3: Choose a Book</div>
+            {% for section in sections|sort %}
+                <h4>{{ section }}</h4>
+                {% for course in course_list %}
+                    {% if course.shelf_section == section %}
+                        <div class="radio">
+                            <label>
+                                <input type="radio" name="coursetype" value="{{ course.basecourse }}" />
+                                {{ course.title }}{% if course.subtitle %}: {{ course.subtitle }}{% endif %}
+                                {% if course.authors %} by {{ course.authors }}{% endif %}
+                            </label>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+        <div class="form-section">
+            <div class="step-title">Step 4: Course Name</div>
+            <label for="projectname">Course Name</label>
+            <input type="text" class="form-control" name="projectname" id="projectname" required>
+        </div>
+        <div class="form-section">
+            <div class="step-title">Step 5: Options & Start Date</div>
+            <label><input type="checkbox" name="loginreq" value="true" checked> Require a username to access this course.</label><br>
+            <label><input type="checkbox" name="allowpairs" value="false"> Enable <strong>experimental</strong> pair programming features.</label><br>
+            <label><input type="checkbox" name="instructor" value="yes" checked> Make me the Instructor of this course.</label><br>
+            <label for="startdate">Term start date</label>
+            <input type="text" name="startdate" id="startdate" class="form-control" placeholder="{{ current_date }}" required>
+        </div>
+        <div class="form-section">
+            <div class="step-title">Step 6 (Optional): Support</div>
+            <label><input type="checkbox" name="invoice" value="false" id="invoice-me"> Please invoice my school or department for a small support fee of $10 per registered student.</label>
+        </div>
+        <div class="form-section">
+            <div class="step-title">Step 7: Submit</div>
+            <input type="submit" class="btn btn-primary" value="Submit">
+        </div>
+    </form>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+<script>
+    // Populate timezone select with supported timezones and default to browser's timezone
+    document.addEventListener('DOMContentLoaded', function() {
+        var tzSelect = document.getElementById('timezone');
+        if (tzSelect && typeof Intl.supportedValuesOf === 'function') {
+            var timezones = Intl.supportedValuesOf('timeZone');
+            var browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            timezones.forEach(function(tz) {
+                var opt = document.createElement('option');
+                opt.value = tz;
+                opt.textContent = tz;
+                if (tz === browserTz) {
+                    opt.selected = true;
+                }
+                tzSelect.appendChild(opt);
+            });
+        }
+    });
+    // Minimal domain name validation
+    document.getElementById('domainname').addEventListener('change', function() {
+        const domain = this.value;
+        if (domain.indexOf('.') === -1 || domain.indexOf(' ') !== -1) {
+            this.setCustomValidity('Domain name must contain at least one "." and no spaces.');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+
+    function suggestedCourseName() {
+        let d = new Date();
+        const getSeason = d => Math.floor(((d.getMonth() + 1) / 12 * 4)) % 4;
+        let season = ['winter', 'spring', 'summer', 'fall'][getSeason(d)];
+        let basecourse = document.getElementById("designerForm").coursetype.value;
+        let instid = document.getElementById("institution").value;
+        let suggestedCourse = "";
+        if (instid) {
+            suggestedCourse += instid.toLowerCase().replace(/ /g, '');
+        }
+        if (basecourse) {
+            suggestedCourse += "_" + basecourse.toLowerCase();
+        }
+        suggestedCourse += "_" + season + (d.getFullYear() % 100);
+        document.getElementById("projectname").value = suggestedCourse;
+    }
+    document.getElementById('startdate').addEventListener('focus', function() {
+        $(this).datepicker({format: 'mm/dd/yyyy'});
+    });
+    document.getElementById('designerForm').addEventListener('submit', function(evt) {
+        const errors = [];
+        const institution = document.getElementById('institution').value;
+        const basecourse = document.getElementById('designerForm').coursetype.value;
+        const state = document.getElementById('state').value;
+        const level = document.getElementById('courselevel').value;
+        const domain = document.getElementById('domainname').value;
+        const projectname = document.getElementById('projectname').value;
+        const errorDiv = document.getElementById('formerrors');
+        errorDiv.innerHTML = "";
+        errorDiv.style.display = "none";
+        if (!basecourse) {
+            errors.push("You must select a book for your course.");
+        }
+        if (!institution) {
+            errors.push("You must provide the name of your Institution.");
+        }
+        if (level === "unknown") {
+            errors.push("Please tell us approximately what level your course is at.");
+        }
+        if (projectname === "" || projectname.indexOf(" ") !== -1 || projectname.indexOf("/") > -1) {
+            errors.push("Your Project Name may not contain spaces or /");
+        }
+        if (!/^([\x30-\x39]|[\x41-\x5A]|[\x61-\x7A]|[_-])*$/.test(projectname)) {
+            errors.push("Your project name can only contain ASCII letters, digits, and - or _.");
+        }
+        if (domain.indexOf('.') === -1 || domain.indexOf(" ") !== -1) {
+            errors.push("Your domain name should contain at least one . and no spaces.");
+        }
+        if (errors.length > 0) {
+            errorDiv.innerHTML = '<ul>' + errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+            errorDiv.style.display = "block";
+            evt.preventDefault();
+            return false;
+        }
+        return true;
+    });
+    document.getElementById('invoice-me').addEventListener('change', function () {
+        if (this.checked) {
+            let res = confirm("Checking this box means you want us to email you an Invoice (Thank you!!).  If you want to keep using Runestone for free just click cancel");
+            if (res === false) {
+                this.checked = false;
+            }
+        }
+    });
+</script>
+{% endblock %}
