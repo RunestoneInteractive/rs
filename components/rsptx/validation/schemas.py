@@ -254,6 +254,7 @@ class QuestionIncoming(BaseModel):
     description: Optional[str] = None
     difficulty: Optional[float] = None
     topic: Optional[str] = None
+    is_private: Optional[bool] = False
 
 
 class AssignmentQuestionIncoming(BaseModel):
@@ -347,7 +348,8 @@ class AssignmentQuestionUpdateDict(TypedDict, total=False):
     feedback: Optional[str]
     difficulty: Optional[float]
     tags: Optional[str]
-    
+    is_private: Optional[bool]
+
     # Owner field for permission checking
     owner: Optional[str]
 
