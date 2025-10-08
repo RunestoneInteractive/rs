@@ -166,13 +166,18 @@
         </div>
         <div class="form-section">
             <div class="step-title">Step 3: Choose a Book</div>
+                <div class="form-section">
+                    <div class="step-title">Quick Book Filter</div>
+                    <input type="text" id="bookFilter" class="form-control" placeholder="Type to filter books by title, author, or section...">
+                </div>
+            <div id="bookList">
             {% for section in sections|sort %}
-                <h4>{{ section }}</h4>
+                <h4 class="book-section">{{ section }}</h4>
                 {% for course in course_list %}
                     {% if course.shelf_section == section %}
-                        <div class="radio">
+                        <div class="radio book-entry" data-title="{{ course.title|lower }}" data-authors="{{ course.authors|lower }}" data-section="{{ section|lower }}">
                             <label>
-                                <input type="radio" name="coursetype" value="{{ course.basecourse }}" {% if submitted is defined and submitted.coursetype == course.basecourse %}checked{% endif %}/>
+                                <input type="radio" name="coursetype" value="{{ course.basecourse }}" {% if submitted is defined and submitted.coursetype == course.basecourse %}checked{% endif %} onchange="suggestedCourseName()"/>
                                 {{ course.title }}{% if course.subtitle %}: {{ course.subtitle }}{% endif %}
                                 {% if course.authors %} by {{ course.authors }}{% endif %}
                             </label>
@@ -180,6 +185,7 @@
                     {% endif %}
                 {% endfor %}
             {% endfor %}
+            </div>
         </div>
         <div class="form-section">
             <div class="step-title">Step 4: Course Name</div>
@@ -240,6 +246,7 @@
             }
         }
     });
+
     function suggestedCourseName() {
         let d = new Date();
         const getSeason = d => Math.floor(((d.getMonth() + 1) / 12 * 4)) % 4;
@@ -256,6 +263,7 @@
         suggestedCourse += "_" + season + (d.getFullYear() % 100);
         document.getElementById("projectname").value = suggestedCourse;
     }
+
     document.getElementById('startdate').addEventListener('focus', function() {
         $(this).datepicker({format: 'mm/dd/yyyy'});
     });
@@ -296,6 +304,7 @@
         }
         return true;
     });
+
     document.getElementById('invoice-me').addEventListener('change', function () {
         if (this.checked) {
             let res = confirm("Checking this box means you want us to email you an Invoice (Thank you!!).  If you want to keep using Runestone for free just click cancel");
@@ -304,5 +313,49 @@
             }
         }
     });
+
+
+    // Book filter logic
+    function setupBookFilter() {
+        var filterInput = document.getElementById('bookFilter');
+        var bookList = document.getElementById('bookList');
+        if (!filterInput || !bookList) {
+            console.log('Book filter: missing filterInput or bookList');
+            return;
+        }
+        filterInput.addEventListener('input', function() {
+            var filter = this.value.trim().toLowerCase();
+            var entries = bookList.querySelectorAll('.book-entry');
+            var sections = bookList.querySelectorAll('.book-section');
+            entries.forEach(function(entry) {
+                var title = entry.getAttribute('data-title') || '';
+                var authors = entry.getAttribute('data-authors') || '';
+                var section = entry.getAttribute('data-section') || '';
+                if (title.includes(filter) || authors.includes(filter) || section.includes(filter)) {
+                    entry.style.display = '';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+            // Hide section headers if no visible books in that section
+            sections.forEach(function(sec) {
+                var secName = sec.textContent.trim().toLowerCase();
+                var visible = false;
+                entries.forEach(function(entry) {
+                    if (entry.getAttribute('data-section') === secName && entry.style.display !== 'none') {
+                        visible = true;
+                    }
+                });
+                sec.style.display = visible ? '' : 'none';
+            });
+        });
+        console.log('Book filter initialized');
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupBookFilter);
+    } else {
+        setupBookFilter();
+    }
+
 </script>
 {% endblock %}

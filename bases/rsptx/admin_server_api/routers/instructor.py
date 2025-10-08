@@ -1244,11 +1244,18 @@ async def post_designer_page(
         return templates.TemplateResponse("admin/instructor/build.html", context)
     except Exception as e:
         # On error, show designer page with error message
+        course_list = await fetch_library_books()
+        # Convert LibraryValidator objects to dicts for template compatibility
+        course_list = [c.dict() for c in course_list if c.for_classes]
+        sections = sorted({c["shelf_section"] for c in course_list})
+
         context = {
             "request": request,
             "message": f"Error creating course: {e}",
             "course": course,
             "user": user,
+            "course_list": course_list,
+            "sections": sections,
             "submitted": {
                 "institution": institution,
                 "state": state,
