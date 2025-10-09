@@ -5,6 +5,7 @@ from rsptx.db.crud import (
     is_assigned,
     fetch_answers,
     create_question_grade_entry,
+    fetch_course,
     fetch_grade,
     fetch_question_grade,
     update_question_grade_entry,
@@ -28,7 +29,7 @@ from rsptx.lti1p3.core import attempt_lti1p3_score_update
 
 
 async def grade_submission(
-    user: AuthUserValidator, submission: LogItemIncoming
+    user: AuthUserValidator, submission: LogItemIncoming, timezone: str = "UTC"
 ) -> ScoringSpecification:
     """
     Grade a submission and store the results in the database.
@@ -38,7 +39,6 @@ async def grade_submission(
     :param submission: The submission to grade.
     :type submission: LogItemIncoming
     """
-
     # First figure out if the answer is part of an assignment
     update_total = False
     accommodation = await fetch_deadline_exception(
@@ -49,6 +49,7 @@ async def grade_submission(
         user.course_id,
         submission.assignment_id,
         accommodation=accommodation,
+        timezone=timezone,
     )
 
     if submission.event == "selectquestion" and submission.act == "interaction":
