@@ -192,6 +192,7 @@ function connect(event) {
                     messarea = document.getElementById("imessage");
                     let count = 5;
                     let itimerid = setInterval(async function () {
+                        console.log(`count is ${count}`);
                         if (count > 0) {
                             messarea.style.color = "red";
                             messarea.innerHTML = `<h3>Finish up! Only ${count} seconds remaining.</h3>`;
@@ -214,6 +215,7 @@ function connect(event) {
                             let discPanel = document.getElementById("discussion_panel");
                             console.log("voteNum is " + getVoteNum());
                             if (discPanel && getVoteNum() > 1) {
+                                console.log("Hiding discussion panel");
                                 discPanel.style.display = "none";
                             }
                             let currAnswer = window.componentMap[currentQuestion].answer;
