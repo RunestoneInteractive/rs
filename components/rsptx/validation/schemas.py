@@ -157,6 +157,7 @@ class AssessmentRequest(BaseModelNone):
 
 class TimezoneRequest(BaseModelNone):
     timezoneoffset: float
+    timezone: str
 
 
 class LogRunIncoming(BaseModelNone):

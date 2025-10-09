@@ -249,7 +249,10 @@ async function handlePageSetup() {
             "Content-type": "application/json; charset=utf-8",
             Accept: "application/json",
         });
-        let data = { timezoneoffset: new Date().getTimezoneOffset() / 60 };
+        let data = {
+            timezoneoffset: new Date().getTimezoneOffset() / 60,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        };
         let request = new Request(
             `${eBookConfig.new_server_prefix}/logger/set_tz_offset`,
             {

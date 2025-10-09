@@ -16,6 +16,7 @@ from rsptx.db.crud import create_traceback
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
 
+
 def add_exception_handlers(app):
     """
     Add exception handlers to the app
@@ -47,7 +48,9 @@ def add_exception_handlers(app):
                 vals = json.loads(tz_cookie)
                 if "tz_offset" in vals:
                     request.state.tz_offset = vals["tz_offset"]
-                    rslogger.info(f"Timezone offset: {request.state.tz_offset}")
+                if "timezone" in vals:
+                    request.state.timezone = vals["timezone"]
+                    rslogger.info(f"User timezone set to {vals['timezone']}")
             except Exception as e:
                 rslogger.error(f"Failed to parse cookie data {tz_cookie} error was {e}")
         response = await call_next(request)
@@ -66,7 +69,9 @@ def add_exception_handlers(app):
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content=jsonable_encoder(
-                {"detail": "You need to be logged in to Runestone to access this resource"}
+                {
+                    "detail": "You need to be logged in to Runestone to access this resource"
+                }
             ),
         )
         # If we want to redirect the user to a login page which we really do not...
