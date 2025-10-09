@@ -1,6 +1,6 @@
 {% extends "_base.html" %}
 
-{% block title %}Course Creator{% endblock %}
+{% block title %}Create My Course{% endblock %}
 
 {% block css %}
 <style>
@@ -23,9 +23,15 @@
         margin: 0;
     }
     .step-title {
-        color: #4a90e2;
+        color: #ab1059;
         font-size: 1.3em;
         margin-top: 30px;
+        margin-bottom: 10px;
+    }
+    .filter-title, .book-section {
+        color: #4a90e2;
+        font-size: 1.3em;
+        margin-top: 10px;
         margin-bottom: 10px;
     }
     .form-section {
@@ -66,18 +72,18 @@
     <div class="alert alert-danger" style="display: block;">{{ message }}</div>
     {% endif %}
     <div class="designer-header">
-        <h1>Course Creator</h1>
+        <h1>Create My Course</h1>
         <p><strong>For Instructors ONLY</strong> If you are an independent learner you DO NOT need to build your own course.<br>
         If you are a student and think that building your own course will show you the answers, YOU ARE WRONG.</p>
     </div>
     <div id="formerrors" class="alert alert-danger"></div>
     <form id="designerForm" method="post">
         <div class="form-section">
-            <div class="step-title">Step 1: Institution Info</div>
+            <div class="step-title">Step 1: Tell Us About Your Institution</div>
             <label for="institution">Institution (required)</label>
             <input type="text" class="form-control" name="institution" id="institution" onchange="suggestedCourseName()" required value="{{ submitted.institution if submitted is defined else '' }}">
             <label for="state">United States - State</label>
-            <select id="state" name="state" required>
+            <select id="state" class="form-control" name="state" required>
                 <option value="">Choose</option>
                 {% set selected_state = submitted.state if submitted is defined else '' %}
                 <option value="NA" {% if selected_state == 'NA' %}selected{% endif %}>Not in the United States</option>
@@ -138,8 +144,8 @@
                 <option value="WI" {% if selected_state == 'WI' %}selected{% endif %}>Wisconsin</option>
                 <option value="WY" {% if selected_state == 'WY' %}selected{% endif %}>Wyoming</option>
             </select>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <label for="domainname" style="margin-bottom: 0; white-space: nowrap;">Your Institution's Internet Domain</label>
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                <label for="domainname" style="margin-bottom: 0; white-space: nowrap;">Internet Domain</label>
                 <input type="text" class="form-control" name="domainname" placeholder="example.edu" id="domainname" style="flex: 1; min-width: 200px;" required value="{{ submitted.domainname if submitted is defined else '' }}">
             </div>
             <label for="timezone">Your Timezone</label>
@@ -151,7 +157,7 @@
 
         </div>
         <div class="form-section">
-            <div class="step-title">Step 2: Course Level</div>
+            <div class="step-title">Step 2: Set Your Course Level</div>
             <label for="courselevel">Course Level (required)</label>
             <select id="courselevel" class="form-control" name="courselevel" required>
                 {% set selected_level = submitted.courselevel if submitted is defined else 'unknown' %}
@@ -167,8 +173,9 @@
         <div class="form-section">
             <div class="step-title">Step 3: Choose a Book</div>
                 <div class="form-section">
-                    <div class="step-title">Quick Book Filter</div>
+                    <label class="filter-title">Quick Book Filter
                     <input type="text" id="bookFilter" class="form-control" placeholder="Type to filter books by title, author, or section...">
+                    </label>
                 </div>
             <div id="bookList">
             {% for section in sections|sort %}
@@ -188,12 +195,12 @@
             </div>
         </div>
         <div class="form-section">
-            <div class="step-title">Step 4: Course Name</div>
+            <div class="step-title">Step 4: Set Your Course Name</div>
             <label for="projectname">Course Name</label>
             <input type="text" class="form-control" name="projectname" id="projectname" required value="{{ submitted.projectname if submitted is defined else '' }}">
         </div>
         <div class="form-section">
-            <div class="step-title">Step 5: Options & Start Date</div>
+            <div class="step-title">Step 5: Set Course Options & Start Date</div>
             <label><input type="checkbox" name="loginreq" value="true" {% if submitted is defined and submitted.loginreq == 'true' %}checked{% else %}checked{% endif %}> Require a username to access this course.</label><br>
             <label><input type="checkbox" name="allowpairs" value="true" {% if submitted is defined and submitted.allowpairs == 'true' %}checked{% endif %}> Enable <strong>experimental</strong> pair programming features.</label><br>
             <label><input type="checkbox" name="instructor" value="yes" {% if submitted is defined and submitted.instructor == 'yes' %}checked{% else %}checked{% endif %}> Make me the Instructor of this course.</label><br>
@@ -201,11 +208,11 @@
             <input type="text" name="startdate" id="startdate" class="form-control" placeholder="{{ current_date }}" required value="{{ submitted.startdate if submitted is defined else current_date }}">
         </div>
         <div class="form-section">
-            <div class="step-title">Step 6 (Optional): Support</div>
+            <div class="step-title">Step 6: (Optional !!): Support Runestone Academy</div>
             <label><input type="checkbox" name="invoice" value="true" id="invoice-me" {% if submitted is defined and submitted.invoice == 'true' %}checked{% endif %}> Please invoice my school or department for a small support fee of $10 per registered student.</label>
         </div>
         <div class="form-section">
-            <div class="step-title">Step 7: Submit</div>
+            <div class="step-title">Step 7: Create My Course</div>
             <input type="submit" class="btn btn-primary" value="Submit">
         </div>
     </form>
@@ -308,7 +315,7 @@
     document.getElementById('invoice-me').addEventListener('change', function () {
         if (this.checked) {
             let res = confirm("Checking this box means you want us to email you an Invoice (Thank you!!).  If you want to keep using Runestone for free just click cancel");
-            if (res === false) {
+            if (res === true) {
                 this.checked = false;
             }
         }

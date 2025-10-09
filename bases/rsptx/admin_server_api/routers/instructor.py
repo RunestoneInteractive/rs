@@ -1151,9 +1151,9 @@ async def root(request: Request, response_class: JSONResponse):
 
 
 # Designer page endpoints (moved to end of file)
-@router.get("/designer", response_class=HTMLResponse)
+@router.get("/create_course", response_class=HTMLResponse)
 @with_course()
-async def get_designer_page(request: Request, user=Depends(auth_manager), course=None):
+async def get_create_course_page(request: Request, user=Depends(auth_manager), course=None):
     """
     Display the course designer form for instructors.
     """
@@ -1172,12 +1172,12 @@ async def get_designer_page(request: Request, user=Depends(auth_manager), course
         "course": course,
         "user": user,
     }
-    return templates.TemplateResponse("admin/instructor/designer.html", context)
+    return templates.TemplateResponse("admin/instructor/create_course.html", context)
 
 
-@router.post("/designer", response_class=HTMLResponse)
+@router.post("/create_course", response_class=HTMLResponse)
 @with_course()
-async def post_designer_page(
+async def post_create_course_page(
     request: Request,
     institution: str = Form(...),
     state: str = Form(...),
@@ -1271,4 +1271,4 @@ async def post_designer_page(
                 "timezone": timezone,
             },
         }
-        return templates.TemplateResponse("admin/instructor/designer.html", context)
+        return templates.TemplateResponse("admin/instructor/create_course.html", context)
