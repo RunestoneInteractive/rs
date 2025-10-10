@@ -59,6 +59,8 @@ pytz = "^2024.2"
 requests = "^2.0.0"
 jwcrypto = "^1.5.6"
 psycopg2-binary = "^2.0.0"
+openai = "^1.59.3"
+javalang = "^0.13.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "~= 22.0"
