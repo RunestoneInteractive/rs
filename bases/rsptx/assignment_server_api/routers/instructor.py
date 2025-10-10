@@ -571,7 +571,7 @@ async def do_update_question(
         **req,
         base_course=course.base_course,
         timestamp=canonical_utcnow(),
-        is_private=False,
+        is_private=request_data.is_private or False,  # Use value from request instead of hardcoding
         practice=False,
         from_source=False,
         review_flag=False,

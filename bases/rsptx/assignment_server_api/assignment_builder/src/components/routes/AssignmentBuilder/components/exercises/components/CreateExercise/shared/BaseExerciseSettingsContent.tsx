@@ -44,7 +44,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
     name: initialData?.name ?? createExerciseId(),
     author: initialData?.author ?? "",
     topic: initialData?.topic ?? "",
-    chapter: initialData?.chapter || chapters?.[0].value || "",
+    chapter: initialData?.chapter || chapters?.[0]?.value || "",
     subchapter: initialData?.subchapter ?? "",
     tags: initialData?.tags ?? "",
     points: initialData?.points ?? 1,
