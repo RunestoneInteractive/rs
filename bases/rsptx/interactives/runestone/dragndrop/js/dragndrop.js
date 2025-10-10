@@ -233,6 +233,11 @@ export default class DragNDrop extends RunestoneBase {
                     this.minheight = this.draggableDiv.offsetHeight;
                     this.dragDropWrapDiv.style.minHeight =
                         this.minheight.toString() + "px";
+                    this.logBookEvent({
+                        event: "dragNdrop-drop",
+                        div_id: this.divid,
+                        act: `${data} -> dragzone`,
+                    });
                 }
             }.bind(this)
         );
@@ -415,6 +420,12 @@ export default class DragNDrop extends RunestoneBase {
                 ) {
                     // Make sure element isn't already there--prevents errors w/appending child
                     ev.target.appendChild(draggedSpan);
+                    // log a drop event
+                    this.logBookEvent({
+                        event: "dragNdrop-drop",
+                        div_id: this.divid,
+                        act: `${data} -> ${ev.target.id}`,
+                    });
                 }
                 this.queueMathJax(this.containerDiv).then(() => {
                     this.adjustDragDropWidths();
@@ -505,6 +516,12 @@ export default class DragNDrop extends RunestoneBase {
         this.dragDropWrapDiv.style.minHeight =
             this.minheight.toString() + "px";
         this.feedBackDiv.style.visibility = "hidden";
+        this.logBookEvent({
+            event: "dragNdrop-reset",
+            div_id: this.divid,
+            act: "reset",
+        });
+        this.setLocalStorage({ correct: "F" });
     }
     /*===========================
     == Evaluation and feedback ==
