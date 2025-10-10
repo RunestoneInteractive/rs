@@ -214,6 +214,8 @@ async def delete_user_course_entry(user_id: int, course_id: int) -> None:
 # -----------------------------------------------------------------------
 
 import pdb
+
+
 async def delete_course_completely(course_name: str) -> bool:
     """
     Completely delete a course and all associated data.
@@ -310,7 +312,9 @@ async def delete_course_completely(course_name: str) -> bool:
                 AuthUser.course_id == course_id
             )
             student_result = await session.execute(student_query)
-            student_usernames = [username for username in student_result.scalars().all()]
+            student_usernames = [
+                username for username in student_result.scalars().all()
+            ]
 
             if student_usernames:
                 await session.execute(
@@ -382,7 +386,6 @@ async def delete_course_completely(course_name: str) -> bool:
                 )
             )
 
-
             # 7. Update student enrollments - move them to a default course or mark them inactive
             rslogger.info("Updating student enrollments...")
             # Instead of deleting users, we'll move them to a default "orphaned" course
@@ -392,7 +395,11 @@ async def delete_course_completely(course_name: str) -> bool:
             await session.execute(
                 update(AuthUser)
                 .where(AuthUser.course_id == course_id)
-                .values(course_id=base_course.id, course_name=base_course.course_name, active="F")
+                .values(
+                    course_id=base_course.id,
+                    course_name=base_course.course_name,
+                    active="F",
+                )
             )
 
             # Option 2: Alternative - move to a default "orphaned students" course
@@ -416,6 +423,7 @@ async def delete_course_completely(course_name: str) -> bool:
     except Exception as e:
         rslogger.error(f"Error deleting course {course_name}: {e}")
         return False
+
 
 async def delete_course_instructor(course_id: int, instructor_id: int) -> None:
     """
@@ -461,7 +469,7 @@ async def update_course_settings(course_id: int, setting: str, value: str) -> No
     """
     async with async_session() as session:
         # Handle special course table fields
-        if setting in ["new_date", "allow_pairs", "downloads_enabled"]:
+        if setting in ["new_date", "allow_pairs", "downloads_enabled", "timezone"]:
             if setting == "new_date":
                 # Update term_start_date in courses table
                 import datetime
@@ -492,6 +500,21 @@ async def update_course_settings(course_id: int, setting: str, value: str) -> No
                     update(Courses)
                     .where(Courses.id == course_id)
                     .values(downloads_enabled=bool_val)
+                )
+                await session.execute(stmt)
+            elif setting == "timezone":
+                # Validate timezone using IANA database if available
+                try:
+                    from zoneinfo import ZoneInfo  # Python 3.9+
+
+                    _ = ZoneInfo(value)
+                except Exception:
+                    raise ValueError("Invalid timezone")
+
+                stmt = (
+                    update(Courses)
+                    .where(Courses.id == course_id)
+                    .values(timezone=value)
                 )
                 await session.execute(stmt)
         else:
@@ -657,6 +680,7 @@ async def fetch_course_students(course_id: int) -> List[AuthUserValidator]:
         res = await session.execute(query)
     student_list = [AuthUserValidator.from_orm(x) for x in res.scalars().fetchall()]
     return student_list
+
 
 async def fetch_basecourse_courses(base_course: str) -> List[CoursesValidator]:
     """
