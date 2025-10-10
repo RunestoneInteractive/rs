@@ -364,9 +364,9 @@ export default class FITB extends RunestoneBase {
 
     setupBlanks() {
         // Find and format the blanks. If a dynamic problem just changed the HTML, this will find the newly-created blanks.
-        // WARNING - this assumes that the only text inputs in the descriptionDiv are the blanks.
+        // WARNING - this assumes that all text/number inputs in the descriptionDiv are the blanks.
         // Ideally, there should be some unique attribute that can be used to select the blanks.
-        const ba = $(this.descriptionDiv).find('input[type="text"]');
+        const ba = $(this.descriptionDiv).find('input[type="text"],input[type="number"]');
         ba.attr("class", "form form-control selectwidthauto");
         ba.attr("aria-label", "input area");
         this.blankArray = ba.toArray();
