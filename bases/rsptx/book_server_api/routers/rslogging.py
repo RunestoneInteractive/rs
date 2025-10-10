@@ -175,11 +175,14 @@ async def log_book_event(
             rslogger.debug(ans_idx)
         if entry.event != "timedExam" and entry.event != "selectquestion":
             course = await fetch_course(user.course_name)
-            if not course.timezone:
-                tz = request.state.timezone or "UTC"
-                rslogger.debug(f"Using timezone {tz} from request state")
-            else:
+            if course.timezone:
                 tz = course.timezone
+            else:
+                if hasattr(request.state, "timezone"):
+                    tz = request.state.timezone
+                    rslogger.debug(f"Using timezone {tz} from request state")
+                else:
+                    tz = "UTC"
             scoreSpec = await grade_submission(user, entry, tz)
             response_dict.update(scoreSpec.dict())
 
