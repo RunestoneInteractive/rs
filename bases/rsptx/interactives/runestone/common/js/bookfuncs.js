@@ -242,6 +242,12 @@ class PageProgressBar {
 
 export var pageProgressTracker = {};
 
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
 async function handlePageSetup() {
     var mess;
     if (eBookConfig.useRunestoneServices) {
@@ -253,22 +259,40 @@ async function handlePageSetup() {
             timezoneoffset: new Date().getTimezoneOffset() / 60,
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
         };
-        let request = new Request(
-            `${eBookConfig.new_server_prefix}/logger/set_tz_offset`,
-            {
-                method: "POST",
-                body: JSON.stringify(data),
-                headers: headers,
-            },
-        );
-        try {
-            let response = await fetch(request);
-            if (!response.ok) {
-                console.error(`Failed to set timezone! ${response.statusText}`);
+        let RS_info = getCookie("RS_info");
+        var tz_match = false;
+        if (RS_info) {
+            try {
+                let cleaned  = RS_info.replace(/\\054/g, ','); // handle octal comma encoding
+                let info = JSON.parse(decodeURIComponent(cleaned));
+                info = JSON.parse(decodeURIComponent(info));
+                if (info.timezone === data.timezone && info.tz_offset === data.timezoneoffset) {
+                    console.log("Timezone cookie matches, not sending timezone to server");
+                    tz_match = true;
+                }
+            } catch (e) {
+                console.error("Error parsing RS_info cookie, sending timezone to server");
             }
-            data = await response.json();
-        } catch (e) {
-            console.error(`Error setting timezone ${e}`);
+        }
+        if (tz_match === false) {
+            // Set a cookie so we don't have to do this again for a while.
+            let request = new Request(
+                `${eBookConfig.new_server_prefix}/logger/set_tz_offset`,
+                {
+                    method: "POST",
+                    body: JSON.stringify(data),
+                    headers: headers,
+                },
+            );
+            try {
+                let response = await fetch(request);
+                if (!response.ok) {
+                    console.error(`Failed to set timezone! ${response.statusText}`);
+                }
+                data = await response.json();
+            } catch (e) {
+                console.error(`Error setting timezone ${e}`);
+            }
         }
     }
     console.log(`This page served by ${eBookConfig.served_by}`);
