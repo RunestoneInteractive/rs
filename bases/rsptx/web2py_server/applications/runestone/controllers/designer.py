@@ -21,6 +21,8 @@ admin_logger(logger)
 @auth.requires_login()
 def index():
     basicvalues = {}
+    # This page is obsolete -- redirect to the new admin
+    redirect("/admin/instructor/create_course")
     if settings.academy_mode:
         """
         example action using the internationalization operator T and flash
