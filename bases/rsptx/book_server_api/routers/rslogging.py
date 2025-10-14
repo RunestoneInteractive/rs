@@ -213,6 +213,7 @@ def set_tz_offset(
             rslogger.error(f"Error decoding RS_info cookie: {RS_info}")
     else:
         values = {}
+    # this preserves any other values that might be in the cookie
     values["tz_offset"] = tzreq.timezoneoffset
     values["timezone"] = tzreq.timezone
     response = JSONResponse(
