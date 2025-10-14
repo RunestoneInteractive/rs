@@ -306,7 +306,7 @@ def index():
 
         if session.build_course:
             del session.build_course
-            redirect(URL(c="designer", f="index"))
+            redirect("/admin/instructor/create_course")
 
         # See if we need to do a redirect from LTI.
         if session.lti_url_next:
