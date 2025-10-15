@@ -1543,6 +1543,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             }
             prog = pretext + prog;
         }
+        //any visible suffix already is included in editor code
         if (useSuffix && this.suffix) {
             prog = prog + this.suffix;
         }
