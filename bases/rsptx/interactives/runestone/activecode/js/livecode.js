@@ -52,9 +52,21 @@ export default class LiveCode extends ActiveCode {
     }
     createErrorOutput() { }
 
+
+    getCombinedSuffixes() {
+        if (this.suffix && this.visibleSuffix)
+            return this.suffix + this.visibleSuffix;
+        else if (this.suffix)
+            return this.suffix;
+        else if (this.visibleSuffix)
+            return this.visibleSuffix;
+        return "";
+    }
+
     hasUnitTests() {
-        return this.language === "java" && this.suffix && this.suffix.indexOf("import org.junit") > -1
-        || this.language === "cpp" && this.suffix && this.suffix.indexOf("[doctest]") > -1;
+        let combinedSuffix = this.getCombinedSuffixes();
+        return this.language === "java" && combinedSuffix.indexOf("import org.junit") > -1
+        || this.language === "cpp" && combinedSuffix.indexOf("doctest.h") > -1;
     }
 
     /*  Main runProg method for livecode
@@ -491,7 +503,7 @@ export default class LiveCode extends ActiveCode {
                     let output = result.stdout ? result.stdout : "";
                     $(odiv).html(output);
                 }
-                if (this.suffix) {
+                if (this.hasUnitTests() || this.iotests) {
                     if (this.parsedOutput.pct === undefined) {
                         this.parsedOutput.pct =
                             this.parsedOutput.passed =
