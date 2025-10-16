@@ -220,6 +220,12 @@ export function ExceptionScheduler() {
             sortable
             body={(rowData) => rowData.visible ? 'Yes' : 'No'}
           />
+          <Column
+            field="allowLink"
+            header="Link Access"
+            sortable
+            body={(rowData) => rowData.allowLink ? 'Yes' : 'No'}
+          />
         </DataTable>
         <Button
           label="Delete Selected"

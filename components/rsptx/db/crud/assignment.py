@@ -130,6 +130,7 @@ async def fetch_all_deadline_exceptions(
             DeadlineException.time_limit,
             DeadlineException.duedate,
             DeadlineException.visible,
+            DeadlineException.allowLink,
             Assignment.name.label("assignment_name"),
         )
         .select_from(DeadlineException)
@@ -152,6 +153,7 @@ async def fetch_all_deadline_exceptions(
                 "visible": row.visible,
                 "assignment_id": row.assignment_name,
                 "row_id": row.id,
+                "allowLink": row.allowLink,
             }
             for row in result.fetchall()
         ]
