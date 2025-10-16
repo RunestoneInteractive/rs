@@ -1119,6 +1119,7 @@ async def save_exception(
         request_data["due_date"],
         request_data["visible"],
         request_data["assignment_id"],
+        request_data["allowLink"],
     )
 
     if not res:

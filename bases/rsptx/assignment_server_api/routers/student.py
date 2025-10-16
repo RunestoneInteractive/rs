@@ -243,7 +243,11 @@ async def doAssignment(
         or assignment.visible is None
         or assignment.visible == False
     ):
-        if not (await is_instructor(request) or deadline_exception.visible):
+        if not (
+            await is_instructor(request)
+            or deadline_exception.visible
+            or deadline_exception.allowLink
+        ):
             rslogger.error(
                 f"Attempt to access invisible assignment {assignment_id} by {user.username}"
             )
@@ -423,7 +427,9 @@ async def doAssignment(
     # Just to be sure we are current, we will update the total score for the assignment
     current_grade = await fetch_grade(user.id, assignment_id)
     if current_grade and current_grade.score != (readings_score + questions_score):
-        rslogger.debug(f"Updating total score for {user.id} assignment {assignment_id} to {current_grade.score}")
+        rslogger.debug(
+            f"Updating total score for {user.id} assignment {assignment_id} to {current_grade.score}"
+        )
         current_grade.score = readings_score + questions_score
         await upsert_grade(current_grade)
     elif not current_grade:
@@ -435,8 +441,10 @@ async def doAssignment(
             score=readings_score + questions_score,
         )
         await upsert_grade(new_grade)
-        rslogger.debug(f"Creating total score for {user.id} assignment {assignment_id} to {new_grade.score}")
-        
+        rslogger.debug(
+            f"Creating total score for {user.id} assignment {assignment_id} to {new_grade.score}"
+        )
+
     # put readings into a session variable, to enable next/prev button
     readings_names = []
     for chapname in readings:

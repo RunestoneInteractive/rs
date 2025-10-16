@@ -42,6 +42,7 @@ export function ExceptionScheduler() {
   const [extraDays, setExtraDays] = useState(null);
   const [helpVisible, setHelpVisible] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState(null);
+  const [linked, setLinked] = useState(false);
   const saveAllExceptions = () => {
     const savePromises = [];
     for (let student of students) {
@@ -52,19 +53,21 @@ export function ExceptionScheduler() {
           due_date: extraDays,
           visible: checked,
           sid: student.username,
-          assignment_id: null
+          assignment_id: null,
+          allowLink: linked
         };
 
         savePromises.push(dispatch(saveException(exception)));
       } else {
         for (let assignment of assignments) {
-          console.log(`Saving exception: ${student.username} ${tlMult}, ${extraDays}, ${checked}`);
+          console.log(`Saving exception: ${student.username} ${tlMult}, ${extraDays}, ${checked} ${linked}`);
           let exception = {
             time_limit: tlMult,
             due_date: extraDays,
             visible: checked,
             sid: student.username,
-            assignment_id: assignment.id
+            assignment_id: assignment.id,
+            allowLink: linked
           };
 
           savePromises.push(dispatch(saveException(exception)));
@@ -79,6 +82,7 @@ export function ExceptionScheduler() {
         setTlMult(null);
         setExtraDays(null);
         setChecked(false);
+        setLinked(false);
       })
       .catch((error) => {
         console.error("Error saving exceptions:", error);
@@ -141,6 +145,13 @@ export function ExceptionScheduler() {
           <InputSwitch id="access" checked={checked} onChange={(e) => setChecked(e.value)} />
         </div>
         <div className="flex-auto">
+          <label htmlFor="linkTo">
+            Allow students with a link to access the assignment even when not visible.
+          </label>
+          <InputSwitch id="linkTo" checked={linked} onChange={(e) => setLinked(e.value)} />
+        </div>
+
+        <div className="flex-auto">
           <Button
             icon="pi pi-question-circle"
             rounded
@@ -160,6 +171,10 @@ export function ExceptionScheduler() {
                 <li>
                   Access: Allow the student to see and access the assignment even if it is not
                   visible to others.
+                </li>
+                <li>
+                  Link Access: Allow the student to access the assignment if they have a direct link
+                  to it, even if it is not visible to others.
                 </li>
               </ul>
               Note: If you have already extended the deadline for a student by N days and you still

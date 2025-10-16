@@ -85,6 +85,7 @@ async def create_deadline_exception(
     deadline: int,
     visible: bool,
     assignment_id: int = None,
+    allowLink: Optional[bool] = None,
 ) -> DeadlineExceptionValidator:
     """
     Create a new deadline exception for a given username and assignment_id.
@@ -99,6 +100,7 @@ async def create_deadline_exception(
         time_limit=time_limit,
         duedate=deadline,
         visible=visible,
+        allowLink=allowLink,
         assignment_id=assignment_id,
     )
     async with async_session.begin() as session:

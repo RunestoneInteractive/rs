@@ -655,6 +655,7 @@ class Assignment(Base, IdMixin):
 
     questions = relationship("AssignmentQuestion", cascade="all, delete-orphan")
 
+
 AssignmentValidator: TypeAlias = sqlalchemy_to_pydantic(Assignment)  # type: ignore
 
 
@@ -710,6 +711,9 @@ class DeadlineException(Base, IdMixin):
     time_limit = Column(
         Float, nullable=True
     )  # multiplier for the time limit of a timed exam
+    allowLink = Column(
+        Web2PyBoolean, nullable=True
+    )  # allow the student to use a link to assignments even if not visible
 
 
 DeadlineExceptionValidator: TypeAlias = sqlalchemy_to_pydantic(DeadlineException)  # type: ignore
