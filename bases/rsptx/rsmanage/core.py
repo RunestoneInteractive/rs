@@ -776,6 +776,8 @@ async def courseinfo(config, name):
 
     print(f"Course Information for {name} -- ({cid})")
     print(inst)
+    print(f"timezone: {course.timezone}  Login Required: {course.login_required}")
+    print(f"Downloads Enabled: {course.downloads_enabled} Allow Pairs: {course.allow_pairs}")
     print(f"Base course: {bc}")
     print(f"Start date: {start_date}")
     print(f"Number of students: {s_count}")
