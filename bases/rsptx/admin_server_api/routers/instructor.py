@@ -26,6 +26,7 @@ from rsptx.db.crud import (
     create_assignment,
     create_course_instructor,
     create_course,
+    create_course_attribute,
     create_instructor_course_entry,
     create_membership,
     create_user_course_entry,
@@ -1153,7 +1154,9 @@ async def root(request: Request, response_class: JSONResponse):
 # Designer page endpoints (moved to end of file)
 @router.get("/create_course", response_class=HTMLResponse)
 @with_course()
-async def get_create_course_page(request: Request, user=Depends(auth_manager), course=None):
+async def get_create_course_page(
+    request: Request, user=Depends(auth_manager), course=None
+):
     """
     Display the course designer form for instructors.
     """
@@ -1221,8 +1224,14 @@ async def post_create_course_page(
         }
         course_validator = CoursesValidator(**course_data)
         new_course = await create_course(course_validator)
-        # Enroll user in course and make instructor
 
+        # Copy attributes from base course
+        bc = await fetch_course(coursetype)
+        attrs = await fetch_all_course_attributes(bc.id)
+        for key, value in attrs.items():
+            await create_course_attribute(new_course.id, key, value)
+
+        # Enroll user in course and make instructor
         await create_user_course_entry(user.id, new_course.id)
         igroup = await fetch_group("instructor")
         groups = await fetch_membership(igroup.id, user.id)
@@ -1271,4 +1280,6 @@ async def post_create_course_page(
                 "timezone": timezone,
             },
         }
-        return templates.TemplateResponse("admin/instructor/create_course.html", context)
+        return templates.TemplateResponse(
+            "admin/instructor/create_course.html", context
+        )
