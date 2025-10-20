@@ -5,6 +5,7 @@
  *
  */
 var taskId2Task = {};
+var taskIdStatus = {};
 
 function handleClick(type) {
     fetch("/author/tasks", {
@@ -351,10 +352,6 @@ function showLog(book) {
             let log = document.getElementById("lastlog");
             let div = document.getElementById("lastdiv");
             div.style.display = "block";
-            res.detail = res.detail.replace(/ /g, "&nbsp;");
-            res.detail = res.detail.replace(/</g, "&lt;");
-            res.detail = res.detail.replace(/>/g, "&gt;");
-            res.detail = res.detail.replace(/&/g, "&amp;");
             log.innerHTML = res.detail;
         })
         .catch((err) => console.log(err));
@@ -410,16 +407,29 @@ function getStatus(taskID) {
         .then((res) => {
             let d = new Date();
             let taskName = taskId2Task[taskID];
+            console.log(`Task Status ${JSON.stringify(res)}`);
+            if (res.task_status === "ERRORS" ) {
+                taskIdStatus[taskID] = "ERRORS";
+            }
             if (!res.task_result) {
-                res.task_result = {};
-                if (
-                    res.task_status == "SUCCESS" ||
-                    res.task_status == "FAILURE"
-                ) {
-                    res.task_result.current = res.task_status;
+                // this likely means the task had errors but still finished
+                if (taskIdStatus[taskID] === "ERRORS") {
+                    res.task_status = "COMPLETE";
+                    res.task_result = {};
+                    res.task_result.current = "Task completed with errors - check log";
                 } else {
-                    res.task_result.current = "Awaiting result status";
+                    res.task_result = {};
+                    res.task_result.current = "";
                 }
+                // res.task_result = {};
+                // if (
+                //     res.task_status == "SUCCESS" ||
+                //     res.task_status == "FAILURE"
+                // ) {
+                //     res.task_result.current = res.task_status;
+                // } else {
+                //     res.task_result.current = "Awaiting result status";
+                // }
             }
             res.task_result.current = res.task_result.current.replace(/</g, "&lt;");
             res.task_result.current = res.task_result.current.replace(/>/g, "&gt;");
@@ -441,7 +451,7 @@ function getStatus(taskID) {
             }
 
             const taskStatus = res.task_status;
-            if (taskStatus === "SUCCESS" || taskStatus === "FAILURE") {
+            if (taskStatus === "SUCCESS" || taskStatus === "FAILURE" || taskStatus === "COMPLETE") {
                 if (
                     res.task_result.current == "csv.zip file created" ||
                     res.task_result.current == "Ready for download"

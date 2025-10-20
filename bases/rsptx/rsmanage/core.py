@@ -435,10 +435,10 @@ async def build(config, clone, ptx, gen, manifest, course):
     else:
         res = _build_runestone_book(config, course)
 
-    if res:
-        click.echo("Build Succeeded")
+    if res.get("completed", False):
+        click.echo(res.get("status", "Build Succeeded"))
     else:
-        click.echo("Build Failed, see author_build.log for details")
+        click.echo(res.get("status", "Build Failed see log for details"))
 
 
 #
