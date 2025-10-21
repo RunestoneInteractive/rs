@@ -172,6 +172,7 @@ async def fetch_questions_by_search_criteria(
 
 async def search_exercises(
     criteria: schemas.ExercisesSearchRequest,
+    owner: str,
 ) -> dict:
     """
     Smart search for exercises with pagination, filtering, and sorting.
@@ -193,7 +194,17 @@ async def search_exercises(
             .where(AssignmentQuestion.assignment_id == criteria.assignment_id)
             .scalar_subquery()
         )
-        query = query.where(Question.id.not_in(assigned_questions))
+        query = query.where(
+            and_(
+                Question.id.not_in(assigned_questions),
+                (
+                    or_(
+                        Question.is_private == False,
+                        Question.owner == owner,  # noqa: E712
+                    )
+                ),
+            )
+        )
 
     # Process filters
     if criteria.filters:
@@ -602,9 +613,11 @@ async def fetch_questions_for_chapter_subchapter(
         .where(
             and_(
                 Chapter.course_id == base_course,
-                or_(
-                    Question.owner == owner,
-                    Question.is_private == False,  # noqa: E712
+                (
+                    or_(
+                        Question.owner == owner,
+                        Question.is_private == False,  # noqa: E712
+                    )
                 ),  # noqa: E712
                 skipr_clause,
                 froms_clause,

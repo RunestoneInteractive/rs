@@ -857,7 +857,7 @@ async def search_exercises_endpoint(
         search_request.base_course = course.base_course
 
     # Perform exercise search
-    result = await search_exercises(search_request)
+    result = await search_exercises(search_request, owner=user.username)
 
     # Convert timestamps to strings for JSON
     exercises = []
