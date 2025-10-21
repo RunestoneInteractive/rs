@@ -829,6 +829,7 @@ async def fetch_chooser_data(
         skipreading=request_data.skipreading,
         from_source_only=request_data.from_source_only,
         pages_only=request_data.pages_only,
+        owner=user.username,
     )
     return make_json_response(status=status.HTTP_200_OK, detail={"questions": res})
 
