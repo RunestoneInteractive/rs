@@ -65,8 +65,16 @@ export default class LiveCode extends ActiveCode {
 
     hasUnitTests() {
         let combinedSuffix = this.getCombinedSuffixes();
-        return this.language === "java" && combinedSuffix.indexOf("import org.junit") > -1
-        || this.language === "cpp" && combinedSuffix.indexOf("doctest.h") > -1;
+
+        // import used to detect java unit tests is historically assumed to always be in suffix
+        if( this.language === "java")
+            return combinedSuffix.indexOf("import org.junit") > -1;
+
+        // cpp unit test include may be in suffix or hidden prefix code
+        if (this.language !== "cpp")
+            return combinedSuffix.indexOf("doctest.h") > -1 || this.prefix.indexOf("doctest.h") > -1;
+
+        return false;
     }
 
     /*  Main runProg method for livecode
