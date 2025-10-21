@@ -158,6 +158,21 @@ db.define_table(
     Field("percent", "double"),
     migrate=bookserver_owned("dragndrop_answers"),
 )
+
+# matching_answers
+# ----------------
+db.define_table(
+    "matching_answers",
+    Field("timestamp", "datetime"),
+    Field("div_id", "string"),
+    Field("sid", "string"),
+    Field("course_name", "string"),
+    Field("answer", "string"),
+    Field("correct", "boolean"),
+    Field("percent", "double"),
+    migrate=bookserver_owned("matching_answers"),
+)
+
 # clickablearea_answers
 # ---------------------
 db.define_table(
