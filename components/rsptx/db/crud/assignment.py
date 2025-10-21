@@ -85,6 +85,7 @@ async def create_deadline_exception(
     deadline: int,
     visible: bool,
     assignment_id: int = None,
+    allowLink: Optional[bool] = None,
 ) -> DeadlineExceptionValidator:
     """
     Create a new deadline exception for a given username and assignment_id.
@@ -99,6 +100,7 @@ async def create_deadline_exception(
         time_limit=time_limit,
         duedate=deadline,
         visible=visible,
+        allowLink=allowLink,
         assignment_id=assignment_id,
     )
     async with async_session.begin() as session:
@@ -122,11 +124,13 @@ async def fetch_all_deadline_exceptions(
     # is not tied to a specific assignment
     query = (
         select(
+            DeadlineException.id,
             DeadlineException.course_id,
             DeadlineException.sid,
             DeadlineException.time_limit,
             DeadlineException.duedate,
             DeadlineException.visible,
+            DeadlineException.allowLink,
             Assignment.name.label("assignment_name"),
         )
         .select_from(DeadlineException)
@@ -148,11 +152,22 @@ async def fetch_all_deadline_exceptions(
                 "duedate": row.duedate,
                 "visible": row.visible,
                 "assignment_id": row.assignment_name,
+                "row_id": row.id,
+                "allowLink": row.allowLink,
             }
             for row in result.fetchall()
         ]
 
+async def delete_deadline_exception(entry_id: int) -> None:
+    """
+    Delete a deadline exception by its ID.
 
+    :param entry_id: int, the ID of the deadline exception to delete
+    """
+    stmt = delete(DeadlineException).where(DeadlineException.id == entry_id)
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+        
 async def get_repo_path(book: str) -> Optional[str]:
     """
     Get the repo_path for a book from the library table
@@ -404,6 +419,7 @@ async def update_multiple_assignment_questions(
                     "difficulty",
                     "tags",
                     "activities_required",
+                    "is_private"
                 ]
 
                 # Check if any of the editable fields have changed

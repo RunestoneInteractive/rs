@@ -2,6 +2,7 @@ import datetime
 from typing import List, Optional
 import pytz
 from sqlalchemy import select, and_, or_, func
+from zoneinfo import ZoneInfo
 
 from ..models import (
     Assignment,
@@ -47,6 +48,7 @@ async def is_assigned(
     course_id: int,
     assignment_id: Optional[int] = None,
     accommodation: Optional[DeadlineExceptionValidator] = None,
+    timezone: Optional[str] = "UTC",
 ) -> schemas.ScoringSpecification:
     """
     Check if a question is part of an assignment.
@@ -77,6 +79,8 @@ async def is_assigned(
     visible_exception = False
     if accommodation and accommodation.visible:
         visible_exception = True
+    tz = ZoneInfo(timezone)
+    course_tz_now = datetime.datetime.now(tz)
     async with async_session() as session:
         res = await session.execute(query)
         for row in res:
@@ -94,14 +98,12 @@ async def is_assigned(
             )
             if accommodation and accommodation.duedate:
                 row.Assignment.duedate += datetime.timedelta(days=accommodation.duedate)
-            if datetime.datetime.now(datetime.UTC) <= row.Assignment.duedate.replace(
-                tzinfo=pytz.utc
-            ):
+            if course_tz_now <= row.Assignment.duedate.replace(tzinfo=tz):
                 if row.Assignment.visible:  # todo update this when we have a visible by
                     scoringSpec.assigned = True
                     return scoringSpec
             else:
-                if not row.Assignment.enforce_due and not row.Assignment.released:
+                if not row.Assignment.enforce_due:
                     if row.Assignment.visible or visible_exception:
                         scoringSpec.assigned = True
                         return scoringSpec
@@ -112,6 +114,7 @@ async def fetch_reading_assignment_spec(
     chapter: str,
     subchapter: str,
     course_id: int,
+    timezone: Optional[str] = "UTC",
 ) -> Optional[int]:
     """
     Check if a reading assignment is assigned for a given chapter and subchapter.
@@ -121,6 +124,9 @@ async def fetch_reading_assignment_spec(
     :param course_id: int, the id of the course
     :return: The number of required activities or None if not found
     """
+    tz = ZoneInfo(timezone)
+    course_tz_now = datetime.datetime.now(tz)
+    course_tz_now = course_tz_now.replace(tzinfo=None)
     query = (
         select(
             AssignmentQuestion.activities_required,
@@ -140,7 +146,7 @@ async def fetch_reading_assignment_spec(
                 Question.subchapter == subchapter,
                 Assignment.visible == True,  # noqa: E712
                 or_(
-                    Assignment.duedate > canonical_utcnow(),
+                    Assignment.duedate > course_tz_now,
                     Assignment.enforce_due == False,  # noqa: E712
                 ),
             )

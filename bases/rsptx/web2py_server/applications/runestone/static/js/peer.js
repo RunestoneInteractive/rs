@@ -1,4 +1,4 @@
-// Configuration for the PI steps and helper functions to handle step progression
+// Configuration for the PI steps and helper functions to handle step progression in the instructor's interface
 const STEP_CONFIG = {
     vote1: {
         next: ['makep', 'facechat', 'makeabgroups'],
@@ -107,6 +107,42 @@ function handleButtonClick(event) {
     }
 }
 
+// Function to render incoming and outgoing messages for the text chat
+function renderMessage({ from, text, direction }) {
+    // Create message element
+    const message = document.createElement("li");
+    message.classList.add(`${direction}-mess`);
+
+    // Sender container
+    const sender = document.createElement("div");
+    sender.classList.add("sender");
+
+    // Thumbnail using sender initials
+    const senderInitials = document.createElement("div");
+    senderInitials.classList.add("sender-initials");
+    let initials = from.split(" ").map(n => n.charAt(0)).join("").toUpperCase();
+    senderInitials.textContent = initials;
+
+    // Sender name
+    const senderName = document.createElement("div");
+    senderName.classList.add("sender-name");
+    senderName.textContent = direction === "outgoing" ? "You" : from;
+
+    sender.appendChild(senderInitials);
+    sender.appendChild(senderName);
+
+    // Message content
+    const content = document.createElement("div");
+    content.classList.add("content");
+    content.textContent = text;
+
+    // Append sender and content to message
+    message.appendChild(sender);
+    message.appendChild(content);
+
+    return message;
+}
+
 var ws = null;
 var alertSet = false;
 function connect(event) {
@@ -119,15 +155,13 @@ function connect(event) {
     ws.onclose = function () {
         console.log("Websocket Closed")
         alert(
-            "You have been disconnected from the peer instruction server. Will Reconnect."
+            "You have been disconnected from the peer instruction server. Will reconnect."
         );
         connect();
     };
 
     ws.onmessage = function (event) {
-        var messages = document.getElementById("messages");
-        var message = document.createElement("li");
-        message.classList.add("incoming-mess");
+        const messages = document.getElementById("messages");
         let mess = JSON.parse(event.data);
         // This is an easy to code solution for broadcasting that could go out to
         // multiple courses.  It would be better to catch that on the server side
@@ -138,9 +172,15 @@ function connect(event) {
         }
         if (mess.type === "text") {
             if (!(mess.time in messageTrail)) {
-                var content = document.createTextNode(`${mess.from}: ${mess.message}`);
-                message.appendChild(content);
+                let message = renderMessage({
+                    from: mess.from,
+                    text: mess.message,
+                    direction: "incoming"
+                });
+
+                // Append message to messages container
                 messages.appendChild(message);
+                messages.scrollTop = messages.scrollHeight;
                 messageTrail[mess.time] = mess.message;
             }
         } else if (mess.type === "control") {
@@ -152,6 +192,7 @@ function connect(event) {
                     messarea = document.getElementById("imessage");
                     let count = 5;
                     let itimerid = setInterval(async function () {
+                        console.log(`count is ${count}`);
                         if (count > 0) {
                             messarea.style.color = "red";
                             messarea.innerHTML = `<h3>Finish up! Only ${count} seconds remaining.</h3>`;
@@ -174,6 +215,7 @@ function connect(event) {
                             let discPanel = document.getElementById("discussion_panel");
                             console.log("voteNum is " + getVoteNum());
                             if (discPanel && getVoteNum() > 1) {
+                                console.log("Hiding discussion panel");
                                 discPanel.style.display = "none";
                             }
                             let currAnswer = window.componentMap[currentQuestion].answer;
@@ -275,7 +317,7 @@ function connect(event) {
                     for (const key in adict) {
                         let currAnswer = adict[key];
                         let newpeer = document.createElement("p");
-                        newpeer.innerHTML = `${key} answered ${currAnswer}`;
+                        newpeer.innerHTML = `${key}: <strong>${currAnswer}</strong>`;
                         peerlist.appendChild(newpeer);
                     }
                     break;
@@ -396,31 +438,43 @@ async function sendLtiScores(event) {
 // the server can then broadcast the message or send it to a
 // specific user
 async function sendMessage(event) {
-    var input = document.getElementById("messageText");
-    if (input.value.trim() === "") {
+    const messages = document.getElementById("messages");
+    const input = document.getElementById("messageText");
+    const sendButton = document.getElementById("sendpeermsg");
+    const messageText = input.value.trim();
+
+    if (messageText === "") {
         input.focus();
         return;
     }
+
     let mess = {
         type: "text",
         from: `${user}`,
-        message: input.value,
+        message: messageText,
         time: Date.now(),
         broadcast: false,
         course_name: eBookConfig.course,
         div_id: currentQuestion,
     };
+
     await publishMessage(mess);
-    var messages = document.getElementById("messages");
-    var message = document.createElement("li");
-    message.classList.add("outgoing-mess");
-    var content = document.createTextNode(`${user}: ${input.value}`);
-    message.appendChild(content);
+
+    let message = renderMessage({
+        from: user,
+        text: messageText,
+        direction: "outgoing"
+    });
+
+    // Append message to messages container
     messages.appendChild(message);
+    messages.scrollTop = messages.scrollHeight;
+
     input.value = "";
-    // focus tehe input box again
     input.focus();
-    // not needed for onclick event.preventDefault()
+
+    // Disable the send button after sending a message
+    sendButton.classList.add("disabled");
 }
 
 function warnAndStopVote(event) {
@@ -731,11 +785,25 @@ async function setupPeerGroup() {
 
 $(function () {
     let tinput = document.getElementById("messageText");
-    if (tinput) {
-        tinput.addEventListener("keyup", function (event) {
-            if (event.keyCode === 13) {
+    let sendButton = document.getElementById("sendpeermsg");
+
+    if (tinput && sendButton) {
+        tinput.addEventListener("input", function () {
+            let message = this.value.trim();
+            if (message !== "") {
+                sendButton.classList.remove("disabled");
+            } else {
+                sendButton.classList.add("disabled");
+            }
+        });
+
+        tinput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
                 event.preventDefault();
-                document.getElementById("sendpeermsg").click();
+                let message = this.value.trim();
+                if (message != "") {
+                    document.getElementById("sendpeermsg").click();
+                }
             }
         });
     }

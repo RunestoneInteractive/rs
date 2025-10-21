@@ -94,6 +94,7 @@ export class MatchingProblem extends RunestoneBase {
     async logCurrentAnswer() {
         let eventData = {
             score: this.scorePercent,
+            percent: this.scorePercent/100.0,
             correctCount: this.correctCount,
             incorrectCount: this.incorrectCount,
             missingCount: this.missingCount,

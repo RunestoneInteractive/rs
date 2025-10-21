@@ -27,41 +27,70 @@
 </div>
 
 <script type="text/javascript">
-	function validateForm() {
-		var x = document.forms["mainform"]["projectname"].value;
-		var basecourse = document.forms["mainform"]["coursetype"].value;
-		let instid = document.forms["mainform"]["institution"].value;
-		let level = document.forms["mainform"]["courselevel"].value;
+	function validateForm(evt) {
+		const x = document.forms["mainform"]["projectname"].value;
+		const basecourse = document.forms["mainform"]["coursetype"].value;
+		const instid = document.forms["mainform"]["institution"].value;
+		const level = document.forms["mainform"]["courselevel"].value;
+		const domain = document.forms["mainform"]["domainname"].value;
+		const errorDiv = document.getElementById("formerrors");
+		const errors = [];
 
-
-		if (basecourse == "") {
-			alert('Error: You must select a book for your course')
-			return false;
+		// Clear previous errors
+		if (errorDiv) {
+			errorDiv.innerHTML = "";
+			errorDiv.className = "";
+			errorDiv.removeAttribute("role");
 		}
 
-		if (instid == "") {
-			alert('Error: You must provide the name of your Institution. This is used for help your students find the correct course')
-			return false;
+		// Validations
+		if (!basecourse) {
+			errors.push("You must select a book for your course.");
 		}
 
-		if (level == "unknown") {
-			alert("Please tell us approximately what level your course is at this is important for recommending questions as well as educational research.")
-			return false;
+		if (!instid) {
+			errors.push("You must provide the name of your Institution. This helps your students find the correct course.");
 		}
 
-		if (x == "" || x.indexOf(" ") !== -1 || x.indexOf("/") > -1) {
-			alert('Error:  Your Project Name may not contain spaces or /')
-			return false;
+		if (level === "unknown") {
+			errors.push("Please tell us approximately what level your course is at. This is important for recommending questions as well as educational research.");
+		}
+
+		if (x === "" || x.indexOf(" ") !== -1 || x.indexOf("/") > -1) {
+			errors.push("Your Project Name may not contain spaces or /");
 		}
 
 		if (!/^([\x30-\x39]|[\x41-\x5A]|[\x61-\x7A]|[_-])*$/.test(x)) {
-			alert("Error: Your project name can only contain ASCII letters digits and - or _");
-			return false;
+			errors.push("Your project name can only contain ASCII letters, digits, and - or _.");
 		}
 
+		if (domain.indexOf('.') === -1 || domain.indexOf(" ") !== -1) {
+			errors.push("Your domain name should contain at least one . and no spaces.");
+		}
 
-		unhide_img('spinner');
-		return true
+		if (errors.length > 0) {
+			// Render errors into #formerrors
+			if (errorDiv) {
+				errorDiv.classList.add("alert", "alert-danger");
+				errorDiv.setAttribute("role", "alert");
+				const ul = document.createElement("ul");
+				ul.classList.add("mb-0");
+				errors.forEach(msg => {
+					const li = document.createElement("li");
+					li.textContent = msg;
+					ul.appendChild(li);
+				});
+				errorDiv.appendChild(ul);
+				// Scroll into view for accessibility
+				errorDiv.scrollIntoView({ behavior: "smooth", block: "start" });
+			}
+			// Prevent submit
+			evt.preventDefault();
+			return false;
+		} else {
+			unhide_img('spinner');
+			return true;
+		}
 	}
 
 	function suggested_course_name() {
@@ -88,14 +117,14 @@
 
 </script>
 <div class="col-md-8 col-md-offset-2">
-	<form name="mainform" action="/{{=request.application}}/{{=request.controller}}/build" method="get"
-		onsubmit="return validateForm();">
+	<div id="formerrors"></div>
+	<form name="mainform" action="/{{=request.application}}/{{=request.controller}}/build" method="get">
 
 		<div class="form-group row">
 			<div class="col-md-8">
 				<h3>Step 1</h3>
 				<p><i>Tell us the name of your Institution and your US State. We may use this to verify your status as
-						an instructor. The state is required by non-profit tax codes.</i></p>
+						an instructor. The state is required by non-profit tax codes. The domain will be used to help your students register.</i></p>
 				<label for="institution">Institution (required)</label>
 				<input type="text" class="form-control" placeholder="Your school" name="institution" id="institution"
 					onchange="suggested_course_name()" />
@@ -161,19 +190,17 @@
 					<option value="WY">Wyoming</option>
 				</select>
 
-				<p><i>Optionally, specify the domain of your institution. Some features (like LTI1p3) are only enabled
+				<p><i>Specify the internet domain of your institution. Some features (like LTI1p3) are only enabled
 						for particular domains. If you know your domain has approval for such a feature, specify it
 						here. To request a domain be given access to a feature, please make an issue at <a
 							href="https://github.com/RunestoneInteractive/rs/issues">https://github.com/RunestoneInteractive/rs/issues</a>.</i>
-				</p>
-				<p><i>If you do not need any of the features that require approval, you can leave the domain blank.</i>
-				</p>
-
+				</p><p><i>For example: umn.edu, umich.edu, myprivate.org, myHS.k12.mn.us</i></p>
+				
 				<div class="form-group row">
 					<div class="col-md-6">
-						<label for="domainname">Course Domain</label>
+						<label for="domainname">Your Institution's Internet Domain</label>
 						<input type="text" class="form-control" placeholder="" name="domainname" id="domainname"
-							size="50" />
+							size="50" required />
 					</div>
 				</div>
 
@@ -307,6 +334,8 @@
 </div>
 
 <script type="text/javascript">
+	let myForm = document.forms["mainform"]
+	myForm.addEventListener("submit", validateForm)
 	$('#startdate').datepicker();
 	let checkbox = document.getElementById("invoice-me")
 	checkbox.addEventListener("change", function () {

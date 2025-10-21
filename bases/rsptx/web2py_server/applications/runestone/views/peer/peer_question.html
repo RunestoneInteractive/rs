@@ -4,6 +4,11 @@
 {{include '_sphinx_static_files.html'}}
 {{end}}
 
+<link
+    rel="stylesheet"
+    href="{{=URL('static','css/peer.css')}}?v={{=request.peer_mtime}}"
+/>
+
 <script>
     eBookConfig.peer = true;
     var assignment_id = {{=assignment_id }};
@@ -14,46 +19,73 @@
 </div>
 
 <h2>Peer Instruction: {{=assignment_name}}</h2>
-<div id="imessage">
 
-</div>
-<div class="row">
-    <div class="col-md-6">
-        <form action="/runestone/peer/peer_question" method="GET" id="nextqform">
-            <input type="hidden" name="assignment_id" value={{=assignment_id}}>
-        </form>
-    </div>
-</div>
+<div id="pi-student-interface">
+    <div id="imessage"></div>
 
-<div class="row">
-    <div class='oneq col-md-6 runestone-sphinx'>
-        {{=XML(current_question['htmlsrc'])}}
-    </div>
-    <div id="discussion_panel" class='col-md-6' style="display: none">
-        <p>Your answer <span id="first_answer"></span></p>
-        <div id="peerlist">
+    <div class="row">
+        <div class="col-md-6">
+            <form action="/runestone/peer/peer_question" method="GET" id="nextqform">
+                <input type="hidden" name="assignment_id" value={{=assignment_id}}>
+            </form>
         </div>
-        <p>Please discuss the answers with your group members</p>
-        <div>
-            <ul id="messages" class="conversation">
+    </div>
 
-            </ul>
+    <div class="row">
+        <div class='oneq col-md-6 runestone-sphinx'>
+            {{=XML(current_question['htmlsrc'])}}
         </div>
 
-        <textarea id="messageText" rows="6" style="width: 350px;">
-</textarea>
-        <div class="text-center" style="width: 350px;">
-            <button id="sendpeermsg" type="button" onclick="sendMessage()">Send</button>
+        <div id="discussion_panel" class='col-md-6' style="display: none">
+             <div id="discussion-panel-heading">
+                <p>Peer Chat</p>
+            </div>
+
+            <div id="discussion-panel-peer-votes">
+                <div id="discussion-panel-peer-votes-content">
+                    <p>Here is what everyone answered:</p>
+                    <div id="peerlist">
+                        <p>You: <strong><span id="first_answer"></span></strong></p>
+                    </div>
+                    <p>Please discuss your answers now :)</p>
+                </div>
+            </div>
+
+            <div id="discussion-panel-messages">
+                <ul id="messages" class="conversation"></ul>
+                <div id="peer-message-box">
+                    <!-- <textarea id="messageText" rows="6" style="width: 350px;" /> -->
+                    <input type="text" id="messageText" placeholder="Type your explanation here...">
+                    <button
+                        id="sendpeermsg"
+                        class="btn disabled"
+                        onclick="sendMessage()"
+                        aria-label="Send message"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            fill="currentColor"
+                            class="bi bi-arrow-up-circle-fill"
+                            viewBox="0 0 16 16"
+                            aria-hidden="true"
+                        >
+                            <path d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0m-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
 
+        <div id="group_select_panel" class="col-md-6" style="display: none;">
+            <p><strong>In person discussion:</strong> select the people in your discussion group.</p>
+            <select id="assignment_group" multiple class="assignment_partner_select" style="width: 95%">
+            </select>
+        </div>
     </div>
-    <div id="group_select_panel" class="col-md-6" style="display: none;">
-        <p><strong>In person discussion:</strong> select the people in your discussion group.</p>
-        <select id="assignment_group" multiple class="assignment_partner_select" style="width: 95%">
-        </select>
-    </div>
-
 </div>
+
 <p>Please do not leave or refresh the page during a peer instruction session. <strong>Exception:</strong> If you should
     have seen a new question at this point then you may continue.</p>
 
@@ -131,7 +163,7 @@
             event.preventDefault();
             event.returnValue =
                 "Please do not leave or refresh the page during a peer instruction session.";
-            return "Please do not leave or refresh the page during a peer instruction session.  Exception: If you should have seen a new question at this point then you may continue.";
+            return "Please do not leave or refresh the page during a peer instruction session. Exception: If you should have seen a new question at this point then you may continue.";
         }.bind(this)
     );
 

@@ -78,7 +78,7 @@ function gradeIndividualItem() {
                     panel.style.display = "none";
                 }
             } else if (rsd.value == "filterto1") {
-                if (v > 0) {
+                if (v >= 0 && v < maxPoints) {
                     panel.style.display = "block";
                 } else {
                     panel.style.display = "none";
@@ -96,7 +96,7 @@ function gradeIndividualItem() {
                     panel.style.display = "none";
                 }
             } else if (rsd.value == "filterto4") {
-                if (v >= 0 && v < maxPoints) {
+                if (v > 0) {
                     panel.style.display = "block";
                 }
                 else {

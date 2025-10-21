@@ -67,8 +67,7 @@ from rsptx.db.crud import (
     fetch_one_assignment,
     create_instructor_course_entry,
     fetch_lti1p3_config_by_lti_data,
-    fetch_lti1p3_course_by_lti_id,
-    fetch_lti1p3_course_by_id,
+    fetch_lti1p3_courses_by_lti_course_id,
     fetch_course,
     fetch_instructor_courses,
     validate_user_credentials
@@ -331,18 +330,71 @@ async def launch(request: Request):
             key, value = p.split("=")
             query_params[key] = value
 
+    rslogger.debug(f"LTI1p3 - launch params: {query_params}")
+
+    # Start by identifying the kind of launch this is. Will need different info from different kinds of launches
+    # Type 1: Book links - links to specific pages in the book
+    # They will have a query param "book_page"
+    if "book_page" in query_params:
+        book_page = query_params["book_page"]
+        launch_type = "book_link"
+    # Type 2: Assignment links - links to Runestone assignments
+    else:
+        launch_type = "assignment_link"
+        # Get resourceId of the line item for the resource that was linked
+        # should have RSCOURSEID_RSASSIGNMENTID format, use that to load RS assignment and course
+        ags = message_launch.get_ags()
+        try:
+            assign_lineitem = await ags.get_lineitem()
+        except LtiServiceException as e:
+            raise HTTPException(
+                status_code=400,
+                detail="Assignment does not appeared to be linked to your Learning Management System. Your instructor needs to run the assignment selector tool for Runestone.",
+            )
+        rslogger.debug(f"LTI1p3 - launch lineitem: {assign_lineitem.__dict__}")
+        
+        assign_resource_id = assign_lineitem.get_resource_id()
+        lineitem_course_id, lineitem_assign_id = parse_assignment_score_resource_id(assign_resource_id)
+
     # identify the course
-    # lti_context_dict = message_launch.get_context()
-    lti_course_id = query_params.get("lti_course_id", None)
+    lti_context_dict = message_launch.get_context()
+    rslogger.debug(f"LTI1p3 - launch context: {lti_context_dict}")
+    lti_course_id_reported = lti_context_dict.get("id", None)
     lti_course = None
-    if lti_course_id:
-        lti_course = await fetch_lti1p3_course_by_id(
-            int(lti_course_id), with_config=False, with_rs_course=True
+    if lti_course_id_reported:
+        # for a given LMS course, there may be multiple RS courses and thus
+        # multiple Lti1p3Course records
+        possible_lti_courses = await fetch_lti1p3_courses_by_lti_course_id(
+            lti_course_id_reported, with_config=False, with_rs_course=True
         )
+        # easy case... only one RS course linked to the LMS course
+        if len(possible_lti_courses) == 1:
+            lti_course = possible_lti_courses[0]
+        elif len(possible_lti_courses) > 1:
+            # try to puzzle out. Logic depends on launch type
+            if launch_type == "book_link":
+                basecourse_name = query_params.get("basecourse", None)
+                # check to see which course has the corresponding base course
+                # assumes no one is crazy enough to link two courses with the same base course
+                for c in possible_lti_courses:
+                    if c.rs_course.base_course == basecourse_name:
+                        lti_course = c
+                        break
+                if not lti_course:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Could not identify the course this page belongs to. Instructor needs to recreate the link in the LMS.",
+                    )
+            elif launch_type == "assignment_link":
+                # should be able to identify via the course_id passed with the line item
+                for c in possible_lti_courses:
+                    if c.rs_course_id == lineitem_course_id:
+                        lti_course = c
+                        break
     if not lti_course:
         raise HTTPException(
             status_code=400,
-            detail="Content does not appeared to be linked to your Learning Management System. Your instructor needs to run the assignment selector tool for Runestone.",
+            detail="Learning Management System reported an unknown course. Instructor should rerun the content selection tool in the LMS.",
         )
     course = lti_course.rs_course
 
@@ -356,44 +408,26 @@ async def launch(request: Request):
             f"LTI1p3 - enrolled {rs_user.username} ({rs_user.id}) in {course.id}"
         )
 
-    # Different kinds of resourceLinkLaunches get to here and need to be handled differently
-
-    # Type 1: Book links - links to specific pages in the book
-    # They will have a query param "book_page"
-    if "book_page" in query_params:
-        book_page = query_params["book_page"]
+    # Actual launch processing depends on type of launch
+    if launch_type == "book_link":
+        # already have book_page from above
         # start redirect to book page
         redirect_to = f"https://{request.url.hostname}/ns/books/published/{course.course_name}/{book_page}"
         response = RedirectResponse(redirect_to, status_code=status.HTTP_303_SEE_OTHER)
-
-    # Type 2: Assignment links - links to Runestone assignments
-    # They will have a line item associated with them
-    else:
-        # Get resourceId of the line item for the resource that was linked
-        # should have RSCOURSEID_RSASSIGNMENTID format, use that to load RS assignment and course
-        ags = message_launch.get_ags()
-        try:
-            assign_lineitem = await ags.get_lineitem()
-        except LtiServiceException as e:
-            raise HTTPException(
-                status_code=400,
-                detail="Assignment does not appeared to be linked to your Learning Management System. Your instructor needs to run the assignment selector tool for Runestone.",
-            )
-
-        assign_resource_id = assign_lineitem.get_resource_id()
-        course_id, assign_id = parse_assignment_score_resource_id(assign_resource_id)
+    elif launch_type == "assignment_link":
+        # Have assign_lineitem, lineitem_course_id and lineitem_assign_id from above
 
         # Verify the line item has been properly linked to this course
-        if course_id != course.id:
+        if lineitem_course_id != course.id:
             raise HTTPException(
                 status_code=400,
                 detail="Assignment does not appear to be linked to this course. Your instructor needs to run the assignment selector tool for Runestone.",
             )
-
-        rs_assign = await fetch_one_assignment(assign_id)
+        
+        rs_assign = await fetch_one_assignment(lineitem_assign_id)
         if not rs_assign:
             raise HTTPException(
-                status_code=400, detail=f"Assignment {assign_id} not found"
+                status_code=400, detail=f"Assignment {lineitem_assign_id} not found"
             )
 
         if not rs_assign.visible and not message_launch.check_teacher_access():
@@ -695,6 +729,7 @@ async def get_authenticated_user(
     user = None
     try:
         user = await auth_manager(request)
+        rslogger.debug(f"LTI1p3 - User {user.__dict__} verified successfully by auth_manager")
         return user
     except Exception as e:
         pass
@@ -811,6 +846,9 @@ async def deep_link_entry(request: Request):
     ags = message_launch.get_ags()
     l_items = await ags.get_lineitems()
     l_items.sort(key=lambda li: li.get("label"))
+    # build lookup dicts for line items
+    l_items_resourceId_dict = {li.get("resourceId"): li for li in l_items}
+    l_items_label_dict = {li.get("label"): li for li in l_items}
 
     link_data = message_launch.get_dls()
     supports_multiple = link_data.get("accept_multiple", False)
@@ -823,17 +861,24 @@ async def deep_link_entry(request: Request):
     for a in assignments:
         d = a.__dict__
 
-        lti_name_match = match_by_name(a, l_items)
-        if lti_name_match:
-            desired_resource_id = get_assignment_score_resource_id(course, a)
-            if desired_resource_id == lti_name_match.get("resourceId"):
-                d["already_mapped"] = True
-                d["mapped_value"] = lti_name_match.get("resourceLinkId")
-                d["mapped_name"] = lti_name_match.get("label")
-            else:
-                d["remap_suggested"] = True
-                d["mapped_value"] = lti_name_match.get("resourceLinkId")
-                d["mapped_name"] = lti_name_match.get("label")
+        # this is the resource_id that RS sets on LMS line items
+        # we need it to match if this is a linked assignment
+        # can't rely on our own records in lti1p3_assignments table as
+        # they are not set until first assignment launch and instructor may
+        # rerun content selection multiple times before that
+        desired_resource_id = get_assignment_score_resource_id(course, a)
+        lti_id_match = l_items_resourceId_dict.get(desired_resource_id, None)
+        lti_name_match = l_items_label_dict.get(a.name, None)
+
+        if lti_id_match:
+            # this is already linked
+            d["already_mapped"] = True
+            d["mapped_value"] = lti_id_match.get("resourceLinkId")
+            d["mapped_name"] = lti_id_match.get("label")
+        elif lti_name_match:
+            # not mapped, but name matches, suggest a remap
+            d["remap_suggested"] = True
+            d["mapped_name"] = ""
 
         assigns_dicts.append(d)
 
@@ -863,16 +908,6 @@ async def deep_link_entry(request: Request):
         context=tpl_kwargs
     )
     return resp
-
-
-def match_by_name(rs_assign, lti_lineitems):
-    """
-    Find a line item in the LMS that matches the name of the Runestone assignment
-    """
-    for l in lti_lineitems:
-        if rs_assign.name == l.get("label"):
-            return l
-    return None
 
 
 @router.post("/assign-select/{launch_id}")
@@ -929,9 +964,7 @@ async def assign_select(launch_id: str, request: Request, course=None):
 
     # Now start building the response
     domain = get_domain()
-    launch_url = f"https://{domain}/admin/lti1p3/launch?lti_course_id={lti_course.id}"
-    lib_entry = await fetch_library_book(course.base_course)
-
+    launch_url = f"https://{domain}/admin/lti1p3/launch"
     lib_entry = await fetch_library_book(course.base_course)
     if lib_entry.build_system == "Runestone":
         book_system = "Runestone"
@@ -976,7 +1009,7 @@ async def assign_select(launch_id: str, request: Request, course=None):
                 page_name = f"Chapter {chapter.chapter_num}.{subchapter.sub_chapter_num}: {subchapter.sub_chapter_name}"
 
         dlr = DeepLinkResource()
-        dlr.set_url(launch_url + f"&book_page={page}")
+        dlr.set_url(launch_url + f"?book_page={page}&basecourse={course.base_course}")
         dlr.set_title(f"{lib_entry.title} - {page_name}")
         dlr.set_target("window")
 

@@ -306,7 +306,7 @@ def index():
 
         if session.build_course:
             del session.build_course
-            redirect(URL(c="designer", f="index"))
+            redirect("/admin/instructor/create_course")
 
         # See if we need to do a redirect from LTI.
         if session.lti_url_next:
@@ -353,6 +353,9 @@ def courses():
         # We have a mismatch between the requested course and the current course
         # in the database
         response.flash = f"You requested {request.vars.requested_course} but are logged in to {request.vars.current_course}"
+
+    if request.vars.bad_course:
+        response.flash = f"Sorry, {request.vars.bad_course} is not a valid course page"
 
     # Get recently accessed courses
     res = db(

@@ -22,6 +22,8 @@ x-fluent-logging: &fluent-logging
   options:
     fluentd-address: host.docker.internal:24224
     tag: runestone
+    max-size: "1024m"
+    max-file: "3"
 
 services:
 
@@ -53,7 +55,7 @@ services:
   # to set the PGBOUNCER_DEFAULT_POOL_SIZE environment variable to a larger number.
   pgbouncer:
     profiles: [ "production" ]
-    image: bitnami/pgbouncer:latest
+    image: bitnamilegacy/pgbouncer:1.24.1-debian-12-r10
     restart: always
     ports:
       - 6432:6432
@@ -429,7 +431,7 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     container_name: admin
-    restart: unless-stopped
+    restart: always
     logging:
       <<: *json-file-logging
       options:

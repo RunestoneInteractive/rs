@@ -157,6 +157,7 @@ class AssessmentRequest(BaseModelNone):
 
 class TimezoneRequest(BaseModelNone):
     timezoneoffset: float
+    timezone: Optional[str] = "UTC"
 
 
 class LogRunIncoming(BaseModelNone):
@@ -254,6 +255,7 @@ class QuestionIncoming(BaseModel):
     description: Optional[str] = None
     difficulty: Optional[float] = None
     topic: Optional[str] = None
+    is_private: Optional[bool] = False
 
 
 class AssignmentQuestionIncoming(BaseModel):
@@ -347,7 +349,8 @@ class AssignmentQuestionUpdateDict(TypedDict, total=False):
     feedback: Optional[str]
     difficulty: Optional[float]
     tags: Optional[str]
-    
+    is_private: Optional[bool]
+
     # Owner field for permission checking
     owner: Optional[str]
 
@@ -380,3 +383,4 @@ class CopyQuestionRequest(BaseModel):
     new_name: str
     assignment_id: Optional[int] = None
     copy_to_assignment: bool = False
+    htmlsrc: Optional[str] = None

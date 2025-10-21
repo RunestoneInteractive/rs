@@ -58,9 +58,8 @@ function addReadingList() {
                 name: "link",
                 class: "btn btn-lg ' + 'buttonConfirmCompletion'",
                 href: nxt_link,
-                text: `Continue to page ${
-                    position + 2
-                } of ${num_readings} in the reading assignment.`,
+                text: `Continue to page ${position + 2
+                    } of ${num_readings} in the reading assignment.`,
             });
         } else {
             l = $("<div />", {
@@ -102,7 +101,7 @@ class PageProgressBar {
             this.activities = actDict;
         } else {
             let activities = { page: 0 };
-            $(".runestone").each(function (idx, e) {
+            document.querySelectorAll(".runestone").forEach(function (e) {
                 activities[e.firstElementChild.id] = 0;
             });
             this.activities = activities;
@@ -114,7 +113,8 @@ class PageProgressBar {
                 /.*\/(index.html|toctree.html|Exercises.html|search.html)$/i
             )
         ) {
-            $("#scprogresscontainer").hide();
+            const scprogresscontainer = document.getElementById("scprogresscontainer");
+            if (scprogresscontainer) scprogresscontainer.style.display = "none";
         }
         this.renderProgress();
     }
@@ -132,18 +132,49 @@ class PageProgressBar {
 
     renderProgress() {
         let value = 0;
-        $("#scprogresstotal").text(this.total);
-        $("#scprogressposs").text(this.possible);
+        const scprogresstotal = document.getElementById("scprogresstotal");
+        if (scprogresstotal) scprogresstotal.textContent = this.total;
+        const scprogressposs = document.getElementById("scprogressposs");
+        if (scprogressposs) scprogressposs.textContent = this.possible;
         try {
             value = (100 * this.total) / this.possible;
         } catch (e) {
             value = 0;
         }
-        $("#subchapterprogress").progressbar({
-            value: value,
-        });
+        // Replace #subchapterprogress div with a native <progress> element if not already done
+        let subchapterprogress = document.getElementById("subchapterprogress");
+        if (subchapterprogress && subchapterprogress.tagName !== "PROGRESS") {
+            // Replace the div with a <progress> element
+            const progressElem = document.createElement("progress");
+            progressElem.id = "subchapterprogress";
+            progressElem.max = 100;
+            progressElem.value = value;
+            // Copy over any classes from the old div
+            progressElem.className = subchapterprogress.className;
+            subchapterprogress.replaceWith(progressElem);
+            subchapterprogress = progressElem;
+        } else if (subchapterprogress) {
+            subchapterprogress.max = 100;
+            subchapterprogress.value = value;
+        }
+        // Handle the case where there are no interactive objects on the page.
+        // but we still need to give the student points for reading the page.
+        if (this?.assignment_spec?.activities_required === 0) {
+            this.sendCompletedReadingScore().then(() => {
+                console.log("Reading score sent for page with no activities");
+                // wait a tick then mark the page complete
+                // this is needed to let the progress bar update before marking complete
+                setTimeout(() => {
+                    let cb = document.getElementById("completionButton");
+                    if (cb && cb.textContent.toLowerCase() === "mark as completed") {
+                        cb.click();
+                    }
+                }, 500);
+            });
+        }
         if (!eBookConfig.isLoggedIn) {
-            $("#subchapterprogress>div").addClass("loggedout");
+            const subchapterDiv = document.getElementById("subchapterprogress");
+            if (subchapterDiv) subchapterDiv.classList.add("loggedout");
         }
     }
 
@@ -153,9 +184,14 @@ class PageProgressBar {
         if (this.activities[div_id] === 1) {
             this.total++;
             let val = (100 * this.total) / this.possible;
-            $("#scprogresstotal").text(this.total);
-            $("#scprogressposs").text(this.possible);
-            $("#subchapterprogress").progressbar("option", "value", val);
+            const scprogresstotal2 = document.getElementById("scprogresstotal");
+            if (scprogresstotal2) scprogresstotal2.textContent = this.total;
+            const scprogressposs2 = document.getElementById("scprogressposs");
+            if (scprogressposs2) scprogressposs2.textContent = this.possible;
+            let subchapterprogress2 = document.getElementById("subchapterprogress");
+            if (subchapterprogress2 && subchapterprogress2.tagName === "PROGRESS") {
+                subchapterprogress2.value = val;
+            }
             if (
                 this.assignment_spec &&
                 this.assignment_spec.activities_required !== null &&
@@ -169,7 +205,7 @@ class PageProgressBar {
             if (
                 val == 100.0 &&
                 $("#completionButton").text().toLowerCase() ===
-                    "mark as completed"
+                "mark as completed"
             ) {
                 $("#completionButton").click();
             }
@@ -206,6 +242,12 @@ class PageProgressBar {
 
 export var pageProgressTracker = {};
 
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
 async function handlePageSetup() {
     var mess;
     if (eBookConfig.useRunestoneServices) {
@@ -213,23 +255,44 @@ async function handlePageSetup() {
             "Content-type": "application/json; charset=utf-8",
             Accept: "application/json",
         });
-        let data = { timezoneoffset: new Date().getTimezoneOffset() / 60 };
-        let request = new Request(
-            `${eBookConfig.new_server_prefix}/logger/set_tz_offset`,
-            {
-                method: "POST",
-                body: JSON.stringify(data),
-                headers: headers,
-            },
-        );
-        try {
-            let response = await fetch(request);
-            if (!response.ok) {
-                console.error(`Failed to set timezone! ${response.statusText}`);
+        let data = {
+            timezoneoffset: new Date().getTimezoneOffset() / 60,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        };
+        let RS_info = getCookie("RS_info");
+        var tz_match = false;
+        if (RS_info) {
+            try {
+                let cleaned  = RS_info.replace(/\\054/g, ','); // handle octal comma encoding
+                let info = JSON.parse(decodeURIComponent(cleaned));
+                info = JSON.parse(decodeURIComponent(info));
+                if (info.timezone === data.timezone && info.tz_offset === data.timezoneoffset) {
+                    console.log("Timezone cookie matches, not sending timezone to server");
+                    tz_match = true;
+                }
+            } catch (e) {
+                console.error("Error parsing RS_info cookie, sending timezone to server");
             }
-            data = await response.json();
-        } catch (e) {
-            console.error(`Error setting timezone ${e}`);
+        }
+        if (tz_match === false) {
+            // Set a cookie so we don't have to do this again for a while.
+            let request = new Request(
+                `${eBookConfig.new_server_prefix}/logger/set_tz_offset`,
+                {
+                    method: "POST",
+                    body: JSON.stringify(data),
+                    headers: headers,
+                },
+            );
+            try {
+                let response = await fetch(request);
+                if (!response.ok) {
+                    console.error(`Failed to set timezone! ${response.statusText}`);
+                }
+                data = await response.json();
+            } catch (e) {
+                console.error(`Error setting timezone ${e}`);
+            }
         }
     }
     console.log(`This page served by ${eBookConfig.served_by}`);
@@ -276,7 +339,7 @@ function setupNavbarLoggedIn() {
         '<a href="' + eBookConfig.app + '/default/user/logout">Log Out</a>',
     );
 }
-$(document).on("runestone:login", setupNavbarLoggedIn);
+document.addEventListener("runestone:login", setupNavbarLoggedIn);
 
 function setupNavbarLoggedOut() {
     if (eBookConfig.useRunestoneServices) {
@@ -292,7 +355,7 @@ function setupNavbarLoggedOut() {
         $(".footer").html("user not logged in");
     }
 }
-$(document).on("runestone:logout", setupNavbarLoggedOut);
+document.addEventListener("runestone:logout", setupNavbarLoggedOut);
 
 function notifyRunestoneComponents() {
     // Runestone components wait until login process is over to load components because of storage issues. This triggers the `dynamic import machinery`, which then sends the login complete signal when this and all dynamic imports are finished.
@@ -314,7 +377,7 @@ function placeAdCopy() {
 }
 
 // initialize stuff
-$(function () {
+document.addEventListener("DOMContentLoaded", function () {
     if (eBookConfig) {
         handlePageSetup();
         placeAdCopy();
@@ -331,19 +394,15 @@ $(function () {
 // todo:  This could be further distributed but making a video.js file just for one function seems dumb.
 window.addEventListener("load", function () {
     // add the video play button overlay image
-    $(".video-play-overlay").each(function () {
-        $(this).css(
-            "background-image",
-            "url('{{pathto('_static/play_overlay_icon.png', 1)}}')",
-        );
+    document.querySelectorAll(".video-play-overlay").forEach(function (el) {
+        el.style.backgroundImage = "url('{{pathto('_static/play_overlay_icon.png', 1)}}')";
     });
 
     // This function is needed to allow the dropdown search bar to work;
     // The default behaviour is that the dropdown menu closes when something in
     // it (like the search bar) is clicked
-    $(function () {
-        // Fix input element click problem
-        $(".dropdown input, .dropdown label").click(function (e) {
+    document.querySelectorAll(".dropdown input, .dropdown label").forEach(function (el) {
+        el.addEventListener("click", function (e) {
             e.stopPropagation();
         });
     });

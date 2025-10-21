@@ -2097,6 +2097,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             }
             prog = pretext + prog;
         }
+        //any visible suffix already is included in editor code
         if (useSuffix && this.suffix) {
             prog = prog + this.suffix;
         }
@@ -2265,7 +2266,7 @@ Yet another is that there is an internal error.  The internal error message is: 
         if (this.is_toggle && this.runCount == 3) {
             if (
                 this.errinfo != "success" ||
-                this.unit_results.substring(8, 11) != 100.0
+                this?.unit_results.substring(8, 11) != 100.0
             ) {
                 setTimeout(function () {
                     alert(

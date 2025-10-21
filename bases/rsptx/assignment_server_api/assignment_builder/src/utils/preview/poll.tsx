@@ -4,7 +4,7 @@ export const generatePollPreview = (
   questionTitle: string,
   options: string[],
   questionName: string,
-  pollType: "options" | "scale" = "options"
+  pollType: string = "options"
 ): string => {
   const safeId = sanitizeId(questionName);
   // Function to strip paragraph tags and clean HTML
