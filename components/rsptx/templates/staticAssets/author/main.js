@@ -416,7 +416,7 @@ function getStatus(taskID) {
                 if (taskIdStatus[taskID] === "ERRORS") {
                     res.task_status = "COMPLETE";
                     res.task_result = {};
-                    res.task_result.current = "Task completed with errors - check log";
+                    res.task_result.current = "Build completed with errors - check log";
                 } else {
                     res.task_result = {};
                     res.task_result.current = "";
