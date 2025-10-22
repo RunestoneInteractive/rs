@@ -32,6 +32,7 @@ from fastapi import status
 from .assessment import get_question_source, SelectQRequest
 # Import function for fetching api - comment out for DEV purposes
 from rsptx.db.crud.crud import fetch_api_token
+from rsptx.db.crud.course import fetch_course
 
 # .. _APIRouter config:
 #
@@ -142,21 +143,26 @@ async def get_question_html(request: Request, div_id: str):
 @router.post("/parsons_scaffolding")
 async def parsons_scaffolding(
     request: Request,
-    course: Optional[str] = None,
+    course_name: Optional[str] = None, # the course name to fetch the actual course object
 ):
     # Import api key and handles errors
     api_token = None
     try:
-        if course is None or course == "personalized_parsons" or course == "overview":  # the test course for development
+        if course_name is None or course_name == "personalized_parsons" or course_name == "overview":  # the test course for development
             # Dev/Test mode testing
             rslogger.info("CodeTailor: Using predefined dev API key")
             api_token = DEV_API_KEY
         else:
-            api_token = await fetch_api_token( # handles decryption already - comment out for DEV purposes
-                course_id=course.id,
-                provider='openai', # hardcoded as openai for now, prompt structures are different for different providers
-                                   # if we find instructors tend to use other platforms, we need to handle this later
+            # obtain the CoursesValidator object - Brad's review
+            course = await fetch_course(course_name)
+            # this does not return a token, it returns an APITokenValidator object
+            api_token_record = await fetch_api_token( # handles decryption already - comment out for DEV purposes
+                course_id = course.id,
+                provider = 'openai', # from add_token.html <option value="openai">
+                                     # hardcoded as openai for now, prompt structures are different for different providers
+                                     # if we find instructors tend to use other platforms, we need to handle this later
             )
+            api_token = api_token_record.token
     except Exception as e:
         rslogger.error(f"Codetailor: Error fetching API tokens: {e}")
         return JSONResponse(
