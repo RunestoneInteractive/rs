@@ -154,11 +154,12 @@ async def parsons_scaffolding(
             api_token = DEV_API_KEY
         else:
             # obtain the CoursesValidator object - Brad's review
-            course = await fetch_course(course_name)
-            if course is None:
-                rslogger.error(f"Course '{course_name}' not found.")
-                return JSONResponse(
-                    content={"error": "CodeTailor: No course found"},
+            try:
+                course = await fetch_course(course_name)
+            except AttributeError:
+                    rslogger.error(f"Course '{course_name}' not found.")
+                    return JSONResponse(
+                        content={"error": "CodeTailor: No course found"},
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
             
