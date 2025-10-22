@@ -434,3 +434,61 @@
 .parsons .block code {
     color: black;
 }
+
+/* CodeTailor-related CSS for Parsons START */
+.parsons .placeholder-block.disabled.block {
+    font-style: italic;
+    background-color: white;
+    border-style: dashed;
+    padding: 20px 10px;
+    opacity: 1;
+}
+
+.parsons .settled-block.disabled.block {
+    border: 1px solid black;
+    background-color: #afe1af;
+    opacity: 1;
+}
+
+.parsons .settled-block.disabled.block:hover .settled-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+.parsons .settled-block.disabled.block .settled-tooltip {
+    visibility: hidden;
+    position: sticky;
+    background-color: #555;
+    font-size: 0.75rem;
+    color: #fff;
+    text-align: center;
+    padding: 2px 8px;
+    border-radius: 6px;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity .6s;
+    left: 100%;      
+    vertical-align: middle;     
+}
+.parsons .settled-block .block-label {
+    color: transparent;
+}
+
+
+.parsons .placeholder-block .lines {
+    display: none;
+}
+
+.parsons .placeholder-block.hide {
+    display: none;
+}
+
+
+.placeholder-block .labels {
+    display: none;
+}
+
+.settled-block .labels .block-label {
+    color:transparent;
+}
+/* CodeTailor-related CSS for Parsons END */
