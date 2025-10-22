@@ -155,14 +155,28 @@ async def parsons_scaffolding(
         else:
             # obtain the CoursesValidator object - Brad's review
             course = await fetch_course(course_name)
+            if course is None:
+                rslogger.error(f"Course '{course_name}' not found.")
+                return JSONResponse(
+                    content={"error": "CodeTailor: No course found"},
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+            
             # this does not return a token, it returns an APITokenValidator object
-            api_token_record = await fetch_api_token( # handles decryption already - comment out for DEV purposes
+            token_record = await fetch_api_token( # handles decryption already
                 course_id = course.id,
                 provider = 'openai', # from add_token.html <option value="openai">
                                      # hardcoded as openai for now, prompt structures are different for different providers
                                      # if we find instructors tend to use other platforms, we need to handle this later
             )
-            api_token = api_token_record.token
+            if token_record is None:
+                rslogger.error(f"No API token found for course '{course_name}'.")
+                return JSONResponse(
+                    content={"error": "CodeTailor: No API token found for this course"},
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            api_token = token_record.token
     except Exception as e:
         rslogger.error(f"Codetailor: Error fetching API tokens: {e}")
         return JSONResponse(
