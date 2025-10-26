@@ -22,8 +22,9 @@ x-fluent-logging: &fluent-logging
   options:
     fluentd-address: host.docker.internal:24224
     tag: runestone
-    max-size: "1024m"
-    max-file: "3"
+    fluentd-async-connect: "true"
+    mode: "non-blocking"
+    max-buffer-size: "8m"
 
 services:
 
@@ -195,6 +196,7 @@ services:
       - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
       - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
       - SERVER_PROTOCOL=${SERVER_PROTOCOL:-http://}
+      - ALLOW_INSECURE_LOGIN=${ALLOW_INSECURE_LOGIN:-True}
     depends_on:
       redis:
         condition: service_started
