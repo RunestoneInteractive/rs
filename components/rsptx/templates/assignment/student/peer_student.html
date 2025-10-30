@@ -1,0 +1,141 @@
+{% extends "_base.html" %}
+
+{% block title %}
+Peer Instruction
+{% endblock %}
+
+{% block css %}
+<style>
+    .peer-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 30px;
+    }
+
+    .peer-header {
+        margin-bottom: 30px;
+    }
+
+    .peer-header h1 {
+        color: #4a90e2;
+        font-size: 2.5em;
+        font-weight: 300;
+        margin-bottom: 10px;
+    }
+
+    .table-container {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, #4a90e2, #357abd);
+        color: white;
+        border: none;
+        padding: 15px;
+        font-weight: 600;
+    }
+
+    .table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .table td {
+        padding: 12px 15px;
+        vertical-align: middle;
+    }
+
+    .table a {
+        color: #4a90e2;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+
+    .table a:hover {
+        color: #357abd;
+        text-decoration: underline;
+    }
+
+    .not-available {
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    .note-box {
+        margin-top: 30px;
+        padding: 15px 20px;
+        background: #d1ecf1;
+        border-left: 4px solid #17a2b8;
+        border-radius: 4px;
+    }
+
+    .note-box p {
+        margin: 0;
+        color: #0c5460;
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="peer-container">
+    <div class="peer-header">
+        <h1>Peer Instruction Links</h1>
+        <h2>Course: {{ course.course_name }}</h2>
+    </div>
+
+    <div class="table-container">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>In Class Link</th>
+                    <th>After Class Link</th>
+                    <th>Due</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assignment in assignments %}
+                <tr>
+                    <td>
+                        <a href="/assignment/student/peer/question?assignment_id={{ assignment.id }}">
+                            {{ assignment.name }} (in class)
+                        </a>
+                    </td>
+                    <td>
+                        {% if assignment.peer_async_visible %}
+                        <a href="/assignment/student/peer/async?assignment_id={{ assignment.id }}">
+                            {{ assignment.name }} (after class)
+                        </a>
+                        {% else %}
+                        <span class="not-available">Not Available</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ assignment.duedate.strftime('%Y-%m-%d %H:%M') if assignment.duedate else 'N/A' }}</td>
+                    <td>{{ assignment.description or '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="note-box">
+        <p><strong>Note:</strong> The "After Class" version of the assignment is only for use outside of and AFTER the class it was introduced. You will be able to vote for each question twice and review a chat transcript from a group that was recorded during class.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<!-- Add any peer-specific JavaScript here -->
+{% endblock %}

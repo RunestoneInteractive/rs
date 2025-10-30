@@ -1,0 +1,138 @@
+{% extends "_base.html" %}
+
+{% block title %}
+Peer Instruction - Instructor
+{% endblock %}
+
+{% block css %}
+<style>
+    .peer-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 30px;
+    }
+
+    .peer-header {
+        margin-bottom: 30px;
+    }
+
+    .peer-header h1 {
+        color: #4a90e2;
+        font-size: 2.5em;
+        font-weight: 300;
+        margin-bottom: 10px;
+    }
+
+    .table-container {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, #4a90e2, #357abd);
+        color: white;
+        border: none;
+        padding: 15px;
+        font-weight: 600;
+    }
+
+    .table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .table td {
+        padding: 12px 15px;
+        vertical-align: middle;
+    }
+
+    .table a {
+        color: #4a90e2;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+
+    .table a:hover {
+        color: #357abd;
+        text-decoration: underline;
+    }
+
+    .note-box {
+        margin-top: 30px;
+        padding: 15px 20px;
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        border-radius: 4px;
+    }
+
+    .note-box p {
+        margin: 0;
+        color: #856404;
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="peer-container">
+    <div class="peer-header">
+        <h1>Peer Instruction</h1>
+        <h2>Course: {{ course.course_name }}</h2>
+    </div>
+
+    <div class="table-container">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Extra**</th>
+                    <th>Review</th>
+                    <th>Due</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assignment in assignments %}
+                <tr>
+                    <td>
+                        <a href="/assignment/instructor/peer/dashboard?assignment_id={{ assignment.id }}&next=Reset">
+                            {{ assignment.name }}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="/assignment/instructor/peer/extra?assignment_id={{ assignment.id }}">
+                            {{ assignment.name }} - Extra Info
+                        </a>
+                    </td>
+                    <td>
+                        <a href="/assignment/instructor/peer/review?assignment_id={{ assignment.id }}">
+                            {{ assignment.name }} - Review
+                        </a>
+                    </td>
+                    <td>{{ assignment.duedate.strftime('%Y-%m-%d %H:%M') if assignment.duedate else 'N/A' }}</td>
+                    <td>{{ assignment.description or '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="note-box">
+        <p><strong>**Note:</strong> The Extra Info link for each peer assignment can be brought up on your phone or another device or in a different window. It contains information that you might not want to share with your students.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<!-- Add any peer-specific JavaScript here -->
+{% endblock %}
