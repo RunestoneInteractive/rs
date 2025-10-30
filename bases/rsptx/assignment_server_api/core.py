@@ -21,6 +21,8 @@ from fastapi.staticfiles import StaticFiles
 # -------------------------
 from .routers import student
 from .routers import instructor
+from .routers import peer
+from rsptx.configuration import settings
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.logging import rslogger
 from rsptx.templates import template_folder
@@ -55,6 +57,7 @@ auth_manager.attach_middleware(app)
 
 app.include_router(student.router)
 app.include_router(instructor.router)
+app.include_router(peer.router)
 
 # DRY: this is the same as in book_server_api and other servers
 # load a common set of middleware/exception handlers.
