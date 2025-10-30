@@ -207,7 +207,7 @@ def read_possible_plural_rules():
                                  construct_plural_form)
     except ImportError:
         e = sys.exc_info()[1]
-        logging.warn('Unable to import plural rules: %s' % e)
+        logging.info('Unable to import plural rules: %s' % e)
     return plurals
 
 PLURAL_RULES = read_possible_plural_rules()
