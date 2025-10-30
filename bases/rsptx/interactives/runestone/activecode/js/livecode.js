@@ -608,7 +608,10 @@ export default class LiveCode extends ActiveCode {
             tr.appendChild(td2);
             const td3 = document.createElement("td");
             td3.classList.add("ac-feedback");
-            td3.innerHTML = `<pre>${produced}</pre>`;
+            // <pre> doesn't prevent browser from gulping leading space
+            // so produce a version that transforms whitespace into html entities/tags
+            let producedRenderOutput = produced.replaceAll(" ", "&nbsp;").replaceAll("\n", "<br>");
+            td3.innerHTML = `<pre>${producedRenderOutput}</pre>`;
             tr.appendChild(td3);
             const td4 = document.createElement("td");
             td4.classList.add("ac-feedback");
