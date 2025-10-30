@@ -100,7 +100,7 @@ TEMPLATE_START = """
 TEMPLATE_END = """
 </div>
 <textarea data-lang="%(language)s" id="%(divid)s_editor" %(autorun)s
-    %(hidecode)s %(include)s %(timelimit)s %(coach)s %(codelens)s %(enabledownload)s %(chatcodes)s %(optional)s
+    %(hidecode)s %(include)s %(timelimit)s %(coach)s %(codelens)s %(enabledownload)s %(parsonspersonalize)s %(parsonsexample)s %(chatcodes)s %(optional)s
     data-audio='%(ctext)s' %(sourcefile)s %(datafile)s %(stdin)s %(tie)s %(dburl)s %(nopair)s
     %(cargs)s %(largs)s %(rargs)s %(iargs)s %(gradebutton)s %(caption)s %(hidehistory)s %(wasmuri)s
     %(showlastsql)s style="visibility: hidden;">
@@ -210,6 +210,8 @@ class ActiveCode(RunestoneIdDirective):
        :nocodelens: -- Do not show the codelens button
        :timelimit: -- set the time limit for this program in seconds
        :language: python, html, javascript, java, python2, python3
+       :parsonspersonalize: -- CodeTailor: movable or partial parsons puzzle
+       :parsonsexample: -- CodeTailor: generate a parsons puzzle from an example (common) solution
        :chatcodes: -- Enable users to talk about this code snippet with others
        :tour_1: audio tour track
        :tour_2: audio tour track
@@ -257,6 +259,10 @@ class ActiveCode(RunestoneIdDirective):
             "hidecode": directives.flag,
             "language": directives.unchanged,
             "chatcodes": directives.flag,
+            # it has two options: moveable or partial
+            "parsonspersonalize": directives.unchanged,
+            # this is the example solution when LLM fails or instructor doesn't want to provide one
+            "parsonsexample": directives.unchanged,
             "tour_1": directives.unchanged,
             "tour_2": directives.unchanged,
             "tour_3": directives.unchanged,
@@ -363,6 +369,22 @@ class ActiveCode(RunestoneIdDirective):
             self.options["chatcodes"] = 'data-chatcodes="true"'
         else:
             self.options["chatcodes"] = ""
+
+        # CodeTailor options start
+        # Different options to control the personalization level of the puzzle
+        if "parsonspersonalize" in self.options:
+            self.options["parsonspersonalize"] = "data-parsonspersonalize=%s" % self.options["parsonspersonalize"]
+        else:
+            self.options["parsonspersonalize"] = ""
+        
+        if "parsonsexample" in self.options:
+            self.options["parsonsexample"] = "data-parsonsexample=%s" % self.options["parsonsexample"]
+        # this mean the instructor wants a personalized puzzle but didn't provide an example puzzle
+        elif "parsonsexample" not in self.options and "parsonspersonalize" in self.options:
+            self.options["parsonsexample"] = "data-parsonsexample='LLM-example'"
+        else:
+            self.options["parsonsexample"] = ""
+        # CodeTailor options end
 
         if "language" not in self.options:
             self.options["language"] = "python"
