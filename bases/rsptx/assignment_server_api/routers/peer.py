@@ -14,7 +14,7 @@ from typing import Optional
 
 # Third-party imports
 # -------------------
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Body
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
@@ -24,6 +24,7 @@ from rsptx.logging import rslogger
 from rsptx.db.crud import (
     fetch_assignments,
     fetch_one_assignment,
+    update_assignment,
     # TODO: Uncomment when implementing dashboard/question functionality
     # fetch_assignment_questions,
 )
@@ -364,3 +365,50 @@ async def get_num_answers(
     # TODO: Implement answer counting
 
     return JSONResponse(content={"count": 0, "mess_count": 0})
+
+
+@router.post("/api/set_visibility")
+@instructor_role_required()
+@with_course()
+async def set_assignment_visibility(
+    request: Request,
+    assignment_id: int = Body(..., embed=True),
+    visible: bool = Body(..., embed=True),
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Toggle assignment visibility for students.
+
+    Body JSON: { "assignment_id": number, "visible": boolean }
+    """
+    try:
+        assignment = await fetch_one_assignment(assignment_id)
+    except Exception as e:
+        rslogger.error(f"Error fetching assignment {assignment_id}: {e}")
+        return JSONResponse(status_code=404, content={"detail": "Assignment not found"})
+
+    # Ensure the assignment belongs to this course
+    if assignment.course != course.id:
+        return JSONResponse(
+            status_code=403, content={"detail": "Assignment not in this course"}
+        )
+
+    # Update visibility
+    assignment.visible = visible
+    try:
+        await update_assignment(assignment)
+    except Exception as e:
+        rslogger.error(f"Error updating assignment visibility: {e}")
+        return JSONResponse(
+            status_code=400, content={"detail": "Failed to update visibility"}
+        )
+
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "success",
+            "assignment_id": assignment_id,
+            "visible": visible,
+        },
+    )

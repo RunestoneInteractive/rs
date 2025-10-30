@@ -95,6 +95,7 @@ Peer Instruction - Instructor
             <thead>
                 <tr>
                     <th>Name</th>
+                    <th>Visible</th>
                     <th>Extra**</th>
                     <th>Review</th>
                     <th>Due</th>
@@ -108,6 +109,16 @@ Peer Instruction - Instructor
                         <a href="/assignment/instructor/peer/dashboard?assignment_id={{ assignment.id }}&next=Reset">
                             {{ assignment.name }}
                         </a>
+                    </td>
+                    <td>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input visibility-toggle" type="checkbox" role="switch"
+                                id="vis-{{ assignment.id }}" data-assignment-id="{{ assignment.id }}"
+                                {% if assignment.visible %}checked{% endif %}>
+                            <label class="form-check-label" for="vis-{{ assignment.id }}">
+                                {{ 'Visible' if assignment.visible else 'Hidden' }}
+                            </label>
+                        </div>
                     </td>
                     <td>
                         <a href="/assignment/instructor/peer/extra?assignment_id={{ assignment.id }}">
@@ -134,5 +145,49 @@ Peer Instruction - Instructor
 {% endblock %}
 
 {% block js %}
-<!-- Add any peer-specific JavaScript here -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggles = document.querySelectorAll('.visibility-toggle');
+
+        toggles.forEach((toggle) => {
+            toggle.addEventListener('change', async (e) => {
+                const checkbox = e.target;
+                const assignmentId = checkbox.getAttribute('data-assignment-id');
+                const visible = checkbox.checked;
+                const label = checkbox.closest('.form-check').querySelector('label');
+
+                // Optimistic UI update
+                label.textContent = visible ? 'Visible' : 'Hidden';
+                checkbox.disabled = true;
+
+                try {
+                    const resp = await fetch('/assignment/peer/api/set_visibility', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ assignment_id: Number(assignmentId), visible })
+                    });
+
+                    if (!resp.ok) {
+                        throw new Error(`Server responded ${resp.status}`);
+                    }
+
+                    const data = await resp.json();
+                    // Ensure label matches server state just in case
+                    if (typeof data.visible === 'boolean') {
+                        label.textContent = data.visible ? 'Visible' : 'Hidden';
+                    }
+                } catch (err) {
+                    // Revert on error
+                    checkbox.checked = !visible;
+                    label.textContent = checkbox.checked ? 'Visible' : 'Hidden';
+                    alert('Failed to update visibility. Please try again.');
+                } finally {
+                    checkbox.disabled = false;
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}
