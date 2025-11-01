@@ -10,6 +10,7 @@
 # Standard library
 # ----------------
 import datetime
+import sys
 from typing import Optional
 
 # Third-party imports
@@ -25,8 +26,9 @@ from rsptx.db.crud import (
     fetch_assignments,
     fetch_one_assignment,
     update_assignment,
-    # TODO: Uncomment when implementing dashboard/question functionality
-    # fetch_assignment_questions,
+    fetch_assignment_questions,
+    fetch_all_course_attributes,
+    create_useinfo_entry,
 )
 from rsptx.auth.session import auth_manager
 from rsptx.templates import template_folder
@@ -240,25 +242,66 @@ async def get_peer_question(
     Display the current peer instruction question for in-class participation.
     """
     rslogger.info(f"Peer question for assignment {assignment_id}, user {user.username}")
+    templates = Jinja2Templates(directory=template_folder)
 
-    # TODO: Implement in-class peer question interface
-    # This will include:
-    # - Question display
-    # - Voting mechanism (vote 1 and vote 2)
-    # - Partner chat
-    # - Real-time updates
-
+    # Fetch the assignment and its questions
     assignment = await fetch_one_assignment(assignment_id)
-    # TODO: Use assignment_questions when implementing question interface
-    # assignment_questions = await fetch_assignment_questions(assignment_id)
 
-    return JSONResponse(
-        content={
-            "message": "In-class peer question functionality to be implemented",
-            "assignment_id": assignment_id,
-            "assignment_name": assignment.name,
-        }
+    # Get all questions for this assignment
+    questions_result = await fetch_assignment_questions(assignment_id)
+    questions = []
+    for row in questions_result:
+        question, assignment_question = row
+        questions.append(question)
+
+    # Get the current question based on assignment's current_index
+    current_idx = (
+        assignment.current_index if assignment.current_index is not None else 0
     )
+    if current_idx >= len(questions):
+        current_idx = len(questions) - 1 if questions else 0
+
+    current_question = questions[current_idx] if questions else None
+
+    if not current_question:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "No questions found for this assignment"},
+        )
+
+    # Fetch course attributes for latex_macros
+    course_attrs = await fetch_all_course_attributes(course.id)
+    latex_macros = course_attrs.get("latex_macros", "")
+
+    # Get peer.js mtime for cache busting
+    import os
+    import random
+
+    # find the path to site-packages
+
+    site_packages_path = sys.path[0]
+
+
+
+    peer_js_path = os.path.join(site_packages_path, "rsptx/templates/staticAssets", "js", "peer.js")
+    try:
+        peer_mtime = str(int(os.path.getmtime(peer_js_path)))
+    except (FileNotFoundError, AttributeError):
+        peer_mtime = str(random.randrange(10000))
+
+    context = {
+        "request": request,
+        "course": course,
+        "user": user,
+        "assignment_id": assignment_id,
+        "assignment_name": assignment.name,
+        "current_question": current_question,
+        "latex_macros": latex_macros,
+        "peer_mtime": peer_mtime,
+        "settings": settings,
+    }
+
+    return templates.TemplateResponse("assignment/student/peer_question.html", context)
 
 
 @router.get("/student/async", response_class=HTMLResponse)
@@ -412,3 +455,123 @@ async def set_assignment_visibility(
             "visible": visible,
         },
     )
+
+
+@router.post("/api/publish_message")
+@with_course()
+async def publish_message(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Publish a message to the Redis pub/sub for peer instruction.
+    Used for both text chat and control messages.
+    """
+    import os
+    import redis
+    import json
+
+    data = await request.json()
+    rslogger.info(f"Publishing peer message: {data}")
+
+    try:
+        r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
+        r.publish("peermessages", json.dumps(data))
+
+        # Track message count for text messages
+        if data.get("type") == "text":
+            res = r.hget(f"{course.course_name}_state", "mess_count")
+            if res is not None:
+                mess_count = int(res) + 1
+            else:
+                mess_count = 1
+            r.hset(f"{course.course_name}_state", "mess_count", str(mess_count))
+
+        return JSONResponse(content={"status": "success"})
+    except Exception as e:
+        rslogger.error(f"Error publishing message: {e}")
+        return JSONResponse(
+            status_code=500, content={"detail": f"Failed to publish message: {str(e)}"}
+        )
+
+
+@router.post("/api/log_peer_rating")
+@with_course()
+async def log_peer_rating(
+    request: Request,
+    div_id: str = Body(...),
+    peer_id: Optional[str] = Body(None),
+    rating: Optional[str] = Body(None),
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Log a student's rating of their peer interaction.
+    """
+    import datetime
+    from rsptx.validation.schemas import UseinfoValidation
+
+    rslogger.info(
+        f"Logging peer rating for {user.username}: div_id={div_id}, peer={peer_id}, rating={rating}"
+    )
+
+    retmess = "Error: no peer to rate"
+
+    if peer_id:
+        try:
+            # Log the rating event to the database
+            log_entry = UseinfoValidation(
+                sid=user.username,
+                course_id=course.course_name,
+                div_id=div_id,
+                event="peer_rating",
+                act=f"peer:{peer_id}:rating:{rating}",
+                timestamp=datetime.datetime.utcnow(),
+            )
+            await create_useinfo_entry(log_entry)
+
+            retmess = "Rating logged successfully"
+        except Exception as e:
+            rslogger.error(f"Error logging peer rating: {e}")
+            retmess = f"Error: {str(e)}"
+
+    return JSONResponse(content={"message": retmess})
+
+
+@router.post("/api/get_async_explainer")
+@with_course()
+async def get_async_explainer(
+    request: Request,
+    div_id: str = Body(...),
+    course: str = Body(...),
+    user=Depends(auth_manager),
+    course_obj=None,
+):
+    """
+    Get a peer's explanation for async peer instruction mode.
+    Returns a recorded explanation and the peer's answer.
+    """
+    rslogger.info(f"Getting async explainer for {div_id} in course {course}")
+
+    try:
+        # TODO: Implement the logic to fetch a recorded peer explanation
+        # This should:
+        # 1. Query the database for peer messages from this question
+        # 2. Find a good explanation to show (not from this student)
+        # 3. Return the explanation and the peer's answer
+
+        # Placeholder response
+        return JSONResponse(
+            content={
+                "user": "peer_student",
+                "answer": "A",
+                "mess": "This is a placeholder explanation. The actual implementation will fetch recorded peer explanations from the database.",
+                "responses": {"peer1": "A", "peer2": "B"},
+            }
+        )
+    except Exception as e:
+        rslogger.error(f"Error getting async explainer: {e}")
+        return JSONResponse(
+            status_code=500, content={"detail": f"Failed to get explainer: {str(e)}"}
+        )
