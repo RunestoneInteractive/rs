@@ -92,8 +92,8 @@ export default class ParsonsBlock {
                     );
                     // todo: if language is natural or math then don't do this
                     if (
-                        this.options.language !== "natural" &&
-                        this.options.language !== "math"
+                        this.problem.options.language !== "natural" &&
+                        this.problem.options.language !== "math"
                     ) {
                         $(lines[i].view).addClass(
                             "indent" + (lines[i].indent - line.indent)
