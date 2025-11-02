@@ -958,6 +958,9 @@ export default class LiveCode extends ActiveCode {
         return classes;
     }
 }
+
+// Warning - returns undefined if safe is an empty string
+// existing usages in constructor appear to rely on that behavior
 function unescapeHtml(safe) {
     if (safe) {
         return safe
@@ -968,6 +971,8 @@ function unescapeHtml(safe) {
             .replace(/&#x27;/g, "'");
     }
 }
+
+// Designed to produce HTML from a string, so always return a string
 function escapeHtml(str) {
     if (str) {
         return str
@@ -977,4 +982,5 @@ function escapeHtml(str) {
             .replace(/'/g, '&#x27;')
             .replace(/"/g, '&quot;');
     }
+    return '';
 }
