@@ -207,7 +207,9 @@ async def get_peer_student(
     templates = Jinja2Templates(directory=template_folder)
 
     # Fetch visible peer assignments for the student
-    all_assignments = await fetch_assignments(course.course_name)
+    all_assignments = await fetch_assignments(
+        course.course_name, is_peer=True, is_visible=True
+    )
     # Filter for peer assignments that are visible
     assignments = [
         a for a in all_assignments if (a.is_peer or a.kind == "Peer") and a.visible
@@ -281,9 +283,9 @@ async def get_peer_question(
 
     site_packages_path = sys.path[0]
 
-
-
-    peer_js_path = os.path.join(site_packages_path, "rsptx/templates/staticAssets", "js", "peer.js")
+    peer_js_path = os.path.join(
+        site_packages_path, "rsptx/templates/staticAssets", "js", "peer.js"
+    )
     try:
         peer_mtime = str(int(os.path.getmtime(peer_js_path)))
     except (FileNotFoundError, AttributeError):

@@ -109,13 +109,13 @@ Peer Instruction
                 {% for assignment in assignments %}
                 <tr>
                     <td>
-                        <a href="/assignment/student/peer/question?assignment_id={{ assignment.id }}">
+                        <a href="/assignment/peer/student/question?assignment_id={{ assignment.id }}">
                             {{ assignment.name }} (in class)
                         </a>
                     </td>
                     <td>
                         {% if assignment.peer_async_visible %}
-                        <a href="/assignment/student/peer/async?assignment_id={{ assignment.id }}">
+                        <a href="/assignment/peer/student/async?assignment_id={{ assignment.id }}">
                             {{ assignment.name }} (after class)
                         </a>
                         {% else %}
