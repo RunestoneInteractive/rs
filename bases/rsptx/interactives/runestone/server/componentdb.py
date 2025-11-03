@@ -57,6 +57,9 @@ def get_dburl(outer={}):
     # nonlocal env, settings # Python 3 only
 
     dburl = None
+    if "SERVER_CONFIG" not in environ:
+        logger.warning("SERVER_CONFIG not in environment!")
+
     if "SERVER_CONFIG" in environ:
         w2py_config = environ["SERVER_CONFIG"]
         if w2py_config == "development":
@@ -91,6 +94,7 @@ def get_dburl(outer={}):
             dburl = "postgresql://" + dburl[len(remove_prefix) :]
         return dburl
 
+    logger.error("Cannot find any database environment variables!")
     raise RuntimeError("Cannot configure a Database URL!")
 
 

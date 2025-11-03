@@ -285,7 +285,7 @@ def _preview(port, listen):
     click.echo("Note: this is a minimal static server without templates or a database.")
     click.echo("For many use cases this is fine.")
     click.echo(
-        "For the full server, see https://github.com/RunestoneInteractive/RunestoneServer"
+        "For the full server, see https://github.com/RunestoneInteractive/rs"
     )
     os.chdir(findProjectRoot())
     sys.path.insert(0, os.getcwd())
