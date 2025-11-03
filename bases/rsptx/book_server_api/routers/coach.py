@@ -139,31 +139,37 @@ async def get_question_html(request: Request, div_id: str):
     
     return {"html": html}
 
-
+# @router.post("/ns/coach/parsons_scaffolding")
 @router.post("/parsons_scaffolding")
 async def parsons_scaffolding(
     request: Request,
-    course_name: Optional[str] = None, # the course name to fetch the actual course object
+    course: Optional[str]
 ):
+    # Get `course` directly from the query string
+    rslogger.warning(f"URL seen: {request.url}")
+    rslogger.warning(f"Query parameters: {request.query_params}")
+    course_name = request.query_params.get("course")
     # Import api key and handles errors
     api_token = None
+    rslogger.warning(f"CodeTailor: Received request for course '{course_name}'")
     try:
-        if course_name is None or course_name == "personalized_parsons" or course_name == "overview":  # the test course for development
+        if course_name is None or course_name == "personalized_parsons":  # the test course for development
             # Dev/Test mode testing
-            rslogger.info("CodeTailor: Using predefined dev API key")
+            rslogger.warning("CodeTailor: Using predefined dev API key")
             api_token = DEV_API_KEY
         else:
             # obtain the CoursesValidator object - Brad's review
             try:
                 course = await fetch_course(course_name)
             except AttributeError:
-                    rslogger.error(f"Course '{course_name}' not found.")
+                    rslogger.error(f"CodeTailor: Course '{course_name}' not found.")
                     return JSONResponse(
                         content={"error": "CodeTailor: No course found"},
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
-            
+            rslogger.warning(f"[CodeTailor] Fetching course: {course_name}, id: {course.id}")
             # this does not return a token, it returns an APITokenValidator object
+        
             token_record = await fetch_api_token( # handles decryption already
                 course_id = course.id,
                 provider = 'openai', # from add_token.html <option value="openai">
@@ -171,15 +177,15 @@ async def parsons_scaffolding(
                                      # if we find instructors tend to use other platforms, we need to handle this later
             )
             if token_record is None:
-                rslogger.error(f"No API token found for course '{course_name}'.")
+                rslogger.error(f"CodeTailor: No API token found for course '{course_name}'.")
                 return JSONResponse(
                     content={"error": "CodeTailor: No API token found for this course"},
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
-            
             api_token = token_record.token
+            rslogger.warning(f"CodeTailor: Fetching course: {course_name}, id: {course.id}, provider: openai, api_token: {api_token[:4]}****")
     except Exception as e:
-        rslogger.error(f"Codetailor: Error fetching API tokens: {e}")
+        rslogger.error(f"CodeTailor: Error fetching API tokens: {e}")
         return JSONResponse(
             content={"error": f"Error fetching API tokens: {str(e)}"},
             status_code=status.HTTP_400_BAD_REQUEST
@@ -190,7 +196,7 @@ async def parsons_scaffolding(
             content={"error": "CodeTailor: No openai API found"},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-
+    rslogger.warning(f"CodeTailor: api_token obtained successfully")
     # Start to process the request from activecode.js
     req_bytes = await request.body()
     req = req_bytes.decode("utf-8")

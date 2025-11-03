@@ -16,7 +16,7 @@
 # Standard library
 # ----------------
 from typing import Awaitable, Callable, cast, Optional
-
+import os
 # Third-party imports
 # -------------------
 from fastapi import Request
@@ -42,7 +42,8 @@ class RSLoginManager(LoginManager):
     Custom LoginManager class to force access token cookie to be SameSite=None so that iframe embedding and redirects from LTI tools work properly.
     """
     def set_cookie(self, response, token):
-        response.set_cookie(key=self.cookie_name, value=token, httponly=True, samesite="None", secure=True)
+        insecure = os.environ.get("ALLOW_INSECURE_LOGIN")
+        response.set_cookie(key=self.cookie_name, value=token, httponly=True, samesite="None", secure=not(insecure))
 
 try:
     auth_manager = RSLoginManager(

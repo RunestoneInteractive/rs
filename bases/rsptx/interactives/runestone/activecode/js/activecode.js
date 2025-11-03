@@ -542,7 +542,7 @@ export class ActiveCode extends RunestoneBase {
             : "unknown";
         let parsonsexample = this.parsonsexample;
         let problem_description = this.problem_description.split("\n").map(line => line.trim()).filter(line => line !== "").join("\n");
-        
+
         // This function is used to convert JUnit test code to a format suitable for backend processing.
         function junitToBackend(junitCode) {
             // Extract only the TestHelper class - match from the first line to the first empty line after it 

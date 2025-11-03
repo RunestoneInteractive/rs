@@ -158,15 +158,15 @@ def generate_personalized_fixed_code(api_token, language, problem_description, b
 
             except Exception as e:
                 # When there is an error from the LLM API, we will return the example solution
-                return ("error_personalized", example_solution.lstrip(), "example_solution")
+                return example_solution.lstrip(), "example_solution"
         # If the code is correct, we will return the cleaned_buggy_but_correct_code and raise a message
         else:
-            return "written_code_correct", cleaned_buggy_but_correct_code.lstrip(), "written_code"
+            return cleaned_buggy_but_correct_code.lstrip(), "written_code"
     # If the code is empty, directly return the example solution
     else:
         example_solution = generate_example_solution(api_token, language, problem_description, unittest_code, predefined_example)
 
-        return "empty_beginning", example_solution.lstrip(), "example_solution"
+        return example_solution.lstrip(), "example_solution"
 
 
 def generate_multi_personalized_Parsons_blocks(personalize_level, language, problem_description, buggy_code, fixed_code, default_start_code, default_test_code, unittest_code):

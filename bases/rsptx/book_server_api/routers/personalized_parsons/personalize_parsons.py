@@ -228,9 +228,10 @@ def personalize_Parsons_block(language, problem_description, code_comparison_pai
     """
     distractors = {}
 
+    print(f"Total similarity score between buggy code and fixed code: {total_similarity}")
     if total_similarity < 0.20: # if the total similarity is too low, then we won't generate any distractors
         return "Full", {}
-    elif total_similarity >= 0.99:
+    elif total_similarity == 1.0: # if the code is already correct, no need to generate blocks - 0.99 cannot detect missing ; in java
         return "Correct", {} 
     else:
         # use students' own buggy code as resource to build distractors
