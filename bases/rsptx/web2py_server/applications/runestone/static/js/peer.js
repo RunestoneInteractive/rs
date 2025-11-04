@@ -27,6 +27,7 @@ const STEP_CONFIG = {
 };
 
 const CHAT_MODALITIES = ['makep', 'facechat', 'makeabgroups'];
+var currentStep = null;
 
 function disableButton(btn) {
     if (btn) btn.disabled = true;
@@ -77,6 +78,7 @@ function markStepActive(btn) {
 function handleButtonClick(event) {
     const id = event.target.id;
     const config = STEP_CONFIG[id];
+    currentStep = id;
     if (!config) {
         // If no config, do nothing
         return;
@@ -98,7 +100,9 @@ function handleButtonClick(event) {
     markStepComplete(currentBtn);
 
     // 5) Enable the next step(s) in config.next
-    batchEnable(config.next);
+    if (currentStep !== 'vote1') {
+        batchEnable(STEP_CONFIG[currentStep].next);
+    }
 
     // 6) Highlight (add “active” class) to the very first next step
     if (Array.isArray(config.next) && config.next.length > 0) {
@@ -208,6 +212,11 @@ function connect(event) {
                                 if (qq.didSubmit == false && qq.isAnswered == true) {
                                     qq.checkCurrentAnswer();
                                     qq.logCurrentAnswer();
+                                }
+                            } else {
+                                // instructors only
+                                if (currentStep === 'vote1') {
+                                    batchEnable(STEP_CONFIG['vote1'].next);
                                 }
                             }
 
@@ -492,12 +501,6 @@ function warnAndStopVote(event) {
     if (event.srcElement.id == "vote1") {
         let butt = document.querySelector("#vote1");
         butt.classList.replace("btn-info", "btn-secondary");
-        document.querySelector("#makep").disabled = false;
-        document.querySelector("#facechat").disabled = false;
-        let ab = document.querySelector("#makeabgroups");
-        if (ab) {
-            ab.disabled = false;
-        }
     } else {
         let butt = document.querySelector("#vote3");
         butt.classList.replace("btn-info", "btn-secondary");
