@@ -153,7 +153,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
 
     if not os.path.exists("project.ptx"):
         click.echo("PreTeXt books need a project.ptx file")
-        return  {"completed": False, "status": "Missing project.ptx file"}
+        return {"completed": False, "status": "Missing project.ptx file"}
     else:
         click.echo("Checking files")
         if not target:
@@ -162,7 +162,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         # and {"host-platform": "runestone"} in stringparams
         rs = check_project_ptx(click=click, course=course, target=target)
         if not rs:
-            return  {"completed": False, "status": "Bad configuration in project.ptx"}
+            return {"completed": False, "status": "Bad configuration in project.ptx"}
 
         logger = logging.getLogger("ptxlogger")
         string_io_handler = StringIOHandler()
@@ -197,7 +197,10 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
             res = copytree(rs.output_dir_abspath(), book_path, dirs_exist_ok=True)
             if not res:
                 click.echo("Error copying files to published")
-                return {"completed": False, "status": "Error copying files to published"}
+                return {
+                    "completed": False,
+                    "status": "Error copying files to published",
+                }
         else:
             click.echo("No need to copy files to published")
         click.echo("Book deployed successfully")
@@ -223,12 +226,10 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
             or "Traceback" in log_string
             or "compilation failed" in log_string
         ):
-            click.echo(
-                "Nonfatal errors in build, check the log for details"
-            )
+            click.echo("Nonfatal errors in build, check the log for details")
             return {"completed": True, "status": "Nonfatal errors in build"}
         click.echo("Build completed successfully")
-        return  {"completed": True, "status": "Build completed successfully"}
+        return {"completed": True, "status": "Build completed successfully"}
 
 
 # Support Functions
@@ -678,7 +679,7 @@ def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
         .values(
             chapter_name=f"{cnum} {chapter.xpath('.//title')[0].text}",
             course_id=course_name,
-            chapter_label=chapter.xpath('//id')[0].text,
+            chapter_label=chapter.xpath(".//id")[0].text,
             chapter_num=chap_num,
         )
     )
@@ -891,7 +892,9 @@ def _process_single_timed_assignment(
         qnum += 1
         # Extract question content
         htmlsrc = question.xpath(".//htmlsrc")[0]
-        dbtext = "".join(ET.tostring(child, encoding="unicode", method="html") for child in htmlsrc)
+        dbtext = "".join(
+            ET.tostring(child, encoding="unicode", method="html") for child in htmlsrc
+        )
         qlabel = " ".join(question.xpath(".//label")[0].itertext())
 
         # Get question element and metadata
@@ -989,7 +992,9 @@ def _process_single_question(
     # Extract question content
     htmlsrc = question.xpath(".//htmlsrc")[0]
     #
-    dbtext = "".join(ET.tostring(child, encoding="unicode", method="html") for child in htmlsrc)
+    dbtext = "".join(
+        ET.tostring(child, encoding="unicode", method="html") for child in htmlsrc
+    )
     qlabel = " ".join(question.xpath(".//label")[0].itertext())
 
     # Get question element and metadata
