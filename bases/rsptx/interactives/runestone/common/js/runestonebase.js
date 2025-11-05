@@ -114,6 +114,10 @@ export default class RunestoneBase {
         eventInfo.course_name = eBookConfig.course;
         eventInfo.clientLoginStatus = eBookConfig.isLoggedIn;
         eventInfo.timezoneoffset = new Date().getTimezoneOffset() / 60;
+        // For selectquestions we need to log using the selector_id for real time scoring
+        if (this.selector_id) {
+            eventInfo.selector_id = this.selector_id;
+        }
         if (typeof this.percent === "number") {
             eventInfo.percent = this.percent;
         }
