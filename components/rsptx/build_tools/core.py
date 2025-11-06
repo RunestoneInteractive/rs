@@ -362,7 +362,7 @@ def update_library(
     # This is a bit of a hack for now... todo: continue to refactor these to use crud functions
     eng = create_engine(config.dburl.replace("+asyncpg", ""))
     if build_system == "PTX":
-        parser = ET.HTMLParser()
+        parser = ET.HTMLParser(encoding="utf-8")
         tree = ET.parse(mpath, parser)
         docinfo_list = tree.xpath("//library-metadata")
         docinfo = docinfo_list[0] if docinfo_list else None
@@ -580,7 +580,7 @@ def _initialize_db_context(engine, sess, course_name, manifest_path):
     assignment_questions = Table("assignment_questions", meta, autoload_with=engine)
 
     # Get the author name from the manifest
-    parser = ET.HTMLParser()
+    parser = ET.HTMLParser(encoding="utf-8")
     tree = ET.parse(manifest_path, parser)
     docinfo_list = tree.xpath("//library-metadata")
     docinfo = docinfo_list[0] if docinfo_list else None
@@ -638,7 +638,7 @@ def _process_chapters(sess, db_context, course_name, manifest_path):
     """Process all chapters from the manifest."""
     rslogger.info("Populating the database with Chapter information")
 
-    parser = ET.HTMLParser()
+    parser = ET.HTMLParser(encoding="utf-8")
     tree = ET.parse(manifest_path, parser)
     root = tree.getroot()
     chap = 0
@@ -653,7 +653,7 @@ def _process_appendices(sess, db_context, course_name, manifest_path):
     """Process all appendices from the manifest."""
     rslogger.info("Populating the database with Appendix information")
 
-    parser = ET.HTMLParser()
+    parser = ET.HTMLParser(encoding="utf-8")
     tree = ET.parse(manifest_path, parser)
     root = tree.getroot()
 
@@ -893,7 +893,7 @@ def _process_single_timed_assignment(
         # Extract question content
         htmlsrc = question.xpath(".//htmlsrc")[0]
         dbtext = "".join(
-            ET.tostring(child, encoding="unicode", method="html") for child in htmlsrc
+            ET.tostring(child, encoding="utf-8", method="html").decode("utf-8") for child in htmlsrc
         )
         qlabel = " ".join(question.xpath(".//label")[0].itertext())
 
@@ -993,10 +993,10 @@ def _process_single_question(
     htmlsrc = question.xpath(".//htmlsrc")[0]
     #
     dbtext = "".join(
-        ET.tostring(child, encoding="unicode", method="html") for child in htmlsrc
+        ET.tostring(child, encoding="utf-8", method="html").decode("utf-8") for child in htmlsrc
     )
     qlabel = " ".join(question.xpath(".//label")[0].itertext())
-
+    print(f"dbtext = {dbtext}")
     # Get question element and metadata
     el, idchild, old_ww_id, qtype = _extract_question_metadata(question, dbtext)
     # Handle webwork case where we need to update dbtext
@@ -1187,7 +1187,7 @@ def _process_source_elements(sess, subchapter, course_name):
 
 def _set_course_attributes(sess, db_context, course_name, manifest_path):
     """Set course attributes from the manifest."""
-    parser = ET.HTMLParser()
+    parser = ET.HTMLParser(encoding="utf-8")
     tree = ET.parse(manifest_path, parser)
     root = tree.getroot()
 
