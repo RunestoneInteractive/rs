@@ -119,7 +119,7 @@ async def grade_submission(
                 user.username, user.course_name, div_id
             )
             # Update the score unless the instructor has left a comment.
-            # Insructors should have the last word?
+            # Instructors should have the last word?
             if current_score:
                 if current_score.score is None:
                     current_score.score = 0
