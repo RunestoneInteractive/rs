@@ -39,7 +39,7 @@ extra_settings = (
     else dict(echo=settings.db_echo)
 )
 engine = create_async_engine(
-    settings.database_url, connect_args=connect_args, **extra_settings
+    settings.database_url, pool_size=10, connect_args=connect_args, **extra_settings
 )
 # This creates the SessionLocal class.  An actual session is an instance of this class.
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

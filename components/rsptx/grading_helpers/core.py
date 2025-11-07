@@ -44,17 +44,32 @@ async def grade_submission(
     accommodation = await fetch_deadline_exception(
         user.course_id, user.username, submission.assignment_id
     )
+    # if there is a selector_id this is a selectquestion and we want to use the
+    # selector_id to record the grade and to see if this question has been assigned.  
+    # Of course we want to grade the real question
+    # which is the div_id that is part of the submission.
+    if submission.selector_id:
+        rslogger.debug(
+            f"Grading submission with selector_id {submission.selector_id}"
+        )
+        div_id = submission.selector_id
+    else:
+        div_id = submission.div_id
     scoreSpec = await is_assigned(
-        submission.div_id,
+        div_id,
         user.course_id,
         submission.assignment_id,
         accommodation=accommodation,
         timezone=timezone,
     )
-
+    # Skip scoring for interaction events these are just logs that the student
+    # did something with a selectquestion.  This is required to get accurate grades
+    # in reading assignments that have selectquestions (likely toggles).
     if submission.event == "selectquestion" and submission.act == "interaction":
         return scoreSpec
 
+    # from here on carefully use div_id which may be the selector_id for saving the score
+    # but use submission.div_id for scoring the actual question.
     if scoreSpec.assigned:
         rslogger.debug(
             f"Scoring {submission.div_id} for {user.username} scoreSpec = {scoreSpec}"
@@ -68,20 +83,20 @@ async def grade_submission(
             else:
                 scoreSpec.score = await score_one_answer(scoreSpec, submission)
                 await create_question_grade_entry(
-                    user.username, user.course_name, submission.div_id, scoreSpec.score
+                    user.username, user.course_name, div_id, scoreSpec.score
                 )
                 update_total = True
         elif scoreSpec.which_to_grade == "last_answer":
             scoreSpec.score = await score_one_answer(scoreSpec, submission)
             answer = await fetch_question_grade(
-                user.username, user.course_name, submission.div_id
+                user.username, user.course_name, div_id
             )
             if answer:
                 answer.score = scoreSpec.score
                 await update_question_grade_entry(
                     user.username,
                     user.course_name,
-                    submission.div_id,
+                    div_id,
                     scoreSpec.score,
                     answer.id,
                 )
@@ -101,10 +116,10 @@ async def grade_submission(
                 f"Scoring best answer with current score of {scoreSpec.score}"
             )
             current_score = await fetch_question_grade(
-                user.username, user.course_name, submission.div_id
+                user.username, user.course_name, div_id
             )
             # Update the score unless the instructor has left a comment.
-            # Insructors should have the last word?
+            # Instructors should have the last word?
             if current_score:
                 if current_score.score is None:
                     current_score.score = 0
@@ -115,7 +130,7 @@ async def grade_submission(
                     await update_question_grade_entry(
                         user.username,
                         user.course_name,
-                        submission.div_id,
+                        div_id,
                         scoreSpec.score,
                         current_score.id,
                     )
@@ -126,7 +141,7 @@ async def grade_submission(
                 await create_question_grade_entry(
                     user.username,
                     user.course_name,
-                    submission.div_id,
+                    div_id,
                     scoreSpec.score,
                 )
                 update_total = True
