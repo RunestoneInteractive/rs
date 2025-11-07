@@ -110,7 +110,7 @@ export const AssignmentExercisesTable = ({
         stripedRows
         showGridlines
         globalFilter={globalFilter}
-        globalFilterFields={["name", "title"]}
+        globalFilterFields={["name", "title", "qnumber"]}
         emptyMessage={
           <div className="text-center p-5">
             <i className="pi pi-book text-4xl text-500 mb-3" style={{ display: "block" }} />
