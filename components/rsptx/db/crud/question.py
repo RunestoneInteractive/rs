@@ -617,6 +617,8 @@ async def fetch_questions_for_chapter_subchapter(
                     or_(
                         Question.owner == owner,
                         Question.is_private == False,  # noqa: E712
+                        Question.is_private == 'F',
+                        Question.owner == None, # noqa: E711
                     )
                 ),  # noqa: E712
                 skipr_clause,
