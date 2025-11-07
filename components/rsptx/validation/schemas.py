@@ -130,6 +130,7 @@ class LogItemIncoming(BaseModelNone):
     incorrect: Optional[int] = None
     skipped: Optional[int] = None
     time_taken: Optional[int] = None
+    selector_id: Optional[str] = None
 
 
 class AssessmentRequest(BaseModelNone):

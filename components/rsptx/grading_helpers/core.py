@@ -44,14 +44,21 @@ async def grade_submission(
     accommodation = await fetch_deadline_exception(
         user.course_id, user.username, submission.assignment_id
     )
+    if submission.selector_id:
+        rslogger.debug(
+            f"Grading submission with selector_id {submission.selector_id}"
+        )
+        div_id = submission.selector_id
+    else:
+        div_id = submission.div_id
     scoreSpec = await is_assigned(
-        submission.div_id,
+        div_id,
         user.course_id,
         submission.assignment_id,
         accommodation=accommodation,
         timezone=timezone,
     )
-
+    rslogger.debug(f"scoreSpec = {scoreSpec} for submission = {submission}")
     if submission.event == "selectquestion" and submission.act == "interaction":
         return scoreSpec
 
