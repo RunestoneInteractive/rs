@@ -146,6 +146,7 @@ async def fetch_questions_by_search_criteria(
                 Question.htmlsrc.regexp_match(criteria.source_regex, flags="i"),
                 Question.topic.regexp_match(criteria.source_regex, flags="i"),
                 Question.name.regexp_match(criteria.source_regex, flags="i"),
+                Question.qnumber.regexp_match(criteria.source_regex, flags="i"),
             )
         )
 
@@ -618,6 +619,7 @@ async def fetch_questions_for_chapter_subchapter(
                         Question.owner == owner,
                         Question.is_private == False,  # noqa: E712
                         Question.is_private == 'F',
+                        Question.is_private == None, # noqa: E711
                         Question.owner == None, # noqa: E711
                     )
                 ),  # noqa: E712
