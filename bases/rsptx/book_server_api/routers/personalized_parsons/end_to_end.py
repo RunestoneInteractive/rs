@@ -99,7 +99,7 @@ def request_fixed_code_from_openai(api_token, language, problem_description, bug
         print("not correct, retrying ... current solution_generation=", solution_generation)
         # If the unittest result is not correct, we will retry with the same solution_generation_type, but will provide the incorrect code as part of the system message (attachment)
         solution_generation -= 1
-        return request_fixed_code_from_openai(language, problem_description, buggy_code, default_start_code, default_test_code, example_solution, unittest_code, solution_generation, old_fixed_code=cleaned_fixed_code, attempt_type="repeat", situation="a correct answer", failure_reason="not correct", unittest_result = False)
+        return request_fixed_code_from_openai(api_token, language, problem_description, buggy_code, default_start_code, default_test_code, example_solution, unittest_code, solution_generation, old_fixed_code=cleaned_fixed_code, attempt_type="repeat", situation="a correct answer", failure_reason="not correct", unittest_result = False)
     
 def generate_example_solution(api_token, language, problem_description, unittest_code, predefined_example):
     """
