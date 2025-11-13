@@ -439,7 +439,7 @@ function getStatus(taskID) {
         <td>${taskName}</td>
         <td>${d.toLocaleString()}
         <td>${res.task_status}</td>
-        <td>${res.task_result.current || "Probable Failure - Check log"}</td>
+        <td>${res.task_result.current || "Non-fatal errors found - Check log"}</td>
       </tr>`;
             let row = document.getElementById(`${taskID}`);
             if (!row) {
