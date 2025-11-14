@@ -462,6 +462,15 @@ function createGradingPanel(element, acid, studentId, multiGrader) {
         });
     });
 
+    // update grading method recorded for a particular response
+    // valid values for method are "autograded" and "instructor graded"
+    function setGradingMethod(gradingForm, method) {
+        let commentField = gradingForm.querySelector("#input-comments");
+        if (method === "instructor graded" && commentField?.value === "autograded") {
+            commentField.value = "instructor graded";
+        }
+    }
+
     //this is an internal function for createGradingPanel
     // called when Save Grade is pressed
     function save(event) {
@@ -470,10 +479,8 @@ function createGradingPanel(element, acid, studentId, multiGrader) {
         //        if (form==undefined){form=$(this);} //This might be redundant
         var form = jQuery(this);
         var grade = jQuery("#input-grade", form).val();
+        setGradingMethod(form[0], "instructor graded");  // pass raw html <form>
         var comment = jQuery("#input-comments", form).val();
-        if (comment === "autograded") {
-            comment = "instructor graded";
-        }
         jQuery.ajax({
             url: eBookConfig.gradeRecordingUrl,
             type: "POST",
@@ -551,6 +558,9 @@ function createGradingPanel(element, acid, studentId, multiGrader) {
         if (multiGrader) {
             jQuery("#input-grade", element).change(function () {
                 //alert(this.value + acid + studentId);
+                setGradingMethod(newForm, "instructor graded");
+                // form comment may have been changed by setGradingMethod
+                formComment = newForm.querySelector("#input-comments").value;
                 var inp = this;
                 jQuery.ajax({
                     url: eBookConfig.gradeRecordingUrl,
@@ -560,12 +570,14 @@ function createGradingPanel(element, acid, studentId, multiGrader) {
                         acid: acid,
                         sid: studentId,
                         grade: this.value,
+                        comment: formComment,
                         assignmentid: $(
                             document.getElementById("chaporassignselector")
                         ).val(),
                     },
                     success: function (data) {
                         inp.style.backgroundColor = "#ddffdd";
+                        newForm.querySelector("#input-comments").style.backgroundColor = "#ddffdd";
                         calculateTotals(studentId);
                     },
                 });
