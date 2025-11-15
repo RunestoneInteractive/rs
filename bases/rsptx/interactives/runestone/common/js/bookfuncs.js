@@ -157,20 +157,26 @@ class PageProgressBar {
             subchapterprogress.max = 100;
             subchapterprogress.value = value;
         }
-        // Handle the case where there are no interactive objects on the page.
-        // but we still need to give the student points for reading the page.
-        if (this?.assignment_spec?.activities_required === 0) {
-            this.sendCompletedReadingScore().then(() => {
-                console.log("Reading score sent for page with no activities");
-                // wait a tick then mark the page complete
-                // this is needed to let the progress bar update before marking complete
-                setTimeout(() => {
-                    let cb = document.getElementById("completionButton");
-                    if (cb && cb.textContent.toLowerCase() === "mark as completed") {
-                        cb.click();
-                    }
-                }, 500);
-            });
+        if (this.assignment_spec) {
+            // If the user has completed all activities, send the reading score.
+            // This handles the case where there are no activities on the page or
+            //  where the user completed activities on the assignment page and now
+            //  is viewing the reading page.
+            let completeActivities = this.total - 1; // subtract 1 for the page reading which is in total but not an activity
+            let requiredActivities = this.assignment_spec.activities_required || 0;
+            if (completeActivities >= requiredActivities) {
+                this.sendCompletedReadingScore().then(() => {
+                    console.log("Reading score sent for page");
+                    // wait a tick then mark the page complete
+                    // this is needed to let the progress bar update before marking complete
+                    setTimeout(() => {
+                        let cb = document.getElementById("completionButton");
+                        if (cb && cb.textContent.toLowerCase() === "mark as completed") {
+                            cb.click();
+                        }
+                    }, 500);
+                });
+            }
         }
         if (!eBookConfig.isLoggedIn) {
             const subchapterDiv = document.getElementById("subchapterprogress");
