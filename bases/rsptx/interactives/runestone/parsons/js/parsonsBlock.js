@@ -69,6 +69,8 @@ export default class ParsonsBlock {
             $(view).append(labelDiv);
         }
         this.view = view;
+        // is not placeholder by default
+        this.isPlaceholder = false;
     }
     // Add a line (from another block) to this block
     addLine(line) {
@@ -367,6 +369,8 @@ export default class ParsonsBlock {
                 if (this.problem.textMove) {
                     this.problem.logMove("kmove");
                     this.problem.textMove = false;
+                    // CodeTailor: update placeholders
+                    this.problem.updatePlaceholders();
                 }
                 this.problem.exitKeyboardMode();
             }
@@ -452,6 +456,7 @@ export default class ParsonsBlock {
         delete this.problem.movingY;
         this.problem.updateView();
         this.problem.logMove("move");
+        this.problem.updatePlaceholders();
     }
     // Called when a block is moved
     panMove(event) {
@@ -774,6 +779,11 @@ export default class ParsonsBlock {
             $(this.view).addClass("down");
             this.problem.textMove = false;
             this.problem.logMove("kmove");
+            if (!this.isPlaceholder) {
+
+                this.problem.updatePlaceholders();
+
+            }
         } else {
             $(this.view).removeClass("down");
             $(this.view).addClass("up");
