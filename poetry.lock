@@ -4305,14 +4305,14 @@ files = [
 
 [[package]]
 name = "pretext"
-version = "2.29.0"
+version = "2.30.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main", "dev"]
 files = [
-    {file = "pretext-2.29.0-py3-none-any.whl", hash = "sha256:2effb23b9cce1a96f0d42a439091c354b74036b0c6dc4ef1ca6eb5cc8623c00f"},
-    {file = "pretext-2.29.0.tar.gz", hash = "sha256:ea1c019bcb401c0b86ac6b2568e230a9cbefe4f20804c0e5827ea0ed9f532776"},
+    {file = "pretext-2.30.0-py3-none-any.whl", hash = "sha256:07f4425090fccf4767cb7d9ec348aebfefcf7c1b9335c7e7f6ab2e5aee977600"},
+    {file = "pretext-2.30.0.tar.gz", hash = "sha256:12c07eecf1cc5f9b5edbba819f6d471f7c7fdc5d581284b340a2a1e05e3935ee"},
 ]
 
 [package.dependencies]
@@ -4336,9 +4336,9 @@ requests = ">=2,<3"
 single-version = ">=1,<2"
 
 [package.extras]
-all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.4,<0.5)"]
+all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.4.2,<0.5.0)"]
 homepage = ["pelican[markdown] (>=4.10,<5.0)"]
-prefigure = ["prefig[text] (>=0.4,<0.5)"]
+prefigure = ["prefig[text] (>=0.4.2,<0.5.0)"]
 
 [[package]]
 name = "prometheus-client"
