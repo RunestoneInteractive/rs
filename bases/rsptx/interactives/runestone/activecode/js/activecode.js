@@ -246,6 +246,8 @@ export class ActiveCode extends RunestoneBase {
             edmode = "text/x-sql";
         } else if (edmode === "java") {
             edmode = "text/x-java";
+        } else if (edmode === "kotlin") {
+            edmode = "text/x-java";
         } else if (edmode === "cpp") {
             edmode = "text/x-c++src";
         } else if (edmode === "c") {
@@ -1871,6 +1873,7 @@ var languageExtensions = {
     c: "c",
     sql: "sql",
     octave: "m",
+    kotlin: "kt",
 };
 
 export function isInViewport(element) {
