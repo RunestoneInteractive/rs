@@ -60,7 +60,6 @@ celery = "^5.2.7"
 cryptography = "^3.0.0"
 cssselect = ">= 1.0"
 dash = { extras = ["celery", "diskcache"], version = "^2.7.0" }
-dash-bootstrap-components = "^1.2.1"
 diff-match-patch = ">= 20110725.1"
 fastapi = "^0.115.0"
 fastapi-login = "^1.10.0"
