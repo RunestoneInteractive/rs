@@ -2956,14 +2956,14 @@ text = ["pycairo (>=1.20,<2.0) ; python_version >= \"3.9\"", "pycairo (>=1.20,<=
 
 [[package]]
 name = "pretext"
-version = "2.30.2"
+version = "2.31.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "pretext-2.30.2-py3-none-any.whl", hash = "sha256:3086b968254e37199ca58ce809a3e1fdc995eb2dcd6e7b96ffb9206351a00ccf"},
-    {file = "pretext-2.30.2.tar.gz", hash = "sha256:086bcc494d8f7e7c374e06f1d352d231fb972501a0f3824ff25c0f1cf0f6d9bb"},
+    {file = "pretext-2.31.0-py3-none-any.whl", hash = "sha256:52345261d7682840fc0cfb9d7fad276ac32c9ad9e835f403a61ce7a1576b29a4"},
+    {file = "pretext-2.31.0.tar.gz", hash = "sha256:930a388e48c88c151922dea700d4752f024ab8e85cd8c7e6dcb5fcaac2681065"},
 ]
 
 [package.dependencies]
@@ -4004,14 +4004,14 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.9.19"
+version = "7.10.0"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "<4.0.0,>=3.10.0"
 groups = ["main"]
 files = [
-    {file = "runestone-7.9.19-py3-none-any.whl", hash = "sha256:e4237e8cfb7ef879695f3a1aa9332dfa31b9b776908a35705f8e1765f9a68d44"},
-    {file = "runestone-7.9.19.tar.gz", hash = "sha256:005b2d61badbc6257ee0e2d17990442e9b4f88e1de923a24b7c1c20f704ba499"},
+    {file = "runestone-7.10.0-py3-none-any.whl", hash = "sha256:50f8666f8d4872f8e51d6c8c258edfb0013365d997e32ba95961b18504d4a9d3"},
+    {file = "runestone-7.10.0.tar.gz", hash = "sha256:1c5337f89978aa0dcc4e003d562f5a677f0bc517fa5526182a1d47a4f416996c"},
 ]
 
 [package.dependencies]
