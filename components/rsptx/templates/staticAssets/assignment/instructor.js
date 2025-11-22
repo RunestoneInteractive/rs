@@ -16,8 +16,11 @@ function extractAnswerAndFeedback(htmlString) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlString, 'text/html');
 
-    // Querying the document for the element with the data-correct="yes" attribute
-    let answerElement = doc.querySelector('li[data-correct="yes"]');
+    // Querying the document for the element with the data-correct attribute
+    // This attribute indicates the correct answer in the list of choices
+    // it may not be data-correct="yes" or data-correct="" or just data-correct depending
+    // on the source of the question
+    let answerElement = doc.querySelector('li[data-correct]');
     let answerElementID = null;
 
     // Get the feedback element that immediately follows the correct answer
