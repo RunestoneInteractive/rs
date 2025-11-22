@@ -7,6 +7,7 @@ import os
 from fastapi import Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
 
@@ -15,6 +16,7 @@ from rsptx.configuration import settings
 from rsptx.db.crud import create_traceback
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
+from rsptx.templates import template_folder
 
 
 def add_exception_handlers(app):
@@ -112,7 +114,19 @@ def add_exception_handlers(app):
         #
         await create_traceback(exc, request, socket.gethostname())
 
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=jsonable_encoder({"detail": exc}),
-        )
+        # browsers get HTML responses, API clients get JSON
+        if "text/html" in request.headers.get("accept", ""):
+            context = {
+                "course": "",
+                "request": request,
+                "detail": str(exc),
+                "timestamp": date,
+            }
+
+            templates = Jinja2Templates(directory=template_folder)
+            return templates.TemplateResponse("error_page.html", context)
+        else:
+            return JSONResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                content=jsonable_encoder({"detail": str(exc)}),
+            )

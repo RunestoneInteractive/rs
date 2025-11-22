@@ -54,6 +54,7 @@
     </head>
 
     <body>
+        {% block navbar %}
         <nav class="navbar navbar-expand-sm sticky-top navbar-light bg-light">
         <!-- logo -- back to xxx  -- create course                    user scratch help -->
         <a class="navbar-brand" href="https://runestone.academy"><img src="/staticAssets/RAIcon.png" height="30px" alt="Runestone Logo"/></a>
@@ -127,6 +128,8 @@
                 </li>
             </div>
         </nav>
+        {% endblock %}
+
         <div class="container-fluid">
             <!-- child template -->
             {% block content %}
