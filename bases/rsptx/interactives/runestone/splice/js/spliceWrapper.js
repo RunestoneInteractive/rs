@@ -143,7 +143,7 @@ export class SpliceWrapper extends RunestoneBase {
         this.logBookEvent({
             event: event.data.subject,
             div_id: location,
-            act: event.data.name,
+            act: event.data.name || "unknown",
         });
     }
     // these stubs are not implemented, but are required by the RunestoneBase class
