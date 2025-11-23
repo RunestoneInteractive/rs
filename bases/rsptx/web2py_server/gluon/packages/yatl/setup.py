@@ -1,5 +1,3 @@
-import ast
-import re
 
 import setuptools
 

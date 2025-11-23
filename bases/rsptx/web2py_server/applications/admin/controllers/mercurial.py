@@ -1,4 +1,4 @@
-from gluon.fileutils import read_file, write_file
+from gluon.fileutils import write_file
 
 if DEMO_MODE or MULTI_USER_MODE:
     session.flash = T('disabled in demo mode')

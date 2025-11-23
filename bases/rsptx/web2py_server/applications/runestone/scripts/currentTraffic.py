@@ -1,12 +1,8 @@
 import pandas as pd
-import numpy as np
 from sqlalchemy import create_engine
-import altair as alt
-from altair import Chart, X, Y, Scale
+from altair import Chart
 import os.path
 import datetime
-import re
-from altair_saver import save
 
 
 eng = create_engine(os.environ["DBURL"])

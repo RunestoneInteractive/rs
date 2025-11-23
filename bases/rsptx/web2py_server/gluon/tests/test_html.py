@@ -15,7 +15,7 @@ from gluon.html import STYLE, TABLE, TR, TD, TAG, TBODY, THEAD, TEXTAREA, TFOOT,
 from gluon.storage import Storage
 from gluon.html import XML_pickle, XML_unpickle
 from gluon.html import TAG_pickler, TAG_unpickler
-from gluon._compat import xrange, PY2, to_native
+from gluon._compat import PY2
 from gluon.decoder import decoder
 import re
 
@@ -424,7 +424,6 @@ class TestBareHelpers(unittest.TestCase):
         self.assertEqual(A('a', callback='b', _id='c').xml(),
                          b'<a data-w2p_disable_with="default" data-w2p_method="POST" href="b" id="c">a</a>')
         # Callback with no id trigger web2py_uuid() call
-        from gluon.html import web2pyHTMLParser
         #a = A('a', callback='b').xml()
 
         #for tag in web2pyHTMLParser(a).tree.elements('a'):

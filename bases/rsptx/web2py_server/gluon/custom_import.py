@@ -39,7 +39,6 @@ def is_tracking_changes():
 # Changed in Python 3.3: Negative values for level are no longer supported,
 # which also changes the default value to 0 (was -1)
 _DEFAULT_LEVEL = 0 if sys.version_info[:2] >= (3, 3) else -1
-import pdb
 
 
 def custom_importer(name, globals={}, locals=None, fromlist=(), level=_DEFAULT_LEVEL):
@@ -67,7 +66,7 @@ def custom_importer(name, globals={}, locals=None, fromlist=(), level=_DEFAULT_L
             nat_result = NATIVE_IMPORTER(name, globals, locals, fromlist, level)
             # print(f"successfully imported {name} {fromlist}")
             return nat_result
-        except (ImportError, KeyError) as e:
+        except (ImportError, KeyError):
             # print(f"Import or Key Error when trying Native: {e}")
             pass
         if current.request._custom_import_track_changes:
@@ -88,7 +87,7 @@ def custom_importer(name, globals={}, locals=None, fromlist=(), level=_DEFAULT_L
                 if result is None:
                     try:
                         result = sys.modules[modules_prefix]
-                    except KeyError as ke:
+                    except KeyError:
                         # print(f"Key error in custom import {ke}")
                         # ImportError on line below causes issues with some imports
                         # https://stackoverflow.com/questions/76341290/unable-to-import-requests-in-web2py-even-though-requests-is-accessible-directl

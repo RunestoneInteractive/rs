@@ -6,7 +6,6 @@
 """
 
 import os
-import sys
 import unittest
 
 
@@ -14,7 +13,7 @@ from gluon.compileapp import run_controller_in, run_view_in, compile_application
 from gluon.languages import TranslatorFactory
 from gluon.storage import Storage, List
 from gluon import fileutils
-from gluon.dal import DAL, Field, Table
+from gluon.dal import DAL, Field
 from gluon.http import HTTP
 from gluon.fileutils import open_file
 from gluon.cache import CacheInRam
@@ -31,14 +30,7 @@ class TestAppAdmin(unittest.TestCase):
 
     def setUp(self):
         from gluon.globals import Request, Response, Session, current
-        from gluon.html import A, DIV, FORM, MENU, TABLE, TR, INPUT, URL, XML
-        from gluon.html import ASSIGNJS
-        from gluon.validators import IS_NOT_EMPTY
-        from gluon.compileapp import LOAD
-        from gluon.http import HTTP, redirect
         from gluon.tools import Auth
-        from gluon.sql import SQLDB
-        from gluon.sqlhtml import SQLTABLE, SQLFORM
         self.original_check_credentials = fileutils.check_credentials
         fileutils.check_credentials = fake_check_credentials
         request = Request(env={})
@@ -91,7 +83,7 @@ class TestAppAdmin(unittest.TestCase):
         try:
             self.run_view()
             self.run_view_file_stream()
-        except Exception as e:
+        except Exception:
             import traceback
             print(traceback.format_exc())
             self.fail('Could not make the view')
@@ -131,7 +123,7 @@ class TestAppAdmin(unittest.TestCase):
         self.env.update(result)
         try:
             self.run_view()
-        except Exception as e:
+        except Exception:
             import traceback
             print(traceback.format_exc())
             self.fail('Could not make the view')
@@ -146,7 +138,7 @@ class TestAppAdmin(unittest.TestCase):
         self.env.update(result)
         try:
             self.run_view()
-        except Exception as e:
+        except Exception:
             import traceback
             print(traceback.format_exc())
             self.fail('Could not make the view')
@@ -169,7 +161,7 @@ class TestAppAdmin(unittest.TestCase):
         self.env.update(result)
         try:
             self.run_view()
-        except Exception as e:
+        except Exception:
             import traceback
             print(traceback.format_exc())
             self.fail('Could not make the view')

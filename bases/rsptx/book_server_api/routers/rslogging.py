@@ -61,7 +61,6 @@ from rsptx.db.models import (
     AuthUserValidator,
     CodeValidator,
     runestone_component_dict,
-    SourceCodeValidator,
     UseinfoValidation,
 )
 from rsptx.validation.schemas import (
@@ -220,7 +219,9 @@ def set_tz_offset(
         status_code=status.HTTP_200_OK, content=json.dumps({"detail": "success"})
     )
     response.set_cookie(key="RS_info", value=str(json.dumps(values)))
-    rslogger.debug(f"setting timezone offset in session {tzreq.timezoneoffset} hours for zone")
+    rslogger.debug(
+        f"setting timezone offset in session {tzreq.timezoneoffset} hours for zone"
+    )
     # returning make_json_response here eliminates the cookie
     # See https://github.com/tiangolo/fastapi/issues/2452
     return response

@@ -1,6 +1,6 @@
 import re
 
-from .._compat import integer_types, long
+from .._compat import long
 from . import adapters
 from .base import SQLAdapter
 

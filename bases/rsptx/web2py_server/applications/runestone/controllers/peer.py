@@ -543,7 +543,7 @@ def make_pairs():
     # maybe a in_persondb paralell to the partnerdb that can be sent like the enableChat
     # which is not broadcast!
     _broadcast_peer_answers(sid_ans)
-    logger.info(f"DONE broadcasting pair information")
+    logger.info("DONE broadcasting pair information")
     if is_ab:
         _broadcast_faceChat(peeps_in_person, in_person_groups)
     return json.dumps("success")

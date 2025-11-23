@@ -23,9 +23,6 @@
 # course's _static folder. Download the following file and unzip it in _static:
 # https://github.com/ram8647/khanex/blob/16398fd496fad5b93fdf4d72c274064db8d1d1ac/khanex-runestone.zip
 
-import shutil
-import os
-from pathlib import Path
 from runestone.server.componentdb import addQuestionToDB, addHTMLToDB
 from runestone.common import RunestoneIdDirective, RunestoneIdNode
 from docutils import nodes

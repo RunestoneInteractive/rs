@@ -3,25 +3,13 @@ import os
 
 from sqlalchemy import (
     Column,
-    Table,
-    ForeignKey,
-    Index,
     Integer,
-    String,
-    Date,
     DateTime,
-    Text,
     create_engine,
-    types,
-    Float,
-    inspect,
     MetaData,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.sql.schema import UniqueConstraint
-from sqlalchemy.orm import declarative_base
 
 # Local application imports
 # -------------------------

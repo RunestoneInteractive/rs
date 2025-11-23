@@ -15,7 +15,6 @@ from ..async_session import async_session
 from rsptx.logging import rslogger
 
 
-
 async def fetch_timed_exam(
     sid: str, exam_id: str, course_name: str
 ) -> TimedExamValidator:
@@ -100,8 +99,10 @@ async def fetch_timed_assessments(course_id: int) -> List[Tuple[str, str]]:
     """
     query = (
         select(Assignment.name, Assignment.description)
-        .where((Assignment.course == course_id) & 
-               ((Assignment.is_timed == "T") | (Assignment.kind == "Timed")))
+        .where(
+            (Assignment.course == course_id)
+            & ((Assignment.is_timed == "T") | (Assignment.kind == "Timed"))
+        )
         .order_by(Assignment.name)
     )
 
@@ -170,4 +171,3 @@ async def reset_student_assessment(
     except Exception as e:
         rslogger.error(f"Error resetting exam {course_name}: {e}")
         return False
-

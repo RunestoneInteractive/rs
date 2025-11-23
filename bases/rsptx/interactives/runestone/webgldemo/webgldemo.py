@@ -17,7 +17,6 @@
 from docutils import nodes
 from docutils.parsers.rst import directives
 from docutils.parsers.rst import Directive
-import string
 import re
 import os
 

@@ -1,5 +1,4 @@
-from sqlalchemy import create_engine, Table, MetaData, select, func
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, Table, MetaData, select
 import os
 
 rspw = os.environ['RUNESTONEPW']

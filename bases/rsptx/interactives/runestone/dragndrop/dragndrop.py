@@ -27,7 +27,6 @@ from runestone.common.runestonedirective import (
     RunestoneIdDirective,
     RunestoneIdNode,
 )
-from runestone.common.xmlcommon import write_substitute
 
 
 def setup(app):

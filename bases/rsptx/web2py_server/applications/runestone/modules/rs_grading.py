@@ -9,7 +9,7 @@ import asyncio
 import datetime
 import logging
 from math import ceil
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 # Third-party imports
 # -------------------
@@ -1254,7 +1254,6 @@ def do_calculate_totals(
     return results
 
 
-import pdb
 
 
 def do_autograde(

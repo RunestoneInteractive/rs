@@ -22,7 +22,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 from __future__ import print_function
-import pdb
 
 from datetime import datetime, timedelta
 
@@ -30,7 +29,6 @@ __author__ = "bmiller"
 
 import os
 from os import environ
-import re
 from sphinx.util import logging
 from sqlalchemy import create_engine, Table, MetaData, select, and_, or_
 from sqlalchemy.orm.session import sessionmaker

@@ -2,7 +2,6 @@
 import copy
 import marshal
 import struct
-import threading
 import time
 import traceback
 

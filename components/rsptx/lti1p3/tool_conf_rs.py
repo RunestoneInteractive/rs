@@ -23,15 +23,13 @@ class ToolConfRS(ToolConfAbstract):
 
         reg = self.registration_from_lti_config(lti_conf)
         return reg
-    
+
     @classmethod
     def registration_from_lti_config(cls, lti_conf):
         reg = Registration()
         reg.set_issuer(lti_conf.issuer).set_client_id(
             lti_conf.client_id
-        ).set_auth_login_url(
-            lti_conf.auth_login_url
-        ).set_auth_token_url(
+        ).set_auth_login_url(lti_conf.auth_login_url).set_auth_token_url(
             lti_conf.auth_token_url
         ).set_key_set_url(
             lti_conf.key_set_url

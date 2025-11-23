@@ -1,11 +1,10 @@
-import os
 import re
 import sys
 
 from .._compat import integer_types, long
 from ..helpers.classes import Reference
 from ..helpers.methods import use_common_filters
-from ..objects import Expression, Field, Query, Table
+from ..objects import Field
 from . import adapters, with_connection, with_connection_or_raise
 from .base import SQLAdapter
 
@@ -81,7 +80,7 @@ class Oracle(SQLAdapter):
 
     def create_sequence_and_triggers(self, query, table, **args):
         tablename = table._rname
-        if not "_id" in table:
+        if "_id" not in table:
             return self.execute(query)
         id_name = table._id._rname
         sequence_name = table._sequence_name

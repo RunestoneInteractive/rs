@@ -20,7 +20,6 @@ import logging
 import types
 import re
 import glob
-import site
 import traceback
 import gluon.fileutils as fileutils
 from gluon.settings import global_settings
@@ -28,7 +27,6 @@ from gluon.compileapp import build_environment, read_pyc, run_models_in
 from gluon.restricted import RestrictedError
 from gluon.globals import Request, Response, Session
 from gluon.storage import Storage, List
-from gluon.admin import w2p_unpack
 from pydal.base import BaseAdapter
 from gluon._compat import iteritems, ClassType, PY2
 

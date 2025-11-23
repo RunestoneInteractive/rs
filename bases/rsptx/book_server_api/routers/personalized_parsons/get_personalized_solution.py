@@ -24,6 +24,7 @@ The [fixed-code] should follow the {programming_language} style guide.
 [end-control-structures]
 """
 
+
 def find_control_structures_java(buggy_code):
     """
     Find control structures in Java code.
@@ -32,10 +33,10 @@ def find_control_structures_java(buggy_code):
     control_structures_java = []
 
     # regular expressions for some common control structures and loops in entry-level Java code
-    regex_for = r'for\s*\(\s*.*?\s*\)\s*\{'
-    regex_while = r'while\s*\(\s*.*?\s*\)\s*\{'
-    regex_if_elif = r'if\s*\(.*?\)\s*\{|\belse if\b\s*\(.*?\)\s*\{'
-    regex_if_else = r'if\s*\(.*?\)\s*\{|\belse\b\s*\{'
+    regex_for = r"for\s*\(\s*.*?\s*\)\s*\{"
+    regex_while = r"while\s*\(\s*.*?\s*\)\s*\{"
+    regex_if_elif = r"if\s*\(.*?\)\s*\{|\belse if\b\s*\(.*?\)\s*\{"
+    regex_if_else = r"if\s*\(.*?\)\s*\{|\belse\b\s*\{"
 
     # check for each regex pattern in the code snippet
     if re.search(regex_for, buggy_code):
@@ -49,6 +50,7 @@ def find_control_structures_java(buggy_code):
 
     return control_structures_java
 
+
 def find_control_structures_python(buggy_code):
     """
     Find control structures in Python code.
@@ -57,15 +59,15 @@ def find_control_structures_python(buggy_code):
     control_structures = []
 
     # regular expressions for some common control structures and loops in entry-level Python code
-    regex_for = r'for\s+\w+\s+in\s+\w+\s*:'
-    regex_while = r'while\s+\w+\s*:'
-    regex_for_range = r'for\s+\w+\s+in\s+range\('
-    regex_for_items = r'for\s+\w+\s*,\s*\w+\s+in\s+\w+\.items\(\)'
-    regex_if_elif = r'if\s+\w+\s*:\s*|elif\s+\w+\s*:'
-    regex_if_else = r'if\s+\w+\s*:\s*|else\s*:'
+    regex_for = r"for\s+\w+\s+in\s+\w+\s*:"
+    regex_while = r"while\s+\w+\s*:"
+    regex_for_range = r"for\s+\w+\s+in\s+range\("
+    regex_for_items = r"for\s+\w+\s*,\s*\w+\s+in\s+\w+\.items\(\)"
+    regex_if_elif = r"if\s+\w+\s*:\s*|elif\s+\w+\s*:"
+    regex_if_else = r"if\s+\w+\s*:\s*|else\s*:"
 
     # check for each regex pattern in the code snippet
-    if re.search(regex_for, buggy_code): 
+    if re.search(regex_for, buggy_code):
         control_structures.append("for-loop")
     if re.search(regex_while, buggy_code):
         control_structures.append("while-loop")
@@ -81,7 +83,15 @@ def find_control_structures_python(buggy_code):
     return control_structures
 
 
-def build_code_prompt(language, problem_description, buggy_code, unittest_code, example_solution, system_message, attempt_type):
+def build_code_prompt(
+    language,
+    problem_description,
+    buggy_code,
+    unittest_code,
+    example_solution,
+    system_message,
+    attempt_type,
+):
     """
     Build the prompt messages for the LLM to generate the personalized fixed code. Here we use zero-shot prompting.
     This decision is made to reduce instructor burden to provide example buggy / personalized solutions.
@@ -103,22 +113,25 @@ def build_code_prompt(language, problem_description, buggy_code, unittest_code, 
             control_structures = find_control_structures_python(buggy_code)
 
         system_message = system_message.format(
-            programming_language = language,
-            question_description = problem_description,
-            example_solution = example_solution,
-            unittest_code = unittest_code,
-            control_structures = control_structures
+            programming_language=language,
+            question_description=problem_description,
+            example_solution=example_solution,
+            unittest_code=unittest_code,
+            control_structures=control_structures,
         )
 
     prompt_code = "[user-code]:\n" + buggy_code + "\n[end-user-code]"
     prompt_messages = [
-            {"role": "system", "content": system_message},
-            {"role": "user", "content": prompt_code},
-        ]
+        {"role": "system", "content": system_message},
+        {"role": "user", "content": prompt_code},
+    ]
 
     return prompt_messages
-        
-def generate_personalized_fix(api_token, prompt_messages, attempt_type, situation, old_fixed_code):
+
+
+def generate_personalized_fix(
+    api_token, prompt_messages, attempt_type, situation, old_fixed_code
+):
     """
     Generate the personalized fixed code using the LLM.
     Inputs:
@@ -144,7 +157,7 @@ def generate_personalized_fix(api_token, prompt_messages, attempt_type, situatio
 
     raw_completion_response = client.chat.completions.create(
         model="gpt-5-nano",
-        messages = prompt_messages,
+        messages=prompt_messages,
         verbosity="low",
     )
     end_marker = "[end-fixed-code]"
@@ -158,7 +171,18 @@ def generate_personalized_fix(api_token, prompt_messages, attempt_type, situatio
         fixed_code = fixed_code.removeprefix(start_marker).lstrip()
     return fixed_code
 
-def get_fixed_code(api_token, language, problem_description, buggy_code, unittest_code, example_solution, attempt_type, situation, old_fixed_code):
+
+def get_fixed_code(
+    api_token,
+    language,
+    problem_description,
+    buggy_code,
+    unittest_code,
+    example_solution,
+    attempt_type,
+    situation,
+    old_fixed_code,
+):
     """
     Get the personalized fixed code for the student's buggy code. It calls generate_personalized_fix to get the fixed code from the LLM.
     Inputs:
@@ -181,13 +205,24 @@ def get_fixed_code(api_token, language, problem_description, buggy_code, unittes
     # if cached_solution != None:
     #     print("Solution found in cache.",get_solution_from_cache(cleaned_buggy_code))
     #     return get_solution_from_cache(cleaned_buggy_code)
-    
-    if attempt_type in ["new", "repeat"]:
-        prompt_messages = build_code_prompt(language, problem_description, buggy_code, unittest_code, example_solution, system_message, attempt_type)
 
-    fixed_code_response = generate_personalized_fix(api_token, prompt_messages, attempt_type, situation, old_fixed_code)
+    if attempt_type in ["new", "repeat"]:
+        prompt_messages = build_code_prompt(
+            language,
+            problem_description,
+            buggy_code,
+            unittest_code,
+            example_solution,
+            system_message,
+            attempt_type,
+        )
+
+    fixed_code_response = generate_personalized_fix(
+        api_token, prompt_messages, attempt_type, situation, old_fixed_code
+    )
     print("fixed_code_response", fixed_code_response)
     return fixed_code_response
+
 
 def get_example_solution(api_token, language, problem_description, unittest_code):
     """
@@ -217,15 +252,17 @@ def get_example_solution(api_token, language, problem_description, unittest_code
         model="gpt-5-nano",
         messages=[
             {"role": "system", "content": example_solution_system_message},
-            {"role": "user", "content": example_solution_user_message}
-        ]
+            {"role": "user", "content": example_solution_user_message},
+        ],
     )
 
     completion = raw_completion_response.choices[0].message
     LLM_example_code = completion.content
     # test if the LLM_example_code is correct remove all potential #
     LLM_example_code = LLM_example_code.lstrip("#").rstrip("#").strip()
-    unittest_result, cleaned_LLM_example_code = unittest_evaluation(language, LLM_example_code, "", "", unittest_case=unittest_code)
+    unittest_result, cleaned_LLM_example_code = unittest_evaluation(
+        language, LLM_example_code, "", "", unittest_case=unittest_code
+    )
     if unittest_result == True:
         # LLM_example_code is correct
         return cleaned_LLM_example_code

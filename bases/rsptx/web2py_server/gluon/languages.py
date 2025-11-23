@@ -18,7 +18,7 @@ import pkgutil
 import logging
 from threading import RLock
 
-from pydal._compat import copyreg, PY2, maketrans, iterkeys, unicodeT, to_unicode, to_bytes, iteritems, to_native, pjoin
+from pydal._compat import copyreg, PY2, maketrans, to_unicode, to_bytes, iteritems, to_native, pjoin
 from pydal.contrib.portalocker import read_locked, LockedFile
 
 from yatl.sanitizer import xmlescape
@@ -820,7 +820,7 @@ class TranslatorFactory(object):
         # we did not find a translation
         if message.find('##') > 0:
             pass
-        if message.find('##') > 0 and not '\n' in message:
+        if message.find('##') > 0 and '\n' not in message:
             # remove comments
             message = message.rsplit('##', 1)[0]
         # guess translation same as original
@@ -1027,14 +1027,14 @@ def findT(path, language=DEFAULT_LANGUAGE):
     vp = pjoin(path, 'views')
     mop = pjoin(path, 'modules')
     def add_message(message):
-        if not message.startswith('#') and not '\n' in message:
+        if not message.startswith('#') and '\n' not in message:
             tokens = message.rsplit('##', 1)
         else:
             # this allows markmin syntax in translations
             tokens = [message]
         if len(tokens) == 2:
             message = tokens[0].strip() + '##' + tokens[1].strip()
-        if message and not message in sentences:
+        if message and message not in sentences:
             sentences[message] = message.replace("@markmin\x01", "")
     for filename in \
             listdir(mp, '^.+\.py$', 0) + listdir(cp, '^.+\.py$', 0)\
@@ -1053,10 +1053,10 @@ def findT(path, language=DEFAULT_LANGUAGE):
     gluon_msg = [Auth.default_messages, Crud.default_messages]
     for item in [x for m in gluon_msg for x in m.values() if x is not None]:
         add_message(item)
-    if not '!langcode!' in sentences:
+    if '!langcode!' not in sentences:
         sentences['!langcode!'] = (
             DEFAULT_LANGUAGE if language in ('default', DEFAULT_LANGUAGE) else language)
-    if not '!langname!' in sentences:
+    if '!langname!' not in sentences:
         sentences['!langname!'] = (
             DEFAULT_LANGUAGE_NAME if language in ('default', DEFAULT_LANGUAGE)
             else sentences['!langcode!'])

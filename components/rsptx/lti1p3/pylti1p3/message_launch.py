@@ -239,7 +239,9 @@ class MessageLaunch(t.Generic[REQ, TCONF, SES, COOK]):
             self._own_session = True
             headers = {"User-Agent": REQUESTS_USER_AGENT}
             timeout_sentinel = aiohttp.ClientTimeout(total=20)
-            self._requests_session = aiohttp.ClientSession(headers=headers, timeout=timeout_sentinel)
+            self._requests_session = aiohttp.ClientSession(
+                headers=headers, timeout=timeout_sentinel
+            )
 
         if launch_data_storage:
             self.set_launch_data_storage(launch_data_storage)
@@ -284,7 +286,7 @@ class MessageLaunch(t.Generic[REQ, TCONF, SES, COOK]):
     @abstractmethod
     def _get_request_param(self, key: str) -> str:
         raise NotImplementedError
-    
+
     def get_request(self) -> REQ:
         return self._request
 
@@ -310,7 +312,7 @@ class MessageLaunch(t.Generic[REQ, TCONF, SES, COOK]):
 
     def get_session_service(self) -> SES:
         return self._session_service
-    
+
     def get_deployment_id(self) -> str:
         return self._get_deployment_id()
 
@@ -364,14 +366,14 @@ class MessageLaunch(t.Generic[REQ, TCONF, SES, COOK]):
         self._validated = True
         try:
             result = (
-                self.validate_state() and
-                self.validate_jwt_format() and
-                self.validate_nonce() and
-                await self.validate_registration() and
-                await self.validate_jwt_signature() and
-                await self.validate_deployment() and
-                self.validate_message() and
-                self.save_launch_data()
+                self.validate_state()
+                and self.validate_jwt_format()
+                and self.validate_nonce()
+                and await self.validate_registration()
+                and await self.validate_jwt_signature()
+                and await self.validate_deployment()
+                and self.validate_message()
+                and self.save_launch_data()
             )
             return result
         except Exception:
@@ -382,7 +384,7 @@ class MessageLaunch(t.Generic[REQ, TCONF, SES, COOK]):
         # Changed in switch to async
         # Waiting until not to validate forces this and all callers to be async
         # just because of validation.
-        # Handle validation on message launch construction. 
+        # Handle validation on message launch construction.
         # if not self._validated and self._auto_validation:
         #     await self.validate()
         #     raise LtiException("MessageLaunch not validated")
@@ -459,7 +461,7 @@ class MessageLaunch(t.Generic[REQ, TCONF, SES, COOK]):
             )
             is not None
         )
-    
+
     def get_dls(self) -> TDeepLinkData:
         """
         Fetches deep linking settings for the current launch.
@@ -607,7 +609,7 @@ class MessageLaunch(t.Generic[REQ, TCONF, SES, COOK]):
         :return: str  A unique identifier used to re-reference the current launch in subsequent requests.
         """
         return self._launch_id
-    
+
     def get_context(self) -> TContextClaim:
         """
         Fetches the context claim from the current launch.
@@ -705,7 +707,6 @@ class MessageLaunch(t.Generic[REQ, TCONF, SES, COOK]):
 
     def validate_state(self) -> "MessageLaunch":
         # Check State for OIDC.
-        global request
         state_from_request = self._get_request_param("state")
         if not state_from_request:
             raise LtiException("Missing state param")

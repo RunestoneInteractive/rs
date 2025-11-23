@@ -45,7 +45,7 @@ engine = create_async_engine(
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 # This creates the base class we will use to create models
-Base: TypeAlias = declarative_base() # type: ignore
+Base: TypeAlias = declarative_base()  # type: ignore
 # Generate this key once and store it securely (e.g., env var or config file)
 fernet = Fernet(settings.fernet_secret)
 

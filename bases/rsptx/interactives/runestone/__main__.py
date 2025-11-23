@@ -349,7 +349,7 @@ def deploy(dest):
     sys.path.insert(0, os.getcwd())
     try:
         import pavement
-    except ImportError as ie:
+    except ImportError:
         print("Error, you must be in your project root directory")
 
     if not dest:

@@ -6,10 +6,8 @@ import os
 import unittest
 from gluon.globals import Request, Response, Session
 from gluon.languages import TranslatorFactory
-from gluon.dal import DAL, Field
+from gluon.dal import DAL
 from gluon.authapi import AuthAPI
-from gluon.storage import Storage
-from gluon._compat import to_bytes, to_native, add_charset
 
 DEFAULT_URI = os.getenv('DB', 'sqlite:memory')
 

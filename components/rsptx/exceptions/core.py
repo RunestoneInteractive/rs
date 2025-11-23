@@ -1,4 +1,3 @@
-import datetime
 import json
 import socket
 import traceback
@@ -11,7 +10,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
 
-from rsptx.auth.session import auth_manager, NotAuthenticatedException
+from rsptx.auth.session import NotAuthenticatedException
 from rsptx.configuration import settings
 from rsptx.db.crud import create_traceback
 from rsptx.logging import rslogger

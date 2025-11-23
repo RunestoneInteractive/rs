@@ -238,7 +238,7 @@ def getCourseAttributesDict(course_id, base_course=None):
             .first()
             .default_language
         )
-    except AttributeError as e:
+    except AttributeError:
         attrdict["default_language"] = "python"
     # appears we can get here and have a None value
     if attrdict["default_language"] == None:

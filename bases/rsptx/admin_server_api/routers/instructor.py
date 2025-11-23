@@ -1,6 +1,5 @@
 from fastapi import (
     APIRouter,
-    Body,
     Form,
     HTTPException,
     Depends,
@@ -47,7 +46,6 @@ from rsptx.db.crud import (
     fetch_one_assignment,
     fetch_question,
     fetch_timed_assessments,
-    fetch_user,
     fetch_users_for_course,
     reset_student_assessment,
     update_course_settings,

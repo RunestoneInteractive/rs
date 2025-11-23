@@ -11,9 +11,7 @@ Takes care of adapting pyDAL to web2py's needs
 
 from pydal import DAL
 from pydal import Field
-from pydal.objects import Row, Rows, Table, Query, Set, Expression
-from pydal import SQLCustomType, geoPoint, geoLine, geoPolygon
-from pydal.migrator import Migrator, InDBMigrator
+from pydal.objects import Table
 from gluon.serializers import custom_json, xml
 from gluon.utils import web2py_uuid
 from gluon import sqlhtml

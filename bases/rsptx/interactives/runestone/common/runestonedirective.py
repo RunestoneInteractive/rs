@@ -375,7 +375,7 @@ def first_time(app, *keys):
     key = "$".join(keys)
     if not hasattr(app, "runestone_flags"):
         app.runestone_flags = set()
-    if not key in app.runestone_flags:
+    if key not in app.runestone_flags:
         app.runestone_flags.add(key)
         return True
     return False

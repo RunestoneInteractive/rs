@@ -24,7 +24,8 @@ import asyncio
 
 # Third Party library
 # -------------------
-import boto3, botocore  # for the S3 API
+import boto3
+import botocore  # for the S3 API
 from dateutil.parser import parse
 from rs_grading import _get_assignment, send_lti_grades
 from runestone import cmap

@@ -1,4 +1,3 @@
-import datetime
 import functools
 
 from .. import Field

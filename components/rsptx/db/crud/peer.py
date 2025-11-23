@@ -6,7 +6,6 @@ from ..models import Useinfo
 from ..async_session import async_session
 
 
-
 async def get_peer_votes(div_id: str, course_name: str, voting_stage: int):
     """
     Provide the answers for a peer instruction multiple choice question.
@@ -77,6 +76,7 @@ async def fetch_last_useinfo_peergroup(course_name: str) -> List[Useinfo]:
         results = await session.execute(query)
         return results.scalars().all()
 
+
 async def did_send_messages(sid: str, div_id: str, course_name: str) -> bool:
     """
     Fetch all messages sent to a given student.
@@ -97,4 +97,3 @@ async def did_send_messages(sid: str, div_id: str, course_name: str) -> bool:
             return True
         else:
             return False
-

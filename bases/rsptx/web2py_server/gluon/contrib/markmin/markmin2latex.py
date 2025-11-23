@@ -3,8 +3,6 @@
 # license MIT/BSD/GPL
 from __future__ import print_function
 import re
-import cgi
-import sys
 import doctest
 from optparse import OptionParser
 

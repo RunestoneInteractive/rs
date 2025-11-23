@@ -70,7 +70,9 @@ class NamesRolesProvisioningService:
         data_body = t.cast(t.Any, data.get("body", {}))
         return data_body.get("members", []), data["next_page_url"]
 
-    async def get_members(self, resource_link_id: t.Optional[str] = None) -> t.List[TMember]:
+    async def get_members(
+        self, resource_link_id: t.Optional[str] = None
+    ) -> t.List[TMember]:
         """
         Get list with all users.
 

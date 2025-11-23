@@ -4,6 +4,7 @@ from fastapi import Response as FAPI_Response
 
 from ...cookie import CookieService
 
+
 class FastAPICookieService(CookieService):
     _request = None
     _cookie_data_to_set = None
@@ -27,7 +28,7 @@ class FastAPICookieService(CookieService):
 
     def update_response(self, response: FAPI_Response):
         for key, cookie_data in self._cookie_data_to_set.items():
-            # need force_secure if request has been passed through proxy 
+            # need force_secure if request has been passed through proxy
             is_secure = self._force_secure or self._request.is_secure()
             samesite = "None" if is_secure else None
             response.set_cookie(

@@ -154,7 +154,9 @@ class ToolConfDict(ToolConfAbstract[Request]):
         iss_conf = await self.get_iss_config(iss)
         return self._get_registration(iss, iss_conf)
 
-    async def find_registration_by_params(self, iss: str, client_id: str, *args, **kwargs):
+    async def find_registration_by_params(
+        self, iss: str, client_id: str, *args, **kwargs
+    ):
         # pylint: disable=unused-argument
         iss_conf = await self.get_iss_config(iss, client_id)
         return self._get_registration(iss, iss_conf)

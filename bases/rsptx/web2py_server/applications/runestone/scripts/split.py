@@ -74,7 +74,7 @@ def dirEntries(dir_name, subdir, *args):
 def removeChars(value, deletechars):
     for c in deletechars:
         value = value.replace(c,'')
-    return value;
+    return value
 
 def copy(src, dest):
     try:

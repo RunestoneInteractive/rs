@@ -5,7 +5,6 @@
     Unit tests for gluon.tools
 """
 import os
-import sys
 import shutil
 import tempfile
 import smtplib
@@ -15,12 +14,10 @@ import unittest
 DEFAULT_URI = os.getenv('DB', 'sqlite:memory')
 
 from gluon.dal import DAL, Field
-from pydal.objects import Table
 from gluon import tools
-from gluon.tools import Auth, Mail, Recaptcha2, prettydate, Expose, prevent_open_redirect
+from gluon.tools import Auth, Mail, prettydate, Expose, prevent_open_redirect
 from gluon._compat import PY2, to_bytes
 from gluon.globals import Request, Response, Session
-from gluon.storage import Storage
 from gluon.languages import TranslatorFactory
 from gluon.http import HTTP
 from gluon import SPAN, H3, TABLE, TR, TD, A, URL, current
@@ -566,7 +563,7 @@ class TestAuth(unittest.TestCase):
                       'auth_membership', 'auth_permission', 'auth_group',
                       'auth_user']:
                 self.db[t].drop()
-        except SyntaxError as e:
+        except SyntaxError:
             # GAE doesn't support drop
             pass
         return

@@ -7,7 +7,7 @@ import pickle
 import urllib
 import glob
 from gluon.admin import app_create, plugin_install
-from gluon.fileutils import abspath, read_file, write_file, open_file
+from gluon.fileutils import read_file, write_file, open_file
 
 
 def reset(session):
@@ -80,8 +80,6 @@ def index():
 
 
 def step1():
-    from json import loads
-    import urllib
     if not session.themes:
         #url = LAYOUTS_APP + '/default/layouts.json'
         #try:
@@ -149,11 +147,11 @@ def step2():
         else:
             session.app['tables'] = table_names
             for table in session.app['tables']:
-                if not 'table_' + table in session.app:
+                if 'table_' + table not in session.app:
                     session.app['table_' + table] = ['name']
                 if not table == 'auth_user':
                     name = table + '_manage'
-                    if not name in session.app['pages']:
+                    if name not in session.app['pages']:
                         session.app['pages'].append(name)
                         session.app['page_' + name] = \
                             '## Manage %s\n\n{{=form}}' % (table)
@@ -177,7 +175,7 @@ def step3():
         fields = listify(form.vars.field_names)
         if table == 'auth_user':
             for field in ['first_name', 'last_name', 'username', 'email', 'password']:
-                if not field in fields:
+                if field not in fields:
                     fields.append(field)
         session.app['table_' + table] = [t.strip().lower()
                                          for t in listify(form.vars.field_names)
@@ -278,7 +276,7 @@ def sort_tables(tables):
         for t in d[table]:
             # if not t==table: (problem, no dropdown for self references)
             append(t, trail=trail + [table])
-        if not table in tables:
+        if table not in tables:
             tables.append(table)
     for table in d:
         append(table)
@@ -308,7 +306,7 @@ def make_table(table, fields):
         tables = session.app['tables']
         refs = [t for t in tables if t in items]
         items = items[:1] + [x for x in items[1:]
-                             if not x in keys and not x in tables]
+                             if x not in keys and x not in tables]
         barename = name = '_'.join(items)
         if table[:2] == 't_': name = 'f_' + name
         if first_field == 'id':
@@ -449,7 +447,7 @@ def make_menu(pages):
 
 
 def make_page(page, contents):
-    if 'auth_user' in session.app['tables'] and not page in ('index', 'error'):
+    if 'auth_user' in session.app['tables'] and page not in ('index', 'error'):
         s = "@auth.requires_login()\ndef %s():\n" % page
     else:
         s = "def %s():\n" % page
@@ -516,7 +514,7 @@ def create(options):
             plugin_name = 'web2py.plugin.' + plugin + '.w2p'
             stream = urllib.urlopen(PLUGINS_APP + '/static/' + plugin_name)
             plugin_install(app, stream, request, plugin_name)
-        except Exception as e:
+        except Exception:
             session.flash = T("unable to download plugin: %s" % plugin)
 
     ### write configuration file into newapp/models/0.py

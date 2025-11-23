@@ -5,7 +5,6 @@ from rsptx.db.crud import (
     is_assigned,
     fetch_answers,
     create_question_grade_entry,
-    fetch_course,
     fetch_grade,
     fetch_question_grade,
     update_question_grade_entry,
@@ -22,7 +21,6 @@ from rsptx.validation.schemas import (
 from rsptx.db.models import (
     GradeValidator,
     AssignmentValidator,
-    DeadlineExceptionValidator,
 )
 from rsptx.logging import rslogger
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
@@ -45,13 +43,11 @@ async def grade_submission(
         user.course_id, user.username, submission.assignment_id
     )
     # if there is a selector_id this is a selectquestion and we want to use the
-    # selector_id to record the grade and to see if this question has been assigned.  
+    # selector_id to record the grade and to see if this question has been assigned.
     # Of course we want to grade the real question
     # which is the div_id that is part of the submission.
     if submission.selector_id:
-        rslogger.debug(
-            f"Grading submission with selector_id {submission.selector_id}"
-        )
+        rslogger.debug(f"Grading submission with selector_id {submission.selector_id}")
         div_id = submission.selector_id
     else:
         div_id = submission.div_id
@@ -88,9 +84,7 @@ async def grade_submission(
                 update_total = True
         elif scoreSpec.which_to_grade == "last_answer":
             scoreSpec.score = await score_one_answer(scoreSpec, submission)
-            answer = await fetch_question_grade(
-                user.username, user.course_name, div_id
-            )
+            answer = await fetch_question_grade(user.username, user.course_name, div_id)
             if answer:
                 answer.score = scoreSpec.score
                 await update_question_grade_entry(
@@ -177,7 +171,7 @@ async def grade_submission(
         if update_total:
             rslogger.debug("Updating total score")
             # Now compute the total
-            total = await compute_total_score(scoreSpec, user)
+            await compute_total_score(scoreSpec, user)
 
     return scoreSpec
 

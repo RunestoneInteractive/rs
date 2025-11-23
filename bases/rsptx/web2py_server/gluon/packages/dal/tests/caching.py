@@ -1,8 +1,8 @@
 import time
 import pickle
-from pydal import DAL, Field
+from pydal import Field
 from ._compat import unittest
-from ._adapt import DEFAULT_URI, IS_IMAP, IS_MSSQL
+from ._adapt import IS_IMAP, IS_MSSQL
 from ._helpers import DALtest
 
 

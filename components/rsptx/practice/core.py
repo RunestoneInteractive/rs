@@ -7,8 +7,9 @@ from rsptx.db.crud import (
 
 from rsptx.db.models import AuthUserValidator
 from rsptx.logging import rslogger
-from datetime import datetime, timedelta
+from datetime import timedelta
 from rsptx.response_helpers.core import canonical_utcnow
+
 
 async def potentially_change_flashcard(
     base_course_name: str,

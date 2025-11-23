@@ -39,10 +39,6 @@ from runestone.common import (
     RunestoneIdNode,
     get_node_line,
 )
-from runestone.common.xmlcommon import (
-    substitute_departure,
-    substitute_visitor,
-)
 
 
 def noop(self, node):

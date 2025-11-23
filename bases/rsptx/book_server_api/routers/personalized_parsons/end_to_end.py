@@ -35,23 +35,71 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
         language = "python"  # Default to python if not specified
 
     if personalize_level == "Solution" or personalize_level == "Multiple":
-        cleaned_fixed_code, generation_result_type = generate_personalized_fixed_code(api_token, language, problem_description, buggy_code, default_start_code, default_test_code, predefined_example, unittest_code)
+        cleaned_fixed_code, generation_result_type = generate_personalized_fixed_code(
+            api_token,
+            language,
+            problem_description,
+            buggy_code,
+            default_start_code,
+            default_test_code,
+            predefined_example,
+            unittest_code,
+        )
         final_fixed_code = cleaned_fixed_code.lstrip()
     else:
         return "Error: invalid personalize_level"
-    
+
     if personalize_level == "Solution":
         # generate Parsons puzzles with personalization only at the solution level with paired distractors
-        final_Parsons_block = generate_multi_personalized_Parsons_blocks("Solution", language, problem_description, buggy_code, final_fixed_code, default_start_code, default_test_code, unittest_code)
+        final_Parsons_block = generate_multi_personalized_Parsons_blocks(
+            "Solution",
+            language,
+            problem_description,
+            buggy_code,
+            final_fixed_code,
+            default_start_code,
+            default_test_code,
+            unittest_code,
+        )
     elif personalize_level == "Multiple":
         # generate Parsons puzzles with personalization at both solution and multiple levels with paired distractors and potentially settled block lines
-        final_Parsons_block = generate_multi_personalized_Parsons_blocks("Multiple", language, problem_description, buggy_code, final_fixed_code, default_start_code, default_test_code, unittest_code)
+        final_Parsons_block = generate_multi_personalized_Parsons_blocks(
+            "Multiple",
+            language,
+            problem_description,
+            buggy_code,
+            final_fixed_code,
+            default_start_code,
+            default_test_code,
+            unittest_code,
+        )
     else:
         return "Error: invalid personalize_level"
-    
-    return final_fixed_code, final_Parsons_block, "personalization", generation_result_type
 
-def request_fixed_code_from_openai(api_token, language, problem_description, buggy_code, default_start_code, default_test_code, example_solution, unittest_code, solution_generation, old_fixed_code, attempt_type, situation, failure_reason, unittest_result):
+    return (
+        final_fixed_code,
+        final_Parsons_block,
+        "personalization",
+        generation_result_type,
+    )
+
+
+def request_fixed_code_from_openai(
+    api_token,
+    language,
+    problem_description,
+    buggy_code,
+    default_start_code,
+    default_test_code,
+    example_solution,
+    unittest_code,
+    solution_generation,
+    old_fixed_code,
+    attempt_type,
+    situation,
+    failure_reason,
+    unittest_result,
+):
     """
     Request a fixed code from GenerativeAI based on the buggy code and other parameters.
     Inputs:
@@ -76,19 +124,39 @@ def request_fixed_code_from_openai(api_token, language, problem_description, bug
     cleaned_buggy_code = clean_student_code(buggy_code, default_test_code)
     if solution_generation <= 0:
         return example_solution.lstrip(), "example_solution"
-    
+
     # For solution_generation >= 1, fix the code and run tests
-    fixed_code = get_fixed_code(api_token, language, problem_description, buggy_code, unittest_code, example_solution, attempt_type=attempt_type, situation=situation, old_fixed_code=old_fixed_code)
-    unittest_result, cleaned_fixed_code = unittest_evaluation(language, fixed_code, default_start_code, default_test_code, unittest_case=unittest_code)
+    fixed_code = get_fixed_code(
+        api_token,
+        language,
+        problem_description,
+        buggy_code,
+        unittest_code,
+        example_solution,
+        attempt_type=attempt_type,
+        situation=situation,
+        old_fixed_code=old_fixed_code,
+    )
+    unittest_result, cleaned_fixed_code = unittest_evaluation(
+        language,
+        fixed_code,
+        default_start_code,
+        default_test_code,
+        unittest_case=unittest_code,
+    )
 
     print("this-round-result:", unittest_result, cleaned_fixed_code)
     if not unittest_result:
         return example_solution.lstrip(), "example_solution"
 
     if unittest_result == True:
-        similarity_personalized = code_similarity_score(cleaned_buggy_code, cleaned_fixed_code, language)
-        similarity_most_common = code_similarity_score(cleaned_buggy_code, example_solution, language)
-        
+        similarity_personalized = code_similarity_score(
+            cleaned_buggy_code, cleaned_fixed_code, language
+        )
+        similarity_most_common = code_similarity_score(
+            cleaned_buggy_code, example_solution, language
+        )
+
         # For other cases, return the more similar one as the personalized result
         if similarity_personalized >= similarity_most_common:
             return cleaned_fixed_code.lstrip(), "AI_personalized"
@@ -96,12 +164,33 @@ def request_fixed_code_from_openai(api_token, language, problem_description, bug
             return example_solution.lstrip(), "example_more_personalized"
 
     else:
-        print("not correct, retrying ... current solution_generation=", solution_generation)
+        print(
+            "not correct, retrying ... current solution_generation=",
+            solution_generation,
+        )
         # If the unittest result is not correct, we will retry with the same solution_generation_type, but will provide the incorrect code as part of the system message (attachment)
         solution_generation -= 1
-        return request_fixed_code_from_openai(api_token, language, problem_description, buggy_code, default_start_code, default_test_code, example_solution, unittest_code, solution_generation, old_fixed_code=cleaned_fixed_code, attempt_type="repeat", situation="a correct answer", failure_reason="not correct", unittest_result = False)
-    
-def generate_example_solution(api_token, language, problem_description, unittest_code, predefined_example):
+        return request_fixed_code_from_openai(
+            api_token,
+            language,
+            problem_description,
+            buggy_code,
+            default_start_code,
+            default_test_code,
+            example_solution,
+            unittest_code,
+            solution_generation,
+            old_fixed_code=cleaned_fixed_code,
+            attempt_type="repeat",
+            situation="a correct answer",
+            failure_reason="not correct",
+            unittest_result=False,
+        )
+
+
+def generate_example_solution(
+    api_token, language, problem_description, unittest_code, predefined_example
+):
     """
     Generate or retrieve an example solution based on the provided parameters.
     Inputs:
@@ -114,13 +203,25 @@ def generate_example_solution(api_token, language, problem_description, unittest
         example_solution (str): The example solution, either generated by LLM or the predefined one
     """
     if predefined_example == "LLM-example":
-        example_solution = get_example_solution(api_token, language, problem_description, unittest_code)
+        example_solution = get_example_solution(
+            api_token, language, problem_description, unittest_code
+        )
     else:
         example_solution = predefined_example
     return example_solution
 
 
-def generate_personalized_fixed_code(api_token, language, problem_description, buggy_code, default_start_code, default_test_code, predefined_example, unittest_code, API_attempt=0):
+def generate_personalized_fixed_code(
+    api_token,
+    language,
+    problem_description,
+    buggy_code,
+    default_start_code,
+    default_test_code,
+    predefined_example,
+    unittest_code,
+    API_attempt=0,
+):
     """
     Generate a personalized fixed code based on the buggy code and other parameters.
     Inputs:
@@ -140,23 +241,45 @@ def generate_personalized_fixed_code(api_token, language, problem_description, b
     # check if students contributed any code -- If it is True, then check the correctness
     if bool(student_code_checker(language, buggy_code)):
         # check whether the existing code is already correct
-        unittest_result, cleaned_buggy_but_correct_code = unittest_evaluation(language, buggy_code, default_start_code, default_test_code, unittest_case=unittest_code)
+        unittest_result, cleaned_buggy_but_correct_code = unittest_evaluation(
+            language,
+            buggy_code,
+            default_start_code,
+            default_test_code,
+            unittest_case=unittest_code,
+        )
         if unittest_result != True:
             # If the code is not correct, we will TRY to get an example solution first
-            example_solution = generate_example_solution(api_token, language, problem_description, unittest_code, predefined_example)
+            example_solution = generate_example_solution(
+                api_token,
+                language,
+                problem_description,
+                unittest_code,
+                predefined_example,
+            )
 
             try:
                 # The first personalized fixed code attempt
                 result_personalized = request_fixed_code_from_openai(
-                    api_token, language, problem_description, buggy_code,
-                    default_start_code, default_test_code, example_solution,
-                    unittest_code, 2, "",
-                    attempt_type="new", situation="", failure_reason="", unittest_result=""
+                    api_token,
+                    language,
+                    problem_description,
+                    buggy_code,
+                    default_start_code,
+                    default_test_code,
+                    example_solution,
+                    unittest_code,
+                    2,
+                    "",
+                    attempt_type="new",
+                    situation="",
+                    failure_reason="",
+                    unittest_result="",
                 )
 
                 return result_personalized
 
-            except Exception as e:
+            except Exception:
                 # When there is an error from the LLM API, we will return the example solution
                 return example_solution.lstrip(), "example_solution"
         # If the code is correct, we will return the cleaned_buggy_but_correct_code and raise a message
@@ -164,12 +287,23 @@ def generate_personalized_fixed_code(api_token, language, problem_description, b
             return cleaned_buggy_but_correct_code.lstrip(), "written_code"
     # If the code is empty, directly return the example solution
     else:
-        example_solution = generate_example_solution(api_token, language, problem_description, unittest_code, predefined_example)
+        example_solution = generate_example_solution(
+            api_token, language, problem_description, unittest_code, predefined_example
+        )
 
         return example_solution.lstrip(), "example_solution"
 
 
-def generate_multi_personalized_Parsons_blocks(personalize_level, language, problem_description, buggy_code, fixed_code, default_start_code, default_test_code, unittest_code):
+def generate_multi_personalized_Parsons_blocks(
+    personalize_level,
+    language,
+    problem_description,
+    buggy_code,
+    fixed_code,
+    default_start_code,
+    default_test_code,
+    unittest_code,
+):
     """
     Generate personalized Parsons blocks based on the student buggy code and fixed code.
     Inputs:
@@ -186,17 +320,43 @@ def generate_multi_personalized_Parsons_blocks(personalize_level, language, prob
     """
     buggy_code_for_blocks = clean_student_code(buggy_code, default_test_code)
     # add paired distractors on their code when there are some meaningful comparison (one line similarity > a threshold)
-    code_comparison_pairs, fixed_lines, removed_lines, unchanged_lines, total_similarity = compare_code(buggy_code_for_blocks, fixed_code, default_start_code, language)
+    (
+        code_comparison_pairs,
+        fixed_lines,
+        removed_lines,
+        unchanged_lines,
+        total_similarity,
+    ) = compare_code(buggy_code_for_blocks, fixed_code, default_start_code, language)
 
     # decide the types of Parsons problems and generate correspoding distractors
-    Parsons_type, distractors = personalize_Parsons_block(language, problem_description, code_comparison_pairs, buggy_code, fixed_lines, removed_lines, unchanged_lines, total_similarity)
+    Parsons_type, distractors = personalize_Parsons_block(
+        language,
+        problem_description,
+        code_comparison_pairs,
+        buggy_code,
+        fixed_lines,
+        removed_lines,
+        unchanged_lines,
+        total_similarity,
+    )
     unittest_flag = True
     if len(distractors) > 0:
         for distractor in distractors.copy().items():
             distractor_correct_line = distractor[0]
             # Prepare the code with distractors for unittest evaluation - should not pass the tests this time
-            code_with_distrator = generate_code_with_distrator(unchanged_lines, fixed_lines, distractor)
-            unittest_flag, cleaned_code_with_distractors = code_distractor_unittest_evaluation(language, code_with_distrator, default_start_code, default_test_code, unittest_code)
+            code_with_distrator = generate_code_with_distrator(
+                unchanged_lines, fixed_lines, distractor
+            )
+            (
+                unittest_flag,
+                cleaned_code_with_distractors,
+            ) = code_distractor_unittest_evaluation(
+                language,
+                code_with_distrator,
+                default_start_code,
+                default_test_code,
+                unittest_code,
+            )
             # If the code with distractors passes the unittest, we will remove the distractor from the distractors list
             if unittest_flag == True:
                 distractors.pop(distractor_correct_line)
@@ -206,6 +366,15 @@ def generate_multi_personalized_Parsons_blocks(personalize_level, language, prob
         return "Correct_Code"
     else:
         # If the student code is incorrect, we will generate Parsons blocks
-        personalized_Parsons_block = generate_Parsons_block(personalize_level, language, Parsons_type, problem_description, fixed_code, unchanged_lines, fixed_lines, distractors)
+        personalized_Parsons_block = generate_Parsons_block(
+            personalize_level,
+            language,
+            Parsons_type,
+            problem_description,
+            fixed_code,
+            unchanged_lines,
+            fixed_lines,
+            distractors,
+        )
 
     return personalized_Parsons_block

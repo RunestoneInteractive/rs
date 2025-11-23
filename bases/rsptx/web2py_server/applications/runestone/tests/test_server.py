@@ -14,7 +14,6 @@
 # ----------------
 from textwrap import dedent
 import json
-from threading import Thread
 import datetime
 import re
 import sys
@@ -23,7 +22,6 @@ import time
 # Third-party imports
 # -------------------
 import pytest
-import six
 
 # Local imports
 # -------------

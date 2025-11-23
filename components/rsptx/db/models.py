@@ -129,7 +129,6 @@ runestone_component_dict: Dict[str, RunestoneComponentDict] = {}
 def register_answer_table(
     sql_alchemy_cls: Type[Base],
 ) -> Type[Base]:
-    global runestone_component_dict
 
     table_name = sql_alchemy_cls.__tablename__
     runestone_component_dict[table_name] = RunestoneComponentDict(

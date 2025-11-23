@@ -4,7 +4,6 @@ from ...request import Request
 from ...tool_config import ToolConfAbstract
 from ...cookie import CookieService
 from ...session import SessionService
-from ...request import Request
 
 from fastapi import Request as FAPI_Request
 
@@ -44,7 +43,7 @@ class FastAPIRequest(Request):
             cookies=cookies,
             session=session,
             request_data=request_data,
-            request_is_secure=request_is_secure
+            request_is_secure=request_is_secure,
         )
         req._form = await request_obj.form()
         return req
@@ -85,7 +84,7 @@ class FastAPIRequest(Request):
             params = self._request.query_params.getlist(key)
         else:
             params = self._form.getlist(key)
-        
+
         if len(params) > 1:
             return params
         if len(params) == 1:

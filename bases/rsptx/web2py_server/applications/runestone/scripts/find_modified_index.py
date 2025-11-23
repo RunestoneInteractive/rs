@@ -1,6 +1,6 @@
 import psycopg2
-import shutil
-import os, sys
+import os
+import sys
 import filecmp
 import difflib
 

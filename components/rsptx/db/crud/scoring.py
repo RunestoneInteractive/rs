@@ -1,7 +1,6 @@
 import datetime
 from typing import List, Optional
-import pytz
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy import select, and_, or_
 from zoneinfo import ZoneInfo
 
 from ..models import (
@@ -15,7 +14,6 @@ from ..models import (
 )
 from ..async_session import async_session
 from rsptx.validation import schemas
-from rsptx.response_helpers.core import canonical_utcnow
 from .crud import EVENT2TABLE
 from rsptx.logging import rslogger
 

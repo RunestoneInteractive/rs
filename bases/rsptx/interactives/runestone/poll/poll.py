@@ -166,14 +166,14 @@ class Poll(RunestoneIdDirective):
             source = "\n"
         self.options["question"] = source
 
-        if not "scale" in self.options:
+        if "scale" not in self.options:
             self.options["scale"] = ""
         if "allowcomment" in self.options:
             self.options["comment"] = "data-comment"
         else:
             self.options["comment"] = ""
 
-        if not "results" in self.options:
+        if "results" not in self.options:
             self.options["results"] = "instructor"
 
         env = self.state.document.settings.env

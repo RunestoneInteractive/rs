@@ -16,7 +16,7 @@ from io import BytesIO
 
 # Third-party imports
 # -------------------
-from fastapi import APIRouter, Request, Depends, Response
+from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
@@ -26,8 +26,6 @@ import requests as rq
 # -------------------------
 from rsptx.logging import rslogger
 from rsptx.configuration.core import settings
-from rsptx.auth.session import auth_manager, is_instructor
-from rsptx.response_helpers.core import make_json_response
 
 # .. _APIRouter config:
 #
@@ -99,7 +97,6 @@ async def imageproxy(request: Request, image_url: str, response_class=HTMLRespon
 # for using more than one jobe server.
 #
 def get_jobe_server(request: Request) -> str:
-
     return settings.jobe_server
 
 
@@ -200,7 +197,9 @@ async def pytutor_trace(
     except Exception as e:
         rslogger.error(f"Unknown error occurred while getting trace: {e}")
         return Response(
-            status_code=500, content="Error in pytutor_trace", media_type="application/json"
+            status_code=500,
+            content="Error in pytutor_trace",
+            media_type="application/json",
         )
     if r.status_code == 200:
         if lang == "java":

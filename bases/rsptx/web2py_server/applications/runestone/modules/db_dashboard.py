@@ -168,7 +168,7 @@ class CourseProblemMetrics(object):
             for srow in result_set:
                 row = srow[tbl]
                 rslogger.debug("UPDATE_METRICS {}".format(row))
-                if not row.div_id in self.problems:
+                if row.div_id not in self.problems:
                     self.problems[row.div_id] = ProblemMetrics(
                         self.course_id, row.div_id, self.users
                     )
@@ -414,7 +414,7 @@ class ProgressMetrics(object):
                 self.sub_chapters[
                     row.user_sub_chapter_progress.sub_chapter_id
                 ].add_activity(row)
-            except KeyError as e:
+            except KeyError:
                 rslogger.debug(
                     "Key error for {} user is {}".format(
                         row.user_sub_chapter_progress.sub_chapter_id,

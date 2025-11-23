@@ -2,11 +2,8 @@
 # pylint: disable=no-member
 
 import os
-import threading
 
-from ._compat import itervalues
 from ._globals import GLOBAL_LOCKER, THREAD_LOCAL
-from ._load import OrderedDict
 
 
 class ConnectionPool(object):

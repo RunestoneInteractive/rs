@@ -3,7 +3,7 @@ import shutil
 import os
 
 conn = psycopg2.connect(host="localhost",user="bnmnetp_courselib",
-                 password="al3xandria", database="bnmnetp_courselib");
+                 password="al3xandria", database="bnmnetp_courselib")
 
 curs = conn.cursor()
 curs.execute('set session statement_timeout to 0')

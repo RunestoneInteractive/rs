@@ -180,7 +180,7 @@ class OIDCLogin(t.Generic[REQ, TCONF, SES, COOK, RED]):
 
         client_id = self._get_request_param("client_id")
 
-        #fetch registration details
+        # fetch registration details
         if self._tool_config.check_iss_has_one_client(iss):
             registration = self._tool_config.find_registration(
                 iss, action=Action.OIDC_LOGIN, request=self._request

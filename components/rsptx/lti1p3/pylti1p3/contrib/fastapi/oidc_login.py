@@ -18,6 +18,7 @@ TCONF = t.TypeVar("TCONF", bound=ToolConfAbstract)
 SES = t.TypeVar("SES", bound=SessionService)
 COOK = t.TypeVar("COOK", bound=CookieService)
 
+
 class FastAPIOIDCLogin(OIDCLogin):
     def __init__(
         self,
@@ -42,5 +43,3 @@ class FastAPIOIDCLogin(OIDCLogin):
 
     def get_response(self, html: str) -> Response:
         return Response(html)
-
-
