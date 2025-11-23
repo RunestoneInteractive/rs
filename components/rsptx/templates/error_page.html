@@ -1,0 +1,28 @@
+{% extends "_base.html" %}
+
+{% block title %}
+Error
+{% endblock %}
+
+{% block navbar %}
+{# 
+    may not know book or course, so most of navbar makes no sense
+    so do not render it
+#}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Error</h1>
+
+    <p>Runestone has encountered an error while processing your request:</p>
+
+    <div class="alert alert-danger">
+        <p><b>{{ detail }}</b></p>
+        <p>{{ timestamp }}</p>
+    </div>
+
+    <p>Please contact your instructor or <a href="https://rs.ascholer.org/runestone/default/reportabug">
+        report a bug to Runestone support</a>. Make sure to include the error message and timestamp shown above.</p>
+</div>
+{% endblock %}
