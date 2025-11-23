@@ -7,11 +7,39 @@ PY2 = sys.version_info[0] == 2
 _identity = lambda x: x
 
 if PY2:
+    from email import Charset, Encoders
+    from email.Charset import QP as charset_QP
+    from email.Charset import add_charset
+    from email.Header import Header
+    from email.MIMEBase import MIMEBase
+    from email.MIMEMultipart import MIMEMultipart
+    from email.MIMEText import MIMEText
     from string import maketrans
     from types import ClassType
+    from urllib import FancyURLopener
+    from urllib import quote as urllib_quote
+    from urllib import quote_plus as urllib_quote_plus
+    from urllib import unquote
+    from urllib import unquote as urllib_unquote
+    from urllib import urlencode
 
+    import __builtin__ as builtin
+    import ConfigParser as configparser
+    import Cookie
+    import cookielib
+    import copy_reg as copyreg
+    import cPickle as pickle
+    import Queue
+    import thread
+    import urllib2
+    import urlparse
     from cStringIO import StringIO
+    from htmlentitydefs import entitydefs, name2codepoint
+    from HTMLParser import HTMLParser
+    from urllib2 import urlopen
+    from xmlrpclib import ProtocolError
 
+    from .contrib import ipaddress
 
     BytesIO = StringIO
     reduce = reduce
@@ -55,7 +83,37 @@ if PY2:
 
 
 else:
-    from io import StringIO
+    import _thread as thread
+    import builtins as builtin
+    import configparser
+    import copyreg
+    import html  # warning, this is the python3 module and not the web2py html module
+    import ipaddress
+    import pickle
+    import queue as Queue
+    from email import encoders as Encoders
+    from email.charset import QP as charset_QP
+    from email.charset import Charset, add_charset
+    from email.header import Header
+    from email.mime.base import MIMEBase
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from functools import reduce
+    from html.entities import entitydefs, name2codepoint
+    from html.parser import HTMLParser
+    from http import cookiejar as cookielib
+    from http import cookies as Cookie
+    from importlib import reload
+    from io import BytesIO, StringIO
+    from urllib import parse as urlparse
+    from urllib import request as urllib2
+    from urllib.parse import quote as urllib_quote
+    from urllib.parse import quote_plus as urllib_quote_plus
+    from urllib.parse import unquote
+    from urllib.parse import unquote as urllib_unquote
+    from urllib.parse import urlencode
+    from urllib.request import FancyURLopener, urlopen
+    from xmlrpc.client import ProtocolError
 
     hashlib_md5 = lambda s: hashlib.md5(bytes(s, "utf8"))
     iterkeys = lambda d: iter(d.keys())

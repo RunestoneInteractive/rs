@@ -23,7 +23,7 @@ def create_account():
         try:
             if client.login() is True:
                 return response.json({'status': 'ok'})
-        except ProtocolError:
+        except ProtocolError as error:
             pass
 
     url = 'https://www.pythonanywhere.com/api/web2py/create_account'

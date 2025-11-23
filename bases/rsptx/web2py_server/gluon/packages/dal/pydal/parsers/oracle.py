@@ -1,6 +1,6 @@
 import json
 from base64 import b64decode
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 
 from .._compat import to_bytes, to_native
 from ..adapters.oracle import Oracle

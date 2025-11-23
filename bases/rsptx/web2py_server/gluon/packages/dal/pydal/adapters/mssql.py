@@ -1,6 +1,6 @@
 import re
 
-from .._compat import PY2, iteritems, long, to_unicode
+from .._compat import PY2, integer_types, iteritems, long, to_unicode
 from .._globals import IDENTITY
 from ..utils import split_uri_args
 from . import adapters, with_connection_or_raise

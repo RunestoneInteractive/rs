@@ -1,3 +1,4 @@
+import cgi
 import copy
 import re
 import marshal

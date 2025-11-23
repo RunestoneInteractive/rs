@@ -13,6 +13,7 @@ This file is not strictly required by web2py. It is used for three purposes:
 
 """
 
+import os
 import sys
 
 base_modules = ['aifc', 'anydbm', 'array', 'asynchat', 'asyncore', 'atexit',

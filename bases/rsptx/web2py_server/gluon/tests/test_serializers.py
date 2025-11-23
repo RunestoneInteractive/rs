@@ -6,10 +6,12 @@
 """
 
 import unittest
+from .fix_path import fix_sys_path
 import datetime
 import decimal
 
 from gluon.serializers import *
+from gluon.storage import Storage
 # careful with the import path 'cause of isinstance() checks
 from gluon.languages import TranslatorFactory
 from gluon.html import SPAN

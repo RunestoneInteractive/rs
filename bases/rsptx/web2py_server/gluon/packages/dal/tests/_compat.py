@@ -1,6 +1,6 @@
 import sys
 
 if sys.version < "2.7":
-    pass
+    import unittest2 as unittest
 else:
-    pass
+    import unittest

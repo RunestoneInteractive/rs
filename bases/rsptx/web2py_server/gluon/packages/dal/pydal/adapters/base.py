@@ -15,7 +15,7 @@ from ..helpers.methods import merge_tablemaps, use_common_filters, xorify
 from ..helpers.regex import REGEX_SELECT_AS_PARSER, REGEX_TABLE_DOT_FIELD
 from ..migrator import Migrator
 from ..objects import (Expression, Field, IterRows, LazyReferenceGetter,
-                       LazySet, Query, Select)
+                       LazySet, Query, Rows, Select, Table, VirtualCommand)
 from ..utils import deprecated
 from . import AdapterMeta, with_connection, with_connection_or_raise
 

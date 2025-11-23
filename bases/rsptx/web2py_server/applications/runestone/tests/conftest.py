@@ -52,6 +52,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 # Required to allow use of this class on a module-scoped fixture.
+from _pytest.monkeypatch import MonkeyPatch
 
 # Local imports
 # -------------

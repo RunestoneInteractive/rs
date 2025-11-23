@@ -1,6 +1,6 @@
 import re
 
-from .._compat import basestring
+from .._compat import basestring, integer_types
 from ..adapters.oracle import Oracle
 from . import dialects, sqltype_for
 from .base import SQLDialect

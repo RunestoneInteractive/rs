@@ -6,12 +6,13 @@
 import unittest
 from datetime import datetime
 
-from gluon._compat import pickle
+from gluon._compat import to_bytes, pickle
 from gluon.storage import Storage
 from gluon.utils import web2py_uuid
 from gluon.globals import Request, Response, Session, current
 from gluon.contrib.redis_utils import RConn
 from gluon.contrib.redis_session import RedisSession
+from gluon.contrib.redis_cache import RedisCache
 
 
 class TestRedis(unittest.TestCase):
@@ -25,6 +26,7 @@ class TestRedis(unittest.TestCase):
         response = Response()
         session = Session()
         session.connect(request, response)
+        from gluon.globals import current
         current.request = request
         current.response = response
         current.session = session

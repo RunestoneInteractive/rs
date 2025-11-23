@@ -37,7 +37,7 @@ try:
     restricted(
         read_file(apath('../parameters_%i.py' % port, request)), _config)
 
-    if 'password' not in _config or not _config['password']:
+    if not 'password' in _config or not _config['password']:
         raise HTTP(200, T('admin disabled because no admin password'))
 except IOError:
     import gluon.fileutils
@@ -80,6 +80,7 @@ expiration_failed_logins = 3600
 
 
 def read_hosts_deny():
+    import datetime
     hosts = {}
     if os.path.exists(deny_file):
         hosts = {}
@@ -171,7 +172,9 @@ if request.controller == "webservices":
     if not verify_password(password) or MULTI_USER_MODE:
         time.sleep(10)
         raise HTTP(403, "Not authorized")
-elif not session.authorized and request.controller + '/' + request.function not in ('default/index', 'default/user', 'plugin_jqmobile/index', 'plugin_jqmobile/about'):
+elif not session.authorized and not \
+    (request.controller + '/' + request.function in
+     ('default/index', 'default/user', 'plugin_jqmobile/index', 'plugin_jqmobile/about')):
 
     if request.env.query_string:
         query_string = '?' + request.env.query_string

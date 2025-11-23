@@ -12,7 +12,7 @@ import tempfile
 import unittest
 
 from gluon import languages
-from gluon._compat import to_unicode, to_bytes
+from gluon._compat import PY2, to_unicode, to_bytes
 from gluon.storage import Messages
 from gluon.html import SPAN
 

@@ -14,10 +14,10 @@ import base64
 from functools import reduce
 from gluon._compat import pickle, thread, urllib2, Cookie, StringIO, urlencode
 from gluon._compat import configparser, MIMEBase, MIMEMultipart, MIMEText, Header
-from gluon._compat import Encoders, urllib_quote, iteritems
+from gluon._compat import Encoders, Charset, long, urllib_quote, iteritems
 from gluon._compat import to_bytes, to_native, add_charset, string_types
 from gluon._compat import charset_QP, basestring, unicodeT, to_unicode
-from gluon._compat import urlopen, urlparse
+from gluon._compat import urllib2, urlopen, urlparse
 import datetime
 import logging
 import sys
@@ -716,7 +716,7 @@ class Mail(object):
             # need m2crypto
             try:
                 from M2Crypto import BIO, SMIME, X509
-            except Exception:
+            except Exception as e:
                 self.error = "Can't load M2Crypto module"
                 return False
             msg_bio = BIO.MemoryBuffer(payload_in.as_string())
@@ -917,7 +917,7 @@ class Mail(object):
                         RawMessage=raw, Source=sender, Destinations=to
                     )
                     return True
-                except ClientError:
+                except ClientError as e:
                     # we should log this error:
                     # print e.response['Error']['Message']
                     return False
@@ -3802,7 +3802,7 @@ class Auth(AuthAPI):
             user = table_user(reset_password_key=key)
             if not user:
                 raise Exception
-        except Exception:
+        except Exception as e:
             session.flash = self.messages.invalid_reset_password
             redirect(next, client_side=self.settings.client_side)
         passfield = self.settings.password_field
@@ -4887,7 +4887,7 @@ class Crud(object):  # pragma: no cover
             raise HTTP(404)
         elif args[0] == "tables":
             return self.tables()
-        elif len(args) > 1 and args(1) not in self.db.tables:
+        elif len(args) > 1 and not args(1) in self.db.tables:
             raise HTTP(404)
         table = self.db[args(1)]
         if args[0] == "create":

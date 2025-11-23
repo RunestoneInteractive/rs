@@ -10,7 +10,7 @@ The gluon wsgi application
 """
 
 if False:
-    pass  # DO NOT REMOVE PART OF FREEZE PROCESS
+    from . import import_all  # DO NOT REMOVE PART OF FREEZE PROCESS
 import gc
 
 import os

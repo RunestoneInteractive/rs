@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import tempfile
+import shutil
 
 from ._compat import unittest
 from ._adapt import DEFAULT_URI, drop, IS_MSSQL, IS_IMAP, IS_GAE, IS_TERADATA, IS_ORACLE

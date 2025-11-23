@@ -12,7 +12,8 @@ Contains the classes for the global used variables:
 - Session
 
 """
-from gluon._compat import pickle, BytesIO, StringIO, copyreg, Cookie, urlparse, PY2, iteritems, unicodeT, long, hashlib_md5, urllib_quote, to_native
+from gluon._compat import pickle, BytesIO, StringIO, copyreg, Cookie, urlparse, PY2, iteritems, to_unicode, \
+    to_native, to_bytes, unicodeT, long, hashlib_md5, urllib_quote, to_native
 from gluon.storage import Storage, List
 from gluon.streamer import streamer, stream_file_or_304_or_206, DEFAULT_CHUNK_SIZE
 from gluon.contenttype import contenttype
@@ -393,7 +394,7 @@ class Request(Storage):
                     if is_json and not isinstance(res, str):
                         res = json(res)
                     return res
-                except TypeError:
+                except TypeError as e:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     if len(traceback.extract_tb(exc_traceback)) == 1:
                         raise HTTP(400, "invalid arguments")
@@ -517,7 +518,7 @@ class Response(Storage):
                     internal.has_css = False
                 files.append(item)
                 continue
-            if extensions and item.rpartition('.')[2] not in extensions:
+            if extensions and not item.rpartition('.')[2] in extensions:
                 continue
             internal.append(item)
             if item.endswith('.js'):

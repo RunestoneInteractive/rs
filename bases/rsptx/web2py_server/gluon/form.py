@@ -1,3 +1,4 @@
+from gluon.dal import DAL
 from gluon.storage import Storage
 from gluon.utils import web2py_uuid
 

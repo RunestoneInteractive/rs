@@ -347,7 +347,7 @@ web2py will attempt to run a GUI to ask for it when starting the web server
         else:
             # --interface
             ifp = v.split(sep, 5)
-        if len(ifp) not in (2, 4, 5):
+        if not len(ifp) in (2, 4, 5):
             raise argparse.ArgumentTypeError("bad interface %r" % v)
         try:
             ip_addr(ifp[0])

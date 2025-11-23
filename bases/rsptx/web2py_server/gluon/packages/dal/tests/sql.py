@@ -58,11 +58,11 @@ def setUpModule():
         def clean_table(db, tablename):
             try:
                 db.define_table(tablename)
-            except Exception:
+            except Exception as e:
                 pass
             try:
                 db[tablename].drop()
-            except Exception:
+            except Exception as e:
                 pass
 
         for tablename in [
@@ -2227,7 +2227,7 @@ class TestDALDictImportExport(unittest.TestCase):
         dbdict5 = {"uri": DEFAULT_URI}
         db5 = DAL(**dbdict5)
         assert db5.tables in ([], None)
-        assert str(db5) not in ("", None)
+        assert not (str(db5) in ("", None))
 
         dbdict6 = {
             "uri": DEFAULT_URI,
@@ -3296,7 +3296,7 @@ class TestGis(DALtest):
 
     @unittest.skipIf(True, "WIP")
     def testGeometryCase(self):
-        from pydal import geoPoint
+        from pydal import geoPoint, geoLine, geoPolygon
 
         if not IS_POSTGRESQL:
             return

@@ -137,10 +137,10 @@ def smart_query(fields, text):
     field_map = {}
     for field in fields:
         n = field.name.lower()
-        if n not in field_map:
+        if not n in field_map:
             field_map[n] = field
         n = str(field).lower()
-        if n not in field_map:
+        if not n in field_map:
             field_map[n] = field
     constants = {}
     i = 0
@@ -202,11 +202,11 @@ def smart_query(fields, text):
                 field = field_map[item]
             else:
                 raise RuntimeError("Invalid syntax")
-        elif field is not None and op is None:
+        elif not field is None and op is None:
             op = item
-        elif op is not None:
+        elif not op is None:
             if item.startswith("#"):
-                if item[1:] not in constants:
+                if not item[1:] in constants:
                     raise RuntimeError("Invalid syntax")
                 value = constants[item[1:]]
             else:

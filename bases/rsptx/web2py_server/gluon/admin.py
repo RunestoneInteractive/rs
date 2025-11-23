@@ -69,7 +69,7 @@ def app_pack(app, request, raise_ex=False, filenames=None):
         filename = apath('../deposit/web2py.app.%s.w2p' % app, request)
         w2p_pack(filename, apath(app, request), filenames=filenames)
         return filename
-    except Exception:
+    except Exception as e:
         if raise_ex:
             raise
         return False

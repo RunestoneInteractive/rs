@@ -272,6 +272,7 @@ class FileLikeSocket(object):
 # Monolithic build...start of module: rocket/futures.py
 
 # Import System Modules
+import time
 try:
     from concurrent.futures import Future, ThreadPoolExecutor
     from concurrent.futures.thread import _WorkItem
@@ -582,8 +583,10 @@ class Listener(Thread):
 
 # Import System Modules
 import sys
+import time
 import socket
 import logging
+import traceback
 from threading import Lock
 if PY3K:
     from queue import Queue
@@ -790,6 +793,7 @@ def CherryPyWSGIServer(bind_addr,
 # Monolithic build...start of module: rocket/monitor.py
 
 # Import System Modules
+import time
 import logging
 import select
 from threading import Thread
@@ -1138,6 +1142,7 @@ import re
 import sys
 import socket
 import logging
+import traceback
 from wsgiref.headers import Headers
 from threading import Thread
 from datetime import datetime
@@ -1543,6 +1548,7 @@ def get_method(method):
 # Import System Modules
 import sys
 import socket
+from wsgiref.headers import Headers
 from wsgiref.util import FileWrapper
 
 # Import Package Modules
@@ -1651,11 +1657,11 @@ class WSGIWorker(Worker):
         self.chunked = h_set.get('Transfer-Encoding', '').lower() == 'chunked'
 
         # Add a Date header if it's not there already
-        if 'Date' not in h_set:
+        if not 'Date' in h_set:
             h_set['Date'] = formatdate(usegmt=True)
 
         # Add a Server header if it's not there already
-        if 'Server' not in h_set:
+        if not 'Server' in h_set:
             h_set['Server'] = HTTP_SERVER_SOFTWARE
 
         if 'Content-Length' in h_set:

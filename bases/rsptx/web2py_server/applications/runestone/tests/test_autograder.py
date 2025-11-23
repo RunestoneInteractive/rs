@@ -410,7 +410,7 @@ def test_student_autograde(test_user_1, test_user, runestone_db_tools, test_assi
     # check if score is 0% for the student
     student1.login()
     res = student1.test_client.validate(
-        "assignments/doAssignment",
+        "assignments/doAssignment".format(assignment_id),
         "Grade: 0 of 2 = 0.0%",
         data=dict(assignment_id=assignment_id),
     )
@@ -438,7 +438,7 @@ def test_student_autograde(test_user_1, test_user, runestone_db_tools, test_assi
 
     # check if score is now 50%
     res = student1.test_client.validate(
-        "assignments/doAssignment",
+        "assignments/doAssignment".format(assignment_id),
         "Grade: 1.0 of 2 = 50.0%",
         data=dict(assignment_id=assignment_id),
     )
@@ -455,7 +455,7 @@ def test_student_autograde(test_user_1, test_user, runestone_db_tools, test_assi
         assert res["success"]
         # check if score is still 50%
         res = student1.test_client.validate(
-            "assignments/doAssignment",
+            "assignments/doAssignment".format(assignment_id),
             "Grade: 1.0 of 2 = 50.0%",
             data=dict(assignment_id=assignment_id),
         )

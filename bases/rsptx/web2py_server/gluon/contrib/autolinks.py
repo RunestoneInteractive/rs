@@ -161,7 +161,7 @@ def extension(url):
 
 def expand_one(url, cdict):
     # try ombed but first check in cache
-    if '@' in url and '://' not in url:
+    if '@' in url and not '://'in url:
         return '<a href="mailto:%s">%s</a>' % (url, url)
     if cdict and url in cdict:
         r = cdict[url]
@@ -193,7 +193,7 @@ def expand_html(html, cdict=None):
     comments = soup.findAll(text=lambda text: isinstance(text, Comment))
     [comment.extract() for comment in comments]
     for txt in soup.findAll(text=True):
-        if txt.parent.name not in ('a', 'script', 'pre', 'code', 'embed', 'object', 'audio', 'video'):
+        if not txt.parent.name in ('a', 'script', 'pre', 'code', 'embed', 'object', 'audio', 'video'):
             ntxt = regex_link.sub(
                 lambda match: expand_one(match.group(0), cdict), txt)
             txt.replaceWith(BeautifulSoup(ntxt))

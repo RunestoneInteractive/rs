@@ -2,10 +2,11 @@
 # load modules with contrib fallback
 
 try:
-    pass
+    from collections import OrderedDict
 except:
-    pass
+    from .contrib.ordereddict import OrderedDict
 
+from .contrib import portalocker
 
 # TODO: uncomment the lines below when contrib/portalocker will be
 # inline with the one shipped with pip

@@ -6,6 +6,7 @@
 """
 import datetime
 import os
+import sys
 import unittest
 
 from gluon.sqlhtml import safe_int, SQLFORM, SQLTABLE
@@ -13,9 +14,12 @@ from gluon.sqlhtml import safe_int, SQLFORM, SQLTABLE
 DEFAULT_URI = os.getenv('DB', 'sqlite:memory')
 
 from gluon.dal import DAL, Field
-from gluon.tools import Auth
+from pydal.objects import Table
+from gluon.tools import Auth, Mail
 from gluon.globals import Request, Response, Session
+from gluon.storage import Storage
 from gluon.languages import TranslatorFactory
+from gluon.http import HTTP
 from gluon.validators import *
 
 # TODO: Create these test...

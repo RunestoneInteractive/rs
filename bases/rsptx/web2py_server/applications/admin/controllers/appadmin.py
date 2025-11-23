@@ -4,6 +4,7 @@
 # ## make sure administrator is on localhost
 # ###########################################################
 
+import os
 import socket
 import datetime
 import copy
@@ -37,7 +38,7 @@ elif (remote_addr not in hosts) and (remote_addr != '127.0.0.1') and \
     raise HTTP(200, T('appadmin is disabled because insecure channel'))
 
 if request.function == 'manage':
-    if 'auth' not in globals() or not request.args:
+    if not 'auth' in globals() or not request.args:
         redirect(URL(request.controller, 'index'))
     manager_action = auth.settings.manager_actions.get(request.args(0), None)
     if manager_action is None and request.args(0) == 'auth':
@@ -157,6 +158,7 @@ def insert():
 
 
 def download():
+    import os
     db = get_database(request)
     return response.download(request, db)
 
@@ -396,9 +398,12 @@ def ccache():
     except ImportError:
         asizeof = False
 
+    import shelve
+    import os
     import copy
     import time
     import math
+    from pydal.contrib import portalocker
 
     ram = {
         'entries': 0,

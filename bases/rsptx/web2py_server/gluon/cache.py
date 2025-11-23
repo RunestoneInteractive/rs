@@ -26,7 +26,9 @@ import sys
 import logging
 import re
 import random
+import hashlib
 import datetime
+import tempfile
 from gluon import recfile
 from collections import defaultdict
 from collections import OrderedDict

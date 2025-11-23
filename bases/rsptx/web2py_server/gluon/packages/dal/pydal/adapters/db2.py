@@ -1,4 +1,4 @@
-from .._compat import long
+from .._compat import integer_types, long
 from . import adapters, with_connection_or_raise
 from .base import SQLAdapter
 

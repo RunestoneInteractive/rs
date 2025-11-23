@@ -15,6 +15,7 @@ import os
 import re
 import copy
 import types
+import urllib
 import base64
 import itertools
 from pydal._compat import PY2, reduce, pickle, copyreg, HTMLParser, name2codepoint, iteritems, unichr, unicodeT, \

@@ -8,7 +8,7 @@ def to_num(num):
     result = 0
     try:
         result = long(num)
-    except NameError:
+    except NameError as e:
         result = int(num)
     return result
 

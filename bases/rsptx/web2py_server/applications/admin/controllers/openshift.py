@@ -34,7 +34,7 @@ def deploy():
             pass
 
         ignore_apps = [
-            item for item in apps if item not in form.vars.applications]
+            item for item in apps if not item in form.vars.applications]
         regex = re.compile('\(applications/\(.*')
         w2p_origin = os.getcwd()
         osrepo = form.vars.osrepo

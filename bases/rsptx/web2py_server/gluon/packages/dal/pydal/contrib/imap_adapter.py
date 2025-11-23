@@ -295,7 +295,7 @@ class IMAPAdapter(NoSQLAdapter):
             uri = self.uri
             while True:
                 GLOBAL_LOCKER.acquire()
-                if uri not in POOLS:
+                if not uri in POOLS:
                     POOLS[uri] = []
                 if POOLS[uri]:
                     self.connection = POOLS[uri].pop()
@@ -442,7 +442,7 @@ class IMAPAdapter(NoSQLAdapter):
         for item in mailboxes_list[1]:
             x = x + 1
             item = item.strip()
-            if "NOSELECT" not in item.upper():
+            if not "NOSELECT" in item.upper():
                 sub_items = item.split('"')
                 sub_items = [
                     sub_item for sub_item in sub_items if len(sub_item.strip()) > 0
@@ -747,7 +747,7 @@ class IMAPAdapter(NoSQLAdapter):
                     if payload:
                         filename = part.get_filename()
                         values = {"mime": part.get_content_type()}
-                        if (filename or "text" not in maintype) and (
+                        if (filename or not "text" in maintype) and (
                             "%s.attachments" % tablename in colnames
                         ):
                             values.update(

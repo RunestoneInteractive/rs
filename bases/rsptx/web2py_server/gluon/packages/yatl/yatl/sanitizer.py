@@ -21,12 +21,12 @@ if PY2:
     from cgi import escape
     from HTMLParser import HTMLParser
     import urlparse
-    from htmlentitydefs import entitydefs
+    from htmlentitydefs import entitydefs, name2codepoint
 else:
     from html import escape
     from html.parser import HTMLParser
     from urllib import parse as urlparse
-    from html.entities import entitydefs
+    from html.entities import entitydefs, name2codepoint
     basestring = str
 
 def xmlescape(text, quote=True, colon=False):

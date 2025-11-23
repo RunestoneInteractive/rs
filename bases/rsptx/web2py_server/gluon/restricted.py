@@ -12,6 +12,7 @@ Restricted environment to execute application's code
 import sys
 from gluon._compat import pickle, ClassType, unicodeT, to_bytes
 import traceback
+import types
 import os
 import logging
 
@@ -221,7 +222,7 @@ def restricted(ccode, environment=None, layer='Unknown', scode=None):
     except RestrictedError:
         # do not encapsulate (obfuscate) the original RestrictedError
         raise
-    except Exception:
+    except Exception as error:
         # extract the exception type and value (used as output message)
         etype, evalue, tb = sys.exc_info()
         # XXX Show exception in Wing IDE if running in debugger

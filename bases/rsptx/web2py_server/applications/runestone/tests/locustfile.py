@@ -1,7 +1,7 @@
-from locust import HttpUser, task
+from locust import HttpUser, TaskSet, task, Locust
 import bs4
 import random
-import sys
+import sys, os
 
 
 class WebsiteTasks(HttpUser):

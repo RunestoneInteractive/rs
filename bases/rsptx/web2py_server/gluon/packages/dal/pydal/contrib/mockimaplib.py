@@ -239,7 +239,7 @@ class Connection(object):
             message["flags"] = "FLAGS (%s)" % " ".join(set(flags + old_flags))
         elif args[1].strip().startswith("-"):
             message["flags"] = "FLAGS (%s)" % " ".join(
-                [flag for flag in old_flags if flag not in flags]
+                [flag for flag in old_flags if not flag in flags]
             )
 
     def expunge(self):

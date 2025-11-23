@@ -1,8 +1,5 @@
 
-import os
-import time
-import stat
-import logging
+import os, time, stat, logging
 from gluon._compat import pickle
 
 EXPIRATION_MINUTES = 60

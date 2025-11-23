@@ -1,5 +1,6 @@
 from ._compat import unittest
 from ._adapt import DEFAULT_URI, IS_GAE, IS_IMAP, drop
+from pydal._compat import integer_types
 from pydal import DAL, Field
 from pydal.helpers.methods import smart_query
 

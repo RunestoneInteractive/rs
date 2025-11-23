@@ -1,3 +1,4 @@
+from .._compat import basestring, integer_types
 from ..adapters.snowflake import Snowflake
 from ..helpers.methods import varquote_aux
 from ..objects import Expression

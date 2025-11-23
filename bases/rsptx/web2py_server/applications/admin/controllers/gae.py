@@ -63,7 +63,7 @@ def deploy():
         except:
             pass
         ignore_apps = [item for item in apps
-                       if item not in form.vars.applications]
+                       if not item in form.vars.applications]
         regex = re.compile('\(applications/\(.*')
         yaml = apath('../app.yaml', r=request)
         if not os.path.exists(yaml):

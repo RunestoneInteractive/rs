@@ -65,6 +65,7 @@ logger = logging.getLogger("pydal")
 
 os_locking = None
 try:
+    import google.appengine
 
     os_locking = "gae"
 except:
