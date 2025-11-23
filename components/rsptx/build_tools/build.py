@@ -427,9 +427,9 @@ def wheel(config):
 
                             res = subprocess.run(lock_opts, capture_output=True)
                             if res.returncode != 0:
-                                status[proj] = (
-                                    f"[red]Fail[/red] probable dependency conflict see {projdir}/build.log"
-                                )
+                                status[
+                                    proj
+                                ] = f"[red]Fail[/red] probable dependency conflict see {projdir}/build.log"
                                 lt.update(generate_wheel_table(status))
                                 if config.verbose:
                                     console.print(
@@ -471,6 +471,7 @@ def generate_table(status: dict) -> Table:
         table.add_row(f"{service}", status[service])
     return table
 
+
 def ensure_builder(builder_name: str = "rn-builder") -> None:
     """Ensure the named Buildx builder exists and is set as default.
     If it doesn't exist, prompt the user to create it and set it as the default.
@@ -495,9 +496,13 @@ def ensure_builder(builder_name: str = "rn-builder") -> None:
         ):
             steps = [
                 [
-                    "docker", "buildx", "create",
-                    "--name", builder_name,
-                    "--driver", "docker-container",
+                    "docker",
+                    "buildx",
+                    "create",
+                    "--name",
+                    builder_name,
+                    "--driver",
+                    "docker-container",
                     "--bootstrap",
                 ],
                 ["docker", "buildx", "use", "--default", builder_name],
@@ -528,6 +533,7 @@ def ensure_builder(builder_name: str = "rn-builder") -> None:
             ["docker", "buildx", "use", "--default", builder_name],
             capture_output=True,
         )
+
 
 @cli.command()
 @pass_config
@@ -938,6 +944,7 @@ def bake(ctx, config, version):
                 f.write(ret.stderr.decode(stdout_err_encoding))
                 f.write("\n")
             exit(1)
+
 
 if __name__ == "__main__":
     cli()

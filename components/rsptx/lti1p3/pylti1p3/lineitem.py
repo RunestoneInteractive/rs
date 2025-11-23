@@ -192,8 +192,8 @@ class LineItem:
         return self
 
     def get_value(self) -> str:
-        """ 
-            Get the JSON representation of the line item
+        """
+        Get the JSON representation of the line item
         """
         data = {
             "id": self._id if self._id else None,

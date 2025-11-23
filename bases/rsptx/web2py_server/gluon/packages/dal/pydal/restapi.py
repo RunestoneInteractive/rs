@@ -87,12 +87,12 @@ class Policy(object):
 
     def set(self, tablename, method="GET", **attributes):
         method = method.upper()
-        if not method in self.model:
+        if method not in self.model:
             raise InvalidFormat("Invalid policy method: %s" % method)
         invalid_keys = [key for key in attributes if key not in self.model[method]]
         if invalid_keys:
             raise InvalidFormat("Invalid keys: %s" % ",".join(invalid_keys))
-        if not tablename in self.info:
+        if tablename not in self.info:
             self.info[tablename] = copy.deepcopy(self.model)
         self.info[tablename][method].update(attributes)
 
@@ -217,7 +217,7 @@ class RestAPI(object):
         self.allow_count = allow_count
         # validate incoming request
         tname, tfieldnames = RestAPI.parse_table_and_fields(tablename)
-        if not tname in self.db.tables:
+        if tname not in self.db.tables:
             raise InvalidFormat("Invalid table name: %s" % tname)
         if self.policy:
             self.policy.check_if_allowed(method, tablename, id, get_vars, post_vars)
@@ -261,7 +261,7 @@ class RestAPI(object):
             put_fields = self.policy.allowed_fieldnames(table, method="PUT")
             post_fields = self.policy.allowed_fieldnames(table, method="POST")
         for fieldname in fields:
-            if fieldnames and not fieldname in fieldnames:
+            if fieldnames and fieldname not in fieldnames:
                 continue
             field = table[fieldname]
             item = {"name": field.name, "label": field.label}
@@ -387,7 +387,7 @@ class RestAPI(object):
                     do_count = str(value).lower()[:1] == "t"
             else:
                 key_parts = key.rsplit(".")
-                if not key_parts[-1] in (
+                if key_parts[-1] not in (
                     "eq",
                     "ne",
                     "gt",
@@ -491,10 +491,10 @@ class RestAPI(object):
                     for tfieldname in tfieldnames
                     if ref_table[tfieldname].type != "password"
                 ]
-                if not "id" in tfieldnames:
+                if "id" not in tfieldnames:
                     tfields.append(ref_table["id"])
                 drows = db(ref_table._id.belongs(ids)).select(*tfields).as_dict()
-                if tfieldnames and not "id" in tfieldnames:
+                if tfieldnames and "id" not in tfieldnames:
                     for row in drows.values():
                         del row["id"]
                 lkey, collapsed = lookup_map[key]["name"], lookup_map[key]["collapsed"]
@@ -515,14 +515,14 @@ class RestAPI(object):
                 tfieldnames = filter_fieldnames(ref_table, tfieldnames)
                 ids = [row["id"] for row in rows]
                 tfields = [ref_table[tfieldname] for tfieldname in tfieldnames]
-                if not lfield in tfieldnames:
+                if lfield not in tfieldnames:
                     tfields.append(ref_table[lfield])
                 lrows = db(ref_table[lfield].belongs(ids)).select(*tfields)
                 drows = collections.defaultdict(list)
                 for row in lrows:
                     row = row.as_dict()
                     drows[row[lfield]].append(row)
-                    if not lfield in tfieldnames:
+                    if lfield not in tfieldnames:
                         del row[lfield]
                 lkey = lookup_map[lfield + "." + key]["name"]
                 for row in rows:
@@ -541,9 +541,9 @@ class RestAPI(object):
                 tfieldnames2 = filter_fieldnames(ref_ref_table, tfieldnames2)
                 ids = [row["id"] for row in rows]
                 tfields = [ref_table[tfieldname] for tfieldname in tfieldnames]
-                if not lfield in tfieldnames:
+                if lfield not in tfieldnames:
                     tfields.append(ref_table[lfield])
-                if not rfield in tfieldnames:
+                if rfield not in tfieldnames:
                     tfields.append(ref_table[rfield])
                 tfields += [ref_ref_table[tfieldname] for tfieldname in tfieldnames2]
                 left = ref_ref_table.on(ref_table[rfield] == ref_ref_table["id"])
@@ -558,9 +558,9 @@ class RestAPI(object):
                     row = row.as_dict()
                     new_row = row[key]
                     lfield_value, rfield_value = new_row[lfield], new_row[rfield]
-                    if not lfield in tfieldnames:
+                    if lfield not in tfieldnames:
                         del new_row[lfield]
-                    if not rfield in tfieldnames:
+                    if rfield not in tfieldnames:
                         del new_row[rfield]
                     if collapsed:
                         new_row.update(row[ref_ref_tablename])

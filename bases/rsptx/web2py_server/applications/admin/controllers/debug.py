@@ -1,11 +1,8 @@
 import os
-import sys
 import gluon.dal
 import gluon.html
 import gluon.validators
-import code
 from gluon.debug import communicate, web_debugger, dbg_debugger
-from gluon._compat import thread
 from gluon.fileutils import open_file
 import pydoc
 

@@ -69,7 +69,8 @@ FLOAT_PRECISION = 4
 
 
 from collections import defaultdict
-import re, types
+import re
+import types
 import sys
 import math
 
@@ -348,7 +349,7 @@ class ObjectEncoder:
                 class_name = get_name(type(dat))
 
             if hasattr(dat, "__str__") and (
-                not dat.__class__.__str__ is object.__str__
+                dat.__class__.__str__ is not object.__str__
             ):  # make sure it's not the lame default __str__
                 # N.B.: when objects are being constructed, this call
                 # might fail since not all fields have yet been populated

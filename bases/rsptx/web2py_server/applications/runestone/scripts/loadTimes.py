@@ -11,12 +11,13 @@
 # 2601:444:4100:3c00:756d:34fe:d1b0:8963 - - - [22/Jan/2022:01:06:57 +0000] Request: "GET /runestone/default/user/login?_next=/runestone/default/index HTTP/1.1" Status: 200 Bytes: 6537 Host: 10.136.0.10:80  ResponseTime: 0.052 Referrer: "-" Agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36"
 # 76.219.135.229 - - - [22/Jan/2022:01:29:31 +0000] Request: "POST /ns/logger/bookevent HTTP/1.1" Status: 201 Bytes: 53 Host: 10.136.0.11:80  ResponseTime: 0.024 Referrer: "https://runestone.academy/ns/books/published/UCMST_APCSA_2022/Unit6-Arrays/topic-6-1-array-basics.html" Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62"
 
-import re, sys, os
+import re
+import sys
+import os
 from dateutil.parser import parse
 from sqlalchemy import (
         create_engine,
         MetaData,
-        Table,
         Column,
         Integer,
         String,

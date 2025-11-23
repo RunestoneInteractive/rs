@@ -44,7 +44,6 @@ is_python3 = sys.version_info[0] == 3
 # NB: don't use cStringIO since it doesn't support unicode!!!
 if is_python3:
     import io as StringIO
-    import io  # expose regular io for Python3 users too
 else:
     import StringIO
 
@@ -1040,7 +1039,7 @@ class PGLogger(bdb.Bdb):
                         self.parent_frames_set.add(
                             chosen_parent_frame
                         )  # unequivocally add to this set!!!
-                        if not chosen_parent_frame in self.zombie_frames:
+                        if chosen_parent_frame not in self.zombie_frames:
                             self.zombie_frames.append(chosen_parent_frame)
             else:
                 # look for code objects of lambdas defined within this
@@ -1057,7 +1056,7 @@ class PGLogger(bdb.Bdb):
                             self.parent_frames_set.add(
                                 top_frame
                             )  # copy-paste from above
-                            if not top_frame in self.zombie_frames:
+                            if top_frame not in self.zombie_frames:
                                 self.zombie_frames.append(top_frame)
         else:
             # if there is only a global scope visible ...
@@ -1414,7 +1413,6 @@ class PGLogger(bdb.Bdb):
                     if a not in ("path", "stat"):
                         delattr(sys.modules["os"], a)
                 # ppl can dig up trashed objects with gc.get_objects()
-                import gc
 
                 for a in dir(sys.modules["gc"]):
                     delattr(sys.modules["gc"], a)

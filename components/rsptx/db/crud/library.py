@@ -7,7 +7,6 @@ from ..async_session import async_session
 from rsptx.logging import rslogger
 
 
-
 async def fetch_library_books():
     """
     Retrieve a list of visible library books ordered by shelf section and title.
@@ -102,6 +101,7 @@ async def fetch_books_by_author(author: str) -> List[Tuple[Library, BookAuthor]]
     async with async_session() as sess:
         res = await sess.execute(query)
         return res.fetchall()
+
 
 # Used by the library page
 async def get_students_per_basecourse() -> dict:

@@ -200,7 +200,7 @@ async def search_exercises(
                 Question.id.not_in(assigned_questions),
                 (
                     or_(
-                        Question.is_private == False,
+                        Question.is_private == False,  # noqa: E712
                         Question.owner == owner,  # noqa: E712
                     )
                 ),
@@ -618,9 +618,9 @@ async def fetch_questions_for_chapter_subchapter(
                     or_(
                         Question.owner == owner,
                         Question.is_private == False,  # noqa: E712
-                        Question.is_private == 'F',
-                        Question.is_private == None, # noqa: E711
-                        Question.owner == None, # noqa: E711
+                        Question.is_private == "F",
+                        Question.is_private == None,  # noqa: E711
+                        Question.owner == None,  # noqa: E711
                     )
                 ),  # noqa: E712
                 skipr_clause,

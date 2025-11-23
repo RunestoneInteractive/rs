@@ -18,7 +18,7 @@ NoneType = type(None)
 class BaseRepresenter(Representer):
     @for_type("boolean", adapt=False)
     def _boolean(self, value):
-        if value and not str(value)[:1].upper() in "0F":
+        if value and str(value)[:1].upper() not in "0F":
             return self.adapter.smart_adapt(self.dialect.true)
         return self.adapter.smart_adapt(self.dialect.false)
 
@@ -111,7 +111,7 @@ class SQLRepresenter(BaseRepresenter):
     def _before_all(self, obj, field_type):
         if isinstance(field_type, SQLCustomType):
             return self._custom_type(obj, field_type)
-        if obj == "" and not field_type[:2] in ("st", "te", "js", "pa", "up"):
+        if obj == "" and field_type[:2] not in ("st", "te", "js", "pa", "up"):
             return "NULL"
         r = self.exceptions(obj, field_type)
         return r
@@ -209,7 +209,7 @@ class NoSQLRepresenter(BaseRepresenter):
     @for_type("boolean")
     def _boolean(self, value):
         if not isinstance(value, bool):
-            if value and not str(value)[:1].upper() in "0F":
+            if value and str(value)[:1].upper() not in "0F":
                 return True
             return False
         return value

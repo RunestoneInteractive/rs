@@ -1,13 +1,20 @@
-
 from typing import Optional
 from pydal.validators import CRYPT
 from sqlalchemy import select, update, delete
 from fastapi import HTTPException
-from ..models import AuthUser, Code, Useinfo, AuthUserValidator, runestone_component_dict, DeadlineException
+from ..models import (
+    AuthUser,
+    Code,
+    Useinfo,
+    AuthUserValidator,
+    runestone_component_dict,
+    DeadlineException,
+)
 from ..async_session import async_session
 from rsptx.configuration import settings
 from rsptx.response_helpers.core import http_422error_detail
 from rsptx.logging import rslogger
+
 
 # auth_user
 # ---------
@@ -93,7 +100,9 @@ async def delete_user(username):
     delcode = delete(Code).where(Code.sid == username)
     deluse = delete(Useinfo).where(Useinfo.sid == username)
     deluser = delete(AuthUser).where(AuthUser.username == username)
-    delaccommodations = delete(DeadlineException).where(DeadlineException.sid == username)
+    delaccommodations = delete(DeadlineException).where(
+        DeadlineException.sid == username
+    )
     async with async_session.begin() as session:
         for stmt in stmt_list:
             await session.execute(stmt)
@@ -103,4 +112,3 @@ async def delete_user(username):
         await session.execute(deluser)
         # This will delete many other things as well based on the CASECADING
         # foreign keys
-

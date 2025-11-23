@@ -45,7 +45,6 @@ class FastAPIMessageLaunch(MessageLaunch):
             requests_session,
         )
 
-
     @classmethod
     async def create(
         cls,
@@ -66,7 +65,7 @@ class FastAPIMessageLaunch(MessageLaunch):
         )
         # Disable verification of iat to prevent clock skew problems from invalidating tokens
         obj._jwt_verify_options = {"verify_aud": False, "verify_iat": False}
-        
+
         return await obj.validate()
 
     def _get_request_param(self, key: str) -> str:

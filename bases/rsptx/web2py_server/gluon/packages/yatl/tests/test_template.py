@@ -8,7 +8,7 @@ import unittest
 import sys
 
 from yatl import render
-from yatl.template import DummyResponse, RestrictedError, NOESCAPE
+from yatl.template import DummyResponse, NOESCAPE
 
 
 class TestTemplate(unittest.TestCase):
@@ -65,9 +65,9 @@ class TestTemplate(unittest.TestCase):
         from os.path import join as pjoin
         import contextlib
         if sys.version_info[0] == 2:
-            from cStringIO import StringIO
+            pass
         else:
-            from io import StringIO
+            pass
 
         @contextlib.contextmanager
         def monkey_patch(module, fn_name, patch):

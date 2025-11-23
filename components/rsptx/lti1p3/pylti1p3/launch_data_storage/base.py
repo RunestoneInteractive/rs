@@ -5,6 +5,7 @@ from ..request import Request
 
 T = t.TypeVar("T")
 
+
 class LaunchDataStorage(t.Generic[T]):
     __metaclass__ = ABCMeta
     _request: t.Optional[Request] = None

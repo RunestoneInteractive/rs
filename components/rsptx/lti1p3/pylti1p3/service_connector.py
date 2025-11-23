@@ -44,7 +44,9 @@ class ServiceConnector:
             self._own_session = True
             headers = {"User-Agent": REQUESTS_USER_AGENT}
             timeout_sentinel = aiohttp.ClientTimeout(total=10)
-            self._requests_session = aiohttp.ClientSession(headers=headers, timeout=timeout_sentinel)
+            self._requests_session = aiohttp.ClientSession(
+                headers=headers, timeout=timeout_sentinel
+            )
 
     def __del__(self):
         if self._own_session:
@@ -112,7 +114,7 @@ class ServiceConnector:
             r = await self._requests_session.post(auth_url, data=auth_request)
             if not r.ok:
                 raise LtiServiceException(r)
-        except Exception as e:
+        except Exception:
             raw_body = await r.text()
             raise LtiServiceException(r)
         if r.content_type == "application/json":
@@ -175,20 +177,20 @@ class ServiceConnector:
                 "body": None,
                 "next_page_url": None,
             }
-            #todo  - think about that return for delete
+            # todo  - think about that return for delete
         else:
             raise LtiException("Unsupported HTTP method: " + method)
 
         if not r.ok:
             raise LtiServiceException(r)
-        
+
         next_page_url = None
         link_header = r.headers.get("link", "")
         if link_header:
             match = re.search(
                 r'<([^>]*)>;\s*rel="next"',
                 link_header.replace("\n", " ").strip(),
-                re.IGNORECASE
+                re.IGNORECASE,
             )
             if match:
                 next_page_url = match.group(1)

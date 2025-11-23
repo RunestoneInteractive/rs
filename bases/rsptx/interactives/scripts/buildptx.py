@@ -4,7 +4,6 @@
 # of a PreTeXt book outside of docker
 import os
 import subprocess
-import sys
 import pathlib
 import fnmatch
 
@@ -78,11 +77,11 @@ def build_book(target, clean, generate, bookname):
     with open("build_success", "w") as f:
         f.write("build success")
 
-    res = subprocess.run(f"chgrp -R www-data .", shell=True, capture_output=True)
+    res = subprocess.run("chgrp -R www-data .", shell=True, capture_output=True)
     if res.returncode != 0:
         print("failed to change group")
 
-    res = subprocess.run(f"chmod -R go+rw .", shell=True, capture_output=True)
+    res = subprocess.run("chmod -R go+rw .", shell=True, capture_output=True)
     if res.returncode != 0:
         print("failed to change permissions")
 

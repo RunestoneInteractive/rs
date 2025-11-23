@@ -36,11 +36,6 @@ from docutils.parsers.rst import directives
 
 # local imports
 # -------------
-from runestone.server.componentdb import (
-    addQuestionToDB,
-    addHTMLToDB,
-    maybeAddToAssignment,
-)
 from runestone.common.runestonedirective import (
     RunestoneDirective,
 )
@@ -103,7 +98,7 @@ class GroupSubmission(RunestoneDirective):
         if "limit" in self.options:
             self.options["size_limit"] = f"data-size_limit={self.options['limit']}"
         else:
-            self.options["size_limit"] = f"data-size_limit=4"
+            self.options["size_limit"] = "data-size_limit=4"
 
         res = TEMPLATE.format(**self.options)
 

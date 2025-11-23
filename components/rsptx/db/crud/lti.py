@@ -352,7 +352,9 @@ async def fetch_lti1p3_grading_data_for_assignment(
         return assign
 
 
-async def validate_user_credentials(username: str, password: str) -> Optional[AuthUserValidator]:
+async def validate_user_credentials(
+    username: str, password: str
+) -> Optional[AuthUserValidator]:
     """
     Validate a user's credentials by their username and password.
 
@@ -369,8 +371,6 @@ async def validate_user_credentials(username: str, password: str) -> Optional[Au
         return user
     else:
         return None
-
-
 
 
 # /LTI 1.3
@@ -434,4 +434,3 @@ async def delete_lti_course(course_id: int) -> bool:
         await session.execute(d_query2)
 
     return True
-

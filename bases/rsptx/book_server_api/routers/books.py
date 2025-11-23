@@ -21,7 +21,7 @@ Detailed Module Description
 #
 # Standard library
 # ----------------
-from datetime import datetime, timedelta
+from datetime import timedelta
 import json
 import os
 import os.path

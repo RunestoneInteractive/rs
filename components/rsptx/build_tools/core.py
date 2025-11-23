@@ -41,7 +41,6 @@ from runestone.server import get_dburl
 from rsptx.db.models import Library, LibraryValidator
 from rsptx.db.crud import update_source_code_sync
 from rsptx.response_helpers.core import canonical_utcnow
-import pdb
 
 rslogger.setLevel("WARNING")
 
@@ -152,7 +151,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
 
     if not os.path.exists("project.ptx"):
         click.echo("PreTeXt books need a project.ptx file")
-        return  {"completed": False, "status": "Missing project.ptx file"}
+        return {"completed": False, "status": "Missing project.ptx file"}
     else:
         click.echo("Checking files")
         if not target:
@@ -161,7 +160,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         # and {"host-platform": "runestone"} in stringparams
         rs = check_project_ptx(click=click, course=course, target=target)
         if not rs:
-            return  {"completed": False, "status": "Bad configuration in project.ptx"}
+            return {"completed": False, "status": "Bad configuration in project.ptx"}
 
         logger = logging.getLogger("ptxlogger")
         string_io_handler = StringIOHandler()
@@ -196,7 +195,10 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
             res = copytree(rs.output_dir_abspath(), book_path, dirs_exist_ok=True)
             if not res:
                 click.echo("Error copying files to published")
-                return {"completed": False, "status": "Error copying files to published"}
+                return {
+                    "completed": False,
+                    "status": "Error copying files to published",
+                }
         else:
             click.echo("No need to copy files to published")
         click.echo("Book deployed successfully")
@@ -222,12 +224,10 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
             or "Traceback" in log_string
             or "compilation failed" in log_string
         ):
-            click.echo(
-                "Nonfatal errors in build, check the log for details"
-            )
+            click.echo("Nonfatal errors in build, check the log for details")
             return {"completed": True, "status": "Nonfatal errors in build"}
         click.echo("Build completed successfully")
-        return  {"completed": True, "status": "Build completed successfully"}
+        return {"completed": True, "status": "Build completed successfully"}
 
 
 # Support Functions

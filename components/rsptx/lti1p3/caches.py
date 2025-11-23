@@ -5,10 +5,12 @@ import os
 
 import redis
 
+
 class SimpleCache:
     """
     Simple in memory dict cache - not suitable for production
     """
+
     def __init__(self):
         self._cache = {}
 
@@ -17,7 +19,6 @@ class SimpleCache:
 
     def set(self, key, value, expiration=None):
         self._cache[key] = value
-
 
 
 class RedisCache:
@@ -40,7 +41,7 @@ class RedisCache:
         # now figure out if it is json or a bool
         try:
             return json.loads(val)
-        except:
+        except Exception:
             if val.lower() == "true":
                 return True
             elif val.lower() == "false":
@@ -51,8 +52,8 @@ class RedisCache:
     def set(self, key, value, expiration=600):
         # pylti1p3 library tries to store dicts and bools
         # make sure we don't give redis those
-        if type(value) == bool:
+        if type(value) is bool:
             value = str(value)
-        elif type(value) == dict:
+        elif type(value) is dict:
             value = json.dumps(value)
         self.redis.set(key, value, ex=expiration)

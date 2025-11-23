@@ -7,9 +7,6 @@ from paver.easy import options, Bunch
 import paver.setuputils
 
 from runestone import get_master_url
-from runestone import (
-    build,
-)  # NOQA: F401 -- build is called implicitly by the paver driver.
 from runestone.server import get_dburl
 
 paver.setuputils.install_distutils_tasks()

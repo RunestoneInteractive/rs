@@ -62,7 +62,7 @@ def run_system_tests(options):
         call_args.insert(-1, '-v')
     if options.with_coverage:
         try:
-            import coverage
+            pass
         except:
             die('Coverage not installed')
     if not PY2:
@@ -669,7 +669,7 @@ def start():
 
     if options.with_scheduler or len(options.schedulers) > 1:
         try:
-            from multiprocessing import Process
+            pass
         except:
             die('Sorry, -K/--scheduler only supported for Python 2.6+')
 

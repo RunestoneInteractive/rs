@@ -241,7 +241,7 @@ async def doAssignment(
     if (
         assignment.visible == "F"
         or assignment.visible is None
-        or assignment.visible == False
+        or assignment.visible == False  # noqa: E712
     ):
         if not (
             await is_instructor(request)

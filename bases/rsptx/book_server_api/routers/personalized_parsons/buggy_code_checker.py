@@ -6,13 +6,14 @@ def clean_python_code(code):
     Output: cleaned_code (str): The cleaned Python code.
     """
     lines = []
-    for line in code.split('\n'):
+    for line in code.split("\n"):
         # Remove comments and whitespace
-        line = line.split('#')[0].strip()
+        line = line.split("#")[0].strip()
         # Skip empty lines and lines starting with 'def' or 'import'
-        if line and not line.startswith(('def ', 'import ', 'from ', 'class ')):
+        if line and not line.startswith(("def ", "import ", "from ", "class ")):
             lines.append(line)
-    return '\n'.join(lines)
+    return "\n".join(lines)
+
 
 def clean_java_code(code):
     """
@@ -22,13 +23,14 @@ def clean_java_code(code):
     Output: cleaned_code (str): The cleaned Java code.
     """
     lines = []
-    for line in code.split('\n'):
+    for line in code.split("\n"):
         # Remove comments and whitespace
-        line = line.split('//')[0].strip()
+        line = line.split("//")[0].strip()
         # Skip empty lines and lines starting with 'def' or 'import'
-        if line and not line.startswith(('public ', 'import ')):
+        if line and not line.startswith(("public ", "import ")):
             lines.append(line)
-    return '\n'.join(lines)
+    return "\n".join(lines)
+
 
 def student_code_checker(language, buggy_code):
     """

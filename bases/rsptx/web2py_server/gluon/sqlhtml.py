@@ -19,10 +19,10 @@ import re
 import copy
 
 import os
-from gluon._compat import StringIO,unichr, urllib_quote, iteritems, basestring, long, integer_types, unicodeT, to_native, to_unicode, urlencode
+from gluon._compat import StringIO,unichr, urllib_quote, iteritems, basestring, long, integer_types, unicodeT, to_native, urlencode
 from gluon.http import HTTP, redirect
 from gluon.html import XmlComponent, truncate_string
-from gluon.html import XML, SPAN, TAG, A, DIV, CAT, UL, LI, TEXTAREA, BR, IMG
+from gluon.html import XML, SPAN, A, DIV, CAT, UL, LI, TEXTAREA, BR, IMG
 from gluon.html import FORM, INPUT, LABEL, OPTION, SELECT, COL, COLGROUP
 from gluon.html import TABLE, THEAD, TBODY, TR, TD, TH, STYLE, SCRIPT
 from gluon.html import URL, FIELDSET, P, DEFAULT_PASSWORD_DISPLAY
@@ -1335,7 +1335,7 @@ class SQLFORM(FORM):
                         and self.table[key].type == 'upload' \
                         and request_vars.get(key, None) in (None, '') \
                         and self.record[key] \
-                        and not key + UploadWidget.ID_DELETE_SUFFIX in request_vars:
+                        and key + UploadWidget.ID_DELETE_SUFFIX not in request_vars:
                     del self.errors[key]
             if not self.errors:
                 status = True
@@ -1437,7 +1437,7 @@ class SQLFORM(FORM):
         extra_fields = extra_fields or []
         self.extra_fields = {}
         for extra_field in extra_fields:
-            if not extra_field.name in self.fields:
+            if extra_field.name not in self.fields:
                 self.fields.append(extra_field.name)
             self.extra_fields[extra_field.name] = extra_field
             extra_field.db = table._db
@@ -1954,8 +1954,7 @@ class SQLFORM(FORM):
 
         for fieldname in self.vars:
             if fieldname != 'id' and fieldname in self.table.fields\
-                and fieldname not in fields and not fieldname\
-                    in request_vars:
+                and fieldname not in fields and fieldname not in request_vars:
                 fields[fieldname] = self.vars[fieldname]
 
         if dbio:
@@ -1970,7 +1969,7 @@ class SQLFORM(FORM):
                         and field.update is None and field.compute is None:
                     if record_id and self.record:
                         fields[field.name] = self.record[field.name]
-                    elif not self.table[field.name].default is None:
+                    elif self.table[field.name].default is not None:
                         fields[field.name] = self.table[field.name].default
             if keyed:
                 if reduce(lambda x, y: x and y, record_id.values()):  # if record_id
@@ -2066,7 +2065,7 @@ class SQLFORM(FORM):
             keywords = keywords[0]
             request.vars.keywords = keywords
         key = keywords.strip()
-        if key and not '"' in key:
+        if key and '"' not in key:
             SEARCHABLE_TYPES = ('string', 'text', 'list:string')
             sfields = [field for field in fields if field.type in SEARCHABLE_TYPES]
             if settings.global_settings.web2py_runtime_gae:
@@ -2682,14 +2681,14 @@ class SQLFORM(FORM):
                 for table in tables:
                     for field in table:
                         if field.readable and field.tablename in tablenames:
-                            if not str(field) in expcolumns:
+                            if str(field) not in expcolumns:
                                 expcolumns.append(str(field))
                                 if not(isinstance(field, Field.Virtual)):
                                     selectable_columns.append(str(field))
                     # look for virtual fields not displayed (and virtual method
                     # fields to be added here?)
                     for (field_name, field) in iteritems(table):
-                        if isinstance(field, Field.Virtual) and not str(field) in expcolumns:
+                        if isinstance(field, Field.Virtual) and str(field) not in expcolumns:
                             expcolumns.append(str(field))
 
             expcolumns = ['"%s"' % '"."'.join(f.split('.')) for f in expcolumns]
@@ -2708,7 +2707,7 @@ class SQLFORM(FORM):
                                 sfields, keywords))
                         rows = dbset.select(left=left, orderby=orderby,
                                             cacheable=True, *selectable_columns)
-                    except Exception as e:
+                    except Exception:
                         response.flash = T('Internal Error')
                         rows = []
                 else:

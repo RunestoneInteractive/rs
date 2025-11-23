@@ -14,7 +14,6 @@ import shutil
 import sys
 import types
 from collections import OrderedDict
-from io import TextIOWrapper
 
 from ._compat import (PY2, BytesIO, StringIO, basestring, copyreg, exists,
                       hashlib_md5, implements_bool, implements_iterator,
@@ -3418,7 +3417,7 @@ class Rows(BasicRows):
             query = func(ids)
             if constraint:
                 query = query & constraint
-            tmp = not field.name in [f.name for f in fields]
+            tmp = field.name not in [f.name for f in fields]
             if tmp:
                 fields.append(field)
             other = db(query).select(*fields, orderby=orderby, cacheable=True)
@@ -3436,13 +3435,13 @@ class Rows(BasicRows):
             if constraint:
                 query = query & constraint
             name = name or field._tablename
-            tmp = not field.name in [f.name for f in fields]
+            tmp = field.name not in [f.name for f in fields]
             if tmp:
                 fields.append(field)
             other = db(query).select(*fields, orderby=orderby, cacheable=True)
             for row in other:
                 id = row[field]
-                if not id in maps:
+                if id not in maps:
                     maps[id] = []
                 if tmp:
                     try:

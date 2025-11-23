@@ -6,10 +6,7 @@
 # See also Niphlod's work on http://www.web2pyslices.com/slice/show/1726/build-windows-binaries
 # Then we switched to Pyinstaller in order to fully support Python 3
 
-from distutils.core import setup
-from gluon.import_all import base_modules, contributed_modules
 from gluon.fileutils import readlines_file
-from glob import glob
 import os
 import shutil
 import sys

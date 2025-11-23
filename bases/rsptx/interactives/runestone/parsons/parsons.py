@@ -15,7 +15,6 @@
 #
 __author__ = "isaiahmayerchak"
 from textwrap import dedent
-import pdb
 import random
 from docutils import nodes
 from docutils.parsers.rst import directives

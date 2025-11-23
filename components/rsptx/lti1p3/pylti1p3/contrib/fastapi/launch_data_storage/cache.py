@@ -1,5 +1,6 @@
 from ....launch_data_storage.cache import CacheDataStorage
 
+
 class FastAPICacheDataStorage(CacheDataStorage):
     _cache = None
 

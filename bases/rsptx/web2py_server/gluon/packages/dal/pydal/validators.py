@@ -508,7 +508,7 @@ class IS_IN_SET(Validator):
         else:
             values = [value]
         thestrset = [str(x) for x in self.theset]
-        failures = [x for x in values if not str(x) in thestrset]
+        failures = [x for x in values if str(x) not in thestrset]
         if failures and self.theset:
             raise ValidationError(self.translator(self.error_message))
         if self.multiple:
@@ -787,7 +787,7 @@ class IS_NOT_IN_DB(Validator):
         id = record_id or self.record_id
         if isinstance(id, dict):
             id = table(**id)
-        if not id is None:
+        if id is not None:
             query &= table._id != id
         subset = self.dbset(query, ignore_common_filters=self.ignore_common_filters)
         if subset.select(limitby=(0, 1)):
@@ -3581,7 +3581,7 @@ class IS_URL(Validator):
         if isinstance(value, unicodeT):
             try:
                 value = unicode_to_ascii_url(value, self.prepend_scheme)
-            except Exception as e:
+            except Exception:
                 # If we are not able to convert the unicode url into a
                 # US-ASCII URL, then the URL is not valid
                 raise ValidationError(self.translator(self.error_message))
@@ -3643,9 +3643,9 @@ class IS_TIME(Validator):
             ivalue = value
             value = re.match(self.REGEX_TIME, value.lower())
             (h, m, s) = (int(value.group("h")), 0, 0)
-            if not value.group("m") is None:
+            if value.group("m") is not None:
                 m = int(value.group("m"))
-            if not value.group("s") is None:
+            if value.group("s") is not None:
                 s = int(value.group("s"))
             if value.group("d") == "pm" and 0 < h < 12:
                 h += 12
@@ -4736,7 +4736,7 @@ class IS_IMAGE(Validator):
 
             value.file.seek(0)
             return value
-        except Exception as e:
+        except Exception:
             raise ValidationError(self.translator(self.error_message))
 
     def __bmp(self, stream):

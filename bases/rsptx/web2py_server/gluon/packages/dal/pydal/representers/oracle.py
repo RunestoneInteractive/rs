@@ -1,4 +1,3 @@
-import base64
 import datetime
 from base64 import b64encode
 

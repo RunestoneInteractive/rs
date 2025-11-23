@@ -228,7 +228,7 @@ def parsecronline(line):
     daysofweek = {'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3,
                   'thu': 4, 'fri': 5, 'sat': 6}
     for (s, id) in zip(params[:5], ['min', 'hr', 'dom', 'mon', 'dow']):
-        if not s in [None, '*']:
+        if s not in [None, '*']:
             task[id] = []
             vals = s.split(',')
             for val in vals:
@@ -455,7 +455,7 @@ def crondance(applications_parent, ctype='hard', startup=False, apps=None):
                 task_min = task.get('min', [])
                 if not startup and task_min == [-1]:
                     continue
-                citems = [(k in task and not v in task[k]) for k, v in checks]
+                citems = [(k in task and v not in task[k]) for k, v in checks]
                 if task_min != [-1] and reduce(lambda a, b: a or b, citems):
                     continue
 

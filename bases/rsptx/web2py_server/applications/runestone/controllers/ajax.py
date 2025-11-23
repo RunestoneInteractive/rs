@@ -1706,7 +1706,7 @@ def get_question_source():
             else:
                 return json.dumps(f"<p>Question {q} is not in the database.</p>")
         else:
-            return json.dumps(f"<p>No Questions available</p>")
+            return json.dumps("<p>No Questions available</p>")
 
     logger.debug(f"is_ab is {is_ab}")
     if is_ab:

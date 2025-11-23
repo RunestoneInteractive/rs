@@ -90,7 +90,7 @@ def make_progress_entries(field_dict, id_of_insert):
         """,
             (id_of_insert, cname),
         )
-    except Exception as e:
+    except Exception:
         logger.error(f"Failed to make progress entries for {field_dict}")
 
 

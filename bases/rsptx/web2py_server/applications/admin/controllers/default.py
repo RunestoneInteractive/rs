@@ -10,7 +10,7 @@ if EXPERIMENTAL_STUFF:
 
 import re
 from gluon.admin import *
-from gluon.fileutils import abspath, read_file, write_file
+from gluon.fileutils import abspath, read_file
 from gluon.utils import web2py_uuid
 from gluon.tools import Config, prevent_open_redirect
 from gluon.compileapp import find_exposed_functions
@@ -50,7 +50,7 @@ if not is_manager() and request.function in ['change_password', 'upgrade_web2py'
     session.flash = T('disabled in multi user mode')
     redirect(URL('site'))
 
-if FILTER_APPS and request.args(0) and not request.args(0) in FILTER_APPS:
+if FILTER_APPS and request.args(0) and request.args(0) not in FILTER_APPS:
     session.flash = T('disabled in demo mode')
     redirect(URL('site'))
 
@@ -275,7 +275,7 @@ def site():
                 session.flash = T('new application "%s" imported',
                                   form_update.vars.name)
                 gluon.rewrite.load()
-            except git.GitCommandError as err:
+            except git.GitCommandError:
                 session.flash = T('Invalid git repository specified.')
             redirect(URL(r=request))
 
@@ -392,7 +392,6 @@ def pack_plugin():
 
 
 def pack_exe(app, base, filenames=None):
-    import urllib
     import zipfile
     # Download latest web2py_win and open it with zipfile
     download_url = 'http://www.web2py.com/examples/static/web2py_win.zip'
@@ -436,7 +435,7 @@ def pack_custom():
             fname = 'web2py.app.%s.w2p' % app
             try:
                 filename = app_pack(app, request, raise_ex=True, filenames=files)
-            except Exception as e:
+            except Exception:
                 filename = None
             if filename:
                 response.headers['Content-Type'] = 'application/w2p'
@@ -954,7 +953,7 @@ def resolve():
         redirect(URL('edit', args=request.args))
     else:
         # Making the short circuit compatible with <= python2.4
-        gen_data = lambda index, item: not item[:1] in ['+', '-'] and "" \
+        gen_data = lambda index, item: item[:1] not in ['+', '-'] and "" \
             or INPUT(_type='checkbox',
                      _name='line%i' % index,
                      value=item[0] == '+')
@@ -1690,7 +1689,7 @@ def errors():
                                                 pickel=error, causer=error_causer,
                                                 last_line=last_line, hash=hash,
                                                 ticket=fn.ticket_id)
-            except AttributeError as e:
+            except AttributeError:
                 tk_db(tk_table.id == fn.id).delete()
                 tk_db.commit()
 
@@ -2005,7 +2004,7 @@ def install_plugin():
     if not (source and app):
         raise HTTP(500, T("Invalid request"))
     # make sure no XSS attacks in source
-    if not source.lower().split('://')[0] in ('http','https'):
+    if source.lower().split('://')[0] not in ('http','https'):
         raise HTTP(500, T("Invalid request"))
     form = SQLFORM.factory()
     result = None

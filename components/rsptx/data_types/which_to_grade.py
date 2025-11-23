@@ -1,6 +1,7 @@
 from enum import Enum
 from rsptx.data_types.question_type import QuestionType
 
+
 class WhichToGradeOptions(Enum):
     FIRST_ANSWER = ("first_answer", "First answer", QuestionType.all_types())
     LAST_ANSWER = ("last_answer", "Last answer", QuestionType.all_types())

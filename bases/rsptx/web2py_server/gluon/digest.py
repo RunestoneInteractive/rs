@@ -12,7 +12,7 @@ This file specifically includes utilities for security.
 
 import hashlib
 import hmac
-from gluon._compat import basestring, pickle, PY2, xrange, to_bytes, to_native
+from gluon._compat import to_bytes, to_native
 
 def pbkdf2_hex(data, salt, iterations=1000, keylen=24, hashfunc=None):
     hashfunc = hashfunc or sha1

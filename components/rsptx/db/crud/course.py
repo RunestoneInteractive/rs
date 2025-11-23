@@ -27,7 +27,6 @@ from ..models import (
     SelectedQuestion,
     QuestionGrade,
     Grade,
-    InvoiceRequest,
 )
 from ..async_session import async_session
 from rsptx.logging import rslogger
@@ -212,8 +211,6 @@ async def delete_user_course_entry(user_id: int, course_id: int) -> None:
 # -----------------------------------------------------------------------
 # Course Deletion Functions
 # -----------------------------------------------------------------------
-
-import pdb
 
 
 async def delete_course_completely(course_name: str) -> bool:

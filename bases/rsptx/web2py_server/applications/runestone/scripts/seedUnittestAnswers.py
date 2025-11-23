@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, Table, MetaData, select
-import datetime
-import os, re
+import os
+import re
 
 
 def insertAnswer(sid, divid, ts, course, correct, passed, failed):

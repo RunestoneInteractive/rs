@@ -6,7 +6,6 @@
 from __future__ import print_function
 import re
 import sys
-import urllib
 import ast
 
 PY2 = sys.version_info[0] == 2
@@ -1488,7 +1487,6 @@ def run_doctests():
 
 if __name__ == '__main__':
     import sys
-    import doctest
     from textwrap import dedent
 
     html = dedent("""

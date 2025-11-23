@@ -491,5 +491,5 @@ def add_path_first(path):
     sys.path = [path] + [p for p in sys.path if (
         not p == path and not p == (path + '/'))]
     if not global_settings.web2py_runtime_gae:
-        if not path in sys.path:
+        if path not in sys.path:
             site.addsitedir(path)

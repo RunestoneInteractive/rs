@@ -1,10 +1,6 @@
 from gluon.admin import *
-from gluon.fileutils import abspath, read_file, write_file
+from gluon.fileutils import read_file, write_file
 from gluon.tools import Service
-from glob import glob
-import shutil
-import platform
-import time
 import base64
 import os
 from gluon._compat import StringIO
@@ -103,7 +99,6 @@ def attach_debugger(host='localhost', port=6000, authkey='secret password'):
 
 @service.jsonrpc
 def detach_debugger():
-    import gluon.contrib.dbg as dbg
     import gluon.debug
     # stop current debugger
     if gluon.debug.dbg_debugger:

@@ -9,16 +9,10 @@
 #
 # Standard library
 # ----------------
-import json
-import logging
-import datetime
-from collections import OrderedDict
-import traceback
 import logging
 
 # Third-party imports
 # -------------------
-from psycopg2 import IntegrityError
 import pandas as pd
 import altair as alt
 

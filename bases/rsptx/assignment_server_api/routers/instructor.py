@@ -10,7 +10,6 @@ from .assignment_summary import create_assignment_summary
 from fastapi import (
     APIRouter,
     Cookie,
-    HTTPException,
     Depends,
     Request,
     status,
@@ -45,10 +44,7 @@ from rsptx.db.crud import (
     create_deadline_exception,
     delete_deadline_exception,
     create_question,
-    delete_course_instructor,
     fetch_course,
-    fetch_course_by_id,
-    fetch_instructor_courses,
     fetch_users_for_course,
     fetch_subchapters,
     create_assignment,
@@ -155,7 +151,7 @@ async def review_peer_assignment(
     if (
         assignment.visible == "F"
         or assignment.visible is None
-        or assignment.visible == False
+        or assignment.visible == False  # noqa: E712
     ):
         if not user_is_instructor:
             rslogger.error(
@@ -169,8 +165,6 @@ async def review_peer_assignment(
 
     for q in questions:
         # Gathering information about each question
-        answer = None
-        feedback = None
         if q.Question.htmlsrc:
             # This replacement is to render images
             bts = q.Question.htmlsrc
@@ -323,7 +317,7 @@ async def get_assignment_gb(
     apoints = {}
     for ix, row in assignments.iterrows():
         rslogger.debug(f"AROW = {row['name']}, {row.points}")
-        apoints[row['name']] = row.points if row.points is not None else 0
+        apoints[row["name"]] = row.points if row.points is not None else 0
 
     assignments.index = assignments.id
     aname = assignments.name.to_dict()
@@ -340,8 +334,7 @@ async def get_assignment_gb(
     cols = pt.columns.to_list()
     cols_plus_points = []
     for c in cols:
-        cols_plus_points.append(c + f" ({apoints.get(c,"0")} pts)")
-    
+        cols_plus_points.append(c + f" ({apoints.get(c,'0')} pts)")
 
     pt["first_name"] = pt.index.map(sfirst)
     pt["last_name"] = pt.index.map(slast)
@@ -350,7 +343,7 @@ async def get_assignment_gb(
     pt = pt.sort_values(by=["last_name", "first_name"])
     pt = pt[["first_name", "last_name", "email", "username"] + cols]
     pt = pt.reset_index()
-    pt = pt.drop(columns=["sid"], axis=1)    
+    pt = pt.drop(columns=["sid"], axis=1)
     pt.columns.name = None
 
     names = {}
@@ -369,7 +362,8 @@ async def get_assignment_gb(
         {
             "table_html": pt.to_html(
                 table_id="table",
-                columns=["first_name", "last_name", "email", "username"] + cols_plus_points,
+                columns=["first_name", "last_name", "email", "username"]
+                + cols_plus_points,
                 index=False,
                 na_rep="",
             ),
@@ -423,7 +417,7 @@ async def new_assignment(
         request_data.is_timed = True
     elif request_data.kind == "Peer":
         request_data.is_peer = True
-        
+
     new_assignment = AssignmentValidator(
         **request_data.model_dump(),
         course=course.id,
@@ -571,7 +565,8 @@ async def do_update_question(
         **req,
         base_course=course.base_course,
         timestamp=canonical_utcnow(),
-        is_private=request_data.is_private or False,  # Use value from request instead of hardcoding
+        is_private=request_data.is_private
+        or False,  # Use value from request instead of hardcoding
         practice=False,
         from_source=False,
         review_flag=False,
@@ -658,7 +653,7 @@ async def get_assignment_questions(
         else:
             aq["qnumber"] = q["name"]
 
-        if aq["reading_assignment"] == True:
+        if aq["reading_assignment"] == True:  # noqa: E712
             try:
                 aq["numQuestions"] = countd[q["chapter"]][q["subchapter"]]
             except KeyError:
@@ -925,13 +920,11 @@ async def get_builder(
     assignment_id = int(path) if path.isdigit() else None
     if assignment_id:
         assignment = await fetch_one_assignment(assignment_id)
-        if assignment and (
-            assignment.course != course.id
-        ):
-                rslogger.error(
-                    f"Illegal Attempt to access assignment {assignment_id} by {user.username}"
-                )
-                return RedirectResponse(url="/")
+        if assignment and (assignment.course != course.id):
+            rslogger.error(
+                f"Illegal Attempt to access assignment {assignment_id} by {user.username}"
+            )
+            return RedirectResponse(url="/")
 
     reactdir = pathlib.Path(__file__).parent.parent / "react"
     templates = Jinja2Templates(directory=template_folder)
@@ -1047,7 +1040,6 @@ async def process_invoice_request(
     user=Depends(auth_manager),
     response_class=JSONResponse,
 ):
-
     rslogger.debug(f"Processing invoice request: {email} {amount} {course_name}")
 
     res = await create_invoice_request(user.username, course_name, amount, user.email)
@@ -1155,7 +1147,7 @@ async def get_language_options(request: Request):
 
 @router.get("/question_type_options")
 @instructor_role_required()
-async def get_language_options(request: Request):
+async def get_qt_options(request: Request):
     options = [option.to_dict() for option in QuestionType]
     return JSONResponse(content=options, status_code=status.HTTP_200_OK)
 
@@ -1221,9 +1213,9 @@ async def do_download_assignment(
         csv_buffer,
         media_type="text/csv",
     )
-    response.headers["Content-Disposition"] = (
-        f"attachment; filename=assignment_{assignment_id}.csv"
-    )
+    response.headers[
+        "Content-Disposition"
+    ] = f"attachment; filename=assignment_{assignment_id}.csv"
 
     return response
 
@@ -1293,7 +1285,6 @@ async def do_assignment_summary_data(
 async def question_creation(
     request_data: CreateExercisesPayload, request: Request, user=Depends(auth_manager)
 ):
-
     if not request_data.author:
         request_data.author = user.first_name + " " + user.last_name
 
@@ -1308,12 +1299,12 @@ async def question_creation(
 
     if question_data["autograde"] and question_data["autograde"] != "unittest":
         rslogger.error(f"Bad value for autograde: {question_data['autograde']}")
-        
+
     question_json = question_data["question_json"]
     if "suffix_code" in question_json and question_json["suffix_code"]:
         for utKeyword in ["assert", "unittest", "TEST_CASE", "junit"]:
             if utKeyword in question_json["suffix_code"]:
-                question_data["autograde"] = 'unittest'
+                question_data["autograde"] = "unittest"
                 break
 
     try:
@@ -1413,25 +1404,22 @@ async def get_add_token_page(
 
 @router.delete("/assignments/{assignment_id}")
 @instructor_role_required()
-async def remove_assignment(
-    assignment_id: int,
-    request: Request
-):
+async def remove_assignment(assignment_id: int, request: Request):
     rslogger.debug(f"Attempting to delete assignment {assignment_id}")
     try:
-        await delete_assignment(
-            assignment_id=assignment_id
-        )
+        await delete_assignment(assignment_id=assignment_id)
         rslogger.debug(f"Successfully deleted assignment {assignment_id}")
     except Exception as e:
         rslogger.error(f"Error deleting assignment {assignment_id}: {e}")
         return make_json_response(
-            status=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error deleting assignment: {e}"
+            status=status.HTTP_400_BAD_REQUEST, detail=f"Error deleting assignment: {e}"
         )
     return make_json_response(
         status=status.HTTP_200_OK,
-        detail={"status": "success", "message": f"Assignment {assignment_id} deleted successfully"}
+        detail={
+            "status": "success",
+            "message": f"Assignment {assignment_id} deleted successfully",
+        },
     )
 
 
@@ -1439,9 +1427,7 @@ async def remove_assignment(
 @instructor_role_required()
 @with_course()
 async def validate_question_name(
-    request: Request,
-    request_data: ValidateQuestionNameRequest,
-    course=None
+    request: Request, request_data: ValidateQuestionNameRequest, course=None
 ):
     """
     Validate if a question name is unique within the course's base course.
@@ -1449,28 +1435,24 @@ async def validate_question_name(
     try:
         # Use base_course from course context instead of request data
         is_unique = await validate_question_name_unique(
-            name=request_data.name,
-            base_course=course.base_course
+            name=request_data.name, base_course=course.base_course
         )
-        
+
         return make_json_response(
-            status=status.HTTP_200_OK,
-            detail={"is_unique": is_unique}
+            status=status.HTTP_200_OK, detail={"is_unique": is_unique}
         )
     except Exception as e:
         rslogger.error(f"Error validating question name: {e}")
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error validating question name: {str(e)}"
+            detail=f"Error validating question name: {str(e)}",
         )
 
 
 @router.post("/copy_question")
 @instructor_role_required()
 async def copy_question_endpoint(
-    request: Request,
-    request_data: CopyQuestionRequest,
-    user=Depends(auth_manager)
+    request: Request, request_data: CopyQuestionRequest, user=Depends(auth_manager)
 ):
     """
     Copy a question with a new name and owner.
@@ -1480,61 +1462,55 @@ async def copy_question_endpoint(
         assignment_id = None
         if request_data.copy_to_assignment and request_data.assignment_id:
             assignment_id = request_data.assignment_id
-        
+
         new_question = await copy_question(
             original_question_id=request_data.original_question_id,
             new_name=request_data.new_name,
             new_owner=user.username,
             assignment_id=assignment_id,
-            htmlsrc=request_data.htmlsrc
+            htmlsrc=request_data.htmlsrc,
         )
-        
+
         return make_json_response(
             status=status.HTTP_201_CREATED,
             detail={
-                "status": "success", 
+                "status": "success",
                 "question_id": new_question.id,
-                "message": "Question copied successfully"
-            }
+                "message": "Question copied successfully",
+            },
         )
     except Exception as e:
         rslogger.error(f"Error copying question: {e}")
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error copying question: {str(e)}"
+            detail=f"Error copying question: {str(e)}",
         )
+
 
 @router.get("/accommodations")
 @instructor_role_required()
 @with_course()
-async def get_accommodations(
-    request: Request,
-    course=None
-):
+async def get_accommodations(request: Request, course=None):
     """
     Get accommodations for a specific course.
     """
     try:
         accommodations = await fetch_all_deadline_exceptions(course.id)
         return make_json_response(
-            status=status.HTTP_200_OK,
-            detail={"accommodations": accommodations}
+            status=status.HTTP_200_OK, detail={"accommodations": accommodations}
         )
     except Exception as e:
         rslogger.error(f"Error fetching accommodations: {e}")
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error fetching accommodations: {str(e)}"
+            detail=f"Error fetching accommodations: {str(e)}",
         )
+
 
 @router.delete("/accommodation/{accommodation_id}")
 @instructor_role_required()
 @with_course()
-async def delete_accommodations(
-    request: Request,
-    accommodation_id: int,
-    course=None
-):
+async def delete_accommodations(request: Request, accommodation_id: int, course=None):
     """
     Delete accommodations
     """
@@ -1543,13 +1519,16 @@ async def delete_accommodations(
         await delete_deadline_exception(accommodation_id)
         return make_json_response(
             status=status.HTTP_200_OK,
-            detail={"status": "success", "message": f"Accommodation {accommodation_id} deleted successfully"}
+            detail={
+                "status": "success",
+                "message": f"Accommodation {accommodation_id} deleted successfully",
+            },
         )
     except Exception as e:
         rslogger.error(f"Error deleting accommodation {accommodation_id}: {e}")
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error deleting accommodation: {str(e)}"
+            detail=f"Error deleting accommodation: {str(e)}",
         )
 
 
@@ -1571,21 +1550,17 @@ async def duplicate_assignment_endpoint(
         new_assignment, new_name = await duplicate_assignment(
             original_assignment_id=assignment_id,
             course_id=course.id,
-            existing_assignment_names=existing_names
+            existing_assignment_names=existing_names,
         )
 
         return make_json_response(
             status=status.HTTP_201_CREATED,
-            detail={
-                "status": "success",
-                "id": new_assignment.id,
-                "name": new_name
-            }
+            detail={"status": "success", "id": new_assignment.id, "name": new_name},
         )
 
     except Exception as e:
         rslogger.error(f"Error duplicating assignment {assignment_id}: {e}")
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error duplicating assignment: {str(e)}"
+            detail=f"Error duplicating assignment: {str(e)}",
         )

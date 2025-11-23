@@ -131,9 +131,8 @@ import socket
 import threading
 import time
 import traceback
-import urllib
 
-from ._compat import (PY2, copyreg, hashlib_md5, integer_types, iteritems,
+from ._compat import (PY2, copyreg, hashlib_md5, iteritems,
                       long, pickle, pjoin, unquote, with_metaclass)
 from ._globals import DEFAULT, GLOBAL_LOCKER, THREAD_LOCAL
 from ._load import OrderedDict
@@ -999,7 +998,7 @@ class DAL(with_metaclass(MetaDAL, Serializable, BasicStorage)):
                 return
             elif not line.startswith("TABLE "):
                 raise SyntaxError("Invalid file format")
-            elif not line[6:] in self.tables:
+            elif line[6:] not in self.tables:
                 raise SyntaxError("Unknown table : %s" % line[6:])
             else:
                 tablename = line[6:]

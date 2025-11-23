@@ -72,4 +72,3 @@ async def get_course_origin(base_course):
         res = await session.execute(query)
         ca = res.scalars().first()
         return ca.value
-

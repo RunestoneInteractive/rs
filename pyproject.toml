@@ -106,12 +106,12 @@ standard-cgi = "^3.13.0"
 duckdb = "^1.3.2"
 
 [tool.poetry.group.dev.dependencies]
-black = "~= 23.0"
+black = "~= 25.0"
 CodeChat = "^1.9.3"
 contextlib2 = "^0.6.0"
 coverage = "^6.0.0"
 coveralls = "^3.0.0"
-flake8 = "^4.0.0"
+flake8 = "^7.0.0"
 html5validator = "^0.3.0"
 isort = "^5"
 mock = "^4.0.0"
@@ -157,7 +157,19 @@ build = "rsptx.build_tools.build:cli"
 profile = "black"
 
 [tool.ruff]
-exclude = ["__pycache__", ".git", ".tox", ".venv", "build", "dist", "docs", "htmlcov", "node_modules", "venv"]
+exclude = ["bases/rsptx/web2py_server", "bases/rsptx/interactives", "bases/rsptx/dash_server_api", "__pycache__", ".git", ".tox", ".venv", "build", "dist", "docs", "htmlcov", "node_modules", "venv"]
 
 [tool.ruff.lint]
 ignore = ["E501"]
+exclude = [
+    "bases/rsptx/web2py_server", 
+    ".venv", 
+    "build", 
+    "dist", 
+    "docs/_build", 
+    "components/rsptx/web2py_server/static/lib",
+    "bases/rsptx/interactives/runestone",
+    "bases/rsptx/dash_server_api",
+    "bases/rsptx/library_server_api",
+]
+

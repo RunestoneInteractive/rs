@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class LanguageOptions(Enum):
     PYTHON = ("python", "Python (in browser)")
     JAVA = ("java", "Java")

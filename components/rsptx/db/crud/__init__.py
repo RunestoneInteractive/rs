@@ -7,7 +7,7 @@ from .crud import (
     create_traceback,
     fetch_api_token,
     is_server_feedback,
-    EVENT2TABLE
+    EVENT2TABLE,
 )
 from .user import fetch_user, create_user, update_user, delete_user
 
@@ -56,7 +56,7 @@ from .course import (
     fetch_instructor_courses,
     fetch_users_for_course,
     update_course_settings,
-    user_in_course
+    user_in_course,
 )
 
 from .course_attrs import (
@@ -230,15 +230,15 @@ __all__ += [
 
 # from .crud
 __all__ += [
-   "check_domain_approval",
-   "create_api_token",
-   "create_domain_approval",
-   "create_initial_courses_users",
-   "create_invoice_request",
-   "create_traceback",
-   "fetch_api_token",
-   "is_server_feedback",
-   "EVENT2TABLE",
+    "check_domain_approval",
+    "create_api_token",
+    "create_domain_approval",
+    "create_initial_courses_users",
+    "create_invoice_request",
+    "create_traceback",
+    "fetch_api_token",
+    "is_server_feedback",
+    "EVENT2TABLE",
 ]
 
 # from .library
@@ -276,6 +276,7 @@ __all__ += [
     "upsert_lti1p3_config",
     "upsert_lti1p3_course",
     "upsert_lti1p3_user",
+    "validate_user_credentials",
 ]
 
 # from .book

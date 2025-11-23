@@ -2,6 +2,7 @@ import logging
 import sys
 import os
 
+
 def get_log_level():
     log_level = os.getenv("LOG_LEVEL", "DEBUG")
     if log_level == "DEBUG":
@@ -16,6 +17,7 @@ def get_log_level():
         return logging.CRITICAL
     else:
         return logging.INFO
+
 
 simple_logger = logging.getLogger("pylti1p3")
 simple_logger.setLevel(get_log_level())
