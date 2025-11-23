@@ -173,3 +173,16 @@ exclude = [
     "bases/rsptx/library_server_api",
 ]
 
+[tool.black]
+line-length = 88
+
+# Ignore directories using regex
+exclude = '''
+(
+    ^/(\.git|\.mypy_cache|\.pytest_cache|\.tox|venv|build|dist)/
+  | ^/bases/rsptx/web2py_server/
+  | ^/bases/rsptx/interactives/
+  | ^/bases/rsptx/dash_server_api/
+  | node_modules
+)
+'''

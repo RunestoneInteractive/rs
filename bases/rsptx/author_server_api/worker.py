@@ -355,6 +355,7 @@ def build_ptx_book(self, book, generate=False, target="runestone", source_path=N
     logger.debug(f"build_ptx_book returning {buildstat}")
     return buildstat
 
+
 # This task requires you to have an ssh keypair set up, and when you build the container
 # you will need to make sure to copy the key into /usr/src/app/
 @celery.task(bind=True, name="deploy_book")

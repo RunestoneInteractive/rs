@@ -312,7 +312,9 @@ async def addcourse(
         basecourse = click.prompt("Base Course: ")
     bookrec = await fetch_library_book(basecourse)
     if bookrec.build_system is None:
-        click.echo(f"{basecourse} Not Found: Build the corresponding base course first!")
+        click.echo(
+            f"{basecourse} Not Found: Build the corresponding base course first!"
+        )
         exit(1)
     done = False
     regex = r"^([\x30-\x39]|[\x41-\x5A]|[\x61-\x7A]|[_-])*$"
@@ -777,7 +779,9 @@ async def courseinfo(config, name):
     print(f"Course Information for {name} -- ({cid})")
     print(inst)
     print(f"timezone: {course.timezone}  Login Required: {course.login_required}")
-    print(f"Downloads Enabled: {course.downloads_enabled} Allow Pairs: {course.allow_pairs}")
+    print(
+        f"Downloads Enabled: {course.downloads_enabled} Allow Pairs: {course.allow_pairs}"
+    )
     print(f"Base course: {bc}")
     print(f"Start date: {start_date}")
     print(f"Number of students: {s_count}")
