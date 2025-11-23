@@ -3,6 +3,7 @@ from collections import namedtuple
 from .generate_parsons_blocks import *
 from .token_compare import *
 import random
+import re
 
 # Compare the similarity between the student code and the fixed code
 # It returns the difference between the two code snippets line by line using a loop. It also returns the similarity ratio.

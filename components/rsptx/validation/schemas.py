@@ -72,7 +72,7 @@ def sqlalchemy_to_pydantic(
 
         # Determine the Python type of the column.
         python_type = column.type.python_type
-        if python_type == str and hasattr(column.type, "length"):
+        if python_type is str and hasattr(column.type, "length"):
             python_type = Annotated[
                 str, StringConstraints(max_length=column.type.length)
             ]

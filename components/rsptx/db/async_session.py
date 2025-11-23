@@ -71,7 +71,7 @@ async def check_not_null():
             for column in table.columns:
                 if not column.nullable:
                     # SQLAlchemy requires ``==`` to correctly create the query; it can't overload the ``is`` operator.
-                    query = select(table).where(column == None)  # noqa: E711.
+                    query = select(table).where(column == None)  # noqa: E711, E702
                     res = (await session.execute(query)).fetchall()
                     if res:
                         not_null_count += 1

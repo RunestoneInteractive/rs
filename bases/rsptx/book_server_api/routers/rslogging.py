@@ -594,7 +594,7 @@ async def update_reading_score(request: Request, data: ReadingAssignmentSpec):
         raise HTTPException(401)
     rslogger.debug(f"Updating reading score for {request.state.user.username}")
     rslogger.debug(data)
-    score = await score_reading_page(data, request.state.user)
+    await score_reading_page(data, request.state.user)
     return make_json_response(detail="Success")
 
 

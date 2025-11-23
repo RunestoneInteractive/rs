@@ -162,6 +162,14 @@ exclude = ["bases/rsptx/web2py_server", "bases/rsptx/interactives", "bases/rsptx
 [tool.ruff.lint]
 ignore = ["E501"]
 exclude = [
-    "bases/rsptx/web2py_server", ".venv", "build", "dist", "docs/_build", "components/rsptx/web2py_server/static/lib",
+    "bases/rsptx/web2py_server", 
+    ".venv", 
+    "build", 
+    "dist", 
+    "docs/_build", 
+    "components/rsptx/web2py_server/static/lib",
+    "bases/rsptx/interactives/runestone",
+    "bases/rsptx/dash_server_api",
+    "bases/rsptx/library_server_api",
 ]
 
