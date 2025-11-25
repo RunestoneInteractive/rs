@@ -9,13 +9,15 @@ export class SpliceWrapper extends RunestoneBase {
     initSplice() {
         // SPLICE Events
         window.addEventListener("message", async (event) => {
-            console.log("SpliceWrapper: received message subject:", event.data.subject);
+            
+            var sourceIframe = this.sendingIframe(event);
+            console.log(`SpliceWrapper: received message subject: ${event.data.subject} from iframe: ${sourceIframe ? sourceIframe.id : "unknown"}`);
             if (event.data.subject == "SPLICE.reportScoreAndState") {
-                this.handleScoreAndState(event);
+                this.handleScoreAndState(event, sourceIframe);
             } else if (event.data.subject == "SPLICE.sendEvent") {
-                this.handleSpliceEvent(event);
+                this.handleSpliceEvent(event, sourceIframe);
             } else if (event.data.subject == "SPLICE.getState") {
-                await this.handleGetState(event);
+                await this.handleGetState(event, sourceIframe);
             } else if (
                 event.origin === "https://www.myopenmath.com" &&
                 typeof event.data === "string" &&
@@ -37,33 +39,42 @@ export class SpliceWrapper extends RunestoneBase {
         });
     }
 
-    getUniqueID(event) {
+    getUniqueID(event, frame) {
         // Determine the unique identifier for this activity
         // The SPLICE protocol allows for two possibilities
         // 1. activity_id is the unique id as assigned by the provider
         // 2. activity_id is the iframe src url
         // if the activity_id is set there may also be another attribute called domain
+        // On Runestone we will try to map the activity to the div_id of the enclosing RS component
+        // if possible, otherwise we will use the activity_id or iframe src
+        // If an interactive is included in an exercises this allows us to map the score
+        // to the id the instructor used to assign the problem.
+        if (frame) {
+            let rsDiv = frame.closest("[data-component]");
+            if (rsDiv) {
+                return rsDiv.id;
+            }
+        }
         let location = event.data.activity_id;
         if (!location) {
-            let frame = this.sendingIframe(event);
             if (frame) {
                 location = frame.src;
             } else {
                 location = "unknown";
                 console.error(
-                    "Could not find iframe that sent the score event"
+                    "Could not find iframe that sent the SPLICE event"
                 );
             }
         }
         return location;
     }
 
-    handleScoreAndState(event) {
+    handleScoreAndState(event, frame) {
         console.log("Got SPLICE.reportScoreAndState");
         console.log(event.data.activity_id);
         console.log(event.data.score);
         console.log(event.data.state);
-        let location = this.getUniqueID(event);
+        let location = this.getUniqueID(event, frame);
         this.logBookEvent({
             event: event.data.subject,
             div_id: location,
@@ -111,12 +122,12 @@ export class SpliceWrapper extends RunestoneBase {
         }
     }
 
-    async handleGetState(event) {
+    async handleGetState(event, frame) {
         console.log("Got SPLICE.getState");
         console.log(event.data.activity_id);
         console.log(event.data.state);
         // subject is SPLICE.getState.response
-        let location = this.getUniqueID(event);
+        let location = this.getUniqueID(event, frame);
         let res = await this.getSavedState(location);
         let state = res.detail.answer;
         event.source.postMessage(
@@ -129,7 +140,7 @@ export class SpliceWrapper extends RunestoneBase {
         );
     }
 
-    handleSpliceEvent(event) {
+    handleSpliceEvent(event, frame) {
         // handle generic SPLICE events, such as logged clicks
         // or other events.  SPLICE does not require that we do
         // anything with them, but in keeping with our tradition
