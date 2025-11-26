@@ -996,7 +996,24 @@ def _process_single_question(
     if qtype == "webwork" and el is not None:
         dbtext = ET.tostring(el).decode("utf8")
 
-    # Determine question properties
+    if qtype == "dual":
+        # dual questions have two components, we need to extract both
+        # the second component has the id we want
+        dynamic = el.find(".//*[@data-component]")
+        if dynamic is not None and "id" in dynamic.attrib:
+            idchild = dynamic.attrib["id"]
+            qtype = dynamic.attrib["data-component"]
+        # well maybe not...
+        else:
+            dynamic = el.find(".//iframe")
+            if dynamic is not None and "id" in dynamic.attrib:
+                idchild = dynamic.attrib["id"]
+                qtype = "splice"
+    if qtype == "doenet":
+        # rewrite the url in the dbtext to use the course name in the path
+        dbtext = re.sub(
+            r'(<iframe.*?)src="(.*?.html)"', rf'\1 src="/ns/books/published/{course_name}/\2"', dbtext
+        )
     optional = "T" if ("optional" in question.attrib or qtype == "datafile") else "F"
     practice = _determine_practice_flag(qtype, el)
     autograde = _determine_autograde(dbtext)
