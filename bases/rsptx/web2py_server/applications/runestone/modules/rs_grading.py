@@ -663,7 +663,7 @@ def _autograde_one_q(
             logger.debug("AGDB - done with selectq")
             return score
 
-        logger.error(f"Could not resolve a question for {question_name} student: {sid}")
+        logger.info(f"Could not resolve a question for {question_name} student: {sid}")
         return 0
 
     # get the results from the right table, and choose the scoring function
