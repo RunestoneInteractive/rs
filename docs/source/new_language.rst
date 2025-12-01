@@ -3,7 +3,7 @@ Adding a new programming language
 
 One of the key capabilities of the Runestone system is being able to interactively execute and manipulate code within its textbooks. Developers may wish to add new programming languages to the system. Doing so requires making changes in a number of places. This section provides some pointers on how to make such changes.
 
-Note that this process requires updating three different software repositories, each of which require you to set up a local development environment. These instructions try to point you in the right direction, but they are not comprehensive with regards to setting up a development environment for each project. You'll need to visit the documentation for each individual project for more information on how to do that. Likewise, you'll navigate some complications in testing your changes before you submit because two of these projects (PreTeXt and Runestone) each automatically install and make use components of the other project that may not have been updated it.
+Note that this process requires updating three different software repositories, each of which require you to set up a local development environment. These instructions try to point you in the right direction, but they are not comprehensive with regards to setting up a development environment for each project. You'll need to visit the documentation for each individual project for more information on how to do that. Likewise, you'll need to navigate some complications in testing your changes before you submit because two of these projects (PreTeXt and Runestone) each automatically install and make use components of the other project that may not have been updated it.
 
 Here are some guidelines on how to make such changes.
 
@@ -23,7 +23,7 @@ The other change you should make is to the ``testsubmit.py`` file, which include
 Test your changes to Jobe
 +++++++++++++++++++++++
 
-Once you have made your changes, you will want to locally test them. To do so, you can start Jobe in a local webserver. Runestone does this as part of its polylith architecture, but you may find it simpler to start up Jobe as a completely standalone server while you are creating and testing the above updates. These instructions are You can do this via the `JobeInABox <https://github.com/trampgeek/jobeinabox>`_ project, which is a Docker container that runs Jobe within. Clone the JobeInABox repo, and then make two changes to `Dockerfile`:
+Once you have made your changes, you will want to locally test them. To do so, you can start Jobe in a local webserver. Runestone does this as part of its polylith architecture, but you may find it simpler to start up Jobe as a completely standalone server while you are creating and testing the above updates. You can do this via the `JobeInABox <https://github.com/trampgeek/jobeinabox>`_ project, which is a Docker container that runs Jobe within. Clone the JobeInABox repo, and then make two changes to `Dockerfile`:
 
 * Find the line that begins with ``git clone``, and change it to pull Jobe from your forked version rather than the original.
 
