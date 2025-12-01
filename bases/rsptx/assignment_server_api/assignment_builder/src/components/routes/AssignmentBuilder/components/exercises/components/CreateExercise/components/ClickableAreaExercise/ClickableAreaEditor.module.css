@@ -1,0 +1,519 @@
+/* Field groups */
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.fieldLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.optional {
+  font-weight: 400;
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.metaInput {
+  width: 100%;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.metaInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.contentSeparator {
+  display: flex;
+  align-items: center;
+  margin: 1rem 0 0.75rem;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.contentSeparator:first-child {
+  margin-top: 0;
+}
+
+.contentSeparator::before,
+.contentSeparator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.contentSeparator::before {
+  margin-right: 1rem;
+}
+
+.contentSeparator::after {
+  margin-left: 1rem;
+}
+
+.editorContainer {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  width: 100%;
+  min-height: 200px;
+  position: relative;
+}
+
+.editorHeader {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+}
+
+.helpButton {
+  color: #6b7280 !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 4px !important;
+  min-width: auto !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.helpButton:hover {
+  background: #f3f4f6 !important;
+  color: #374151 !important;
+}
+
+.editor {
+  background: #fff;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor :global(.ProseMirror) {
+  padding: 1rem;
+  min-height: 200px;
+  outline: none;
+  position: relative;
+  caret-color: #334155;
+  flex: 1;
+  height: 100%;
+}
+
+.editor :global(.ProseMirror-focused) {
+  outline: none;
+}
+
+.editor :global(.ProseMirror p.is-editor-empty:first-child::before) {
+  content: attr(data-placeholder);
+  float: left;
+  color: #6b7280;
+  pointer-events: none;
+  height: 0;
+}
+
+/* Typography */
+.editor :global(.ProseMirror p) {
+  margin: 0.5rem 0;
+}
+
+.editor :global(.ProseMirror h1) {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 1.5rem 0 1rem;
+}
+
+.editor :global(.ProseMirror h2) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 1.25rem 0 0.75rem;
+}
+
+.editor :global(.ProseMirror h3) {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 1rem 0 0.5rem;
+}
+
+.editor :global(.ProseMirror h4) {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0.875rem 0 0.5rem;
+}
+
+/* Lists */
+.editor :global(.ProseMirror ul),
+.editor :global(.ProseMirror ol) {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.editor :global(.ProseMirror li) {
+  margin: 0.25rem 0;
+}
+
+/* Links */
+.editor :global(.ProseMirror a) {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.editor :global(.ProseMirror a:hover) {
+  text-decoration: underline;
+}
+
+/* Blockquote */
+.editor :global(.ProseMirror blockquote) {
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
+  border-left: 4px solid var(--primary-color);
+  background: var(--surface-ground);
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  color: var(--text-color-secondary);
+  font-style: italic;
+}
+
+/* Code Blocks */
+.editor :global(.ProseMirror pre) {
+  background: #f8fafc;
+  color: #334155;
+  padding: 1rem;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  margin: 1rem 0;
+  position: relative;
+  overflow-x: auto;
+}
+
+.editor :global(.ProseMirror pre code) {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-family: inherit;
+}
+
+.editor :global(.ProseMirror code) {
+  background: #f1f5f9;
+  color: #334155;
+  padding: 0.125rem 0.25rem;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  font-size: 0.875em;
+}
+
+/* Tables */
+.editor :global(.ProseMirror table) {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.editor :global(.ProseMirror th),
+.editor :global(.ProseMirror td) {
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem;
+  position: relative;
+  vertical-align: top;
+  min-width: 100px;
+}
+
+.editor :global(.ProseMirror th) {
+  background: #f8fafc;
+  font-weight: 600;
+  text-align: left;
+}
+
+.editor :global(.ProseMirror .selectedCell) {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.editor :global(.tiptap-table) {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+.editor :global(.tiptap-table td),
+.editor :global(.tiptap-table th) {
+  border: 2px solid #e2e8f0;
+  padding: 0.75rem;
+  position: relative;
+  vertical-align: top;
+  box-sizing: border-box;
+}
+
+.editor :global(.tiptap-table th) {
+  background: #f8fafc;
+  font-weight: 600;
+  text-align: left;
+  color: #334155;
+}
+
+.editor :global(.tiptap-table td:hover),
+.editor :global(.tiptap-table th:hover) {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+/* Images */
+.editor :global(.ProseMirror img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 0.5rem 0;
+}
+
+/* Math */
+.editor :global(.katex) {
+  font-size: 1.1em;
+}
+
+.editor :global(.katex-display) {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+/* Clickable Area Mark Styles */
+.editor :global(.clickable-area) {
+  padding: 2px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.editor :global(.clickable-area-correct) {
+  background-color: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.editor :global(.clickable-area-correct:hover) {
+  background-color: rgba(34, 197, 94, 0.3);
+}
+
+.editor :global(.clickable-area-incorrect) {
+  background-color: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.editor :global(.clickable-area-incorrect:hover) {
+  background-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Clickable areas inside code blocks */
+.editor :global(pre .clickable-area-correct) {
+  background-color: rgba(34, 197, 94, 0.25);
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  padding: 1px 3px;
+}
+
+.editor :global(pre .clickable-area-correct:hover) {
+  background-color: rgba(34, 197, 94, 0.35);
+}
+
+.editor :global(pre .clickable-area-incorrect) {
+  background-color: rgba(239, 68, 68, 0.25);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  padding: 1px 3px;
+}
+
+.editor :global(pre .clickable-area-incorrect:hover) {
+  background-color: rgba(239, 68, 68, 0.35);
+}
+
+/* Clickable areas inside inline code */
+.editor :global(code .clickable-area) {
+  padding: 0 2px;
+}
+
+/* Clickable areas inside table cells */
+.editor :global(td .clickable-area),
+.editor :global(th .clickable-area) {
+  padding: 1px 3px;
+}
+
+/* Bubble Menu Styles */
+.clickableBubbleMenu {
+  display: flex;
+  gap: 0.25rem;
+  background: white;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  padding: 0.25rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.clickableBubbleMenu button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.clickableBubbleMenu button:hover {
+  background: var(--surface-100);
+}
+
+.clickableBubbleMenu button.correct {
+  color: rgb(34, 197, 94);
+}
+
+.clickableBubbleMenu button.correct:hover {
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.clickableBubbleMenu button.incorrect {
+  color: rgb(239, 68, 68);
+}
+
+.clickableBubbleMenu button.incorrect:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.clickableBubbleMenu button.remove {
+  color: var(--text-color-secondary);
+}
+
+.clickableBubbleMenu button.remove:hover {
+  background: var(--surface-200);
+}
+
+.clickableBubbleMenu button i {
+  font-size: 1rem;
+}
+
+.clickableBubbleMenu .separator {
+  width: 1px;
+  background: var(--surface-border);
+  margin: 0.25rem 0;
+}
+
+/* Areas List */
+.areasContainer {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  background: var(--surface-50);
+}
+
+.areasHeader {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.areasList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.areaItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid var(--surface-border);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.areaItem:hover {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.areaContent {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.areaBadge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.areaBadge.correct {
+  background: rgba(34, 197, 94, 0.2);
+  color: rgb(34, 197, 94);
+}
+
+.areaBadge.incorrect {
+  background: rgba(239, 68, 68, 0.2);
+  color: rgb(239, 68, 68);
+}
+
+.areaText {
+  font-size: 0.875rem;
+  color: var(--text-color);
+  font-family: monospace;
+  background: var(--surface-100);
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+}
+
+.removeButton {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-color-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.removeButton:hover {
+  background: var(--surface-200);
+  color: rgb(239, 68, 68);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+}
+

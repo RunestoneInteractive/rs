@@ -51,6 +51,11 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
       abExperimentName: data.abExperimentName,
       toggleOptions: data.toggleOptions,
       dataLimitBasecourse: data.dataLimitBasecourse
+    }),
+    ...(data.question_type === "clickablearea" && {
+      questionText: data.questionText,
+      statement: data.statement,
+      feedback: data.feedback
     })
   };
 

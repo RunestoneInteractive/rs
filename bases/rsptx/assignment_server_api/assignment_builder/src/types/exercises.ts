@@ -11,7 +11,8 @@ export const supportedExerciseTypesToEdit = [
   "dragndrop",
   "parsonsprob",
   "matching",
-  "fillintheblank"
+  "fillintheblank",
+  "clickablearea"
 ];
 
 export const supportedExerciseTypes = [
