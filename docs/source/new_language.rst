@@ -31,12 +31,12 @@ Once you have made your changes, you will want to locally test them. To do so, y
 
 Then follow the instructions in the JobeInABox project for starting up your local Jobe server. Specifically, issue the following commands::
 
-    sudo docker build . -t my/jobeinabox --build-arg TZ="America/Chicago"
-    sudo docker run -d -p 4000:80 --name jobe my/jobeinabox
+    docker build . -t my/jobeinabox --build-arg TZ="America/Chicago"
+    docker run -d -p 4000:80 --name jobe my/jobeinabox
 
 That will start up your local Jobe container; once this is done, run the tests that you have written::
 
-    sudo docker exec -it jobe /var/www/html/jobe/testsubmit.py
+    docker exec -it jobe /var/www/html/jobe/testsubmit.py
 
 Submit a pull request
 +++++++++++++++++++++
@@ -85,21 +85,21 @@ Here is `an example pull request <https://github.com/PreTeXtBook/pretext/pull/27
 Verify that the updates worked, and submit them
 +++++++++++++++++++++++++++++++++++++++++++++++
 
-Repeat the steps above where you build your book with PreTeXt at the command line, render it in your browser, and view the source. Verify that the property in the ``<code>`` tags actually show your language as ``language-xxxxx`` (where ``xxxxx`` is your language) , instead of ``language-none``. If you enabled syntax highlighting via the Prism project in ``pretext-common.xsl``, you should see your code correctly highlighted when you view it in a browser.
+Repeat the steps above where you build your book with PreTeXt at the command line, render it in your browser, and view the source. Verify that the property in the ``<code>`` tags actually shows your language as ``language-xxxxx`` (where ``xxxxx`` is your language) , instead of ``language-none``. If you enabled syntax highlighting via the Prism project in ``pretext-common.xsl``, you should see your code correctly highlighted when you view it in a browser.
 
 If these updates are working, submit your pull request to the PreTeXt project.
 
 
 Runestone
 ---------
-``rs`` is the main Runestone monorepo. It contains a lot of things in it, but the relevant aspect here is that the web server that renders your book, and executes live code.
+``rs`` is the main Runestone monorepo. It contains a lot of things in it, but the relevant aspect here is the web server that renders your book and executes live code.
 
 Setup
 +++++
 
 Follow the instructions in the `Runestone Developer Documentation <https://docs.runestone.academy/en/latest/>`_ for setting up a local development server. This is important so that you can test your changes before submitting a pull request.
 
-Once you have the server installed, start up a shell within the ``rs`` repo, and verify that the version of PreTeXt that is installed is one which has incorporated the changes you made above. If it is still running an old version of PreTeXt, the instructions below won't work. You may need to look at the PreTeXt release timing.
+Once you have the server installed, start up a shell within the ``rs`` repo, and verify that the version of PreTeXt that is installed is one that has incorporated the changes you made above. If it is still running an old version of PreTeXt, the instructions below won't work. You may need to look at the PreTeXt release timing.
 
 Follow these instructions for `developing Javascript for Runestone components <https://docs.runestone.academy/en/latest/javascript_feature.html>`_. This will get you a cloned copy of the repo to work on, and also enable setting up your PreTeXt book with static assets.
 
