@@ -35,6 +35,9 @@ from rsptx.templates import template_folder
 from rsptx.endpoint_validators import with_course, instructor_role_required
 from rsptx.configuration import settings
 
+from rsptx.response_helpers.core import (
+    get_webpack_static_imports,
+)
 
 # Routing
 # =======
@@ -291,6 +294,7 @@ async def get_peer_question(
     except (FileNotFoundError, AttributeError):
         peer_mtime = str(random.randrange(10000))
 
+    wp_assets = get_webpack_static_imports(course)
     context = {
         "request": request,
         "course": course,
@@ -301,6 +305,7 @@ async def get_peer_question(
         "latex_macros": latex_macros,
         "peer_mtime": peer_mtime,
         "settings": settings,
+        "wp_imports": wp_assets,
     }
 
     return templates.TemplateResponse("assignment/student/peer_question.html", context)

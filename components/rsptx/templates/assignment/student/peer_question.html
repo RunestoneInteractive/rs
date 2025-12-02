@@ -29,7 +29,10 @@ Peer Instruction - {{ assignment_name }}
 </style>
 {% endblock %}
 
+
 {% block content %}
+{% include 'common/static_assets.html' %}
+{% include 'common/ebook_config.html' %}
 <div class="hidden-content">
     \( {{ latex_macros|safe }} \)
 </div>
@@ -44,7 +47,7 @@ Peer Instruction - {{ assignment_name }}
 
         <div class="row">
             <div class="col-md-6">
-                <form action="/assignment/student/peer/question" method="GET" id="nextqform">
+                <form action="/assignment/peer/student/question" method="GET" id="nextqform">
                     <input type="hidden" name="assignment_id" value="{{ assignment_id }}">
                 </form>
             </div>
@@ -113,6 +116,7 @@ Peer Instruction - {{ assignment_name }}
 <script src="/staticAssets/js/peer.js?v={{ peer_mtime }}"></script>
 <script>
     eBookConfig.peer = true;
+    eBookConfig.websocket_url = "/ns";
     var user = '{{ user.username }}';
     var assignment_id = {{ assignment_id }};
     var currentQuestion = '{{ current_question.name }}';
