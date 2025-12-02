@@ -150,7 +150,7 @@ function renderMessage({ from, text, direction }) {
 var ws = null;
 var alertSet = false;
 function connect(event) {
-    ws = new WebSocket(`${eBookConfig.websocketUrl}/chat/${user}/ws`);
+    ws = new WebSocket(`/ns/chat/${user}/ws`);
     messageTrail = {};
     if (ws) {
         console.log(`Websocket Connected: ${ws}`);
@@ -655,7 +655,7 @@ async function publishMessage(data) {
         "Content-type": "application/json; charset=utf-8",
         Accept: "application/json",
     });
-    let request = new Request("/assignment/peer/publish_message", {
+    let request = new Request("/assignment/peer/api/publish_message", {
         method: "POST",
         headers: jsheaders,
         body: JSON.stringify(data),
