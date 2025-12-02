@@ -31,8 +31,11 @@ from rsptx.db.crud import (
     create_useinfo_entry,
     fetch_lti_version,
 )
-from rsptx.db.models import UseinfoValidation
+from rsptx.db.models import UseinfoValidation, MchoiceAnswers, Useinfo
 from rsptx.auth.session import auth_manager
+import pandas as pd
+import random
+import json
 from rsptx.templates import template_folder
 from rsptx.endpoint_validators import with_course, instructor_role_required
 from rsptx.configuration import settings
@@ -468,57 +471,409 @@ async def get_peer_async(
 @with_course()
 async def make_pairs(
     request: Request,
+    div_id: str = Body(...),
+    start_time: str = Body(...),
+    group_size: int = Body(2),
+    is_ab: bool = Body(False),
     user=Depends(auth_manager),
     course=None,
 ):
     """
     Create student pairs/groups for peer instruction based on their answers.
     """
-    # TODO: Implement pairing algorithm
-    # This will:
-    # - Analyze student responses
-    # - Group students with different answers
-    # - Store pairs in Redis
-    # - Notify students of their partners
+    import os
+    import redis
+    from dateutil.parser import parse
+    from sqlalchemy import select, func
+    from rsptx.db.async_session import async_session
 
-    return JSONResponse(content={"message": "Pair creation to be implemented"})
+    rslogger.info(f"Making pairs for {div_id}, group_size={group_size}, is_ab={is_ab}")
+
+    try:
+        r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
+        r.delete(f"partnerdb_{course.course_name}")
+
+        # Get student answers from the database
+        async with async_session() as session:
+            # Get the most recent answer for each student
+            subquery = (
+                select(
+                    MchoiceAnswers.sid,
+                    MchoiceAnswers.answer,
+                    MchoiceAnswers.correct,
+                    func.row_number()
+                    .over(
+                        partition_by=MchoiceAnswers.sid,
+                        order_by=MchoiceAnswers.id.desc(),
+                    )
+                    .label("rn"),
+                )
+                .where(
+                    MchoiceAnswers.div_id == div_id,
+                    MchoiceAnswers.course_name == course.course_name,
+                    MchoiceAnswers.timestamp > parse(start_time),
+                )
+                .subquery()
+            )
+
+            query = select(subquery).where(subquery.c.rn == 1)
+            result = await session.execute(query)
+            rows = result.all()
+
+        # Create a dictionary of student answers
+        sid_ans = {row.sid: row.answer for row in rows if row.answer}
+        peeps = list(sid_ans.keys())
+
+        # Remove instructor if present
+        if user.username in peeps:
+            peeps.remove(user.username)
+
+        # Shuffle the list
+        random.shuffle(peeps)
+
+        # Create groups
+        group_list = []
+
+        while peeps:
+            # Start a new group
+            group = [peeps.pop()]
+
+            # Try to add more students with different answers
+            for i in range(group_size - 1):
+                if not peeps:
+                    break
+
+                # Try to find someone with a different answer
+                first_answer = sid_ans.get(group[0])
+                partner_idx = 0
+                for idx, p in enumerate(peeps):
+                    if sid_ans.get(p) != first_answer:
+                        partner_idx = idx
+                        break
+
+                group.append(peeps.pop(partner_idx))
+
+            # If group has only one student, add to previous group
+            if len(group) == 1 and group_list:
+                group_list[-1].append(group[0])
+            else:
+                group_list.append(group)
+
+        # Create partner dictionary
+        gdict = {}
+        for group in group_list:
+            for p in group:
+                partners = [partner for partner in group if partner != p]
+                gdict[p] = partners
+
+        # Save to Redis
+        for k, v in gdict.items():
+            r.hset(f"partnerdb_{course.course_name}", k, json.dumps(v))
+
+        r.hset(f"{course.course_name}_state", "mess_count", "0")
+
+        # Broadcast partner information
+        for sid, answer in sid_ans.items():
+            partners = gdict.get(sid, [])
+            mess = {
+                "sender": user.username,
+                "type": "control",
+                "message": "enableChat",
+                "broadcast": False,
+                "partner_answer": answer,
+                "yourPartner": partners,
+                "sid": sid,
+                "course_name": course.course_name,
+            }
+            r.publish("peermessages", json.dumps(mess))
+
+        rslogger.info(f"Created {len(group_list)} groups")
+        return JSONResponse(content={"status": "success", "groups": len(group_list)})
+
+    except Exception as e:
+        rslogger.error(f"Error making pairs: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Failed to create pairs: {str(e)}"},
+        )
 
 
-@router.get("/api/chart_data")
+@router.post("/api/chart_data")
 @instructor_role_required()
 @with_course()
 async def get_chart_data(
     request: Request,
-    div_id: str,
-    start_time: str,
+    div_id: str = Body(...),
+    start_time: str = Body(...),
+    start_time2: Optional[str] = Body(None),
+    num_answers: int = Body(4),
+    answer_num: int = Body(1),
     user=Depends(auth_manager),
     course=None,
 ):
     """
-    Get data for visualizing student responses.
+    Get data for visualizing student responses using Vega-Lite.
     """
-    # TODO: Implement chart data generation
-    # This will return answer distribution for visualization
+    from dateutil.parser import parse
+    from sqlalchemy import select, func
+    from rsptx.db.async_session import async_session
 
-    return JSONResponse(content={"message": "Chart data to be implemented"})
+    rslogger.info(f"Getting chart data for {div_id}")
+
+    try:
+        async with async_session() as session:
+            # Get vote 1 data
+            subquery1 = select(
+                MchoiceAnswers.sid,
+                MchoiceAnswers.answer,
+                func.row_number()
+                .over(
+                    partition_by=MchoiceAnswers.sid,
+                    order_by=MchoiceAnswers.id.desc(),
+                )
+                .label("rn"),
+            ).where(
+                MchoiceAnswers.div_id == div_id,
+                MchoiceAnswers.course_name == course.course_name,
+                MchoiceAnswers.timestamp > parse(start_time),
+            )
+
+            if start_time2:
+                subquery1 = subquery1.where(
+                    MchoiceAnswers.timestamp < parse(start_time2)
+                )
+
+            subquery1 = subquery1.subquery()
+            query1 = select(subquery1).where(subquery1.c.rn == 1).limit(4000)
+            result1 = await session.execute(query1)
+            rows1 = result1.all()
+
+            # Convert to dataframe format
+            data1 = [{"answer": row.answer, "rn": 1} for row in rows1 if row.answer]
+
+            # Get vote 2 data if start_time2 is provided
+            data2 = []
+            if start_time2:
+                subquery2 = (
+                    select(
+                        MchoiceAnswers.sid,
+                        MchoiceAnswers.answer,
+                        func.row_number()
+                        .over(
+                            partition_by=MchoiceAnswers.sid,
+                            order_by=MchoiceAnswers.id.desc(),
+                        )
+                        .label("rn"),
+                    )
+                    .where(
+                        MchoiceAnswers.div_id == div_id,
+                        MchoiceAnswers.course_name == course.course_name,
+                        MchoiceAnswers.timestamp > parse(start_time2),
+                    )
+                    .subquery()
+                )
+
+                query2 = select(subquery2).where(subquery2.c.rn == 1).limit(4000)
+                result2 = await session.execute(query2)
+                rows2 = result2.all()
+                data2 = [{"answer": row.answer, "rn": 2} for row in rows2 if row.answer]
+
+        # Convert numeric answers to letters
+        def to_letter(ans):
+            if ans.isnumeric():
+                return chr(65 + int(ans))
+            elif "," in ans:
+                return ",".join([chr(65 + int(x)) for x in ans.split(",")])
+            return ans
+
+        for item in data1 + data2:
+            item["letter"] = to_letter(item["answer"])
+
+        # Count answers by letter
+        df = pd.DataFrame(data1 + data2)
+        if df.empty:
+            counts = pd.DataFrame({"letter": [], "rn": [], "count": []})
+        else:
+            counts = df.groupby(["letter", "rn"]).size().reset_index(name="count")
+
+        # Ensure all answer options are represented
+        alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        all_options = []
+        for vote in [1, 2] if start_time2 else [1]:
+            for letter in alpha[:num_answers]:
+                if not ((counts["letter"] == letter) & (counts["rn"] == vote)).any():
+                    all_options.append({"letter": letter, "rn": vote, "count": 0})
+
+        if all_options:
+            counts = pd.concat([counts, pd.DataFrame(all_options)], ignore_index=True)
+
+        # Determine max height for consistent y-axis
+        yheight = int(counts["count"].max()) if not counts.empty else 10
+
+        # Build Vega-Lite spec
+        vote1_data = counts[counts["rn"] == 1].to_dict("records")
+
+        chart1 = {
+            "title": "First Answer",
+            "mark": "bar",
+            "data": {"values": vote1_data},
+            "encoding": {
+                "x": {
+                    "field": "letter",
+                    "type": "nominal",
+                    "axis": {"title": "Choice", "labelAngle": 0},
+                },
+                "y": {
+                    "field": "count",
+                    "type": "quantitative",
+                    "title": "Number of Students",
+                    "scale": {"domain": [0, yheight]},
+                },
+            },
+        }
+
+        if start_time2:
+            vote2_data = counts[counts["rn"] == 2].to_dict("records")
+            chart2 = {
+                "title": "Second Answer",
+                "mark": "bar",
+                "data": {"values": vote2_data},
+                "encoding": {
+                    "x": {
+                        "field": "letter",
+                        "type": "nominal",
+                        "axis": {"title": "Choice", "labelAngle": 0},
+                    },
+                    "y": {
+                        "field": "count",
+                        "type": "quantitative",
+                        "title": "Number of Students",
+                        "scale": {"domain": [0, yheight]},
+                    },
+                },
+            }
+            spec = {"hconcat": [chart1, chart2]}
+        else:
+            spec = chart1
+
+        return JSONResponse(content=spec)
+
+    except Exception as e:
+        rslogger.error(f"Error generating chart data: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Failed to generate chart data: {str(e)}"},
+        )
 
 
-@router.get("/api/num_answers")
+@router.post("/api/num_answers")
 @instructor_role_required()
 @with_course()
 async def get_num_answers(
     request: Request,
-    div_id: str,
-    start_time: str,
+    div_id: str = Body(...),
+    start_time: str = Body(...),
+    course_name: str = Body(...),
     user=Depends(auth_manager),
     course=None,
 ):
     """
-    Get the count of student responses.
+    Get the count of student responses and messages.
     """
-    # TODO: Implement answer counting
+    from dateutil.parser import parse
+    from sqlalchemy import select, func
+    from rsptx.db.async_session import async_session
 
-    return JSONResponse(content={"count": 0, "mess_count": 0})
+    if not start_time:
+        return JSONResponse(content={"count": 0, "mess_count": 0})
+
+    try:
+        async with async_session() as session:
+            # Count distinct students who answered
+            answer_query = select(func.count(func.distinct(MchoiceAnswers.sid))).where(
+                MchoiceAnswers.div_id == div_id,
+                MchoiceAnswers.course_name == course_name,
+                MchoiceAnswers.timestamp > parse(start_time),
+            )
+            answer_result = await session.execute(answer_query)
+            answer_count = answer_result.scalar() or 0
+
+            # Count messages sent
+            message_query = select(func.count(Useinfo.id)).where(
+                Useinfo.div_id == div_id,
+                Useinfo.course_id == course_name,
+                Useinfo.event == "sendmessage",
+                Useinfo.timestamp > parse(start_time),
+            )
+            message_result = await session.execute(message_query)
+            message_count = message_result.scalar() or 0
+
+        return JSONResponse(
+            content={"count": answer_count, "mess_count": message_count}
+        )
+
+    except Exception as e:
+        rslogger.error(f"Error counting answers: {e}")
+        return JSONResponse(content={"count": 0, "mess_count": 0})
+
+
+@router.post("/api/percent_correct")
+@instructor_role_required()
+@with_course()
+async def get_percent_correct(
+    request: Request,
+    div_id: str = Body(...),
+    start_time: str = Body(...),
+    course_name: str = Body(...),
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Calculate the percentage of correct answers for the first vote.
+    """
+    from dateutil.parser import parse
+    from sqlalchemy import select, func
+    from rsptx.db.async_session import async_session
+
+    try:
+        async with async_session() as session:
+            # Get the most recent answer for each student
+            subquery = (
+                select(
+                    MchoiceAnswers.sid,
+                    MchoiceAnswers.correct,
+                    func.row_number()
+                    .over(
+                        partition_by=MchoiceAnswers.sid,
+                        order_by=MchoiceAnswers.id.desc(),
+                    )
+                    .label("rn"),
+                )
+                .where(
+                    MchoiceAnswers.div_id == div_id,
+                    MchoiceAnswers.course_name == course_name,
+                    MchoiceAnswers.timestamp > parse(start_time),
+                )
+                .subquery()
+            )
+
+            query = select(subquery).where(subquery.c.rn == 1).limit(4000)
+            result = await session.execute(query)
+            rows = result.all()
+
+        if not rows:
+            return JSONResponse(content={"pct_correct": 0})
+
+        total = len(rows)
+        correct = sum(1 for row in rows if row.correct == "T")
+
+        pct_correct = round((correct / total * 100), 1) if total > 0 else 0
+
+        return JSONResponse(content={"pct_correct": pct_correct})
+
+    except Exception as e:
+        rslogger.error(f"Error calculating percent correct: {e}")
+        return JSONResponse(content={"pct_correct": 0})
 
 
 @router.post("/api/set_visibility")
