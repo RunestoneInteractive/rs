@@ -93,8 +93,10 @@ class AssignmentsGradesService:
             data=grade.get_value(),
             content_type="application/vnd.ims.lis.v1.score+json",
         )
-    
-    async def delete_lineitem_by_id(self, lineitem_id: str) -> TServiceConnectorResponse:
+
+    async def delete_lineitem_by_id(
+        self, lineitem_id: str
+    ) -> TServiceConnectorResponse:
         """
         Delete line item.
 
@@ -105,9 +107,7 @@ class AssignmentsGradesService:
             raise LtiException("Can't delete lineitem: Missing required scope")
 
         return await self._service_connector.make_service_request(
-            self._service_data["scope"],
-            lineitem_id,
-            method="DELETE"
+            self._service_data["scope"], lineitem_id, method="DELETE"
         )
 
     async def get_lineitem(self, lineitem_url: t.Optional[str] = None):
@@ -161,7 +161,6 @@ class AssignmentsGradesService:
 
         :return: list
         """
-        lineitems_res_lst = []
         lineitems_url: t.Optional[str] = self._service_data["lineitems"]
         return lineitems_url
 
@@ -180,7 +179,9 @@ class AssignmentsGradesService:
 
         return lineitems_res_lst
 
-    async def find_lineitem(self, prop_name: str, prop_value: t.Any) -> t.Optional[LineItem]:
+    async def find_lineitem(
+        self, prop_name: str, prop_value: t.Any
+    ) -> t.Optional[LineItem]:
         """
         Find line item by some property (ID/Tag).
 
@@ -227,7 +228,9 @@ class AssignmentsGradesService:
         """
         return await self.find_lineitem("resourceLinkId", resource_link_id)
 
-    async def find_lineitem_by_resource_id(self, resource_id: str) -> t.Optional[LineItem]:
+    async def find_lineitem_by_resource_id(
+        self, resource_id: str
+    ) -> t.Optional[LineItem]:
         """
         Find line item by Resource ID.
 

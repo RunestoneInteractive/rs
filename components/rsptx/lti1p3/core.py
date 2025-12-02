@@ -9,15 +9,9 @@ from rsptx.db.crud import (
     fetch_all_course_attributes,
     fetch_lti1p3_user,
     fetch_lti1p3_users_for_course,
-    fetch_users_for_course
 )
 
-from rsptx.db.models import (
-  Assignment,
-  Courses,
-  Lti1p3Assignment,
-  Lti1p3User
-)
+from rsptx.db.models import Assignment, Courses, Lti1p3Assignment, Lti1p3User
 from rsptx.logging import rslogger
 
 from rsptx.lti1p3.tool_conf_rs import ToolConfRS
@@ -46,10 +40,11 @@ from rsptx.lti1p3.pylti1p3.assignments_grades import AssignmentsGradesService
 #    - Assignment launched
 #    - peer.py send_lti_scores is called
 #    - Student hits calculate self grade button on assignment
-#    They call _try_to_send_lti_grade 
+#    They call _try_to_send_lti_grade
 #    - _try_to_send_lti_grade calls attempt_lti1p3_score_update if is 1.3
 
 # ================================
+
 
 def get_assignment_score_resource_id(course, assignment):
     """
@@ -91,10 +86,14 @@ def time_now() -> str:
     """
     Get current time formatted the way LTI spec expects it.
     """
-    return datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
+    return (
+        datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+    )
 
 
-async def attempt_lti1p3_score_update(rs_user_id: int, rs_assign_id: int, score: float, force: bool=False):
+async def attempt_lti1p3_score_update(
+    rs_user_id: int, rs_assign_id: int, score: float, force: bool = False
+):
     """
     Attempt to send a score update to any linked LTI 1.3 tools for a given user and assignment.
     Will return early if no LTI 1.3 data is found for the assignment.
@@ -110,11 +109,15 @@ async def attempt_lti1p3_score_update(rs_user_id: int, rs_assign_id: int, score:
         return
     rslogger.debug(f"LTI1p3 - {lti_assign.rs_assignment_id}")
 
-    updates = [ (await fetch_lti1p3_user(rs_user_id, lti_assign.lti1p3_course.id), score) ]
-    await _send_lti1p3_score_updates(lti_assign=lti_assign, updates=updates, force=force)
+    updates = [
+        (await fetch_lti1p3_user(rs_user_id, lti_assign.lti1p3_course.id), score)
+    ]
+    await _send_lti1p3_score_updates(
+        lti_assign=lti_assign, updates=updates, force=force
+    )
 
 
-async def attempt_lti1p3_score_updates(rs_assign_id: int, force: bool=False):
+async def attempt_lti1p3_score_updates(rs_assign_id: int, force: bool = False):
     """
     Attempt to send a score update to any linked LTI 1.3 tools for a given assignment.
     Will return early if no LTI 1.3 data is found for the assignment.
@@ -137,10 +140,16 @@ async def attempt_lti1p3_score_updates(rs_assign_id: int, force: bool=False):
             updates.append((u, grades_dict[u.rs_user_id]))
 
     # updates = [(u, grades_dict.get(u.rs_user_id)) for u in all_users if u.rs_user_id in grades_dict]
-    await _send_lti1p3_score_updates(lti_assign=lti_assign, updates=updates, force=force)
+    await _send_lti1p3_score_updates(
+        lti_assign=lti_assign, updates=updates, force=force
+    )
 
 
-async def _send_lti1p3_score_updates(lti_assign: Lti1p3Assignment, updates: List[Tuple[Lti1p3User, int]], force: bool=False):
+async def _send_lti1p3_score_updates(
+    lti_assign: Lti1p3Assignment,
+    updates: List[Tuple[Lti1p3User, int]],
+    force: bool = False,
+):
     """
     Attempt to send a set of 1+ updates to any linked LTI 1.3 tools for a given assignment.
 
@@ -157,7 +166,10 @@ async def _send_lti1p3_score_updates(lti_assign: Lti1p3Assignment, updates: List
     course_attributes = await fetch_all_course_attributes(rs_course.id)
 
     # Check if we should be sending the score yet
-    if (not rs_assignment.released or course_attributes.get("no_lti_auto_grade_update") == "true") and not force:
+    if (
+        not rs_assignment.released
+        or course_attributes.get("no_lti_auto_grade_update") == "true"
+    ) and not force:
         return
 
     # Check if we should be using points or percentages, determine max_score
@@ -181,31 +193,47 @@ async def _send_lti1p3_score_updates(lti_assign: Lti1p3Assignment, updates: List
                     "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly",
                     "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem",
                     "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem.readonly",
-                ]
+                ],
             }
             ags = AssignmentsGradesService(sc, service_data)
 
             # Update the line item to ensure the LMS assignment shows the right max score
             line_item = LineItem().set_id(lti_assign.lti_lineitem_id)
-            update_line_item_from_assignment(line_item, rs_assignment, rs_course, use_pts)
-            
-            rslogger.debug(f"LTI1p3 - Update LineItem {lti_assign.lti_lineitem_id} for assignment {rs_assignment.id}")
+            update_line_item_from_assignment(
+                line_item, rs_assignment, rs_course, use_pts
+            )
+
+            rslogger.debug(
+                f"LTI1p3 - Update LineItem {lti_assign.lti_lineitem_id} for assignment {rs_assignment.id}"
+            )
             try:
                 await ags.update_lineitem(line_item)
             except Exception as e:
                 rslogger.error(f"LTI1p3 - update_lineitem failed: {e}")
 
             for lti_user, score in updates:
-                rslogger.debug(f"LTI1p3 - Sending LTI grade update for RS user id {lti_user.rs_user_id} on assignment {rs_assignment.id}, score {score}")
-                
+                rslogger.debug(
+                    f"LTI1p3 - Sending LTI grade update for RS user id {lti_user.rs_user_id} on assignment {rs_assignment.id}, score {score}"
+                )
+
                 if not use_pts:
                     score = score / rs_assignment.points * 100
 
                 # Send the grade
-                g = Grade().set_score_given(score).set_score_maximum(max_score).set_user_id(lti_user.lti_user_id).set_timestamp(time_now()).set_activity_progress("Completed").set_grading_progress("FullyGraded")
+                g = (
+                    Grade()
+                    .set_score_given(score)
+                    .set_score_maximum(max_score)
+                    .set_user_id(lti_user.lti_user_id)
+                    .set_timestamp(time_now())
+                    .set_activity_progress("Completed")
+                    .set_grading_progress("FullyGraded")
+                )
                 try:
-                    res = await ags.put_grade(g, line_item)
+                    _ = await ags.put_grade(g, line_item)
                 except Exception as e:
-                    rslogger.error(f"LTI1p3 - put_grade failed: {e}. RS user id {lti_user.rs_user_id} on assignment {rs_assignment.id}, score {score}.")
+                    rslogger.error(
+                        f"LTI1p3 - put_grade failed: {e}. RS user id {lti_user.rs_user_id} on assignment {rs_assignment.id}, score {score}."
+                    )
     except Exception as e:
         rslogger.error(f"LTI1p3 - grade update failed: {e}")

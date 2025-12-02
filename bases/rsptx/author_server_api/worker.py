@@ -317,26 +317,43 @@ def build_ptx_book(self, book, generate=False, target="runestone", source_path=N
     res = _build_ptx_book(
         config, generate, "runestone-manifest.xml", book, click=myclick, target=target
     )
-    if res:
+    buildstat = True
+    complete = res["completed"]
+    status = res.get("status", "Unknown")
+    logger.debug(f"Build complete: {complete} status: {status}")
+
+    if "Nonfatal" in status:
+        self.update_state(state="ERRORS", meta={"current": f"{status}"})
+    elif complete:
         self.update_state(state="FINISHING", meta={"current": "updating permissions"})
     else:
-        self.update_state(state="BUILDING", meta={"current": "Failed - see log"})
+        self.update_state(state="BUILDING", meta={"current": f"Failed - {status}"})
         return False
 
     res = subprocess.run(
         "chgrp -R www-data .", shell=True, capture_output=True, cwd=work_dir
     )
     if res.returncode != 0:
-        return False
+        logger.debug("returning false from chgrp")
+        buildstat = False
     res = subprocess.run(
         "chmod -R go+rw .", shell=True, capture_output=True, cwd=work_dir
     )
     if res.returncode != 0:
-        return False
+        logger.debug("returning false from chmod")
+        buildstat = False
 
-    self.update_state(state="SUCCESS", meta={"current": "build complete"})
+    if "Nonfatal" in status:
+        self.update_state(state="ERRORS", meta={"current": f"{status}"})
+        logger.debug(f"reporting nonfatal errors {status}")
+        buildstat = False
+    else:
+        self.update_state(state="SUCCESS", meta={"current": f"{status}"})
+        logger.debug(f"reporting build successful {status}")
+        buildstat = True
     update_last_build(book)
-    return True
+    logger.debug(f"build_ptx_book returning {buildstat}")
+    return buildstat
 
 
 # This task requires you to have an ssh keypair set up, and when you build the container

@@ -7,7 +7,6 @@
 # ======
 # Third-party
 from docutils import nodes
-import pdb
 # Local
 from .runestonedirective import RunestoneIdNode
 from ..server.componentdb import addQNumberToDB

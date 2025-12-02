@@ -197,6 +197,16 @@ def _score_one_dragndrop(row, points, autograde):
             pct_correct = 0
     return _score_from_pct_correct(pct_correct, points, autograde)
 
+def _score_one_matching(row, points, autograde):
+    # row is from matching_answers
+    if autograde == "pct_correct" and "percent" in row and row.percent is not None:
+        pct_correct = int(round(row.percent * 100))
+    else:
+        if row.correct:
+            pct_correct = 100
+        else:
+            pct_correct = 0
+    return _score_from_pct_correct(pct_correct, points, autograde)
 
 def _score_one_codelens(row, points, autograde):
     # row is from codelens_answers
@@ -482,6 +492,28 @@ def _scorable_dragndrop_answers(
             query = query & (db.dragndrop_answers.timestamp <= now)
     return db(query).select(orderby=db.dragndrop_answers.timestamp)
 
+def _scorable_matching_answers(
+    course_name,
+    sid,
+    question_name,
+    points,
+    deadline,
+    practice_start_time=None,
+    db=None,
+    now=None,
+):
+    query = (
+        (db.matching_answers.course_name == course_name)
+        & (db.matching_answers.sid == sid)
+        & (db.matching_answers.div_id == question_name)
+    )
+    if deadline:
+        query = query & (db.matching_answers.timestamp < deadline)
+    if practice_start_time:
+        query = query & (db.matching_answers.timestamp >= practice_start_time)
+        if now:
+            query = query & (db.matching_answers.timestamp <= now)
+    return db(query).select(orderby=db.matching_answers.timestamp)
 
 def _scorable_codelens_answers(
     course_name,
@@ -748,6 +780,20 @@ def _autograde_one_q(
         )
         scoring_fn = _score_one_dragndrop
         logger.debug("AGDB - done with dnd")
+    elif question_type == "matching":
+        results = _scorable_matching_answers(
+            course_name,
+            sid,
+            question_name,
+            points,
+            deadline,
+            practice_start_time,
+            db=db,
+            now=now,
+        )
+        scoring_fn = _score_one_matching
+        logger.debug("AGDB - done with matching")
+
     elif question_type == "quizly":
         results = _scorable_useinfos(
             course_name,

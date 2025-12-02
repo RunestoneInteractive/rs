@@ -762,6 +762,10 @@ def course_students():
             searchdict[str(username)] = name
     return json.dumps(searchdict)
 
+def _safe_get_last(name):
+    if name[1].strip() == "":
+        return name[1]
+    return name[1].split()[-1].lower()
 
 # Called when an instructor clicks on the grading tab
 @auth.requires(
@@ -844,11 +848,13 @@ def grading():
             name = person.first_name + " " + person.last_name
             username = person.username
             searchdict[username] = name
-            sd_by_student = sorted(
-                searchdict.items(), key=lambda x: x[1].split()[-1].lower()
-            )
-            searchdict = OrderedDict(sd_by_student)
             logger.debug(f"Added {username} to searchdict")
+
+    sd_by_student = sorted(
+        searchdict.items(), key=_safe_get_last
+    )
+    searchdict = OrderedDict(sd_by_student)
+            
 
     course = db(db.courses.id == auth.user.course_id).select().first()
     base_course = course.base_course

@@ -56,7 +56,7 @@ try:
     server_side_grading = True
 except ImportError:
     server_side_grading = False
-    rslogger.warning("Server side grading not available")
+    rslogger.info("Server side grading not available")
 
     def init_graders():
         pass

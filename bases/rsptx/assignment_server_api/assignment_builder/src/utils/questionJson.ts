@@ -9,7 +9,8 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
       starter_code: data.starter_code,
       suffix_code: data.suffix_code,
       instructions: data.instructions,
-      language: data.language
+      language: data.language,
+      stdin: data.stdin
     }),
     ...(data.question_type === "shortanswer" && {
       attachment: data.attachment,
@@ -70,6 +71,7 @@ export const getDefaultQuestionJson = (languageOptions: TableDropdownOption[]) =
   prefix_code: "",
   starter_code: "",
   suffix_code: "",
+  stdin: "",
   attachment: false,
   optionList: [
     { choice: "", feedback: "", correct: false },
@@ -99,6 +101,7 @@ export const mergeQuestionJsonWithDefaults = (
     feedback: questionJson?.feedback ?? defaultQuestionJson.feedback,
     blocks: questionJson?.blocks ?? defaultQuestionJson.blocks,
     language: questionJson?.language ?? defaultQuestionJson.language,
-    instructions: questionJson?.instructions ?? defaultQuestionJson.instructions
+    instructions: questionJson?.instructions ?? defaultQuestionJson.instructions,
+    stdin: questionJson?.stdin ?? defaultQuestionJson.stdin
   };
 };

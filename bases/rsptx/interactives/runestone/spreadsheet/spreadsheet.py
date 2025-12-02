@@ -23,12 +23,9 @@ import urllib.parse
 from docutils import nodes
 from docutils.parsers.rst import directives
 from runestone.common.runestonedirective import (
-    RunestoneNode,
     RunestoneIdDirective,
     RunestoneIdNode,
-    get_node_line,
 )
-from runestone.server.componentdb import addQuestionToDB, addHTMLToDB
 
 #
 # setup is called when extensions are loaded. This registers the new directive and

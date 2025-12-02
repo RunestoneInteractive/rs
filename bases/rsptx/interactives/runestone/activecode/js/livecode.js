@@ -52,9 +52,29 @@ export default class LiveCode extends ActiveCode {
     }
     createErrorOutput() { }
 
+
+    getCombinedSuffixes() {
+        if (this.suffix && this.visibleSuffix)
+            return this.suffix + this.visibleSuffix;
+        else if (this.suffix)
+            return this.suffix;
+        else if (this.visibleSuffix)
+            return this.visibleSuffix;
+        return "";
+    }
+
     hasUnitTests() {
-        return this.language === "java" && this.suffix && this.suffix.indexOf("import org.junit") > -1
-        || this.language === "cpp" && this.suffix && this.suffix.indexOf("[doctest]") > -1;
+        let combinedSuffix = this.getCombinedSuffixes();
+
+        // import used to detect java unit tests is historically assumed to always be in suffix
+        if (this.language === "java")
+            return combinedSuffix.indexOf("import org.junit") > -1;
+
+        // cpp unit test include may be in suffix or hidden prefix code
+        if (this.language === "cpp")
+            return combinedSuffix.indexOf("doctest.h") > -1 || (this.prefix && this.prefix.indexOf("doctest.h") > -1);
+
+        return false;
     }
 
     /*  Main runProg method for livecode
@@ -491,7 +511,7 @@ export default class LiveCode extends ActiveCode {
                     let output = result.stdout ? result.stdout : "";
                     $(odiv).html(output);
                 }
-                if (this.suffix) {
+                if (this.hasUnitTests() || this.iotests) {
                     if (this.parsedOutput.pct === undefined) {
                         this.parsedOutput.pct =
                             this.parsedOutput.passed =
@@ -571,22 +591,27 @@ export default class LiveCode extends ActiveCode {
         let passedTests = 0;
         // we will stop on the first error
         this.errinfo = null;
-        const trimLines = (s) => s.split("\n").map( s => s.trimEnd()).join("\n")
+        // trim any trailing whitespace so invisible extra newline doesn't fail test
+        // then trim trailing whitespace on each remaining line
+        const trimLines = (s) => s.trimEnd().split("\n").map( s => s.trimEnd()).join("\n")
         for (let result of resultList) {
             const produced = trimLines(result.stdout);
             const desired = trimLines(result.test.out);
             const tr = document.createElement("tr");
             const td1 = document.createElement("td");
             td1.classList.add("ac-feedback");
-            td1.innerHTML = result.test.input.replace(/\n/g, "<br>");
+            td1.innerHTML = `<pre>${result.test.input}\n\n</pre>`;
             tr.appendChild(td1);
             const td2 = document.createElement("td");
             td2.classList.add("ac-feedback");
-            td2.innerHTML = desired.replace(/\n/g, "<br>");
+            td2.innerHTML = `<pre>${desired}</pre>`;
             tr.appendChild(td2);
             const td3 = document.createElement("td");
             td3.classList.add("ac-feedback");
-            td3.innerHTML = produced.replace(/\n/g, "<br>");
+            // <pre> doesn't prevent browser from gulping leading space
+            // so produce a version that transforms whitespace into html entities/tags
+            let producedRenderOutput = produced.replaceAll(" ", "&nbsp;").replaceAll("\n", "<br>");
+            td3.innerHTML = `<pre>${producedRenderOutput}</pre>`;
             tr.appendChild(td3);
             const td4 = document.createElement("td");
             td4.classList.add("ac-feedback");
@@ -933,6 +958,9 @@ export default class LiveCode extends ActiveCode {
         return classes;
     }
 }
+
+// Warning - returns undefined if safe is an empty string
+// existing usages in constructor appear to rely on that behavior
 function unescapeHtml(safe) {
     if (safe) {
         return safe
@@ -943,6 +971,8 @@ function unescapeHtml(safe) {
             .replace(/&#x27;/g, "'");
     }
 }
+
+// Designed to produce HTML from a string, so always return a string
 function escapeHtml(str) {
     if (str) {
         return str
@@ -952,4 +982,5 @@ function escapeHtml(str) {
             .replace(/'/g, '&#x27;')
             .replace(/"/g, '&quot;');
     }
+    return '';
 }

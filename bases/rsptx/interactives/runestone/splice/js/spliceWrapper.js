@@ -9,6 +9,7 @@ export class SpliceWrapper extends RunestoneBase {
     initSplice() {
         // SPLICE Events
         window.addEventListener("message", async (event) => {
+            console.log("SpliceWrapper: received message subject:", event.data.subject);
             if (event.data.subject == "SPLICE.reportScoreAndState") {
                 this.handleScoreAndState(event);
             } else if (event.data.subject == "SPLICE.sendEvent") {
@@ -142,7 +143,7 @@ export class SpliceWrapper extends RunestoneBase {
         this.logBookEvent({
             event: event.data.subject,
             div_id: location,
-            act: event.data.name,
+            act: event.data.name || "unknown",
         });
     }
     // these stubs are not implemented, but are required by the RunestoneBase class

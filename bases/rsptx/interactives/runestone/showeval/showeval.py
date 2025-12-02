@@ -25,7 +25,6 @@ from runestone.common.runestonedirective import (
     RunestoneIdNode,
 )
 from runestone.common.xmlcommon import (
-    substitute_departure,
     write_substitute,
 )
 

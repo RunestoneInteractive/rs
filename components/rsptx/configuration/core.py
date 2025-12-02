@@ -19,7 +19,7 @@ Defaults provided here may be overridden by environment variables `Per <https://
 from enum import Enum
 from functools import lru_cache
 import os
-from pathlib import Path, PosixPath
+from pathlib import Path
 
 # Local application imports
 # -------------------------
@@ -64,9 +64,7 @@ class Settings(BaseSettings):
 
     # The path to the Runestone application inside web2py.
 
-    runestone_path: Path = Path(
-        os.environ.get("RUNESTONE_PATH", Path.home())
-    ).resolve()
+    runestone_path: Path = Path(os.environ.get("RUNESTONE_PATH", Path.home())).resolve()
 
     # _`book_path`: specify the directory to serve books from. For now, default to serving from the same place as the Runestone server, since the server uses some of these files.
     book_path: Path = runestone_path / "books"

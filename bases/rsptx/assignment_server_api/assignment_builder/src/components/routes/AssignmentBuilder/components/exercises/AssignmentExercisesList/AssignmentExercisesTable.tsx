@@ -110,7 +110,7 @@ export const AssignmentExercisesTable = ({
         stripedRows
         showGridlines
         globalFilter={globalFilter}
-        globalFilterFields={["name", "title"]}
+        globalFilterFields={["name", "title", "qnumber"]}
         emptyMessage={
           <div className="text-center p-5">
             <i className="pi pi-book text-4xl text-500 mb-3" style={{ display: "block" }} />
@@ -205,8 +205,6 @@ export const AssignmentExercisesTable = ({
               <div className="text-500 text-sm nowrap">{data.qnumber}</div>
             </div>
           )}
-          sortField="name"
-          sortable
           resizeable
         />
         <Column
@@ -214,7 +212,6 @@ export const AssignmentExercisesTable = ({
           field="question_type"
           header="Type"
           body={(data: Exercise) => getExerciseTypeTag(data.question_type)}
-          sortable
           style={{ width: "12rem" }}
         />
         <Column

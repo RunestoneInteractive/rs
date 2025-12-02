@@ -109,7 +109,7 @@ def author_role_required():
                 )
             books = await fetch_books_by_author(user.username)
             books = [b.BookAuthor.book for b in books if b.BookAuthor is not None]
-            is_authorp = book in books
+            is_authorp = (book in books) or (len(books) > 0)
             if not is_authorp:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,

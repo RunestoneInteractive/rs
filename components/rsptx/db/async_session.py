@@ -39,13 +39,13 @@ extra_settings = (
     else dict(echo=settings.db_echo)
 )
 engine = create_async_engine(
-    settings.database_url, connect_args=connect_args, **extra_settings
+    settings.database_url, pool_size=10, connect_args=connect_args, **extra_settings
 )
 # This creates the SessionLocal class.  An actual session is an instance of this class.
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 # This creates the base class we will use to create models
-Base: TypeAlias = declarative_base() # type: ignore
+Base: TypeAlias = declarative_base()  # type: ignore
 # Generate this key once and store it securely (e.g., env var or config file)
 fernet = Fernet(settings.fernet_secret)
 
@@ -71,7 +71,7 @@ async def check_not_null():
             for column in table.columns:
                 if not column.nullable:
                     # SQLAlchemy requires ``==`` to correctly create the query; it can't overload the ``is`` operator.
-                    query = select(table).where(column == None)  # noqa: E711.
+                    query = select(table).where(column == None)  # noqa: E711, E702
                     res = (await session.execute(query)).fetchall()
                     if res:
                         not_null_count += 1

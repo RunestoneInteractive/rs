@@ -7,7 +7,7 @@ from .crud import (
     create_traceback,
     fetch_api_token,
     is_server_feedback,
-    EVENT2TABLE
+    EVENT2TABLE,
 )
 from .user import fetch_user, create_user, update_user, delete_user
 
@@ -15,6 +15,7 @@ from .assignment import (
     create_assignment,
     create_assignment_question,
     create_deadline_exception,
+    delete_deadline_exception,
     duplicate_assignment,
     fetch_all_assignment_stats,
     fetch_all_deadline_exceptions,
@@ -55,7 +56,7 @@ from .course import (
     fetch_instructor_courses,
     fetch_users_for_course,
     update_course_settings,
-    user_in_course
+    user_in_course,
 )
 
 from .course_attrs import (
@@ -116,7 +117,7 @@ from .lti import (
     fetch_lti1p3_config,
     fetch_lti1p3_course_by_id,
     fetch_lti1p3_course_by_lti_data,
-    fetch_lti1p3_course_by_lti_id,
+    fetch_lti1p3_courses_by_lti_course_id,
     fetch_lti1p3_course_by_rs_course,
     fetch_lti1p3_course,
     fetch_lti1p3_grading_data_for_assignment,
@@ -206,6 +207,7 @@ __all__ += [
     "create_assignment",
     "create_assignment_question",
     "create_deadline_exception",
+    "delete_deadline_exception",
     "duplicate_assignment",
     "fetch_all_assignment_stats",
     "fetch_all_grades_for_assignment",
@@ -228,15 +230,15 @@ __all__ += [
 
 # from .crud
 __all__ += [
-   "check_domain_approval",
-   "create_api_token",
-   "create_domain_approval",
-   "create_initial_courses_users",
-   "create_invoice_request",
-   "create_traceback",
-   "fetch_api_token",
-   "is_server_feedback",
-   "EVENT2TABLE",
+    "check_domain_approval",
+    "create_api_token",
+    "create_domain_approval",
+    "create_initial_courses_users",
+    "create_invoice_request",
+    "create_traceback",
+    "fetch_api_token",
+    "is_server_feedback",
+    "EVENT2TABLE",
 ]
 
 # from .library
@@ -264,7 +266,7 @@ __all__ += [
     "fetch_lti1p3_config",
     "fetch_lti1p3_course_by_id",
     "fetch_lti1p3_course_by_lti_data",
-    "fetch_lti1p3_course_by_lti_id",
+    "fetch_lti1p3_courses_by_lti_course_id",
     "fetch_lti1p3_course_by_rs_course",
     "fetch_lti1p3_course",
     "fetch_lti1p3_grading_data_for_assignment",
@@ -274,6 +276,7 @@ __all__ += [
     "upsert_lti1p3_config",
     "upsert_lti1p3_course",
     "upsert_lti1p3_user",
+    "validate_user_credentials",
 ]
 
 # from .book

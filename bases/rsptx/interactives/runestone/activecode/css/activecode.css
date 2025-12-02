@@ -273,3 +273,82 @@
     right: 10px;
     cursor: pointer;
 }
+
+/* CodeTailor-related CSS START */
+.scaffolding-container {
+  margin-right: 20px;
+  position: fixed;
+  right: 0px;
+  max-height: 100%;
+  overflow-y: scroll;
+  top: 0px;
+  padding-top: 60px;
+  z-index: 999;
+}
+
+.scaffolding-container .ac_actions {
+  display: none;
+}
+
+.scaffolding-container.hidden {
+  display: none;
+}
+
+.parsons-scaffolding {
+    border: 2px solid;
+    border-color: black;
+    border-radius: 10px;
+    background-color: #f0f8ff;
+    padding-top: 10px;
+    box-shadow: 10px 5px 5px gray;
+}
+
+.scaffolding-loading-prompt.loading{
+    display: block;
+}
+
+.scaffolding-loading-prompt{
+    display: none;
+    text-align: center;
+    background-color: #ffebae;
+    padding: 10px 5px;
+    margin: 5px;
+    font-size: 12pt;
+    color: #191919;
+}
+
+.copy-button-hide {
+    display: none;
+}
+
+/* open CodeTailor*/
+button.parsons-scaffolding-btn {
+  background-color: #ED7014 !important;
+  color: white !important;
+}
+
+button.reopen-help-btn {
+    background-color: #ED7014 !important;
+    color: white !important;
+}
+
+.reopen-help-btn.hide {
+    display: none;
+}
+
+#loading-spinner {
+    border: 4px solid #ED7014;
+    border-top: 4px solid #084887;
+    border-bottom: 4px solid #084887;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1.5s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+/* CodeTailor-related CSS END */

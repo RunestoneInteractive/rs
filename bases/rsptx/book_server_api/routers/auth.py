@@ -15,7 +15,7 @@
 # Standard library
 # ----------------
 from datetime import timedelta
-from typing import Optional, Annotated
+from typing import Optional
 
 #
 # Third-party imports
@@ -26,7 +26,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydal.validators import CRYPT
-from pydantic import StringConstraints
 
 # Local application imports
 # -------------------------
@@ -146,7 +145,7 @@ async def get_course_students(
     Get a list of students in a course.
     This is used by the group submission feature.
 
-    """  
+    """
     course = await fetch_course(user.course_name)
     if course.course_name == course.base_course:
         user_is_instructor = await is_instructor(request, user=user)
@@ -172,4 +171,3 @@ async def get_course_students(
         status=status.HTTP_200_OK,
         detail={"students": searchdict},
     )
-

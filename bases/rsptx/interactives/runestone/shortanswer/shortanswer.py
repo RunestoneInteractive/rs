@@ -25,7 +25,6 @@ from runestone.server.componentdb import (
     maybeAddToAssignment,
 )
 from runestone.common.runestonedirective import (
-    RunestoneDirective,
     RunestoneIdNode,
 )
 

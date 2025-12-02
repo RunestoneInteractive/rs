@@ -1,4 +1,3 @@
-import datetime
 import json
 import socket
 import traceback
@@ -7,14 +6,17 @@ import os
 from fastapi import Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
 
-from rsptx.auth.session import auth_manager, NotAuthenticatedException
+from rsptx.auth.session import NotAuthenticatedException
 from rsptx.configuration import settings
 from rsptx.db.crud import create_traceback
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
+from rsptx.templates import template_folder
+
 
 def add_exception_handlers(app):
     """
@@ -47,7 +49,9 @@ def add_exception_handlers(app):
                 vals = json.loads(tz_cookie)
                 if "tz_offset" in vals:
                     request.state.tz_offset = vals["tz_offset"]
-                    rslogger.info(f"Timezone offset: {request.state.tz_offset}")
+                if "timezone" in vals:
+                    request.state.timezone = vals["timezone"]
+                    rslogger.info(f"User timezone set to {vals['timezone']}")
             except Exception as e:
                 rslogger.error(f"Failed to parse cookie data {tz_cookie} error was {e}")
         response = await call_next(request)
@@ -66,7 +70,9 @@ def add_exception_handlers(app):
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content=jsonable_encoder(
-                {"detail": "You need to be logged in to Runestone to access this resource"}
+                {
+                    "detail": "You need to be logged in to Runestone to access this resource"
+                }
             ),
         )
         # If we want to redirect the user to a login page which we really do not...
@@ -107,7 +113,19 @@ def add_exception_handlers(app):
         #
         await create_traceback(exc, request, socket.gethostname())
 
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=jsonable_encoder({"detail": exc}),
-        )
+        # browsers get HTML responses, API clients get JSON
+        if "text/html" in request.headers.get("accept", ""):
+            context = {
+                "course": "",
+                "request": request,
+                "detail": str(exc),
+                "timestamp": date,
+            }
+
+            templates = Jinja2Templates(directory=template_folder)
+            return templates.TemplateResponse("error_page.html", context)
+        else:
+            return JSONResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                content=jsonable_encoder({"detail": str(exc)}),
+            )

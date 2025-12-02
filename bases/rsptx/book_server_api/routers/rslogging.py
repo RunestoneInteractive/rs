@@ -61,7 +61,6 @@ from rsptx.db.models import (
     AuthUserValidator,
     CodeValidator,
     runestone_component_dict,
-    SourceCodeValidator,
     UseinfoValidation,
 )
 from rsptx.validation.schemas import (
@@ -174,7 +173,16 @@ async def log_book_event(
             ans_idx = await create_answer_table_entry(valid_table, entry.event)
             rslogger.debug(ans_idx)
         if entry.event != "timedExam" and entry.event != "selectquestion":
-            scoreSpec = await grade_submission(user, entry)
+            course = await fetch_course(user.course_name)
+            if course.timezone:
+                tz = course.timezone
+            else:
+                if hasattr(request.state, "timezone"):
+                    tz = request.state.timezone
+                    rslogger.debug(f"Using timezone {tz} from request state")
+                else:
+                    tz = "UTC"
+            scoreSpec = await grade_submission(user, entry, tz)
             response_dict.update(scoreSpec.dict())
 
     if idx:
@@ -204,12 +212,16 @@ def set_tz_offset(
             rslogger.error(f"Error decoding RS_info cookie: {RS_info}")
     else:
         values = {}
+    # this preserves any other values that might be in the cookie
     values["tz_offset"] = tzreq.timezoneoffset
+    values["timezone"] = tzreq.timezone
     response = JSONResponse(
         status_code=status.HTTP_200_OK, content=json.dumps({"detail": "success"})
     )
     response.set_cookie(key="RS_info", value=str(json.dumps(values)))
-    rslogger.debug(f"setting timezone offset in session {tzreq.timezoneoffset} hours")
+    rslogger.debug(
+        f"setting timezone offset in session {tzreq.timezoneoffset} hours for zone"
+    )
     # returning make_json_response here eliminates the cookie
     # See https://github.com/tiangolo/fastapi/issues/2452
     return response
@@ -582,7 +594,7 @@ async def update_reading_score(request: Request, data: ReadingAssignmentSpec):
         raise HTTPException(401)
     rslogger.debug(f"Updating reading score for {request.state.user.username}")
     rslogger.debug(data)
-    score = await score_reading_page(data, request.state.user)
+    await score_reading_page(data, request.state.user)
     return make_json_response(detail="Success")
 
 

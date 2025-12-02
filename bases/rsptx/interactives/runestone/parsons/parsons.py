@@ -15,7 +15,6 @@
 #
 __author__ = "isaiahmayerchak"
 from textwrap import dedent
-import pdb
 import random
 from docutils import nodes
 from docutils.parsers.rst import directives
@@ -46,7 +45,7 @@ TEMPLATE_START = """
 
 TEMPLATE_END = """
         </div>
-        <pre  class="parsonsblocks" data-question_label="%(question_label)s"  %(adaptive)s %(maxdist)s %(order)s %(noindent)s %(language)s %(grader)s %(numbered)s %(optional)s style="visibility: hidden;">
+        <pre  class="parsonsblocks" data-question_label="%(question_label)s"  %(adaptive)s %(maxdist)s %(order)s %(noindent)s %(language)s %(grader)s %(numbered)s %(scaffolding)s %(optional)s style="visibility: hidden;">
         %(code)s
         </pre>
         </div>
@@ -106,6 +105,7 @@ def process_one_block(block, choice=False, correct=False, natural=False):
         if line:
             line = line.replace("#paired", "")
             line = line.replace("#distractor", "")
+            line = line.replace("#settled", "")
             if natural:
                 res += wrap_with_tag(line, "p")
             else:
@@ -211,6 +211,7 @@ class ParsonsProblem(Assessment):
             "adaptive": directives.flag,
             "numbered": directives.unchanged,
             "grader": directives.unchanged,
+            "scaffolding": directives.flag
         }
     )
     has_content = True
@@ -291,7 +292,10 @@ class ParsonsProblem(Assessment):
             self.options["grader"] = ' data-grader="' + self.options["grader"] + '"'
         else:
             self.options["grader"] = ""
-
+        if "scaffolding" in self.options:
+            self.options["scaffolding"] = ' data-scaffolding="true"'
+        else:
+            self.options["scaffolding"] = ""
         if "-----" in self.content:
             index = self.content.index("-----")
             self.options["instructions"] = self.content[:index]

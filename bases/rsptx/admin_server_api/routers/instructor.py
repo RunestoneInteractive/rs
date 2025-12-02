@@ -1,6 +1,6 @@
 from fastapi import (
     APIRouter,
-    Body,
+    Form,
     HTTPException,
     Depends,
     Request,
@@ -21,29 +21,36 @@ from io import StringIO
 # -------------------------
 
 from rsptx.db.crud import (
+    create_assignment_question,
+    create_assignment,
     create_course_instructor,
+    create_course,
+    create_course_attribute,
+    create_instructor_course_entry,
+    create_membership,
+    create_user_course_entry,
+    delete_course_completely,
     delete_course_instructor,
     delete_user_course_entry,
-    create_user_course_entry,
     fetch_all_course_attributes,
-    fetch_base_course,
-    fetch_course,
-    fetch_available_students_for_instructor_add,
-    fetch_course_by_id,
-    fetch_instructor_courses,
-    fetch_users_for_course,
-    create_instructor_course_entry,
-    update_course_settings,
-    fetch_timed_assessments,
-    reset_student_assessment,
-    delete_course_completely,
-    create_assignment,
-    create_assignment_question,
-    fetch_one_assignment,
-    fetch_assignments,
     fetch_assignment_questions,
+    fetch_assignments,
+    fetch_available_students_for_instructor_add,
+    fetch_base_course,
+    fetch_course_by_id,
+    fetch_course,
+    fetch_group,
+    fetch_instructor_courses,
+    fetch_library_books,
+    fetch_membership,
+    fetch_one_assignment,
     fetch_question,
+    fetch_timed_assessments,
+    fetch_users_for_course,
+    reset_student_assessment,
+    update_course_settings,
     update_question,
+    update_user,
 )
 from rsptx.auth.session import auth_manager
 from rsptx.templates import template_folder
@@ -55,6 +62,7 @@ from rsptx.db.models import (
     AuthUserValidator,
     AssignmentValidator,
     AssignmentQuestionValidator,
+    CoursesValidator,
 )
 from rsptx.response_helpers.core import canonical_utcnow, make_json_response
 import datetime
@@ -762,7 +770,6 @@ async def reset_password(
                 status_code=400,
                 content={"success": False, "message": "sid and password are required"},
             )
-        from rsptx.db.crud import fetch_user, update_user
 
         student = await fetch_user(sid)
         if not student:
@@ -1127,13 +1134,150 @@ async def flag_question(
     )
 
 
-
 @router.get("/sectest")
 async def root(request: Request, response_class: JSONResponse):
     rslogger.debug("Received request for /sectest")
-    rslogger.debug(f"scheme: {request.url.scheme}, is_secure: {request.url.scheme == 'https'}")
-    return make_json_response(detail = {
-        "scheme": request.url.scheme,
-        "is_secure": request.url.scheme == "https",
-        "headers": dict(request.headers),
-    })
+    rslogger.debug(
+        f"scheme: {request.url.scheme}, is_secure: {request.url.scheme == 'https'}"
+    )
+    return make_json_response(
+        detail={
+            "scheme": request.url.scheme,
+            "is_secure": request.url.scheme == "https",
+            "headers": dict(request.headers),
+        }
+    )
+
+
+# Designer page endpoints (moved to end of file)
+@router.get("/create_course", response_class=HTMLResponse)
+@with_course()
+async def get_create_course_page(
+    request: Request, user=Depends(auth_manager), course=None
+):
+    """
+    Display the course designer form for instructors.
+    """
+    templates = Jinja2Templates(directory=template_folder)
+    # Fetch real course list from the library table
+
+    course_list = await fetch_library_books()
+    # Convert LibraryValidator objects to dicts for template compatibility
+    course_list = [c.dict() for c in course_list if c.for_classes]
+    sections = sorted({c["shelf_section"] for c in course_list})
+    context = {
+        "request": request,
+        "course_list": course_list,
+        "sections": sections,
+        "current_date": datetime.date.today().strftime("%m/%d/%Y"),
+        "course": course,
+        "user": user,
+    }
+    return templates.TemplateResponse("admin/instructor/create_course.html", context)
+
+
+@router.post("/create_course", response_class=HTMLResponse)
+@with_course()
+async def post_create_course_page(
+    request: Request,
+    institution: str = Form(...),
+    state: str = Form(...),
+    domainname: str = Form(...),
+    courselevel: str = Form(...),
+    coursetype: str = Form(...),
+    projectname: str = Form(...),
+    loginreq: str = Form(None),
+    allowpairs: str = Form(None),
+    instructor: str = Form(None),
+    startdate: str = Form(...),
+    invoice: str = Form(None),
+    timezone: str = Form(...),
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Process the course designer form submission.
+    """
+    templates = Jinja2Templates(directory=template_folder)
+    # Prepare course data for validator
+    try:
+        course_data = {
+            "course_name": projectname,
+            "term_start_date": (
+                datetime.datetime.strptime(startdate, "%m/%d/%Y").date()
+                if startdate
+                else datetime.date.today()
+            ),
+            "institution": institution,
+            "base_course": coursetype,
+            "python3": True,
+            "login_required": loginreq == "true",
+            "allow_pairs": allowpairs == "true",
+            "courselevel": courselevel,
+            "state": state,
+            "domain_name": domainname,
+            "timezone": timezone,
+            "downloads_enabled": False,
+            "new_server": True,
+        }
+        course_validator = CoursesValidator(**course_data)
+        new_course = await create_course(course_validator)
+
+        # Copy attributes from base course
+        bc = await fetch_course(coursetype)
+        attrs = await fetch_all_course_attributes(bc.id)
+        for key, value in attrs.items():
+            await create_course_attribute(new_course.id, key, value)
+
+        # Enroll user in course and make instructor
+        await create_user_course_entry(user.id, new_course.id)
+        igroup = await fetch_group("instructor")
+        groups = await fetch_membership(igroup.id, user.id)
+        if not groups:
+            await create_membership(igroup.id, user.id)
+        await create_course_instructor(new_course.id, user.id)
+        await update_user(
+            user.id, {"course_id": new_course.id, "course_name": projectname}
+        )
+        rslogger.info(f"Created new course: {new_course.id}")
+        # Success: show welcome page
+        context = {
+            "course": new_course,
+            "user": user,
+            "request": request,
+            "coursename": projectname,
+            "social_url": None,  # You can add logic to provide a social_url if needed
+        }
+        return templates.TemplateResponse("admin/instructor/build.html", context)
+    except Exception as e:
+        # On error, show designer page with error message
+        course_list = await fetch_library_books()
+        # Convert LibraryValidator objects to dicts for template compatibility
+        course_list = [c.dict() for c in course_list if c.for_classes]
+        sections = sorted({c["shelf_section"] for c in course_list})
+
+        context = {
+            "request": request,
+            "message": f"Error creating course: {e}",
+            "course": course,
+            "user": user,
+            "course_list": course_list,
+            "sections": sections,
+            "submitted": {
+                "institution": institution,
+                "state": state,
+                "domainname": domainname,
+                "courselevel": courselevel,
+                "coursetype": coursetype,
+                "projectname": projectname,
+                "loginreq": loginreq,
+                "allowpairs": allowpairs,
+                "instructor": instructor,
+                "startdate": startdate,
+                "invoice": invoice,
+                "timezone": timezone,
+            },
+        }
+        return templates.TemplateResponse(
+            "admin/instructor/create_course.html", context
+        )
