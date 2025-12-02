@@ -29,7 +29,9 @@ from rsptx.db.crud import (
     fetch_assignment_questions,
     fetch_all_course_attributes,
     create_useinfo_entry,
+    fetch_lti_version,
 )
+from rsptx.db.models import UseinfoValidation
 from rsptx.auth.session import auth_manager
 from rsptx.templates import template_folder
 from rsptx.endpoint_validators import with_course, instructor_role_required
@@ -98,6 +100,7 @@ async def get_peer_dashboard(
     request: Request,
     assignment_id: int,
     next: Optional[str] = None,
+    groupsize: Optional[str] = None,
     user=Depends(auth_manager),
     course=None,
 ):
@@ -105,26 +108,127 @@ async def get_peer_dashboard(
     Display the peer instruction dashboard for a specific assignment.
     This is where instructors control the flow of peer instruction.
     """
-    rslogger.info(f"Peer dashboard for assignment {assignment_id}")
+    rslogger.info(f"Peer dashboard for assignment {assignment_id}, next={next}")
+    templates = Jinja2Templates(directory=template_folder)
 
-    # TODO: Implement dashboard logic
-    # This will include:
-    # - Current question navigation
-    # - Student response tracking
-    # - Real-time analytics
-    # - Group formation controls
-
+    # Fetch the assignment
     assignment = await fetch_one_assignment(assignment_id)
-    # TODO: Use assignment_questions when implementing dashboard
-    # assignment_questions = await fetch_assignment_questions(assignment_id)
 
-    # TODO: Create peer_dashboard.html template
-    return JSONResponse(
-        content={
-            "message": "Dashboard functionality to be implemented",
-            "assignment_id": assignment_id,
-            "assignment_name": assignment.name,
+    # Handle question navigation
+    if next == "Reset":
+        assignment.current_index = 0
+        await update_assignment(assignment)
+    elif next == "Next":
+        new_idx = (assignment.current_index or 0) + 1
+        assignment.current_index = new_idx
+        await update_assignment(assignment)
+
+    # Get all questions for this assignment
+    questions_result = await fetch_assignment_questions(assignment_id)
+    questions = []
+    for row in questions_result:
+        question, assignment_question = row
+        questions.append(question)
+
+    # Get current question based on assignment's current_index
+    current_idx = (
+        assignment.current_index if assignment.current_index is not None else 0
+    )
+    num_questions = len(questions)
+
+    if current_idx >= num_questions:
+        current_idx = num_questions - 1 if questions else 0
+
+    current_question = questions[current_idx] if questions else None
+    is_last = current_idx == num_questions - 1
+    current_qnum = current_idx + 1
+
+    if not current_question:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "No questions found for this assignment"},
+        )
+
+    # Fetch course attributes
+    course_attrs = await fetch_all_course_attributes(course.id)
+    latex_macros = course_attrs.get("latex_macros", "")
+    enable_ab = course_attrs.get("enable_ab", False)
+    if not groupsize:
+        groupsize = course_attrs.get("groupsize", "3")
+
+    # Check if LTI is enabled
+    lti_version = await fetch_lti_version(course.id)
+    is_lti = lti_version is not None
+
+    # Log the start_question event
+
+    log_entry = UseinfoValidation(
+        sid=user.username,
+        course_id=course.course_name,
+        div_id=current_question.name,
+        event="peer",
+        act="start_question",
+        timestamp=datetime.datetime.utcnow(),
+    )
+    await create_useinfo_entry(log_entry)
+
+    # Initialize Redis state and publish enableNext message
+    import os
+    import redis
+    import json
+
+    try:
+        r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
+        r.hset(f"{course.course_name}_state", "mess_count", "0")
+        mess = {
+            "sender": user.username,
+            "type": "control",
+            "message": "enableNext",
+            "broadcast": True,
+            "course_name": course.course_name,
         }
+        r.publish("peermessages", json.dumps(mess))
+    except Exception as e:
+        rslogger.error(f"Error initializing Redis: {e}")
+
+    # Get peer.js mtime for cache busting
+    import random
+
+    site_packages_path = sys.path[0]
+    peer_js_path = os.path.join(
+        site_packages_path, "rsptx/templates/staticAssets", "js", "peer.js"
+    )
+
+    try:
+        peer_mtime = str(int(os.path.getmtime(peer_js_path)))
+    except (FileNotFoundError, AttributeError):
+        peer_mtime = str(random.randrange(10000))
+
+    wp_assets = get_webpack_static_imports(course)
+
+    context = {
+        "request": request,
+        "course": course,
+        "user": user,
+        "assignment_id": assignment_id,
+        "assignment_name": assignment.name,
+        "current_question": current_question,
+        "all_questions": questions,
+        "current_qnum": current_qnum,
+        "num_questions": num_questions,
+        "is_instructor": True,
+        "is_last": is_last,
+        "lti": is_lti,
+        "latex_macros": latex_macros,
+        "enable_ab": enable_ab,
+        "groupsize": groupsize,
+        "peer_mtime": peer_mtime,
+        "settings": settings,
+        "wp_imports": wp_assets,
+    }
+
+    return templates.TemplateResponse(
+        "assignment/instructor/peer_dashboard.html", context
     )
 
 

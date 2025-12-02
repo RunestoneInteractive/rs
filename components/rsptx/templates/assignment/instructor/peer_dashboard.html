@@ -1,0 +1,285 @@
+{% extends "_base.html" %}
+
+{% block title %}
+Peer Instruction Dashboard - {{ assignment_name }}
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="/runestone/static/css/peer.css?v={{ peer_mtime }}">
+<style>
+    .hidden-content {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include 'common/static_assets.html' %}
+{% include 'common/ebook_config.html' %}
+
+<div class="hidden-content">
+    \( {{ latex_macros|safe }} \)
+</div>
+
+<h2>Peer Instruction: {{ assignment_name }}</h2>
+
+<div id="pi-instructor-interface">
+    <div class="row">
+        <form action="/assignment/instructor/peer/dashboard" method="GET">
+            <div id="pi-question-info">
+                <div id="pi-question-indicator">
+                    <h3>Question {{ current_qnum }} of {{ num_questions }}</h3>
+
+                    <div id="pi-group-size-selector">
+                        <input type="hidden" name="assignment_id" value="{{ assignment_id }}" />
+                        <label for="groupsize">Group Size</label>
+                        <select id="groupsize" name="groupsize">
+                            <option value="2" {% if groupsize == "2" %}selected{% endif %}>2</option>
+                            <option value="3" {% if groupsize == "3" %}selected{% endif %}>3</option>
+                            <option value="4" {% if groupsize == "4" %}selected{% endif %}>4</option>
+                            <option value="5" {% if groupsize == "5" %}selected{% endif %}>5</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="pi-session-status">
+                    Vote 1 in Progress...
+                </div>
+
+                <div id="pi-assignment-navigation">
+                    <button type="submit" id="nextq" class="btn btn-info" name="next" value="Next">
+                        Next Question
+                    </button>
+                    <button type="submit" id="restart" class="btn btn-danger" name="next" value="Reset">
+                        Start Over
+                    </button>
+                    {% if lti %}
+                        <button type="button" id="sendScores" class="btn btn-info" onclick="sendLtiScores(event)" disabled>
+                            Send LTI Scores
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="pi-stepper row">
+                <div class="pi-step-group active">
+                    <div class="pi-step first active">
+                        <div class="pi-step-number">
+                            <div class="pi-step-number-inner">1</div>
+                        </div>
+                        <div class="pi-step-buttons">
+                            <button type="button" id="vote1" class="btn btn-info" onclick="warnAndStopVote(event)">
+                                Stop Vote 1
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pi-step-group middle">
+                    <div class="pi-stepper-line"></div>
+                    <div class="pi-step outside">
+                        <div class="pi-step-number">
+                            <div class="pi-step-number-inner">2</div>
+                        </div>
+                        <div class="pi-step-buttons" id="chat-modality">
+                            <button type="button" id="facechat" class="btn btn-info" onclick="enableFaceChat(event)" disabled>
+                                Enable In-Person Chat
+                            </button>
+                            OR
+                            <button type="button" id="makep" class="btn btn-info" onclick="makePartners(event,false)" disabled>
+                                Enable Text Chat
+                            </button>
+                            {% if enable_ab %}
+                                OR
+                                <button type="button" id="makeabgroups" class="btn btn-info" onclick="makePartners(event, true)" disabled>
+                                    Run A/B Experiment
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="pi-stepper-line"></div>
+                </div>
+
+                <div class="pi-step-group last">
+                    <div class="pi-step">
+                        <div class="pi-step-number">
+                            <div class="pi-step-number-inner">3</div>
+                        </div>
+                        <div class="pi-step-buttons">
+                            <button type="button" id="vote2" class="btn btn-info" onclick="startVote2(event)" disabled>
+                                Start Vote 2
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pi-stepper-line"></div>
+
+                    <div class="pi-step last">
+                        <div class="pi-step-number">
+                            <div class="pi-step-number-inner">4</div>
+                        </div>
+                        <div class="pi-step-buttons">
+                            <button type="button" id="vote3" class="btn btn-info" onclick="warnAndStopVote(event)" disabled>
+                                Stop Vote 2
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="imessage"></div>
+
+    <div class="row">
+        <div class="oneq col-md-6 runestone-sphinx">
+            {{ current_question.htmlsrc|safe }}
+        </div>
+        <div id="pi-live-vote-graph" class="col-md-6">
+            <div id="counter1"></div>
+            <div id="counter2"></div>
+            <details id="vote1details" class="vote-details">
+                <summary style="display: list-item">Vote Details</summary>
+                <div id="vote1detailscontent"><p>Percent Correct</p></div>
+            </details>
+            <div id="messcounter"></div>
+            <div id="first_answer" style="display: none"></div>
+            <div id="second_answer"></div>
+            <button id="hideShowGraph" class="btn" type="button" onclick="hideShowGraph()" disabled>
+                Hide/Show Graph
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+{% endblock %}
+
+{% block js %}
+<script>
+    eBookConfig.peer = true;
+    var voteStopped = false;
+
+    async function updateGraphs() {
+        var opt = { renderer: "canvas", actions: false };
+        let data = {
+            div_id: "{{ current_question.name }}",
+            answer_num: 1,
+            start_time: startTime,
+            start_time2: startTime2,
+            num_answers: window.componentMap[currentQuestion].answerList.length,
+        };
+        let jsheaders = new Headers({
+            "Content-type": "application/json; charset=utf-8",
+            Accept: "application/json",
+        });
+        let request = new Request("/assignment/peer/api/chart_data", {
+            method: "POST",
+            headers: jsheaders,
+            body: JSON.stringify(data),
+        });
+        let resp = await fetch(request);
+        let spec = await resp.json();
+
+        vegaEmbed("#first_answer", spec, opt);
+    }
+
+    function hideShowGraph() {
+        let graph = document.getElementById("first_answer");
+        if (graph.style.display == "none") {
+            graph.style.display = "block";
+        } else {
+            graph.style.display = "none";
+        }
+        updateGraphs();
+        setInterval(updateGraphs, 5000);
+    }
+
+    async function updateCount() {
+        let data = {
+            div_id: "{{ current_question.name }}",
+            start_time: startTime,
+            course_name: "{{ course.course_name }}"
+        };
+        if (startTime2 !== null) {
+            data.start_time = startTime2;
+        }
+
+        let jsheaders = new Headers({
+            "Content-type": "application/json; charset=utf-8",
+            Accept: "application/json",
+        });
+
+        let request = new Request("/assignment/peer/api/num_answers", {
+            method: "POST",
+            headers: jsheaders,
+            body: JSON.stringify(data),
+        });
+        let resp = await fetch(request);
+        let spec = await resp.json();
+
+        let counterel = null;
+        let v = 0;
+        if (startTime2 === null) {
+            counterel = document.querySelector("#counter1");
+            v = 1;
+        } else {
+            counterel = document.querySelector("#counter2");
+            v = 2;
+        }
+
+        if (v === 1) {
+            const pctRequest = new Request("/assignment/peer/api/percent_correct", {
+                method: "POST",
+                headers: jsheaders,
+                body: JSON.stringify(data)
+            });
+            const pctResp = await fetch(pctRequest);
+
+            if (!pctResp.ok) {
+                console.warn("percent_correct failed:", pctResp.statusText);
+                counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count}</p>`;
+            } else {
+                const pctSpec = await pctResp.json();
+                let pctMessage = "";
+                if (voteStopped) {
+                    pctMessage = `${pctSpec.pct_correct}% Correct`;
+                }
+                counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count}</p>`;
+                let vote1detailscontent = document.querySelector("#vote1detailscontent");
+                vote1detailscontent.innerHTML = `<p>  ${pctMessage} </p>`;
+            }
+        }
+        else {
+            counterel.innerHTML = `<p>Vote ${v} Answers: ${spec.count}</p>`;
+        }
+
+        if (spec.mess_count > 0) {
+            mcounterel = document.querySelector("#messcounter");
+            mcounterel.innerHTML = `<p>Messages Sent ${spec.mess_count}</p>`;
+        }
+        console.log(`startTime = ${startTime} startTime2 = ${startTime2} spec = ${JSON.stringify(spec, null, 2)}`)
+        answerCount = spec.count;
+    }
+</script>
+<script src="/staticAssets/js/peer.js?v={{ peer_mtime }}"></script>
+<script>
+    var user = "{{ user.username }}";
+    var currentQuestion = "{{ current_question.name }}";
+    var voteNum = 1;
+    document.addEventListener("DOMContentLoaded", function (event) {
+        setTimeout(connect, 1000);
+        setInterval(updateCount, 2000);
+    });
+    var startTime = new Date().toUTCString();
+    var startTime2 = null;
+    var mess_count = 0;
+    var answerCount = 0;
+    var done = {{ 'true' if is_last else 'false' }};
+    if (done) {
+        document.getElementById("nextq").disabled = true;
+    }
+</script>
+{% endblock %}
