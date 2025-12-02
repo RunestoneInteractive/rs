@@ -57,8 +57,9 @@ console = Console()
 @click.option(
     "--clean", is_flag=True, help="Remove all containers and images before starting"
 )
+@click.option("--skip-pre", is_flag=True, default=False, help="Skip pre-build steps")
 @pass_config
-def cli(config, verbose, all, core, service, clean):
+def cli(config, verbose, all, core, service, clean, skip_pre):
     """
     Build the wheels and Docker containers needed for this application
     You can control which parts of the pipeline to run and which services to build or
@@ -80,7 +81,10 @@ def cli(config, verbose, all, core, service, clean):
         )
         exit(1)
     config.verbose = verbose
-
+    if skip_pre:
+        config.skip_pre = True
+    else:
+        config.skip_pre = False        
     if clean:
         clean_all()
 
@@ -390,7 +394,7 @@ def wheel(config):
             projdir = config.ym["services"][proj]["build"]["context"]
             if os.path.isdir(projdir):
                 with pushd(projdir):
-                    if os.path.isfile("build.py"):
+                    if os.path.isfile("build.py") and config.skip_pre is False:
                         status[proj] = "[grey62]pre build...[/grey62]"
                         lt.update(generate_wheel_table(status))
                         res = subprocess.run(
