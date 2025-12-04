@@ -533,7 +533,7 @@ async function makePartners(event, is_ab) {
         "Content-type": "application/json; charset=utf-8",
         Accept: "application/json",
     });
-    let request = new Request("/assignment/peer/make_pairs", {
+    let request = new Request("/assignment/peer/api/make_pairs", {
         method: "POST",
         headers: jsheaders,
         body: JSON.stringify(data),
@@ -543,7 +543,7 @@ async function makePartners(event, is_ab) {
         alert(`Pairs not made ${resp.statusText}`);
     }
     let spec = await resp.json();
-    if (spec !== "success") {
+    if (spec.status !== "success") {
         alert(`Pairs not made! ${spec}`);
     } else {
         // success
@@ -688,7 +688,7 @@ async function showPeerEnableVote2() {
         "Content-type": "application/json; charset=utf-8",
         Accept: "application/json",
     });
-    let request = new Request("/assignment/peer/get_async_explainer", {
+    let request = new Request("/assignment/peer/api/get_async_explainer", {
         method: "POST",
         headers: jsheaders,
         body: JSON.stringify(data),

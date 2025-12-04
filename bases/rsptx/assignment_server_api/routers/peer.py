@@ -494,6 +494,8 @@ async def make_pairs(
         r.delete(f"partnerdb_{course.course_name}")
 
         # Get student answers from the database
+        st = parse(start_time)
+        start_time = st.replace(tzinfo=None)
         async with async_session() as session:
             # Get the most recent answer for each student
             subquery = (
@@ -511,7 +513,7 @@ async def make_pairs(
                 .where(
                     MchoiceAnswers.div_id == div_id,
                     MchoiceAnswers.course_name == course.course_name,
-                    MchoiceAnswers.timestamp > parse(start_time),
+                    MchoiceAnswers.timestamp > start_time,
                 )
                 .subquery()
             )
@@ -582,7 +584,8 @@ async def make_pairs(
                 "broadcast": False,
                 "partner_answer": answer,
                 "yourPartner": partners,
-                "sid": sid,
+                "from": sid,
+                "to": sid,
                 "course_name": course.course_name,
             }
             r.publish("peermessages", json.dumps(mess))
@@ -623,6 +626,8 @@ async def get_chart_data(
     try:
         async with async_session() as session:
             # Get vote 1 data
+            st = parse(start_time)
+            start_time = st.replace(tzinfo=None)
             subquery1 = select(
                 MchoiceAnswers.sid,
                 MchoiceAnswers.answer,
@@ -635,12 +640,14 @@ async def get_chart_data(
             ).where(
                 MchoiceAnswers.div_id == div_id,
                 MchoiceAnswers.course_name == course.course_name,
-                MchoiceAnswers.timestamp > parse(start_time),
+                MchoiceAnswers.timestamp > start_time,
             )
 
             if start_time2:
+                st = parse(start_time2)
+                start_time2 = st.replace(tzinfo=None)
                 subquery1 = subquery1.where(
-                    MchoiceAnswers.timestamp < parse(start_time2)
+                    MchoiceAnswers.timestamp < start_time2
                 )
 
             subquery1 = subquery1.subquery()
@@ -668,7 +675,7 @@ async def get_chart_data(
                     .where(
                         MchoiceAnswers.div_id == div_id,
                         MchoiceAnswers.course_name == course.course_name,
-                        MchoiceAnswers.timestamp > parse(start_time2),
+                        MchoiceAnswers.timestamp > start_time2,
                     )
                     .subquery()
                 )
@@ -784,16 +791,19 @@ async def get_num_answers(
     from sqlalchemy import select, func
     from rsptx.db.async_session import async_session
 
+    rslogger.info(f"Getting number of answers for {div_id} {start_time} {course_name}")
     if not start_time:
         return JSONResponse(content={"count": 0, "mess_count": 0})
-
+    st = parse(start_time)
+    # remove timezone info for comparison
+    start_time = st.replace(tzinfo=None)
     try:
         async with async_session() as session:
             # Count distinct students who answered
             answer_query = select(func.count(func.distinct(MchoiceAnswers.sid))).where(
                 MchoiceAnswers.div_id == div_id,
                 MchoiceAnswers.course_name == course_name,
-                MchoiceAnswers.timestamp > parse(start_time),
+                MchoiceAnswers.timestamp > start_time,
             )
             answer_result = await session.execute(answer_query)
             answer_count = answer_result.scalar() or 0
@@ -803,7 +813,7 @@ async def get_num_answers(
                 Useinfo.div_id == div_id,
                 Useinfo.course_id == course_name,
                 Useinfo.event == "sendmessage",
-                Useinfo.timestamp > parse(start_time),
+                Useinfo.timestamp > start_time,
             )
             message_result = await session.execute(message_query)
             message_count = message_result.scalar() or 0
@@ -835,6 +845,9 @@ async def get_percent_correct(
     from sqlalchemy import select, func
     from rsptx.db.async_session import async_session
 
+    st = parse(start_time)
+    # remove timezone info for comparison
+    start_time = st.replace(tzinfo=None)
     try:
         async with async_session() as session:
             # Get the most recent answer for each student
@@ -852,7 +865,7 @@ async def get_percent_correct(
                 .where(
                     MchoiceAnswers.div_id == div_id,
                     MchoiceAnswers.course_name == course_name,
-                    MchoiceAnswers.timestamp > parse(start_time),
+                    MchoiceAnswers.timestamp > start_time,
                 )
                 .subquery()
             )
