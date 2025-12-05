@@ -30,8 +30,12 @@ from rsptx.db.crud import (
     fetch_all_course_attributes,
     create_useinfo_entry,
     fetch_lti_version,
+    fetch_recent_student_answers,
+    fetch_student_answers_in_timerange,
+    count_distinct_student_answers,
+    count_peer_messages,
 )
-from rsptx.db.models import UseinfoValidation, MchoiceAnswers, Useinfo
+from rsptx.db.models import UseinfoValidation
 from rsptx.auth.session import auth_manager
 import pandas as pd
 import random
@@ -488,8 +492,6 @@ async def make_pairs(
     import os
     import redis
     from dateutil.parser import parse
-    from sqlalchemy import select, func
-    from rsptx.db.async_session import async_session
 
     rslogger.info(f"Making pairs for {div_id}, group_size={group_size}, is_ab={is_ab}")
 
@@ -500,34 +502,13 @@ async def make_pairs(
         # Get student answers from the database
         st = parse(start_time)
         start_time = st.replace(tzinfo=None)
-        async with async_session() as session:
-            # Get the most recent answer for each student
-            subquery = (
-                select(
-                    MchoiceAnswers.sid,
-                    MchoiceAnswers.answer,
-                    MchoiceAnswers.correct,
-                    func.row_number()
-                    .over(
-                        partition_by=MchoiceAnswers.sid,
-                        order_by=MchoiceAnswers.id.desc(),
-                    )
-                    .label("rn"),
-                )
-                .where(
-                    MchoiceAnswers.div_id == div_id,
-                    MchoiceAnswers.course_name == course.course_name,
-                    MchoiceAnswers.timestamp > start_time,
-                )
-                .subquery()
-            )
 
-            query = select(subquery).where(subquery.c.rn == 1)
-            result = await session.execute(query)
-            rows = result.all()
+        rows = await fetch_recent_student_answers(
+            div_id, course.course_name, start_time
+        )
 
         # Create a dictionary of student answers
-        sid_ans = {row.sid: row.answer for row in rows if row.answer}
+        sid_ans = {sid: answer for sid, answer, correct in rows}
         peeps = list(sid_ans.keys())
 
         # Remove instructor if present
@@ -622,70 +603,31 @@ async def get_chart_data(
     Get data for visualizing student responses using Vega-Lite.
     """
     from dateutil.parser import parse
-    from sqlalchemy import select, func
-    from rsptx.db.async_session import async_session
 
     rslogger.info(f"Getting chart data for {div_id}")
 
     try:
-        async with async_session() as session:
-            # Get vote 1 data
-            st = parse(start_time)
-            start_time = st.replace(tzinfo=None)
-            subquery1 = select(
-                MchoiceAnswers.sid,
-                MchoiceAnswers.answer,
-                func.row_number()
-                .over(
-                    partition_by=MchoiceAnswers.sid,
-                    order_by=MchoiceAnswers.id.desc(),
-                )
-                .label("rn"),
-            ).where(
-                MchoiceAnswers.div_id == div_id,
-                MchoiceAnswers.course_name == course.course_name,
-                MchoiceAnswers.timestamp > start_time,
+        # Get vote 1 data
+        st = parse(start_time)
+        start_time_dt = st.replace(tzinfo=None)
+
+        end_time_dt = None
+        if start_time2:
+            st2 = parse(start_time2)
+            end_time_dt = st2.replace(tzinfo=None)
+
+        rows1 = await fetch_student_answers_in_timerange(
+            div_id, course.course_name, start_time_dt, end_time_dt
+        )
+        data1 = [{"answer": answer, "rn": 1} for sid, answer in rows1]
+
+        # Get vote 2 data if start_time2 is provided
+        data2 = []
+        if end_time_dt:
+            rows2 = await fetch_student_answers_in_timerange(
+                div_id, course.course_name, end_time_dt
             )
-
-            if start_time2:
-                st = parse(start_time2)
-                start_time2 = st.replace(tzinfo=None)
-                subquery1 = subquery1.where(MchoiceAnswers.timestamp < start_time2)
-
-            subquery1 = subquery1.subquery()
-            query1 = select(subquery1).where(subquery1.c.rn == 1).limit(4000)
-            result1 = await session.execute(query1)
-            rows1 = result1.all()
-
-            # Convert to dataframe format
-            data1 = [{"answer": row.answer, "rn": 1} for row in rows1 if row.answer]
-
-            # Get vote 2 data if start_time2 is provided
-            data2 = []
-            if start_time2:
-                subquery2 = (
-                    select(
-                        MchoiceAnswers.sid,
-                        MchoiceAnswers.answer,
-                        func.row_number()
-                        .over(
-                            partition_by=MchoiceAnswers.sid,
-                            order_by=MchoiceAnswers.id.desc(),
-                        )
-                        .label("rn"),
-                    )
-                    .where(
-                        MchoiceAnswers.div_id == div_id,
-                        MchoiceAnswers.course_name == course.course_name,
-                        MchoiceAnswers.timestamp > start_time2,
-                    )
-                    .subquery()
-                )
-
-                query2 = select(subquery2).where(subquery2.c.rn == 1).limit(4000)
-                result2 = await session.execute(query2)
-                rows2 = result2.all()
-                data2 = [{"answer": row.answer, "rn": 2} for row in rows2 if row.answer]
+            data2 = [{"answer": answer, "rn": 2} for sid, answer in rows2]
 
         # Convert numeric answers to letters
         def to_letter(ans):
@@ -790,35 +732,22 @@ async def get_num_answers(
     Get the count of student responses and messages.
     """
     from dateutil.parser import parse
-    from sqlalchemy import select, func
-    from rsptx.db.async_session import async_session
 
     rslogger.info(f"Getting number of answers for {div_id} {start_time} {course_name}")
     if not start_time:
         return JSONResponse(content={"count": 0, "mess_count": 0})
-    st = parse(start_time)
-    # remove timezone info for comparison
-    start_time = st.replace(tzinfo=None)
-    try:
-        async with async_session() as session:
-            # Count distinct students who answered
-            answer_query = select(func.count(func.distinct(MchoiceAnswers.sid))).where(
-                MchoiceAnswers.div_id == div_id,
-                MchoiceAnswers.course_name == course_name,
-                MchoiceAnswers.timestamp > start_time,
-            )
-            answer_result = await session.execute(answer_query)
-            answer_count = answer_result.scalar() or 0
 
-            # Count messages sent
-            message_query = select(func.count(Useinfo.id)).where(
-                Useinfo.div_id == div_id,
-                Useinfo.course_id == course_name,
-                Useinfo.event == "sendmessage",
-                Useinfo.timestamp > start_time,
-            )
-            message_result = await session.execute(message_query)
-            message_count = message_result.scalar() or 0
+    st = parse(start_time)
+    start_time_dt = st.replace(tzinfo=None)
+
+    try:
+        # Count distinct students who answered
+        answer_count = await count_distinct_student_answers(
+            div_id, course_name, start_time_dt
+        )
+
+        # Count messages sent
+        message_count = await count_peer_messages(div_id, course_name, start_time_dt)
 
         return JSONResponse(
             content={"count": answer_count, "mess_count": message_count}
@@ -844,43 +773,19 @@ async def get_percent_correct(
     Calculate the percentage of correct answers for the first vote.
     """
     from dateutil.parser import parse
-    from sqlalchemy import select, func
-    from rsptx.db.async_session import async_session
 
     st = parse(start_time)
-    # remove timezone info for comparison
-    start_time = st.replace(tzinfo=None)
-    try:
-        async with async_session() as session:
-            # Get the most recent answer for each student
-            subquery = (
-                select(
-                    MchoiceAnswers.sid,
-                    MchoiceAnswers.correct,
-                    func.row_number()
-                    .over(
-                        partition_by=MchoiceAnswers.sid,
-                        order_by=MchoiceAnswers.id.desc(),
-                    )
-                    .label("rn"),
-                )
-                .where(
-                    MchoiceAnswers.div_id == div_id,
-                    MchoiceAnswers.course_name == course_name,
-                    MchoiceAnswers.timestamp > start_time,
-                )
-                .subquery()
-            )
+    start_time_dt = st.replace(tzinfo=None)
 
-            query = select(subquery).where(subquery.c.rn == 1).limit(4000)
-            result = await session.execute(query)
-            rows = result.all()
+    try:
+        # Get the most recent answer for each student
+        rows = await fetch_recent_student_answers(div_id, course_name, start_time_dt)
 
         if not rows:
             return JSONResponse(content={"pct_correct": 0})
 
         total = len(rows)
-        correct = sum(1 for row in rows if row.correct == "T")
+        correct = sum(1 for sid, answer, is_correct in rows if is_correct == "T")
 
         pct_correct = round((correct / total * 100), 1) if total > 0 else 0
 
