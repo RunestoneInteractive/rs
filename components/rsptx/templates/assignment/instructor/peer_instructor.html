@@ -106,7 +106,7 @@ Peer Instruction - Instructor
                 {% for assignment in assignments %}
                 <tr>
                     <td>
-                        <a href="/assignment/instructor/peer/dashboard?assignment_id={{ assignment.id }}&next=Reset">
+                        <a href="/assignment/peer/instructor/dashboard?assignment_id={{ assignment.id }}&next=Reset">
                             {{ assignment.name }}
                         </a>
                     </td>
@@ -121,12 +121,12 @@ Peer Instruction - Instructor
                         </div>
                     </td>
                     <td>
-                        <a href="/assignment/instructor/peer/extra?assignment_id={{ assignment.id }}">
+                        <a href="/assignment/peer/instructor/extra?assignment_id={{ assignment.id }}">
                             {{ assignment.name }} - Extra Info
                         </a>
                     </td>
                     <td>
-                        <a href="/assignment/instructor/peer/review?assignment_id={{ assignment.id }}">
+                        <a href="/assignment/peer/instructor/review?assignment_id={{ assignment.id }}">
                             {{ assignment.name }} - Review
                         </a>
                     </td>
