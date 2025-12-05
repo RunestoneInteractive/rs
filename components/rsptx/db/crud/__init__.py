@@ -130,7 +130,15 @@ from .lti import (
     validate_user_credentials,
 )
 
-from .peer import fetch_last_useinfo_peergroup, get_peer_votes, did_send_messages
+from .peer import (
+    fetch_last_useinfo_peergroup,
+    get_peer_votes,
+    did_send_messages,
+    fetch_recent_student_answers,
+    fetch_student_answers_in_timerange,
+    count_distinct_student_answers,
+    count_peer_messages,
+)
 
 from .practice import (
     create_user_topic_practice,
@@ -344,6 +352,10 @@ __all__ += [
     "fetch_last_useinfo_peergroup",
     "get_peer_votes",
     "did_send_messages",
+    "fetch_recent_student_answers",
+    "fetch_student_answers_in_timerange",
+    "count_distinct_student_answers",
+    "count_peer_messages",
 ]
 
 # from .practice
