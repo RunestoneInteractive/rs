@@ -119,12 +119,15 @@ async def get_peer_dashboard(
 
     # Handle question navigation
     if next == "Reset":
+        rslogger.info("Resetting to first question")
         assignment.current_index = 0
-        await update_assignment(assignment)
+        await update_assignment(assignment, pi_update=True)
     elif next == "Next":
+        rslogger.info("Advancing to next question")
         new_idx = (assignment.current_index or 0) + 1
+        rslogger.info(f"New index: {new_idx}")
         assignment.current_index = new_idx
-        await update_assignment(assignment)
+        await update_assignment(assignment, pi_update=True)
 
     # Get all questions for this assignment
     questions_result = await fetch_assignment_questions(assignment_id)
@@ -370,6 +373,7 @@ async def get_peer_question(
     current_idx = (
         assignment.current_index if assignment.current_index is not None else 0
     )
+    rslogger.debug(f"Current index: {current_idx}, Questions count: {len(questions)}")
     if current_idx >= len(questions):
         current_idx = len(questions) - 1 if questions else 0
 
@@ -646,9 +650,7 @@ async def get_chart_data(
             if start_time2:
                 st = parse(start_time2)
                 start_time2 = st.replace(tzinfo=None)
-                subquery1 = subquery1.where(
-                    MchoiceAnswers.timestamp < start_time2
-                )
+                subquery1 = subquery1.where(MchoiceAnswers.timestamp < start_time2)
 
             subquery1 = subquery1.subquery()
             query1 = select(subquery1).where(subquery1.c.rn == 1).limit(4000)
@@ -919,7 +921,7 @@ async def set_assignment_visibility(
     # Update visibility
     assignment.visible = visible
     try:
-        await update_assignment(assignment)
+        await update_assignment(assignment, pi_update=True)
     except Exception as e:
         rslogger.error(f"Error updating assignment visibility: {e}")
         return JSONResponse(
