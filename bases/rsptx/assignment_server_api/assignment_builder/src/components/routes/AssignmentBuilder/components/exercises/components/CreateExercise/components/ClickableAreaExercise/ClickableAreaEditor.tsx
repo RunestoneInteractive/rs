@@ -29,6 +29,10 @@ import { ClickableAreaMark } from "./extensions/ClickableAreaMark";
 import { CustomCodeBlockPrism } from "./extensions/CustomCodeBlockPrism";
 import { CustomCode } from "./extensions/CustomCode";
 import { ClickableArea } from "./types";
+import { useTableColumnMenu } from "../../../TipTap/hooks/useTableColumnMenu";
+import { useTableRowMenu } from "../../../TipTap/hooks/useTableRowMenu";
+import { TableColumnMenu } from "../../../TipTap/components/TableColumnMenu";
+import { TableRowMenu } from "../../../TipTap/components/TableRowMenu";
 
 const customStyles = `
   .tippy-box {
@@ -165,7 +169,7 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
           if (node.type.name === "heading") {
             return `Heading ${node.attrs.level}`;
           }
-          return 'Press "/" for commands or select text to mark as correct/incorrect';
+          return 'Press "/" for commands';
         },
         includeChildren: true
       }),
@@ -199,6 +203,23 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
       extractClickableAreas(uEditor);
     }
   });
+
+  const {
+    columnMenuVisible,
+    columnMenuPosition,
+    columnMenuRef,
+    setColumnMenuVisible,
+    isLastColumn
+  } = useTableColumnMenu(editor);
+
+  const {
+    rowMenuVisible,
+    rowMenuPosition,
+    rowMenuRef,
+    currentRowElement,
+    setRowMenuVisible,
+    isLastRow
+  } = useTableRowMenu(editor);
 
   // Extract clickable areas from the document
   const extractClickableAreas = (ed: any) => {
@@ -268,29 +289,6 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
         extractClickableAreas(editor);
       }
     }, 100);
-  };
-
-  const handleRemoveArea = (areaId: string) => {
-    if (!editor) return;
-
-    const { state } = editor;
-    const { tr } = state;
-    let modified = false;
-
-    state.doc.descendants((node: any, pos: number) => {
-      if (node.marks) {
-        node.marks.forEach((mark: any) => {
-          if (mark.type.name === "clickableAreaMark" && mark.attrs.id === areaId) {
-            tr.removeMark(pos, pos + node.nodeSize, mark.type);
-            modified = true;
-          }
-        });
-      }
-    });
-
-    if (modified) {
-      editor.view.dispatch(tr);
-    }
   };
 
   if (!editor) {
@@ -388,6 +386,34 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
         </BubbleMenu>
 
         <EditorContent editor={editor} className={styles.editor} />
+
+        <TableColumnMenu
+          editor={editor}
+          visible={columnMenuVisible}
+          position={columnMenuPosition}
+          menuRef={columnMenuRef}
+          isLastColumn={isLastColumn()}
+          onClose={() => setColumnMenuVisible(false)}
+          styles={{
+            columnMenu: styles.columnMenu,
+            columnMenuButton: styles.columnMenuButton
+          }}
+        />
+
+        <TableRowMenu
+          editor={editor}
+          visible={rowMenuVisible}
+          position={rowMenuPosition}
+          menuRef={rowMenuRef}
+          rowElement={currentRowElement}
+          isLastRow={isLastRow()}
+          onClose={() => setRowMenuVisible(false)}
+          styles={{
+            rowMenu: styles.rowMenu,
+            rowMenuButton: styles.rowMenuButton,
+            rowMenuTooltip: styles.rowMenuTooltip
+          }}
+        />
       </div>
 
       <div className={styles.contentSeparator}>

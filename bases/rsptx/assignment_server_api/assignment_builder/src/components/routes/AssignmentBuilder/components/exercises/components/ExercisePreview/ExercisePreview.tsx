@@ -30,6 +30,25 @@ export const ExercisePreview = ({
             .ptx-runestone-container .CodeMirror {
               height: auto !important;
             }
+            .ptx-runestone-container table {
+              border-collapse: collapse;
+              margin: 1rem 0;
+              width: 100%;
+              table-layout: fixed;
+            }
+            .ptx-runestone-container th,
+            .ptx-runestone-container td {
+              border: 1px solid #e2e8f0;
+              padding: 0.5rem;
+              position: relative;
+              vertical-align: top;
+              min-width: 100px;
+            }
+            .ptx-runestone-container th {
+              background: #f8fafc;
+              font-weight: 600;
+              text-align: left;
+            }
           `}
         </style>
         <div className="ptx-runestone-container relative flex justify-content-center w-full">

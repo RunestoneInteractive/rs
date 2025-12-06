@@ -27,6 +27,10 @@ import "katex/dist/katex.min.css";
 import styles from "./Editor.module.css";
 import { Command, items } from "./SlashCommands";
 import { TipTapDocModal, useTipTapDocModal } from "./TipTapDocModal";
+import { useTableColumnMenu } from "./hooks/useTableColumnMenu";
+import { useTableRowMenu } from "./hooks/useTableRowMenu";
+import { TableColumnMenu } from "./components/TableColumnMenu";
+import { TableRowMenu } from "./components/TableRowMenu";
 
 const customStyles = `
   .tippy-box {
@@ -213,6 +217,23 @@ export const Editor = ({
     }
   });
 
+  const {
+    columnMenuVisible,
+    columnMenuPosition,
+    columnMenuRef,
+    setColumnMenuVisible,
+    isLastColumn
+  } = useTableColumnMenu(editor);
+
+  const {
+    rowMenuVisible,
+    rowMenuPosition,
+    rowMenuRef,
+    currentRowElement,
+    setRowMenuVisible,
+    isLastRow
+  } = useTableRowMenu(editor);
+
   if (!editor) {
     return null;
   }
@@ -305,6 +326,25 @@ export const Editor = ({
       </BubbleMenu>
 
       <EditorContent editor={editor} className={styles.editor} />
+
+      <TableColumnMenu
+        editor={editor}
+        visible={columnMenuVisible}
+        position={columnMenuPosition}
+        menuRef={columnMenuRef}
+        isLastColumn={isLastColumn()}
+        onClose={() => setColumnMenuVisible(false)}
+      />
+
+      <TableRowMenu
+        editor={editor}
+        visible={rowMenuVisible}
+        position={rowMenuPosition}
+        menuRef={rowMenuRef}
+        rowElement={currentRowElement}
+        isLastRow={isLastRow()}
+        onClose={() => setRowMenuVisible(false)}
+      />
 
       <TipTapDocModal visible={visible} onHide={hideModal} />
     </div>
