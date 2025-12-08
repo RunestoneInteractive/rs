@@ -1,8 +1,9 @@
 import { Button } from "primereact/button";
 import { Steps } from "primereact/steps";
-import { ReactNode, useMemo, createContext, useContext } from "react";
+import { ReactNode, useMemo, createContext, useContext, useRef } from "react";
 
 import { ExerciseStepWrapper } from "@/components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/shared/ExerciseStepWrapper";
+import { useFullscreen } from "@/hooks/useFullscreen";
 
 import { getStepConfig } from "../config/stepConfigs";
 import { ValidationState } from "../hooks/useStepValidation";
@@ -55,6 +56,10 @@ export const ExerciseLayout = ({
   children,
   validation
 }: ExerciseLayoutProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { isFullscreen, toggleFullscreen, exitFullscreen, isSupported } =
+    useFullscreen(containerRef);
+
   const currentStepConfig = useMemo(
     () => getStepConfig(exerciseType, activeStep),
     [exerciseType, activeStep]
@@ -67,13 +72,37 @@ export const ExerciseLayout = ({
     [validation]
   );
 
+  const handleCancel = () => {
+    if (isFullscreen) {
+      exitFullscreen();
+    }
+    onCancel();
+  };
+
+  const handleSave = () => {
+    if (isFullscreen) {
+      exitFullscreen();
+    }
+    onSave();
+  };
+
   return (
     <ValidationContext.Provider value={validationContextValue}>
-      <div className={styles.container}>
+      <div id="exercise-layout" className={styles.container} ref={containerRef}>
         <div className={styles.header}>
           <h2>{isEdit ? `Edit ${title}` : `Create ${title}`}</h2>
           <div className={styles.headerButtons}>
-            <Button label="Cancel" icon="pi pi-times" severity="secondary" onClick={onCancel} />
+            {isSupported && (
+              <Button
+                icon={isFullscreen ? "pi pi-times" : "pi pi-window-maximize"}
+                severity="secondary"
+                text
+                onClick={toggleFullscreen}
+                tooltip={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                tooltipOptions={{ position: "bottom" }}
+              />
+            )}
+            <Button label="Cancel" icon="pi pi-times" severity="secondary" onClick={handleCancel} />
             {activeStep > 0 && (
               <Button label="Back" icon="pi pi-chevron-left" text onClick={onBack} />
             )}
@@ -81,7 +110,7 @@ export const ExerciseLayout = ({
               <Button
                 label="Save"
                 icon="pi pi-save"
-                onClick={onSave}
+                onClick={handleSave}
                 disabled={isSaving}
                 loading={isSaving}
               />
