@@ -34,6 +34,7 @@ from rsptx.db.crud import (
     fetch_student_answers_in_timerange,
     count_distinct_student_answers,
     count_peer_messages,
+    fetch_last_useinfo_peergroup,
 )
 from rsptx.db.models import UseinfoValidation
 from rsptx.auth.session import auth_manager
@@ -486,8 +487,11 @@ async def make_pairs(
     user=Depends(auth_manager),
     course=None,
 ):
-    """
-    Create student pairs/groups for peer instruction based on their answers.
+    """Create student pairs/groups for peer instruction based on their answers.
+
+    When ``is_ab`` is true, split students into in-person groups (based on prior
+    ``peergroup`` useinfo events) and chat groups to support A/B experimentation,
+    mimicking the legacy web2py behavior.
     """
     import os
     import redis
@@ -501,10 +505,10 @@ async def make_pairs(
 
         # Get student answers from the database
         st = parse(start_time)
-        start_time = st.replace(tzinfo=None)
+        start_time_dt = st.replace(tzinfo=None)
 
         rows = await fetch_recent_student_answers(
-            div_id, course.course_name, start_time
+            div_id, course.course_name, start_time_dt
         )
 
         # Create a dictionary of student answers
@@ -515,51 +519,136 @@ async def make_pairs(
         if user.username in peeps:
             peeps.remove(user.username)
 
-        # Shuffle the list
+        # Shuffle the list of students
         random.shuffle(peeps)
 
-        # Create groups
-        group_list = []
+        group_list: list[list[str]] = []
+        in_person_groups: list[set[str]] = []
+        peeps_in_person: list[str] = []
 
-        while peeps:
-            # Start a new group
+        # A/B logic: split into in-person vs chat groups using prior peergroup info
+        if is_ab:
+            # Build in-person groups from last peergroup entries
+            useinfos = await fetch_last_useinfo_peergroup(course.course_name)
+            in_person_groups = []
+            for u in useinfos:
+                # act format peergroup:student1,student2,...
+                try:
+                    _, members = u.act.split(":", 1)
+                    grp = set(members.split(","))
+                    if u.sid not in grp:
+                        grp.add(u.sid)
+                    in_person_groups.append(grp)
+                except Exception:  # defensive; malformed rows shouldn't break pairing
+                    continue
+
+            def find_set_containing_string(
+                list_of_sets: list[set[str]], target: str
+            ) -> set[str]:
+                result: set[str] = set()
+                for s in list_of_sets:
+                    if target in s:
+                        result |= s
+                return result
+
+            def process_peep(
+                sid: str,
+                remaining: list[str],
+                target_list: list[str],
+                other_list: list[str],
+                local_groups: list[set[str]],
+                mode: str,
+            ) -> None:
+                target_list.append(sid)
+                if sid in remaining:
+                    remaining.remove(sid)
+                other_peeps = find_set_containing_string(local_groups, sid)
+                # If no other peeps then this person must be put into a chat group,
+                # not an in-person group.
+                if not other_peeps and mode == "in_person":
+                    other_list.append(sid)
+                    return
+                for op in other_peeps:
+                    if op in remaining:
+                        remaining.remove(op)
+                    if op not in target_list:
+                        target_list.append(op)
+
+            peeps_in_chat: list[str] = []
+            peep_queue = [p for p in peeps if p in sid_ans]
+            while peep_queue:
+                p = peep_queue.pop()
+                if p in peeps_in_person or p in peeps_in_chat:
+                    continue
+                if random.random() < 0.5:
+                    rslogger.debug(f"Adding {p} to the in_person list")
+                    process_peep(
+                        p,
+                        peeps,
+                        peeps_in_person,
+                        peeps_in_chat,
+                        in_person_groups,
+                        "in_person",
+                    )
+                else:
+                    process_peep(
+                        p,
+                        peeps,
+                        peeps_in_chat,
+                        peeps_in_person,
+                        in_person_groups,
+                        "chat",
+                    )
+            # Need to ensure that chat peeps have answered the question
+            peeps = [p for p in peeps_in_chat if p in sid_ans]
+            rslogger.debug(f"FINAL PEEPS IN CHAT = {peeps}")
+            rslogger.debug(f"FINAL PEEPS IN PERSON = {peeps_in_person}")
+
+        # Chat pairing for the remaining students in `peeps`
+        done = len(peeps) == 0
+        while not done:
+            # Start a new group with one student
             group = [peeps.pop()]
 
-            # Try to add more students with different answers
-            for i in range(group_size - 1):
+            # Try to add more students to the group with different answers
+            for _ in range(group_size - 1):
                 if not peeps:
                     break
-
-                # Try to find someone with a different answer
                 first_answer = sid_ans.get(group[0])
-                partner_idx = 0
+                # Find a partner with a different answer if possible
+                partner_idx = None
                 for idx, p in enumerate(peeps):
                     if sid_ans.get(p) != first_answer:
                         partner_idx = idx
                         break
-
+                if partner_idx is None:
+                    partner_idx = 0
                 group.append(peeps.pop(partner_idx))
 
-            # If group has only one student, add to previous group
+            # If the group only has one student, add them to the previous group
             if len(group) == 1 and group_list:
                 group_list[-1].append(group[0])
             else:
                 group_list.append(group)
 
-        # Create partner dictionary
-        gdict = {}
+            # Stop if all students have been grouped
+            if len(peeps) == 0:
+                done = True
+
+        # Create partner dictionary for chat groups
+        gdict: dict[str, list[str]] = {}
         for group in group_list:
             for p in group:
                 partners = [partner for partner in group if partner != p]
                 gdict[p] = partners
 
-        # Save to Redis
+        # Save chat groups to Redis
         for k, v in gdict.items():
             r.hset(f"partnerdb_{course.course_name}", k, json.dumps(v))
 
         r.hset(f"{course.course_name}_state", "mess_count", "0")
 
-        # Broadcast partner information
+        # Broadcast partner information for chat (enableChat)
         for sid, answer in sid_ans.items():
             partners = gdict.get(sid, [])
             mess = {
@@ -575,7 +664,37 @@ async def make_pairs(
             }
             r.publish("peermessages", json.dumps(mess))
 
-        rslogger.info(f"Created {len(group_list)} groups")
+        # If doing A/B, also send face-chat groups based on in-person groups
+        if is_ab and peeps_in_person:
+            # Build a map of username -> full name for this course
+            from rsptx.db.crud import fetch_course_students
+
+            students = await fetch_course_students(course.id)
+            peeps_dict = {
+                s.username: f"{getattr(s, 'first_name', '')} {getattr(s, 'last_name', '')}".strip()
+                for s in students
+            }
+
+            for p in peeps_in_person:
+                pgroup: set[str] = set()
+                for grp in in_person_groups:
+                    if p in grp:
+                        pgroup = grp
+                        break
+                # Convert usernames to display names when possible
+                display_group = [peeps_dict.get(x, x) for x in pgroup]
+                mess = {
+                    "type": "control",
+                    "from": p,
+                    "to": p,
+                    "message": "enableFaceChat",
+                    "broadcast": False,
+                    "group": display_group,
+                    "course_name": course.course_name,
+                }
+                r.publish("peermessages", json.dumps(mess))
+
+        rslogger.info(f"Created {len(group_list)} chat groups (is_ab={is_ab})")
         return JSONResponse(content={"status": "success", "groups": len(group_list)})
 
     except Exception as e:
