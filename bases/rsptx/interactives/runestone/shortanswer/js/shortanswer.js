@@ -26,17 +26,17 @@ export default class ShortAnswer extends RunestoneBase {
             this.question = this.origElem.innerHTML;
             this.optional = false;
             this.attachURL = opts.attachURL;
-            if ($(this.origElem).is("[data-optional]")) {
+            if (this.origElem.hasAttribute("data-optional")) {
                 this.optional = true;
             }
-            if ($(this.origElem).is("[data-mathjax]")) {
+            if (this.origElem.hasAttribute("data-mathjax")) {
                 this.mathjax = true;
             }
-            if ($(this.origElem).is("[data-attachment]")) {
+            if (this.origElem.hasAttribute("data-attachment")) {
                 this.attachment = true;
             }
             this.placeholder =
-                $(this.origElem).data("placeholder") ||
+                this.origElem.getAttribute("data-placeholder") ||
                 "Write your answer here";
             this.renderHTML();
             this.caption = "shortanswer";
@@ -54,7 +54,7 @@ export default class ShortAnswer extends RunestoneBase {
     renderHTML() {
         this.containerDiv = document.createElement("div");
         this.containerDiv.id = this.divid;
-        $(this.containerDiv).addClass(this.origElem.getAttribute("class"));
+        this.containerDiv.classList.add(...(this.origElem.getAttribute("class") || "").split(" ").filter(Boolean));
         this.newForm = document.createElement("form");
         this.newForm.id = this.divid + "_journal";
         this.newForm.name = this.newForm.id;
@@ -64,13 +64,13 @@ export default class ShortAnswer extends RunestoneBase {
         this.newForm.appendChild(this.fieldSet);
         this.firstLegendDiv = document.createElement("div");
         this.firstLegendDiv.innerHTML = this.question;
-        $(this.firstLegendDiv).addClass("journal-question");
+        this.firstLegendDiv.classList.add("journal-question");
         this.fieldSet.appendChild(this.firstLegendDiv);
         this.jInputDiv = document.createElement("div");
         this.jInputDiv.id = this.divid + "_journal_input";
         this.fieldSet.appendChild(this.jInputDiv);
         this.jOptionsDiv = document.createElement("div");
-        $(this.jOptionsDiv).addClass("journal-options");
+        this.jOptionsDiv.classList.add("journal-options");
         this.jInputDiv.appendChild(this.jOptionsDiv);
         this.jTextArea = document.createElement("textarea");
         let self = this;
@@ -78,10 +78,11 @@ export default class ShortAnswer extends RunestoneBase {
             self.isAnswered = true;
         };
         this.jTextArea.id = this.divid + "_solution";
-        $(this.jTextArea).attr("aria-label", "textarea");
+        this.jTextArea.setAttribute("aria-label", "textarea");
         this.jTextArea.placeholder = this.placeholder;
-        $(this.jTextArea).css("display:inline, width:530px");
-        $(this.jTextArea).addClass("form-control");
+        this.jTextArea.style.display = "inline";
+        this.jTextArea.style.width = "530px";
+        this.jTextArea.classList.add("form-control");
         this.jTextArea.rows = 4;
         this.jTextArea.cols = 50;
         this.jOptionsDiv.appendChild(this.jTextArea);
@@ -92,14 +93,14 @@ export default class ShortAnswer extends RunestoneBase {
             } else {
                 this.feedbackDiv.innerHTML = "Your answer has not been saved yet!";
             }
-            $(this.feedbackDiv).removeClass("alert-success");
-            $(this.feedbackDiv).addClass("alert alert-danger");
+            this.feedbackDiv.classList.remove("alert-success");
+            this.feedbackDiv.classList.add("alert", "alert-danger");
         }.bind(this);
 
         this.buttonDiv = document.createElement("div");
         this.fieldSet.appendChild(this.buttonDiv);
         this.submitButton = document.createElement("button");
-        $(this.submitButton).addClass("btn btn-success");
+        this.submitButton.classList.add("btn", "btn-success");
         this.submitButton.type = "button";
         this.submitButton.textContent = "Save";
         this.submitButton.onclick = function () {
@@ -127,18 +128,16 @@ export default class ShortAnswer extends RunestoneBase {
         this.randomSpan.innerHTML = "Instructor's Feedback";
         this.fieldSet.appendChild(this.randomSpan);
         this.otherOptionsDiv = document.createElement("div");
-        $(this.otherOptionsDiv).css("padding-left:20px");
-        $(this.otherOptionsDiv).addClass("journal-options");
+        this.otherOptionsDiv.style.paddingLeft = "20px";
+        this.otherOptionsDiv.classList.add("journal-options");
         this.fieldSet.appendChild(this.otherOptionsDiv);
         // add a feedback div to give user feedback
         this.feedbackDiv = document.createElement("div");
-        //$(this.feedbackDiv).addClass("bg-info form-control");
-        //$(this.feedbackDiv).css("width:530px, background-color:#eee, font-style:italic");
-        $(this.feedbackDiv).css("width:530px, font-style:italic");
+        this.feedbackDiv.style.width = "530px";
+        this.feedbackDiv.style.fontStyle = "italic";
         this.feedbackDiv.id = this.divid + "_feedback";
         this.feedbackDiv.innerHTML = "You have not answered this question yet.";
-        $(this.feedbackDiv).addClass("alert alert-danger");
-        //this.otherOptionsDiv.appendChild(this.feedbackDiv);
+        this.feedbackDiv.classList.add("alert", "alert-danger");
         this.fieldSet.appendChild(this.feedbackDiv);
         if (this.attachment) {
             let attachDiv = document.createElement("div")
@@ -159,8 +158,7 @@ export default class ShortAnswer extends RunestoneBase {
             }
             this.containerDiv.appendChild(attachDiv);
         }
-        //this.fieldSet.appendChild(document.createElement("br"));
-        $(this.origElem).replaceWith(this.containerDiv);
+        this.origElem.replaceWith(this.containerDiv);
         // This is a stopgap measure for when MathJax is not loaded at all.  There is another
         // more difficult case that when MathJax is loaded asynchronously we will get here
         // before MathJax is loaded.  In that case we will need to implement something
@@ -174,8 +172,8 @@ export default class ShortAnswer extends RunestoneBase {
         if (this.mathjax) {
             value = value.replace(/\$\$(.*?)\$\$/g, "\\[ $1 \\]");
             value = value.replace(/\$(.*?)\$/g, "\\( $1 \\)");
-            value = value.replace(/\n/g, "<br/>"); // add line breaks
-            $(this.renderedAnswer).html(value);
+            value = value.replace(/\n/g, "<br/>");
+            this.renderedAnswer.innerHTML = value;
             
             this.renderedAnswer.style.display = "block";
             this.renderedAnswerLabel.style.display = "block";
@@ -184,7 +182,7 @@ export default class ShortAnswer extends RunestoneBase {
     }
 
     async checkCurrentAnswer() {
-        let value = $(document.getElementById(this.divid + "_solution")).val();
+        let value = document.getElementById(this.divid + "_solution").value;
         this.renderMath(value);
         this.setLocalStorage({
             answer: value,
@@ -193,7 +191,7 @@ export default class ShortAnswer extends RunestoneBase {
     }
 
     async logCurrentAnswer(sid) {
-        let value = $(document.getElementById(this.divid + "_solution")).val();
+        let value = document.getElementById(this.divid + "_solution").value;
         this.renderMath(value);
         this.setLocalStorage({
             answer: value,
@@ -216,8 +214,8 @@ export default class ShortAnswer extends RunestoneBase {
 
     renderFeedback() {
         this.feedbackDiv.innerHTML = "Your answer has been saved.";
-        $(this.feedbackDiv).removeClass("alert-danger");
-        $(this.feedbackDiv).addClass("alert alert-success");
+        this.feedbackDiv.classList.remove("alert-danger");
+        this.feedbackDiv.classList.add("alert", "alert-success");
     }
     setLocalStorage(data) {
         if (!this.graderactive) {
@@ -245,13 +243,15 @@ export default class ShortAnswer extends RunestoneBase {
                     localStorage.removeItem(this.localStorageKey());
                     return;
                 }
-                let solution = $("#" + this.divid + "_solution");
-                solution.text(answer);
+                let solution = document.getElementById(this.divid + "_solution");
+                if (solution) {
+                    solution.value = answer;
+                }
                 this.renderMath(answer);
                 this.feedbackDiv.innerHTML =
                     "Your current saved answer is shown above.";
-                $(this.feedbackDiv).removeClass("alert-danger");
-                $(this.feedbackDiv).addClass("alert alert-success");
+                this.feedbackDiv.classList.remove("alert-danger");
+                this.feedbackDiv.classList.add("alert", "alert-success");
             }
         }
     }
@@ -273,16 +273,17 @@ export default class ShortAnswer extends RunestoneBase {
         } else {
             tsString = "";
         }
-        $(p).text(tsString);
+        p.textContent = tsString;
         if (data.last_answer) {
             this.current_answer = "ontime";
             let toggle_answer_button = document.createElement("button");
             toggle_answer_button.type = "button";
-            $(toggle_answer_button).text("Show Late Answer");
-            $(toggle_answer_button).addClass("btn btn-warning");
-            $(toggle_answer_button).css("margin-left", "5px");
+            toggle_answer_button.textContent = "Show Late Answer";
+            toggle_answer_button.classList.add("btn", "btn-warning");
+            toggle_answer_button.style.marginLeft = "5px";
 
-            $(toggle_answer_button).click(
+            toggle_answer_button.addEventListener(
+                "click",
                 function () {
                     var display_timestamp, button_text;
                     if (this.current_answer === "ontime") {
@@ -301,8 +302,8 @@ export default class ShortAnswer extends RunestoneBase {
                         this.current_answer = "ontime";
                     }
                     this.renderMath(this.answer);
-                    $(p).text(`Submitted: ${display_timestamp}`);
-                    $(toggle_answer_button).text(button_text);
+                    p.textContent = `Submitted: ${display_timestamp}`;
+                    toggle_answer_button.textContent = button_text;
                 }.bind(this)
             );
 
@@ -317,8 +318,8 @@ export default class ShortAnswer extends RunestoneBase {
         }
         this.feedbackDiv.innerHTML = feedbackStr;
 
-        $(this.feedbackDiv).removeClass("alert-danger");
-        $(this.feedbackDiv).addClass("alert alert-success");
+        this.feedbackDiv.classList.remove("alert-danger");
+        this.feedbackDiv.classList.add("alert", "alert-success");
     }
 
     disableInteraction() {
@@ -415,17 +416,17 @@ export default class ShortAnswer extends RunestoneBase {
 == Find the custom HTML tags and ==
 ==   execute our code on them    ==
 =================================*/
-$(document).on("runestone:login-complete", function () {
-    $("[data-component=shortanswer]").each(function () {
-        if ($(this).closest("[data-component=timedAssessment]").length == 0) {
-            // If this element exists within a timed component, don't render it here
+document.addEventListener("runestone:login-complete", function () {
+    document.querySelectorAll("[data-component=shortanswer]").forEach(function (el) {
+        // If this element exists within a timed component, don't render it here
+        if (!el.closest("[data-component=timedAssessment]")) {
             try {
-                window.componentMap[this.id] = new ShortAnswer({
-                    orig: this,
+                window.componentMap[el.id] = new ShortAnswer({
+                    orig: el,
                     useRunestoneServices: eBookConfig.useRunestoneServices,
                 });
             } catch (err) {
-                console.log(`Error rendering ShortAnswer Problem ${this.id}
+                console.log(`Error rendering ShortAnswer Problem ${el.id}
                 Details: ${err}`);
             }
         }
