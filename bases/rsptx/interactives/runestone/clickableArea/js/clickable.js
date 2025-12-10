@@ -56,6 +56,7 @@ export default class ClickableArea extends RunestoneBase {
             const node = this.origElem.childNodes[i];
             if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("data-question")) {
                 this.question = node;
+                this.question.classList.add("exercise-statement");
                 break;
             }
         }
@@ -91,6 +92,7 @@ export default class ClickableArea extends RunestoneBase {
             newContent = newContent.slice(1);
         }
         this.newDiv.innerHTML = newContent;
+        this.newDiv.classList.add("exercise-content");
         this.containerDiv.appendChild(this.newDiv);
         this.createButtons();
         this.createFeedbackDiv();
