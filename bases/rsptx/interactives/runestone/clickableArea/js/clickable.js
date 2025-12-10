@@ -25,14 +25,14 @@ export default class ClickableArea extends RunestoneBase {
         this.incorrectArray = []; // holds IDs of all incorrect clickable span elements, used for eval
         //For use with Sphinx-rendered html
         this.isTable = false;
-        if ($(this.origElem).data("cc") !== undefined) {
-            if ($(this.origElem).is("[data-table]")) {
+        if (this.origElem.getAttribute("data-cc") !== null) {
+            if (this.origElem.hasAttribute("data-table")) {
                 this.isTable = true;
-                this.ccArray = $(this.origElem).data("cc").split(";");
-                this.ciArray = $(this.origElem).data("ci").split(";");
+                this.ccArray = this.origElem.getAttribute("data-cc").split(";");
+                this.ciArray = this.origElem.getAttribute("data-ci").split(";");
             } else {
-                this.ccArray = $(this.origElem).data("cc").split(",");
-                this.ciArray = $(this.origElem).data("ci").split(",");
+                this.ccArray = this.origElem.getAttribute("data-cc").split(",");
+                this.ciArray = this.origElem.getAttribute("data-ci").split(",");
             }
         }
         // For use in the recursive replace function
@@ -53,8 +53,9 @@ export default class ClickableArea extends RunestoneBase {
     ===========================*/
     getQuestion() {
         for (var i = 0; i < this.origElem.childNodes.length; i++) {
-            if ($(this.origElem.childNodes[i]).is("[data-question]")) {
-                this.question = this.origElem.childNodes[i];
+            const node = this.origElem.childNodes[i];
+            if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("data-question")) {
+                this.question = node;
                 break;
             }
         }
@@ -62,13 +63,13 @@ export default class ClickableArea extends RunestoneBase {
     getFeedback() {
         this.feedback = "";
         for (var i = 0; i < this.origElem.childNodes.length; i++) {
-            if ($(this.origElem.childNodes[i]).is("[data-feedback]")) {
-                this.feedback = this.origElem.childNodes[i];
+            const node = this.origElem.childNodes[i];
+            if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("data-feedback")) {
+                this.feedback = node;
             }
         }
         if (this.feedback !== "") {
-            // Get the feedback element out of the container if the user has defined feedback
-            $(this.feedback).remove();
+            this.feedback.remove();
             this.feedback = this.feedback.innerHTML;
         }
     }
@@ -80,9 +81,12 @@ export default class ClickableArea extends RunestoneBase {
         this.containerDiv = document.createElement("div");
         this.containerDiv.id = this.origElem.id;
         this.containerDiv.appendChild(this.question);
-        $(this.containerDiv).addClass(this.origElem.getAttribute("class"));
+        const origClass = this.origElem.getAttribute("class");
+        if (origClass) {
+            this.containerDiv.classList.add(...origClass.split(" ").filter(Boolean));
+        }
         this.newDiv = document.createElement("div");
-        var newContent = $(this.origElem).html();
+        var newContent = this.origElem.innerHTML;
         while (newContent[0] === "\n") {
             newContent = newContent.slice(1);
         }
@@ -90,16 +94,14 @@ export default class ClickableArea extends RunestoneBase {
         this.containerDiv.appendChild(this.newDiv);
         this.createButtons();
         this.createFeedbackDiv();
-        $(this.origElem).replaceWith(this.containerDiv);
+        this.origElem.replaceWith(this.containerDiv);
     }
     createButtons() {
         this.submitButton = document.createElement("button"); // Check me button
         this.submitButton.textContent = "Check Me";
-        $(this.submitButton).attr({
-            class: "btn btn-success",
-            name: "do answer",
-            type: "button",
-        });
+        this.submitButton.className = "btn btn-success";
+        this.submitButton.name = "do answer";
+        this.submitButton.type = "button";
         this.submitButton.onclick = function () {
             this.checkCurrentAnswer();
             this.logCurrentAnswer();
@@ -163,11 +165,7 @@ export default class ClickableArea extends RunestoneBase {
                     // log answer to server
                     this.givenIndexArray = [];
                     for (var i = 0; i < this.clickableArray.length; i++) {
-                        if (
-                            $(this.clickableArray[i]).hasClass(
-                                "clickable-clicked"
-                            )
-                        ) {
+                        if (this.clickableArray[i].classList.contains("clickable-clicked")) {
                             this.givenIndexArray.push(i);
                         }
                     }
@@ -192,7 +190,7 @@ export default class ClickableArea extends RunestoneBase {
         } else {
             this.givenIndexArray = [];
             for (var i = 0; i < this.clickableArray.length; i++) {
-                if ($(this.clickableArray[i]).hasClass("clickable-clicked")) {
+                if (this.clickableArray[i].classList.contains("clickable-clicked")) {
                     this.givenIndexArray.push(i);
                 }
             }
@@ -216,21 +214,22 @@ export default class ClickableArea extends RunestoneBase {
     modifyClickables(childNodes) {
         // Strips the data-correct/data-incorrect labels and updates the correct/incorrect arrays
         for (var i = 0; i < childNodes.length; i++) {
+            const node = childNodes[i];
             if (
-                $(childNodes[i]).is("[data-correct]") ||
-                $(childNodes[i]).is("[data-incorrect]")
+                node.nodeType === Node.ELEMENT_NODE &&
+                (node.hasAttribute("data-correct") || node.hasAttribute("data-incorrect"))
             ) {
-                this.manageNewClickable(childNodes[i]);
-                if ($(childNodes[i]).is("[data-correct]")) {
-                    $(childNodes[i]).removeAttr("data-correct");
-                    this.correctArray.push(childNodes[i]);
+                this.manageNewClickable(node);
+                if (node.hasAttribute("data-correct")) {
+                    node.removeAttribute("data-correct");
+                    this.correctArray.push(node);
                 } else {
-                    $(childNodes[i]).removeAttr("data-incorrect");
-                    this.incorrectArray.push(childNodes[i]);
+                    node.removeAttribute("data-incorrect");
+                    this.incorrectArray.push(node);
                 }
             }
-            if (childNodes[i].childNodes.length !== 0) {
-                this.modifyClickables(childNodes[i].childNodes);
+            if (node.childNodes && node.childNodes.length !== 0) {
+                this.modifyClickables(node.childNodes);
             }
         }
     }
@@ -345,14 +344,14 @@ export default class ClickableArea extends RunestoneBase {
     }
     manageNewClickable(clickable) {
         // adds the "clickable" functionality
-        $(clickable).addClass("clickable");
+        clickable.classList.add("clickable");
         if (this.hasStoredAnswers) {
             // Check if the element we're about to append to the pre was in local storage as clicked via its index
             if (
                 this.clickedIndexArray[this.clickIndex].toString() ===
                 this.clickableCounter.toString()
             ) {
-                $(clickable).addClass("clickable-clicked");
+                clickable.classList.add("clickable-clicked");
                 this.clickIndex++;
                 if (this.clickIndex === this.clickedIndexArray.length) {
                     // Stop doing this if the index array is used up
@@ -363,11 +362,11 @@ export default class ClickableArea extends RunestoneBase {
         let self = this;
         clickable.onclick = function () {
             self.isAnswered = true;
-            if ($(this).hasClass("clickable-clicked")) {
-                $(this).removeClass("clickable-clicked");
-                $(this).removeClass("clickable-incorrect");
+            if (this.classList.contains("clickable-clicked")) {
+                this.classList.remove("clickable-clicked");
+                this.classList.remove("clickable-incorrect");
             } else {
-                $(this).addClass("clickable-clicked");
+                this.classList.add("clickable-clicked");
             }
         };
         this.clickableArray.push(clickable);
@@ -382,18 +381,18 @@ export default class ClickableArea extends RunestoneBase {
         this.correctNum = 0;
         this.incorrectNum = 0;
         for (let i = 0; i < this.correctArray.length; i++) {
-            if (!$(this.correctArray[i]).hasClass("clickable-clicked")) {
+            if (!this.correctArray[i].classList.contains("clickable-clicked")) {
                 this.correct = false;
             } else {
                 this.correctNum++;
             }
         }
         for (let i = 0; i < this.incorrectArray.length; i++) {
-            if ($(this.incorrectArray[i]).hasClass("clickable-clicked")) {
+            if (this.incorrectArray[i].classList.contains("clickable-clicked")) {
                 this.correct = false;
                 this.incorrectNum++;
             } else {
-                $(this.incorrectArray[i]).removeClass("clickable-incorrect");
+                this.incorrectArray[i].classList.remove("clickable-incorrect");
             }
         }
         this.percent =
@@ -419,37 +418,34 @@ export default class ClickableArea extends RunestoneBase {
 
     renderFeedback() {
         if (this.correct) {
-            $(this.feedBackDiv).html("You are Correct!");
-            $(this.feedBackDiv).attr("class", "alert alert-info");
+            this.feedBackDiv.innerHTML = "You are Correct!";
+            this.feedBackDiv.className = "alert alert-info";
         } else {
             for (let i = 0; i < this.incorrectArray.length; i++) {
-                if ($(this.incorrectArray[i]).hasClass("clickable-clicked")) {
-                    $(this.incorrectArray[i]).addClass("clickable-incorrect");
+                if (this.incorrectArray[i].classList.contains("clickable-clicked")) {
+                    this.incorrectArray[i].classList.add("clickable-incorrect");
                 } else {
-                    $(this.incorrectArray[i]).removeClass(
-                        "clickable-incorrect"
-                    );
+                    this.incorrectArray[i].classList.remove("clickable-incorrect");
                 }
             }
-            $(this.feedBackDiv).html(
+            this.feedBackDiv.innerHTML =
                 "Incorrect. You clicked on " +
-                    this.correctNum +
-                    " of the " +
-                    this.correctArray.length.toString() +
-                    " correct elements and " +
-                    this.incorrectNum +
-                    " of the " +
-                    this.incorrectArray.length.toString() +
-                    " incorrect elements. " +
-                    this.feedback
-            );
-            $(this.feedBackDiv).attr("class", "alert alert-danger");
+                this.correctNum +
+                " of the " +
+                this.correctArray.length.toString() +
+                " correct elements and " +
+                this.incorrectNum +
+                " of the " +
+                this.incorrectArray.length.toString() +
+                " incorrect elements. " +
+                this.feedback;
+            this.feedBackDiv.className = "alert alert-danger";
         }
     }
 
     disableInteraction() {
         for (var i = 0; i < this.clickableArray.length; i++) {
-            $(this.clickableArray[i]).css("cursor", "initial");
+            this.clickableArray[i].style.cursor = "initial";
             this.clickableArray[i].onclick = function () {
                 return;
             };
@@ -461,17 +457,17 @@ export default class ClickableArea extends RunestoneBase {
 == Find the custom HTML tags and ==
 ==   execute our code on them    ==
 =================================*/
-$(document).on("runestone:login-complete", function () {
-    $("[data-component=clickablearea]").each(function (index) {
-        if ($(this).closest("[data-component=timedAssessment]").length == 0) {
+document.addEventListener("runestone:login-complete", function () {
+    document.querySelectorAll("[data-component=clickablearea]").forEach(function (el, index) {
+        if (!el.closest("[data-component=timedAssessment]")) {
             // If this element exists within a timed component, don't render it here
             try {
-                window.componentMap[this.id] = new ClickableArea({
-                    orig: this,
+                window.componentMap[el.id] = new ClickableArea({
+                    orig: el,
                     useRunestoneServices: eBookConfig.useRunestoneServices,
                 });
             } catch (err) {
-                console.log(`Error rendering ClickableArea Problem ${this.id}
+                console.log(`Error rendering ClickableArea Problem ${el.id}
                              Details: ${err}`);
             }
         }
