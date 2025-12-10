@@ -95,12 +95,7 @@ export default class ShortAnswer extends RunestoneBase {
             $(this.feedbackDiv).removeClass("alert-success");
             $(this.feedbackDiv).addClass("alert alert-danger");
         }.bind(this);
-        this.fieldSet.appendChild(document.createElement("br"));
-        if (this.mathjax) {
-            this.renderedAnswer = document.createElement("div");
-            $(this.renderedAnswer).addClass("latexoutput");
-            this.fieldSet.appendChild(this.renderedAnswer);
-        }
+
         this.buttonDiv = document.createElement("div");
         this.fieldSet.appendChild(this.buttonDiv);
         this.submitButton = document.createElement("button");
@@ -113,6 +108,21 @@ export default class ShortAnswer extends RunestoneBase {
             this.renderFeedback();
         }.bind(this);
         this.buttonDiv.appendChild(this.submitButton);
+
+        if (this.mathjax) {
+            this.renderedAnswerLabel = document.createElement("label");
+            this.renderedAnswerLabel.innerHTML = "Rendered Answer:";
+            this.renderedAnswerLabel.id = this.divid + "_rendered_answer_label";
+            this.renderedAnswerLabel.style.display = "none";
+            this.fieldSet.appendChild(this.renderedAnswerLabel);
+
+            this.renderedAnswer = document.createElement("div");
+            this.renderedAnswer.classList.add("latexoutput");
+            this.renderedAnswer.setAttribute('aria-labelledby', this.renderedAnswerLabel.id);
+            this.renderedAnswer.setAttribute('aria-live', "polite");
+            this.renderedAnswer.style.display = "none";
+            this.fieldSet.appendChild(this.renderedAnswer);
+        }
         this.randomSpan = document.createElement("span");
         this.randomSpan.innerHTML = "Instructor's Feedback";
         this.fieldSet.appendChild(this.randomSpan);
@@ -166,6 +176,9 @@ export default class ShortAnswer extends RunestoneBase {
             value = value.replace(/\$(.*?)\$/g, "\\( $1 \\)");
             value = value.replace(/\n/g, "<br/>"); // add line breaks
             $(this.renderedAnswer).html(value);
+            
+            this.renderedAnswer.style.display = "block";
+            this.renderedAnswerLabel.style.display = "block";
             this.queueMathJax(this.renderedAnswer);
         }
     }
