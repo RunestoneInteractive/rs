@@ -3,7 +3,7 @@ __author__ = Kirby Olson
 __date__ = 6/12/2015  */
 "use strict";
 
-import RunestoneBase from "../../common/js/runestonebase";
+import RunestoneBase from "../../common/js/runestonebase.js";
 import "../css/poll.css";
 
 
@@ -17,10 +17,10 @@ export default class Poll extends RunestoneBase {
         this.optionList = [];
         this.optsArray = [];
         this.comment = false;
-        if ($(this.origElem).is("[data-comment]")) {
+        if (this.origElem.hasAttribute("data-comment")) {
             this.comment = true;
         }
-        this.resultsViewer = $(orig).data("results");
+        this.resultsViewer = this.origElem.getAttribute("data-results");
         this.getQuestionText();
         this.getOptionText(); //populates optionList
         this.renderPoll(); //generates HTML
@@ -40,7 +40,7 @@ export default class Poll extends RunestoneBase {
             }
         }
         var delimiter = firstAnswer.outerHTML;
-        var fulltext = $(this.origElem).html();
+        var fulltext = this.origElem.innerHTML;
         var temp = fulltext.split(delimiter);
         this.question = temp[0];
     }
@@ -49,7 +49,7 @@ export default class Poll extends RunestoneBase {
         var _this = this;
         for (var i = 0; i < this.children.length; i++) {
             if (_this.children[i].tagName == "LI") {
-                _this.optionList.push($(_this.children[i]).html());
+                _this.optionList.push(_this.children[i].innerHTML);
             }
         }
     }
@@ -59,33 +59,30 @@ export default class Poll extends RunestoneBase {
         this.containerDiv = document.createElement("div");
         this.pollForm = document.createElement("form");
         this.resultsDiv = document.createElement("div");
-        $(this.resultsDiv).addClass("poll-results");
+        this.resultsDiv.classList.add("poll-results");
         this.containerDiv.id = this.divid;
-        $(this.containerDiv).addClass(this.origElem.getAttribute("class"));
-        $(this.pollForm).html(
-            `<span style='font-size: Large'>${this.question}</span>`
-        );
-        $(this.pollForm).attr({
-            id: this.divid + "_form",
-            method: "get",
-            action: "",
-            onsubmit: "return false;",
-        });
+        const origClass = this.origElem.getAttribute("class");
+        if (origClass) {
+            this.containerDiv.classList.add(...origClass.split(" ").filter(Boolean));
+        }
+        this.pollForm.innerHTML = `<span style='font-size: Large'>${this.question}</span>`;
+        this.pollForm.id = this.divid + "_form";
+        this.pollForm.method = "get";
+        this.pollForm.action = "";
+        this.pollForm.onsubmit = function () { return false; };
         this.pollForm.appendChild(document.createElement("br"));
         for (var i = 0; i < this.optionList.length; i++) {
             var radio = document.createElement("input");
             var tmpid = _this.divid + "_opt_" + i;
-            $(radio).attr({
-                id: tmpid,
-                name: this.divid + "_group1",
-                type: "radio",
-                value: i,
-            });
-            $(radio).click(this.submitPoll.bind(this));
+            radio.id = tmpid;
+            radio.name = this.divid + "_group1";
+            radio.type = "radio";
+            radio.value = i;
+            radio.addEventListener("click", this.submitPoll.bind(this));
             var label = document.createElement("div");
-            //$(label).attr("for", tmpid);
-            $(label).html(this.optionList[i]);
-            $(label).addClass("poll-option");
+            //label.setAttribute("for", tmpid);
+            label.innerHTML = this.optionList[i];
+            label.classList.add("poll-option");
             this.pollForm.appendChild(radio);
             this.optsArray.push(radio);
             this.pollForm.appendChild(label);
@@ -98,20 +95,20 @@ export default class Poll extends RunestoneBase {
         this.resultsDiv.id = this.divid + "_results";
         this.containerDiv.appendChild(this.pollForm);
         this.containerDiv.appendChild(this.resultsDiv);
-        $(this.origElem).replaceWith(this.containerDiv);
+        this.origElem.replaceWith(this.containerDiv);
         this.queueMathJax(this.containerDiv);
     }
     renderTextField() {
         this.textfield = document.createElement("input");
         this.textfield.type = "text";
-        $(this.textfield).addClass("form-control");
+        this.textfield.classList.add("form-control");
         this.textfield.style.width = "300px";
         this.textfield.name = this.divid + "_comment";
         this.textfield.placeholder = "Any comments?";
         this.pollForm.appendChild(this.textfield);
         this.pollForm.appendChild(document.createElement("br"));
     }
-    submitPoll() {
+    async submitPoll() {
         //checks the poll, sets localstorage and submits to the server
         var poll_val = null;
         for (var i = 0; i < this.optsArray.length; i++) {
@@ -141,28 +138,27 @@ export default class Poll extends RunestoneBase {
         let offlineUpdate = "Thanks, your answers are not recorded";
         localStorage.setItem(this.divid, "true");
         if (!document.getElementById(`${this.divid}_sent`)) {
-            $(this.pollForm).append(
-                `<span id=${this.divid}_sent><strong>
-                ${eBookConfig.useRunestoneServices ? onlineResponse : offlineResponse}</strong></span>`
-            );
+            const span = document.createElement("span");
+            span.id = `${this.divid}_sent`;
+            span.innerHTML = `<strong>${eBookConfig.useRunestoneServices ? onlineResponse : offlineResponse}</strong>`;
+            this.pollForm.appendChild(span);
         } else {
-            $(`#${this.divid}_sent`).html(
-                `<strong>
-                ${eBookConfig.useRunestoneServices ? onlineUpdate : offlineUpdate}
-                </strong>`
-            );
+            const sentEl = document.getElementById(`${this.divid}_sent`);
+            sentEl.innerHTML = `<strong>${eBookConfig.useRunestoneServices ? onlineUpdate : offlineUpdate}</strong>`;
         }
         // show the results of the poll
         if (this.resultsViewer === "all") {
             var data = {};
             data.div_id = this.divid;
             data.course = eBookConfig.course;
-            let showPollResults = this.showPollResults.bind(this);
-            jQuery.get(
-                `${eBookConfig.new_server_prefix}/assessment/getpollresults`,
-                data,
-                showPollResults
-            );
+            try {
+                const params = new URLSearchParams(data);
+                const resp = await fetch(`${eBookConfig.new_server_prefix}/assessment/getpollresults?${params.toString()}`);
+                const json = await resp.json();
+                this.showPollResults(json);
+            } catch (e) {
+                this.indicate_component_ready();
+            }
         }
     }
     showPollResults(results) {
@@ -174,7 +170,7 @@ export default class Poll extends RunestoneBase {
         var my_vote = results["my_vote"];
         // restore current users vote
         if (my_vote > -1) {
-            this.optsArray[my_vote].checked = "checked";
+            this.optsArray[my_vote].checked = true;
         }
         // show results summary if appropriate
         if (
@@ -182,11 +178,9 @@ export default class Poll extends RunestoneBase {
                 localStorage.getItem(this.divid) === "true") ||
             eBookConfig.isInstructor
         ) {
-            $(this.resultsDiv).html(
-                `<b>Results:</b> ${total} responses <br><br>`
-            );
-            var list = $(document.createElement("div"));
-            $(list).addClass("results-container");
+            this.resultsDiv.innerHTML = `<b>Results:</b> ${total} responses <br><br>`;
+            var list = document.createElement("div");
+            list.classList.add("results-container");
             for (var i = 0; i < this.optionList.length; i++) {
                 var count;
                 var percent;
@@ -198,10 +192,13 @@ export default class Poll extends RunestoneBase {
                     percent = 0;
                 }
                 var text = count + " (" + Math.round(10 * percent) / 10 + "%)"; // round percent to 10ths
-                var html;
+                let progressCounterEl = document.createElement("div");
+                progressCounterEl.className = "progresscounter";
+                progressCounterEl.innerText = `${i + 1}. `;
+                let progressBarEl = document.createElement("div");
+                let progressBarHTML = "";
                 if (percent > 10) {
-                    html =
-                        `<div class="progresscounter">${i + 1}. </div>` +
+                    progressBarHTML =
                         "<div class='progress'>" +
                         "<div class='progress-bar progress-bar-success'" +
                         `style="width: ${percent}%; min-width: 2em;">` +
@@ -209,8 +206,7 @@ export default class Poll extends RunestoneBase {
                         text +
                         "</span></div></div>";
                 } else {
-                    html =
-                        `<div class="progresscounter">${i + 1}. </div>` +
+                    progressBarHTML =
                         "<div class='progress'>" +
                         "<div class='progress-bar progress-bar-success'" +
                         `style="width: ${percent}%; min-width: 2em;"></div>` +
@@ -218,15 +214,16 @@ export default class Poll extends RunestoneBase {
                         text +
                         "</span></div>";
                 }
-                var el = $(html);
-                list.append(el);
+                progressBarEl.innerHTML = progressBarHTML;
+                list.appendChild(progressCounterEl);
+                list.appendChild(progressBarEl);
             }
-            $(this.resultsDiv).append(list);
+            this.resultsDiv.appendChild(list);
         }
         this.indicate_component_ready();
     }
     disableOptions() { }
-    checkPollStorage() {
+    async checkPollStorage() {
         //checks the localstorage to see if the poll has been completed already
         var _this = this;
         var len = localStorage.length;
@@ -235,13 +232,14 @@ export default class Poll extends RunestoneBase {
             var data = {};
             data.div_id = this.divid;
             data.course = eBookConfig.course;
-            jQuery
-                .get(
-                    `${eBookConfig.new_server_prefix}/assessment/getpollresults`,
-                    data,
-                    this.showPollResults.bind(this)
-                )
-                .fail(this.indicate_component_ready.bind(this));
+            try {
+                const params = new URLSearchParams(data);
+                const resp = await fetch(`${eBookConfig.new_server_prefix}/assessment/getpollresults?${params.toString()}`);
+                const json = await resp.json();
+                this.showPollResults(json);
+            } catch (e) {
+                this.indicate_component_ready();
+            }
         } else {
             this.indicate_component_ready();
         }
@@ -249,12 +247,12 @@ export default class Poll extends RunestoneBase {
 }
 
 // Do not render poll data until login-complete event so we know instructor status
-$(document).on("runestone:login-complete", function () {
-    $("[data-component=poll]").each(function (index) {
+document.addEventListener("runestone:login-complete", function () {
+    document.querySelectorAll("[data-component=poll]").forEach(function (el, index) {
         try {
-            window.componentMap[this.id] = new Poll({ orig: this });
+            window.componentMap[el.id] = new Poll({ orig: el });
         } catch (err) {
-            console.log(`Error rendering Poll Problem ${this.id}
+            console.log(`Error rendering Poll Problem ${el.id}
                          Details: ${err}`);
             console.log(err.stack);
         }
