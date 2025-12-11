@@ -1,5 +1,4 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
-import "../css/hparsons.css";
 import "../css/hljs-xcode.css";
 import BlockFeedback from "./BlockFeedback.js";
 import SQLFeedback from "./SQLFeedback.js";
@@ -11,6 +10,8 @@ import "micro-parsons/micro-parsons/micro-parsons.css";
 // copy everything from bin into the hparsons/js folder and build the components.
 /*import {InitMicroParsons} from './micro-parsons.js';
 import './micro-parsons.css';*/
+// last to override micro-parsons css if needed
+import "../css/hparsons.css";
 
 export var hpList;
 // Dictionary that contains all instances of horizontal Parsons problem objects
@@ -41,6 +42,8 @@ export default class HParsons extends RunestoneBase {
         this.storageId = storageId;
 
         this.origElem = orig;
+        let statementElem = opts.orig.querySelector(".hp_question");
+        if (statementElem) statementElem.classList.add("exercise-statement");
         this.origText = this.origElem.textContent;
         this.code = orig.textContent || "\n\n\n\n\n";
         this.dburl = orig.getAttribute("data-dburl");
@@ -63,8 +66,8 @@ export default class HParsons extends RunestoneBase {
 
         // creating UI components
         this.createEditor();
-        this.createOutput();
         this.createControls();
+        this.createOutput();
         this.feedbackController.customizeUI();
 
         if (orig.getAttribute("data-caption")) {
@@ -172,7 +175,7 @@ export default class HParsons extends RunestoneBase {
         };
         resetBtn.setAttribute("type", "button");
 
-        this.outerDiv.prepend(ctrlDiv);
+        this.outerDiv.appendChild(ctrlDiv);
         this.controlDiv = ctrlDiv;
     }
 
