@@ -244,6 +244,7 @@ export default class FITB extends RunestoneBase {
         this.containerDiv.id = this.divid;
         // Create another container which stores the problem description.
         this.descriptionDiv = document.createElement("div");
+        this.descriptionDiv.classList.add("exercise-statement");
         this.containerDiv.appendChild(this.descriptionDiv);
         // Copy the original elements to the container holding what the user will see (client-side grading only).
         if (this.problemHtml) {
@@ -254,9 +255,6 @@ export default class FITB extends RunestoneBase {
     }
 
     renderFITBButtons() {
-        this.containerDiv.appendChild(document.createElement("br"));
-        this.containerDiv.appendChild(document.createElement("br"));
-
         // "submit" button
         this.submitButton = document.createElement("button");
         this.submitButton.textContent = $.i18n("msg_fitb_check_me");
@@ -315,7 +313,7 @@ export default class FITB extends RunestoneBase {
         this.feedBackDiv.id = this.divid + "_feedback";
         this.feedBackDiv.setAttribute("aria-live", "polite");
         this.feedBackDiv.setAttribute("role", "alert");
-        this.containerDiv.appendChild(document.createElement("br"));
+        this.feedBackDiv.classList.add("fitb-feedback");
         this.containerDiv.appendChild(this.feedBackDiv);
     }
 
