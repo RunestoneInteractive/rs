@@ -144,8 +144,14 @@ export default class MultipleChoice extends RunestoneBase {
     renderMCContainer() {
         this.containerDiv = document.createElement("div");
         this.questionDiv = document.createElement("div");
-        this.questionDiv.innerHTML = this.question;
+        // this.question may be an element or text - need to handle both cases
+        if (typeof this.question === "string") {
+            this.questionDiv.innerHTML = this.question;
+        } else {
+            this.questionDiv.appendChild(this.question);
+        }
         this.questionDiv.id = this.divid + "_prompt";
+        this.questionDiv.className = "exercise-statement";
         this.containerDiv.appendChild(this.questionDiv);
         const origClass = this.origElem.getAttribute("class");
         if (origClass) {
@@ -205,6 +211,7 @@ export default class MultipleChoice extends RunestoneBase {
             var optid = this.divid + "_opt_" + k;
             // Create the label for the input
             var label = document.createElement("label");
+            label.className = "mchoice-option";
             // If the content begins with a ``<p>``, put the label inside of it. (Sphinx 2.0 puts all content in a ``<p>``, while Sphinx 1.8 doesn't).
             var content = this.answerList[k].content;
             var prefix = "";
@@ -213,7 +220,7 @@ export default class MultipleChoice extends RunestoneBase {
                 content = content.slice(3);
             }
             label.innerHTML =
-                `${prefix}<input type="${input_type}" name="group1" value="${k}" id="${optid}">` +
+                `${prefix}<input type="${input_type}" name="group1" value="${k}" id="${optid}" class="mchoice-input">` +
                 `${String.fromCharCode("A".charCodeAt(0) + j)}. ${content}`;
             // create the object to store in optionArray
             var inputEl = label.querySelector("input");
@@ -226,7 +233,6 @@ export default class MultipleChoice extends RunestoneBase {
             this.optionArray.push(optObj);
             // add the option to the form
             this.optsFieldSet.appendChild(label);
-            this.optsFieldSet.appendChild(document.createElement("br"));
         }
     }
 
@@ -281,7 +287,6 @@ export default class MultipleChoice extends RunestoneBase {
         this.feedBackDiv.id = this.divid + "_feedback";
         this.feedBackDiv.setAttribute("aria-live", "polite");
         this.feedBackDiv.setAttribute("role", "status");
-        this.containerDiv.appendChild(document.createElement("br"));
         this.containerDiv.appendChild(this.feedBackDiv);
     }
 
