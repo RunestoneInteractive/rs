@@ -20,17 +20,17 @@ export default class HParsons extends RunestoneBase {
     constructor(opts) {
         super(opts);
         // getting settings
-        var orig = $(opts.orig).find("textarea")[0];
-        this.reuse = $(orig).data("reuse") ? true : false;
-        this.randomize = $(orig).data("randomize") ? true : false;
-        this.isBlockGrading = $(orig).data("blockanswer") ? true : false;
-        this.language = $(orig).data("language");
+        var orig = opts.orig.querySelector("textarea");
+        this.reuse = orig.getAttribute("data-reuse") ? true : false;
+        this.randomize = orig.getAttribute("data-randomize") ? true : false;
+        this.isBlockGrading = orig.getAttribute("data-blockanswer") ? true : false;
+        this.language = orig.getAttribute("data-language");
         // Detect math mode
         if (this.language === undefined && orig.textContent.includes('span class="process-math"')) {
             this.language = "math";
         }
         if (this.isBlockGrading) {
-            this.blockAnswer = $(orig).data("blockanswer").split(" ");
+            this.blockAnswer = orig.getAttribute("data-blockanswer").split(" ");
         }
         this.divid = opts.orig.id;
         this.containerDiv = opts.orig;
@@ -42,8 +42,8 @@ export default class HParsons extends RunestoneBase {
 
         this.origElem = orig;
         this.origText = this.origElem.textContent;
-        this.code = $(orig).text() || "\n\n\n\n\n";
-        this.dburl = $(orig).data("dburl");
+        this.code = orig.textContent || "\n\n\n\n\n";
+        this.dburl = orig.getAttribute("data-dburl");
         this.runButton = null;
         this.saveButton = null;
         this.loadButton = null;
@@ -67,8 +67,8 @@ export default class HParsons extends RunestoneBase {
         this.createControls();
         this.feedbackController.customizeUI();
 
-        if ($(orig).data("caption")) {
-            this.caption = $(orig).data("caption");
+        if (orig.getAttribute("data-caption")) {
+            this.caption = orig.getAttribute("data-caption");
         } else {
             this.caption = "MicroParsons";
         }
@@ -105,7 +105,7 @@ export default class HParsons extends RunestoneBase {
     // copied from activecode, already modified to add parsons
     createEditor() {
         this.outerDiv = document.createElement("div");
-        $(this.origElem).replaceWith(this.outerDiv);
+        this.origElem.replaceWith(this.outerDiv);
         this.outerDiv.id = `${this.divid}-container`;
         this.outerDiv.addEventListener("micro-parsons", (ev) => {
             const eventListRunestone = ["input", "reset"];
@@ -125,7 +125,7 @@ export default class HParsons extends RunestoneBase {
             language: this.language,
         };
         InitMicroParsons(props);
-        this.hparsonsInput = $(this.outerDiv).find("micro-parsons")[0];
+        this.hparsonsInput = this.outerDiv.querySelector("micro-parsons");
         this.renderMathInBlocks();
         // Change "code" to "answer" in parsons direction for non-code languages
         if (this.language === undefined || this.language === "math") {
@@ -143,14 +143,14 @@ export default class HParsons extends RunestoneBase {
 
     createControls() {
         var ctrlDiv = document.createElement("div");
-        $(ctrlDiv).addClass("hp_actions");
+        ctrlDiv.classList.add("hp_actions");
 
         // Run Button
         this.runButton = document.createElement("button");
-        $(this.runButton).addClass("btn btn-success run-button");
+        this.runButton.classList.add("btn", "btn-success", "run-button");
         ctrlDiv.appendChild(this.runButton);
-        $(this.runButton).attr("type", "button");
-        $(this.runButton).text("Run");
+        this.runButton.setAttribute("type", "button");
+        this.runButton.textContent = "Run";
         var that = this;
         this.runButton.onclick = () => {
             that.feedbackController.runButtonHandler();
@@ -160,8 +160,8 @@ export default class HParsons extends RunestoneBase {
         // Reset button
         var resetBtn;
         resetBtn = document.createElement("button");
-        $(resetBtn).text("Reset");
-        $(resetBtn).addClass("btn btn-warning run-button");
+        resetBtn.textContent = "Reset";
+        resetBtn.classList.add("btn", "btn-warning", "run-button");
         ctrlDiv.appendChild(resetBtn);
         this.resetButton = resetBtn;
         this.resetButton.onclick = () => {
@@ -170,9 +170,9 @@ export default class HParsons extends RunestoneBase {
             that.feedbackController.reset();
             that.renderMathInBlocks();
         };
-        $(resetBtn).attr("type", "button");
+        resetBtn.setAttribute("type", "button");
 
-        $(this.outerDiv).prepend(ctrlDiv);
+        this.outerDiv.prepend(ctrlDiv);
         this.controlDiv = ctrlDiv;
     }
 
@@ -338,13 +338,13 @@ export default class HParsons extends RunestoneBase {
 == Find the custom HTML tags and ==
 ==   execute our code on them    ==
 =================================*/
-$(document).on("runestone:login-complete", function () {
-    $("[data-component=hparsons]").each(function () {
-        if ($(this).closest("[data-component=timedAssessment]").length == 0) {
+document.addEventListener("runestone:login-complete", function () {
+    document.querySelectorAll("[data-component=hparsons]").forEach(function (el) {
+        if (!el.closest("[data-component=timedAssessment]")) {
             // If this element exists within a timed component, don't render it here
             // try {
-            hpList[this.id] = new HParsons({
-                orig: this,
+            hpList[el.id] = new HParsons({
+                orig: el,
                 useRunestoneServices: eBookConfig.useRunestoneServices,
             });
             // } catch (err) {

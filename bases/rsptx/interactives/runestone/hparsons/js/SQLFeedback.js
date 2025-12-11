@@ -8,31 +8,31 @@ var allDburls = {};
 export default class SQLFeedback extends HParsonsFeedback {
     createOutput() {
         var outDiv = document.createElement("div");
-        $(outDiv).addClass("hp_output");
+        outDiv.classList.add("hp_output");
         this.outDiv = outDiv;
         this.output = document.createElement("pre");
         this.output.id = this.hparsons.divid + "_stdout";
-        $(this.output).css("visibility", "hidden");
+        this.output.style.visibility = "hidden";
         var clearDiv = document.createElement("div");
-        $(clearDiv).css("clear", "both"); // needed to make parent div resize properly
+        clearDiv.style.clear = "both"; // needed to make parent div resize properly
         this.hparsons.outerDiv.appendChild(clearDiv);
         outDiv.appendChild(this.output);
         this.hparsons.outerDiv.appendChild(outDiv);
         clearDiv = document.createElement("div");
-        $(clearDiv).css("clear", "both"); // needed to make parent div resize properly
+        clearDiv.style.clear = "both"; // needed to make parent div resize properly
         this.hparsons.outerDiv.appendChild(clearDiv);
     }
 
     renderFeedback() {
         if (this.testResult) {
-            $(this.output).text(this.testResult);
-            $(this.output).css("visibility", "visible");
+            this.output.textContent = this.testResult;
+            this.output.style.visibility = "visible";
         }
-        $(this.outDiv).show();
+        this.outDiv.style.display = "";
     }
 
     clearFeedback() {
-        $(this.outDiv).hide();
+        this.outDiv.style.display = "none";
     }
 
     reset() {
@@ -65,26 +65,30 @@ export default class SQLFeedback extends HParsonsFeedback {
                 if (self.dburl.startsWith("/_static")) {
                     self.dburl = `${bookprefix}${self.dburl}`;
                 }
-                $(self.runButton).attr("disabled", "disabled");
-                let buttonText = $(self.runButton).text();
-                $(self.runButton).text($.i18n("msg_activecode_load_db"));
+                self.runButton.setAttribute("disabled", "disabled");
+                let buttonText = self.runButton.textContent;
+                self.runButton.textContent = "Loading database...";
                 if (!(self.dburl in allDburls)) {
+                    let resolveFn;
+                    const promise = new Promise((resolve) => {
+                        resolveFn = resolve;
+                    });
                     allDburls[self.dburl] = {
                         status: "loading",
-                        xWaitFor: jQuery.Deferred(),
+                        xWaitFor: { promise, resolve: resolveFn },
                     };
                 } else {
                     if (allDburls[self.dburl].status == "loading") {
-                        allDburls[self.dburl].xWaitFor.done(function () {
+                        allDburls[self.dburl].xWaitFor.promise.then(function () {
                             self.db = allDburls[self.dburl].dbObject;
-                            $(self.runButton).removeAttr("disabled");
-                            $(self.runButton).text(buttonText);
+                            self.runButton.removeAttribute("disabled");
+                            self.runButton.textContent = buttonText;
                         });
                         return;
                     }
                     self.db = allDburls[self.dburl].dbObject;
-                    $(self.runButton).removeAttr("disabled");
-                    $(self.runButton).text(buttonText);
+                    self.runButton.removeAttribute("disabled");
+                    self.runButton.textContent = buttonText;
                     return;
                 }
                 var xhr = new XMLHttpRequest();
@@ -95,8 +99,8 @@ export default class SQLFeedback extends HParsonsFeedback {
                     var uInt8Array = new Uint8Array(xhr.response);
                     self.db = new SQL.Database(uInt8Array);
                     allDburls[self.dburl].dbObject = self.db;
-                    $(self.runButton).text(buttonText);
-                    $(self.runButton).removeAttr("disabled");
+                    self.runButton.textContent = buttonText;
+                    self.runButton.removeAttribute("disabled");
                     allDburls[self.dburl].db = uInt8Array;
                     allDburls[self.dburl].status = "ready";
                     allDburls[self.dburl].xWaitFor.resolve();
@@ -132,20 +136,19 @@ export default class SQLFeedback extends HParsonsFeedback {
         if (respDiv) {
             respDiv.parentElement.removeChild(respDiv);
         }
-        $(this.output).text("");
+        this.output.textContent = "";
         // creating new results div
         respDiv = document.createElement("div");
         respDiv.id = divid;
         this.outDiv.appendChild(respDiv);
         // show the output div
-        $(this.outDiv).show();
+        this.outDiv.style.display = "";
 
         // Run this query
         let query = await this.buildProg();
         if (!this.hparsons.db) {
-            $(this.output).text(
-                `Error: Database not initialized! DBURL: ${this.hparsons.dburl}`
-            );
+            this.output.textContent =
+                `Error: Database not initialized! DBURL: ${this.hparsons.dburl}`;
             return;
         }
 
@@ -225,10 +228,10 @@ export default class SQLFeedback extends HParsonsFeedback {
                 this.percent = NaN;
                 this.unit_results = `percent:${this.percent}:passed:${this.passed}:failed:${this.failed}`;
                 // Do not show unittest results if execution failed
-                $(this.output).css("visibility", "hidden");
+                this.output.style.visibility = "hidden";
             }
         } else {
-            $(this.output).css("visibility", "hidden");
+            this.output.style.visibility = "hidden";
         }
 
         return Promise.resolve("done");
