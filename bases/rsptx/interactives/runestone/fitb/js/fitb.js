@@ -94,7 +94,7 @@ export default class FITB extends RunestoneBase {
         //
         // A destructuring assignment would be perfect, but they don't work with ``this.blah`` and ``with`` statements aren't supported in strict mode.
         const json_element = this.scriptSelector(this.origElem);
-        const dict_ = JSON.parse(json_element.html());
+        const dict_ = JSON.parse(json_element.textContent);
         json_element.remove();
         // Check for older versions that have raw html content.
         if (dict_.problemHtml !== undefined) {
@@ -225,7 +225,7 @@ export default class FITB extends RunestoneBase {
 
     // Find the script tag containing JSON in a given root DOM node.
     scriptSelector(root_node) {
-        return $(root_node).find(`script[type="application/json"]`);
+        return root_node.querySelector(`script[type="application/json"]`);
     }
 
     /*===========================================
@@ -236,7 +236,7 @@ export default class FITB extends RunestoneBase {
         this.renderFITBButtons();
         this.renderFITBFeedbackDiv();
         // replaces the intermediate HTML for this component with the rendered HTML of this component
-        $(this.origElem).replaceWith(this.containerDiv);
+        this.origElem.replaceWith(this.containerDiv);
     }
     renderFITBInput() {
         // The text [input] elements are created by the template.
@@ -260,11 +260,9 @@ export default class FITB extends RunestoneBase {
         // "submit" button
         this.submitButton = document.createElement("button");
         this.submitButton.textContent = $.i18n("msg_fitb_check_me");
-        $(this.submitButton).attr({
-            class: "btn btn-success",
-            name: "do answer",
-            type: "button",
-        });
+        this.submitButton.className = "btn btn-success";
+        this.submitButton.name = "do answer";
+        this.submitButton.type = "button";
         this.submitButton.addEventListener(
             "click",
             async function () {
@@ -278,12 +276,10 @@ export default class FITB extends RunestoneBase {
         // "compare me" button
         if (this.useRunestoneServices) {
             this.compareButton = document.createElement("button");
-            $(this.compareButton).attr({
-                class: "btn btn-default",
-                id: this.origElem.id + "_bcomp",
-                disabled: "",
-                name: "compare",
-            });
+            this.compareButton.className = "btn btn-default";
+            this.compareButton.id = this.origElem.id + "_bcomp";
+            this.compareButton.disabled = true;
+            this.compareButton.name = "compare";
             this.compareButton.textContent = $.i18n("msg_fitb_compare_me");
             this.compareButton.addEventListener(
                 "click",
@@ -298,11 +294,9 @@ export default class FITB extends RunestoneBase {
         // Randomize button for dynamic problems.
         if (this.dyn_vars) {
             this.randomizeButton = document.createElement("button");
-            $(this.randomizeButton).attr({
-                class: "btn btn-default",
-                id: this.origElem.id + "_bcomp",
-                name: "randomize",
-            });
+            this.randomizeButton.className = "btn btn-default";
+            this.randomizeButton.id = this.origElem.id + "_bcomp";
+            this.randomizeButton.name = "randomize";
             this.randomizeButton.textContent = $.i18n("msg_fitb_randomize");
             this.randomizeButton.addEventListener(
                 "click",
@@ -366,12 +360,14 @@ export default class FITB extends RunestoneBase {
         // Find and format the blanks. If a dynamic problem just changed the HTML, this will find the newly-created blanks.
         // WARNING - this assumes that all text/number inputs in the descriptionDiv are the blanks.
         // Ideally, there should be some unique attribute that can be used to select the blanks.
-        const ba = $(this.descriptionDiv).find('input[type="text"],input[type="number"]');
-        ba.attr("class", "form form-control selectwidthauto");
-        ba.attr("aria-label", "input area");
-        this.blankArray = ba.toArray();
+        const ba = this.descriptionDiv.querySelectorAll('input[type="text"],input[type="number"]');
+        ba.forEach((el) => {
+            el.className = "form form-control selectwidthauto";
+            el.setAttribute("aria-label", "input area");
+        });
+        this.blankArray = Array.from(ba);
         for (let blank of this.blankArray) {
-            $(blank).change(this.recordAnswered.bind(this));
+            blank.addEventListener("change", this.recordAnswered.bind(this));
         }
     }
 
@@ -404,7 +400,7 @@ export default class FITB extends RunestoneBase {
         }
         let hasAnswer = false;
         for (var i = 0; i < this.blankArray.length; i++) {
-            $(this.blankArray[i]).attr("value", arr[i]);
+            this.blankArray[i].value = arr[i] || "";
             if (arr[i]) {
                 hasAnswer = true;
             }
@@ -450,7 +446,6 @@ export default class FITB extends RunestoneBase {
             if (ex !== null) {
                 try {
                     storedData = JSON.parse(ex);
-                    var arr = storedData.answer;
                 } catch (err) {
                     // error while parsing; likely due to bad value stored in storage
                     console.assert(false, err.message);
@@ -548,7 +543,7 @@ export default class FITB extends RunestoneBase {
         }
         // When getting a new seed, clear all the old answers and feedback.
         this.given_arr = Array(this.blankArray.len).fill("");
-        $(this.blankArray).attr("value", "");
+        this.blankArray.forEach((el) => (el.value = ""));
         this.clearFeedbackDiv();
         this.saveAnswersLocallyOnly();
     }
@@ -616,9 +611,9 @@ export default class FITB extends RunestoneBase {
     ==============================*/
     renderFeedback() {
         if (this.correct) {
-            $(this.feedBackDiv).attr("class", "alert alert-info");
+            this.feedBackDiv.className = "alert alert-info fitb-feedback";
             for (let j = 0; j < this.blankArray.length; j++) {
-                $(this.blankArray[j]).removeClass("input-validation-error");
+                this.blankArray[j].classList.remove("input-validation-error");
             }
         } else {
             if (this.displayFeed === null) {
@@ -626,12 +621,12 @@ export default class FITB extends RunestoneBase {
             }
             for (let j = 0; j < this.blankArray.length; j++) {
                 if (this.isCorrectArray[j] !== true) {
-                    $(this.blankArray[j]).addClass("input-validation-error");
+                    this.blankArray[j].classList.add("input-validation-error");
                 } else {
-                    $(this.blankArray[j]).removeClass("input-validation-error");
+                    this.blankArray[j].classList.remove("input-validation-error");
                 }
             }
-            $(this.feedBackDiv).attr("class", "alert alert-danger");
+            this.feedBackDiv.className = "alert alert-danger fitb-feedback";
         }
         var feedback_html = "<ul>";
         for (var i = 0; i < this.displayFeed.length; i++) {
@@ -674,15 +669,18 @@ export default class FITB extends RunestoneBase {
         this.compareButton.disabled = false;
     }
     // _`compareFITBAnswers`
-    compareFITBAnswers() {
+    async compareFITBAnswers() {
         var data = {};
         data.div_id = this.divid;
         data.course = eBookConfig.course;
-        jQuery.get(
-            `${eBookConfig.new_server_prefix}/assessment/gettop10Answers`,
-            data,
-            this.compareFITB
-        );
+        try {
+            const params = new URLSearchParams(data);
+            const resp = await fetch(`${eBookConfig.new_server_prefix}/assessment/gettop10Answers?${params.toString()}`);
+            const json = await resp.json();
+            this.compareFITB(json);
+        } catch (e) {
+            console.error("Error fetching top answers:", e);
+        }
     }
     compareFITB(data, status, whatever) {
         var answers = data.detail.res;
@@ -703,7 +701,7 @@ export default class FITB extends RunestoneBase {
             "    <div class='modal-dialog compare-modal'>" +
             "        <div class='modal-content'>" +
             "            <div class='modal-header'>" +
-            "                <button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>" +
+            "                <button type='button' class='close' aria-hidden='true'>&times;</button>" +
             "                <h4 class='modal-title'>Top Answers</h4>" +
             "            </div>" +
             "            <div class='modal-body'>" +
@@ -712,8 +710,45 @@ export default class FITB extends RunestoneBase {
             "        </div>" +
             "    </div>" +
             "</div>";
-        var el = $(html);
-        el.modal();
+        // Simple modal without Bootstrap/jQuery
+        const overlay = document.createElement("div");
+        overlay.style.position = "fixed";
+        overlay.style.inset = "0";
+        overlay.style.background = "rgba(0,0,0,0.5)";
+        overlay.style.zIndex = "9999";
+
+        const dialog = document.createElement("div");
+        dialog.className = "compare-modal";
+        dialog.style.maxWidth = "720px";
+        dialog.style.margin = "10vh auto";
+        dialog.style.background = "#fff";
+        dialog.style.borderRadius = "6px";
+        dialog.style.boxShadow = "0 2px 12px rgba(0,0,0,0.3)";
+        dialog.style.padding = "16px";
+
+        const header = document.createElement("div");
+        const closeBtn = document.createElement("button");
+        closeBtn.type = "button";
+        closeBtn.textContent = "×";
+        closeBtn.setAttribute("aria-hidden", "true");
+        closeBtn.style.float = "right";
+        closeBtn.className = "btn btn-light";
+        closeBtn.onclick = function () {
+            document.body.removeChild(overlay);
+        };
+        const title = document.createElement("h4");
+        title.className = "modal-title";
+        title.textContent = "Top Answers";
+        header.appendChild(closeBtn);
+        header.appendChild(title);
+
+        const modalBody = document.createElement("div");
+        modalBody.innerHTML = body;
+
+        dialog.appendChild(header);
+        dialog.appendChild(modalBody);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
     }
 
     disableInteraction() {
@@ -727,24 +762,26 @@ export default class FITB extends RunestoneBase {
 == Find the custom HTML tags and ==
 ==   execute our code on them    ==
 =================================*/
-$(document).on("runestone:login-complete", function () {
-    $("[data-component=fillintheblank]").each(function (index) {
-        var opts = {
-            orig: this,
-            useRunestoneServices: eBookConfig.useRunestoneServices,
-        };
-        if ($(this).closest("[data-component=timedAssessment]").length == 0) {
-            // If this element exists within a timed component, don't render it here
-            try {
-                FITBList[this.id] = new FITB(opts);
-                window.componentMap[this.id] = FITBList[this.id];
-            } catch (err) {
-                console.assert(
-                    false,
-                    `Error rendering Fill in the Blank Problem ${this.id}
+document.addEventListener("runestone:login-complete", function () {
+    document
+        .querySelectorAll("[data-component=fillintheblank]")
+        .forEach(function (el, index) {
+            var opts = {
+                orig: el,
+                useRunestoneServices: eBookConfig.useRunestoneServices,
+            };
+            if (!el.closest("[data-component=timedAssessment]")) {
+                // If this element exists within a timed component, don't render it here
+                try {
+                    FITBList[el.id] = new FITB(opts);
+                    window.componentMap[el.id] = FITBList[el.id];
+                } catch (err) {
+                    console.assert(
+                        false,
+                        `Error rendering Fill in the Blank Problem ${el.id}
                      Details: ${err}`
-                );
+                    );
+                }
             }
-        }
-    });
+        });
 });
