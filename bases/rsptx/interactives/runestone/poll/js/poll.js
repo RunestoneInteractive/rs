@@ -65,28 +65,28 @@ export default class Poll extends RunestoneBase {
         if (origClass) {
             this.containerDiv.classList.add(...origClass.split(" ").filter(Boolean));
         }
-        this.pollForm.innerHTML = `<span style='font-size: Large'>${this.question}</span>`;
+        this.pollForm.innerHTML = `<div class="exercise-statement">${this.question}</div>`;
         this.pollForm.id = this.divid + "_form";
         this.pollForm.method = "get";
         this.pollForm.action = "";
         this.pollForm.onsubmit = function () { return false; };
-        this.pollForm.appendChild(document.createElement("br"));
+        this.pollFieldset = document.createElement("fieldset");
+        this.pollForm.appendChild(this.pollFieldset);
         for (var i = 0; i < this.optionList.length; i++) {
+            let label = document.createElement("label");
+            label.classList.add("poll-option");
+            label.innerHTML += this.optionList[i]; // text content
             var radio = document.createElement("input");
             var tmpid = _this.divid + "_opt_" + i;
             radio.id = tmpid;
             radio.name = this.divid + "_group1";
             radio.type = "radio";
             radio.value = i;
+            radio.classList.add("poll-choice-input");
             radio.addEventListener("click", this.submitPoll.bind(this));
-            var label = document.createElement("div");
-            //label.setAttribute("for", tmpid);
-            label.innerHTML = this.optionList[i];
-            label.classList.add("poll-option");
-            this.pollForm.appendChild(radio);
+            label.prepend(radio);
+            this.pollFieldset.appendChild(label);
             this.optsArray.push(radio);
-            this.pollForm.appendChild(label);
-            this.pollForm.appendChild(document.createElement("br"));
         }
 
         if (this.comment) {
