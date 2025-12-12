@@ -179,7 +179,7 @@ export default class Poll extends RunestoneBase {
         // show results summary if appropriate
         if (
             (this.resultsViewer === "all" &&
-                localStorage.getItem(this.divid === "true")) ||
+                localStorage.getItem(this.divid) === "true") ||
             eBookConfig.isInstructor
         ) {
             $(this.resultsDiv).html(
