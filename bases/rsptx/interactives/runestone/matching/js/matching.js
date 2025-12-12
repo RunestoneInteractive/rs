@@ -128,7 +128,7 @@ export class MatchingProblem extends RunestoneBase {
         this.connList.innerHTML += `<br>Incorrect: ${this.incorrectCount}`;
         this.connList.innerHTML += `<br>Missing: ${this.missingCount}`;
         if (this.scorePercent !== 100) {
-            this.connList.innerHTML += `<div class="match_feedback"><strong>Feedback:</strong> ${this.boxData.feedback}</div>`;
+            this.connList.innerHTML += `<div class="match_feedback exercise-content"><strong>Feedback:</strong> ${this.boxData.feedback}</div>`;
         }
         this.queueMathJax(this.connList)
     }
@@ -137,6 +137,7 @@ export class MatchingProblem extends RunestoneBase {
         const statement = document.createElement('div');
         statement.className = 'statement';
         statement.classList.add('match_question');
+        statement.classList.add('exercise-statement');
         statement.innerHTML = this.boxData.statement;
         container.insertBefore(statement, container.firstChild);
         return statement;

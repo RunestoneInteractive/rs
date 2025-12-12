@@ -174,8 +174,10 @@ export default class Parsons extends RunestoneBase {
         this.outerDiv = document.createElement("div");
         $(this.outerDiv).addClass("parsons");
         this.outerDiv.id = this.counterId;
-        this.parsTextDiv = document.createElement("div");
-        $(this.parsTextDiv).addClass("parsons-text");
+        // parsons-text exists in source, make sure it has exercise-statement class
+        let parsonsTextDiv = this.containerDiv.querySelector(".parsons-text");
+        if (parsonsTextDiv && !parsonsTextDiv.classList.contains("exercise-statement"))
+            parsonsTextDiv.classList.add("exercise-statement");
         this.keyboardTip = document.createElement("div");
         $(this.keyboardTip).attr("role", "tooltip");
         this.keyboardTip.id = this.counterId + "-tip";

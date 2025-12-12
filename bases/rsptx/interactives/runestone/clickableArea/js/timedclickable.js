@@ -13,7 +13,9 @@ export default class TimedClickableArea extends ClickableArea {
     }
 
     hideButtons() {
-        $(this.submitButton).hide();
+        if (this.submitButton) {
+            this.submitButton.style.display = "none";
+        }
     }
 
     renderTimedIcon(component) {
@@ -21,14 +23,13 @@ export default class TimedClickableArea extends ClickableArea {
         // is the element that the icon should be appended to.
         var timeIconDiv = document.createElement("div");
         var timeIcon = document.createElement("img");
-        $(timeIcon).attr({
-            src: "../_static/clock.png",
-            style: "width:15px;height:15px",
-        });
+        timeIcon.src = "../_static/clock.png";
+        timeIcon.style.width = "15px";
+        timeIcon.style.height = "15px";
         timeIconDiv.className = "timeTip";
         timeIconDiv.title = "";
         timeIconDiv.appendChild(timeIcon);
-        $(component).prepend(timeIconDiv);
+        component.insertBefore(timeIconDiv, component.firstChild);
     }
 
     checkCorrectTimed() {
@@ -47,7 +48,9 @@ export default class TimedClickableArea extends ClickableArea {
     }
 
     hideFeedback() {
-        $(this.feedBackDiv).hide();
+        if (this.feedBackDiv) {
+            this.feedBackDiv.style.display = "none";
+        }
     }
 }
 

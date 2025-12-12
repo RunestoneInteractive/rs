@@ -22,18 +22,19 @@ class DataFile extends RunestoneBase {
         this.origElem = orig;
         this.divid = orig.id;
         this.dataEdit = false;
-        this.isImage = $(orig).data("isimage");
-        this.fileName = $(orig).data("filename");
-        if ($(this.origElem).data("edit") === true) {
+        this.isImage = orig.dataset.isimage === "true" || orig.dataset.isimage === "" ? true : false;
+        this.fileName = orig.dataset.filename || null;
+        if (orig.dataset.edit === "true") {
             this.dataEdit = true;
         }
         this.displayClass = "block"; // Users can specify the non-edit component to be hidden--default is not hidden
-        if ($(this.origElem).is("[data-hidden]")) {
+        if (orig.hasAttribute("data-hidden")) {
             this.displayClass = "none";
         }
         // Users can specify numbers of rows/columns when editing is true
-        this.numberOfRows = $(this.origElem).data("rows");
-        this.numberOfCols = $(this.origElem).data("cols");
+        this.numberOfRows = orig.dataset.rows;
+        this.numberOfCols = orig.dataset.cols;
+
         if (!this.isImage) {
             if (this.dataEdit) {
                 this.createTextArea();
@@ -41,11 +42,11 @@ class DataFile extends RunestoneBase {
                 this.createPre();
             }
             if (this.fileName) {
-                this.containerDiv.dataset.filename = this.fileName
+                this.containerDiv.dataset.filename = this.fileName;
             }
         }
         // search for a parent div with the class 'datafile_caption' in plain javascript
-        let captionDiv = this.containerDiv.parentElement.querySelector(".datafile_caption");
+        let captionDiv = this.containerDiv.parentElement?.querySelector(".datafile_caption");
         if (captionDiv && this.displayClass === "none") {
             // hide the captionDiv if the datafile is hidden
             captionDiv.style.display = "none";
@@ -59,18 +60,18 @@ class DataFile extends RunestoneBase {
     createPre() {
         this.containerDiv = document.createElement("pre");
         this.containerDiv.id = this.divid;
-        $(this.containerDiv).attr({ style: "display: " + this.displayClass });
+        this.containerDiv.style.display = this.displayClass;
         this.containerDiv.innerHTML = this.origElem.innerHTML;
-        $(this.origElem).replaceWith(this.containerDiv);
+        this.origElem.replaceWith(this.containerDiv);
     }
     createTextArea() {
         this.containerDiv = document.createElement("textarea");
         this.containerDiv.id = this.divid;
-        this.containerDiv.rows = this.numberOfRows;
-        this.containerDiv.cols = this.numberOfCols;
+        if (this.numberOfRows) this.containerDiv.rows = this.numberOfRows;
+        if (this.numberOfCols) this.containerDiv.cols = this.numberOfCols;
         this.containerDiv.innerHTML = this.origElem.innerHTML;
-        $(this.containerDiv).addClass("datafiletextfield");
-        $(this.origElem).replaceWith(this.containerDiv);
+        this.containerDiv.classList.add("datafiletextfield");
+        this.origElem.replaceWith(this.containerDiv);
     }
 }
 
@@ -78,12 +79,12 @@ class DataFile extends RunestoneBase {
 == Find the custom HTML tags and ==
 ==   execute our code on them    ==
 =================================*/
-$(function () {
-    $("[data-component=datafile]").each(function (index) {
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("[data-component=datafile]").forEach(function (el) {
         try {
-            dfList[this.id] = new DataFile({ orig: this });
+            dfList[el.id] = new DataFile({ orig: el });
         } catch (err) {
-            console.log(`Error rendering DataFile ${this.id}`);
+            console.log(`Error rendering DataFile ${el.id}`);
         }
     });
 });

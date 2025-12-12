@@ -3,10 +3,6 @@
     padding-bottom: 10px;
 }
 
-.poll-options>label {
-    margin-right: 5px;
-}
-
 .poll .progress {
     width: 350px;
     height: 25px;
@@ -19,9 +15,10 @@
 }
 
 .poll-text {
-    line-height: 22px;
-    display: inline-block;
-    vertical-align: text-bottom;
+    margin: 0 0 0 10px;
+    font-size: 12px;
+    line-height: 20px;
+    float: left;
 }
 
 .results-container {
@@ -30,14 +27,24 @@
 }
 
 .poll-option {
-    display: inline;
+    margin-left: 5px;
 }
 
-.poll-option .para {
+.poll-option > .para:first-of-type {
     display: inline-block;
     padding-left: 0.5rem;
 }
 
-.poll-results {
+.poll-results:not(:empty) {
     margin-top: 0.5rem;
+}
+
+label.poll-option {
+    font-weight: normal;
+    display: block;
+}
+
+.ptx-runestone-container input.poll-choice-input {
+    vertical-align: top;
+    margin-right: 0.5em;
 }

@@ -3,7 +3,7 @@ import MultipleChoice from "./mchoice.js";
 export default class TimedMC extends MultipleChoice {
     constructor(opts) {
         super(opts);
-        $(this.containerDiv).addClass("runestone");
+        this.containerDiv.classList.add("runestone");
         this.needsReinitialization = true;
         this.renderTimedIcon(this.MCContainer);
         this.hideButtons(); // Don't show per-question buttons in a timed assessment
@@ -14,21 +14,30 @@ export default class TimedMC extends MultipleChoice {
         // is the element that the icon should be appended to.
         var timeIconDiv = document.createElement("div");
         var timeIcon = document.createElement("img");
-        $(timeIcon).attr({
-            src: "../_static/clock.png",
-            style: "width:15px;height:15px",
-        });
+        timeIcon.src = "../_static/clock.png";
+        timeIcon.style.width = "15px";
+        timeIcon.style.height = "15px";
         timeIconDiv.className = "timeTip";
         timeIconDiv.title = "";
         timeIconDiv.appendChild(timeIcon);
-        $(component).prepend(timeIconDiv);
+        if (component) {
+            if (component.firstChild) {
+                component.insertBefore(timeIconDiv, component.firstChild);
+            } else {
+                component.appendChild(timeIconDiv);
+            }
+        }
     }
     hideButtons() {
         //Just hiding the buttons doesn't prevent submitting the form when entering is clicked
         //We need to completely disable the buttons
-        $(this.submitButton).attr("disabled", "true");
-        $(this.submitButton).hide();
-        $(this.compareButton).hide();
+        if (this.submitButton) {
+            this.submitButton.setAttribute("disabled", "true");
+            this.submitButton.style.display = "none";
+        }
+        if (this.compareButton) {
+            this.compareButton.style.display = "none";
+        }
     }
 
     // These methods override the methods in the base class. Called from renderFeedback()
@@ -42,9 +51,8 @@ export default class TimedMC extends MultipleChoice {
     feedbackTimedMC() {
         for (var i = 0; i < this.indexArray.length; i++) {
             var tmpindex = this.indexArray[i];
-            $(this.feedBackEachArray[i]).html(
-                String.fromCharCode(65 + i) + ". " + this.feedbackList[i]
-            );
+            this.feedBackEachArray[i].innerHTML =
+                String.fromCharCode(65 + i) + ". " + this.feedbackList[i];
             var tmpid = this.answerList[tmpindex].id;
             if (this.correctList.indexOf(tmpid) >= 0) {
                 this.feedBackEachArray[i].classList.add(
@@ -112,7 +120,7 @@ export default class TimedMC extends MultipleChoice {
     }
     hideFeedback() {
         for (var i = 0; i < this.feedBackEachArray.length; i++) {
-            $(this.feedBackEachArray[i]).hide();
+            this.feedBackEachArray[i].style.display = "none";
         }
     }
 
