@@ -352,7 +352,6 @@
     border-left: 0;
     border-right: 0;
     border-radius: 0;
-    margin: 10px 0;
 }
 .parsons .parsons-text {
     max-width: var(--contentWidthRegular);
@@ -472,6 +471,11 @@
 }
 .parsons .settled-block .block-label {
     color: transparent;
+}
+
+.parsons .alert {
+    margin-top: 10px;
+    margin-bottom: 0;
 }
 
 
