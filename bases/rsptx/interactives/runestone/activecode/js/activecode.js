@@ -795,7 +795,7 @@ export class ActiveCode extends RunestoneBase {
             var puzzleCode = `
             <div class="runestone parsons-container ">
             <div data-component="parsons" id="${this.puzzleScaffoldingDivid}" class="parsons" >
-            <div class="parsons_question parsons-text" >` + probDescHTML +
+            <div class="parsons_question parsons-text exercise-statement" >` + probDescHTML +
             `</div>` + puzzle_rst + `</div></div>`;
         } else{
             var puzzleCode = ``;
