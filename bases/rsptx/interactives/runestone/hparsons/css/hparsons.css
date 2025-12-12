@@ -1,20 +1,20 @@
 /* Todo, better integration with prism and Pretext dark mode*/
 
-
-.hp_question {
-    padding-left: 10px;
-    padding-top: 10px;
-    margin: 5px;
+.hp_actions {
+    margin-top: 10px;
+    text-align: center;
 }
 
-.hp_actions {
-    text-align: center;
+.hparsons-input {
+    padding: 0;
+}
+
+.hparsons-tip {
+    margin-top: 10px;
 }
 
 .hp_output {
     display: none;
-    margin-left: 15px; /* align with micro-parsons */
-    margin-right: 15px;
     background-color: inherit;
 }
 .hp_output pre {
@@ -22,8 +22,7 @@
 }
 
 .hp_feedback {
-    margin-left: 15px; /* align with micro-parsons */
-    margin-right: 15px;
+    margin-top: 10px;
 }
 
 .hp_sql_result {

@@ -4,3 +4,13 @@ div.journal div.latexoutput {
     margin-bottom: 10px;
     border-radius: 5px;
 }
+
+
+.shortanswer_section .alert {
+    margin-bottom: 0;
+}
+
+.shortanswer__timestamp {
+    font-size: 0.9em;
+    color: var(--grayToWhite, #333);
+}

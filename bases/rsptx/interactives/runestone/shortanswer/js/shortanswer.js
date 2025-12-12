@@ -65,6 +65,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.firstLegendDiv = document.createElement("div");
         this.firstLegendDiv.innerHTML = this.question;
         this.firstLegendDiv.classList.add("journal-question");
+        this.firstLegendDiv.classList.add("exercise-statement");
         this.fieldSet.appendChild(this.firstLegendDiv);
         this.jInputDiv = document.createElement("div");
         this.jInputDiv.id = this.divid + "_journal_input";
@@ -266,6 +267,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.renderMath(this.answer);
 
         let p = document.createElement("p");
+        p.classList.add("shortanswer__timestamp");
         this.jInputDiv.appendChild(p);
         var tsString = "";
         if (data.timestamp) {
