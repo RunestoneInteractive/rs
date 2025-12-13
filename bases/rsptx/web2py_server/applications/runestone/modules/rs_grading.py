@@ -877,7 +877,7 @@ def _autograde_one_q(
         scoring_fn = _score_one_webwork
         logger.debug("AGDB - done with webwork")
 
-    elif question_type == "splice":
+    elif question_type == "splice" or question_type == "doenet":
         logger.debug("grading a splice question!!")
         results = _scorable_splice_answers(
             course_name,
