@@ -978,6 +978,8 @@ def make_correct_count_table(chapters, chapter, thecourse, dburl, course):
     union
     (select div_id, sid, correct, percent from clickablearea_answers where course_name = '{course}')
     union
+    (select div_id, sid, correct, percent from splice_answers where course_name = '{course}')
+    union
     (select div_id, sid, correct, percent from dragndrop_answers where course_name = '{course}')
     union
     (select div_id, sid, correct, percent from unittest_answers where course_name = '{course}')
@@ -1003,8 +1005,8 @@ def make_correct_count_table(chapters, chapter, thecourse, dburl, course):
     mtbl.sort_values("chapter_label", inplace=True)
     logger.debug(mtbl)
     enrolled = pd.read_sql(
-        f"""select distinct username 
-    from auth_user join user_courses on auth_user.course_id = user_courses.course_id 
+        f"""select distinct username
+    from auth_user join user_courses on auth_user.course_id = user_courses.course_id
         and user_courses.course_id = {thecourse.id}""",
         dburl,
     )
@@ -1176,6 +1178,22 @@ select name, question_type, min(useinfo.timestamp) as first, max(useinfo.timesta
                 .first()
             )
             if kqres:
+                row["correct"] = "Yes"
+            else:
+                row["correct"] = "No"
+        elif row["question_type"] == "splice":
+            # Mirror the implementation in GRADEABLE_TYPES, as `splice_answers` also has a "correct"
+            # column which tracks whether the answer is correct or not
+            isc = (
+                db(
+                    (db["splice_answers"].sid == request.vars.sid)
+                    & (db["splice_answers"].correct == "T")
+                    & (db["splice_answers"].div_id == row["name"])
+                )
+                .select()
+                .first()
+            )
+            if isc:
                 row["correct"] = "Yes"
             else:
                 row["correct"] = "No"
