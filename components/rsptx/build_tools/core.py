@@ -1007,7 +1007,7 @@ def _process_single_question(
         else:
             dynamic = el.find(".//iframe")
             if dynamic is not None and "id" in dynamic.attrib:
-                idchild = dynamic.attrib["id"]
+                # idchild = dynamic.attrib["id"]
                 qtype = "splice"
     if qtype == "doenet":
         # rewrite the url in the dbtext to use the course name in the path
