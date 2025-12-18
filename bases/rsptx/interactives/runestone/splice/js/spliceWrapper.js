@@ -150,7 +150,7 @@ export class SpliceWrapper extends RunestoneBase {
         console.log(event.data.activity_id);
         console.log(event.data.name);
         //console.log(event.data.data);
-        let location = this.getUniqueID(event);
+        let location = this.getUniqueID(event, frame);
         this.logBookEvent({
             event: event.data.subject,
             div_id: location,
