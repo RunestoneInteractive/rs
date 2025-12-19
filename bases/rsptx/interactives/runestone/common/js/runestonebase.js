@@ -662,8 +662,11 @@ class AutoQueue extends Queue {
                     );
                     if (qq.preamble) {
                         await MathJax.typesetPromise([qq.preamble])
-                        item.component.innerHTML = "<div>" +
-                            qq.preamble.innerHTML + "</div>" + item.component.innerHTML;
+                        // Use insertAdjacentElement to preserve existing DOM elements and event listeners
+                        // instead of overwriting innerHTML which destroys event handlers
+                        let preambleDiv = document.createElement("div");
+                        preambleDiv.innerHTML = qq.preamble.innerHTML;
+                        item.component.insertAdjacentElement("afterbegin", preambleDiv);
                         console.log(
                             `MathJax typeset the preamble for ${item.component.id}`
                         );
