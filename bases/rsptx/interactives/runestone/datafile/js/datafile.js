@@ -79,7 +79,8 @@ class DataFile extends RunestoneBase {
 == Find the custom HTML tags and ==
 ==   execute our code on them    ==
 =================================*/
-document.addEventListener("DOMContentLoaded", function () {
+
+document.addEventListener("runestone:login-complete", function () {
     document.querySelectorAll("[data-component=datafile]").forEach(function (el) {
         try {
             dfList[el.id] = new DataFile({ orig: el });
