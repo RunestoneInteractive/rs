@@ -22,9 +22,9 @@ export default class HParsons extends RunestoneBase {
         super(opts);
         // getting settings
         var orig = opts.orig.querySelector("textarea");
-        this.reuse = orig.getAttribute("data-reuse") ? true : false;
-        this.randomize = orig.getAttribute("data-randomize") ? true : false;
-        this.isBlockGrading = orig.getAttribute("data-blockanswer") ? true : false;
+        this.reuse = this.parseBooleanAttribute(orig, "data-reuse");
+        this.randomize = this.parseBooleanAttribute(orig, "data-randomize");
+        this.isBlockGrading = this.parseBooleanAttribute(orig, "data-blockanswer");
         this.language = orig.getAttribute("data-language");
         // Detect math mode
         if (this.language === undefined && orig.textContent.includes('span class="process-math"')) {
