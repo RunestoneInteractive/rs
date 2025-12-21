@@ -103,6 +103,20 @@ export default class RunestoneBase {
         });
     }
 
+    // Helper for parsing boolean data-* attributes
+    // Unset/"false"/"no" means false, anything else, including empty string means true
+    parseBooleanAttribute(element, attributeName) {
+        const attrValue = element.getAttribute(attributeName);
+        if (attrValue === null) {
+            return false;
+        }
+        const lowerValue = attrValue.toLowerCase();
+        if (lowerValue === "false" || lowerValue === "no") {
+            return false;
+        }
+        return true;
+    }
+
     // _`logBookEvent`
     //----------------
     // This function sends the provided ``eventInfo`` to the `hsblog endpoint` of the server. Awaiting this function returns either ``undefined`` (if Runestone services are not available) or the data returned by the server as a JavaScript object (already JSON-decoded).
