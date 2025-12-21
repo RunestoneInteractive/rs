@@ -25,12 +25,12 @@ export default class MultipleChoice extends RunestoneBase {
         this.useRunestoneServices = opts.useRunestoneServices;
         this.multipleanswers = false;
         this.divid = orig.id;
-        if (this.origElem.getAttribute("data-multipleanswers") === "true" || this.origElem.hasAttribute("data-multipleanswers")) {
+        if (this.parseBooleanAttribute(this.origElem, "data-multipleanswers")) {
             this.multipleanswers = true;
         }
         this.children = this.origElem.childNodes;
         this.random = false;
-        if (this.origElem.hasAttribute("[data-random]") || this.origElem.hasAttribute("data-random")) {
+        if (this.parseBooleanAttribute(this.origElem, "data-random")) {
             this.random = true;
         }
         this.correct = null;
