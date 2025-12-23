@@ -427,6 +427,9 @@ class SourceCode(Base, IdMixin):
     # Filename to use when saving contents to Jobe or trying to include
     # this file in a program. It is OK to reuse the same filename for different
     filename = Column(String(512))
+    # Owner of the datafile (username of the instructor who created it)
+    # Used to enforce uniqueness: filename + owner + course_id should be unique
+    owner = Column(String(512), index=True)
 
 
 SourceCodeValidator: TypeAlias = sqlalchemy_to_pydantic(SourceCode)  # type: ignore

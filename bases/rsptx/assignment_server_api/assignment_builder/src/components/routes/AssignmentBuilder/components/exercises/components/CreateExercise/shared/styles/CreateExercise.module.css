@@ -801,3 +801,38 @@
   justify-content: space-between;
   gap: 1rem;
 }
+
+/* Data Files Editor Styles */
+.dataFilesEditor {
+  width: 100%;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.dataFilesEditor :global(.p-tabview-nav) {
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 1rem;
+}
+
+.dataFilesEditor :global(.p-tabview-panels) {
+  padding: 0;
+}
+
+.dataFilesEditor :global(.p-fileupload-buttonbar) {
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.dataFilesEditor :global(.p-fileupload-choose) {
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.dataFilesEditor :global(.p-fileupload-choose:hover) {
+  background: #f1f5f9;
+  border-color: var(--primary-400);
+  color: var(--primary-600);
+}

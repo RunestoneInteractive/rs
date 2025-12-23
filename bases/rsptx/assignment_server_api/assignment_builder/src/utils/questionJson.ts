@@ -10,7 +10,8 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
       suffix_code: data.suffix_code,
       instructions: data.instructions,
       language: data.language,
-      stdin: data.stdin
+      stdin: data.stdin,
+      selectedExistingDataFiles: data.selectedExistingDataFiles
     }),
     ...(data.question_type === "shortanswer" && {
       attachment: data.attachment,
