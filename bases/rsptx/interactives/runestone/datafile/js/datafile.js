@@ -21,14 +21,10 @@ class DataFile extends RunestoneBase {
         var orig = opts.orig; // entire <pre> element that will be replaced by new HTML
         this.origElem = orig;
         this.divid = orig.id;
-        this.dataEdit = false;
-        this.isImage = orig.dataset.isimage === "true" || orig.dataset.isimage === "" ? true : false;
-        this.fileName = orig.dataset.filename || null;
-        if (orig.dataset.edit === "true") {
-            this.dataEdit = true;
-        }
+        this.dataEdit = this.parseBooleanAttribute(orig, "data-edit");
+        this.isImage = this.parseBooleanAttribute(orig, "data-isimage");
         this.displayClass = "block"; // Users can specify the non-edit component to be hidden--default is not hidden
-        if (orig.hasAttribute("data-hidden")) {
+        if (this.parseBooleanAttribute(orig, "data-hidden")) {
             this.displayClass = "none";
         }
         // Users can specify numbers of rows/columns when editing is true

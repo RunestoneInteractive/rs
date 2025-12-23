@@ -40,11 +40,7 @@ export default class RunestoneBase {
             if (opts.enforceDeadline) {
                 this.deadline = opts.deadline;
             }
-            if ($(opts.orig).data("optional")) {
-                this.optional = true;
-            } else {
-                this.optional = false;
-            }
+            this.optional = this.parseBooleanAttribute(opts.orig, "data-optional");
             if (opts.selector_id) {
                 this.selector_id = opts.selector_id;
             }
