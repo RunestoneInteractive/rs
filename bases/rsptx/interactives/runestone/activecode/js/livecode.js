@@ -268,13 +268,15 @@ export default class LiveCode extends ActiveCode {
             // Check on page to see if we have the datafile.
             // Datafiles are looked up via data-filename attribute while additional_files are looked up via id
             let fileElement;
-            if (f.type === "datafile")
+            if (f.type === "datafile") {
                 fileElement = document.querySelector(`[data-filename="${f.filename}"]`);
                 // But RST markup uses filename as id
                 if (!fileElement)
                     fileElement = document.getElementById(f.filename);
-            else
+            }
+            else {
                 fileElement = document.getElementById(f.acid);
+            }
 
             if (fileElement) {
                 // if the element is a code mirror, get the value from the editor
