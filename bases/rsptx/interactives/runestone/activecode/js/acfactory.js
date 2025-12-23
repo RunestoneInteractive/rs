@@ -43,7 +43,7 @@ export default class ACFactory {
                 return new TimedLiveCode(opts);
             } else if (lang === "javascript") {
                 return new TimedJSActiveCode(opts);
-            } else if (lang === "htmlmixed") {
+            } else if (lang === "htmlmixed" || lang === "html") {
                 return new TimedHTMLActiveCode(opts);
             } else if (lang === "sql") {
                 return new TimedSQLActiveCode(opts);
@@ -53,7 +53,7 @@ export default class ACFactory {
         } else {
             if (lang === "javascript") {
                 return new JSActiveCode(opts);
-            } else if (lang === "htmlmixed") {
+            } else if (lang === "htmlmixed" || lang === "html") {
                 return new HTMLActiveCode(opts);
             } else if (lang === "sql") {
                 return new SQLActiveCode(opts);

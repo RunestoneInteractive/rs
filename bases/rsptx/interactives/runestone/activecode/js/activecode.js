@@ -269,8 +269,9 @@ export class ActiveCode extends RunestoneBase {
             edmode = "python";
         } else if (edmode === "octave" || edmode === "MATLAB") {
             edmode = "text/x-octave";
+        } else if (edmode === "html" || edmode === "htmlmixed") {
+            edmode = "htmlmixed";
         }
-
         // Conditionally add a gutter to the editor to show the locked prefix and suffix
         let gutterList = [];
         if (this.visiblePrefixEnd || this.visibleSuffixLength) {
