@@ -12,6 +12,7 @@
 ==========================================*/
 
 import RunestoneBase from "../../common/js/runestonebase.js";
+import { looksLikeLatexMath } from "../../common/js/bookfuncs.js";
 import "./../css/shortanswer.css";
 
 export default class ShortAnswer extends RunestoneBase {
@@ -28,9 +29,6 @@ export default class ShortAnswer extends RunestoneBase {
             this.attachURL = opts.attachURL;
             if (this.origElem.hasAttribute("data-optional")) {
                 this.optional = true;
-            }
-            if (this.origElem.hasAttribute("data-mathjax")) {
-                this.mathjax = true;
             }
             if (this.origElem.hasAttribute("data-attachment")) {
                 this.attachment = true;
@@ -111,20 +109,6 @@ export default class ShortAnswer extends RunestoneBase {
         }.bind(this);
         this.buttonDiv.appendChild(this.submitButton);
 
-        if (this.mathjax) {
-            this.renderedAnswerLabel = document.createElement("label");
-            this.renderedAnswerLabel.innerHTML = "Rendered Answer:";
-            this.renderedAnswerLabel.id = this.divid + "_rendered_answer_label";
-            this.renderedAnswerLabel.style.display = "none";
-            this.fieldSet.appendChild(this.renderedAnswerLabel);
-
-            this.renderedAnswer = document.createElement("div");
-            this.renderedAnswer.classList.add("latexoutput");
-            this.renderedAnswer.setAttribute('aria-labelledby', this.renderedAnswerLabel.id);
-            this.renderedAnswer.setAttribute('aria-live', "polite");
-            this.renderedAnswer.style.display = "none";
-            this.fieldSet.appendChild(this.renderedAnswer);
-        }
         this.randomSpan = document.createElement("span");
         this.randomSpan.innerHTML = "Instructor's Feedback";
         this.fieldSet.appendChild(this.randomSpan);
@@ -170,7 +154,21 @@ export default class ShortAnswer extends RunestoneBase {
     }
 
     renderMath(value) {
-        if (this.mathjax) {
+        if (looksLikeLatexMath(value)) {
+            if (!this.renderedAnswer) {
+            this.renderedAnswerLabel = document.createElement("label");
+            this.renderedAnswerLabel.innerHTML = "Rendered Answer:";
+            this.renderedAnswerLabel.id = this.divid + "_rendered_answer_label";
+            this.renderedAnswerLabel.style.display = "none";
+            this.fieldSet.appendChild(this.renderedAnswerLabel);
+
+            this.renderedAnswer = document.createElement("div");
+            this.renderedAnswer.classList.add("latexoutput");
+            this.renderedAnswer.setAttribute('aria-labelledby', this.renderedAnswerLabel.id);
+            this.renderedAnswer.setAttribute('aria-live', "polite");
+            this.renderedAnswer.style.display = "none";
+            this.fieldSet.appendChild(this.renderedAnswer);
+            }
             value = value.replace(/\$\$(.*?)\$\$/g, "\\[ $1 \\]");
             value = value.replace(/\$(.*?)\$/g, "\\( $1 \\)");
             value = value.replace(/\n/g, "<br/>");
@@ -179,6 +177,12 @@ export default class ShortAnswer extends RunestoneBase {
             this.renderedAnswer.style.display = "block";
             this.renderedAnswerLabel.style.display = "block";
             this.queueMathJax(this.renderedAnswer);
+
+        } else {
+            if (this.renderedAnswer) {
+                this.renderedAnswer.style.display = "none";
+                this.renderedAnswerLabel.style.display = "none";
+            }
         }
     }
 

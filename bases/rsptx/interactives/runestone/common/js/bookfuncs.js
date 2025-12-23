@@ -58,8 +58,9 @@ function addReadingList() {
                 name: "link",
                 class: "btn btn-lg ' + 'buttonConfirmCompletion'",
                 href: nxt_link,
-                text: `Continue to page ${position + 2
-                    } of ${num_readings} in the reading assignment.`,
+                text: `Continue to page ${
+                    position + 2
+                } of ${num_readings} in the reading assignment.`,
             });
         } else {
             l = $("<div />", {
@@ -110,10 +111,12 @@ class PageProgressBar {
         // Hide the progress bar on the index page.
         if (
             window.location.pathname.match(
-                /.*\/(index.html|toctree.html|Exercises.html|search.html)$/i
+                /.*\/(index.html|toctree.html|Exercises.html|search.html)$/i,
             )
         ) {
-            const scprogresscontainer = document.getElementById("scprogresscontainer");
+            const scprogresscontainer = document.getElementById(
+                "scprogresscontainer",
+            );
             if (scprogresscontainer) scprogresscontainer.style.display = "none";
         }
         this.renderProgress();
@@ -163,7 +166,8 @@ class PageProgressBar {
             //  where the user completed activities on the assignment page and now
             //  is viewing the reading page.
             let completeActivities = this.total - 1; // subtract 1 for the page reading which is in total but not an activity
-            let requiredActivities = this.assignment_spec.activities_required || 0;
+            let requiredActivities =
+                this.assignment_spec.activities_required || 0;
             if (completeActivities >= requiredActivities) {
                 this.sendCompletedReadingScore().then(() => {
                     console.log("Reading score sent for page");
@@ -171,7 +175,10 @@ class PageProgressBar {
                     // this is needed to let the progress bar update before marking complete
                     setTimeout(() => {
                         let cb = document.getElementById("completionButton");
-                        if (cb && cb.textContent.toLowerCase() === "mark as completed") {
+                        if (
+                            cb &&
+                            cb.textContent.toLowerCase() === "mark as completed"
+                        ) {
                             cb.click();
                         }
                     }, 500);
@@ -194,8 +201,12 @@ class PageProgressBar {
             if (scprogresstotal2) scprogresstotal2.textContent = this.total;
             const scprogressposs2 = document.getElementById("scprogressposs");
             if (scprogressposs2) scprogressposs2.textContent = this.possible;
-            let subchapterprogress2 = document.getElementById("subchapterprogress");
-            if (subchapterprogress2 && subchapterprogress2.tagName === "PROGRESS") {
+            let subchapterprogress2 =
+                document.getElementById("subchapterprogress");
+            if (
+                subchapterprogress2 &&
+                subchapterprogress2.tagName === "PROGRESS"
+            ) {
                 subchapterprogress2.value = val;
             }
             if (
@@ -211,7 +222,7 @@ class PageProgressBar {
             if (
                 val == 100.0 &&
                 $("#completionButton").text().toLowerCase() ===
-                "mark as completed"
+                    "mark as completed"
             ) {
                 $("#completionButton").click();
             }
@@ -249,9 +260,9 @@ class PageProgressBar {
 export var pageProgressTracker = {};
 
 function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift();
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
 }
 
 async function handlePageSetup() {
@@ -263,21 +274,28 @@ async function handlePageSetup() {
         });
         let data = {
             timezoneoffset: new Date().getTimezoneOffset() / 60,
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         };
         let RS_info = getCookie("RS_info");
         var tz_match = false;
         if (RS_info) {
             try {
-                let cleaned  = RS_info.replace(/\\054/g, ','); // handle octal comma encoding
+                let cleaned = RS_info.replace(/\\054/g, ","); // handle octal comma encoding
                 let info = JSON.parse(decodeURIComponent(cleaned));
                 info = JSON.parse(decodeURIComponent(info));
-                if (info.timezone === data.timezone && info.tz_offset === data.timezoneoffset) {
-                    console.log("Timezone cookie matches, not sending timezone to server");
+                if (
+                    info.timezone === data.timezone &&
+                    info.tz_offset === data.timezoneoffset
+                ) {
+                    console.log(
+                        "Timezone cookie matches, not sending timezone to server",
+                    );
                     tz_match = true;
                 }
             } catch (e) {
-                console.error("Error parsing RS_info cookie, sending timezone to server");
+                console.error(
+                    "Error parsing RS_info cookie, sending timezone to server",
+                );
             }
         }
         if (tz_match === false) {
@@ -293,7 +311,9 @@ async function handlePageSetup() {
             try {
                 let response = await fetch(request);
                 if (!response.ok) {
-                    console.error(`Failed to set timezone! ${response.statusText}`);
+                    console.error(
+                        `Failed to set timezone! ${response.statusText}`,
+                    );
                 }
                 data = await response.json();
             } catch (e) {
@@ -401,17 +421,20 @@ document.addEventListener("DOMContentLoaded", function () {
 window.addEventListener("load", function () {
     // add the video play button overlay image
     document.querySelectorAll(".video-play-overlay").forEach(function (el) {
-        el.style.backgroundImage = "url('{{pathto('_static/play_overlay_icon.png', 1)}}')";
+        el.style.backgroundImage =
+            "url('{{pathto('_static/play_overlay_icon.png', 1)}}')";
     });
 
     // This function is needed to allow the dropdown search bar to work;
     // The default behaviour is that the dropdown menu closes when something in
     // it (like the search bar) is clicked
-    document.querySelectorAll(".dropdown input, .dropdown label").forEach(function (el) {
-        el.addEventListener("click", function (e) {
-            e.stopPropagation();
+    document
+        .querySelectorAll(".dropdown input, .dropdown label")
+        .forEach(function (el) {
+            el.addEventListener("click", function (e) {
+                e.stopPropagation();
+            });
         });
-    });
 
     // re-write some urls
     // This is tricker than it looks and you have to obey the rules for # anchors
@@ -437,3 +460,31 @@ window.addEventListener("load", function () {
         });
     }
 });
+
+/**
+ * Returns true if the string appears to contain LaTeX math.
+ */
+export function looksLikeLatexMath(text) {
+    if (typeof text !== "string") return false;
+
+    // Common LaTeX math delimiters
+    const mathDelimiters = [
+        /\$\$[\s\S]+?\$\$/, // $$ ... $$
+        /\$[^$\n]+?\$/, // $ ... $
+        /\\\[[\s\S]+?\\\]/, // \[ ... \]
+        /\\\([\s\S]+?\\\)/, // \( ... \)
+    ];
+
+    // Common math commands (avoid generic \text or \ref-only cases)
+    const mathCommands =
+        /\\(frac|sqrt|sum|prod|int|lim|sin|cos|tan|log|ln|alpha|beta|gamma|pi|theta|sigma|Delta|cdot|times|leq|geq|neq)\b/;
+
+    // Superscripts/subscripts like x^2 or a_i
+    const superSubScript = /[a-zA-Z0-9]\s*[\^_]\s*\{?.+?\}?/;
+
+    return (
+        mathDelimiters.some((re) => re.test(text)) ||
+        mathCommands.test(text) ||
+        superSubScript.test(text)
+    );
+}
