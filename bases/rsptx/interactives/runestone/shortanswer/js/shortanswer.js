@@ -12,6 +12,7 @@
 ==========================================*/
 
 import RunestoneBase from "../../common/js/runestonebase.js";
+import { looksLikeLatexMath } from "../../common/js/bookfuncs.js";
 import "./../css/shortanswer.css";
 
 export default class ShortAnswer extends RunestoneBase {
@@ -28,9 +29,6 @@ export default class ShortAnswer extends RunestoneBase {
             this.attachURL = opts.attachURL;
             if (this.origElem.hasAttribute("data-optional")) {
                 this.optional = true;
-            }
-            if (this.origElem.hasAttribute("data-mathjax")) {
-                this.mathjax = true;
             }
             if (this.origElem.hasAttribute("data-attachment")) {
                 this.attachment = true;
@@ -97,7 +95,11 @@ export default class ShortAnswer extends RunestoneBase {
             this.feedbackDiv.classList.remove("alert-success");
             this.feedbackDiv.classList.add("alert", "alert-danger");
         }.bind(this);
-
+        this.jTextArea.addEventListener("input", () => {
+            this.jTextArea.style.height = "auto";
+            this.jTextArea.style.height = `${this.jTextArea.scrollHeight}px`;
+            this.renderMath(this.jTextArea.value);
+        });
         this.buttonDiv = document.createElement("div");
         this.fieldSet.appendChild(this.buttonDiv);
         this.submitButton = document.createElement("button");
@@ -111,23 +113,6 @@ export default class ShortAnswer extends RunestoneBase {
         }.bind(this);
         this.buttonDiv.appendChild(this.submitButton);
 
-        if (this.mathjax) {
-            this.renderedAnswerLabel = document.createElement("label");
-            this.renderedAnswerLabel.innerHTML = "Rendered Answer:";
-            this.renderedAnswerLabel.id = this.divid + "_rendered_answer_label";
-            this.renderedAnswerLabel.style.display = "none";
-            this.fieldSet.appendChild(this.renderedAnswerLabel);
-
-            this.renderedAnswer = document.createElement("div");
-            this.renderedAnswer.classList.add("latexoutput");
-            this.renderedAnswer.setAttribute('aria-labelledby', this.renderedAnswerLabel.id);
-            this.renderedAnswer.setAttribute('aria-live', "polite");
-            this.renderedAnswer.style.display = "none";
-            this.fieldSet.appendChild(this.renderedAnswer);
-        }
-        this.randomSpan = document.createElement("span");
-        this.randomSpan.innerHTML = "Instructor's Feedback";
-        this.fieldSet.appendChild(this.randomSpan);
         this.otherOptionsDiv = document.createElement("div");
         this.otherOptionsDiv.style.paddingLeft = "20px";
         this.otherOptionsDiv.classList.add("journal-options");
@@ -137,8 +122,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.feedbackDiv.style.width = "530px";
         this.feedbackDiv.style.fontStyle = "italic";
         this.feedbackDiv.id = this.divid + "_feedback";
-        this.feedbackDiv.innerHTML = "You have not answered this question yet.";
-        this.feedbackDiv.classList.add("alert", "alert-danger");
+        this.feedbackDiv.style.display = "none";
         this.fieldSet.appendChild(this.feedbackDiv);
         if (this.attachment) {
             let attachDiv = document.createElement("div")
@@ -170,15 +154,35 @@ export default class ShortAnswer extends RunestoneBase {
     }
 
     renderMath(value) {
-        if (this.mathjax) {
+        if (looksLikeLatexMath(value)) {
+            if (!this.renderedAnswer) {
+                this.renderedAnswerLabel = document.createElement("label");
+                this.renderedAnswerLabel.innerHTML = "Rendered Answer:";
+                this.renderedAnswerLabel.id = this.divid + "_rendered_answer_label";
+                this.renderedAnswerLabel.style.display = "none";
+                this.fieldSet.appendChild(this.renderedAnswerLabel);
+
+                this.renderedAnswer = document.createElement("div");
+                this.renderedAnswer.classList.add("latexoutput");
+                this.renderedAnswer.setAttribute('aria-labelledby', this.renderedAnswerLabel.id);
+                this.renderedAnswer.setAttribute('aria-live', "polite");
+                this.renderedAnswer.style.display = "none";
+                this.fieldSet.appendChild(this.renderedAnswer);
+            }
             value = value.replace(/\$\$(.*?)\$\$/g, "\\[ $1 \\]");
             value = value.replace(/\$(.*?)\$/g, "\\( $1 \\)");
             value = value.replace(/\n/g, "<br/>");
             this.renderedAnswer.innerHTML = value;
-            
+
             this.renderedAnswer.style.display = "block";
             this.renderedAnswerLabel.style.display = "block";
             this.queueMathJax(this.renderedAnswer);
+
+        } else {
+            if (this.renderedAnswer) {
+                this.renderedAnswer.style.display = "none";
+                this.renderedAnswerLabel.style.display = "none";
+            }
         }
     }
 
@@ -217,6 +221,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.feedbackDiv.innerHTML = "Your answer has been saved.";
         this.feedbackDiv.classList.remove("alert-danger");
         this.feedbackDiv.classList.add("alert", "alert-success");
+        this.feedbackDiv.style.display = "block";
     }
     setLocalStorage(data) {
         if (!this.graderactive) {
@@ -249,10 +254,6 @@ export default class ShortAnswer extends RunestoneBase {
                     solution.value = answer;
                 }
                 this.renderMath(answer);
-                this.feedbackDiv.innerHTML =
-                    "Your current saved answer is shown above.";
-                this.feedbackDiv.classList.remove("alert-danger");
-                this.feedbackDiv.classList.add("alert", "alert-success");
             }
         }
     }
@@ -276,6 +277,9 @@ export default class ShortAnswer extends RunestoneBase {
             tsString = "";
         }
         p.textContent = tsString;
+        this.jTextArea.style.height = "auto";
+        this.jTextArea.style.height = `${this.jTextArea.scrollHeight}px`;
+
         if (data.last_answer) {
             this.current_answer = "ontime";
             let toggle_answer_button = document.createElement("button");
@@ -311,17 +315,18 @@ export default class ShortAnswer extends RunestoneBase {
 
             this.buttonDiv.appendChild(toggle_answer_button);
         }
-        let feedbackStr = "Your current saved answer is shown above.";
+        let feedbackStr = "";
         if (typeof data.score !== "undefined") {
             feedbackStr = `Score: ${data.score}`;
         }
         if (data.comment) {
             feedbackStr += ` -- ${data.comment}`;
         }
-        this.feedbackDiv.innerHTML = feedbackStr;
-
-        this.feedbackDiv.classList.remove("alert-danger");
-        this.feedbackDiv.classList.add("alert", "alert-success");
+        if (feedbackStr !== "") {
+            this.feedbackDiv.innerHTML = feedbackStr;
+            this.feedbackDiv.style.display = "block";
+            this.feedbackDiv.classList.add("alert", "alert-success");
+        }
     }
 
     disableInteraction() {
@@ -340,7 +345,7 @@ export default class ShortAnswer extends RunestoneBase {
             return null;
         }
         const obj = await response.json();
-            if (obj.detail.hasAttachment) {
+        if (obj.detail.hasAttachment) {
             // Return the S3 key for the attachment
             let filename = obj.detail.hasAttachment;
             // filename is everthing after the last slash

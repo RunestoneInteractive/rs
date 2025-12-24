@@ -92,7 +92,7 @@ export class ActiveCode extends RunestoneBase {
         this.tie = $(orig).data("tie");
         this.dburl = $(orig).data("dburl");
         this.runButton = null;
-        this.enabledownload = $(orig).data("enabledownload");
+        this.enabledownload = this.parseBooleanAttribute(orig, "data-enabledownload");
         this.downloadButton = null;
         this.saveButton = null;
         this.loadButton = null;
@@ -101,7 +101,7 @@ export class ActiveCode extends RunestoneBase {
         this.runCount = 0;
         this.firstAfterRun = true;
         this.logResults = true;
-        if (!eBookConfig.allow_pairs || $(orig).data("nopair")) {
+        if (!eBookConfig.allow_pairs || this.parseBooleanAttribute(orig, "data-nopair")) {
             this.enablePartner = false;
         } else {
             this.enablePartner = true;
@@ -113,7 +113,7 @@ export class ActiveCode extends RunestoneBase {
         this.controlDiv = null;
         this.historyScrubber = null;
         this.timestamps = ["Original"];
-        this.autorun = $(orig).data("autorun");
+        this.autorun = this.parseBooleanAttribute(orig, "data-autorun");
         this.outputLineCount = 0;
         this.outputLines = [];
         if (this.chatcodes && eBookConfig.enable_chatcodes) {
@@ -269,8 +269,9 @@ export class ActiveCode extends RunestoneBase {
             edmode = "python";
         } else if (edmode === "octave" || edmode === "MATLAB") {
             edmode = "text/x-octave";
+        } else if (edmode === "html" || edmode === "htmlmixed") {
+            edmode = "htmlmixed";
         }
-
         // Conditionally add a gutter to the editor to show the locked prefix and suffix
         let gutterList = [];
         if (this.visiblePrefixEnd || this.visibleSuffixLength) {
@@ -1076,7 +1077,7 @@ export class ActiveCode extends RunestoneBase {
         if (!this.hidecode && !this.hidehistory) {
             this.addHistoryScrubber(true);
         }
-        if ($(this.origElem).data("gradebutton") && !this.graderactive) {
+        if (this.parseBooleanAttribute(this.origElem, "data-gradebutton") && !this.graderactive) {
             this.addFeedbackButton(ctrlDiv);
         }
         // Show/Hide Code
@@ -1084,7 +1085,7 @@ export class ActiveCode extends RunestoneBase {
             this.enableHideShow(ctrlDiv);
         }
         // CodeLens
-        if ($(this.origElem).data("codelens") && !this.graderactive) {
+        if (this.parseBooleanAttribute(this.origElem, "data-codelens") && !this.graderactive) {
             this.enableCodeLens(ctrlDiv);
         }
 
