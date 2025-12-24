@@ -1005,8 +1005,8 @@ def make_correct_count_table(chapters, chapter, thecourse, dburl, course):
     mtbl.sort_values("chapter_label", inplace=True)
     logger.debug(mtbl)
     enrolled = pd.read_sql(
-        f"""select distinct username
-    from auth_user join user_courses on auth_user.course_id = user_courses.course_id
+        f"""select distinct username 
+    from auth_user join user_courses on auth_user.course_id = user_courses.course_id 
         and user_courses.course_id = {thecourse.id}""",
         dburl,
     )
