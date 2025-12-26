@@ -72,10 +72,6 @@ export default class ShortAnswer extends RunestoneBase {
         this.jOptionsDiv.classList.add("journal-options");
         this.jInputDiv.appendChild(this.jOptionsDiv);
         this.jTextArea = document.createElement("textarea");
-        let self = this;
-        this.jTextArea.onchange = function () {
-            self.isAnswered = true;
-        };
         this.jTextArea.id = this.divid + "_solution";
         this.jTextArea.setAttribute("aria-label", "textarea");
         this.jTextArea.placeholder = this.placeholder;
@@ -85,16 +81,26 @@ export default class ShortAnswer extends RunestoneBase {
         this.jTextArea.rows = 4;
         this.jTextArea.cols = 50;
         this.jOptionsDiv.appendChild(this.jTextArea);
+
+        // fires when we loose focus on the textarea after making a change
+        // mark it as answered for peer/timed purposes
         this.jTextArea.onchange = function () {
             this.isAnswered = true;
+        }.bind(this);
+
+        // the answer has not been saved yet. Update as soon as user types in
+        // the box, not just when they loose focus.
+        this.jTextArea.addEventListener("keydown", () => {
             if (this.isTimed) {
+                // no need for danger status... nothing for user to do here
                 this.feedbackDiv.innerHTML = "Your answer is automatically saved.";
             } else {
                 this.feedbackDiv.innerHTML = "Your answer has not been saved yet!";
+                this.feedbackDiv.classList.remove("alert-success");
+                this.feedbackDiv.classList.add("alert", "alert-danger");
             }
-            this.feedbackDiv.classList.remove("alert-success");
-            this.feedbackDiv.classList.add("alert", "alert-danger");
-        }.bind(this);
+        });
+
         this.jTextArea.addEventListener("input", () => {
             this.jTextArea.style.height = "auto";
             this.jTextArea.style.height = `${this.jTextArea.scrollHeight}px`;
@@ -122,6 +128,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.feedbackDiv.style.width = "530px";
         this.feedbackDiv.style.fontStyle = "italic";
         this.feedbackDiv.id = this.divid + "_feedback";
+        this.feedbackDiv.classList.add("shortanswer__feedback");
         this.feedbackDiv.style.display = "none";
         this.fieldSet.appendChild(this.feedbackDiv);
         if (this.attachment) {
@@ -156,32 +163,34 @@ export default class ShortAnswer extends RunestoneBase {
     renderMath(value) {
         if (looksLikeLatexMath(value)) {
             if (!this.renderedAnswer) {
+                this.rederedAnswerDiv = document.createElement("div");
+                this.rederedAnswerDiv.classList.add("shortanswer__rendered-answer-div");
+                this.fieldSet.appendChild(this.rederedAnswerDiv);
+
                 this.renderedAnswerLabel = document.createElement("label");
                 this.renderedAnswerLabel.innerHTML = "Rendered Answer:";
                 this.renderedAnswerLabel.id = this.divid + "_rendered_answer_label";
-                this.renderedAnswerLabel.style.display = "none";
-                this.fieldSet.appendChild(this.renderedAnswerLabel);
+                this.renderedAnswerLabel.classList.add("shortanswer__rendered-answer-label");
+                this.rederedAnswerDiv.appendChild(this.renderedAnswerLabel);
 
                 this.renderedAnswer = document.createElement("div");
+                this.renderedAnswer.classList.add("shortanswer__rendered-answer");
                 this.renderedAnswer.classList.add("latexoutput");
                 this.renderedAnswer.setAttribute('aria-labelledby', this.renderedAnswerLabel.id);
                 this.renderedAnswer.setAttribute('aria-live', "polite");
-                this.renderedAnswer.style.display = "none";
-                this.fieldSet.appendChild(this.renderedAnswer);
+                this.rederedAnswerDiv.appendChild(this.renderedAnswer);
             }
             value = value.replace(/\$\$(.*?)\$\$/g, "\\[ $1 \\]");
             value = value.replace(/\$(.*?)\$/g, "\\( $1 \\)");
             value = value.replace(/\n/g, "<br/>");
             this.renderedAnswer.innerHTML = value;
 
-            this.renderedAnswer.style.display = "block";
-            this.renderedAnswerLabel.style.display = "block";
+            this.rederedAnswerDiv.style.display = "block";
             this.queueMathJax(this.renderedAnswer);
 
         } else {
             if (this.renderedAnswer) {
-                this.renderedAnswer.style.display = "none";
-                this.renderedAnswerLabel.style.display = "none";
+                this.rederedAnswerDiv.style.display = "none";
             }
         }
     }
