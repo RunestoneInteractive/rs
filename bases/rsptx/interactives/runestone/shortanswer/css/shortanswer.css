@@ -47,3 +47,11 @@ div.journal div.latexoutput {
     border-color: #0969da;
     box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
 }
+
+.shortanswer__rendered-answer-div {
+    margin-top: 1rem;
+}
+
+.shortanswer__feedback {
+    margin-top: 1rem;
+}
