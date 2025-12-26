@@ -1003,12 +1003,6 @@ def _process_single_question(
         if dynamic is not None and "id" in dynamic.attrib:
             idchild = dynamic.attrib["id"]
             qtype = dynamic.attrib["data-component"]
-        # well maybe not...
-        else:
-            dynamic = el.find(".//iframe")
-            if dynamic is not None and "id" in dynamic.attrib:
-                idchild = dynamic.attrib["id"]
-                qtype = "splice"
     if qtype == "doenet":
         # rewrite the url in the dbtext to use the course name in the path
         dbtext = re.sub(

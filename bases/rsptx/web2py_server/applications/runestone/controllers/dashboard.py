@@ -978,6 +978,8 @@ def make_correct_count_table(chapters, chapter, thecourse, dburl, course):
     union
     (select div_id, sid, correct, percent from clickablearea_answers where course_name = '{course}')
     union
+    (select div_id, sid, correct, percent from splice_answers where course_name = '{course}')
+    union
     (select div_id, sid, correct, percent from dragndrop_answers where course_name = '{course}')
     union
     (select div_id, sid, correct, percent from unittest_answers where course_name = '{course}')
@@ -1176,6 +1178,22 @@ select name, question_type, min(useinfo.timestamp) as first, max(useinfo.timesta
                 .first()
             )
             if kqres:
+                row["correct"] = "Yes"
+            else:
+                row["correct"] = "No"
+        elif row["question_type"] == "splice":
+            # Mirror the implementation in GRADEABLE_TYPES, as `splice_answers` also has a "correct"
+            # column which tracks whether the answer is correct or not
+            isc = (
+                db(
+                    (db["splice_answers"].sid == request.vars.sid)
+                    & (db["splice_answers"].correct == "T")
+                    & (db["splice_answers"].div_id == row["name"])
+                )
+                .select()
+                .first()
+            )
+            if isc:
                 row["correct"] = "Yes"
             else:
                 row["correct"] = "No"
