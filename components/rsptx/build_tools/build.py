@@ -84,7 +84,7 @@ def cli(config, verbose, all, core, service, clean, skip_pre):
     if skip_pre:
         config.skip_pre = True
     else:
-        config.skip_pre = False        
+        config.skip_pre = False
     if clean:
         clean_all()
 
@@ -431,9 +431,9 @@ def wheel(config):
 
                             res = subprocess.run(lock_opts, capture_output=True)
                             if res.returncode != 0:
-                                status[
-                                    proj
-                                ] = f"[red]Fail[/red] probable dependency conflict see {projdir}/build.log"
+                                status[proj] = (
+                                    f"[red]Fail[/red] probable dependency conflict see {projdir}/build.log"
+                                )
                                 lt.update(generate_wheel_table(status))
                                 if config.verbose:
                                     console.print(
@@ -877,7 +877,7 @@ def full(ctx, config):
 
 
 # This is a cool trick with click that lets you chain commands together to
-# form a meta command. so this will run the env command first, then the wheel
+# form a meta command. so this will                 run the env command first, then the wheel
 # command, then the image command, then checkdb, then the restart command.
 # create your container driver builder (or reuse your existing one)
 # docker buildx create --name rn-builder --driver docker-container --bootstrap
@@ -892,6 +892,19 @@ def dev(ctx, config):
     """Build the wheels, images, and restart the services"""
     ctx.invoke(wheel)
     ctx.invoke(image)
+    ctx.invoke(restart)
+
+# This command should be used when you pull new code from github and want to rebuild and make 
+# sure you are using the latest database schema.  Many people forget to run migrations
+# after pulling new code.
+@cli.command()
+@pass_config
+@click.pass_context
+def sync(ctx, config):
+    """Build the wheels, images, check the database, and restart the services"""
+    ctx.invoke(wheel)
+    ctx.invoke(image)
+    ctx.invoke(checkdb)
     ctx.invoke(restart)
 
 
