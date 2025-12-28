@@ -41,6 +41,15 @@ function addReadingList() {
             cur_path_parts[cur_path_parts.length - 2] +
             "/" +
             cur_path_parts[cur_path_parts.length - 1];
+        // if body has pretext class, then strip the leading path parts from each of the strings in eBookConfig.readings
+        let body = document.getElementsByTagName("body")[0];
+        let ptxbook = false;
+        if (body.classList.contains("pretext")) {
+            ptxbook = true;
+            eBookConfig.readings = eBookConfig.readings.map(r => r.split("/").pop());
+            name = name.split("/").pop();
+        }
+
         let position = eBookConfig.readings.indexOf(name);
         let num_readings = eBookConfig.readings.length;
         if (position == eBookConfig.readings.length - 1) {
@@ -56,7 +65,7 @@ function addReadingList() {
             nxt_link = path_parts.join("/");
             l = $("<a />", {
                 name: "link",
-                class: "btn btn-lg ' + 'buttonConfirmCompletion'",
+                class: "btn btn-lg reading-navigation buttonConfirmCompletion",
                 href: nxt_link,
                 text: `Continue to page ${
                     position + 2
@@ -64,8 +73,19 @@ function addReadingList() {
             });
         } else {
             l = $("<div />", {
+                class: "reading-navigation no-assignment",
                 text: "This page is not part of the last reading assignment you visited.",
             });
+        }
+        // check the body tag to see if it has a pretext class (no jquery)
+        if (ptxbook) {
+            //append l to the body
+            let pc = document.getElementById("scprogresscontainer");
+            if (pc) {
+                pc.style.marginBottom = "20px";
+            }
+            pc.appendChild(l[0]);
+            return;
         }
         $("#main-content").append(l);
     }
