@@ -44,38 +44,38 @@ function addReadingList() {
         // if body has pretext class, then strip the leading path parts from each of the strings in eBookConfig.readings
         let body = document.getElementsByTagName("body")[0];
         let ptxbook = false;
+        let endLop = 2;
         if (body.classList.contains("pretext")) {
             ptxbook = true;
             eBookConfig.readings = eBookConfig.readings.map(r => r.split("/").pop());
             name = name.split("/").pop();
+            endLop = 1;
         }
 
         let position = eBookConfig.readings.indexOf(name);
         let num_readings = eBookConfig.readings.length;
         if (position == eBookConfig.readings.length - 1) {
             // no more readings
-            l = $("<div />", {
-                text: `Finished reading assignment. Page ${num_readings} of ${num_readings}.`,
-            });
+            l = document.createElement("div");
+            l.textContent = `Finished reading assignment. Page ${num_readings} of ${num_readings}.`;
         } else if (position >= 0) {
             // get next name
             nxt = eBookConfig.readings[position + 1];
-            path_parts = cur_path_parts.slice(0, cur_path_parts.length - 2);
+            path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
             path_parts.push(nxt);
             nxt_link = path_parts.join("/");
-            l = $("<a />", {
-                name: "link",
-                class: "btn btn-lg reading-navigation buttonConfirmCompletion",
-                href: nxt_link,
-                text: `Continue to page ${
-                    position + 2
-                } of ${num_readings} in the reading assignment.`,
-            });
+            l = document.createElement("a");
+            l.name = "link";
+            l.className = "btn btn-lg reading-navigation next-reading";
+            l.href = nxt_link;
+            l.textContent = `Continue to page ${
+                position + 2
+            } of ${num_readings} in the reading assignment.`;
         } else {
-            l = $("<div />", {
-                class: "reading-navigation no-assignment",
-                text: "This page is not part of the last reading assignment you visited.",
-            });
+            l = document.createElement("div");
+            l.className = "reading-navigation no-assignment";
+            l.textContent =
+                "This page is not part of the last reading assignment you visited.";
         }
         // check the body tag to see if it has a pretext class (no jquery)
         if (ptxbook) {
@@ -83,17 +83,22 @@ function addReadingList() {
             let pc = document.getElementById("scprogresscontainer");
             if (pc) {
                 pc.style.marginBottom = "20px";
+                pc.appendChild(l);
             }
-            pc.appendChild(l[0]);
             return;
         }
-        $("#main-content").append(l);
+        const mainContent = document.getElementById("main-content");
+        if (mainContent && l) {
+            mainContent.appendChild(l);
+        }
     }
 }
 
 function timedRefresh() {
     var timeoutPeriod = 900000; // 75 minutes
-    $(document).on("idle.idleTimer", function () {
+    let idleTimeoutId;
+
+    function onIdle() {
         // After timeout period send the user back to the index.  This will force a login
         // if needed when they want to go to a particular page.  This may not be perfect
         // but its an easy way to make sure laptop users are properly logged in when they
@@ -106,8 +111,22 @@ function timedRefresh() {
                 location.pathname +
                 location.search;
         }
-    });
-    $.idleTimer(timeoutPeriod);
+    }
+
+    function resetIdleTimer() {
+        if (idleTimeoutId) {
+            clearTimeout(idleTimeoutId);
+        }
+        idleTimeoutId = setTimeout(onIdle, timeoutPeriod);
+    }
+
+    ["mousemove", "keydown", "scroll", "click", "touchstart", "wheel"].forEach(
+        (eventName) => {
+            window.addEventListener(eventName, resetIdleTimer, { passive: true });
+        },
+    );
+
+    resetIdleTimer();
 }
 
 class PageProgressBar {
@@ -241,10 +260,19 @@ class PageProgressBar {
             }
             if (
                 val == 100.0 &&
-                $("#completionButton").text().toLowerCase() ===
-                    "mark as completed"
+                (function () {
+                    const cb = document.getElementById("completionButton");
+                    return (
+                        cb &&
+                        cb.textContent &&
+                        cb.textContent.toLowerCase() === "mark as completed"
+                    );
+                })()
             ) {
-                $("#completionButton").click();
+                const cb = document.getElementById("completionButton");
+                if (cb && typeof cb.click === "function") {
+                    cb.click();
+                }
             }
         }
     }
@@ -345,10 +373,16 @@ async function handlePageSetup() {
     if (eBookConfig.isLoggedIn) {
         mess = `username: ${eBookConfig.username}`;
         if (!eBookConfig.isInstructor) {
-            $("#ip_dropdown_link").remove();
-            $("#inst_peer_link").remove();
+            const ipDropdown = document.getElementById("ip_dropdown_link");
+            if (ipDropdown && typeof ipDropdown.remove === "function") {
+                ipDropdown.remove();
+            }
+            const instPeer = document.getElementById("inst_peer_link");
+            if (instPeer && typeof instPeer.remove === "function") {
+                instPeer.remove();
+            }
         }
-        $(document).trigger("runestone:login");
+        document.dispatchEvent(new Event("runestone:login"));
         addReadingList();
         // Avoid the timedRefresh on the grading page.
         if (
@@ -359,7 +393,7 @@ async function handlePageSetup() {
         }
     } else {
         mess = "Not logged in";
-        $(document).trigger("runestone:logout");
+        document.dispatchEvent(new Event("runestone:logout"));
         let bw = document.getElementById("browsing_warning");
         if (bw) {
             bw.innerHTML =
@@ -371,34 +405,52 @@ async function handlePageSetup() {
                 "<p class='navbar_message'>🚫 Log-in to Remove <a href='/runestone/default/ads'>Ads!</a> 🚫 &nbsp;</p>";
         }
     }
-    $(".loggedinuser").html(mess);
+    document.querySelectorAll(".loggedinuser").forEach((el) => {
+        el.innerHTML = mess;
+    });
 
     pageProgressTracker = new PageProgressBar(eBookConfig.activities);
     notifyRunestoneComponents();
 }
 
 function setupNavbarLoggedIn() {
-    $("#profilelink").show();
-    $("#passwordlink").show();
-    $("#registerlink").hide();
-    $("li.loginout").html(
-        '<a href="' + eBookConfig.app + '/default/user/logout">Log Out</a>',
-    );
+    const profileLink = document.getElementById("profilelink");
+    if (profileLink) profileLink.style.removeProperty("display");
+    const passwordLink = document.getElementById("passwordlink");
+    if (passwordLink) passwordLink.style.removeProperty("display");
+    const registerLink = document.getElementById("registerlink");
+    if (registerLink) registerLink.style.display = "none";
+    document.querySelectorAll("li.loginout").forEach((el) => {
+        el.innerHTML =
+            '<a href="' +
+            eBookConfig.app +
+            '/default/user/logout">Log Out</a>';
+    });
 }
 document.addEventListener("runestone:login", setupNavbarLoggedIn);
 
 function setupNavbarLoggedOut() {
     if (eBookConfig.useRunestoneServices) {
         console.log("setup navbar for logged out");
-        $("#registerlink").show();
-        $("#profilelink").hide();
-        $("#passwordlink").hide();
-        $("#ip_dropdown_link").hide();
-        $("#inst_peer_link").hide();
-        $("li.loginout").html(
-            '<a href="' + eBookConfig.app + '/default/user/login">Login</a>',
-        );
-        $(".footer").html("user not logged in");
+        const registerLink = document.getElementById("registerlink");
+        if (registerLink) registerLink.style.removeProperty("display");
+        const profileLink = document.getElementById("profilelink");
+        if (profileLink) profileLink.style.display = "none";
+        const passwordLink = document.getElementById("passwordlink");
+        if (passwordLink) passwordLink.style.display = "none";
+        const ipDropdown = document.getElementById("ip_dropdown_link");
+        if (ipDropdown) ipDropdown.style.display = "none";
+        const instPeer = document.getElementById("inst_peer_link");
+        if (instPeer) instPeer.style.display = "none";
+        document.querySelectorAll("li.loginout").forEach((el) => {
+            el.innerHTML =
+                '<a href="' +
+                eBookConfig.app +
+                '/default/user/login">Login</a>';
+        });
+        document.querySelectorAll(".footer").forEach((el) => {
+            el.innerHTML = "user not logged in";
+        });
     }
 }
 document.addEventListener("runestone:logout", setupNavbarLoggedOut);
