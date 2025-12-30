@@ -101,30 +101,34 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
       description: "Choose the programming language for this active code exercise"
     },
     1: {
+      title: "Data Files",
+      description: "Create or select data files that students can read from in their programs"
+    },
+    2: {
       title: "Write Instructions",
       description: "Provide instructions for the student"
     },
-    2: {
+    3: {
       title: "Hidden Prefix",
       description: "Add code that runs before the student's code but is hidden from them"
     },
-    3: {
+    4: {
       title: "Starter Code",
       description: "Provide initial code that students will see and modify"
     },
-    4: {
+    5: {
       title: "Hidden Suffix",
       description: "Add code that runs after the student's code but is hidden from them"
     },
-    5: {
+    6: {
       title: "Standard Input",
       description: "Provide input data for programs that read from stdin"
     },
-    6: {
+    7: {
       title: "Exercise Settings",
       description: "Configure exercise settings such as name, points, etc."
     },
-    7: {
+    8: {
       title: "Preview",
       description: "Preview the exercise as students will see it"
     }
@@ -386,6 +390,12 @@ export const ACTIVE_CODE_STEP_VALIDATORS: StepValidator<Partial<CreateExerciseFo
     if (!data.language?.trim()) {
       errors.push("Programming language is required");
     }
+
+    return errors;
+  },
+  // Data Files - optional step, no validation required
+  (data) => {
+    const errors: string[] = [];
 
     return errors;
   },
