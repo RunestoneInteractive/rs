@@ -233,6 +233,7 @@ Do Assignment
 
 <script>
     assignmentId = {{  assignment.id  }};
+    localStorage.setItem("currentAssignmentId", assignmentId);
     //console.log(document.getElementsByClassName('nav nav-tabs'))
     // This script renders the html into elements in the DOM
     // The html gets thrown into a script tag so javascript can mess with it without throwing errors all over the place
