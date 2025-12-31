@@ -1,6 +1,8 @@
 import { ExerciseComponentProps } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/types/ExerciseTypes";
-import { FC } from "react";
+import { FC, useCallback } from "react";
 
+import { useFetchDatafilesQuery } from "@/store/datafile/datafile.logic.api";
+import { ExistingDataFile, SelectedDataFile } from "@/types/datafile";
 import { CreateExerciseFormType } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
 import { generateActiveCodePreview } from "@/utils/preview/activeCode";
@@ -14,6 +16,7 @@ import { validateCommonFields } from "../../utils/validation";
 
 import { ActiveCodeExerciseSettings } from "./ActiveCodeExerciseSettings";
 import { ActiveCodePreview } from "./ActiveCodePreview";
+import { DataFilesEditor } from "./components/DataFilesEditor";
 import { InstructionsEditor } from "./components/InstructionsEditor";
 import { LanguageSelector } from "./components/LanguageSelector";
 import { PrefixCodeEditor } from "./components/PrefixCodeEditor";
@@ -24,6 +27,7 @@ import { SuffixCodeEditor } from "./components/SuffixCodeEditor";
 // Define the steps for ActiveCode exercise
 const ACTIVE_CODE_STEPS = [
   { label: "Language" },
+  { label: "Data Files" },
   { label: "Instructions" },
   { label: "Hidden Prefix" },
   { label: "Starter Code" },
@@ -51,21 +55,9 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
   suffix_code: "",
   instructions: "",
   language: "",
-  stdin: ""
+  stdin: "",
+  selectedExistingDataFiles: []
 });
-
-// Create a wrapper for generateActiveCodePreview to match the expected type
-const generatePreview = (data: Partial<CreateExerciseFormType>): string => {
-  return generateActiveCodePreview(
-    data.instructions || "",
-    data.language || "python",
-    data.prefix_code || "",
-    data.starter_code || "",
-    data.suffix_code || "",
-    data.name || "",
-    data.stdin || ""
-  );
-};
 
 export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
   initialData,
@@ -75,6 +67,35 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
   onFormReset,
   isEdit = false
 }) => {
+  const { data: allDatafiles = [] } = useFetchDatafilesQuery();
+
+  const generatePreview = useCallback(
+    (data: Partial<CreateExerciseFormType>): string => {
+      const selectedFileAcids: SelectedDataFile[] = data.selectedExistingDataFiles || [];
+      const selectedDatafilesInfo = selectedFileAcids
+        .map((acid) => {
+          const existingFile = allDatafiles.find((df: ExistingDataFile) => df.acid === acid);
+          return {
+            acid,
+            filename: existingFile?.filename
+          };
+        })
+        .filter((df) => df.acid);
+
+      return generateActiveCodePreview(
+        data.instructions || "",
+        data.language || "python",
+        data.prefix_code || "",
+        data.starter_code || "",
+        data.suffix_code || "",
+        data.name || "",
+        data.stdin || "",
+        selectedDatafilesInfo
+      );
+    },
+    [allDatafiles]
+  );
+
   const {
     formData,
     activeStep,
@@ -135,7 +156,17 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
           <LanguageSelector language={formData.language || ""} onChange={handleLanguageChange} />
         );
 
-      case 1: // Instructions
+      case 1: // Data Files
+        return (
+          <DataFilesEditor
+            selectedDataFiles={formData.selectedExistingDataFiles || []}
+            onSelectedDataFilesChange={(files) =>
+              updateFormData("selectedExistingDataFiles", files)
+            }
+          />
+        );
+
+      case 2: // Instructions
         return (
           <InstructionsEditor
             instructions={formData.instructions || ""}
@@ -143,7 +174,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
           />
         );
 
-      case 2: // Hidden Prefix Code
+      case 3: // Hidden Prefix Code
         return (
           <PrefixCodeEditor
             prefixCode={formData.prefix_code || ""}
@@ -152,7 +183,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
           />
         );
 
-      case 3: // Starter Code
+      case 4: // Starter Code
         return (
           <StarterCodeEditor
             starterCode={formData.starter_code || ""}
@@ -161,7 +192,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
           />
         );
 
-      case 4: // Hidden Suffix Code
+      case 5: // Hidden Suffix Code
         return (
           <SuffixCodeEditor
             suffixCode={formData.suffix_code || ""}
@@ -170,7 +201,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
           />
         );
 
-      case 5: // Standard Input
+      case 6: // Standard Input
         return (
           <StdinEditor
             stdin={formData.stdin || ""}
@@ -178,10 +209,10 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
           />
         );
 
-      case 6: // Settings
+      case 7: // Settings
         return <ActiveCodeExerciseSettings formData={formData} onChange={handleSettingsChange} />;
 
-      case 7: // Preview
+      case 8: // Preview
         return (
           <ActiveCodePreview
             instructions={formData.instructions || ""}
@@ -191,6 +222,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
             suffix_code={formData.suffix_code || ""}
             name={formData.name || ""}
             stdin={formData.stdin || ""}
+            selectedExistingDataFiles={formData.selectedExistingDataFiles || []}
           />
         );
 
