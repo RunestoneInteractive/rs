@@ -35,7 +35,7 @@
 
 function addReadingList() {
     if (eBookConfig.readings) {
-        var l, nxt, path_parts, nxt_link;
+        var fst,snd, new_pos, path_parts, new_pos_link;
         let cur_path_parts = window.location.pathname.split("/");
         let name =
             cur_path_parts[cur_path_parts.length - 2] +
@@ -54,27 +54,44 @@ function addReadingList() {
 
         let position = eBookConfig.readings.indexOf(name);
         let num_readings = eBookConfig.readings.length;
+        // get prev name
+        if (position > 0) {
+            new_pos = eBookConfig.readings[position - 1];
+            path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
+            path_parts.push(new_pos);
+            new_pos_link = path_parts.join("/");
+            fst = document.createElement("a");
+            fst.name = "link";
+            fst.className = "btn btn-lg reading-navigation prev-reading";
+            fst.href = new_pos_link;
+            fst.textContent = `Back to page ${
+                position
+            } of ${num_readings} in the reading assignment.`;
+        } else {
+            fst = document.createElement("div");
+            fst.textContent = `Finished reading assignment. Page 1 of ${num_readings}.`;
+        }
         if (position == eBookConfig.readings.length - 1) {
             // no more readings
-            l = document.createElement("div");
-            l.textContent = `Finished reading assignment. Page ${num_readings} of ${num_readings}.`;
+            snd = document.createElement("div");
+            snd.textContent = `Finished reading assignment. Page ${num_readings} of ${num_readings}.`;
         } else if (position >= 0) {
             // get next name
-            nxt = eBookConfig.readings[position + 1];
+            new_pos = eBookConfig.readings[position + 1];
             path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
-            path_parts.push(nxt);
-            nxt_link = path_parts.join("/");
-            l = document.createElement("a");
-            l.name = "link";
-            l.className = "btn btn-lg reading-navigation next-reading";
-            l.href = nxt_link;
-            l.textContent = `Continue to page ${
+            path_parts.push(new_pos);
+            new_pos_link = path_parts.join("/");
+            snd = document.createElement("a");
+            snd.name = "link";
+            snd.className = "btn btn-lg reading-navigation next-reading";
+            snd.href = new_pos_link;
+            snd.textContent = `Continue to page ${
                 position + 2
             } of ${num_readings} in the reading assignment.`;
         } else {
-            l = document.createElement("div");
-            l.className = "reading-navigation no-assignment";
-            l.textContent =
+            snd = document.createElement("div");
+            snd.className = "reading-navigation no-assignment";
+            snd.textContent =
                 "This page is not part of the last reading assignment you visited.";
         }
         // check the body tag to see if it has a pretext class (no jquery)
@@ -83,13 +100,15 @@ function addReadingList() {
             let pc = document.getElementById("scprogresscontainer");
             if (pc) {
                 pc.style.marginBottom = "20px";
-                pc.appendChild(l);
+                ps.appendChild(fst);
+                pc.appendChild(snd);
             }
             return;
         }
         const mainContent = document.getElementById("main-content");
-        if (mainContent && l) {
-            mainContent.appendChild(l);
+        if (mainContent && snd) {
+            mainContent.appendChild(fst);
+            mainContent.appendChild(snd);
         }
     }
 }
