@@ -67,9 +67,19 @@ function addReadingList() {
             fst.textContent = `Back to page ${
                 position
             } of ${num_readings} in the reading assignment.`;
-        } else {
+        } else if (position == 0){
             fst = document.createElement("div");
-            fst.textContent = `Finished reading assignment. Page 1 of ${num_readings}.`;
+            fst.textContent = `Start of reading assignment. Page 1 of ${num_readings}.`;
+        } else {
+            new_pos = eBookConfig.readings[0];
+            path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
+            path_parts.push(new_pos);
+            new_pos_link = path_parts.join("/");
+            fst = document.createElement("a");
+            fst.name = "link";
+            fst.className = "btn btn-lg reading-navigation prev-reading";
+            fst.href = new_pos_link;
+            fst.textContent = `Return to page 1 of ${num_readings} in the reading assignment.`;
         }
         if (position == eBookConfig.readings.length - 1) {
             // no more readings
@@ -100,7 +110,7 @@ function addReadingList() {
             let pc = document.getElementById("scprogresscontainer");
             if (pc) {
                 pc.style.marginBottom = "20px";
-                ps.appendChild(fst);
+                pc.appendChild(fst);
                 pc.appendChild(snd);
             }
             return;
