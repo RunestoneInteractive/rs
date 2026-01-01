@@ -1,5 +1,10 @@
 import { sanitizeId } from "../sanitize";
 
+export interface DataFileInfo {
+  acid: string;
+  filename?: string;
+}
+
 export const generateActiveCodePreview = (
   instructions: string,
   language: string,
@@ -7,12 +12,17 @@ export const generateActiveCodePreview = (
   starter_code: string,
   suffix_code: string,
   name: string,
-  stdin?: string
+  stdin?: string,
+  selectedDataFiles?: DataFileInfo[]
 ): string => {
   const safeId = sanitizeId(name);
 
   // Add data-stdin attribute to textarea if stdin is provided
   const stdinAttr = stdin && stdin.trim() ? ` data-stdin="${stdin}"` : "";
+
+  const filenames =
+    selectedDataFiles && selectedDataFiles.length > 0 ? selectedDataFiles.map((df) => df.acid) : [];
+  const datafileAttr = filenames.length > 0 ? ` data-datafile="${filenames.join(",")}"` : "";
 
   return `
 <div class="runestone explainer ac_section ">
@@ -26,7 +36,7 @@ export const generateActiveCodePreview = (
     data-timelimit=25000  data-codelens="true"   
     data-audio=''      
     data-wasm=/_static
-    ${stdinAttr}
+    ${stdinAttr}${datafileAttr}
     style="visibility: hidden;">
 ${prefix_code}
 ^^^^

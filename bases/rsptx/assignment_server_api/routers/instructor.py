@@ -60,6 +60,13 @@ from rsptx.db.crud import (
     get_peer_votes,
     search_exercises,
     create_api_token,
+    update_source_code,
+    fetch_all_datafiles,
+    check_datafile_exists,
+    generate_datafile_acid,
+    fetch_datafile_by_acid,
+    update_datafile,
+    delete_datafile,
 )
 from rsptx.db.crud.question import validate_question_name_unique, copy_question
 from rsptx.db.crud.assignment import add_assignment_question, delete_assignment
@@ -1564,3 +1571,298 @@ async def duplicate_assignment_endpoint(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error duplicating assignment: {str(e)}",
         )
+
+class CreateDatafilePayload(BaseModel):
+    filename: str
+    main_code: str
+
+
+@router.get("/datafiles")
+@instructor_role_required()
+@with_course()
+async def get_datafiles(
+    request: Request,
+    course=None,
+):
+    """
+    Fetch all datafiles for a course.
+    Fetches from both base_course and current course_name to support derived courses.
+    """
+    try:
+        datafiles = await fetch_all_datafiles(course.base_course, course.course_name)
+
+        # Convert to dictionaries for JSON response
+        datafiles_list = []
+        for df in datafiles:
+            if df is not None:
+                datafiles_list.append({
+                    "id": df.id,
+                    "acid": df.acid,
+                    "filename": df.filename,
+                    "course_id": df.course_id,
+                    "owner": df.owner,
+                    "main_code": df.main_code[:100] + "..." if df.main_code and len(df.main_code) > 100 else df.main_code,  # Truncate for list view
+                })
+
+        return make_json_response(
+            status=status.HTTP_200_OK,
+            detail={"datafiles": datafiles_list},
+        )
+    except Exception as e:
+        rslogger.error(f"Error fetching datafiles: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error fetching datafiles: {str(e)}",
+        )
+
+
+
+
+@router.post("/datafile")
+@instructor_role_required()
+@with_course()
+async def create_datafile(
+    request: Request,
+    request_data: CreateDatafilePayload,
+    course=None,
+):
+    """
+    Create or update a datafile in the source_code table.
+    Saves to the current course (course_name), not the base_course.
+
+    The unique constraint is: filename + owner + course_id.
+    The acid is generated based on these three values.
+    """
+    try:
+        # Get the current user (owner)
+        user = request.state.user
+        if not user:
+            return make_json_response(
+                status=status.HTTP_401_UNAUTHORIZED,
+                detail="User not authenticated",
+            )
+        owner = user.username
+
+        # Check if a datafile with the same filename, owner, and course already exists
+        exists = await check_datafile_exists(
+            filename=request_data.filename,
+            owner=owner,
+            course_id=course.course_name,
+        )
+
+        if exists:
+            return make_json_response(
+                status=status.HTTP_409_CONFLICT,
+                detail=f"A datafile with filename '{request_data.filename}' already exists for this course. Please use a different filename.",
+            )
+
+        # Generate acid based on filename, owner, and course
+        acid = generate_datafile_acid(
+            filename=request_data.filename,
+            owner=owner,
+            course_id=course.course_name,
+        )
+
+        await update_source_code(
+            acid=acid,
+            filename=request_data.filename,
+            course_id=course.course_name,
+            main_code=request_data.main_code,
+            owner=owner,
+        )
+
+        return make_json_response(
+            status=status.HTTP_201_CREATED,
+            detail={"status": "success", "acid": acid},
+        )
+    except Exception as e:
+        rslogger.error(f"Error creating datafile: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error creating datafile: {str(e)}",
+        )
+
+
+class UpdateDatafilePayload(BaseModel):
+    acid: str
+    main_code: str
+
+
+@router.put("/datafile")
+@instructor_role_required()
+@with_course()
+async def update_datafile_endpoint(
+    request: Request,
+    request_data: UpdateDatafilePayload,
+    course=None,
+):
+    """
+    Update an existing datafile in the source_code table.
+    Only the owner of the datafile can update it.
+    Note: Filename cannot be changed after creation.
+    """
+    try:
+        # Get the current user
+        user = request.state.user
+        if not user:
+            return make_json_response(
+                status=status.HTTP_401_UNAUTHORIZED,
+                detail="User not authenticated",
+            )
+
+        # Fetch the datafile to verify ownership
+        datafile = await fetch_datafile_by_acid(
+            acid=request_data.acid,
+            course_id=course.course_name,
+        )
+
+        if not datafile:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail=f"Datafile with acid '{request_data.acid}' not found",
+            )
+
+        # Check ownership
+        if datafile.owner != user.username:
+            return make_json_response(
+                status=status.HTTP_403_FORBIDDEN,
+                detail="You are not the owner of this datafile and cannot edit it",
+            )
+
+        # Update the datafile (only main_code, filename cannot be changed)
+        success = await update_datafile(
+            acid=request_data.acid,
+            course_id=course.course_name,
+            main_code=request_data.main_code,
+        )
+
+        if success:
+            return make_json_response(
+                status=status.HTTP_200_OK,
+                detail={"status": "success"},
+            )
+        else:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail="Datafile not found",
+            )
+    except Exception as e:
+        rslogger.error(f"Error updating datafile: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error updating datafile: {str(e)}",
+        )
+
+
+@router.delete("/datafile/{acid}")
+@instructor_role_required()
+@with_course()
+async def delete_datafile_endpoint(
+    request: Request,
+    acid: str,
+    course=None,
+):
+    """
+    Delete a datafile from the source_code table.
+    Only the owner of the datafile can delete it.
+    """
+    try:
+        # Get the current user
+        user = request.state.user
+        if not user:
+            return make_json_response(
+                status=status.HTTP_401_UNAUTHORIZED,
+                detail="User not authenticated",
+            )
+
+        # Fetch the datafile to verify ownership
+        datafile = await fetch_datafile_by_acid(
+            acid=acid,
+            course_id=course.course_name,
+        )
+
+        if not datafile:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail=f"Datafile with acid '{acid}' not found",
+            )
+
+        # Check ownership
+        if datafile.owner != user.username:
+            return make_json_response(
+                status=status.HTTP_403_FORBIDDEN,
+                detail="You are not the owner of this datafile and cannot delete it",
+            )
+
+        # Delete the datafile
+        success = await delete_datafile(
+            acid=acid,
+            course_id=course.course_name,
+        )
+
+        if success:
+            return make_json_response(
+                status=status.HTTP_200_OK,
+                detail={"status": "success"},
+            )
+        else:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail="Datafile not found",
+            )
+    except Exception as e:
+        rslogger.error(f"Error deleting datafile: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error deleting datafile: {str(e)}",
+        )
+
+
+@router.get("/datafile/{acid}")
+@instructor_role_required()
+@with_course()
+async def get_datafile_endpoint(
+    request: Request,
+    acid: str,
+    course=None,
+):
+    """
+    Get a single datafile by its acid.
+    Returns full content (not truncated like the list endpoint).
+    """
+    try:
+        datafile = await fetch_datafile_by_acid(
+            acid=acid,
+            course_id=course.course_name,
+        )
+
+        if not datafile:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail=f"Datafile with acid '{acid}' not found",
+            )
+
+        # Get current user to determine if they are the owner
+        user = request.state.user
+        is_owner = user and datafile.owner == user.username
+
+        return make_json_response(
+            status=status.HTTP_200_OK,
+            detail={
+                "id": datafile.id,
+                "acid": datafile.acid,
+                "filename": datafile.filename,
+                "course_id": datafile.course_id,
+                "owner": datafile.owner,
+                "main_code": datafile.main_code,
+                "is_owner": is_owner,
+            },
+        )
+    except Exception as e:
+        rslogger.error(f"Error fetching datafile: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error fetching datafile: {str(e)}",
+        )
+
+

@@ -1,6 +1,7 @@
 import { BlankWithFeedback } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/FillInTheBlankExercise";
 import { FilterMatchMode } from "primereact/api";
 
+import { SelectedDataFile } from "@/types/datafile";
 import { ParsonsBlock } from "@/utils/preview/parsonsPreview";
 
 export const supportedExerciseTypesToEdit = [
@@ -99,6 +100,7 @@ export type QuestionJSON = Partial<{
   toggleOptions: string[];
   dataLimitBasecourse: boolean;
   stdin: string;
+  selectedExistingDataFiles: SelectedDataFile[];
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;
