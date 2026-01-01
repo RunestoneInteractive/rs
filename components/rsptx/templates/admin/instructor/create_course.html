@@ -312,16 +312,6 @@
         return true;
     });
 
-    document.getElementById('invoice-me').addEventListener('change', function () {
-        if (this.checked) {
-            let res = confirm("Checking this box means you want us to email you an Invoice (Thank you!!).  If you want to keep using Runestone for free just click cancel");
-            if (res === true) {
-                this.checked = false;
-            }
-        }
-    });
-
-
     // Book filter logic
     function setupBookFilter() {
         var filterInput = document.getElementById('bookFilter');
