@@ -27,7 +27,7 @@ export default class HParsons extends RunestoneBase {
         this.isBlockGrading = this.parseBooleanAttribute(orig, "data-blockanswer");
         this.language = orig.getAttribute("data-language");
         // Detect math mode
-        if (this.language === undefined && orig.textContent.includes('span class="process-math"')) {
+        if (this.language == null && orig.textContent.includes('span class="process-math"')) {
             this.language = "math";
         }
         if (this.isBlockGrading) {
@@ -131,7 +131,7 @@ export default class HParsons extends RunestoneBase {
         this.hparsonsInput = this.outerDiv.querySelector("micro-parsons");
         this.renderMathInBlocks();
         // Change "code" to "answer" in parsons direction for non-code languages
-        if (this.language === undefined || this.language === "math") {
+        if (this.language == null || this.language === "math") {
             this.outerDiv.querySelectorAll(".hparsons-tip").forEach(el => {
                 if (el.textContent.includes("our code")) {
                     el.textContent = el.textContent.replace("our code", "our answer");
