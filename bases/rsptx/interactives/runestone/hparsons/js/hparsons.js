@@ -195,9 +195,12 @@ export default class HParsons extends RunestoneBase {
             });
 
             if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise().then(() => this.simulateSolution());
+                MathJax.typesetPromise([blocks]).then(() => this.simulateSolution());
             }
-        }, 0);
+        }, 100);
+        // Ugly... but there are timing issues with block rendering in microparsons and MathJax
+        // most noticeable if multiple hparsons problems are on the same page
+        // this delay seems to help avoid issues
     }
 
     /*
