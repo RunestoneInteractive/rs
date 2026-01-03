@@ -30,7 +30,13 @@ function setupPTXEvents() {
             let container = btn.closest(".sagecell-sage");
             let codeInput = container ? container.querySelector(".sagecell_input") : null;
             let code = codeInput ? codeInput.textContent : "";
-            rb.logBookEvent({ event: "sage", act: "run", div_id: container ? container.id : null });
+            let div_id = container ? container.id : null;
+            if (! div_id) {
+                console.warn("Could not find container or div_id for sagecell button");
+                return;
+                }
+
+            rb.logBookEvent({ event: "sage", act: "run", div_id: div_id });
         });
     });
     if (typeof eBookConfig !== "undefined" && !eBookConfig.isInstructor) {
