@@ -27,7 +27,7 @@ function setupPTXEvents() {
     // log an event when a sage cell is evaluated
     document.querySelectorAll(".sagecell_evalButton").forEach((btn) => {
         btn.addEventListener("click", function () {
-            let container = btn.closest(".sagecell-sage");
+            let container = btn.closest(".ptx-sagecell");
             let codeInput = container ? container.querySelector(".sagecell_input") : null;
             let code = codeInput ? codeInput.textContent : "";
             let div_id = container ? container.id : null;
