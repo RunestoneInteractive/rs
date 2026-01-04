@@ -233,7 +233,30 @@ Do Assignment
 
 <script>
     assignmentId = {{  assignment.id  }};
-    localStorage.setItem("currentAssignmentId", assignmentId);
+
+    var readingsInfo = {{ readings | tojson | safe }}
+    var questionInfo = {{ questioninfo | tojson | safe }};
+    console.log(readingsInfo);
+    console.log(questionInfo);
+   
+    let subchapList = []
+    let qlist = []
+    for (let chapter in readingsInfo) {
+        for (let subchapter of readingsInfo[chapter]['subchapters']) {
+            subchapList.push(subchapter['subchapter']);
+        }
+    }
+    for (let q of questionInfo) {
+        qlist.push(q['name']);
+    }
+    var assignmentInfo = {
+        'name': "{{ assignment['name'] }}",
+        'id': assignmentId,
+        'readings': subchapList,
+        'questions': qlist
+    };
+    localStorage.setItem("currentAssignmentInfo", JSON.stringify(assignmentInfo));
+
     //console.log(document.getElementsByClassName('nav nav-tabs'))
     // This script renders the html into elements in the DOM
     // The html gets thrown into a script tag so javascript can mess with it without throwing errors all over the place
