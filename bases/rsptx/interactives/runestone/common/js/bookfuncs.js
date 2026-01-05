@@ -48,31 +48,29 @@ function addReadingList() {
         
     if (assignment_info_string && eBookConfig.readings) {
         var top,bottom,active,page_name,exit_link,fst,snd, new_pos, path_parts, new_pos_link;
-        let assignment_info = JSON.parse(assignmentInfoString)
-        let assignment_id = assignment_info.id
-        let assignment_name = assignment_info.name
-        let reading_names = assignment_info.readings
+        let assignment_info = JSON.parse(assignment_info_string);
+        let assignment_id = assignment_info.id;
+        let assignment_name = assignment_info.name;
+        let reading_names = assignment_info.readings;
 
         active = document.createElement("div");
         active.textContent = "Active assignment: "
 
-        page_name = document.createElement("a")
-        page_name.name = "assignment_name"
-        page_name.textContent = assignment_name
-        page_name.href = `/assignment/student/doAssignment?assignment_id=${assignment_id}`
+        page_name = document.createElement("a");
+        page_name.textContent = assignment_name;
+        page_name.href = `/assignment/student/doAssignment?assignment_id=${assignment_id}`;
         
-        active.append(page_name)
+        active.append(page_name);
 
-        exit_link = document.createElement("a")
-        exit_link.name="exit_assignment_link"
-        exit_link.textContent = "Exit Assignment"
-        exit_link.href="#"
+        exit_link = document.createElement("a");
+        exit_link.textContent = "Exit Assignment";
+        exit_link.href=window.location.pathname;
 
         exit_link.addEventListener('click',function(event) {
-            localStorage.removeItem("currentAssignmentInfo")
+            localStorage.removeItem("currentAssignmentInfo");
         })
 
-        active.append(exit_link)
+        //active.append(exit_link)
 
         let cur_path_parts = window.location.pathname.split("/");
         let name =
@@ -98,13 +96,15 @@ function addReadingList() {
             path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
             path_parts.push(new_pos);
             new_pos_link = path_parts.join("/");
-            fst = document.createElement("a");
-            fst.name = "link";
-            fst.className = "btn btn-lg reading-navigation prev-reading";
-            fst.href = new_pos_link;
-            fst.textContent = `Back to page ${
+            fst = document.createElement("div");
+            fst.textContent = `${reading_names[position]}: Page ${position + 1} of ${num_readings}, `;
+            var fst_lnk = document.createElement("a");
+            fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
+            fst_lnk.href = new_pos_link;
+            fst_lnk.textContent = `Back to page ${
                 position
             } of ${num_readings}: ${reading_names[position-1]}.`;
+            fst.append(fst_lnk);
         } else if (position == 0){
             fst = document.createElement("div");
             fst.textContent = `${reading_names[0]}: Page 1 of ${num_readings}.`;
@@ -113,11 +113,9 @@ function addReadingList() {
             path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
             path_parts.push(new_pos);
             new_pos_link = path_parts.join("/");
-            fst = document.createElement("a");
-            fst.name = "link";
-            fst.className = "btn btn-lg reading-navigation prev-reading";
-            fst.href = new_pos_link;
-            fst.textContent = `Return to page 1 of ${num_readings}: ${reading_names[0]}.`;
+            fst = document.createElement("div");
+            fst.textContent = "Notice: this page is not part of the assignment. To remove this warning click ";
+            fst.append(exit_link);
         }
         if (position == eBookConfig.readings.length - 1) {
             // no more readings
@@ -137,30 +135,27 @@ function addReadingList() {
                 position + 2
             } of ${num_readings}: ${reading_names[position+1]}`;
         } else {
-            snd = document.createElement("div");
-            snd.className = "reading-navigation no-assignment";
-            snd.textContent =
-                "This page is not part of the last reading assignment you visited.";
+            snd = fst.cloneNode(true);
+
         }
 
         top = document.createElement("div");
-        top.append(active)
-        top.append(fst)
-        top.append(snd)
+        top.append(active);
+        top.append(fst);
+        //top.append(snd);
 
         bottom = document.createElement("div");
-        bottom.append(active)
-        bottom.append(fst)
-        bottom.append(snd)
+        bottom.append(active.cloneNode(true));
+        //bottom.append(fst.cloneNode(true));
+        bottom.append(snd.cloneNode(true));
 
 
         // check the body tag to see if it has a pretext class (no jquery)
         if (ptxbook) {
             //append parts to the header and progress container
-            let header = document.getElementById("ptx-masthead");
-            if (header) {
-                header.appendChild(top);
-               
+            let content = document.getElementById("ptx-content");
+            if (content) {
+                content.insertBefore(top, content.firstChild);
             }
             let pc = document.getElementById("scprogresscontainer");
             if (pc) {
