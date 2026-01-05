@@ -5,6 +5,12 @@ export interface DataFileInfo {
   filename?: string;
 }
 
+export interface CodeTailorOptions {
+  enableCodeTailor?: boolean;
+  parsonspersonalize?: "solution-level" | "block-and-solution" | "";
+  parsonsexample?: string;
+}
+
 export const generateActiveCodePreview = (
   instructions: string,
   language: string,
@@ -13,7 +19,8 @@ export const generateActiveCodePreview = (
   suffix_code: string,
   name: string,
   stdin?: string,
-  selectedDataFiles?: DataFileInfo[]
+  selectedDataFiles?: DataFileInfo[],
+  codeTailorOptions?: CodeTailorOptions
 ): string => {
   const safeId = sanitizeId(name);
 
@@ -23,6 +30,15 @@ export const generateActiveCodePreview = (
   const filenames =
     selectedDataFiles && selectedDataFiles.length > 0 ? selectedDataFiles.map((df) => df.acid) : [];
   const datafileAttr = filenames.length > 0 ? ` data-datafile="${filenames.join(",")}"` : "";
+
+  // CodeTailor attributes
+  let codeTailorAttrs = "";
+  if (codeTailorOptions?.enableCodeTailor && codeTailorOptions?.parsonspersonalize) {
+    codeTailorAttrs += ` data-parsonspersonalize="${codeTailorOptions.parsonspersonalize}"`;
+    // If parsonsexample is provided, use it; otherwise default to LLM-example
+    const parsonsExampleValue = codeTailorOptions.parsonsexample?.trim() || "LLM-example";
+    codeTailorAttrs += ` data-parsonsexample="${parsonsExampleValue}"`;
+  }
 
   return `
 <div class="runestone explainer ac_section ">
@@ -36,7 +52,7 @@ export const generateActiveCodePreview = (
     data-timelimit=25000  data-codelens="true"   
     data-audio=''      
     data-wasm=/_static
-    ${stdinAttr}${datafileAttr}
+    ${stdinAttr}${datafileAttr}${codeTailorAttrs}
     style="visibility: hidden;">
 ${prefix_code}
 ^^^^

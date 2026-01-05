@@ -101,6 +101,10 @@ export type QuestionJSON = Partial<{
   dataLimitBasecourse: boolean;
   stdin: string;
   selectedExistingDataFiles: SelectedDataFile[];
+  // CodeTailor support
+  enableCodeTailor: boolean;
+  parsonspersonalize: "solution-level" | "block-and-solution" | "";
+  parsonsexample: string;
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;

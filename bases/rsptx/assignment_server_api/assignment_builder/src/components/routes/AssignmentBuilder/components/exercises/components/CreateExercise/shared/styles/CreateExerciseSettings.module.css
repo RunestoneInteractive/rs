@@ -242,3 +242,34 @@
     gap: 0.75rem;
   }
 }
+
+/* CodeTailor Section Styles */
+.codeTailorSection {
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.codeTailorOptions {
+  margin-top: 1rem;
+  padding: 1rem;
+  padding-top: 1.5rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.fieldHint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+@media screen and (max-width: 768px) {
+  .codeTailorOptions {
+    grid-template-columns: 1fr;
+  }
+}
+

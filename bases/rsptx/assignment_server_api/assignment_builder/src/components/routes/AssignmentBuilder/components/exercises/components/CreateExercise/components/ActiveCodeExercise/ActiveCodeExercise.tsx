@@ -56,7 +56,11 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
   instructions: "",
   language: "",
   stdin: "",
-  selectedExistingDataFiles: []
+  selectedExistingDataFiles: [],
+  // CodeTailor support
+  enableCodeTailor: false,
+  parsonspersonalize: "",
+  parsonsexample: ""
 });
 
 export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
@@ -90,7 +94,12 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
         data.suffix_code || "",
         data.name || "",
         data.stdin || "",
-        selectedDatafilesInfo
+        selectedDatafilesInfo,
+        {
+          enableCodeTailor: data.enableCodeTailor,
+          parsonspersonalize: data.parsonspersonalize,
+          parsonsexample: data.parsonsexample
+        }
       );
     },
     [allDatafiles]
