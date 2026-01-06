@@ -96,25 +96,28 @@ function addReadingList() {
             path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
             path_parts.push(new_pos);
             new_pos_link = path_parts.join("/");
-            fst = document.createElement("div");
-            fst.textContent = `Page ${position + 1} of ${num_readings}, `;
+            fst = active.cloneNode(true);
+            let txt = document.createTextNode(`, Page ${position + 1} of ${num_readings}, `);
             var fst_lnk = document.createElement("a");
             fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
             fst_lnk.href = new_pos_link;
             fst_lnk.textContent = `Back to page ${
                 position
             } of ${num_readings}: ${reading_names[position-1]}.`;
+            fst.append(txt);
             fst.append(fst_lnk);
         } else if (position == 0){
-            fst = document.createElement("div");
-            fst.textContent = `${reading_names[0]}: Page 1 of ${num_readings}.`;
+            fst = active.cloneNode(true);
+            let txt = document.createTextNode(`, Page 1 of ${num_readings}.`);
+            fst.append(txt);
         } else {
             new_pos = eBookConfig.readings[0];
             path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
             path_parts.push(new_pos);
             new_pos_link = path_parts.join("/");
-            fst = document.createElement("div");
-            fst.textContent = "Notice: this page is not part of the assignment. To remove this warning click ";
+            fst = active.cloneNode(true);
+            let txt = document.createTextNode(", Notice: this page is not part of the assignment. To remove this warning click ");
+            fst.append(txt);
             fst.append(exit_link);
         }
         if (position == eBookConfig.readings.length - 1) {
@@ -143,7 +146,6 @@ function addReadingList() {
         top.style.backgroundColor = "var(--componentBgColor)"
         top.style.borderColor = "var(--componentBorderColor)"
         top.style.borderWidth = "1px"
-        top.append(active);
         top.append(fst);
         //top.append(snd);
 
