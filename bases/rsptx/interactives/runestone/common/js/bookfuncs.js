@@ -111,7 +111,7 @@ function addReadingList() {
         } else if (position == 0){
             fst = active.cloneNode(true);
             let txt = document.createElement("p");
-            txt.textContent = `<br/>Page 1 of ${num_readings}.`;
+            txt.textContent = `Page 1 of ${num_readings}.`;
             fst.append(txt);
         } else {
             new_pos = eBookConfig.readings[0];
