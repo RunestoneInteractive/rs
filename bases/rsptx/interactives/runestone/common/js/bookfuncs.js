@@ -99,7 +99,7 @@ function addReadingList() {
             fst = active.cloneNode(true);
             let txt = document.createTextNode(`, Page ${position + 1} of ${num_readings}, `);
             var fst_lnk = document.createElement("a");
-            fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
+            //fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
             fst_lnk.href = new_pos_link;
             fst_lnk.textContent = `Back to page ${
                 position
@@ -122,21 +122,25 @@ function addReadingList() {
         }
         if (position == eBookConfig.readings.length - 1) {
             // no more readings
-            snd = document.createElement("div");
-            snd.textContent = `Page ${num_readings} of ${num_readings}: ${reading_names[position]}`;
+            snd = active;
+            let txt = document.createTextNode(`, Page ${num_readings} of ${num_readings}: ${reading_names[position]}`);
+            snd.append(txt);
         } else if (position >= 0) {
             // get next name
             new_pos = eBookConfig.readings[position + 1];
             path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
             path_parts.push(new_pos);
             new_pos_link = path_parts.join("/");
-            snd = document.createElement("a");
-            snd.name = "link";
-            snd.className = "btn btn-lg reading-navigation next-reading";
-            snd.href = new_pos_link;
-            snd.textContent = `Continue to page ${
+            snd = active;
+            var snd_lnk = document.createElement("a");
+            //snd_lnk.className = "btn btn-lg reading-navigation next-reading";
+            snd_lnk.href = new_pos_link;
+            snd_lnk.textContent = `Continue to page ${
                 position + 2
             } of ${num_readings}: ${reading_names[position+1]}`;
+            let txt = document.createTextNode(", ");
+            snd.append(txt);
+            snd.append(snd_lnk);
         } else {
             snd = fst.cloneNode(true);
 
@@ -154,9 +158,9 @@ function addReadingList() {
         bottom.style.borderColor = "var(--componentBorderColor)"
         bottom.style.borderWidth = "1px"
         
-        bottom.append(active.cloneNode(true));
+        //bottom.append(active.cloneNode(true));
         //bottom.append(fst.cloneNode(true));
-        bottom.append(snd.cloneNode(true));
+        bottom.append(snd);
 
 
         // check the body tag to see if it has a pretext class (no jquery)
