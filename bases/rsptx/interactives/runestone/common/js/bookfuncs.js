@@ -32,10 +32,46 @@
 //
 // Page decoration functions
 //
+/*
+Maybe something like this at the top:
 
+Active assignment: [Ch 15 reading]      [Exit assignment link]
+On page (3 of 7) [Select input showing current page, can select others] 
+Becoming this if not on a page in assignment
+
+Active assignment: [Ch 15 reading]      [Exit assignment link]
+This page is not part of that assignment. Select a page to return to it:
+[Select input]
+*/
 function addReadingList() {
-    if (eBookConfig.readings) {
-        var l, nxt, path_parts, nxt_link;
+    let assignment_info_string = localStorage.getItem("currentAssignmentInfo")
+        
+    if (assignment_info_string && eBookConfig.readings) {
+        var top,bottom,active,page_name,exit_link,fst,snd, new_pos, path_parts, new_pos_link;
+        let assignment_info = JSON.parse(assignment_info_string);
+        let assignment_id = assignment_info.id;
+        let assignment_name = assignment_info.name;
+        let reading_names = assignment_info.readingNames;
+
+        active = document.createElement("div");
+        active.textContent = "Active assignment: "
+
+        page_name = document.createElement("a");
+        page_name.textContent = assignment_name;
+        page_name.href = `/assignment/student/doAssignment?assignment_id=${assignment_id}`;
+        
+        active.append(page_name);
+
+        exit_link = document.createElement("a");
+        exit_link.textContent = "Exit Assignment";
+        exit_link.href=window.location.pathname;
+
+        exit_link.addEventListener('click',function(event) {
+            localStorage.removeItem("currentAssignmentInfo");
+        });
+
+        //active.append(exit_link)
+
         let cur_path_parts = window.location.pathname.split("/");
         let name =
             cur_path_parts[cur_path_parts.length - 2] +
@@ -54,42 +90,118 @@ function addReadingList() {
 
         let position = eBookConfig.readings.indexOf(name);
         let num_readings = eBookConfig.readings.length;
+        // get prev name
+        if (position > 0) {
+            new_pos = eBookConfig.readings[position - 1];
+            path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
+            path_parts.push(new_pos);
+            new_pos_link = path_parts.join("/");
+            fst = active.cloneNode(true);
+            let txt = document.createElement("p");
+            txt.textContent = `Page ${position + 1} of ${num_readings}, `;
+            var fst_lnk = document.createElement("a");
+            //fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
+            fst_lnk.href = new_pos_link;
+            fst_lnk.textContent = `Back to page ${
+                position
+            } of ${num_readings}: ${reading_names[position-1]}.`;
+            txt.append(fst_lnk);
+            fst.append(txt);
+            
+        } else if (position == 0){
+            fst = active.cloneNode(true);
+            let txt = document.createElement("p");
+            txt.textContent = `Page 1 of ${num_readings}.`;
+            fst.append(txt);
+        } else {
+            new_pos = eBookConfig.readings[0];
+            path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
+            path_parts.push(new_pos);
+            new_pos_link = path_parts.join("/");
+            fst = active.cloneNode(true);
+            let txt = document.createElement("p");
+            txt.textContent = "Notice: this page is not part of the assignment. To remove this warning click ";
+            txt.append(exit_link);
+            fst.append(txt);
+        }
         if (position == eBookConfig.readings.length - 1) {
             // no more readings
-            l = document.createElement("div");
-            l.textContent = `Finished reading assignment. Page ${num_readings} of ${num_readings}.`;
+            snd = active;
+            let txt = document.createElement("p");
+            txt.textContent = `Page ${num_readings} of ${num_readings}: ${reading_names[position]}`;
+            snd.append(txt);
         } else if (position >= 0) {
             // get next name
-            nxt = eBookConfig.readings[position + 1];
+            new_pos = eBookConfig.readings[position + 1];
             path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
-            path_parts.push(nxt);
-            nxt_link = path_parts.join("/");
-            l = document.createElement("a");
-            l.name = "link";
-            l.className = "btn btn-lg reading-navigation next-reading";
-            l.href = nxt_link;
-            l.textContent = `Continue to page ${
+            path_parts.push(new_pos);
+            new_pos_link = path_parts.join("/");
+            snd = active;
+            var snd_lnk = document.createElement("a");
+            //snd_lnk.className = "btn btn-lg reading-navigation next-reading";
+            snd_lnk.href = new_pos_link;
+            snd_lnk.textContent = `Continue to page ${
                 position + 2
-            } of ${num_readings} in the reading assignment.`;
+            } of ${num_readings}: ${reading_names[position+1]}`;
+            let txt = document.createElement("p");
+            txt.append(snd_lnk);
+            snd.append(txt);
+            
         } else {
-            l = document.createElement("div");
-            l.className = "reading-navigation no-assignment";
-            l.textContent =
-                "This page is not part of the last reading assignment you visited.";
+            snd = active.cloneNode(true);
+            let txt = document.createElement("p");
+            txt.textContent = "Notice: this page is not part of the assignment. To remove this warning click ";
+            let exit_clone = exit_link.cloneNode(true);
+
+            exit_clone.addEventListener('click',function(event) {
+                localStorage.removeItem("currentAssignmentInfo");
+            });
+            txt.append(exit_clone);
+            snd.append(txt);
+            
+
         }
+
+        top = document.createElement("div");
+        top.className = "ptx-runestone-container"
+        fst.className = "runestone assignment-nav top-assignment-nav"
+        //top.style.backgroundColor = "var(--componentBgColor)"
+        //top.style.borderColor = "var(--componentBorderColor)"
+        //top.style.borderWidth = "1px"
+        top.append(fst);
+        //top.append(snd);
+
+        bottom = document.createElement("div");
+        bottom.className = "ptx-runestone-container"
+        snd.className = "runestone assignment-nav bottom-assignment-nav"
+        //bottom.style.backgroundColor = "var(--componentBgColor)"
+        //bottom.style.borderColor = "var(--componentBorderColor)"
+        //bottom.style.borderWidth = "1px"
+        
+        //bottom.append(active.cloneNode(true));
+        //bottom.append(fst.cloneNode(true));
+        bottom.append(snd);
+
+
         // check the body tag to see if it has a pretext class (no jquery)
         if (ptxbook) {
-            //append l to the body
+            //append parts to the header and progress container
+            let content = document.getElementById("ptx-content");
+            if (content) {
+                content.insertBefore(top, content.firstChild);
+            }
             let pc = document.getElementById("scprogresscontainer");
             if (pc) {
                 pc.style.marginBottom = "20px";
-                pc.appendChild(l);
+                pc.appendChild(bottom);
             }
             return;
         }
         const mainContent = document.getElementById("main-content");
-        if (mainContent && l) {
-            mainContent.appendChild(l);
+        if (mainContent && snd) {
+            mainContent.insertBefore(top,mainContent.firstChild)
+            mainContent.appendChild(bottom);
+            
         }
     }
 }
