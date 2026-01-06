@@ -97,18 +97,21 @@ function addReadingList() {
             path_parts.push(new_pos);
             new_pos_link = path_parts.join("/");
             fst = active.cloneNode(true);
-            let txt = document.createTextNode(`, Page ${position + 1} of ${num_readings}, `);
+            let txt = document.createElement("p");
+            txt.textContent = `Page ${position + 1} of ${num_readings}, `;
             var fst_lnk = document.createElement("a");
             //fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
             fst_lnk.href = new_pos_link;
             fst_lnk.textContent = `Back to page ${
                 position
             } of ${num_readings}: ${reading_names[position-1]}.`;
+            txt.append(fst_lnk);
             fst.append(txt);
-            fst.append(fst_lnk);
+            
         } else if (position == 0){
             fst = active.cloneNode(true);
-            let txt = document.createTextNode(`, Page 1 of ${num_readings}.`);
+            let txt = document.createElement("p");
+            txt.textContent = `<br/>Page 1 of ${num_readings}.`;
             fst.append(txt);
         } else {
             new_pos = eBookConfig.readings[0];
@@ -116,14 +119,16 @@ function addReadingList() {
             path_parts.push(new_pos);
             new_pos_link = path_parts.join("/");
             fst = active.cloneNode(true);
-            let txt = document.createTextNode(", Notice: this page is not part of the assignment. To remove this warning click ");
+            let txt = document.createElement("p");
+            txt.textContent = "Notice: this page is not part of the assignment. To remove this warning click ";
+            txt.append(exit_link);
             fst.append(txt);
-            fst.append(exit_link);
         }
         if (position == eBookConfig.readings.length - 1) {
             // no more readings
             snd = active;
-            let txt = document.createTextNode(`, Page ${num_readings} of ${num_readings}: ${reading_names[position]}`);
+            let txt = document.createElement("p");
+            txt.textContent = `Page ${num_readings} of ${num_readings}: ${reading_names[position]}`;
             snd.append(txt);
         } else if (position >= 0) {
             // get next name
@@ -138,24 +143,28 @@ function addReadingList() {
             snd_lnk.textContent = `Continue to page ${
                 position + 2
             } of ${num_readings}: ${reading_names[position+1]}`;
-            let txt = document.createTextNode(", ");
+            let txt = document.createElement("p");
+            txt.append(snd_lnk);
             snd.append(txt);
-            snd.append(snd_lnk);
+            
         } else {
             snd = active.cloneNode(true);
-            let txt = document.createTextNode(", Notice: this page is not part of the assignment. To remove this warning click ");
-            snd.append(txt);
+            let txt = document.createElement("p");
+            txt.textContent = "Notice: this page is not part of the assignment. To remove this warning click ";
             let exit_clone = exit_link.cloneNode(true);
 
             exit_clone.addEventListener('click',function(event) {
                 localStorage.removeItem("currentAssignmentInfo");
             });
-            snd.append(exit_clone);
+            txt.append(exit_clone);
+            snd.append(txt);
+            
 
         }
 
         top = document.createElement("div");
-        top.className = "runestone assigment-nav top-assignment-nav"
+        top.className = "ptx-runestone-container"
+        fst.className = "runestone assignment-nav top-assignment-nav"
         //top.style.backgroundColor = "var(--componentBgColor)"
         //top.style.borderColor = "var(--componentBorderColor)"
         //top.style.borderWidth = "1px"
@@ -163,7 +172,8 @@ function addReadingList() {
         //top.append(snd);
 
         bottom = document.createElement("div");
-        bottom.className = "runestone assigment-nav bottom-assignment-nav"
+        bottom.className = "ptx-runestone-container"
+        snd.className = "runestone assignment-nav bottom-assignment-nav"
         //bottom.style.backgroundColor = "var(--componentBgColor)"
         //bottom.style.borderColor = "var(--componentBorderColor)"
         //bottom.style.borderWidth = "1px"

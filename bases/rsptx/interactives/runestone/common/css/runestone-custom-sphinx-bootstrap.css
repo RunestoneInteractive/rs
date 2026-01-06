@@ -76,6 +76,17 @@ Needed??? */
     --questionBgColor: rgb(23, 85, 93);
 }
 
+/* for assignment navigation */
+div.assignment-nav {
+    background-color: var(--componentBgColor);
+    border-style: solid;
+    border-color: var(--componentBorderColor);
+    border-width: 1px;
+    padding-bottom: 5px;
+    padding-top: 5px;
+
+}
+
 /* custom modification of basic.css for color-contrast (AA compliant) */
 td.linenos pre {
     color: #6b6b6b;
