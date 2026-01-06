@@ -68,7 +68,7 @@ function addReadingList() {
 
         exit_link.addEventListener('click',function(event) {
             localStorage.removeItem("currentAssignmentInfo");
-        })
+        });
 
         //active.append(exit_link)
 
@@ -142,7 +142,15 @@ function addReadingList() {
             snd.append(txt);
             snd.append(snd_lnk);
         } else {
-            snd = fst.cloneNode(true);
+            snd = active.cloneNode(true);
+            let txt = document.createTextNode(", Notice: this page is not part of the assignment. To remove this warning click ");
+            snd.append(txt);
+            let exit_clone = exit_link.cloneNode(true);
+
+            exit_clone.addEventListener('click',function(event) {
+                localStorage.removeItem("currentAssignmentInfo");
+            });
+            snd.append(exit_clone);
 
         }
 
