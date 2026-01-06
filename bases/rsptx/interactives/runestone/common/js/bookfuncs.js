@@ -51,7 +51,7 @@ function addReadingList() {
         let assignment_info = JSON.parse(assignment_info_string);
         let assignment_id = assignment_info.id;
         let assignment_name = assignment_info.name;
-        let reading_names = assignment_info.readings;
+        let reading_names = assignment_info.readingNames;
 
         active = document.createElement("div");
         active.textContent = "Active assignment: "
@@ -155,6 +155,7 @@ function addReadingList() {
         }
 
         top = document.createElement("div");
+        top.className = "runestone assigment-nav top-assignment-nav"
         top.style.backgroundColor = "var(--componentBgColor)"
         top.style.borderColor = "var(--componentBorderColor)"
         top.style.borderWidth = "1px"
@@ -162,6 +163,7 @@ function addReadingList() {
         //top.append(snd);
 
         bottom = document.createElement("div");
+        top.className = "runestone assigment-nav bottom-assignment-nav"
         bottom.style.backgroundColor = "var(--componentBgColor)"
         bottom.style.borderColor = "var(--componentBorderColor)"
         bottom.style.borderWidth = "1px"
