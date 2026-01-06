@@ -156,17 +156,17 @@ function addReadingList() {
 
         top = document.createElement("div");
         top.className = "runestone assigment-nav top-assignment-nav"
-        top.style.backgroundColor = "var(--componentBgColor)"
-        top.style.borderColor = "var(--componentBorderColor)"
-        top.style.borderWidth = "1px"
+        //top.style.backgroundColor = "var(--componentBgColor)"
+        //top.style.borderColor = "var(--componentBorderColor)"
+        //top.style.borderWidth = "1px"
         top.append(fst);
         //top.append(snd);
 
         bottom = document.createElement("div");
-        top.className = "runestone assigment-nav bottom-assignment-nav"
-        bottom.style.backgroundColor = "var(--componentBgColor)"
-        bottom.style.borderColor = "var(--componentBorderColor)"
-        bottom.style.borderWidth = "1px"
+        bottom.className = "runestone assigment-nav bottom-assignment-nav"
+        //bottom.style.backgroundColor = "var(--componentBgColor)"
+        //bottom.style.borderColor = "var(--componentBorderColor)"
+        //bottom.style.borderWidth = "1px"
         
         //bottom.append(active.cloneNode(true));
         //bottom.append(fst.cloneNode(true));
