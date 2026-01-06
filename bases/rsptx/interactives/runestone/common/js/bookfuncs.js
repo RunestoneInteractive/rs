@@ -97,7 +97,7 @@ function addReadingList() {
             path_parts.push(new_pos);
             new_pos_link = path_parts.join("/");
             fst = document.createElement("div");
-            fst.textContent = `${reading_names[position]}: Page ${position + 1} of ${num_readings}, `;
+            fst.textContent = `Page ${position + 1} of ${num_readings}, `;
             var fst_lnk = document.createElement("a");
             fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
             fst_lnk.href = new_pos_link;
@@ -140,11 +140,18 @@ function addReadingList() {
         }
 
         top = document.createElement("div");
+        top.style.backgroundColor = "var(--componentBgColor)"
+        top.style.borderColor = "var(--componentBorderColor)"
+        top.style.borderWidth = "1px"
         top.append(active);
         top.append(fst);
         //top.append(snd);
 
         bottom = document.createElement("div");
+        bottom.style.backgroundColor = "var(--componentBgColor)"
+        bottom.style.borderColor = "var(--componentBorderColor)"
+        bottom.style.borderWidth = "1px"
+        
         bottom.append(active.cloneNode(true));
         //bottom.append(fst.cloneNode(true));
         bottom.append(snd.cloneNode(true));
