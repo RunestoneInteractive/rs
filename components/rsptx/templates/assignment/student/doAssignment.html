@@ -241,9 +241,11 @@ Do Assignment
    
     let subchapList = []
     let qlist = []
+    let subchapNames = []
     for (let chapter in readingsInfo) {
         for (let subchapter of readingsInfo[chapter]['subchapters']) {
             subchapList.push(subchapter['subchapter']);
+            subchapNames.push(subchapter['name']);
         }
     }
     for (let q of questionInfo) {
@@ -253,6 +255,7 @@ Do Assignment
         'name': "{{ assignment['name'] }}",
         'id': assignmentId,
         'readings': subchapList,
+        'readingNames': subchapNames,
         'questions': qlist
     };
     localStorage.setItem("currentAssignmentInfo", JSON.stringify(assignmentInfo));
