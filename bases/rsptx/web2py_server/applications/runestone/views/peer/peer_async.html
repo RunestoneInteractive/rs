@@ -1,3 +1,35 @@
+{{extend 'runestone.html'}}
+<script>
+  window.DISABLE_LLMTEST = true;
+  window.PI_LLM_MODE = false;
+</script>
+<script>
+  window.PI_LLM_MODE = false;
+  window.DISABLE_LLMTEST = true;
+
+  window.eBookConfig = window.eBookConfig || {};
+  eBookConfig.course = "{{=course_id}}";
+  eBookConfig.basecourse = "{{=course.base_course}}";
+  eBookConfig.host = window.location.origin;
+  eBookConfig.isLoggedIn = true;
+</script>
+
+<!-- <script>
+window.eBookConfig = window.eBookConfig || {};
+eBookConfig.course = "{{=course_id}}";
+eBookConfig.basecourse = "{{=course.base_course}}";
+eBookConfig.host = window.location.origin;
+eBookConfig.isLoggedIn = true;
+</script> -->
+
+{{ if has_vote1: }}
+  <p><em>Vote 1 detected</em></p>
+{{ else: }}
+  <p><em>No vote yet</em></p>
+{{ pass }}
+<div id="peer_async_root" data-div_id="{{=current_question.name}}">
+</div>
+
 {{extend 'layout.html'}}
 {{block moreincludes}}
 {{include '_sphinx_static_files.html'}}
@@ -22,7 +54,7 @@
             <li>Answer the question <strong>again.</strong>  Even if you are not changing your answer from the first time.</li>
         </ol>
     </p>
-</div>
+</div> 
 
 <div class="row">
     {{ if all_done == "false": }}
@@ -40,16 +72,44 @@
             <span id="current_answer">__</span>
         </p>
         <textarea id="messageText" rows="6" cols="80"> </textarea> <br />
-        <button type="button" onclick="showPeerEnableVote2()">Submit</button>
-        <div>
-            <h4>A discussion for you to consider</h4>
+        <button id="submitReflection" type="button">Submit</button>        <div>
+            <!-- <h4>A discussion for you to consider</h4>
             <p id="peerName"></p>
             <p id="peerJust"></p>
-            <p id="nextStep"></p>
+            <p id="nextStep"></p> -->
+            <div id="llmDiscussion" style="display:none">
+              <div id="llmChat"
+                  style="background:#f5f5f5;
+                          padding:8px;
+                          border-radius:4px;
+                          max-height:220px;
+                          overflow-y:auto;
+                          margin-bottom:8px;">
+              </div>
+
+              <div style="display:flex; gap:6px;">
+                <input id="llmReplyInput"
+                      class="form-control"
+                      placeholder="Reply to this student…"
+                      type="text" />
+                <button id="llmReplyBtn" class="btn btn-default">
+                  Send
+                </button>
+              </div>
+
+              <p id="nextStep" style="margin-top:8px; font-style:italic;"></p>
+            </div>
         </div>
     </div>
     {{pass}}
 </div>
+{{ if has_vote1 and has_reflection and llm_reply: }}
+<hr>
+<div style="background:#f0f0f0; padding:10px; border-radius:4px;">
+  <strong>An LLM peer said:</strong>
+  <p>{{=llm_reply}}</p>
+</div>
+{{ pass }}
 
 {{ if all_done == "false": }}
 <div>
@@ -60,7 +120,171 @@
     </form>
 </div>
 {{ pass }}
+<script>
+  window.DISABLE_ASYNC_EXPLAINER = true;
+</script>
 <script src="/runestone/static/js/peer.js?v={{=request.peer_mtime}}"></script>
+<script>
+  (function () {
+    const origShowPeerEnableVote2 = window.showPeerEnableVote2;
+    window.showPeerEnableVote2 = function () {
+      if (window._piReflectionSubmitted) {
+        console.log("PI async: suppressing peer.js UI reset after reflection");
+        return;
+      }
+      if (origShowPeerEnableVote2) {
+        origShowPeerEnableVote2();
+      }
+    };
+  })();
+</script>
+
+<!-- <script src="/runestone/static/js/llmtest.js"></script> -->
+ 
+<script>
+(function () {
+  const btn = document.getElementById("submitReflection");
+  const ta  = document.getElementById("messageText");
+  if (!btn || !ta) return;
+
+  const peerNameEl = document.getElementById("peerName");
+  const peerJustEl = document.getElementById("peerJust");
+  const nextStepEl = document.getElementById("nextStep");
+
+  btn.addEventListener("click", async function () {
+  const reflection = (ta.value || "").trim();
+  if (!reflection) {
+    alert("Please write a short justification first.");
+    return;
+  }
+
+  let selected = "";
+  try {
+    selected = answerToString(window.componentMap[currentQuestion].answer);
+  } catch {}
+
+  if (typeof logPeerEvent === "function") {
+    logPeerEvent({
+      sid: eBookConfig.username,
+      div_id: currentQuestion,
+      event: "reflection",
+      act: reflection,
+      course: eBookConfig.course,
+    });
+  }
+
+  const discussion = document.getElementById("llmDiscussion");
+  const chat = document.getElementById("llmChat");
+  const nextStep = document.getElementById("nextStep");
+
+  discussion.style.display = "block";
+  chat.innerHTML = "<p><em>Thinking about your explanation…</em></p>";
+
+const mcq = document.querySelector('.mchoice');
+
+const questionText = mcq ? mcq.innerText : "";
+
+window._llmMessages = [
+  {
+    role: "user",
+    content: `i chose answer ${selected}. my explanation was:\n\n${reflection}`
+  }
+];
+
+
+const resp = await fetch("/runestone/peer/get_async_llm_reflection", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    div_id: currentQuestion,
+    selected_answer: selected,
+    messages: window._llmMessages
+  })
+});
+
+  const data = await resp.json();
+  chat.innerHTML = "";
+
+  if (!data.ok) {
+    chat.innerHTML = "<p><em>Error talking to peer.</em></p>";
+    return;
+  }
+
+  appendMsg("assistant", data.reply);
+
+  window._llmMessages.push({
+    role: "assistant",
+    content: data.reply
+  });  
+  nextStep.textContent =
+    "You may discuss this reasoning before answering again.";
+  studentSubmittedVote2 = true;
+  enableChat(reflection, selected);
+});
+})(); 
+</script>
+<script>
+function appendMsg(role, text) {
+  const chat = document.getElementById("llmChat");
+  const p = document.createElement("p");
+  p.style.margin = "6px 0";
+  p.style.whiteSpace = "pre-wrap";
+
+  p.innerHTML =
+    role === "user"
+      ? `<strong>You:</strong> ${text}`
+      : `<strong>LLM Peer:</strong> ${text}`;
+
+  chat.appendChild(p);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function enableChat(reflection, selected) {
+  const input = document.getElementById("llmReplyInput");
+  const btn = document.getElementById("llmReplyBtn");
+
+  btn.onclick = async () => {
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    appendMsg("user", msg);
+    input.value = "";
+
+    window._llmMessages.push({
+      role: "user",
+      content: msg
+    });
+
+    const resp = await fetch("/runestone/peer/get_async_llm_reflection", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        div_id: currentQuestion,
+        selected_answer: selected,
+        messages: window._llmMessages
+      })
+    });
+
+    const data = await resp.json();
+    if (!data.ok) {
+      appendMsg("assistant", "(error talking to peer)");
+      return;
+    }
+
+    appendMsg("assistant", data.reply);
+
+    window._llmMessages.push({
+      role: "assistant",
+      content: data.reply
+    });
+  };
+
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") btn.click();
+  });
+}
+</script>
+
 <script>
     var user = "{{=auth.user.username}}";
     var currentQuestion = "{{=XML(current_question.name)}}";
@@ -103,4 +327,9 @@
             })
         }, 2000)
     });
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('.pi-ask-btn').forEach(btn => btn.remove());
+  });
 </script>
