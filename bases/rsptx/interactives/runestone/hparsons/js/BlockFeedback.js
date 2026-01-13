@@ -9,6 +9,7 @@ export default class BlockFeedback extends HParsonsFeedback {
         this.messageDiv = document.createElement("div");
         this.hparsons.outerDiv.appendChild(this.messageDiv);
     }
+    
     customizeUI() {
         this.hparsons.runButton.textContent = "Check Me";
     }
@@ -18,12 +19,9 @@ export default class BlockFeedback extends HParsonsFeedback {
         this.solved = false;
         // TODO: not sure what is the best way to do this
         this.grader = new BlockBasedGrader();
-        let solutionBlocks = [];
-        for (let i = 0; i < this.hparsons.blockAnswer.length; ++i) {
-            solutionBlocks.push(this.hparsons.originalBlocks[this.hparsons.blockAnswer[i]]);
-        }
-        this.solution = solutionBlocks;
-        this.grader.solution = solutionBlocks;
+        const solutionIndices = this.hparsons.blockAnswer.map(Number);
+        this.solution = solutionIndices;
+        this.grader.solution = solutionIndices;
         this.answerArea = this.hparsons.hparsonsInput.querySelector('.drop-area');
     }
 
@@ -38,7 +36,7 @@ export default class BlockFeedback extends HParsonsFeedback {
         let act = {
             scheme: "block",
             correct: this.grader.graderState == 'correct' ? "T" : "F",
-            answer: this.hparsons.hparsonsInput.getParsonsTextArray(),
+            answer: this.hparsons.hparsonsInput.getBlockIndices(),
             percent: this.grader.percent
         }
         let logData = {
@@ -57,7 +55,7 @@ export default class BlockFeedback extends HParsonsFeedback {
         if (!this.solved) {
             this.checkCount++;
             this.clearFeedback();
-            this.grader.answer = this.hparsons.hparsonsInput.getParsonsTextArray();
+            this.grader.answer = this.hparsons.hparsonsInput.getBlockIndices();
             this.grade = this.grader.grade();
             if (this.grade == "correct") {
                 this.hparsons.runButton.disabled = true;
@@ -100,7 +98,7 @@ export default class BlockFeedback extends HParsonsFeedback {
             var notInSolution = [];
             for (let i = 0; i < answerBlocks.length; i++) {
                 var block = answerBlocks[i];
-                var index = this.solution.indexOf(block.textContent);
+                var index = this.solution.indexOf(Number(block.dataset.index));
                 if (index == -1) {
                     notInSolution.push(block);
                 } else {
