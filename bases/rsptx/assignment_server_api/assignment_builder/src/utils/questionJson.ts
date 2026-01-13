@@ -62,6 +62,9 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
       questionText: data.questionText,
       statement: data.statement,
       feedback: data.feedback
+    }),
+    ...(data.question_type === "iframe" && {
+      iframeSrc: data.iframeSrc
     })
   };
 
