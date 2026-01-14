@@ -36,13 +36,14 @@ from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import text
 
 # todo: use our logger
+import logging
 from rsptx.logging import rslogger
 from runestone.server import get_dburl
 from rsptx.db.models import Library, LibraryValidator
 from rsptx.db.crud import update_source_code_sync
 from rsptx.response_helpers.core import canonical_utcnow
 
-rslogger.setLevel("WARNING")
+rslogger.setLevel(logging.DEBUG)
 
 # Local packages
 # --------------
@@ -328,12 +329,12 @@ def extract_docinfo(tree, string, attr=None, click=click):
     """
     authstr = ""
     if string == "author":
-        el = tree.findall(f"./{string}")
+        el = tree.xpath(f"//{string}")
         for a in el:
-            authstr += ET.tostring(a, encoding="unicode", method="text").strip() + ", "
+            authstr += a.text.strip() + ", "
         authstr = authstr[:-2]
         return authstr
-    el = tree.find(f"./{string}")
+    el = tree.xpath(f".//{string}")[0]
     if attr is not None and el is not None:
         print(f"{el.attrib[attr]=}")
         return el.attrib[attr].strip()
@@ -360,8 +361,10 @@ def update_library(
     # This is a bit of a hack for now... todo: continue to refactor these to use crud functions
     eng = create_engine(config.dburl.replace("+asyncpg", ""))
     if build_system == "PTX":
-        tree = ET.parse(mpath)
-        docinfo = tree.find("./library-metadata")
+        parser = ET.HTMLParser(encoding="utf-8")
+        tree = ET.parse(mpath, parser)
+        docinfo_list = tree.xpath("//library-metadata")
+        docinfo = docinfo_list[0] if docinfo_list else None
         title = extract_docinfo(docinfo, "title")
         subtitle = extract_docinfo(docinfo, "subtitle")
         description = extract_docinfo(docinfo, "blurb")
@@ -576,8 +579,10 @@ def _initialize_db_context(engine, sess, course_name, manifest_path):
     assignment_questions = Table("assignment_questions", meta, autoload_with=engine)
 
     # Get the author name from the manifest
-    tree = ET.parse(manifest_path)
-    docinfo = tree.find("./library-metadata")
+    parser = ET.HTMLParser(encoding="utf-8")
+    tree = ET.parse(manifest_path, parser)
+    docinfo_list = tree.xpath("//library-metadata")
+    docinfo = docinfo_list[0] if docinfo_list else None
     author = extract_docinfo(docinfo, "author")
     res = sess.execute(book_author.select().where(book_author.c.book == course_name))
     book_author_data = res.first()
@@ -632,11 +637,12 @@ def _process_chapters(sess, db_context, course_name, manifest_path):
     """Process all chapters from the manifest."""
     rslogger.info("Populating the database with Chapter information")
 
-    tree = ET.parse(manifest_path)
+    parser = ET.HTMLParser(encoding="utf-8")
+    tree = ET.parse(manifest_path, parser)
     root = tree.getroot()
     chap = 0
 
-    for chapter in root.findall("./chapter"):
+    for chapter in root.xpath("//chapter"):
         chap += 1
         chapid = _process_single_chapter(sess, db_context, chapter, chap, course_name)
         _process_subchapters(sess, db_context, chapter, chapid, course_name)
@@ -646,7 +652,8 @@ def _process_appendices(sess, db_context, course_name, manifest_path):
     """Process all appendices from the manifest."""
     rslogger.info("Populating the database with Appendix information")
 
-    tree = ET.parse(manifest_path)
+    parser = ET.HTMLParser(encoding="utf-8")
+    tree = ET.parse(manifest_path, parser)
     root = tree.getroot()
 
     for appendix in root.findall("./appendix"):
@@ -659,20 +666,19 @@ def _process_appendices(sess, db_context, course_name, manifest_path):
 
 def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
     """Process a single chapter and return its database ID."""
-    cnum = chapter.find("./number").text
+    cnum = chapter.xpath(".//number")[0].text
     if not cnum:
         cnum = ""
-    rslogger.debug(
-        f"{chapter.tag} {chapter.find('./id').text} {chapter.find('./title').text}"
+    rslogger.info(
+        f"{chapter.tag} {chapter.xpath('.//id')[0].text} {chapter.xpath('.//title')[0].text}"
     )
-
     ins = (
         db_context["chapters"]
         .insert()
         .values(
-            chapter_name=f"{cnum} {chapter.find('./title').text}",
+            chapter_name=f"{cnum} {chapter.xpath('.//title')[0].text}",
             course_id=course_name,
-            chapter_label=chapter.find("./id").text,
+            chapter_label=chapter.xpath(".//id")[0].text,
             chapter_num=chap_num,
         )
     )
@@ -684,7 +690,7 @@ def _process_subchapters(sess, db_context, chapter, chapid, course_name):
     """Process all subchapters for a given chapter."""
     subchap = 0
 
-    for subchapter in chapter.findall("./subchapter"):
+    for subchapter in chapter.xpath(".//subchapter"):
         # check if this subchapter has a time-limit attribute
         if "data-time" in subchapter.attrib:
             _process_single_timed_assignment(
@@ -694,7 +700,7 @@ def _process_subchapters(sess, db_context, chapter, chapid, course_name):
         # look for a subsubchapter with a time-limit attribute
         # at this point (7/28/2025) the only reason for a subsubchapter
         # is to have a timed assignment, so we can skip the rest of the
-        for subsubchapter in subchapter.findall("./subsubchapter"):
+        for subsubchapter in subchapter.xpath(".//subsubchapter"):
             if "data-time" in subsubchapter.attrib:
                 _process_single_timed_assignment(
                     sess,
@@ -715,22 +721,20 @@ def _process_single_subchapter(
     sess, db_context, chapter, subchapter, chapid, subchap_num, course_name
 ):
     """Process a single subchapter and its contents."""
-    scnum = subchapter.find("./number").text
+    scnum = subchapter.xpath(".//number")[0].text
     if not scnum:
         scnum = ""
-    chap_xmlid = subchapter.find("./id").text
-    rslogger.debug(f"subchapter {chap_xmlid}")
+    chap_xmlid = subchapter.xpath(".//id")[0].text
+    rslogger.info(f"subchapter {chap_xmlid}")
 
     if not chap_xmlid:
         rslogger.error(f"Missing id tag in subchapter {subchapter}")
 
     # Build subchapter title
-    titletext = subchapter.find("./title").text
+    titletext = subchapter.xpath(".//title")[0].text
     if not titletext:
-        rslogger.debug(f"constructing title for subchapter {chap_xmlid}")
-        titletext = " ".join(
-            [ET.tostring(y).decode("utf8") for y in subchapter.findall("./title/*")]
-        )
+        rslogger.info(f"constructing title for subchapter {chap_xmlid}")
+        titletext = " ".join(subchapter.xpath(".//title")[0].itertext())
     titletext = scnum + " " + titletext.strip()
 
     # Insert subchapter
@@ -740,7 +744,7 @@ def _process_single_subchapter(
         .values(
             sub_chapter_name=titletext,
             chapter_id=chapid,
-            sub_chapter_label=subchapter.find("./id").text,
+            sub_chapter_label=subchapter.xpath(".//id")[0].text,
             skipreading="F",
             sub_chapter_num=subchap_num,
         )
@@ -853,10 +857,10 @@ def _process_single_timed_assignment(
 ):
     """Process a timed assignment subchapter."""
     rslogger.info("Processing timed assignment subchapter")
-    titletext = subchapter.find("./title").text.strip()
+    titletext = subchapter.xpath(".//title")[0].text.strip()
     if not titletext:
         titletext = "Timed Assignment"
-    timed_id = subchapter.find("./id").text
+    timed_id = subchapter.xpath(".//id")[0].text
     time_limit = subchapter.attrib.get("data-time", "0")
     # no-result, no-feedback, no-pause
     show_feedback = "F" if subchapter.attrib.get("data-no-feedback", "") else "T"
@@ -883,13 +887,14 @@ def _process_single_timed_assignment(
 
     # Now search for questions in this subchapter
     qnum = 0
-    for question in subchapter.findall("./question"):
+    for question in subchapter.xpath(".//question"):
         qnum += 1
         # Extract question content
-        dbtext = " ".join(
-            [ET.tostring(y).decode("utf8") for y in question.findall("./htmlsrc/*")]
+        htmlsrc = question.xpath(".//htmlsrc")[0]
+        dbtext = "".join(
+            ET.tostring(child, encoding="utf-8", method="html").decode("utf-8") for child in htmlsrc
         )
-        qlabel = " ".join([y.text for y in question.findall("./label")])
+        qlabel = " ".join(question.xpath(".//label")[0].itertext())
 
         # Get question element and metadata
         el, idchild, old_ww_id, qtype = _extract_question_metadata(question, dbtext)
@@ -900,9 +905,9 @@ def _process_single_timed_assignment(
 
         # Build question data
         if parent is not None:
-            subchap_label = parent.find("./id").text
+            subchap_label = parent.xpath(".//id")[0].text
         else:
-            subchap_label = subchapter.find("./id").text
+            subchap_label = subchapter.xpath(".//id")[0].text
         valudict = dict(
             base_course=course_name,
             name=idchild,
@@ -912,9 +917,9 @@ def _process_single_timed_assignment(
             htmlsrc=dbtext,
             autograde=_determine_autograde(dbtext),
             from_source="T",
-            chapter=chapter.find("./id").text,
+            chapter=chapter.xpath(".//id")[0].text,
             subchapter=subchap_label,
-            topic=f"{chapter.find('./id').text}/{subchapter.find('./id').text}",
+            topic=f"{chapter.xpath('.//id')[0].text}/{subchapter.xpath('.//id')[0].text}",
             qnumber=qlabel,
             optional="F",
             practice="F",
@@ -931,7 +936,7 @@ def _process_single_timed_assignment(
 
 def _add_page_question(sess, db_context, chapter, subchapter, course_name):
     """Add a page entry to the questions table for this chapter/subchapter."""
-    name = f"{chapter.find('./title').text}/{subchapter.find('./title').text}"
+    name = f"{chapter.xpath('.//title')[0].text}/{subchapter.xpath('.//title')[0].text}"
 
     res = sess.execute(
         text(
@@ -946,8 +951,8 @@ def _add_page_question(sess, db_context, chapter, subchapter, course_name):
         timestamp=datetime.datetime.now(),
         is_private="F",
         question_type="page",
-        subchapter=subchapter.find("./id").text,
-        chapter=chapter.find("./id").text,
+        subchapter=subchapter.xpath(".//id")[0].text,
+        chapter=chapter.xpath(".//id")[0].text,
         from_source="T",
         author=db_context["author"],
         owner=db_context["owner"],
@@ -973,7 +978,7 @@ def _add_page_question(sess, db_context, chapter, subchapter, course_name):
 
 def _process_questions(sess, db_context, chapter, subchapter, course_name):
     """Process all questions in a subchapter."""
-    for question in subchapter.findall("./question"):
+    for question in subchapter.xpath(".//question"):
         _process_single_question(
             sess, db_context, chapter, subchapter, question, course_name
         )
@@ -984,14 +989,15 @@ def _process_single_question(
 ):
     """Process a single question element."""
     # Extract question content
-    dbtext = " ".join(
-        [ET.tostring(y).decode("utf8") for y in question.findall("./htmlsrc/*")]
+    htmlsrc = question.xpath(".//htmlsrc")[0]
+    #
+    dbtext = "".join(
+        ET.tostring(child, encoding="utf-8", method="html").decode("utf-8") for child in htmlsrc
     )
-    qlabel = " ".join([y.text for y in question.findall("./label")])
-
+    qlabel = " ".join(question.xpath(".//label")[0].itertext())
+    print(f"dbtext = {dbtext}")
     # Get question element and metadata
     el, idchild, old_ww_id, qtype = _extract_question_metadata(question, dbtext)
-
     # Handle webwork case where we need to update dbtext
     if qtype == "webwork" and el is not None:
         dbtext = ET.tostring(el).decode("utf8")
@@ -1016,8 +1022,8 @@ def _process_single_question(
     dbtext = _fix_image_urls(dbtext, db_context, course_name)
 
     # Build question data
-    sbc = subchapter.find("./id").text
-    cpt = chapter.find("./id").text
+    sbc = subchapter.xpath(".//id")[0].text
+    cpt = chapter.xpath(".//id")[0].text
     valudict = dict(
         base_course=course_name,
         name=idchild,
@@ -1048,7 +1054,7 @@ def _process_single_question(
 
 def _extract_question_metadata(question, dbtext):
     """Extract metadata from a question element."""
-    el = question.find(".//*[@data-component]")
+    el = question.xpath(".//*[@data-component]")[0]
     old_ww_id = None
 
     if el is not None:
@@ -1056,7 +1062,7 @@ def _extract_question_metadata(question, dbtext):
         if "the-id-on-the-webwork" in el.attrib:
             old_ww_id = el.attrib["the-id-on-the-webwork"]
     else:
-        el = question.find("./div")
+        el = question.xpath(".//div")[0]
         if el is None:
             idchild = "fix_me"
             rslogger.error(
@@ -1069,7 +1075,7 @@ def _extract_question_metadata(question, dbtext):
     try:
         qtype = el.attrib["data-component"]
         if qtype == "codelens":
-            id_el = el.find("./*[@class='pytutorVisualizer']")
+            id_el = el.xpath(".//*[@class='pytutorVisualizer']")[0]
             idchild = id_el.attrib["id"]
         qtype = QT_MAP.get(qtype, qtype)
     except Exception:
@@ -1176,7 +1182,7 @@ def _handle_datafile(el, course_name):
 
 def _process_source_elements(sess, subchapter, course_name):
     """Process source elements in a subchapter."""
-    for sourceEl in subchapter.findall("./source"):
+    for sourceEl in subchapter.xpath(".//source"):
         id = sourceEl.attrib["id"]
         file_contents = sourceEl.text
         filename = sourceEl.attrib.get("filename", sourceEl.attrib["id"])
@@ -1191,13 +1197,14 @@ def _process_source_elements(sess, subchapter, course_name):
 
 def _set_course_attributes(sess, db_context, course_name, manifest_path):
     """Set course attributes from the manifest."""
-    tree = ET.parse(manifest_path)
+    parser = ET.HTMLParser(encoding="utf-8")
+    tree = ET.parse(manifest_path, parser)
     root = tree.getroot()
 
-    latex = root.find("./latex-macros")
+    latex = root.xpath(".//latex-macros")[0]
     rslogger.info("Setting attributes for this base course")
 
-    ww_meta = root.find("./webwork-version")
+    ww_meta = root.xpath(".//webwork-version")[0]
     if ww_meta is not None:
         ww_major = ww_meta.attrib["major"]
         ww_minor = ww_meta.attrib["minor"]
