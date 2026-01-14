@@ -38,9 +38,16 @@ extra_settings = (
     if settings.book_server_config == BookServerConfig.test
     else dict(echo=settings.db_echo)
 )
-engine = create_async_engine(
-    settings.database_url, pool_size=10, connect_args=connect_args, **extra_settings
-)
+try:
+    engine = create_async_engine(
+        settings.database_url, pool_size=10, connect_args=connect_args, **extra_settings
+    )
+except Exception as e:
+    rslogger.error(f"Error creating database engine: {e}")
+    engine = create_async_engine(
+        settings.database_url, connect_args=connect_args, **extra_settings
+    )
+
 # This creates the SessionLocal class.  An actual session is an instance of this class.
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
