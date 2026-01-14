@@ -610,6 +610,14 @@ export default class RunestoneBase {
         rsDiv.classList.remove("notAnswered");
         rsDiv.classList.remove("isInCorrect");
         rsDiv.classList.remove("isCorrect");
+        let assignmentInfo = localStorage.getItem("currentAssignmentInfo");
+        let questions = [];
+        if (assignmentInfo) {
+            questions = JSON.parse(assignmentInfo).questions
+        }
+        if (questions.indexOf(this.divid) >= 0) {
+            rsDiv.classList.add("isAssigned");
+        }
         if (this.correct) {
             rsDiv.classList.add("isCorrect");
         } else {
