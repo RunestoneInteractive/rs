@@ -13,7 +13,8 @@ export const supportedExerciseTypesToEdit = [
   "parsonsprob",
   "matching",
   "fillintheblank",
-  "clickablearea"
+  "clickablearea",
+  "iframe"
 ];
 
 export const supportedExerciseTypes = [
@@ -26,7 +27,8 @@ export const supportedExerciseTypes = [
   "poll",
   "shortanswer",
   "matching",
-  "selectquestion"
+  "selectquestion",
+  "iframe"
 ] as const;
 
 export type ExerciseType = (typeof supportedExerciseTypes)[number];
@@ -105,6 +107,7 @@ export type QuestionJSON = Partial<{
   enableCodeTailor: boolean;
   parsonspersonalize: "solution-level" | "block-and-solution" | "";
   parsonsexample: string;
+  iframeSrc: string;
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;

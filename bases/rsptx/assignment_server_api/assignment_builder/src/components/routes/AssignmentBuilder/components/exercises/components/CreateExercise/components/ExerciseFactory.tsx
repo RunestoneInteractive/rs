@@ -12,7 +12,8 @@ import {
   ShortAnswerExercise,
   MultiChoiceExercise,
   MatchingExercise,
-  SelectQuestionExercise
+  SelectQuestionExercise,
+  IframeExercise
 } from ".";
 
 export const ExerciseFactory: FC<ExerciseComponentProps> = (props) => {
@@ -37,6 +38,8 @@ export const ExerciseFactory: FC<ExerciseComponentProps> = (props) => {
       return <MatchingExercise {...props} />;
     case "selectquestion":
       return <SelectQuestionExercise {...props} />;
+    case "iframe":
+      return <IframeExercise {...props} />;
     default:
       throw new Error(`Unknown exercise type: ${props.type}`);
   }

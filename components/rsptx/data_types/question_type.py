@@ -55,6 +55,11 @@ class QuestionType(Enum):
     )
     PAGE = ("page", "Page", "")
     WEBWORK = ("webwork", "WeBWorK", "Create a WeBWorK problem for students to solve")
+    IFRAME = (
+        "iframe",
+        "iFrame",
+        "Embed external content using an iFrame",
+    )
 
     def to_dict(self):
         return {

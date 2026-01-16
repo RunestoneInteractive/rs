@@ -229,6 +229,20 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
       title: "Preview",
       description: "Preview the exercise as students will see it"
     }
+  },
+  iframe: {
+    0: {
+      title: "iFrame URL",
+      description: "Enter the URL of the content to embed"
+    },
+    1: {
+      title: "Exercise Settings",
+      description: "Configure exercise settings such as name, points, etc."
+    },
+    2: {
+      title: "Preview",
+      description: "Preview the exercise as students will see it"
+    }
   }
 };
 
@@ -723,6 +737,57 @@ export const CLICKABLE_AREA_STEP_VALIDATORS: StepValidator<Partial<CreateExercis
     }
     if (!data.chapter) {
       errors.push("Chapter is required");
+    }
+    if (data.points === undefined || data.points <= 0) {
+      errors.push("Points must be greater than 0");
+    }
+    if (data.difficulty === undefined) {
+      errors.push("Difficulty is required");
+    }
+
+    return errors;
+  },
+  // Step 2: Preview
+  () => []
+];
+
+// Helper function to validate URL
+const isValidUrl = (url: string): boolean => {
+  if (!url?.trim()) return false;
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// iFrame/SPLICE Exercise Step Validators
+export const IFRAME_STEP_VALIDATORS: StepValidator<Partial<CreateExerciseFormType>>[] = [
+  // Step 0: iFrame URL
+  (data) => {
+    const errors: string[] = [];
+
+    if (!data.iframeSrc?.trim()) {
+      errors.push("iFrame URL is required");
+    } else if (!isValidUrl(data.iframeSrc)) {
+      errors.push("Please enter a valid URL");
+    }
+
+    return errors;
+  },
+  // Step 1: Settings
+  (data) => {
+    const errors: string[] = [];
+
+    if (!data.name?.trim()) {
+      errors.push("Exercise name is required");
+    }
+    if (!data.chapter) {
+      errors.push("Chapter is required");
+    }
+    if (!data.subchapter) {
+      errors.push("Section is required");
     }
     if (data.points === undefined || data.points <= 0) {
       errors.push("Points must be greater than 0");

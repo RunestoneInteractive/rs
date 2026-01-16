@@ -7,6 +7,7 @@ import { generateShortAnswerPreview } from "@/utils/preview/shortAnswer";
 import { generateMatchingPreview } from "@/utils/preview/matchingPreview";
 import { generateDragAndDropPreview } from "@/utils/preview/dndPreview";
 import { generatePollPreview } from "@/utils/preview/poll";
+import { generateIframePreview } from "@/utils/preview/iframePreview";
 import { safeJsonParse } from "@/utils/json";
 
 /**
@@ -89,6 +90,9 @@ export const regenerateHtmlSrc = (exercise: Exercise, newName: string): string =
           newName,
           questionJson.poll_type
         );
+
+      case "iframe":
+        return generateIframePreview(questionJson.iframeSrc || "", newName);
 
       default:
         // For unsupported types, try to update the name in the existing HTML
