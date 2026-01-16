@@ -34,9 +34,9 @@ export const generateSelectQuestionPreview = ({
     ? questionList.map((item) => (typeof item === "string" ? { questionId: item } : item))
     : [];
 
-  let html = '<div class="runestone sqcontainer %(optclass)s"><div data-component="selectquestion"';
+  let html = '<div class="runestone sqcontainer"><div data-component="selectquestion"';
 
-  html += ` id=${safeId}`;
+  html += ` id="${safeId}"`;
 
   const questionListStr = questions.map((q) => q.questionId).join(", ");
 
@@ -50,11 +50,7 @@ export const generateSelectQuestionPreview = ({
     const toggleStr = toggleOptions.join(", ");
 
     html += ` data-toggleoptions="${toggleStr}"`;
-  }
 
-  const hasAnyLabels = questions.some((q) => q.label);
-
-  if (hasAnyLabels) {
     const questionLabels = questions.map((q) => q.label || q.questionId).join(", ");
 
     html += ` data-togglelabels="togglelabels: ${questionLabels}"`;

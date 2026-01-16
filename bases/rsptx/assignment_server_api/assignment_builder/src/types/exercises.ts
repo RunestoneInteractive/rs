@@ -13,7 +13,8 @@ export const supportedExerciseTypesToEdit = [
   "parsonsprob",
   "matching",
   "fillintheblank",
-  "clickablearea"
+  "clickablearea",
+  "selectquestion"
 ];
 
 export const supportedExerciseTypes = [
