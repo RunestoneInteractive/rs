@@ -954,8 +954,9 @@ def grade(config, course, pset, enforce):
 )
 @click.option("--sample_size", help="Number of courses to sample", default=0)
 @click.option("--course_list", help="List of courses to sample", default=None)
+@click.option("--preserve_user_ids", is_flag=True, help="Preserve user ids in the datashop export")
 @pass_config
-async def datashop(config, basecourse, sample_size, course_list):
+async def datashop(config, basecourse, sample_size, course_list, preserve_user_ids):
     """Export the course data to the datashop format"""
     if not sample_size:
         sample_size = click.prompt("Sample size", default=0)
@@ -973,7 +974,7 @@ async def datashop(config, basecourse, sample_size, course_list):
         dburl,
         sample_size=3,
         specific_course=course_list,
-        preserve_user_ids=False,
+        preserve_user_ids=preserve_user_ids,
     )
     print("Choosing Courses")
     a.choose_courses()
