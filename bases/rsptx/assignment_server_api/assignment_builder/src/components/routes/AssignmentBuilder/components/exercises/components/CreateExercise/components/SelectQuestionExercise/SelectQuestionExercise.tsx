@@ -1,4 +1,4 @@
-import { FC, useMemo, useRef } from "react";
+import { FC, useMemo } from "react";
 
 import { CreateExerciseFormType } from "@/types/exercises";
 import { QuestionWithLabel } from "@/types/exercises";
@@ -35,6 +35,7 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
   htmlsrc: "",
   question_type: "selectquestion",
   questionList: [],
+  questionLabels: {},
   abExperimentName: "",
   toggleOptions: [],
   dataLimitBasecourse: false
@@ -52,13 +53,12 @@ export const SelectQuestionExercise: FC<ExerciseComponentProps> = ({
   onFormReset,
   isEdit = false
 }) => {
-  const questionLabelsRef = useRef<Map<string, string>>(new Map());
-
   const generatePreviewWithLabels = (data: Partial<CreateExerciseFormType>): string => {
     const stringList = data.questionList || [];
+    const labels = data.questionLabels || {};
     const questionListWithLabels = stringList.map((questionId) => ({
       questionId,
-      label: questionLabelsRef.current.get(questionId)
+      label: labels[questionId]
     }));
 
     return generateSelectQuestionPreview({
@@ -116,24 +116,26 @@ export const SelectQuestionExercise: FC<ExerciseComponentProps> = ({
 
   const safeQuestionList = useMemo(() => {
     const stringList = formData.questionList || [];
+    const labels = formData.questionLabels || {};
 
     return stringList.map((questionId) => ({
       questionId,
-      label: questionLabelsRef.current.get(questionId)
+      label: labels[questionId]
     }));
-  }, [formData.questionList]);
+  }, [formData.questionList, formData.questionLabels]);
 
   const handleQuestionListChange = (questionList: QuestionWithLabel[]) => {
-    questionLabelsRef.current.clear();
+    const labelsRecord: Record<string, string> = {};
     questionList.forEach((q) => {
       if (q.label) {
-        questionLabelsRef.current.set(q.questionId, q.label);
+        labelsRecord[q.questionId] = q.label;
       }
     });
 
     const stringList = convertToStringArray(questionList);
 
     updateFormData("questionList", stringList);
+    updateFormData("questionLabels", labelsRecord);
   };
 
   const handleABExperimentChange = (experimentName: string) => {

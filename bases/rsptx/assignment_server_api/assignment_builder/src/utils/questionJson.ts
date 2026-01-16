@@ -54,6 +54,7 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
     }),
     ...(data.question_type === "selectquestion" && {
       questionList: data.questionList,
+      questionLabels: data.questionLabels,
       abExperimentName: data.abExperimentName,
       toggleOptions: data.toggleOptions,
       dataLimitBasecourse: data.dataLimitBasecourse
@@ -117,6 +118,7 @@ export const mergeQuestionJsonWithDefaults = (
     parsonspersonalize:
       questionJson?.parsonspersonalize ??
       (defaultQuestionJson.parsonspersonalize as "" | "solution-level" | "block-and-solution"),
-    parsonsexample: questionJson?.parsonsexample ?? defaultQuestionJson.parsonsexample
+    parsonsexample: questionJson?.parsonsexample ?? defaultQuestionJson.parsonsexample,
+    questionLabels: questionJson?.questionLabels ?? {}
   };
 };

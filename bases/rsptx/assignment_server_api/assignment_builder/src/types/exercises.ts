@@ -97,6 +97,7 @@ export type QuestionJSON = Partial<{
   scale_max: number;
   forceCheckboxes: boolean;
   questionList: string[];
+  questionLabels: Record<string, string>;
   abExperimentName: string;
   toggleOptions: string[];
   dataLimitBasecourse: boolean;
