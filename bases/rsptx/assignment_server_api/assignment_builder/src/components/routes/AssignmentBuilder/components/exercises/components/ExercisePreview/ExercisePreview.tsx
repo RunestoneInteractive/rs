@@ -15,7 +15,7 @@ export const ExercisePreview = ({
     if (ref.current) {
       console.log("ref here");
       ref.current.innerHTML = htmlsrc;
-      renderRunestoneComponent(ref, {}).then(forceUpdate);
+      renderRunestoneComponent(ref, { isCalledFromBuilder: true }).then(forceUpdate);
     }
   }, [htmlsrc]);
 
