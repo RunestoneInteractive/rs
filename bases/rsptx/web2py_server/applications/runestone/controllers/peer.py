@@ -182,7 +182,7 @@ def _get_numbered_question(assignment_id, qnum):
         qnum = total_questions - 1
     if qnum == total_questions - 1:
         done = "true"
-
+    logger.debug(f"qnum = {qnum} total_questions = {total_questions} done = {done}")
     current_question = all_questions[qnum]
     return current_question, done
 
@@ -713,7 +713,7 @@ def peer_async():
     if request.vars.question_num:
         qnum = int(request.vars.question_num)
 
-    current_question, all_done = _get_numbered_question(assignment_id, qnum)
+    current_question, all_done = _get_numbered_question(assignment_id, qnum-1)
     assignment = db(db.assignments.id == assignment_id).select().first()
     course = db(db.courses.course_name == auth.user.course_name).select().first()
     course_attrs = getCourseAttributesDict(course.id, course.base_course)
