@@ -27,6 +27,7 @@ from rsptx.db.crud import (
     create_course,
     create_course_attribute,
     create_instructor_course_entry,
+    create_invoice_request,
     create_membership,
     create_user_course_entry,
     delete_course_completely,
@@ -1223,6 +1224,11 @@ async def post_create_course_page(
         course_validator = CoursesValidator(**course_data)
         new_course = await create_course(course_validator)
 
+        # if invoice is true then we need to create an invoice for the course
+        if invoice == "true":
+            res = await create_invoice_request(
+                user.username, projectname, 0.0,  user.email
+            )
         # Copy attributes from base course
         bc = await fetch_course(coursetype)
         attrs = await fetch_all_course_attributes(bc.id)
