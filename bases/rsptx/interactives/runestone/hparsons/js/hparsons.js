@@ -189,12 +189,9 @@ export default class HParsons extends RunestoneBase {
             const blocks = document.querySelectorAll(`#${this.divid}-container .parsons-block`);
             blocks.forEach(block => {
                 block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
+                this.queueMathJax(block);
             });
-
-            if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise();
-            }
-        }, 0);
+        }, 10);
     }
 
     // Return previous answers in local storage
