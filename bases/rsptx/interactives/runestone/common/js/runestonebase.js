@@ -610,7 +610,7 @@ export default class RunestoneBase {
         rsDiv.classList.remove("notAnswered");
         rsDiv.classList.remove("isInCorrect");
         rsDiv.classList.remove("isCorrect");
-        let assignmentInfo = localStorage.getItem("currentAssignmentInfo");
+        let assignmentInfo = localStorage.getItem(`currentAssignmentInfo_${eBookConfig.course}`);
         let questions = [];
         if (assignmentInfo) {
             questions = JSON.parse(assignmentInfo).questions

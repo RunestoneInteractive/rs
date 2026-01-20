@@ -44,11 +44,11 @@ This page is not part of that assignment. Select a page to return to it:
 [Select input]
 */
 function addReadingList() {
-    let assignment_info_string = localStorage.getItem("currentAssignmentInfo")
+    let assignment_info_string = localStorage.getItem(`currentAssignmentInfo_${eBookConfig.course}`)
         
     if (assignment_info_string && eBookConfig.readings) {
         var top,bottom,active,page_name,exit_link,fst,snd, new_pos, path_parts, new_pos_link;
-        let assignment_info = JSON.parse(assignment_info_string);
+        var assignment_info = JSON.parse(assignment_info_string);
         let assignment_id = assignment_info.id;
         let assignment_name = assignment_info.name;
         let reading_names = assignment_info.readingNames;
@@ -63,11 +63,11 @@ function addReadingList() {
         active.append(page_name);
 
         exit_link = document.createElement("a");
-        exit_link.textContent = "Exit Assignment";
+        exit_link.textContent = " Exit Assignment";
         exit_link.href=window.location.pathname;
 
         exit_link.addEventListener('click',function(event) {
-            localStorage.removeItem("currentAssignmentInfo");
+            localStorage.removeItem(`currentAssignmentInfo_${eBookConfig.course}`);
         });
 
         //active.append(exit_link)
@@ -114,13 +114,33 @@ function addReadingList() {
             txt.textContent = `Page 1 of ${num_readings}.`;
             fst.append(txt);
         } else {
+            // this isn't a reading page in the assignment, check to see if any
+            // activities on this page are assigned to the current assignment
+            let exerciseOnPage = false;
+            let pageExercises = Object.keys(componentMap);
+            if (pageExercises.length == 0) {
+                pageExercises = document.querySelectorAll("[data-component]");
+                pageExercises = Array.from(pageExercises).map(function(el) {
+                    return el.id;
+                })
+            }
+            for (let ex of pageExercises) {
+                if (assignment_info.questions.includes(ex)) {
+                    exerciseOnPage = true;
+                    break;
+                }
+            }
             new_pos = eBookConfig.readings[0];
             path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
             path_parts.push(new_pos);
             new_pos_link = path_parts.join("/");
             fst = active.cloneNode(true);
             let txt = document.createElement("p");
-            txt.textContent = "Notice: this page is not part of the assignment. To remove this warning click ";
+            if (exerciseOnPage) {
+                txt.textContent = "This page has activities assigned to the current assignment.";
+            } else {
+                txt.textContent = "Notice: this page is not part of the assignment.";
+            }
             txt.append(exit_link);
             fst.append(txt);
         }
@@ -154,7 +174,7 @@ function addReadingList() {
             let exit_clone = exit_link.cloneNode(true);
 
             exit_clone.addEventListener('click',function(event) {
-                localStorage.removeItem("currentAssignmentInfo");
+                localStorage.removeItem(`currentAssignmentInfo_${eBookConfig.course}`);
             });
             txt.append(exit_clone);
             snd.append(txt);

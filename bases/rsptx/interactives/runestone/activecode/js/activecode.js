@@ -226,6 +226,7 @@ export class ActiveCode extends RunestoneBase {
             }.bind(this),
             1000
         );
+        this.decorateStatus();
         if (this.autorun) {
             // Simulate pressing the run button, since this will also prevent the user from clicking it until the initial run is complete, and also help the user understand why they're waiting.
             $(this.runButtonHandler.bind(this));

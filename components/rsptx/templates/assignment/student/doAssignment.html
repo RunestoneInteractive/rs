@@ -258,7 +258,7 @@ Do Assignment
         'readingNames': subchapNames,
         'questions': qlist
     };
-    localStorage.setItem("currentAssignmentInfo", JSON.stringify(assignmentInfo));
+    localStorage.setItem(`currentAssignmentInfo_${eBookConfig.course}`, JSON.stringify(assignmentInfo));
 
     //console.log(document.getElementsByClassName('nav nav-tabs'))
     // This script renders the html into elements in the DOM
