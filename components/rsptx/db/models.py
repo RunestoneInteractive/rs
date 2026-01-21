@@ -613,6 +613,27 @@ class Question(Base, IdMixin):
 QuestionValidator: TypeAlias = sqlalchemy_to_pydantic(Question)  # type: ignore
 
 
+class CodeTailorParsons(Base, IdMixin):
+    __tablename__ = "codetailor_parsons"
+    __table_args__ = (
+        UniqueConstraint("question_id", "sid", "timestamp"),
+        Index("codetailor_parsons_qid_sid_idx", "question_id", "sid"),
+    )
+    # Original Question this was generated from
+    question_id = Column(
+        Integer,
+        ForeignKey("questions.id"),
+        nullable=False,
+        index=True,
+    )
+    sid = Column(String(512), nullable=False, index=True)
+    timestamp = Column(DateTime, nullable=False)
+    htmlsrc = Column(Text)
+    question_json = Column(JSON, nullable=False)
+
+CodeTailorParsonsValidator: TypeAlias = sqlalchemy_to_pydantic(CodeTailorParsons)  # type: ignore
+
+
 class Tag(Base, IdMixin):
     __tablename__ = "tags"
 
