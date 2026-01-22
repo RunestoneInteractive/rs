@@ -1091,7 +1091,7 @@ textarea.lp-result {
 }
 
 .runestone_caption_divid {
-    opacity: 50%;
+    font-style: italic;
 }
 
 #questions .runestone_caption:before {
