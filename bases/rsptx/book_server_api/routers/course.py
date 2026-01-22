@@ -8,11 +8,13 @@
 #
 # Standard library
 # ----------------
-
+import json
+import datetime
 
 # Third-party imports
 # -------------------
-from fastapi import APIRouter, Request, Depends
+from typing import Optional
+from fastapi import APIRouter, Cookie, Request, Depends
 from fastapi.templating import Jinja2Templates
 
 # Local application imports
@@ -33,7 +35,7 @@ from rsptx.db.crud import (
     fetch_lti_version,
 )
 from rsptx.logging import rslogger
-from rsptx.response_helpers.core import make_json_response
+from rsptx.response_helpers.core import canonical_utcnow, make_json_response
 from rsptx.auth.session import is_instructor
 from rsptx.grading_helpers.core import adjust_deadlines
 
@@ -52,7 +54,9 @@ router = APIRouter(
 
 
 @router.api_route("/index", methods=["GET", "POST"])
-async def index(request: Request, user=Depends(auth_manager)):
+async def index(
+    request: Request, user=Depends(auth_manager), RS_info: Optional[str] = Cookie(None)
+):
     """Fetch current course information
        Fetch current assignment information
 
@@ -93,7 +97,29 @@ async def index(request: Request, user=Depends(auth_manager)):
     if not user_is_instructor:
         assignments = [a for a in assignments if a.visible or a.id in assignment_ids]
     assignments = adjust_deadlines(assignments, accommodations)
-    assignments.sort(key=lambda x: x.duedate, reverse=True)
+
+    parsed_js = json.loads(RS_info) if RS_info else {}
+    timezoneoffset = parsed_js.get("tz_offset", None)
+
+    def sort_key(assignment):
+        deadline = assignment.duedate
+        if timezoneoffset:
+            deadline = deadline + datetime.timedelta(hours=float(timezoneoffset))
+            return (
+                deadline < canonical_utcnow(),
+                abs((deadline - canonical_utcnow()).total_seconds()),
+            )
+        else:
+            return (
+                assignment.duedate < canonical_utcnow(),
+                abs((assignment.duedate - canonical_utcnow()).total_seconds()),
+            )
+
+    now = canonical_utcnow()
+    assignments.sort(
+        key=sort_key
+    )
+
     stats_list = await fetch_all_assignment_stats(course_name, user.id)
     stats = {}
     for s in stats_list:
@@ -117,6 +143,7 @@ async def index(request: Request, user=Depends(auth_manager)):
             "is_instructor": user_is_instructor,
             "has_discussion_group": any([book.social_url for book in books]),
             "lti1p1": is_lti1p1_course,
+            "now": now,
         },
     )
 

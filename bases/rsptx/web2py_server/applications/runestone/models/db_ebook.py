@@ -158,6 +158,21 @@ db.define_table(
     Field("percent", "double"),
     migrate=bookserver_owned("dragndrop_answers"),
 )
+
+# matching_answers
+# ----------------
+db.define_table(
+    "matching_answers",
+    Field("timestamp", "datetime"),
+    Field("div_id", "string"),
+    Field("sid", "string"),
+    Field("course_name", "string"),
+    Field("answer", "string"),
+    Field("correct", "boolean"),
+    Field("percent", "double"),
+    migrate=bookserver_owned("matching_answers"),
+)
+
 # clickablearea_answers
 # ---------------------
 db.define_table(
@@ -205,13 +220,27 @@ db.define_table(
 # shortanswer_answers
 # -------------------
 db.define_table(
-    "shortanswer_answers",
+    "shortanswe_answers",
     Field("timestamp", "datetime"),
     Field("div_id", "string"),
     Field("sid", "string"),
     Field("course_name", "string"),
     Field("answer", "text"),
     migrate=bookserver_owned("shortanswer_answers"),
+)
+
+# splice_answers
+# ----------------
+db.define_table(
+    "splice_answers",
+    Field("timestamp", "datetime"),
+    Field("div_id", "string"),
+    Field("sid", "string"),
+    Field("course_name", "string"),
+    Field("answer", "string"),
+    Field("correct", "boolean"),
+    Field("percent", "double"),
+    migrate=bookserver_owned("splice_answers"),
 )
 
 # unittest_answers

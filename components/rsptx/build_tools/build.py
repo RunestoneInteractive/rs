@@ -57,8 +57,9 @@ console = Console()
 @click.option(
     "--clean", is_flag=True, help="Remove all containers and images before starting"
 )
+@click.option("--skip-pre", is_flag=True, default=False, help="Skip pre-build steps")
 @pass_config
-def cli(config, verbose, all, core, service, clean):
+def cli(config, verbose, all, core, service, clean, skip_pre):
     """
     Build the wheels and Docker containers needed for this application
     You can control which parts of the pipeline to run and which services to build or
@@ -80,7 +81,10 @@ def cli(config, verbose, all, core, service, clean):
         )
         exit(1)
     config.verbose = verbose
-
+    if skip_pre:
+        config.skip_pre = True
+    else:
+        config.skip_pre = False
     if clean:
         clean_all()
 
@@ -390,7 +394,7 @@ def wheel(config):
             projdir = config.ym["services"][proj]["build"]["context"]
             if os.path.isdir(projdir):
                 with pushd(projdir):
-                    if os.path.isfile("build.py"):
+                    if os.path.isfile("build.py") and config.skip_pre is False:
                         status[proj] = "[grey62]pre build...[/grey62]"
                         lt.update(generate_wheel_table(status))
                         res = subprocess.run(
@@ -472,6 +476,69 @@ def generate_table(status: dict) -> Table:
     return table
 
 
+def ensure_builder(builder_name: str = "rn-builder") -> None:
+    """Ensure the named Buildx builder exists and is set as default.
+    If it doesn't exist, prompt the user to create it and set it as the default.
+    """
+    try:
+        ret = subprocess.run(
+            ["docker", "buildx", "inspect", builder_name],
+            capture_output=True,
+        )
+    except FileNotFoundError:
+        console.print(
+            "Docker is not installed or not on PATH. Please install/start Docker and try again.",
+            style="bold red",
+        )
+        sys.exit(1)
+
+    if ret.returncode != 0:
+        # Builder not found; prompt to create it
+        if click.confirm(
+            f"Buildx builder '{builder_name}' not found. Create it and set as default now?",
+            default=True,
+        ):
+            steps = [
+                [
+                    "docker",
+                    "buildx",
+                    "create",
+                    "--name",
+                    builder_name,
+                    "--driver",
+                    "docker-container",
+                    "--bootstrap",
+                ],
+                ["docker", "buildx", "use", "--default", builder_name],
+            ]
+            for cmd in steps:
+                res = subprocess.run(cmd, capture_output=True)
+                if res.returncode != 0:
+                    console.print(
+                        f"Failed to run: {' '.join(cmd)}",
+                        style="bold red",
+                    )
+                    if res.stderr:
+                        console.print(res.stderr.decode(stdout_err_encoding))
+                    sys.exit(1)
+            console.print(
+                f"Builder '{builder_name}' created and set as default.",
+                style="green",
+            )
+        else:
+            console.print(
+                "Aborting: required Buildx builder not available.",
+                style="bold red",
+            )
+            sys.exit(1)
+    else:
+        # Ensure it is selected as the default for this context (idempotent)
+        subprocess.run(
+            ["docker", "buildx", "use", "--default", builder_name],
+            capture_output=True,
+        )
+
+
 @cli.command()
 @pass_config
 def image(config):
@@ -480,6 +547,7 @@ def image(config):
     console.print(
         "Building docker images (see build.log for detailed progress)...", style="bold"
     )
+    ensure_builder()
     status = {}
     set_for_build = maybe_set_profiles()
     with Live(generate_table(status), refresh_per_second=4) as lt:
@@ -500,6 +568,8 @@ def image(config):
                 "--progress",
                 "plain",
                 "build",
+                "--builder",
+                "rn-builder",
                 service,
             ]
 
@@ -807,8 +877,14 @@ def full(ctx, config):
 
 
 # This is a cool trick with click that lets you chain commands together to
-# form a meta command. so this will run the env command first, then the wheel
+# form a meta command. so this will                 run the env command first, then the wheel
 # command, then the image command, then checkdb, then the restart command.
+# create your container driver builder (or reuse your existing one)
+# docker buildx create --name rn-builder --driver docker-container --bootstrap
+# make it the selected/default builder for this Docker context
+# docker buildx use --default rn-builder
+# use docker buildx use rn-builder if needed to get back to this builder.
+#
 @cli.command()
 @pass_config
 @click.pass_context
@@ -816,6 +892,19 @@ def dev(ctx, config):
     """Build the wheels, images, and restart the services"""
     ctx.invoke(wheel)
     ctx.invoke(image)
+    ctx.invoke(restart)
+
+# This command should be used when you pull new code from github and want to rebuild and make 
+# sure you are using the latest database schema.  Many people forget to run migrations
+# after pulling new code.
+@cli.command()
+@pass_config
+@click.pass_context
+def sync(ctx, config):
+    """Build the wheels, images, check the database, and restart the services"""
+    ctx.invoke(wheel)
+    ctx.invoke(image)
+    ctx.invoke(checkdb)
     ctx.invoke(restart)
 
 
@@ -872,6 +961,7 @@ def bake(ctx, config, version):
                 f.write(ret.stderr.decode(stdout_err_encoding))
                 f.write("\n")
             exit(1)
+
 
 if __name__ == "__main__":
     cli()

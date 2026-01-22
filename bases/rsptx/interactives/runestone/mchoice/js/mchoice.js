@@ -25,12 +25,12 @@ export default class MultipleChoice extends RunestoneBase {
         this.useRunestoneServices = opts.useRunestoneServices;
         this.multipleanswers = false;
         this.divid = orig.id;
-        if ($(this.origElem).data("multipleanswers") === true) {
+        if (this.parseBooleanAttribute(this.origElem, "data-multipleanswers")) {
             this.multipleanswers = true;
         }
         this.children = this.origElem.childNodes;
         this.random = false;
-        if ($(this.origElem).is("[data-random]")) {
+        if (this.parseBooleanAttribute(this.origElem, "data-random")) {
             this.random = true;
         }
         this.correct = null;
@@ -77,7 +77,7 @@ export default class MultipleChoice extends RunestoneBase {
                     break;
                 }
             }
-            var fulltext = $(this.origElem).html();
+            var fulltext = this.origElem.innerHTML;
             var temp = fulltext.split(delimiter);
             this.question = temp[0];
         }
@@ -88,18 +88,19 @@ export default class MultipleChoice extends RunestoneBase {
         // format: ID, Correct bool, Content (text)
         var ChildAnswerList = [];
         for (var i = 0; i < this.children.length; i++) {
-            if ($(this.children[i]).is("[data-component=answer]")) {
-                ChildAnswerList.push(this.children[i]);
+            const child = this.children[i];
+            if (child.nodeType === Node.ELEMENT_NODE && child.matches("[data-component=answer]")) {
+                ChildAnswerList.push(child);
             }
         }
         for (var j = 0; j < ChildAnswerList.length; j++) {
-            var answer_id = $(ChildAnswerList[j]).attr("id");
+            var answer_id = ChildAnswerList[j].id;
             var is_correct = false;
-            if ($(ChildAnswerList[j]).is("[data-correct]")) {
+            if (ChildAnswerList[j].hasAttribute("data-correct")) {
                 // If data-correct attribute exists, answer is correct
                 is_correct = true;
             }
-            var answer_text = $(ChildAnswerList[j]).html();
+            var answer_text = ChildAnswerList[j].innerHTML;
             var answer_object = {
                 id: answer_id,
                 correct: is_correct,
@@ -111,8 +112,9 @@ export default class MultipleChoice extends RunestoneBase {
 
     findFeedbacks() {
         for (var i = 0; i < this.children.length; i++) {
-            if ($(this.children[i]).is("[data-component=feedback]")) {
-                this.feedbackList.push(this.children[i].innerHTML);
+            const child = this.children[i];
+            if (child.nodeType === Node.ELEMENT_NODE && child.matches("[data-component=feedback]")) {
+                this.feedbackList.push(child.innerHTML);
             }
         }
     }
@@ -136,28 +138,35 @@ export default class MultipleChoice extends RunestoneBase {
         this.renderMCForm(); // renders the form with options and buttons
         this.renderMCfeedbackDiv();
         // replaces intermediate HTML with rendered HTML
-        $(this.origElem).replaceWith(this.containerDiv);
+        this.origElem.replaceWith(this.containerDiv);
     }
 
     renderMCContainer() {
         this.containerDiv = document.createElement("div");
         this.questionDiv = document.createElement("div");
-        $(this.questionDiv).html(this.question);
+        // this.question may be an element or text - need to handle both cases
+        if (typeof this.question === "string") {
+            this.questionDiv.innerHTML = this.question;
+        } else {
+            this.questionDiv.appendChild(this.question);
+        }
         this.questionDiv.id = this.divid + "_prompt";
+        this.questionDiv.className = "exercise-statement";
         this.containerDiv.appendChild(this.questionDiv);
-        $(this.containerDiv).addClass(this.origElem.getAttribute("class"));
-        $(this.containerDiv).addClass("mchoice");
+        const origClass = this.origElem.getAttribute("class");
+        if (origClass) {
+            this.containerDiv.classList.add(...origClass.split(" ").filter(Boolean));
+        }
+        this.containerDiv.classList.add("mchoice");
         this.containerDiv.id = this.divid;
     }
 
     renderMCForm() {
         this.optsForm = document.createElement("form");
         this.optsForm.id = this.divid + "_form";
-        $(this.optsForm).attr({
-            method: "get",
-            action: "",
-            onsubmit: "return false;",
-        });
+        this.optsForm.method = "get";
+        this.optsForm.action = "";
+        this.optsForm.onsubmit = function () { return false; };
         // Add fieldset and legend for accessibility
         this.optsFieldSet = document.createElement("fieldset");
         this.optsFieldSet.setAttribute("role", "radiogroup");
@@ -202,6 +211,7 @@ export default class MultipleChoice extends RunestoneBase {
             var optid = this.divid + "_opt_" + k;
             // Create the label for the input
             var label = document.createElement("label");
+            label.className = "mchoice-option";
             // If the content begins with a ``<p>``, put the label inside of it. (Sphinx 2.0 puts all content in a ``<p>``, while Sphinx 1.8 doesn't).
             var content = this.answerList[k].content;
             var prefix = "";
@@ -209,14 +219,13 @@ export default class MultipleChoice extends RunestoneBase {
                 prefix = "<p>";
                 content = content.slice(3);
             }
-            $(label).html(
-                `${prefix}<input type="${input_type}" name="group1" value=${k} id=${optid}>${String.fromCharCode(
-                    "A".charCodeAt(0) + j
-                )}. ${content}`
-            );
+            label.innerHTML =
+                `${prefix}<input type="${input_type}" name="group1" value="${k}" id="${optid}" class="mchoice-input">` +
+                `${String.fromCharCode("A".charCodeAt(0) + j)}. ${content}`;
             // create the object to store in optionArray
+            var inputEl = label.querySelector("input");
             var optObj = {
-                input: $(label).find("input")[0],
+                input: inputEl,
                 label: label,
             };
             optObj.input.onclick = answerFunc;
@@ -224,7 +233,6 @@ export default class MultipleChoice extends RunestoneBase {
             this.optionArray.push(optObj);
             // add the option to the form
             this.optsFieldSet.appendChild(label);
-            this.optsFieldSet.appendChild(document.createElement("br"));
         }
     }
 
@@ -233,11 +241,9 @@ export default class MultipleChoice extends RunestoneBase {
         // Create submit button
         this.submitButton = document.createElement("button");
         this.submitButton.textContent = "Check Me";
-        $(this.submitButton).attr({
-            class: "btn btn-success",
-            name: "do answer",
-            type: "button",
-        });
+        this.submitButton.className = "btn btn-success";
+        this.submitButton.name = "do answer";
+        this.submitButton.type = "button";
         if (this.multipleanswers) {
             this.submitButton.addEventListener(
                 "click",
@@ -260,12 +266,10 @@ export default class MultipleChoice extends RunestoneBase {
         // Create compare button
         if (this.useRunestoneServices && !eBookConfig.peer) {
             this.compareButton = document.createElement("button");
-            $(this.compareButton).attr({
-                class: "btn btn-default",
-                id: this.divid + "_bcomp",
-                disabled: "",
-                name: "compare",
-            });
+            this.compareButton.className = "btn btn-default";
+            this.compareButton.id = this.divid + "_bcomp";
+            this.compareButton.disabled = true;
+            this.compareButton.name = "compare";
             this.compareButton.textContent = "Compare me";
             this.compareButton.addEventListener(
                 "click",
@@ -283,7 +287,6 @@ export default class MultipleChoice extends RunestoneBase {
         this.feedBackDiv.id = this.divid + "_feedback";
         this.feedBackDiv.setAttribute("aria-live", "polite");
         this.feedBackDiv.setAttribute("role", "status");
-        this.containerDiv.appendChild(document.createElement("br"));
         this.containerDiv.appendChild(this.feedBackDiv);
     }
 
@@ -321,7 +324,7 @@ export default class MultipleChoice extends RunestoneBase {
             var index = answers[a];
             for (var b = 0; b < this.optionArray.length; b++) {
                 if (this.optionArray[b].input.value == index) {
-                    $(this.optionArray[b].input).attr("checked", "true");
+                    this.optionArray[b].input.checked = true;
                 }
             }
         }
@@ -357,10 +360,7 @@ export default class MultipleChoice extends RunestoneBase {
                     var index = answers[a];
                     for (var b = 0; b < this.optionArray.length; b++) {
                         if (this.optionArray[b].input.value == index) {
-                            $(this.optionArray[b].input).attr(
-                                "checked",
-                                "true"
-                            );
+                            this.optionArray[b].input.checked = true;
                         }
                     }
                 }
@@ -417,8 +417,8 @@ export default class MultipleChoice extends RunestoneBase {
                 studentVoteCount > 1) {
                 this.renderMCMAFeedBack();
             } else {
-                $(this.feedBackDiv).html("<p>Your Answer has been recorded</p>");
-                $(this.feedBackDiv).attr("class", "alert alert-info");
+                this.feedBackDiv.innerHTML = "<p>Your answer has been recorded</p>";
+                this.feedBackDiv.className = "alert alert-info";
             }
         }
         this.didSubmit = true;
@@ -539,13 +539,12 @@ export default class MultipleChoice extends RunestoneBase {
         var numNeeded = this.correctList.length;
         var feedbackText = this.feedbackString;
         if (this.correct) {
-            $(this.feedBackDiv).html(`✔️ <ol type="A">${feedbackText}</ul>`);
-            $(this.feedBackDiv).attr("class", "alert alert-info");
+            this.feedBackDiv.innerHTML = `✔️ <ol type="A">${feedbackText}</ul>`;
+            this.feedBackDiv.className = "alert alert-info";
         } else {
-            $(this.feedBackDiv).html(
-                `✖️ You gave ${numGiven} ${answerStr} and got ${numCorrect} correct of ${numNeeded} needed.<ol type="A">${feedbackText}</ul>`
-            );
-            $(this.feedBackDiv).attr("class", "alert alert-danger");
+            this.feedBackDiv.innerHTML =
+                `✖️ You gave ${numGiven} ${answerStr} and got ${numCorrect} correct of ${numNeeded} needed.<ol type="A">${feedbackText}</ul>`;
+            this.feedBackDiv.className = "alert alert-danger";
         }
     }
 
@@ -572,8 +571,8 @@ export default class MultipleChoice extends RunestoneBase {
                 studentVoteCount > 1) {
                 this.renderMCMAFeedBack();
             } else {
-                $(this.feedBackDiv).html("<p>Your Answer has been recorded</p>");
-                $(this.feedBackDiv).attr("class", "alert alert-info");
+                this.feedBackDiv.innerHTML = "<p>Your answer has been recorded</p>";
+                this.feedBackDiv.className = "alert alert-info";
             }
         }
         this.didSubmit = true;
@@ -619,14 +618,14 @@ export default class MultipleChoice extends RunestoneBase {
         let feedbackText = this.singlefeedback;
 
         if (correct) {
-            $(this.feedBackDiv).html("✔️ " + feedbackText);
-            $(this.feedBackDiv).attr("class", "alert alert-info"); // use blue for better red/green blue color blindness
+            this.feedBackDiv.innerHTML = "✔️ " + feedbackText;
+            this.feedBackDiv.className = "alert alert-info"; // use blue for better red/green blue color blindness
         } else {
             if (feedbackText == null) {
                 feedbackText = "";
             }
-            $(this.feedBackDiv).html("✖️ " + feedbackText);
-            $(this.feedBackDiv).attr("class", "alert alert-danger");
+            this.feedBackDiv.innerHTML = "✖️ " + feedbackText;
+            this.feedBackDiv.className = "alert alert-danger";
         }
     }
     enableMCComparison() {
@@ -688,33 +687,58 @@ export default class MultipleChoice extends RunestoneBase {
         if (datadict.reslist !== undefined) {
             body += this.instructorMchoiceModal(datadict.reslist);
         }
-        var html =
-            "<div class='modal fade'>" +
-            "    <div class='modal-dialog compare-modal'>" +
-            "        <div class='modal-content'>" +
-            "            <div class='modal-header'>" +
-            "                <button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>" +
-            "                <h4 class='modal-title'>Distribution of Answers</h4>" +
-            "            </div>" +
-            "            <div class='modal-body'>" +
-            body +
-            "            </div>" +
-            "        </div>" +
-            "    </div>" +
-            "</div>";
-        var el = $(html);
-        el.modal();
+        // Create a simple modal without jQuery/Bootstrap
+        const overlay = document.createElement("div");
+        overlay.style.position = "fixed";
+        overlay.style.inset = "0";
+        overlay.style.background = "rgba(0,0,0,0.5)";
+        overlay.style.zIndex = "9999";
+
+        const dialog = document.createElement("div");
+        dialog.style.maxWidth = "720px";
+        dialog.style.margin = "10vh auto";
+        dialog.style.background = "#fff";
+        dialog.style.borderRadius = "6px";
+        dialog.style.boxShadow = "0 2px 12px rgba(0,0,0,0.3)";
+        dialog.style.padding = "16px";
+
+        const header = document.createElement("div");
+        const closeBtn = document.createElement("button");
+        closeBtn.type = "button";
+        closeBtn.textContent = "×";
+        closeBtn.setAttribute("aria-label", "Close");
+        closeBtn.style.float = "right";
+        closeBtn.className = "btn btn-light";
+        closeBtn.onclick = function () {
+            document.body.removeChild(overlay);
+        };
+        const title = document.createElement("h4");
+        title.className = "modal-title";
+        title.textContent = "Distribution of Answers";
+        header.appendChild(closeBtn);
+        header.appendChild(title);
+
+        const modalBody = document.createElement("div");
+        modalBody.innerHTML = body;
+
+        dialog.appendChild(header);
+        dialog.appendChild(modalBody);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
     }
     // _`compareAnswers`
-    compareAnswers() {
+    async compareAnswers() {
         var data = {};
         data.div_id = this.divid;
         data.course_name = eBookConfig.course;
-        jQuery.get(
-            `${eBookConfig.new_server_prefix}/assessment/getaggregateresults`,
-            data,
-            this.compareModal.bind(this)
-        );
+        try {
+            const params = new URLSearchParams(data);
+            const resp = await fetch(`${eBookConfig.new_server_prefix}/assessment/getaggregateresults?${params.toString()}`);
+            const json = await resp.json();
+            this.compareModal(json);
+        } catch (e) {
+            console.error("Error fetching aggregate results:", e);
+        }
     }
 
     disableInteraction() {
@@ -734,16 +758,16 @@ export default class MultipleChoice extends RunestoneBase {
 == Find the custom HTML tags and ==
 ==   execute our code on them    ==
 =================================*/
-$(document).on("runestone:login-complete", function () {
-    $("[data-component=multiplechoice]").each(function (index) {
+document.addEventListener("runestone:login-complete", function () {
+    document.querySelectorAll("[data-component=multiplechoice]").forEach(function (el, index) {
         // MC
         var opts = {
-            orig: this,
+            orig: el,
             useRunestoneServices: eBookConfig.useRunestoneServices,
         };
-        if ($(this).closest("[data-component=timedAssessment]").length == 0) {
+        if (!el.closest("[data-component=timedAssessment]")) {
             // If this element exists within a timed component, don't render it here
-            window.componentMap[this.id] = new MultipleChoice(opts);
+            window.componentMap[el.id] = new MultipleChoice(opts);
         }
     });
 });

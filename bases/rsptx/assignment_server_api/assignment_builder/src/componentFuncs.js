@@ -74,7 +74,7 @@ export async function renderRunestoneComponent(
       previewRef.current.innerHTML = `<p>Preview not available for ${componentKind}</p>`;
     } else {
       try {
-        // Grab the preamble if it exists.  
+        // Grab the preamble if it exists.
         // add it to opt so that it can be used by the component factory
         // This is used for mathjax processing of the preview.
         let preamble = document.querySelector("div.hidden-content.process-math");
@@ -84,6 +84,12 @@ export async function renderRunestoneComponent(
         }
         let res = window.component_factory[componentKind](opt);
         console.log("res", res);
+
+        // For components with async initialization (like selectquestion),
+        // call initialize() method if it exists
+        if (!!moreOpts.isCalledFromBuilder && res && typeof res.initialize === "function") {
+          await res.initialize();
+        }
 
         res.multiGrader = moreOpts.multiGrader;
         if (componentKind === "activecode") {
@@ -95,7 +101,7 @@ export async function renderRunestoneComponent(
         }
         // add a button to the preview to allow the user to flag this compenent for review
         let flagButton = document.createElement("button");
-        console.log("res",res);
+        console.log("res", res);
         flagButton.classList.add("flag-for-review");
         flagButton.textContent = "Flag for Review";
         flagButton.addEventListener("click", async function () {

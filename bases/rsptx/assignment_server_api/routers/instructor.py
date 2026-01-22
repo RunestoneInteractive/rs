@@ -10,7 +10,6 @@ from .assignment_summary import create_assignment_summary
 from fastapi import (
     APIRouter,
     Cookie,
-    HTTPException,
     Depends,
     Request,
     status,
@@ -43,11 +42,9 @@ from rsptx.db.crud import (
     fetch_all_deadline_exceptions,
     create_assignment_question,
     create_deadline_exception,
+    delete_deadline_exception,
     create_question,
-    delete_course_instructor,
     fetch_course,
-    fetch_course_by_id,
-    fetch_instructor_courses,
     fetch_users_for_course,
     fetch_subchapters,
     create_assignment,
@@ -63,6 +60,13 @@ from rsptx.db.crud import (
     get_peer_votes,
     search_exercises,
     create_api_token,
+    update_source_code,
+    fetch_all_datafiles,
+    check_datafile_exists,
+    generate_datafile_acid,
+    fetch_datafile_by_acid,
+    update_datafile,
+    delete_datafile,
 )
 from rsptx.db.crud.question import validate_question_name_unique, copy_question
 from rsptx.db.crud.assignment import add_assignment_question, delete_assignment
@@ -154,7 +158,7 @@ async def review_peer_assignment(
     if (
         assignment.visible == "F"
         or assignment.visible is None
-        or assignment.visible == False
+        or assignment.visible == False  # noqa: E712
     ):
         if not user_is_instructor:
             rslogger.error(
@@ -168,8 +172,6 @@ async def review_peer_assignment(
 
     for q in questions:
         # Gathering information about each question
-        answer = None
-        feedback = None
         if q.Question.htmlsrc:
             # This replacement is to render images
             bts = q.Question.htmlsrc
@@ -322,7 +324,7 @@ async def get_assignment_gb(
     apoints = {}
     for ix, row in assignments.iterrows():
         rslogger.debug(f"AROW = {row['name']}, {row.points}")
-        apoints[row['name']] = row.points if row.points is not None else 0
+        apoints[row["name"]] = row.points if row.points is not None else 0
 
     assignments.index = assignments.id
     aname = assignments.name.to_dict()
@@ -339,8 +341,7 @@ async def get_assignment_gb(
     cols = pt.columns.to_list()
     cols_plus_points = []
     for c in cols:
-        cols_plus_points.append(c + f" ({apoints.get(c,"0")} pts)")
-    
+        cols_plus_points.append(c + f" ({apoints.get(c,'0')} pts)")
 
     pt["first_name"] = pt.index.map(sfirst)
     pt["last_name"] = pt.index.map(slast)
@@ -349,7 +350,7 @@ async def get_assignment_gb(
     pt = pt.sort_values(by=["last_name", "first_name"])
     pt = pt[["first_name", "last_name", "email", "username"] + cols]
     pt = pt.reset_index()
-    pt = pt.drop(columns=["sid"], axis=1)    
+    pt = pt.drop(columns=["sid"], axis=1)
     pt.columns.name = None
 
     names = {}
@@ -368,7 +369,8 @@ async def get_assignment_gb(
         {
             "table_html": pt.to_html(
                 table_id="table",
-                columns=["first_name", "last_name", "email", "username"] + cols_plus_points,
+                columns=["first_name", "last_name", "email", "username"]
+                + cols_plus_points,
                 index=False,
                 na_rep="",
             ),
@@ -422,7 +424,7 @@ async def new_assignment(
         request_data.is_timed = True
     elif request_data.kind == "Peer":
         request_data.is_peer = True
-        
+
     new_assignment = AssignmentValidator(
         **request_data.model_dump(),
         course=course.id,
@@ -570,7 +572,8 @@ async def do_update_question(
         **req,
         base_course=course.base_course,
         timestamp=canonical_utcnow(),
-        is_private=False,
+        is_private=request_data.is_private
+        or False,  # Use value from request instead of hardcoding
         practice=False,
         from_source=False,
         review_flag=False,
@@ -657,7 +660,7 @@ async def get_assignment_questions(
         else:
             aq["qnumber"] = q["name"]
 
-        if aq["reading_assignment"] == True:
+        if aq["reading_assignment"] == True:  # noqa: E712
             try:
                 aq["numQuestions"] = countd[q["chapter"]][q["subchapter"]]
             except KeyError:
@@ -828,6 +831,7 @@ async def fetch_chooser_data(
         skipreading=request_data.skipreading,
         from_source_only=request_data.from_source_only,
         pages_only=request_data.pages_only,
+        owner=user.username,
     )
     return make_json_response(status=status.HTTP_200_OK, detail={"questions": res})
 
@@ -855,7 +859,7 @@ async def search_exercises_endpoint(
         search_request.base_course = course.base_course
 
     # Perform exercise search
-    result = await search_exercises(search_request)
+    result = await search_exercises(search_request, owner=user.username)
 
     # Convert timestamps to strings for JSON
     exercises = []
@@ -918,6 +922,16 @@ async def get_builder(
     user_is_instructor = await is_instructor(request, user=user)
     if not user_is_instructor:
         return RedirectResponse(url="/")
+
+    # verify that the instructor is allowed to access this assignment
+    assignment_id = int(path) if path.isdigit() else None
+    if assignment_id:
+        assignment = await fetch_one_assignment(assignment_id)
+        if assignment and (assignment.course != course.id):
+            rslogger.error(
+                f"Illegal Attempt to access assignment {assignment_id} by {user.username}"
+            )
+            return RedirectResponse(url="/")
 
     reactdir = pathlib.Path(__file__).parent.parent / "react"
     templates = Jinja2Templates(directory=template_folder)
@@ -1033,7 +1047,6 @@ async def process_invoice_request(
     user=Depends(auth_manager),
     response_class=JSONResponse,
 ):
-
     rslogger.debug(f"Processing invoice request: {email} {amount} {course_name}")
 
     res = await create_invoice_request(user.username, course_name, amount, user.email)
@@ -1106,6 +1119,7 @@ async def save_exception(
         request_data["due_date"],
         request_data["visible"],
         request_data["assignment_id"],
+        request_data["allowLink"],
     )
 
     if not res:
@@ -1140,7 +1154,7 @@ async def get_language_options(request: Request):
 
 @router.get("/question_type_options")
 @instructor_role_required()
-async def get_language_options(request: Request):
+async def get_qt_options(request: Request):
     options = [option.to_dict() for option in QuestionType]
     return JSONResponse(content=options, status_code=status.HTTP_200_OK)
 
@@ -1206,9 +1220,9 @@ async def do_download_assignment(
         csv_buffer,
         media_type="text/csv",
     )
-    response.headers["Content-Disposition"] = (
-        f"attachment; filename=assignment_{assignment_id}.csv"
-    )
+    response.headers[
+        "Content-Disposition"
+    ] = f"attachment; filename=assignment_{assignment_id}.csv"
 
     return response
 
@@ -1278,7 +1292,6 @@ async def do_assignment_summary_data(
 async def question_creation(
     request_data: CreateExercisesPayload, request: Request, user=Depends(auth_manager)
 ):
-
     if not request_data.author:
         request_data.author = user.first_name + " " + user.last_name
 
@@ -1293,12 +1306,12 @@ async def question_creation(
 
     if question_data["autograde"] and question_data["autograde"] != "unittest":
         rslogger.error(f"Bad value for autograde: {question_data['autograde']}")
-        
+
     question_json = question_data["question_json"]
     if "suffix_code" in question_json and question_json["suffix_code"]:
         for utKeyword in ["assert", "unittest", "TEST_CASE", "junit"]:
             if utKeyword in question_json["suffix_code"]:
-                question_data["autograde"] = 'unittest'
+                question_data["autograde"] = "unittest"
                 break
 
     try:
@@ -1398,25 +1411,22 @@ async def get_add_token_page(
 
 @router.delete("/assignments/{assignment_id}")
 @instructor_role_required()
-async def remove_assignment(
-    assignment_id: int,
-    request: Request
-):
+async def remove_assignment(assignment_id: int, request: Request):
     rslogger.debug(f"Attempting to delete assignment {assignment_id}")
     try:
-        await delete_assignment(
-            assignment_id=assignment_id
-        )
+        await delete_assignment(assignment_id=assignment_id)
         rslogger.debug(f"Successfully deleted assignment {assignment_id}")
     except Exception as e:
         rslogger.error(f"Error deleting assignment {assignment_id}: {e}")
         return make_json_response(
-            status=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error deleting assignment: {e}"
+            status=status.HTTP_400_BAD_REQUEST, detail=f"Error deleting assignment: {e}"
         )
     return make_json_response(
         status=status.HTTP_200_OK,
-        detail={"status": "success", "message": f"Assignment {assignment_id} deleted successfully"}
+        detail={
+            "status": "success",
+            "message": f"Assignment {assignment_id} deleted successfully",
+        },
     )
 
 
@@ -1424,9 +1434,7 @@ async def remove_assignment(
 @instructor_role_required()
 @with_course()
 async def validate_question_name(
-    request: Request,
-    request_data: ValidateQuestionNameRequest,
-    course=None
+    request: Request, request_data: ValidateQuestionNameRequest, course=None
 ):
     """
     Validate if a question name is unique within the course's base course.
@@ -1434,28 +1442,24 @@ async def validate_question_name(
     try:
         # Use base_course from course context instead of request data
         is_unique = await validate_question_name_unique(
-            name=request_data.name,
-            base_course=course.base_course
+            name=request_data.name, base_course=course.base_course
         )
-        
+
         return make_json_response(
-            status=status.HTTP_200_OK,
-            detail={"is_unique": is_unique}
+            status=status.HTTP_200_OK, detail={"is_unique": is_unique}
         )
     except Exception as e:
         rslogger.error(f"Error validating question name: {e}")
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error validating question name: {str(e)}"
+            detail=f"Error validating question name: {str(e)}",
         )
 
 
 @router.post("/copy_question")
 @instructor_role_required()
 async def copy_question_endpoint(
-    request: Request,
-    request_data: CopyQuestionRequest,
-    user=Depends(auth_manager)
+    request: Request, request_data: CopyQuestionRequest, user=Depends(auth_manager)
 ):
     """
     Copy a question with a new name and owner.
@@ -1465,50 +1469,73 @@ async def copy_question_endpoint(
         assignment_id = None
         if request_data.copy_to_assignment and request_data.assignment_id:
             assignment_id = request_data.assignment_id
-        
+
         new_question = await copy_question(
             original_question_id=request_data.original_question_id,
             new_name=request_data.new_name,
             new_owner=user.username,
-            assignment_id=assignment_id
+            assignment_id=assignment_id,
+            htmlsrc=request_data.htmlsrc,
         )
-        
+
         return make_json_response(
             status=status.HTTP_201_CREATED,
             detail={
-                "status": "success", 
+                "status": "success",
                 "question_id": new_question.id,
-                "message": "Question copied successfully"
-            }
+                "message": "Question copied successfully",
+            },
         )
     except Exception as e:
         rslogger.error(f"Error copying question: {e}")
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error copying question: {str(e)}"
+            detail=f"Error copying question: {str(e)}",
         )
+
 
 @router.get("/accommodations")
 @instructor_role_required()
 @with_course()
-async def get_accommodations(
-    request: Request,
-    course=None
-):
+async def get_accommodations(request: Request, course=None):
     """
     Get accommodations for a specific course.
     """
     try:
         accommodations = await fetch_all_deadline_exceptions(course.id)
         return make_json_response(
-            status=status.HTTP_200_OK,
-            detail={"accommodations": accommodations}
+            status=status.HTTP_200_OK, detail={"accommodations": accommodations}
         )
     except Exception as e:
         rslogger.error(f"Error fetching accommodations: {e}")
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error fetching accommodations: {str(e)}"
+            detail=f"Error fetching accommodations: {str(e)}",
+        )
+
+
+@router.delete("/accommodation/{accommodation_id}")
+@instructor_role_required()
+@with_course()
+async def delete_accommodations(request: Request, accommodation_id: int, course=None):
+    """
+    Delete accommodations
+    """
+    rslogger.debug(f"Got a request to delete accommodation {accommodation_id}")
+    try:
+        await delete_deadline_exception(accommodation_id)
+        return make_json_response(
+            status=status.HTTP_200_OK,
+            detail={
+                "status": "success",
+                "message": f"Accommodation {accommodation_id} deleted successfully",
+            },
+        )
+    except Exception as e:
+        rslogger.error(f"Error deleting accommodation {accommodation_id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error deleting accommodation: {str(e)}",
         )
 
 
@@ -1530,21 +1557,312 @@ async def duplicate_assignment_endpoint(
         new_assignment, new_name = await duplicate_assignment(
             original_assignment_id=assignment_id,
             course_id=course.id,
-            existing_assignment_names=existing_names
+            existing_assignment_names=existing_names,
         )
 
         return make_json_response(
             status=status.HTTP_201_CREATED,
-            detail={
-                "status": "success",
-                "id": new_assignment.id,
-                "name": new_name
-            }
+            detail={"status": "success", "id": new_assignment.id, "name": new_name},
         )
 
     except Exception as e:
         rslogger.error(f"Error duplicating assignment {assignment_id}: {e}")
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error duplicating assignment: {str(e)}"
+            detail=f"Error duplicating assignment: {str(e)}",
         )
+
+class CreateDatafilePayload(BaseModel):
+    filename: str
+    main_code: str
+
+
+@router.get("/datafiles")
+@instructor_role_required()
+@with_course()
+async def get_datafiles(
+    request: Request,
+    course=None,
+):
+    """
+    Fetch all datafiles for a course.
+    Fetches from both base_course and current course_name to support derived courses.
+    """
+    try:
+        datafiles = await fetch_all_datafiles(course.base_course, course.course_name)
+
+        # Convert to dictionaries for JSON response
+        datafiles_list = []
+        for df in datafiles:
+            if df is not None:
+                datafiles_list.append({
+                    "id": df.id,
+                    "acid": df.acid,
+                    "filename": df.filename,
+                    "course_id": df.course_id,
+                    "owner": df.owner,
+                    "main_code": df.main_code[:100] + "..." if df.main_code and len(df.main_code) > 100 else df.main_code,  # Truncate for list view
+                })
+
+        return make_json_response(
+            status=status.HTTP_200_OK,
+            detail={"datafiles": datafiles_list},
+        )
+    except Exception as e:
+        rslogger.error(f"Error fetching datafiles: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error fetching datafiles: {str(e)}",
+        )
+
+
+
+
+@router.post("/datafile")
+@instructor_role_required()
+@with_course()
+async def create_datafile(
+    request: Request,
+    request_data: CreateDatafilePayload,
+    course=None,
+):
+    """
+    Create or update a datafile in the source_code table.
+    Saves to the current course (course_name), not the base_course.
+
+    The unique constraint is: filename + owner + course_id.
+    The acid is generated based on these three values.
+    """
+    try:
+        # Get the current user (owner)
+        user = request.state.user
+        if not user:
+            return make_json_response(
+                status=status.HTTP_401_UNAUTHORIZED,
+                detail="User not authenticated",
+            )
+        owner = user.username
+
+        # Check if a datafile with the same filename, owner, and course already exists
+        exists = await check_datafile_exists(
+            filename=request_data.filename,
+            owner=owner,
+            course_id=course.course_name,
+        )
+
+        if exists:
+            return make_json_response(
+                status=status.HTTP_409_CONFLICT,
+                detail=f"A datafile with filename '{request_data.filename}' already exists for this course. Please use a different filename.",
+            )
+
+        # Generate acid based on filename, owner, and course
+        acid = generate_datafile_acid(
+            filename=request_data.filename,
+            owner=owner,
+            course_id=course.course_name,
+        )
+
+        await update_source_code(
+            acid=acid,
+            filename=request_data.filename,
+            course_id=course.course_name,
+            main_code=request_data.main_code,
+            owner=owner,
+        )
+
+        return make_json_response(
+            status=status.HTTP_201_CREATED,
+            detail={"status": "success", "acid": acid},
+        )
+    except Exception as e:
+        rslogger.error(f"Error creating datafile: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error creating datafile: {str(e)}",
+        )
+
+
+class UpdateDatafilePayload(BaseModel):
+    acid: str
+    main_code: str
+
+
+@router.put("/datafile")
+@instructor_role_required()
+@with_course()
+async def update_datafile_endpoint(
+    request: Request,
+    request_data: UpdateDatafilePayload,
+    course=None,
+):
+    """
+    Update an existing datafile in the source_code table.
+    Only the owner of the datafile can update it.
+    Note: Filename cannot be changed after creation.
+    """
+    try:
+        # Get the current user
+        user = request.state.user
+        if not user:
+            return make_json_response(
+                status=status.HTTP_401_UNAUTHORIZED,
+                detail="User not authenticated",
+            )
+
+        # Fetch the datafile to verify ownership
+        datafile = await fetch_datafile_by_acid(
+            acid=request_data.acid,
+            course_id=course.course_name,
+        )
+
+        if not datafile:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail=f"Datafile with acid '{request_data.acid}' not found",
+            )
+
+        # Check ownership
+        if datafile.owner != user.username:
+            return make_json_response(
+                status=status.HTTP_403_FORBIDDEN,
+                detail="You are not the owner of this datafile and cannot edit it",
+            )
+
+        # Update the datafile (only main_code, filename cannot be changed)
+        success = await update_datafile(
+            acid=request_data.acid,
+            course_id=course.course_name,
+            main_code=request_data.main_code,
+        )
+
+        if success:
+            return make_json_response(
+                status=status.HTTP_200_OK,
+                detail={"status": "success"},
+            )
+        else:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail="Datafile not found",
+            )
+    except Exception as e:
+        rslogger.error(f"Error updating datafile: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error updating datafile: {str(e)}",
+        )
+
+
+@router.delete("/datafile/{acid}")
+@instructor_role_required()
+@with_course()
+async def delete_datafile_endpoint(
+    request: Request,
+    acid: str,
+    course=None,
+):
+    """
+    Delete a datafile from the source_code table.
+    Only the owner of the datafile can delete it.
+    """
+    try:
+        # Get the current user
+        user = request.state.user
+        if not user:
+            return make_json_response(
+                status=status.HTTP_401_UNAUTHORIZED,
+                detail="User not authenticated",
+            )
+
+        # Fetch the datafile to verify ownership
+        datafile = await fetch_datafile_by_acid(
+            acid=acid,
+            course_id=course.course_name,
+        )
+
+        if not datafile:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail=f"Datafile with acid '{acid}' not found",
+            )
+
+        # Check ownership
+        if datafile.owner != user.username:
+            return make_json_response(
+                status=status.HTTP_403_FORBIDDEN,
+                detail="You are not the owner of this datafile and cannot delete it",
+            )
+
+        # Delete the datafile
+        success = await delete_datafile(
+            acid=acid,
+            course_id=course.course_name,
+        )
+
+        if success:
+            return make_json_response(
+                status=status.HTTP_200_OK,
+                detail={"status": "success"},
+            )
+        else:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail="Datafile not found",
+            )
+    except Exception as e:
+        rslogger.error(f"Error deleting datafile: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error deleting datafile: {str(e)}",
+        )
+
+
+@router.get("/datafile/{acid}")
+@instructor_role_required()
+@with_course()
+async def get_datafile_endpoint(
+    request: Request,
+    acid: str,
+    course=None,
+):
+    """
+    Get a single datafile by its acid.
+    Returns full content (not truncated like the list endpoint).
+    """
+    try:
+        datafile = await fetch_datafile_by_acid(
+            acid=acid,
+            course_id=course.course_name,
+        )
+
+        if not datafile:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail=f"Datafile with acid '{acid}' not found",
+            )
+
+        # Get current user to determine if they are the owner
+        user = request.state.user
+        is_owner = user and datafile.owner == user.username
+
+        return make_json_response(
+            status=status.HTTP_200_OK,
+            detail={
+                "id": datafile.id,
+                "acid": datafile.acid,
+                "filename": datafile.filename,
+                "course_id": datafile.course_id,
+                "owner": datafile.owner,
+                "main_code": datafile.main_code,
+                "is_owner": is_owner,
+            },
+        )
+    except Exception as e:
+        rslogger.error(f"Error fetching datafile: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error fetching datafile: {str(e)}",
+        )
+
+

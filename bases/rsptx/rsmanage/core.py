@@ -311,8 +311,13 @@ async def addcourse(
     if not basecourse:
         basecourse = click.prompt("Base Course: ")
     bookrec = await fetch_library_book(basecourse)
-    if bookrec.build_system is None:
-        click.echo(f"{basecourse} Not Found: Build the corresponding base course first!")
+    if not bookrec:
+        click.echo(f"{basecourse} Not Found: Please add the book first using `addbookauthor")
+        exit(1)
+    if bookrec and bookrec.build_system is None:
+        click.echo(
+            f"{basecourse} Not Found: Build the corresponding base course first!"
+        )
         exit(1)
     done = False
     regex = r"^([\x30-\x39]|[\x41-\x5A]|[\x61-\x7A]|[_-])*$"
@@ -435,10 +440,10 @@ async def build(config, clone, ptx, gen, manifest, course):
     else:
         res = _build_runestone_book(config, course)
 
-    if res:
-        click.echo("Build Succeeded")
+    if res.get("completed", False):
+        click.echo(res.get("status", "Build Succeeded"))
     else:
-        click.echo("Build Failed, see author_build.log for details")
+        click.echo(res.get("status", "Build Failed see log for details"))
 
 
 #
@@ -776,6 +781,10 @@ async def courseinfo(config, name):
 
     print(f"Course Information for {name} -- ({cid})")
     print(inst)
+    print(f"timezone: {course.timezone}  Login Required: {course.login_required}")
+    print(
+        f"Downloads Enabled: {course.downloads_enabled} Allow Pairs: {course.allow_pairs}"
+    )
     print(f"Base course: {bc}")
     print(f"Start date: {start_date}")
     print(f"Number of students: {s_count}")
@@ -945,17 +954,18 @@ def grade(config, course, pset, enforce):
 )
 @click.option("--sample_size", help="Number of courses to sample", default=0)
 @click.option("--course_list", help="List of courses to sample", default=None)
+@click.option("--preserve_user_ids", is_flag=True, help="Preserve user ids in the datashop export")
 @pass_config
-async def datashop(config, basecourse, sample_size, course_list):
+async def datashop(config, basecourse, sample_size, course_list, preserve_user_ids):
     """Export the course data to the datashop format"""
     if not sample_size:
         sample_size = click.prompt("Sample size", default=0)
     if not course_list and sample_size == 0:
         course_list = click.prompt("Course list")
-        if course_list:
-            course_list = [c.strip() for c in course_list.split(",")]
-        if len(course_list) == 1:
-            course_list = course_list[0]
+    if course_list:
+        course_list = [c.strip() for c in course_list.split(",")]
+    if len(course_list) == 1:
+        course_list = course_list[0]
 
     dburl = config.dburl.replace("+asyncpg", "")
     print(f"Creating Anonymizer {dburl}")
@@ -964,7 +974,7 @@ async def datashop(config, basecourse, sample_size, course_list):
         dburl,
         sample_size=3,
         specific_course=course_list,
-        preserve_user_ids=False,
+        preserve_user_ids=preserve_user_ids,
     )
     print("Choosing Courses")
     a.choose_courses()

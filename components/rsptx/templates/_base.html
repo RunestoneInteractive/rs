@@ -37,7 +37,10 @@
             media="screen"
         />
        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=dashboard,download,edit,grading,help,person" />
+       <!-- <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=dashboard,download,edit,grading,help,person" /> -->
+       <link rel="preconnect" href="https://fonts.googleapis.com">
+       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">       
        <!-- always include jquery -->
        <script src="/staticAssets/js/jquery.js"></script>
        <style>
@@ -54,6 +57,7 @@
     </head>
 
     <body>
+        {% block navbar %}
         <nav class="navbar navbar-expand-sm sticky-top navbar-light bg-light">
         <!-- logo -- back to xxx  -- create course                    user scratch help -->
         <a class="navbar-brand" href="https://runestone.academy"><img src="/staticAssets/RAIcon.png" height="30px" alt="Runestone Logo"/></a>
@@ -68,7 +72,7 @@
                 <a class="nav-link" href="/ns/books/published/{{ course.course_name }}/index.html">Back to {% block backTo %}{{ course.course_name }}{% endblock %} <span class="sr-only">(current)</span></a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="/runestone/designer/index">Create Course</a>
+                <a class="nav-link" href="/admin/instructor/create_course">Create Course</a>
               </li>
               <li class="nav-item">
                   <a class="nav-link" href="https://blog.runestone.academy">Runestone News</a>
@@ -127,6 +131,8 @@
                 </li>
             </div>
         </nav>
+        {% endblock %}
+
         <div class="container-fluid">
             <!-- child template -->
             {% block content %}

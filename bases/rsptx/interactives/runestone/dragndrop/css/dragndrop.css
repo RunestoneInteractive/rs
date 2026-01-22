@@ -57,6 +57,8 @@
 .draggable-feedback {
     text-align: left !important;
     clear: both;
+    margin-bottom: 0;
+    margin-top: 10px;
 }
 
 .draggable-drop {

@@ -1,10 +1,8 @@
 import json
 from json2xml import json2xml
-from json2xml.utils import readfromstring
 import sys
 import tarfile
 import os
-import pdb
 
 if len(sys.argv) < 2:
     print("Usage: dist2xml.py version_number [cdn_url]")

@@ -7,22 +7,27 @@ export default class TimedFITB extends FITB {
         this.needsReinitialization = true;
     }
     hideButtons() {
-        $(this.submitButton).hide();
-        $(this.compareButton).hide();
+        if (this.submitButton) this.submitButton.style.display = "none";
+        if (this.compareButton) this.compareButton.style.display = "none";
     }
     renderTimedIcon(component) {
         // renders the clock icon on timed components.    The component parameter
         // is the element that the icon should be appended to.
         var timeIconDiv = document.createElement("div");
         var timeIcon = document.createElement("img");
-        $(timeIcon).attr({
-            src: "../_static/clock.png",
-            style: "width:15px;height:15px",
-        });
+        timeIcon.src = "../_static/clock.png";
+        timeIcon.style.width = "15px";
+        timeIcon.style.height = "15px";
         timeIconDiv.className = "timeTip";
         timeIconDiv.title = "";
         timeIconDiv.appendChild(timeIcon);
-        $(component).prepend(timeIconDiv);
+        if (component) {
+            if (component.firstChild) {
+                component.insertBefore(timeIconDiv, component.firstChild);
+            } else {
+                component.appendChild(timeIconDiv);
+            }
+        }
     }
     checkCorrectTimed() {
         // Returns if the question was correct, incorrect, or skipped (return null in the last case)
@@ -37,7 +42,7 @@ export default class TimedFITB extends FITB {
     }
     hideFeedback() {
         for (var i = 0; i < this.blankArray.length; i++) {
-            $(this.blankArray[i]).removeClass("input-validation-error");
+            this.blankArray[i].classList.remove("input-validation-error");
         }
         this.feedBackDiv.style.display = "none";
     }

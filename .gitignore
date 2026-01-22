@@ -32,3 +32,4 @@ _build
 *.tgz
 **/test/_static
 bake.log
+WARP.md

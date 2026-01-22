@@ -68,6 +68,7 @@ async def create_membership(group_id, user_id):
         session.add(new_mem)
     return new_mem
 
+
 async def is_author(userid: int) -> bool:
     """
     Checks if a user is an author.
@@ -84,6 +85,7 @@ async def is_author(userid: int) -> bool:
         return True
     else:
         return False
+
 
 async def is_editor(userid: int) -> bool:
     """

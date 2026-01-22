@@ -1,5 +1,4 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
-import "../css/hparsons.css";
 import "../css/hljs-xcode.css";
 import BlockFeedback from "./BlockFeedback.js";
 import SQLFeedback from "./SQLFeedback.js";
@@ -11,6 +10,8 @@ import "micro-parsons/micro-parsons/micro-parsons.css";
 // copy everything from bin into the hparsons/js folder and build the components.
 /*import {InitMicroParsons} from './micro-parsons.js';
 import './micro-parsons.css';*/
+// last to override micro-parsons css if needed
+import "../css/hparsons.css";
 
 export var hpList;
 // Dictionary that contains all instances of horizontal Parsons problem objects
@@ -20,17 +21,17 @@ export default class HParsons extends RunestoneBase {
     constructor(opts) {
         super(opts);
         // getting settings
-        var orig = $(opts.orig).find("textarea")[0];
-        this.reuse = $(orig).data("reuse") ? true : false;
-        this.randomize = $(orig).data("randomize") ? true : false;
-        this.isBlockGrading = $(orig).data("blockanswer") ? true : false;
-        this.language = $(orig).data("language");
+        var orig = opts.orig.querySelector("textarea");
+        this.reuse = this.parseBooleanAttribute(orig, "data-reuse");
+        this.randomize = this.parseBooleanAttribute(orig, "data-randomize");
+        this.isBlockGrading = this.parseBooleanAttribute(orig, "data-blockanswer");
+        this.language = orig.getAttribute("data-language");
         // Detect math mode
-        if (this.language === undefined && orig.textContent.includes('span class="process-math"')) {
+        if ((this.language == null) && orig.textContent.includes('span class="process-math"')) {
             this.language = "math";
         }
         if (this.isBlockGrading) {
-            this.blockAnswer = $(orig).data("blockanswer").split(" ");
+            this.blockAnswer = orig.getAttribute("data-blockanswer").split(" ");
         }
         this.divid = opts.orig.id;
         this.containerDiv = opts.orig;
@@ -41,18 +42,17 @@ export default class HParsons extends RunestoneBase {
         this.storageId = storageId;
 
         this.origElem = orig;
+        let statementElem = opts.orig.querySelector(".hp_question");
+        if (statementElem) statementElem.classList.add("exercise-statement");
         this.origText = this.origElem.textContent;
-        this.code = $(orig).text() || "\n\n\n\n\n";
-        this.dburl = $(orig).data("dburl");
+        this.code = orig.textContent || "\n\n\n\n\n";
+        this.dburl = orig.getAttribute("data-dburl");
         this.runButton = null;
         this.saveButton = null;
         this.loadButton = null;
         this.outerDiv = null;
         this.controlDiv = null;
         this.processContent(this.code);
-
-        this.microParsonToRaw = new Map();
-        this.simulatedSolution = [];
 
         // Change to factory when more execution based feedback is included
         if (this.isBlockGrading) {
@@ -63,12 +63,12 @@ export default class HParsons extends RunestoneBase {
 
         // creating UI components
         this.createEditor();
-        this.createOutput();
         this.createControls();
+        this.createOutput();
         this.feedbackController.customizeUI();
 
-        if ($(orig).data("caption")) {
-            this.caption = $(orig).data("caption");
+        if (orig.getAttribute("data-caption")) {
+            this.caption = orig.getAttribute("data-caption");
         } else {
             this.caption = "MicroParsons";
         }
@@ -105,7 +105,7 @@ export default class HParsons extends RunestoneBase {
     // copied from activecode, already modified to add parsons
     createEditor() {
         this.outerDiv = document.createElement("div");
-        $(this.origElem).replaceWith(this.outerDiv);
+        this.origElem.replaceWith(this.outerDiv);
         this.outerDiv.id = `${this.divid}-container`;
         this.outerDiv.addEventListener("micro-parsons", (ev) => {
             const eventListRunestone = ["input", "reset"];
@@ -125,10 +125,10 @@ export default class HParsons extends RunestoneBase {
             language: this.language,
         };
         InitMicroParsons(props);
-        this.hparsonsInput = $(this.outerDiv).find("micro-parsons")[0];
+        this.hparsonsInput = this.outerDiv.querySelector("micro-parsons");
         this.renderMathInBlocks();
         // Change "code" to "answer" in parsons direction for non-code languages
-        if (this.language === undefined || this.language === "math") {
+        if (this.language == null || this.language === "math") {
             this.outerDiv.querySelectorAll(".hparsons-tip").forEach(el => {
                 if (el.textContent.includes("our code")) {
                     el.textContent = el.textContent.replace("our code", "our answer");
@@ -143,14 +143,14 @@ export default class HParsons extends RunestoneBase {
 
     createControls() {
         var ctrlDiv = document.createElement("div");
-        $(ctrlDiv).addClass("hp_actions");
+        ctrlDiv.classList.add("hp_actions");
 
         // Run Button
         this.runButton = document.createElement("button");
-        $(this.runButton).addClass("btn btn-success run-button");
+        this.runButton.classList.add("btn", "btn-success", "run-button");
         ctrlDiv.appendChild(this.runButton);
-        $(this.runButton).attr("type", "button");
-        $(this.runButton).text("Run");
+        this.runButton.setAttribute("type", "button");
+        this.runButton.textContent = "Run";
         var that = this;
         this.runButton.onclick = () => {
             that.feedbackController.runButtonHandler();
@@ -160,8 +160,8 @@ export default class HParsons extends RunestoneBase {
         // Reset button
         var resetBtn;
         resetBtn = document.createElement("button");
-        $(resetBtn).text("Reset");
-        $(resetBtn).addClass("btn btn-warning run-button");
+        resetBtn.textContent = "Reset";
+        resetBtn.classList.add("btn", "btn-warning", "run-button");
         ctrlDiv.appendChild(resetBtn);
         this.resetButton = resetBtn;
         this.resetButton.onclick = () => {
@@ -170,9 +170,9 @@ export default class HParsons extends RunestoneBase {
             that.feedbackController.reset();
             that.renderMathInBlocks();
         };
-        $(resetBtn).attr("type", "button");
+        resetBtn.setAttribute("type", "button");
 
-        $(this.outerDiv).prepend(ctrlDiv);
+        this.outerDiv.appendChild(ctrlDiv);
         this.controlDiv = ctrlDiv;
     }
 
@@ -189,54 +189,9 @@ export default class HParsons extends RunestoneBase {
             const blocks = document.querySelectorAll(`#${this.divid}-container .parsons-block`);
             blocks.forEach(block => {
                 block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
+                this.queueMathJax(block);
             });
-
-            if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise().then(() => this.simulateSolution());
-            }
-        }, 0);
-    }
-
-    /*
-        This function performs a simulated "correct answer" ordering using the
-        correct block indices specified in `this.blockAnswer`. It looks ahead 
-        at the rendered content from the MicroParsons widget to build:
-        - this.simulatedSolution: an array of correctly ordered rendered strings
-        - this.microParsonToRaw: a Map that links rendered HTML (from MicroParsons) 
-          to their original raw `<m>` source strings from PreTeXt
-
-        This is called after MathJax renders the math blocks to ensure the mapping
-        is built from the final, visible DOM state. It is needed for grading 
-        math-mode Parsons problems, where rendered symbols (e.g., “\(\alpha\)”) must
-        be matched against author-defined symbolic content.
-    */
-    simulateSolution() {
-        if (
-            this.simulatedSolution.length > 0 &&
-            this.microParsonToRaw instanceof Map &&
-            this.microParsonToRaw.size > 0
-        ) { // Already initialized from local storage
-            this.feedbackController.solution = this.simulatedSolution;
-            this.feedbackController.grader.solution = this.simulatedSolution;
-            return; 
-        }
-
-        this.microParsonToRaw = new Map();
-
-        const allBlocks = Array.from(
-            this.outerDiv.querySelectorAll("micro-parsons .parsons-block")
-        );
-        if (!this.blockAnswer || allBlocks.length === 0) return;
-
-        const rendered = this.hparsonsInput.getParsonsTextArray();
-        const raw = this.originalBlocks;
-        const correctOrder = this.blockAnswer.map(Number);
-
-        this.simulatedSolution = correctOrder.map(i => rendered[i]);
-        rendered.forEach((r, i) => this.microParsonToRaw.set(r, raw[i].trim()));
-
-        this.feedbackController.solution = this.simulatedSolution;
-        this.feedbackController.grader.solution = this.simulatedSolution;
+        }, 10);
     }
 
     // Return previous answers in local storage
@@ -265,12 +220,57 @@ export default class HParsons extends RunestoneBase {
             }
         */
         if (serverData.answer) {
-            this.hparsonsInput.restoreAnswer(serverData.answer.blocks);
+            const blocks = serverData.answer.blocks ?? serverData.answer;
+
+            if (Array.isArray(blocks) && blocks.length > 0) {
+                const first = blocks[0];
+
+                // Prefer indices (numbers or numeric strings)
+                const looksNumeric = (typeof first === "number") || (/^\d+$/.test(String(first)));
+                if (looksNumeric && this.hparsonsInput.restoreAnswerByIndices) {
+                    this.hparsonsInput.restoreAnswerByIndices(blocks.map(Number));
+                } else {
+                    this.hparsonsInput.restoreAnswer(blocks);
+                }
+            }
         }
         if (serverData.count) {
             this.feedbackController.checkCount = serverData.count;
         }
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // RunestoneBase: Load what is in local storage
     checkLocalStorage() {
         if (this.graderactive) {
@@ -278,46 +278,37 @@ export default class HParsons extends RunestoneBase {
             return;
         }
         let localData = this.localData();
-        if (localData.answer) {
+        if (localData.answerIndices && this.hparsonsInput.restoreAnswerByIndices) {
+            this.hparsonsInput.restoreAnswerByIndices(localData.answerIndices.map(Number));
+        } else if (localData.answer) {
+            // Legacy restore (string-based)
             this.hparsonsInput.restoreAnswer(localData.answer);
+
+            // Best-effort migration: persist indices after restoring
+            if (this.isBlockGrading) {
+                const migrated = this.hparsonsInput.getBlockIndices();
+                localData.answerIndices = migrated;
+                localStorage.setItem(this.storageId, JSON.stringify(localData));
+            }
         }
         if (localData.count) {
             this.feedbackController.checkCount = localData.count;
-        }
-        if (localData.simulatedSolution) {
-            this.simulatedSolution = localData.simulatedSolution;
-        }
-        if (localData.microParsonToRaw) {
-            this.microParsonToRaw = new Map(Object.entries(localData.microParsonToRaw));
-        } else {
-            this.microParsonToRaw = new Map();
         }
     }
     // RunestoneBase: Set the state of the problem in local storage
     setLocalStorage(data) {
         let currentState = {};
         if (data == undefined) {
-            let userAnswer = this.hparsonsInput.getParsonsTextArray();
 
-            // In math mode, convert microParsons to raw before caching 
-            // Additionally, save the solution and microParson ➜ Raw map.
-            if (this.language === "math") {
-                userAnswer = userAnswer.map(sym => this.microParsonToRaw.get(sym));
-                currentState = {
-                    answer: userAnswer,
-                    simulatedSolution: this.simulatedSolution,
-                    microParsonToRaw: Object.fromEntries(this.microParsonToRaw),
-                };
-            } else {
-                currentState = {
-                    answer: userAnswer,
-                };
-            }
-            
             if (this.isBlockGrading) {
-                // if this is block grading, add number of previous attempts too
+                const answerIndices = this.hparsonsInput.getBlockIndices();
+                currentState = { answerIndices: answerIndices };
                 currentState.count = this.feedbackController.checkCount;
+            } else {
+                const userAnswer = this.hparsonsInput.getParsonsTextArray();
+                currentState = { answer: userAnswer };
             }
+
         } else {
             currentState = data;
         }
@@ -338,13 +329,13 @@ export default class HParsons extends RunestoneBase {
 == Find the custom HTML tags and ==
 ==   execute our code on them    ==
 =================================*/
-$(document).on("runestone:login-complete", function () {
-    $("[data-component=hparsons]").each(function () {
-        if ($(this).closest("[data-component=timedAssessment]").length == 0) {
+document.addEventListener("runestone:login-complete", function () {
+    document.querySelectorAll("[data-component=hparsons]").forEach(function (el) {
+        if (!el.closest("[data-component=timedAssessment]")) {
             // If this element exists within a timed component, don't render it here
             // try {
-            hpList[this.id] = new HParsons({
-                orig: this,
+            hpList[el.id] = new HParsons({
+                orig: el,
                 useRunestoneServices: eBookConfig.useRunestoneServices,
             });
             // } catch (err) {

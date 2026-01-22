@@ -97,6 +97,34 @@ export const fetchAccommodations = createAsyncThunk(
   }
 );
 
+export const deleteAccommodations = createAsyncThunk(
+  "student/deleteAccommodations",
+  async (idList) => {
+    let jsheaders = new Headers({
+      "Content-type": "application/json; charset=utf-8",
+      Accept: "application/json"
+    });
+    let data = {
+      headers: jsheaders,
+      method: "DELETE",
+    };
+    for (let id of idList) {
+
+      let resp = await fetch(`/assignment/instructor/accommodation/${id}`, data);
+
+      if (!resp.ok) {
+        console.warn("Error deleting accommodation id ", id);
+        toast(`Error deleting accommodation ${id}`, {
+          icon: "🔥",
+          duration: 5000
+        });
+      }
+    }
+    
+    return idList;
+  }
+);
+
 export const studentSlice = createSlice({
   name: "student",
   initialState: {

@@ -146,6 +146,7 @@ async def fetch_questions_by_search_criteria(
                 Question.htmlsrc.regexp_match(criteria.source_regex, flags="i"),
                 Question.topic.regexp_match(criteria.source_regex, flags="i"),
                 Question.name.regexp_match(criteria.source_regex, flags="i"),
+                Question.qnumber.regexp_match(criteria.source_regex, flags="i"),
             )
         )
 
@@ -172,6 +173,7 @@ async def fetch_questions_by_search_criteria(
 
 async def search_exercises(
     criteria: schemas.ExercisesSearchRequest,
+    owner: str,
 ) -> dict:
     """
     Smart search for exercises with pagination, filtering, and sorting.
@@ -193,7 +195,17 @@ async def search_exercises(
             .where(AssignmentQuestion.assignment_id == criteria.assignment_id)
             .scalar_subquery()
         )
-        query = query.where(Question.id.not_in(assigned_questions))
+        query = query.where(
+            and_(
+                Question.id.not_in(assigned_questions),
+                (
+                    or_(
+                        Question.is_private == False,  # noqa: E712
+                        Question.owner == owner,  # noqa: E712
+                    )
+                ),
+            )
+        )
 
     # Process filters
     if criteria.filters:
@@ -551,11 +563,13 @@ async def update_question(question: QuestionValidator) -> QuestionValidator:
         await session.execute(stmt)
     return question
 
+
 async def fetch_questions_for_chapter_subchapter(
     base_course: str,
     skipreading: bool = False,
     from_source_only: bool = True,
     pages_only: bool = False,
+    owner: Optional[str] = None,
 ) -> List[dict]:
     """
     Fetch all questions for a given base course, where the skipreading and from_source
@@ -600,13 +614,29 @@ async def fetch_questions_for_chapter_subchapter(
         .where(
             and_(
                 Chapter.course_id == base_course,
+                (
+                    or_(
+                        Question.owner == owner,
+                        Question.is_private == False,  # noqa: E712
+                        Question.is_private == "F",
+                        Question.is_private == None,  # noqa: E711
+                        Question.owner == None,  # noqa: E711
+                    )
+                ),  # noqa: E712
                 skipr_clause,
                 froms_clause,
                 page_clause,
             )
         )
-        .order_by(Chapter.chapter_num, SubChapter.sub_chapter_num, Question.qnumber, Question.id)
+        .order_by(
+            Chapter.chapter_num,
+            SubChapter.sub_chapter_num,
+            Question.qnumber,
+            Question.id,
+        )
     )
+    print(f"{query=}")
+    print(f"{base_course=},{skipreading=},{from_source_only=},{pages_only=},{owner=}")
     async with async_session() as session:
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
@@ -686,6 +716,7 @@ async def fetch_questions_for_chapter_subchapter(
 
         return chaps
 
+
 async def validate_question_name_unique(name: str, base_course: str) -> bool:
     """
     Check if a question name is unique within a base course.
@@ -703,11 +734,13 @@ async def validate_question_name_unique(name: str, base_course: str) -> bool:
         existing_question = res.scalars().first()
         return existing_question is None
 
+
 async def copy_question(
-    original_question_id: int, 
-    new_name: str, 
+    original_question_id: int,
+    new_name: str,
     new_owner: str,
-    assignment_id: Optional[int] = None
+    assignment_id: Optional[int] = None,
+    htmlsrc: Optional[str] = None,
 ) -> QuestionValidator:
     """
     Copy a question to create a new one with the same content but different name and owner.
@@ -716,6 +749,7 @@ async def copy_question(
     :param new_name: str, the name for the new question
     :param new_owner: str, the username of the new owner
     :param assignment_id: Optional[int], the assignment ID if copying to an assignment
+    :param htmlsrc: Optional[str], the HTML source to use for the new question (if provided, overrides original)
     :return: QuestionValidator, the newly created question
     """
     async with async_session() as session:
@@ -723,9 +757,14 @@ async def copy_question(
         original_query = select(Question).where(Question.id == original_question_id)
         result = await session.execute(original_query)
         original_question = result.scalars().first()
-        
+
         if not original_question:
-            raise ValueError(f"Original question with ID {original_question_id} not found")
+            raise ValueError(
+                f"Original question with ID {original_question_id} not found"
+            )
+
+        # Use provided htmlsrc or fall back to original
+        question_htmlsrc = htmlsrc if htmlsrc is not None else original_question.htmlsrc
 
         # Create new question with copied data
         new_question = Question(
@@ -738,7 +777,7 @@ async def copy_question(
             timestamp=canonical_utcnow(),
             question_type=original_question.question_type,
             is_private=original_question.is_private,
-            htmlsrc=original_question.htmlsrc,
+            htmlsrc=question_htmlsrc,
             autograde=original_question.autograde,
             practice=original_question.practice,
             topic=original_question.topic,
@@ -753,31 +792,31 @@ async def copy_question(
             mean_clicks_to_correct=original_question.mean_clicks_to_correct,
             question_json=original_question.question_json,
             owner=new_owner,
-            tags=original_question.tags
+            tags=original_question.tags,
         )
-        
+
         session.add(new_question)
         await session.flush()
         await session.refresh(new_question)
-        
+
         # If assignment_id is provided, also copy the assignment question
         if assignment_id:
             # Get the original assignment question
             original_aq_query = select(AssignmentQuestion).where(
-                (AssignmentQuestion.question_id == original_question_id) &
-                (AssignmentQuestion.assignment_id == assignment_id)
+                (AssignmentQuestion.question_id == original_question_id)
+                & (AssignmentQuestion.assignment_id == assignment_id)
             )
             original_aq_result = await session.execute(original_aq_query)
             original_aq = original_aq_result.scalars().first()
-            
+
             if original_aq:
                 # Get the next sorting priority
-                max_priority_query = select(func.max(AssignmentQuestion.sorting_priority)).where(
-                    AssignmentQuestion.assignment_id == assignment_id
-                )
+                max_priority_query = select(
+                    func.max(AssignmentQuestion.sorting_priority)
+                ).where(AssignmentQuestion.assignment_id == assignment_id)
                 max_priority_result = await session.execute(max_priority_query)
                 max_priority = max_priority_result.scalar() or 0
-                
+
                 new_assignment_question = AssignmentQuestion(
                     assignment_id=assignment_id,
                     question_id=new_question.id,
@@ -787,9 +826,9 @@ async def copy_question(
                     which_to_grade=original_aq.which_to_grade,
                     reading_assignment=original_aq.reading_assignment,
                     sorting_priority=max_priority + 1,
-                    activities_required=original_aq.activities_required
+                    activities_required=original_aq.activities_required,
                 )
                 session.add(new_assignment_question)
-        
+
         await session.commit()
         return QuestionValidator.from_orm(new_question)

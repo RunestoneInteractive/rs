@@ -7,7 +7,6 @@ __author__ = "zihan wu"
 import time
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-import pdb
 
 
 def find_hp_question(selenium_utils, div_id):

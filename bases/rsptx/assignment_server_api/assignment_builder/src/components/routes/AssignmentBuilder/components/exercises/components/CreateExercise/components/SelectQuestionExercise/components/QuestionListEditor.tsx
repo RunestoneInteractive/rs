@@ -30,16 +30,13 @@ export const QuestionListEditor: FC<QuestionListEditorProps> = ({
 
   const { exercises, onGlobalFilterChange, toggleBaseCourse } = useSmartExerciseSearch({
     use_base_course: dataLimitBasecourse,
-    limit: 20
+    limit: 20,
+    assignment_id: undefined
   });
 
   const existingQuestionIds = useMemo(() => questionList.map((q) => q.questionId), [questionList]);
 
-  const getAvailableExercises = useCallback(() => {
-    return exercises.filter((ex) => ex.name && !existingQuestionIds.includes(ex.name));
-  }, [exercises, existingQuestionIds]);
-
-  const createSuggestions = (filteredExercises: any[]) => {
+  const createSuggestions = useCallback((filteredExercises: any[]) => {
     return filteredExercises.map((ex) => ({
       id: ex.name,
       name: ex.name,
@@ -47,21 +44,23 @@ export const QuestionListEditor: FC<QuestionListEditorProps> = ({
       topic: ex.topic,
       author: ex.author
     }));
-  };
+  }, []);
 
   const updateSuggestions = useCallback(() => {
-    const availableExercises = getAvailableExercises();
-
+    const availableExercises = exercises.filter(
+      (ex) => ex.name && !existingQuestionIds.includes(ex.name)
+    );
     setSuggestions(createSuggestions(availableExercises));
-  }, [getAvailableExercises]);
+  }, [exercises, existingQuestionIds, createSuggestions]);
 
   useEffect(() => {
     toggleBaseCourse(dataLimitBasecourse);
-  }, [dataLimitBasecourse, toggleBaseCourse]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataLimitBasecourse]);
 
   useEffect(() => {
     updateSuggestions();
-  }, [exercises, questionList, updateSuggestions]);
+  }, [updateSuggestions]);
 
   const handleAddQuestion = () => {
     const trimmed = newQuestion.trim();
@@ -92,14 +91,9 @@ export const QuestionListEditor: FC<QuestionListEditorProps> = ({
   };
 
   const handleAutocompleteSearch = (event: { query: string }) => {
-    const query = event.query.toLowerCase();
-
-    if (query.length === 0) {
-      updateSuggestions();
-      return;
-    }
-
+    const query = event.query.toLowerCase().trim();
     onGlobalFilterChange(query);
+    updateSuggestions();
   };
 
   const handleAutocompleteSelect = (event: { value: any }) => {
@@ -185,13 +179,6 @@ export const QuestionListEditor: FC<QuestionListEditorProps> = ({
             delay={100}
             forceSelection={false}
             itemTemplate={suggestionTemplate}
-          />
-          <Button
-            label="Add"
-            icon="pi pi-plus"
-            onClick={handleAddQuestion}
-            disabled={!newQuestion.trim() || existingQuestionIds.includes(newQuestion.trim())}
-            className={styles.addButton}
           />
         </div>
 

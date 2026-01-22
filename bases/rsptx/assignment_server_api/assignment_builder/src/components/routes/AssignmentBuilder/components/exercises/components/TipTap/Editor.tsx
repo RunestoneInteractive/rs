@@ -6,6 +6,10 @@ import FontFamily from "@tiptap/extension-font-family";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import Table from "@tiptap/extension-table";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import TableRow from "@tiptap/extension-table-row";
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import Youtube from "@tiptap/extension-youtube";
@@ -23,6 +27,10 @@ import "katex/dist/katex.min.css";
 import styles from "./Editor.module.css";
 import { Command, items } from "./SlashCommands";
 import { TipTapDocModal, useTipTapDocModal } from "./TipTapDocModal";
+import { useTableColumnMenu } from "./hooks/useTableColumnMenu";
+import { useTableRowMenu } from "./hooks/useTableRowMenu";
+import { TableColumnMenu } from "./components/TableColumnMenu";
+import { TableRowMenu } from "./components/TableRowMenu";
 
 const customStyles = `
   .tippy-box {
@@ -151,6 +159,22 @@ export const Editor = ({
         }
       }),
       Youtube,
+      Table.configure({
+        HTMLAttributes: {
+          class: "docutils align-default"
+        }
+      }),
+      TableRow.configure({
+        HTMLAttributes: {
+          class: "row-odd"
+        }
+      }),
+      TableHeader.configure({
+        HTMLAttributes: {
+          class: "head"
+        }
+      }),
+      TableCell,
       Placeholder.configure({
         placeholder: ({ node }) => {
           if (node.type.name === "heading") {
@@ -193,6 +217,23 @@ export const Editor = ({
     }
   });
 
+  const {
+    columnMenuVisible,
+    columnMenuPosition,
+    columnMenuRef,
+    setColumnMenuVisible,
+    isLastColumn
+  } = useTableColumnMenu(editor);
+
+  const {
+    rowMenuVisible,
+    rowMenuPosition,
+    rowMenuRef,
+    currentRowElement,
+    setRowMenuVisible,
+    isLastRow
+  } = useTableRowMenu(editor);
+
   if (!editor) {
     return null;
   }
@@ -211,7 +252,14 @@ export const Editor = ({
         />
       </div>
 
-      <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className={styles.bubbleMenu}>
+      <BubbleMenu
+        editor={editor}
+        tippyOptions={{
+          duration: 100,
+          appendTo: () => document.getElementById("exercise-layout") || document.body
+        }}
+        className={styles.bubbleMenu}
+      >
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={editor.isActive("bold") ? styles.isActive : ""}
@@ -242,6 +290,34 @@ export const Editor = ({
         >
           <i className="fa-solid fa-code" />
         </button>
+        {editor.isActive("table") && (
+          <>
+            <button onClick={() => editor.chain().focus().addColumnBefore().run()}>
+              <i className="fa-solid fa-table-columns" title="Add Column Before" />
+            </button>
+            <button onClick={() => editor.chain().focus().addColumnAfter().run()}>
+              <i className="fa-solid fa-table-columns" title="Add Column After" />
+            </button>
+            <button onClick={() => editor.chain().focus().deleteColumn().run()}>
+              <i className="fa-solid fa-minus" title="Delete Column" />
+            </button>
+            <button onClick={() => editor.chain().focus().addRowBefore().run()}>
+              <i className="fa-solid fa-table-rows" title="Add Row Before" />
+            </button>
+            <button onClick={() => editor.chain().focus().addRowAfter().run()}>
+              <i className="fa-solid fa-table-rows" title="Add Row After" />
+            </button>
+            <button onClick={() => editor.chain().focus().deleteRow().run()}>
+              <i className="fa-solid fa-minus" title="Delete Row" />
+            </button>
+            <button onClick={() => editor.chain().focus().deleteTable().run()}>
+              <i className="fa-solid fa-trash" title="Delete Table" />
+            </button>
+            <button onClick={() => editor.chain().focus().toggleHeaderRow().run()}>
+              <i className="fa-solid fa-heading" title="Toggle Header Row" />
+            </button>
+          </>
+        )}
         {enableBlankOption && (
           <button onClick={() => editor.chain().focus().insertContent("{blank}").run()}>
             <i className="fa-solid fa-square-plus" />
@@ -250,6 +326,25 @@ export const Editor = ({
       </BubbleMenu>
 
       <EditorContent editor={editor} className={styles.editor} />
+
+      <TableColumnMenu
+        editor={editor}
+        visible={columnMenuVisible}
+        position={columnMenuPosition}
+        menuRef={columnMenuRef}
+        isLastColumn={isLastColumn()}
+        onClose={() => setColumnMenuVisible(false)}
+      />
+
+      <TableRowMenu
+        editor={editor}
+        visible={rowMenuVisible}
+        position={rowMenuPosition}
+        menuRef={rowMenuRef}
+        rowElement={currentRowElement}
+        isLastRow={isLastRow()}
+        onClose={() => setRowMenuVisible(false)}
+      />
 
       <TipTapDocModal visible={visible} onHide={hideModal} />
     </div>

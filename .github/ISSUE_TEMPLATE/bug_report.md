@@ -1,7 +1,7 @@
 ---
 name: Bug Report
 about: Describe this issue template's purpose here.
-title: 'New problem with Runestone '
+title: 'Runestone Issue: '
 labels: 
 assignees: ''
 
@@ -12,8 +12,6 @@ assignees: ''
 **What Page were you on**
 Please copy/paste the URL from your address bar.
 
-**What is your username**
-
 **Describe the bug**
 A clear and concise description of what what you were trying to accomplish and what went wrong. Vague statements like X does not work are not helpful.
 
@@ -21,4 +19,8 @@ A clear and concise description of what what you were trying to accomplish and w
 A video of you reproducing the problem is worth even more.
 
 **Javascript Errors**
-Many many errors can be quickly diagnosed from the Javascript Console error log. On Chrome this is View --> Developer --> Javascript Console, on Safari ⌥⌘i or Develop --> Show Web Inspector on Firefox Tools --> Web Developer --> Toggle Tools.  Please select **all** and paste it here.  Don't try to guess what might be useful.
+Many many errors can be quickly diagnosed from the Javascript Console error log. On Chrome this is View --> Developer --> Javascript Console, on Safari ⌥⌘i or Develop --> Show Web Inspector on Firefox Tools --> Web Developer --> Toggle Tools.  Please select **all** and paste it here.  Don't try to guess what might be useful.  This is perhaps **the most useful thing you can do** to help us track down a problem!!
+
+**What is your username**
+
+**If you do not take the time to fill in this template we will treat this as very low priority.**

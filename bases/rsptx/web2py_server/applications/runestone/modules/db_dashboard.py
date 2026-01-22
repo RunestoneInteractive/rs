@@ -148,6 +148,7 @@ class CourseProblemMetrics(object):
             "dragndrop_answers",
             "codelens_answers",
             "webwork_answers",
+            "splice_answers",
         ]
         for tbl in tbl_list:
             res[tbl] = current.db(

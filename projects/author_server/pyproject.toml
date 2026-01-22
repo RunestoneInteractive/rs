@@ -30,7 +30,7 @@ exclude = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.103.0"
+fastapi = "^0.115.0"
 celery = "^5.2.7"
 aiofiles = "^0.8.0"
 Jinja2 = "^3.0.0"

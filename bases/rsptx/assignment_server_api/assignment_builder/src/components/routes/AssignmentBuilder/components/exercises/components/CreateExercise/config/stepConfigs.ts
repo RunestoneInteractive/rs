@@ -63,6 +63,20 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
       description: "Preview the exercise as students will see it"
     }
   },
+  clickablearea: {
+    0: {
+      title: "Create Content",
+      description: "Create the clickable area exercise content"
+    },
+    1: {
+      title: "Exercise Settings",
+      description: "Configure exercise settings such as name, points, etc."
+    },
+    2: {
+      title: "Preview",
+      description: "Preview the exercise as students will see it"
+    }
+  },
   mchoice: {
     0: {
       title: "Create Question",
@@ -87,30 +101,34 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
       description: "Choose the programming language for this active code exercise"
     },
     1: {
+      title: "Data Files",
+      description: "Create or select data files that students can read from in their programs"
+    },
+    2: {
       title: "Write Instructions",
       description: "Provide instructions for the student"
     },
-    2: {
+    3: {
       title: "Hidden Prefix",
       description: "Add code that runs before the student's code but is hidden from them"
     },
-    3: {
+    4: {
       title: "Starter Code",
       description: "Provide initial code that students will see and modify"
     },
-    4: {
+    5: {
       title: "Hidden Suffix",
       description: "Add code that runs after the student's code but is hidden from them"
     },
-    5: {
+    6: {
       title: "Standard Input",
       description: "Provide input data for programs that read from stdin"
     },
-    6: {
+    7: {
       title: "Exercise Settings",
       description: "Configure exercise settings such as name, points, etc."
     },
-    7: {
+    8: {
       title: "Preview",
       description: "Preview the exercise as students will see it"
     }
@@ -372,6 +390,12 @@ export const ACTIVE_CODE_STEP_VALIDATORS: StepValidator<Partial<CreateExerciseFo
     if (!data.language?.trim()) {
       errors.push("Programming language is required");
     }
+
+    return errors;
+  },
+  // Data Files - optional step, no validation required
+  (data) => {
+    const errors: string[] = [];
 
     return errors;
   },
@@ -654,5 +678,61 @@ export const SELECT_QUESTION_STEP_VALIDATORS: StepValidator<any>[] = [
 
     return errors;
   },
+  () => []
+];
+
+// Clickable Area Exercise Step Validators
+export const CLICKABLE_AREA_STEP_VALIDATORS: StepValidator<Partial<CreateExerciseFormType>>[] = [
+  // Step 0: Content
+  (data) => {
+    const errors: string[] = [];
+
+    // Check if statement (question) is provided and not empty
+    if (!data.statement || isTipTapContentEmpty(data.statement)) {
+      errors.push("Question statement is required");
+    }
+
+    // Check if htmlsrc contains clickable areas
+    const questionText = data.questionText || "";
+
+    if (!questionText.trim()) {
+      errors.push("Content is required. Please add clickable areas to your exercise");
+      return errors;
+    }
+
+    // Check for at least one correct clickable area
+    const hasCorrect = questionText.includes("data-correct");
+    if (!hasCorrect) {
+      errors.push("You must mark at least one correct clickable area");
+    }
+
+    // Check for at least one incorrect clickable area
+    const hasIncorrect = questionText.includes("data-incorrect");
+    if (!hasIncorrect) {
+      errors.push("You must mark at least one incorrect clickable area");
+    }
+
+    return errors;
+  },
+  // Step 1: Settings
+  (data) => {
+    const errors: string[] = [];
+
+    if (!data.name?.trim()) {
+      errors.push("Exercise name is required");
+    }
+    if (!data.chapter) {
+      errors.push("Chapter is required");
+    }
+    if (data.points === undefined || data.points <= 0) {
+      errors.push("Points must be greater than 0");
+    }
+    if (data.difficulty === undefined) {
+      errors.push("Difficulty is required");
+    }
+
+    return errors;
+  },
+  // Step 2: Preview
   () => []
 ];

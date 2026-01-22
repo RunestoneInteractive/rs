@@ -3,6 +3,7 @@ import "primereact/resources/primereact.css";
 import "primeflex/primeflex.css";
 import "primeicons/primeicons.css";
 import "./styles/layout.scss";
+import "./styles/global.css";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { Provider } from "react-redux";

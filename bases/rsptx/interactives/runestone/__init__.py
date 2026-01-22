@@ -30,7 +30,8 @@ from .video import Youtube, Vimeo, Video
 from .webgldemo import WebglDemo
 
 
-import os, socket
+import os
+import socket
 from importlib.metadata import version
 import importlib.resources
 import CodeChat.CodeToRest

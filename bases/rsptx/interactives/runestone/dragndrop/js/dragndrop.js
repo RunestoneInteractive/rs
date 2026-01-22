@@ -151,13 +151,13 @@ export default class DragNDrop extends RunestoneBase {
         this.containerDiv.classList.add("draggable-container");
         this.statementDiv = document.createElement("div");
         this.statementDiv.classList.add("cardsort-statement");
+        this.statementDiv.classList.add("exercise-statement");
         try {
             this.statementDiv.innerHTML = this.question;
         } catch (error) {
             console.error("Error setting statementDiv innerHTML:", error);
         }
         this.containerDiv.appendChild(this.statementDiv);
-        this.containerDiv.appendChild(document.createElement("br"));
         this.dragDropWrapDiv = document.createElement("div"); // Holds the draggables/dropzones, prevents feedback from bleeding in
         this.dragDropWrapDiv.style.display = "block";
         this.containerDiv.appendChild(this.dragDropWrapDiv);
@@ -233,6 +233,11 @@ export default class DragNDrop extends RunestoneBase {
                     this.minheight = this.draggableDiv.offsetHeight;
                     this.dragDropWrapDiv.style.minHeight =
                         this.minheight.toString() + "px";
+                    this.logBookEvent({
+                        event: "dragNdrop-drop",
+                        div_id: this.divid,
+                        act: `${data} -> dragzone`,
+                    });
                 }
             }.bind(this)
         );
@@ -415,6 +420,12 @@ export default class DragNDrop extends RunestoneBase {
                 ) {
                     // Make sure element isn't already there--prevents errors w/appending child
                     ev.target.appendChild(draggedSpan);
+                    // log a drop event
+                    this.logBookEvent({
+                        event: "dragNdrop-drop",
+                        div_id: this.divid,
+                        act: `${data} -> ${ev.target.id}`,
+                    });
                 }
                 this.queueMathJax(this.containerDiv).then(() => {
                     this.adjustDragDropWidths();
@@ -463,9 +474,9 @@ export default class DragNDrop extends RunestoneBase {
         if (!this.feedBackDiv) {
             this.feedBackDiv = document.createElement("div");
             this.feedBackDiv.id = this.divid + "_feedback";
+            this.feedBackDiv.classList.add("exercise-content");
             this.feedBackDiv.setAttribute("aria-live", "polite");
             this.feedBackDiv.setAttribute("role", "status");
-            this.containerDiv.appendChild(document.createElement("br"));
             this.containerDiv.appendChild(this.feedBackDiv);
         }
     }
@@ -505,6 +516,12 @@ export default class DragNDrop extends RunestoneBase {
         this.dragDropWrapDiv.style.minHeight =
             this.minheight.toString() + "px";
         this.feedBackDiv.style.visibility = "hidden";
+        this.logBookEvent({
+            event: "dragNdrop-reset",
+            div_id: this.divid,
+            act: "reset",
+        });
+        this.setLocalStorage({ correct: "F" });
     }
     /*===========================
     == Evaluation and feedback ==
@@ -638,7 +655,7 @@ export default class DragNDrop extends RunestoneBase {
             setTimeout(() => {
                 this.feedBackDiv.innerHTML = msgCorrect;
             }, 10);
-            this.feedBackDiv.className = "alert alert-info draggable-feedback";
+            this.feedBackDiv.className = "alert alert-info draggable-feedback exercise-content";
 
         } else {
             var msgIncorrect = $.i18n(
@@ -650,10 +667,10 @@ export default class DragNDrop extends RunestoneBase {
             );
             // this.feedback comes from the author (a hint maybe)
             setTimeout(() => {
-                this.feedBackDiv.innerHTML = msgIncorrect + " " + this.feedback;
+                this.feedBackDiv.innerHTML = `<div class="para">${msgIncorrect}</div> ${this.feedback}`;
             }, 10);
             this.feedBackDiv.className =
-                "alert alert-danger draggable-feedback";
+                "alert alert-danger draggable-feedback exercise-content";
         }
         this.queueMathJax(this.feedBackDiv);
     }

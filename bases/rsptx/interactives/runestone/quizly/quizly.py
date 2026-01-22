@@ -24,9 +24,6 @@
 #  https://github.com/ram8647/quizly/blob/35ee7c945e6f240450f46f41ad9c80735215b5e0/quizly-runestone.zip
 #
 
-import shutil
-import os
-from pathlib import Path
 from runestone.server.componentdb import addQuestionToDB, addHTMLToDB
 from runestone.common import RunestoneIdDirective, RunestoneIdNode
 from docutils import nodes

@@ -19,7 +19,8 @@ import {
   selectSelectedStudents,
   saveException,
   fetchAccommodations,
-  selectAccommodations
+  selectAccommodations,
+  deleteAccommodations
 } from "../state/student/studentSlice";
 import { setSelectedStudents as setStudents } from "../state/student/studentSlice";
 
@@ -31,8 +32,8 @@ export function ExceptionScheduler() {
   // Add this useEffect to fetch accommodations when component mounts
   React.useEffect(() => {
     dispatch(fetchAccommodations());
-  dispatch(fetchClassRoster());
-  dispatch(fetchAssignments());
+    dispatch(fetchClassRoster());
+    dispatch(fetchAssignments());
   }, [dispatch]);
 
 
@@ -40,6 +41,8 @@ export function ExceptionScheduler() {
   const [tlMult, setTlMult] = useState(null);
   const [extraDays, setExtraDays] = useState(null);
   const [helpVisible, setHelpVisible] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState(null);
+  const [linked, setLinked] = useState(false);
   const saveAllExceptions = () => {
     const savePromises = [];
     for (let student of students) {
@@ -50,19 +53,21 @@ export function ExceptionScheduler() {
           due_date: extraDays,
           visible: checked,
           sid: student.username,
-          assignment_id: null
+          assignment_id: null,
+          allowLink: linked
         };
 
         savePromises.push(dispatch(saveException(exception)));
       } else {
         for (let assignment of assignments) {
-          console.log(`Saving exception: ${student.username} ${tlMult}, ${extraDays}, ${checked}`);
+          console.log(`Saving exception: ${student.username} ${tlMult}, ${extraDays}, ${checked} ${linked}`);
           let exception = {
             time_limit: tlMult,
             due_date: extraDays,
             visible: checked,
             sid: student.username,
-            assignment_id: assignment.id
+            assignment_id: assignment.id,
+            allowLink: linked
           };
 
           savePromises.push(dispatch(saveException(exception)));
@@ -77,6 +82,7 @@ export function ExceptionScheduler() {
         setTlMult(null);
         setExtraDays(null);
         setChecked(false);
+        setLinked(false);
       })
       .catch((error) => {
         console.error("Error saving exceptions:", error);
@@ -139,6 +145,13 @@ export function ExceptionScheduler() {
           <InputSwitch id="access" checked={checked} onChange={(e) => setChecked(e.value)} />
         </div>
         <div className="flex-auto">
+          <label htmlFor="linkTo">
+            Allow students with a link to access the assignment even when not visible.
+          </label>
+          <InputSwitch id="linkTo" checked={linked} onChange={(e) => setLinked(e.value)} />
+        </div>
+
+        <div className="flex-auto">
           <Button
             icon="pi pi-question-circle"
             rounded
@@ -159,6 +172,10 @@ export function ExceptionScheduler() {
                   Access: Allow the student to see and access the assignment even if it is not
                   visible to others.
                 </li>
+                <li>
+                  Link Access: Allow the student to access the assignment if they have a direct link
+                  to it, even if it is not visible to others.
+                </li>
               </ul>
               Note: If you have already extended the deadline for a student by N days and you still
               want to give them more time, you should enter the total number of days you want to
@@ -178,7 +195,11 @@ export function ExceptionScheduler() {
           rows={10}
           emptyMessage="No accommodations found."
           className="p-datatable-striped"
+          selectionMode='checkbox'
+          selection={selectedStudents}
+          onSelectionChange={(e) => setSelectedStudents(e.value)}
         >
+          <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
           <Column field="sid" header="Student ID" sortable />
           <Column field="assignment_id" header="Assignment" sortable />
           <Column
@@ -199,7 +220,30 @@ export function ExceptionScheduler() {
             sortable
             body={(rowData) => rowData.visible ? 'Yes' : 'No'}
           />
+          <Column
+            field="allowLink"
+            header="Link Access"
+            sortable
+            body={(rowData) => rowData.allowLink ? 'Yes' : 'No'}
+          />
         </DataTable>
+        <Button
+          label="Delete Selected"
+          className="p-button-danger"
+          onClick={() => {
+            if (selectedStudents && selectedStudents.length > 0) {
+              let toDelete = []
+              selectedStudents.forEach((accommodation) => {
+                toDelete.push(accommodation.row_id)
+              });
+              console.log(`deleting accommodations ${toDelete.join(", ")}`);
+              dispatch(deleteAccommodations(toDelete)).then(() => {
+                dispatch(fetchAccommodations());
+                setSelectedStudents(null);
+              });
+            }
+          }}
+        />
       </div>
 
     </div>

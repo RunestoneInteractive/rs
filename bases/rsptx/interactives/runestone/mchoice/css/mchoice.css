@@ -1,25 +1,41 @@
-.runestone label p {
+.mchoice label p {
     display: inline;
     font-weight: normal !important;
 }
 
-.runestone label pre {
+.mchoice label pre {
     font-weight: normal;
 }
 
-.runestone fieldset legend {
+.mchoice fieldset {
+    margin-bottom: 0.5em;
+}
+
+.mchoice fieldset legend {
     font-size: small;
+    margin-bottom: 0.5em;
 }
 
 .multiplechoice_section label > .para {
     display: inline;
 }
 
-.multiplechoice_section .exercise-interactives {
-    margin-top: 1em;
-}
 /* The timed assessment strips off the container with the .multiplechoice_section class,
    so we need to apply the same styles to the .timedAssessment class */
 .timedAssessment .mchoice label > .para {
     display: inline;
+}
+
+label.mchoice-option {
+    display: block;
+}
+
+.ptx-runestone-container input.mchoice-input {
+    vertical-align: top;
+    margin-right: 0.5em;
+}
+
+.mchoice .alert {
+    margin-top: 10px;
+    margin-bottom: 0;
 }

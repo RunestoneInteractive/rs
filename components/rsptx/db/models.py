@@ -129,8 +129,6 @@ runestone_component_dict: Dict[str, RunestoneComponentDict] = {}
 def register_answer_table(
     sql_alchemy_cls: Type[Base],
 ) -> Type[Base]:
-    global runestone_component_dict
-
     table_name = sql_alchemy_cls.__tablename__
     runestone_component_dict[table_name] = RunestoneComponentDict(
         sql_alchemy_cls,
@@ -429,6 +427,9 @@ class SourceCode(Base, IdMixin):
     # Filename to use when saving contents to Jobe or trying to include
     # this file in a program. It is OK to reuse the same filename for different
     filename = Column(String(512))
+    # Owner of the datafile (username of the instructor who created it)
+    # Used to enforce uniqueness: filename + owner + course_id should be unique
+    owner = Column(String(512), index=True)
 
 
 SourceCodeValidator: TypeAlias = sqlalchemy_to_pydantic(SourceCode)  # type: ignore
@@ -462,6 +463,8 @@ class Courses(Base, IdMixin):
     state = Column(String(128))  # the US State in which the course is taught
     # Use to track what domain based features are enabled for this course.
     domain_name = Column(String(512))
+    # Store the IANA time zone name for the course.
+    timezone = Column(String(128))
 
 
 CoursesValidator: TypeAlias = sqlalchemy_to_pydantic(Courses)  # type: ignore
@@ -653,6 +656,7 @@ class Assignment(Base, IdMixin):
 
     questions = relationship("AssignmentQuestion", cascade="all, delete-orphan")
 
+
 AssignmentValidator: TypeAlias = sqlalchemy_to_pydantic(Assignment)  # type: ignore
 
 
@@ -708,6 +712,9 @@ class DeadlineException(Base, IdMixin):
     time_limit = Column(
         Float, nullable=True
     )  # multiplier for the time limit of a timed exam
+    allowLink = Column(
+        Web2PyBoolean, nullable=True
+    )  # allow the student to use a link to assignments even if not visible
 
 
 DeadlineExceptionValidator: TypeAlias = sqlalchemy_to_pydantic(DeadlineException)  # type: ignore

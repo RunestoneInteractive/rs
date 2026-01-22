@@ -298,15 +298,15 @@ async def check_domain_approval(
     :param domain_name: str, domain name to verify
     :param approval_type: sqlalchemy.orm.attributes.InstrumentedAttribute, the type of approval (e.g., 'DomainApprovals.lti1p3')
     """
-    query = select(DomainApprovals.domain_name) \
-            .where(
-                (approval_type == True)
-                & (DomainApprovals.domain_name == domain_name)  # noqa: E712
-            )
+    query = select(DomainApprovals.domain_name).where(
+        (approval_type == True)  # noqa: E712
+        & (DomainApprovals.domain_name == domain_name)  # noqa: E712
+    )
     async with async_session() as session:
         res = await session.execute(query)
         domain = res.scalars().first()
         return domain is not None
+
 
 async def create_domain_approval(
     domain_name: str, approval_type: attributes.InstrumentedAttribute
@@ -316,7 +316,9 @@ async def create_domain_approval(
     :param domain_name: str, the domain name to approve
     :param approval_type: sqlalchemy.orm.attributes.InstrumentedAttribute, the type of approval (e.g., 'DomainApprovals.lti1p3')
     """
-    new_approval = DomainApprovals(domain_name=domain_name, **{approval_type.name: True})
+    new_approval = DomainApprovals(
+        domain_name=domain_name, **{approval_type.name: True}
+    )
     async with async_session.begin() as session:
         session.add(new_approval)
     return new_approval

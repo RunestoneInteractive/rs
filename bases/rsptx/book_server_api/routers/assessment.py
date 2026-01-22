@@ -190,9 +190,7 @@ async def get_history(
 
 
 @router.post("/get_latest_code")
-async def get_latest_code(
-    request: Request, acid: str, user=Depends(auth_manager)
-):
+async def get_latest_code(request: Request, acid: str, user=Depends(auth_manager)):
     """
     return the history of saved code by this user for a particular a active code id (acid)
 
@@ -608,10 +606,13 @@ async def htmlsrc(
         else:
             htmlsrc = res.htmlsrc
     else:
-        rslogger.error(f"HTML Source not found for {acid} in {count=} for {studentId} {assignment_id=}")
+        rslogger.error(
+            f"HTML Source not found for {acid} in {count=} for {studentId} {assignment_id=}"
+        )
         htmlsrc = "<p>No preview available</p>"
 
     return make_json_response(detail=htmlsrc)
+
 
 @router.get("/has_attachment/{div_id}")
 async def has_attachment(
@@ -664,6 +665,5 @@ async def check_attachment(sid: str, div_id: str, course: str) -> str:
         obj = response["Contents"][0]
 
         rslogger.debug(f"key = {obj['Key']}")
-        return obj['Key']
+        return obj["Key"]
     return None
-

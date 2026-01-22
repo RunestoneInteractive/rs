@@ -13,6 +13,7 @@ import logging
 from sqlalchemy import select, update, delete, and_, or_, func
 from sqlalchemy.exc import IntegrityError
 from .question import fetch_question_count_per_subchapter
+
 # Models and validators
 from ..models import (
     Assignment,
@@ -85,6 +86,7 @@ async def create_deadline_exception(
     deadline: int,
     visible: bool,
     assignment_id: int = None,
+    allowLink: Optional[bool] = None,
 ) -> DeadlineExceptionValidator:
     """
     Create a new deadline exception for a given username and assignment_id.
@@ -99,6 +101,7 @@ async def create_deadline_exception(
         time_limit=time_limit,
         duedate=deadline,
         visible=visible,
+        allowLink=allowLink,
         assignment_id=assignment_id,
     )
     async with async_session.begin() as session:
@@ -122,11 +125,13 @@ async def fetch_all_deadline_exceptions(
     # is not tied to a specific assignment
     query = (
         select(
+            DeadlineException.id,
             DeadlineException.course_id,
             DeadlineException.sid,
             DeadlineException.time_limit,
             DeadlineException.duedate,
             DeadlineException.visible,
+            DeadlineException.allowLink,
             Assignment.name.label("assignment_name"),
         )
         .select_from(DeadlineException)
@@ -148,9 +153,22 @@ async def fetch_all_deadline_exceptions(
                 "duedate": row.duedate,
                 "visible": row.visible,
                 "assignment_id": row.assignment_name,
+                "row_id": row.id,
+                "allowLink": row.allowLink,
             }
             for row in result.fetchall()
         ]
+
+
+async def delete_deadline_exception(entry_id: int) -> None:
+    """
+    Delete a deadline exception by its ID.
+
+    :param entry_id: int, the ID of the deadline exception to delete
+    """
+    stmt = delete(DeadlineException).where(DeadlineException.id == entry_id)
+    async with async_session.begin() as session:
+        await session.execute(stmt)
 
 
 async def get_repo_path(book: str) -> Optional[str]:
@@ -192,7 +210,7 @@ async def fetch_assignments(
         pclause = Assignment.is_peer == True  # noqa: E712
     else:
         pclause = or_(
-            Assignment.is_peer == False,
+            Assignment.is_peer == False,  # noqa: E712
             Assignment.is_peer.is_(None),  # noqa: E712, E711
         )
 
@@ -404,6 +422,7 @@ async def update_multiple_assignment_questions(
                     "difficulty",
                     "tags",
                     "activities_required",
+                    "is_private",
                 ]
 
                 # Check if any of the editable fields have changed
@@ -484,7 +503,10 @@ async def update_assignment_exercises(
             for i, question_id in enumerate(payload.idsToAdd, start=1):
                 # Assume we have a way to get the points for the question
                 question_info_query = select(
-                    Question.difficulty, Question.chapter, Question.subchapter, Question.base_course
+                    Question.difficulty,
+                    Question.chapter,
+                    Question.subchapter,
+                    Question.base_course,
                 ).where(Question.id == question_id)
                 question_info_result = await session.execute(question_info_query)
                 question_info = question_info_result.first()
@@ -769,9 +791,7 @@ async def delete_assignment(assignment_id: int) -> None:
 
 
 async def duplicate_assignment(
-    original_assignment_id: int,
-    course_id: int,
-    existing_assignment_names: set
+    original_assignment_id: int, course_id: int, existing_assignment_names: set
 ) -> tuple[AssignmentValidator, str]:
     """
     Duplicate an assignment with all its exercises and readings.
@@ -793,7 +813,7 @@ async def duplicate_assignment(
         if not original_assignment:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Assignment {original_assignment_id} not found"
+                detail=f"Assignment {original_assignment_id} not found",
             )
 
         # Generate unique copy name
@@ -827,7 +847,7 @@ async def duplicate_assignment(
             current_index=0,
             enforce_due=original_assignment.enforce_due,
             is_timed=original_assignment.is_timed,
-            is_peer=original_assignment.is_peer
+            is_peer=original_assignment.is_peer,
         )
 
         # Create the new assignment
@@ -857,7 +877,8 @@ async def duplicate_assignment(
 
         await session.commit()
 
-        rslogger.debug(f"Successfully duplicated assignment {original_assignment_id} as {new_assignment.id}")
+        rslogger.debug(
+            f"Successfully duplicated assignment {original_assignment_id} as {new_assignment.id}"
+        )
 
         return AssignmentValidator.from_orm(new_assignment), new_name
-

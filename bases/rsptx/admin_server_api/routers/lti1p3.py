@@ -28,7 +28,12 @@ import tldextract
 import aiohttp
 from aiohttp import ClientResponseError
 from fastapi import APIRouter, Depends, Request, HTTPException, status
-from fastapi.responses import Response, HTMLResponse, JSONResponse, RedirectResponse, HTMLResponse
+from fastapi.responses import (
+    Response,
+    JSONResponse,
+    RedirectResponse,
+    HTMLResponse,
+)
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 import jwt
@@ -67,11 +72,10 @@ from rsptx.db.crud import (
     fetch_one_assignment,
     create_instructor_course_entry,
     fetch_lti1p3_config_by_lti_data,
-    fetch_lti1p3_course_by_lti_id,
-    fetch_lti1p3_course_by_id,
+    fetch_lti1p3_courses_by_lti_course_id,
     fetch_course,
     fetch_instructor_courses,
-    validate_user_credentials
+    validate_user_credentials,
 )
 
 from rsptx.configuration import settings
@@ -83,11 +87,11 @@ from rsptx.endpoint_validators import with_course, instructor_role_required
 
 from rsptx.lti1p3.pylti1p3.lineitem import LineItem
 from rsptx.lti1p3.tool_conf_rs import ToolConfRS
-from rsptx.lti1p3.caches import RedisCache, SimpleCache
+from rsptx.lti1p3.caches import RedisCache
 from rsptx.lti1p3.core import (
-  update_line_item_from_assignment,
-  get_assignment_score_resource_id,
-  parse_assignment_score_resource_id
+    update_line_item_from_assignment,
+    get_assignment_score_resource_id,
+    parse_assignment_score_resource_id,
 )
 
 from rsptx.lti1p3.pylti1p3.contrib.fastapi import (
@@ -141,9 +145,7 @@ def get_session_service():
 
 
 async def login_or_create_user(
-    launch: FastAPIMessageLaunch,
-    lti_course: Lti1p3Course,
-    course: CoursesValidator
+    launch: FastAPIMessageLaunch, lti_course: Lti1p3Course, course: CoursesValidator
 ) -> tuple[Lti1p3User, str]:
     """
     Helper function for routes that bring an LMS user to Runestone.
@@ -225,7 +227,6 @@ async def login_or_create_user(
     # need registration id. If user.registration_id is set, trust it.
     # But if user was generated without a registration_id,
     # fall back on the one we decided based on launch data
-    reg_id_to_encode = user.registration_id if user.registration_id else reg_id_for_user
     to_encode = dict(registration_id=reg_id_for_user)
     jwt_secret = settings.jwt_secret
     encoded_jwt = jwt.encode(to_encode, jwt_secret, "HS256")
@@ -240,11 +241,15 @@ async def login_or_create_user(
         try:
             resp = await session.get(url)
             resp.raise_for_status()
-            cookies = resp._headers.getall('Set-Cookie')
+            cookies = resp._headers.getall("Set-Cookie")
             for cookie in cookies:
                 if "session_id_runestone" in cookie:
-                    rslogger.debug(f"LTI1p3 - session_id_runestone cookie set: {cookie}")
-                    web2py_session_cookie = cookie.split(";")[0]  # Get the cookie name=value part
+                    rslogger.debug(
+                        f"LTI1p3 - session_id_runestone cookie set: {cookie}"
+                    )
+                    web2py_session_cookie = cookie.split(";")[
+                        0
+                    ]  # Get the cookie name=value part
         except Exception as e:
             rslogger.error(f"LTI1p3 - Error logging in to w2p server: {e}")
             raise HTTPException(
@@ -260,7 +265,10 @@ def add_w2py_session_cookie(response: Response, cookie: str):
     Add the w2p session cookie to the response.
     """
     cookie_parts = cookie.split("=")
-    response.set_cookie(cookie_parts[0], cookie_parts[1], httponly=True, samesite="None", secure=True)
+    response.set_cookie(
+        cookie_parts[0], cookie_parts[1], httponly=True, samesite="None", secure=True
+    )
+
 
 def check_launch_data(
     launch: FastAPIMessageLaunch, key: str, default_value: str = None
@@ -318,7 +326,9 @@ async def launch(request: Request):
             fapi_request, tool_conf, launch_data_storage=get_launch_data_storage()
         )
     except LtiException as e:
-        rslogger.debug("Launch attempt without login. Moodle is known to do this after linking a tool.")
+        rslogger.debug(
+            "Launch attempt without login. Moodle is known to do this after linking a tool."
+        )
         return JSONResponse(content={"success": False, "error": str(e)})
 
     # recover any params stashed by /login
@@ -331,23 +341,80 @@ async def launch(request: Request):
             key, value = p.split("=")
             query_params[key] = value
 
-    # identify the course
-    # lti_context_dict = message_launch.get_context()
-    lti_course_id = query_params.get("lti_course_id", None)
-    lti_course = None
-    if lti_course_id:
-        lti_course = await fetch_lti1p3_course_by_id(
-            int(lti_course_id), with_config=False, with_rs_course=True
+    rslogger.debug(f"LTI1p3 - launch params: {query_params}")
+
+    # Start by identifying the kind of launch this is. Will need different info from different kinds of launches
+    # Type 1: Book links - links to specific pages in the book
+    # They will have a query param "book_page"
+    if "book_page" in query_params:
+        book_page = query_params["book_page"]
+        launch_type = "book_link"
+    # Type 2: Assignment links - links to Runestone assignments
+    else:
+        launch_type = "assignment_link"
+        # Get resourceId of the line item for the resource that was linked
+        # should have RSCOURSEID_RSASSIGNMENTID format, use that to load RS assignment and course
+        ags = message_launch.get_ags()
+        try:
+            assign_lineitem = await ags.get_lineitem()
+        except LtiServiceException:
+            raise HTTPException(
+                status_code=400,
+                detail="Assignment does not appeared to be linked to your Learning Management System. Your instructor needs to run the assignment selector tool for Runestone.",
+            )
+        rslogger.debug(f"LTI1p3 - launch lineitem: {assign_lineitem.__dict__}")
+
+        assign_resource_id = assign_lineitem.get_resource_id()
+        lineitem_course_id, lineitem_assign_id = parse_assignment_score_resource_id(
+            assign_resource_id
         )
+
+    # identify the course
+    lti_context_dict = message_launch.get_context()
+    rslogger.debug(f"LTI1p3 - launch context: {lti_context_dict}")
+    lti_course_id_reported = lti_context_dict.get("id", None)
+    lti_course = None
+    if lti_course_id_reported:
+        # for a given LMS course, there may be multiple RS courses and thus
+        # multiple Lti1p3Course records
+        possible_lti_courses = await fetch_lti1p3_courses_by_lti_course_id(
+            lti_course_id_reported, with_config=False, with_rs_course=True
+        )
+        # easy case... only one RS course linked to the LMS course
+        if len(possible_lti_courses) == 1:
+            lti_course = possible_lti_courses[0]
+        elif len(possible_lti_courses) > 1:
+            # try to puzzle out. Logic depends on launch type
+            if launch_type == "book_link":
+                basecourse_name = query_params.get("basecourse", None)
+                # check to see which course has the corresponding base course
+                # assumes no one is crazy enough to link two courses with the same base course
+                for c in possible_lti_courses:
+                    if c.rs_course.base_course == basecourse_name:
+                        lti_course = c
+                        break
+                if not lti_course:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Could not identify the course this page belongs to. Instructor needs to recreate the link in the LMS.",
+                    )
+            elif launch_type == "assignment_link":
+                # should be able to identify via the course_id passed with the line item
+                for c in possible_lti_courses:
+                    if c.rs_course_id == lineitem_course_id:
+                        lti_course = c
+                        break
     if not lti_course:
         raise HTTPException(
             status_code=400,
-            detail="Content does not appeared to be linked to your Learning Management System. Your instructor needs to run the assignment selector tool for Runestone.",
+            detail="Learning Management System reported an unknown course. Instructor should rerun the content selection tool in the LMS.",
         )
     course = lti_course.rs_course
 
     # identify and create/login the user
-    lti_user, web2py_session_cookie = await login_or_create_user(message_launch, lti_course, course)
+    lti_user, web2py_session_cookie = await login_or_create_user(
+        message_launch, lti_course, course
+    )
     rs_user = lti_user.rs_user
     in_course = await user_in_course(rs_user.id, course.id)
     if not in_course:
@@ -356,44 +423,26 @@ async def launch(request: Request):
             f"LTI1p3 - enrolled {rs_user.username} ({rs_user.id}) in {course.id}"
         )
 
-    # Different kinds of resourceLinkLaunches get to here and need to be handled differently
-
-    # Type 1: Book links - links to specific pages in the book
-    # They will have a query param "book_page"
-    if "book_page" in query_params:
-        book_page = query_params["book_page"]
+    # Actual launch processing depends on type of launch
+    if launch_type == "book_link":
+        # already have book_page from above
         # start redirect to book page
         redirect_to = f"https://{request.url.hostname}/ns/books/published/{course.course_name}/{book_page}"
         response = RedirectResponse(redirect_to, status_code=status.HTTP_303_SEE_OTHER)
-
-    # Type 2: Assignment links - links to Runestone assignments
-    # They will have a line item associated with them
-    else:
-        # Get resourceId of the line item for the resource that was linked
-        # should have RSCOURSEID_RSASSIGNMENTID format, use that to load RS assignment and course
-        ags = message_launch.get_ags()
-        try:
-            assign_lineitem = await ags.get_lineitem()
-        except LtiServiceException as e:
-            raise HTTPException(
-                status_code=400,
-                detail="Assignment does not appeared to be linked to your Learning Management System. Your instructor needs to run the assignment selector tool for Runestone.",
-            )
-
-        assign_resource_id = assign_lineitem.get_resource_id()
-        course_id, assign_id = parse_assignment_score_resource_id(assign_resource_id)
+    elif launch_type == "assignment_link":
+        # Have assign_lineitem, lineitem_course_id and lineitem_assign_id from above
 
         # Verify the line item has been properly linked to this course
-        if course_id != course.id:
+        if lineitem_course_id != course.id:
             raise HTTPException(
                 status_code=400,
                 detail="Assignment does not appear to be linked to this course. Your instructor needs to run the assignment selector tool for Runestone.",
             )
 
-        rs_assign = await fetch_one_assignment(assign_id)
+        rs_assign = await fetch_one_assignment(lineitem_assign_id)
         if not rs_assign:
             raise HTTPException(
-                status_code=400, detail=f"Assignment {assign_id} not found"
+                status_code=400, detail=f"Assignment {lineitem_assign_id} not found"
             )
 
         if not rs_assign.visible and not message_launch.check_teacher_access():
@@ -415,7 +464,7 @@ async def launch(request: Request):
         # Commented version for running outside of docker
         domain = get_domain()
         redirect_to = f"https://{domain}/assignment/student/doAssignment?assignment_id={rs_assign.id}"
-        
+
         rslogger.debug(f"LTI1p3 - launch redirect {redirect_to}")
         response = RedirectResponse(redirect_to, status_code=status.HTTP_303_SEE_OTHER)
 
@@ -464,10 +513,14 @@ async def update_rsassignment_from_lti(
         lms_due_string = line_item.get_end_date_time()
         lms_due = datetime.datetime.fromisoformat(lms_due_string)
         lms_due = lms_due.replace(tzinfo=None)
-        if lms_due != None and lms_due != assign.duedate and course_attributes.get("ignore_lti_dates") != 'true':
+        if (
+            lms_due is not None
+            and lms_due != assign.duedate
+            and course_attributes.get("ignore_lti_dates") != "true"
+        ):
             assign.duedate = lms_due
             await update_assignment(assign)
-    except Exception as e:
+    except Exception:
         # just ignore bad dates, could be missing, bad format, etc
         pass
     return assign
@@ -497,7 +550,9 @@ async def register(
         )
 
     # confirmed, so store to DB
-    platform_extras = platform_config.get("https://purl.imsglobal.org/spec/lti-platform-configuration")
+    platform_extras = platform_config.get(
+        "https://purl.imsglobal.org/spec/lti-platform-configuration"
+    )
     lti_conf = Lti1p3Conf(
         issuer=platform_config["issuer"],
         client_id=registration["client_id"],
@@ -505,7 +560,7 @@ async def register(
         auth_token_url=platform_config["token_endpoint"],
         key_set_url=platform_config["jwks_uri"],
         product_family_code=platform_extras.get("product_family_code"),
-        version=platform_extras.get("version")
+        version=platform_extras.get("version"),
     )
     if "authorization_server" in platform_config:
         lti_conf.token_audience = platform_config["authorization_server"]
@@ -517,11 +572,11 @@ async def register(
     templates = Jinja2Templates(directory=template_folder)
     return templates.TemplateResponse(
         "admin/lti1p3/registration_confirm.html",
-        request=request, 
+        request=request,
         context={
             "message": "LTI 1.3 configuration set",
             "request": request,
-        } 
+        },
     )
 
 
@@ -620,20 +675,29 @@ async def register_with_platform(platform_config: dict, token: str = None) -> di
     }
 
     # See if there is any extra configuration to add based on the platform ("canvas", "moodle", etc)
-    platform_extras = platform_config.get("https://purl.imsglobal.org/spec/lti-platform-configuration")
+    platform_extras = platform_config.get(
+        "https://purl.imsglobal.org/spec/lti-platform-configuration"
+    )
     product_family_code = platform_extras.get("product_family_code")
 
     if product_family_code == "canvas":
         data["https://canvas.instructure.com/lti/privacy_level"] = "public"
-        messages = data["https://purl.imsglobal.org/spec/lti-tool-configuration"]["messages"]
+        messages = data["https://purl.imsglobal.org/spec/lti-tool-configuration"][
+            "messages"
+        ]
         # [0] is ResourceLinkRequest, [1] is DeepLinkingRequest
         messages[0]["https://canvas.instructure.com/lti/display_type"] = "borderless"
         messages[0]["windowTarget"] = "_runestone"
         # Don't need to actually place ResourceLinkRequest anywhere??? We want DeepLinkingRequests
-        #messages[0]["placements"] = ["assignment_selection", "link_selection", "course_assignments_menu", "module_index_menu_modal"]
+        # messages[0]["placements"] = ["assignment_selection", "link_selection", "course_assignments_menu", "module_index_menu_modal"]
         messages[1]["https://canvas.instructure.com/lti/display_type"] = "borderless"
         messages[1]["windowTarget"] = "_runestone"
-        messages[1]["placements"] = ["assignment_selection", "link_selection", "course_assignments_menu", "module_index_menu_modal"]
+        messages[1]["placements"] = [
+            "assignment_selection",
+            "link_selection",
+            "course_assignments_menu",
+            "module_index_menu_modal",
+        ]
 
     async with aiohttp.ClientSession() as session:
         url = platform_config.get("registration_endpoint")
@@ -663,28 +727,34 @@ async def deep_link_entry(request: Request):
     This is used by the deep linking tool to ensure the user is authenticated.
     """
     data = await request.json()
-    username = data.get('username')
-    password = data.get('password')
+    username = data.get("username")
+    password = data.get("password")
 
     if not username or not password:
-        return JSONResponse(content={"success": False, "error": "Username and password are required"})
-    
+        return JSONResponse(
+            content={"success": False, "error": "Username and password are required"}
+        )
+
     user = await validate_user_credentials(username, password)
     if not user:
-        return JSONResponse(content={"success": False, "error": "Invalid username or password"})
+        return JSONResponse(
+            content={"success": False, "error": "Invalid username or password"}
+        )
 
-    rslogger.debug(f"LTI1p3 - User {user.__dict__} verified successfully by verify-user")
+    rslogger.debug(
+        f"LTI1p3 - User {user.__dict__} verified successfully by verify-user"
+    )
 
     user_nonce = "lti1p3-verify-nonce-" + str(uuid.uuid4())
     launch_data_storage = get_launch_data_storage()
     launch_data_storage.set_value(user_nonce, user.username)
 
-    return JSONResponse(content={"success": True, "username": user.username, "nonce": user_nonce})
+    return JSONResponse(
+        content={"success": True, "username": user.username, "nonce": user_nonce}
+    )
 
 
-async def get_authenticated_user(
-    request: Request
-) -> AuthUserValidator:
+async def get_authenticated_user(request: Request) -> AuthUserValidator:
     """
     Helper to either get the user from the auth manager or from a nonce.
     If cookies are available, auth_manager will return the user. Otherwise,
@@ -695,13 +765,16 @@ async def get_authenticated_user(
     user = None
     try:
         user = await auth_manager(request)
+        rslogger.debug(
+            f"LTI1p3 - User {user.__dict__} verified successfully by auth_manager"
+        )
         return user
-    except Exception as e:
+    except Exception:
         pass
 
     # check if we have a form submission with an authentication nonce
     form_data = await request.form()
-    authentication_nonce = form_data.get('authentication_nonce') or ""
+    authentication_nonce = form_data.get("authentication_nonce") or ""
     launch_data_storage = get_launch_data_storage()
     authorized_username = launch_data_storage.get_value(authentication_nonce)
     if not authorized_username:
@@ -711,7 +784,7 @@ async def get_authenticated_user(
 
 
 @router.post("/rs-login")
-async def deep_link_entry(request: Request):
+async def deep_link_login(request: Request):
     tool_conf = get_tool_config_mgr()
     rslogger.info(f"Creating FastAPIRequest with request: {request.__dict__}")
     fapi_request = await FastAPIRequest.create(request, session=get_session_service())
@@ -724,21 +797,20 @@ async def deep_link_entry(request: Request):
     tpl_kwargs = {
         "request": request,
         "launch_id": message_launch.get_launch_id(),
-        "authenticity_token": fapi_request.get_param('authenticity_token'),
-        "id_token": fapi_request.get_param('id_token'),
-        "state": fapi_request.get_param('state'),
-        "lti_storage_target": fapi_request.get_param('lti_storage_target'),
+        "authenticity_token": fapi_request.get_param("authenticity_token"),
+        "id_token": fapi_request.get_param("id_token"),
+        "state": fapi_request.get_param("state"),
+        "lti_storage_target": fapi_request.get_param("lti_storage_target"),
     }
     resp = templates.TemplateResponse(
-        name="admin/lti1p3/rs_login.html",
-        context=tpl_kwargs
+        name="admin/lti1p3/rs_login.html", context=tpl_kwargs
     )
     return resp
 
 
 @router.get("/dynamic-linking")
 @router.post("/dynamic-linking")
-async def deep_link_entry(request: Request):
+async def dynamic_link_entry(request: Request):
     tool_conf = get_tool_config_mgr()
     fapi_request = await FastAPIRequest.create(request, session=get_session_service())
     message_launch = await FastAPIMessageLaunch.create(
@@ -749,13 +821,12 @@ async def deep_link_entry(request: Request):
     if not user:
         # Redirect to the rs-login page. It will submit back to this route but with
         # an authentication nonce that will allow us to identify the user.
-        resp = RedirectResponse(
-            f"/admin/lti1p3/rs-login",
-            status_code=307
-        )
+        resp = RedirectResponse("/admin/lti1p3/rs-login", status_code=307)
         return resp
 
-    user_is_instructor = len(await fetch_instructor_courses(user.id, user.course_id)) > 0
+    user_is_instructor = (
+        len(await fetch_instructor_courses(user.id, user.course_id)) > 0
+    )
     if not user_is_instructor:
         raise HTTPException(
             status_code=403,
@@ -766,25 +837,21 @@ async def deep_link_entry(request: Request):
 
     lti_context = message_launch.get_context()
     # See if currently logged in RS course is already mapped to something else
-    lti_course = await fetch_lti1p3_course_by_rs_course(
-        course, with_config=False
-    )
+    lti_course = await fetch_lti1p3_course_by_rs_course(course, with_config=False)
 
     issuer = message_launch.get_iss()
     issuer_parsed = tldextract.extract(issuer)
     issuer_domain = f"{issuer_parsed.domain}.{issuer_parsed.suffix}"
     approved = await check_domain_approval(issuer_domain, DomainApprovals.lti1p3)
     if not approved:
-        rslogger.debug(
-            f"LTI1p3 - Failed domain approval for {course.id}"
-        )
+        rslogger.debug(f"LTI1p3 - Failed domain approval for {course.id}")
         raise HTTPException(
             status_code=403,
             detail=f"The domain reported for this course ({issuer_domain}) is not approved for LTI 1.3 integration. Please make an issue at https://github.com/RunestoneInteractive/rs/issues to request approval.",
         )
 
     mapping_mismatch = False
-    if lti_course and lti_course.lti1p3_course_id != lti_context.get('id'):
+    if lti_course and lti_course.lti1p3_course_id != lti_context.get("id"):
         mapping_mismatch = True
 
     # Gather info for the selection page
@@ -811,6 +878,9 @@ async def deep_link_entry(request: Request):
     ags = message_launch.get_ags()
     l_items = await ags.get_lineitems()
     l_items.sort(key=lambda li: li.get("label"))
+    # build lookup dicts for line items
+    l_items_resourceId_dict = {li.get("resourceId"): li for li in l_items}
+    l_items_label_dict = {li.get("label"): li for li in l_items}
 
     link_data = message_launch.get_dls()
     supports_multiple = link_data.get("accept_multiple", False)
@@ -823,24 +893,31 @@ async def deep_link_entry(request: Request):
     for a in assignments:
         d = a.__dict__
 
-        lti_name_match = match_by_name(a, l_items)
-        if lti_name_match:
-            desired_resource_id = get_assignment_score_resource_id(course, a)
-            if desired_resource_id == lti_name_match.get("resourceId"):
-                d["already_mapped"] = True
-                d["mapped_value"] = lti_name_match.get("resourceLinkId")
-                d["mapped_name"] = lti_name_match.get("label")
-            else:
-                d["remap_suggested"] = True
-                d["mapped_value"] = lti_name_match.get("resourceLinkId")
-                d["mapped_name"] = lti_name_match.get("label")
+        # this is the resource_id that RS sets on LMS line items
+        # we need it to match if this is a linked assignment
+        # can't rely on our own records in lti1p3_assignments table as
+        # they are not set until first assignment launch and instructor may
+        # rerun content selection multiple times before that
+        desired_resource_id = get_assignment_score_resource_id(course, a)
+        lti_id_match = l_items_resourceId_dict.get(desired_resource_id, None)
+        lti_name_match = l_items_label_dict.get(a.name, None)
+
+        if lti_id_match:
+            # this is already linked
+            d["already_mapped"] = True
+            d["mapped_value"] = lti_id_match.get("resourceLinkId")
+            d["mapped_name"] = lti_id_match.get("label")
+        elif lti_name_match:
+            # not mapped, but name matches, suggest a remap
+            d["remap_suggested"] = True
+            d["mapped_name"] = ""
 
         assigns_dicts.append(d)
 
     # if we used an authentication nonce to identify the user, we need to
     # include it in the template context so it can be passed on by pick_links
     form_data = await request.form()
-    authentication_nonce = form_data.get('authentication_nonce') or ""
+    authentication_nonce = form_data.get("authentication_nonce") or ""
 
     tpl_kwargs = {
         "launch_id": message_launch.get_launch_id(),
@@ -859,20 +936,9 @@ async def deep_link_entry(request: Request):
 
     templates = Jinja2Templates(directory=template_folder)
     resp = templates.TemplateResponse(
-        name="admin/lti1p3/pick_links.html",
-        context=tpl_kwargs
+        name="admin/lti1p3/pick_links.html", context=tpl_kwargs
     )
     return resp
-
-
-def match_by_name(rs_assign, lti_lineitems):
-    """
-    Find a line item in the LMS that matches the name of the Runestone assignment
-    """
-    for l in lti_lineitems:
-        if rs_assign.name == l.get("label"):
-            return l
-    return None
 
 
 @router.post("/assign-select/{launch_id}")
@@ -893,7 +959,9 @@ async def assign_select(launch_id: str, request: Request, course=None):
 
     user = await get_authenticated_user(request)
     if not user:
-        raise HTTPException(status_code=403, detail="User information not found in request.")
+        raise HTTPException(
+            status_code=403, detail="User information not found in request."
+        )
 
     course = await fetch_course(user.course_name)
     if not course:
@@ -925,13 +993,13 @@ async def assign_select(launch_id: str, request: Request, course=None):
 
     # Make sure we have an LTI mapping for the user. They should already exist and
     # be in the course, but this will make sure we have an LTI1p3User record
-    user_confirmation, web2py_session_cookie = await login_or_create_user(message_launch, lti_course, course)
+    user_confirmation, web2py_session_cookie = await login_or_create_user(
+        message_launch, lti_course, course
+    )
 
     # Now start building the response
     domain = get_domain()
-    launch_url = f"https://{domain}/admin/lti1p3/launch?lti_course_id={lti_course.id}"
-    lib_entry = await fetch_library_book(course.base_course)
-
+    launch_url = f"https://{domain}/admin/lti1p3/launch"
     lib_entry = await fetch_library_book(course.base_course)
     if lib_entry.build_system == "Runestone":
         book_system = "Runestone"
@@ -972,11 +1040,16 @@ async def assign_select(launch_id: str, request: Request, course=None):
                 if book_system == "PreTeXt":
                     page = subchapter.sub_chapter_label + ".html"
                 else:
-                    page = chapter.chapter_label + "/" + subchapter.sub_chapter_label + ".html"
+                    page = (
+                        chapter.chapter_label
+                        + "/"
+                        + subchapter.sub_chapter_label
+                        + ".html"
+                    )
                 page_name = f"Chapter {chapter.chapter_num}.{subchapter.sub_chapter_num}: {subchapter.sub_chapter_name}"
 
         dlr = DeepLinkResource()
-        dlr.set_url(launch_url + f"&book_page={page}")
+        dlr.set_url(launch_url + f"?book_page={page}&basecourse={course.base_course}")
         dlr.set_title(f"{lib_entry.title} - {page_name}")
         dlr.set_target("window")
 
@@ -1016,7 +1089,9 @@ async def assign_select(launch_id: str, request: Request, course=None):
                 dlr.set_target("window")
 
                 line_item = LineItem()
-                update_line_item_from_assignment(line_item, assign, course, use_pts, push_duedate=True)
+                update_line_item_from_assignment(
+                    line_item, assign, course, use_pts, push_duedate=True
+                )
                 dlr.set_lineitem(line_item)
 
                 # add to list of things for LMS to create
@@ -1037,9 +1112,7 @@ async def assign_select(launch_id: str, request: Request, course=None):
                 )
                 await ags.update_lineitem(line_item)
                 # update RS due date
-                await update_rsassignment_from_lti(
-                    assign, line_item, course_attributes
-                )
+                await update_rsassignment_from_lti(assign, line_item, course_attributes)
     deep_link = message_launch.get_deep_link()
     response_html = deep_link.output_response_form(response_list)
     response = HTMLResponse(content=response_html, status_code=200)

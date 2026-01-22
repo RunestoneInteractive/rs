@@ -76,6 +76,17 @@ Needed??? */
     --questionBgColor: rgb(23, 85, 93);
 }
 
+/* for assignment navigation */
+div.assignment-nav {
+    background-color: var(--componentBgColor);
+    border-style: solid;
+    border-color: var(--componentBorderColor);
+    border-width: 1px;
+    padding-bottom: 5px;
+    padding-top: 5px;
+
+}
+
 /* custom modification of basic.css for color-contrast (AA compliant) */
 td.linenos pre {
     color: #6b6b6b;
@@ -255,7 +266,7 @@ div.container {
 .runestone {
     clear: both;
     background-color: var(--componentBgColor);
-    padding: 10px;
+    padding: 15px;
     border-style: solid;
     border-color: var(--componentBorderColor);
     border-radius: 10px;
@@ -1174,14 +1185,41 @@ margin-right: 3px;
 
 .isCorrect:before {
   /*content: url(https://em-content.zobj.net/thumbs/240/apple/325/check-mark_2714-fe0f.png);*/
-  content: "✅ ";
+    font-family: "Material Symbols Outlined";
+  content: "\e86c ";
   float:right;
   padding-left: 4px;
 }
 
 .isInCorrect:before {
   /*content: url(https://em-content.zobj.net/thumbs/240/apple/325/check-mark_2714-fe0f.png);*/
-  content: "⚠️ ";
+  font-family: "Material Symbols Outlined";
+  content: "\e349 ";
+  float:right;
+  padding-left: 4px;
+}
+
+.isAssigned:before {
+  /*content: url(https://em-content.zobj.net/thumbs/240/apple/325/check-mark_2714-fe0f.png);*/
+  font-family: "Material Symbols Outlined";
+  content: "\f3de ";
+  float:right;
+  padding-left: 4px;
+}
+
+/* When both isCorrect and isAssigned are present, show both icons */
+.isCorrect.isAssigned:before {
+  font-family: "Material Symbols Outlined";
+  content: "\e86c \f3de ";
+  /*content: "✅ 📋 ";*/
+  float:right;
+  padding-left: 4px;
+}
+
+/* When both isInCorrect and isAssigned are present, show both icons */
+.isInCorrect.isAssigned:before {
+  font-family: "Material Symbols Outlined";
+  content: "\e349 \f3de ";
   float:right;
   padding-left: 4px;
 }

@@ -17,11 +17,9 @@ __author__ = "bmiller"
 
 from docutils import nodes
 from docutils.parsers.rst import directives
-from docutils.parsers.rst import Directive
 from runestone.server.componentdb import addQuestionToDB, addHTMLToDB
 from runestone.common.runestonedirective import (
     RunestoneIdDirective,
-    RunestoneDirective,
     RunestoneIdNode,
 )
 

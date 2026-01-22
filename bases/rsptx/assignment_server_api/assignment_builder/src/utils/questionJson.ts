@@ -9,7 +9,13 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
       starter_code: data.starter_code,
       suffix_code: data.suffix_code,
       instructions: data.instructions,
-      language: data.language
+      language: data.language,
+      stdin: data.stdin,
+      selectedExistingDataFiles: data.selectedExistingDataFiles,
+      // CodeTailor support
+      enableCodeTailor: data.enableCodeTailor,
+      parsonspersonalize: data.parsonspersonalize,
+      parsonsexample: data.parsonsexample
     }),
     ...(data.question_type === "shortanswer" && {
       attachment: data.attachment,
@@ -48,9 +54,15 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
     }),
     ...(data.question_type === "selectquestion" && {
       questionList: data.questionList,
+      questionLabels: data.questionLabels,
       abExperimentName: data.abExperimentName,
       toggleOptions: data.toggleOptions,
       dataLimitBasecourse: data.dataLimitBasecourse
+    }),
+    ...(data.question_type === "clickablearea" && {
+      questionText: data.questionText,
+      statement: data.statement,
+      feedback: data.feedback
     })
   };
 
@@ -65,6 +77,7 @@ export const getDefaultQuestionJson = (languageOptions: TableDropdownOption[]) =
   prefix_code: "",
   starter_code: "",
   suffix_code: "",
+  stdin: "",
   attachment: false,
   optionList: [
     { choice: "", feedback: "", correct: false },
@@ -74,7 +87,11 @@ export const getDefaultQuestionJson = (languageOptions: TableDropdownOption[]) =
   right: [{ id: "x", label: "" }],
   correctAnswers: [["a", "x"]],
   feedback: "Incorrect. Please try again.",
-  blocks: [{ id: `block-${Date.now()}`, content: "", indent: 0 }]
+  blocks: [{ id: `block-${Date.now()}`, content: "", indent: 0 }],
+  // CodeTailor support
+  enableCodeTailor: false,
+  parsonspersonalize: "",
+  parsonsexample: ""
 });
 
 export const mergeQuestionJsonWithDefaults = (
@@ -94,6 +111,14 @@ export const mergeQuestionJsonWithDefaults = (
     feedback: questionJson?.feedback ?? defaultQuestionJson.feedback,
     blocks: questionJson?.blocks ?? defaultQuestionJson.blocks,
     language: questionJson?.language ?? defaultQuestionJson.language,
-    instructions: questionJson?.instructions ?? defaultQuestionJson.instructions
+    instructions: questionJson?.instructions ?? defaultQuestionJson.instructions,
+    stdin: questionJson?.stdin ?? defaultQuestionJson.stdin,
+    // CodeTailor support
+    enableCodeTailor: questionJson?.enableCodeTailor ?? defaultQuestionJson.enableCodeTailor,
+    parsonspersonalize:
+      questionJson?.parsonspersonalize ??
+      (defaultQuestionJson.parsonspersonalize as "" | "solution-level" | "block-and-solution"),
+    parsonsexample: questionJson?.parsonsexample ?? defaultQuestionJson.parsonsexample,
+    questionLabels: questionJson?.questionLabels ?? {}
   };
 };

@@ -43,7 +43,7 @@ export default class ACFactory {
                 return new TimedLiveCode(opts);
             } else if (lang === "javascript") {
                 return new TimedJSActiveCode(opts);
-            } else if (lang === "htmlmixed") {
+            } else if (lang === "htmlmixed" || lang === "html") {
                 return new TimedHTMLActiveCode(opts);
             } else if (lang === "sql") {
                 return new TimedSQLActiveCode(opts);
@@ -53,12 +53,12 @@ export default class ACFactory {
         } else {
             if (lang === "javascript") {
                 return new JSActiveCode(opts);
-            } else if (lang === "htmlmixed") {
+            } else if (lang === "htmlmixed" || lang === "html") {
                 return new HTMLActiveCode(opts);
             } else if (lang === "sql") {
                 return new SQLActiveCode(opts);
             } else if (
-                ["java", "cpp", "c", "python3", "python2", "octave"].indexOf(
+                ["java", "cpp", "c", "python3", "python2", "octave", "kotlin"].indexOf(
                     lang
                 ) > -1
             ) {
@@ -123,6 +123,7 @@ export default class ACFactory {
             java: "Java",
             javascript: "JavaScript",
             js: "JavaScript",
+            kotlin: "Kotlin",
             octave: "Octave",
             python: "Python",
             py2: "Python 2",

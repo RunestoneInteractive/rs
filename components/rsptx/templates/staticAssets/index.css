@@ -113,5 +113,8 @@ input {
 
 .overdue {
     color: #ff0000;
-    font-size: larger;
+}
+
+.duesoon {
+    color: #11b70e;
 }

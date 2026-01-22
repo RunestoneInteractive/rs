@@ -382,6 +382,106 @@ export const items: CommandItem[] = [
     ]
   },
   {
+    title: "Tables",
+    description: "Insert and manage tables",
+    icon: "fa-table",
+    submenu: [
+      {
+        title: "Insert Table",
+        description: "Create a new table (3x3)",
+        icon: "fa-table",
+        command: ({ editor, range }) => {
+          editor
+            .chain()
+            .focus()
+            .deleteRange(range)
+            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+            .run();
+        }
+      },
+      {
+        title: "Add Column Before",
+        description: "Add a column before current",
+        icon: "fa-table-columns",
+        command: ({ editor }) => {
+          editor.chain().focus().addColumnBefore().run();
+        }
+      },
+      {
+        title: "Add Column After",
+        description: "Add a column after current",
+        icon: "fa-table-columns",
+        command: ({ editor }) => {
+          editor.chain().focus().addColumnAfter().run();
+        }
+      },
+      {
+        title: "Delete Column",
+        description: "Remove current column",
+        icon: "fa-table-columns",
+        command: ({ editor }) => {
+          editor.chain().focus().deleteColumn().run();
+        }
+      },
+      {
+        title: "Add Row Before",
+        description: "Add a row before current",
+        icon: "fa-table-rows",
+        command: ({ editor }) => {
+          editor.chain().focus().addRowBefore().run();
+        }
+      },
+      {
+        title: "Add Row After",
+        description: "Add a row after current",
+        icon: "fa-table-rows",
+        command: ({ editor }) => {
+          editor.chain().focus().addRowAfter().run();
+        }
+      },
+      {
+        title: "Delete Row",
+        description: "Remove current row",
+        icon: "fa-table-rows",
+        command: ({ editor }) => {
+          editor.chain().focus().deleteRow().run();
+        }
+      },
+      {
+        title: "Toggle Header Row",
+        description: "Toggle header for first row",
+        icon: "fa-heading",
+        command: ({ editor }) => {
+          editor.chain().focus().toggleHeaderRow().run();
+        }
+      },
+      {
+        title: "Merge Cells",
+        description: "Merge selected cells",
+        icon: "fa-object-group",
+        command: ({ editor }) => {
+          editor.chain().focus().mergeCells().run();
+        }
+      },
+      {
+        title: "Split Cell",
+        description: "Split merged cell",
+        icon: "fa-object-ungroup",
+        command: ({ editor }) => {
+          editor.chain().focus().splitCell().run();
+        }
+      },
+      {
+        title: "Delete Table",
+        description: "Remove entire table",
+        icon: "fa-trash",
+        command: ({ editor }) => {
+          editor.chain().focus().deleteTable().run();
+        }
+      }
+    ]
+  },
+  {
     title: "Media & Links",
     description: "Insert images, links and media",
     icon: "fa-image",
@@ -478,9 +578,14 @@ export const renderItems = () => {
         return;
       }
 
+      const getAppendTarget = () => {
+        const exerciseLayout = document.getElementById("exercise-layout");
+        return exerciseLayout || document.body;
+      };
+
       popup = tippy("body", {
         getReferenceClientRect: props.clientRect,
-        appendTo: () => document.body,
+        appendTo: getAppendTarget,
         content: component.element,
         showOnCreate: true,
         interactive: true,

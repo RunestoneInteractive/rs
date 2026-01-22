@@ -9,8 +9,9 @@ export default class BlockFeedback extends HParsonsFeedback {
         this.messageDiv = document.createElement("div");
         this.hparsons.outerDiv.appendChild(this.messageDiv);
     }
+    
     customizeUI() {
-        $(this.hparsons.runButton).text('Check Me');
+        this.hparsons.runButton.textContent = "Check Me";
     }
 
     init() {
@@ -18,12 +19,9 @@ export default class BlockFeedback extends HParsonsFeedback {
         this.solved = false;
         // TODO: not sure what is the best way to do this
         this.grader = new BlockBasedGrader();
-        let solutionBlocks = [];
-        for (let i = 0; i < this.hparsons.blockAnswer.length; ++i) {
-            solutionBlocks.push(this.hparsons.originalBlocks[this.hparsons.blockAnswer[i]]);
-        }
-        this.solution = solutionBlocks;
-        this.grader.solution = solutionBlocks;
+        const solutionIndices = this.hparsons.blockAnswer.map(Number);
+        this.solution = solutionIndices;
+        this.grader.solution = solutionIndices;
         this.answerArea = this.hparsons.hparsonsInput.querySelector('.drop-area');
     }
 
@@ -38,7 +36,7 @@ export default class BlockFeedback extends HParsonsFeedback {
         let act = {
             scheme: "block",
             correct: this.grader.graderState == 'correct' ? "T" : "F",
-            answer: this.hparsons.hparsonsInput.getParsonsTextArray(),
+            answer: this.hparsons.hparsonsInput.getBlockIndices(),
             percent: this.grader.percent
         }
         let logData = {
@@ -57,10 +55,10 @@ export default class BlockFeedback extends HParsonsFeedback {
         if (!this.solved) {
             this.checkCount++;
             this.clearFeedback();
-            this.grader.answer = this.hparsons.hparsonsInput.getParsonsTextArray();
+            this.grader.answer = this.hparsons.hparsonsInput.getBlockIndices();
             this.grade = this.grader.grade();
             if (this.grade == "correct") {
-                $(this.hparsons.runButton).prop("disabled", true);
+                this.hparsons.runButton.disabled = true;
                 this.solved = true;
             }
         }
@@ -69,29 +67,28 @@ export default class BlockFeedback extends HParsonsFeedback {
     renderFeedback() {
         this.grade = this.grader.graderState;
         var feedbackArea;
-        var answerArea = $(this.answerArea);
-        feedbackArea = $(this.messageDiv);
+        var answerArea = this.answerArea;
+        feedbackArea = this.messageDiv;
 
         if (this.grade === "correct") {
-            answerArea.addClass("correct");
-            feedbackArea.fadeIn(100);
-            feedbackArea.attr("class", "hp_feedback alert alert-info");
+            answerArea.classList.add("correct");
+            feedbackArea.style.display = "";
+            feedbackArea.className = "hp_feedback alert alert-info";
             if (this.checkCount > 1) {
-                feedbackArea.html(
-                    $.i18n("msg_parson_correct", this.checkCount)
-                );
+                feedbackArea.innerHTML =
+                    $.i18n("msg_parson_correct", this.checkCount);
             } else {
-                feedbackArea.html($.i18n("msg_parson_correct_first_try"));
+                feedbackArea.innerHTML = $.i18n("msg_parson_correct_first_try");
             }
             this.checkCount = 0;
         }
 
         if (this.grade === "incorrectTooShort") {
             // too little code
-            answerArea.addClass("incorrect");
-            feedbackArea.fadeIn(500);
-            feedbackArea.attr("class", "hp_feedback alert alert-danger");
-            feedbackArea.html($.i18n("msg_parson_too_short"));
+            answerArea.classList.add("incorrect");
+            feedbackArea.style.display = "";
+            feedbackArea.className = "hp_feedback alert alert-danger";
+            feedbackArea.innerHTML = $.i18n("msg_parson_too_short");
         }
 
         if (this.grade === "incorrectMoveBlocks") {
@@ -101,7 +98,7 @@ export default class BlockFeedback extends HParsonsFeedback {
             var notInSolution = [];
             for (let i = 0; i < answerBlocks.length; i++) {
                 var block = answerBlocks[i];
-                var index = this.solution.indexOf(block.textContent);
+                var index = this.solution.indexOf(Number(block.dataset.index));
                 if (index == -1) {
                     notInSolution.push(block);
                 } else {
@@ -113,32 +110,33 @@ export default class BlockFeedback extends HParsonsFeedback {
             for (let i = 0; i < lisIndexes.length; i++) {
                 notInSolution.push(inSolution[lisIndexes[i]]);
             }
-            answerArea.addClass("incorrect");
-            feedbackArea.fadeIn(500);
-            feedbackArea.attr("class", "alert alert-danger");
+            answerArea.classList.add("incorrect");
+            feedbackArea.style.display = "";
+            feedbackArea.className = "alert alert-danger";
             for (let i = 0; i < notInSolution.length; i++) {
-                $(notInSolution[i]).addClass("incorrectPosition");
+                notInSolution[i].classList.add("incorrectPosition");
             }
-            feedbackArea.html($.i18n("msg_parson_wrong_order"));
+            feedbackArea.innerHTML = $.i18n("msg_parson_wrong_order");
         }
     }
 
     // Feedback UI for Block-based Feedback
     clearFeedback() {
-        $(this.answerArea).removeClass("incorrect correct");
+        this.answerArea.classList.remove("incorrect", "correct");
         var children = this.answerArea.childNodes;
         for (var i = 0; i < children.length; i++) {
-            $(children[i]).removeClass(
-                "correctPosition incorrectPosition"
+            children[i].classList.remove(
+                "correctPosition",
+                "incorrectPosition"
             );
         }
-        $(this.messageDiv).hide();
+        this.messageDiv.style.display = "none";
     }
 
     reset() {
         if (this.solved) {
             this.checkCount = 0;
-            $(this.hparsons.runButton).prop("disabled", false);
+            this.hparsons.runButton.disabled = false;
             this.solved = false;
         }
         this.clearFeedback();

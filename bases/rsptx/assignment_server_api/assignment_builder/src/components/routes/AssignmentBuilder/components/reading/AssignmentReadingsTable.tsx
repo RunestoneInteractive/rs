@@ -10,7 +10,6 @@ import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
 import { ActivitiesRequiredCell } from "./components/ActivitiesRequiredCell";
-import { EditDropdownValueHeaderReadings } from "./components/EditAllReadings/EditDropdownValueHeaderReadings";
 import { EditInputValueHeaderReadings } from "./components/EditAllReadings/EditInputValueHeaderReadings";
 import { SetCurrentEditReading, MouseUpHandler } from "./types";
 
@@ -166,32 +165,6 @@ export const AssignmentReadingsTable = ({
               handleChange={handleChange}
               value={data.points}
               questionType={data.question_type}
-              isDragging={startItemId !== null}
-            />
-          )}
-        />
-
-        {/* Which to grade */}
-        <Column
-          resizeable={false}
-          field="which_to_grade"
-          header={() => (
-            <EditDropdownValueHeaderReadings
-              field="which_to_grade"
-              label="Which to grade"
-              defaultValue=""
-            />
-          )}
-          style={{ width: "12rem" }}
-          bodyStyle={{ padding: 0 }}
-          body={(rowData: Exercise) => (
-            <EditableCellFactory
-              fieldName="which_to_grade"
-              itemId={rowData.id}
-              handleMouseDown={handleMouseDown}
-              handleChange={handleChange}
-              value={rowData.which_to_grade}
-              questionType={rowData.question_type}
               isDragging={startItemId !== null}
             />
           )}

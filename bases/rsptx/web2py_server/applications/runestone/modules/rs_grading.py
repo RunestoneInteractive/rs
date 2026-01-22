@@ -27,6 +27,7 @@ logger = logging.getLogger(current.settings.logger)
 logger.setLevel(current.settings.log_level)
 logger.propagate = False
 
+
 def _profile(start, msg):
     delta = datetime.datetime.now() - start
     logger.debug("{}: {}.{}".format(msg, delta.seconds, delta.microseconds))
@@ -188,6 +189,30 @@ def _score_one_clickablearea(row, points, autograde):
 
 def _score_one_dragndrop(row, points, autograde):
     # row is from dragndrop_answers
+    if autograde == "pct_correct" and "percent" in row and row.percent is not None:
+        pct_correct = int(round(row.percent * 100))
+    else:
+        if row.correct:
+            pct_correct = 100
+        else:
+            pct_correct = 0
+    return _score_from_pct_correct(pct_correct, points, autograde)
+
+
+def _score_one_matching(row, points, autograde):
+    # row is from matching_answers
+    if autograde == "pct_correct" and "percent" in row and row.percent is not None:
+        pct_correct = int(round(row.percent * 100))
+    else:
+        if row.correct:
+            pct_correct = 100
+        else:
+            pct_correct = 0
+    return _score_from_pct_correct(pct_correct, points, autograde)
+
+
+def _score_one_splice(row, points, autograde):
+    # row is from splice_answers
     if autograde == "pct_correct" and "percent" in row and row.percent is not None:
         pct_correct = int(round(row.percent * 100))
     else:
@@ -483,6 +508,54 @@ def _scorable_dragndrop_answers(
     return db(query).select(orderby=db.dragndrop_answers.timestamp)
 
 
+def _scorable_matching_answers(
+    course_name,
+    sid,
+    question_name,
+    points,
+    deadline,
+    practice_start_time=None,
+    db=None,
+    now=None,
+):
+    query = (
+        (db.matching_answers.course_name == course_name)
+        & (db.matching_answers.sid == sid)
+        & (db.matching_answers.div_id == question_name)
+    )
+    if deadline:
+        query = query & (db.matching_answers.timestamp < deadline)
+    if practice_start_time:
+        query = query & (db.matching_answers.timestamp >= practice_start_time)
+        if now:
+            query = query & (db.matching_answers.timestamp <= now)
+    return db(query).select(orderby=db.matching_answers.timestamp)
+
+
+def _scorable_splice_answers(
+    course_name,
+    sid,
+    question_name,
+    points,
+    deadline,
+    practice_start_time=None,
+    db=None,
+    now=None,
+):
+    query = (
+        (db.splice_answers.course_name == course_name)
+        & (db.splice_answers.sid == sid)
+        & (db.splice_answers.div_id == question_name)
+    )
+    if deadline:
+        query = query & (db.splice_answers.timestamp < deadline)
+    if practice_start_time:
+        query = query & (db.splice_answers.timestamp >= practice_start_time)
+        if now:
+            query = query & (db.splice_answers.timestamp <= now)
+    return db(query).select(orderby=db.splice_answers.timestamp)
+
+
 def _scorable_codelens_answers(
     course_name,
     sid,
@@ -631,7 +704,7 @@ def _autograde_one_q(
             logger.debug("AGDB - done with selectq")
             return score
 
-        logger.error(f"Could not resolve a question for {question_name} student: {sid}")
+        logger.info(f"Could not resolve a question for {question_name} student: {sid}")
         return 0
 
     # get the results from the right table, and choose the scoring function
@@ -748,6 +821,20 @@ def _autograde_one_q(
         )
         scoring_fn = _score_one_dragndrop
         logger.debug("AGDB - done with dnd")
+    elif question_type == "matching":
+        results = _scorable_matching_answers(
+            course_name,
+            sid,
+            question_name,
+            points,
+            deadline,
+            practice_start_time,
+            db=db,
+            now=now,
+        )
+        scoring_fn = _score_one_matching
+        logger.debug("AGDB - done with matching")
+
     elif question_type == "quizly":
         results = _scorable_useinfos(
             course_name,
@@ -789,6 +876,21 @@ def _autograde_one_q(
         )
         scoring_fn = _score_one_webwork
         logger.debug("AGDB - done with webwork")
+
+    elif question_type == "splice" or question_type == "doenet":
+        logger.debug("grading a splice question!!")
+        results = _scorable_splice_answers(
+            course_name,
+            sid,
+            question_name,
+            points,
+            deadline,
+            practice_start_time,
+            db=db,
+            now=now,
+        )
+        scoring_fn = _score_one_splice
+        logger.debug("AGDB - done with splice")
 
     elif question_type == "hparsons":
         logger.debug("grading a microparsons!!")

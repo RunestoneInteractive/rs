@@ -13,3 +13,12 @@ input.input-validation-error {
     color: unset;
     background-color: #333;
 }
+
+.ptx-runestone-container .fitb-feedback {
+    margin-top: 10px;
+    margin-bottom: 0;
+}
+
+.ptx-runestone-container .fitb-feedback:empty {
+    margin-top: 0;
+}

@@ -52,7 +52,7 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     libapache2-mod-php \
     nodejs \
     octave \
-    openjdk-21-jdk \
+    openjdk-25-jdk \
     php \
     php-cli \
     php-mbstring \
@@ -101,6 +101,14 @@ RUN wget https://github.com/catchorg/Catch2/releases/download/v2.13.10/catch.hpp
 # Get doctest.h - could instead point to stable version like
 #   https://github.com/doctest/doctest/releases/download/v2.4.11/doctest.h
 RUN wget https://github.com/doctest/doctest/releases/latest/download/doctest.h -O /usr/include/doctest.h
+
+# Install Kotlin
+ENV KOTLIN_VERSION=2.3.0
+RUN wget https://github.com/JetBrains/kotlin/releases/download/v${KOTLIN_VERSION}/kotlin-compiler-${KOTLIN_VERSION}.zip -O /opt/kotlin.zip \
+    && unzip /opt/kotlin.zip -d /opt \
+    && rm /opt/kotlin.zip
+
+RUN chmod -R a+rw /opt/kotlinc
 
 # Expose apache
 EXPOSE 80

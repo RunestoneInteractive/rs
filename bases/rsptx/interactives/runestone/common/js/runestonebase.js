@@ -40,11 +40,7 @@ export default class RunestoneBase {
             if (opts.enforceDeadline) {
                 this.deadline = opts.deadline;
             }
-            if ($(opts.orig).data("optional")) {
-                this.optional = true;
-            } else {
-                this.optional = false;
-            }
+            this.optional = this.parseBooleanAttribute(opts.orig, "data-optional");
             if (opts.selector_id) {
                 this.selector_id = opts.selector_id;
             }
@@ -103,6 +99,20 @@ export default class RunestoneBase {
         });
     }
 
+    // Helper for parsing boolean data-* attributes
+    // Unset/"false"/"no" means false, anything else, including empty string means true
+    parseBooleanAttribute(element, attributeName) {
+        const attrValue = element.getAttribute(attributeName);
+        if (attrValue === null) {
+            return false;
+        }
+        const lowerValue = attrValue.toLowerCase();
+        if (lowerValue === "false" || lowerValue === "no") {
+            return false;
+        }
+        return true;
+    }
+
     // _`logBookEvent`
     //----------------
     // This function sends the provided ``eventInfo`` to the `hsblog endpoint` of the server. Awaiting this function returns either ``undefined`` (if Runestone services are not available) or the data returned by the server as a JavaScript object (already JSON-decoded).
@@ -114,6 +124,10 @@ export default class RunestoneBase {
         eventInfo.course_name = eBookConfig.course;
         eventInfo.clientLoginStatus = eBookConfig.isLoggedIn;
         eventInfo.timezoneoffset = new Date().getTimezoneOffset() / 60;
+        // For selectquestions we need to log using the selector_id for real time scoring
+        if (this.selector_id) {
+            eventInfo.selector_id = this.selector_id;
+        }
         if (typeof this.percent === "number") {
             eventInfo.percent = this.percent;
         }
@@ -596,6 +610,14 @@ export default class RunestoneBase {
         rsDiv.classList.remove("notAnswered");
         rsDiv.classList.remove("isInCorrect");
         rsDiv.classList.remove("isCorrect");
+        let assignmentInfo = localStorage.getItem(`currentAssignmentInfo_${eBookConfig.course}`);
+        let questions = [];
+        if (assignmentInfo) {
+            questions = JSON.parse(assignmentInfo).questions
+        }
+        if (questions.indexOf(this.divid) >= 0) {
+            rsDiv.classList.add("isAssigned");
+        }
         if (this.correct) {
             rsDiv.classList.add("isCorrect");
         } else {
@@ -658,8 +680,11 @@ class AutoQueue extends Queue {
                     );
                     if (qq.preamble) {
                         await MathJax.typesetPromise([qq.preamble])
-                        item.component.innerHTML = "<div>" +
-                            qq.preamble.innerHTML + "</div>" + item.component.innerHTML;
+                        // Use insertAdjacentElement to preserve existing DOM elements and event listeners
+                        // instead of overwriting innerHTML which destroys event handlers
+                        let preambleDiv = document.createElement("div");
+                        preambleDiv.innerHTML = qq.preamble.innerHTML;
+                        item.component.insertAdjacentElement("afterbegin", preambleDiv);
                         console.log(
                             `MathJax typeset the preamble for ${item.component.id}`
                         );

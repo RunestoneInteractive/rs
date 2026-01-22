@@ -703,8 +703,8 @@ def _create_access_token(data: dict, expires=None, scopes=None) -> bytes:
         # if the ALLOW_INSECURE_LOGIN environment variable is set then do not set
         # the httponly, samesite, or secure attributes on the cookie.
         # This is useful for testing purposes, but should not be used in production.
-
-        if not os.environ.get("ALLOW_INSECURE_LOGIN", request.is_local):
+        allow_insecure = os.environ.get("ALLOW_INSECURE_LOGIN", "False").lower() in ["yes", "true"]
+        if not allow_insecure:
             response.cookies["access_token"]["httponly"] = True
             response.cookies["access_token"]["samesite"] = "None"
             response.cookies["access_token"]["secure"] = True

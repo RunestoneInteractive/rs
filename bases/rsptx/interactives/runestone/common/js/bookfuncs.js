@@ -32,48 +32,205 @@
 //
 // Page decoration functions
 //
+/*
+Maybe something like this at the top:
 
+Active assignment: [Ch 15 reading]      [Exit assignment link]
+On page (3 of 7) [Select input showing current page, can select others] 
+Becoming this if not on a page in assignment
+
+Active assignment: [Ch 15 reading]      [Exit assignment link]
+This page is not part of that assignment. Select a page to return to it:
+[Select input]
+*/
 function addReadingList() {
-    if (eBookConfig.readings) {
-        var l, nxt, path_parts, nxt_link;
+    let assignment_info_string = localStorage.getItem(`currentAssignmentInfo_${eBookConfig.course}`)
+        
+    if (assignment_info_string && eBookConfig.readings) {
+        var top,bottom,active,page_name,exit_link,fst,snd, new_pos, path_parts, new_pos_link;
+        var assignment_info = JSON.parse(assignment_info_string);
+        let assignment_id = assignment_info.id;
+        let assignment_name = assignment_info.name;
+        let reading_names = assignment_info.readingNames;
+
+        active = document.createElement("div");
+        active.textContent = "Active assignment: "
+
+        page_name = document.createElement("a");
+        page_name.textContent = assignment_name;
+        page_name.href = `/assignment/student/doAssignment?assignment_id=${assignment_id}`;
+        
+        active.append(page_name);
+
+        exit_link = document.createElement("a");
+        exit_link.textContent = " Exit Assignment";
+        exit_link.href=window.location.pathname;
+
+        exit_link.addEventListener('click',function(event) {
+            localStorage.removeItem(`currentAssignmentInfo_${eBookConfig.course}`);
+        });
+
+        //active.append(exit_link)
+
         let cur_path_parts = window.location.pathname.split("/");
         let name =
             cur_path_parts[cur_path_parts.length - 2] +
             "/" +
             cur_path_parts[cur_path_parts.length - 1];
+        // if body has pretext class, then strip the leading path parts from each of the strings in eBookConfig.readings
+        let body = document.getElementsByTagName("body")[0];
+        let ptxbook = false;
+        let endLop = 2;
+        if (body.classList.contains("pretext")) {
+            ptxbook = true;
+            eBookConfig.readings = eBookConfig.readings.map(r => r.split("/").pop());
+            name = name.split("/").pop();
+            endLop = 1;
+        }
+
         let position = eBookConfig.readings.indexOf(name);
         let num_readings = eBookConfig.readings.length;
+        // get prev name
+        if (position > 0) {
+            new_pos = eBookConfig.readings[position - 1];
+            path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
+            path_parts.push(new_pos);
+            new_pos_link = path_parts.join("/");
+            fst = active.cloneNode(true);
+            let txt = document.createElement("p");
+            txt.textContent = `Page ${position + 1} of ${num_readings}, `;
+            var fst_lnk = document.createElement("a");
+            //fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
+            fst_lnk.href = new_pos_link;
+            fst_lnk.textContent = `Back to page ${
+                position
+            } of ${num_readings}: ${reading_names[position-1]}.`;
+            txt.append(fst_lnk);
+            fst.append(txt);
+            
+        } else if (position == 0){
+            fst = active.cloneNode(true);
+            let txt = document.createElement("p");
+            txt.textContent = `Page 1 of ${num_readings}.`;
+            fst.append(txt);
+        } else {
+            // this isn't a reading page in the assignment, check to see if any
+            // activities on this page are assigned to the current assignment
+            let exerciseOnPage = false;
+            let pageExercises = Object.keys(componentMap);
+            if (pageExercises.length == 0) {
+                pageExercises = document.querySelectorAll("[data-component]");
+                pageExercises = Array.from(pageExercises).map(function(el) {
+                    return el.id;
+                })
+            }
+            for (let ex of pageExercises) {
+                if (assignment_info.questions.includes(ex)) {
+                    exerciseOnPage = true;
+                    break;
+                }
+            }
+            new_pos = eBookConfig.readings[0];
+            path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
+            path_parts.push(new_pos);
+            new_pos_link = path_parts.join("/");
+            fst = active.cloneNode(true);
+            let txt = document.createElement("p");
+            if (exerciseOnPage) {
+                txt.textContent = "This page has activities assigned to the current assignment.";
+            } else {
+                txt.textContent = "Notice: this page is not part of the assignment.";
+            }
+            txt.append(exit_link);
+            fst.append(txt);
+        }
         if (position == eBookConfig.readings.length - 1) {
             // no more readings
-            l = $("<div />", {
-                text: `Finished reading assignment. Page ${num_readings} of ${num_readings}.`,
-            });
+            snd = active;
+            let txt = document.createElement("p");
+            txt.textContent = `Page ${num_readings} of ${num_readings}: ${reading_names[position]}`;
+            snd.append(txt);
         } else if (position >= 0) {
             // get next name
-            nxt = eBookConfig.readings[position + 1];
-            path_parts = cur_path_parts.slice(0, cur_path_parts.length - 2);
-            path_parts.push(nxt);
-            nxt_link = path_parts.join("/");
-            l = $("<a />", {
-                name: "link",
-                class: "btn btn-lg ' + 'buttonConfirmCompletion'",
-                href: nxt_link,
-                text: `Continue to page ${
-                    position + 2
-                } of ${num_readings} in the reading assignment.`,
-            });
+            new_pos = eBookConfig.readings[position + 1];
+            path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
+            path_parts.push(new_pos);
+            new_pos_link = path_parts.join("/");
+            snd = active;
+            var snd_lnk = document.createElement("a");
+            //snd_lnk.className = "btn btn-lg reading-navigation next-reading";
+            snd_lnk.href = new_pos_link;
+            snd_lnk.textContent = `Continue to page ${
+                position + 2
+            } of ${num_readings}: ${reading_names[position+1]}`;
+            let txt = document.createElement("p");
+            txt.append(snd_lnk);
+            snd.append(txt);
+            
         } else {
-            l = $("<div />", {
-                text: "This page is not part of the last reading assignment you visited.",
+            snd = active.cloneNode(true);
+            let txt = document.createElement("p");
+            txt.textContent = "Notice: this page is not part of the assignment. To remove this warning click ";
+            let exit_clone = exit_link.cloneNode(true);
+
+            exit_clone.addEventListener('click',function(event) {
+                localStorage.removeItem(`currentAssignmentInfo_${eBookConfig.course}`);
             });
+            txt.append(exit_clone);
+            snd.append(txt);
+            
+
         }
-        $("#main-content").append(l);
+
+        top = document.createElement("div");
+        top.className = "ptx-runestone-container"
+        fst.className = "runestone assignment-nav top-assignment-nav"
+        //top.style.backgroundColor = "var(--componentBgColor)"
+        //top.style.borderColor = "var(--componentBorderColor)"
+        //top.style.borderWidth = "1px"
+        top.append(fst);
+        //top.append(snd);
+
+        bottom = document.createElement("div");
+        bottom.className = "ptx-runestone-container"
+        snd.className = "runestone assignment-nav bottom-assignment-nav"
+        //bottom.style.backgroundColor = "var(--componentBgColor)"
+        //bottom.style.borderColor = "var(--componentBorderColor)"
+        //bottom.style.borderWidth = "1px"
+        
+        //bottom.append(active.cloneNode(true));
+        //bottom.append(fst.cloneNode(true));
+        bottom.append(snd);
+
+
+        // check the body tag to see if it has a pretext class (no jquery)
+        if (ptxbook) {
+            //append parts to the header and progress container
+            let content = document.getElementById("ptx-content");
+            if (content) {
+                content.insertBefore(top, content.firstChild);
+            }
+            let pc = document.getElementById("scprogresscontainer");
+            if (pc) {
+                pc.style.marginBottom = "20px";
+                pc.appendChild(bottom);
+            }
+            return;
+        }
+        const mainContent = document.getElementById("main-content");
+        if (mainContent && snd) {
+            mainContent.insertBefore(top,mainContent.firstChild)
+            mainContent.appendChild(bottom);
+            
+        }
     }
 }
 
 function timedRefresh() {
     var timeoutPeriod = 900000; // 75 minutes
-    $(document).on("idle.idleTimer", function () {
+    let idleTimeoutId;
+
+    function onIdle() {
         // After timeout period send the user back to the index.  This will force a login
         // if needed when they want to go to a particular page.  This may not be perfect
         // but its an easy way to make sure laptop users are properly logged in when they
@@ -86,8 +243,22 @@ function timedRefresh() {
                 location.pathname +
                 location.search;
         }
-    });
-    $.idleTimer(timeoutPeriod);
+    }
+
+    function resetIdleTimer() {
+        if (idleTimeoutId) {
+            clearTimeout(idleTimeoutId);
+        }
+        idleTimeoutId = setTimeout(onIdle, timeoutPeriod);
+    }
+
+    ["mousemove", "keydown", "scroll", "click", "touchstart", "wheel"].forEach(
+        (eventName) => {
+            window.addEventListener(eventName, resetIdleTimer, { passive: true });
+        },
+    );
+
+    resetIdleTimer();
 }
 
 class PageProgressBar {
@@ -102,7 +273,7 @@ class PageProgressBar {
             this.activities = actDict;
         } else {
             let activities = { page: 0 };
-            $(".runestone").each(function (idx, e) {
+            document.querySelectorAll(".runestone").forEach(function (e) {
                 activities[e.firstElementChild.id] = 0;
             });
             this.activities = activities;
@@ -111,10 +282,13 @@ class PageProgressBar {
         // Hide the progress bar on the index page.
         if (
             window.location.pathname.match(
-                /.*\/(index.html|toctree.html|Exercises.html|search.html)$/i
+                /.*\/(index.html|toctree.html|Exercises.html|search.html)$/i,
             )
         ) {
-            $("#scprogresscontainer").hide();
+            const scprogresscontainer = document.getElementById(
+                "scprogresscontainer",
+            );
+            if (scprogresscontainer) scprogresscontainer.style.display = "none";
         }
         this.renderProgress();
     }
@@ -132,18 +306,59 @@ class PageProgressBar {
 
     renderProgress() {
         let value = 0;
-        $("#scprogresstotal").text(this.total);
-        $("#scprogressposs").text(this.possible);
+        const scprogresstotal = document.getElementById("scprogresstotal");
+        if (scprogresstotal) scprogresstotal.textContent = this.total;
+        const scprogressposs = document.getElementById("scprogressposs");
+        if (scprogressposs) scprogressposs.textContent = this.possible;
         try {
             value = (100 * this.total) / this.possible;
         } catch (e) {
             value = 0;
         }
-        $("#subchapterprogress").progressbar({
-            value: value,
-        });
+        // Replace #subchapterprogress div with a native <progress> element if not already done
+        let subchapterprogress = document.getElementById("subchapterprogress");
+        if (subchapterprogress && subchapterprogress.tagName !== "PROGRESS") {
+            // Replace the div with a <progress> element
+            const progressElem = document.createElement("progress");
+            progressElem.id = "subchapterprogress";
+            progressElem.max = 100;
+            progressElem.value = value;
+            // Copy over any classes from the old div
+            progressElem.className = subchapterprogress.className;
+            subchapterprogress.replaceWith(progressElem);
+            subchapterprogress = progressElem;
+        } else if (subchapterprogress) {
+            subchapterprogress.max = 100;
+            subchapterprogress.value = value;
+        }
+        if (this.assignment_spec) {
+            // If the user has completed all activities, send the reading score.
+            // This handles the case where there are no activities on the page or
+            //  where the user completed activities on the assignment page and now
+            //  is viewing the reading page.
+            let completeActivities = this.total - 1; // subtract 1 for the page reading which is in total but not an activity
+            let requiredActivities =
+                this.assignment_spec.activities_required || 0;
+            if (completeActivities >= requiredActivities) {
+                this.sendCompletedReadingScore().then(() => {
+                    console.log("Reading score sent for page");
+                    // wait a tick then mark the page complete
+                    // this is needed to let the progress bar update before marking complete
+                    setTimeout(() => {
+                        let cb = document.getElementById("completionButton");
+                        if (
+                            cb &&
+                            cb.textContent.toLowerCase() === "mark as completed"
+                        ) {
+                            cb.click();
+                        }
+                    }, 500);
+                });
+            }
+        }
         if (!eBookConfig.isLoggedIn) {
-            $("#subchapterprogress>div").addClass("loggedout");
+            const subchapterDiv = document.getElementById("subchapterprogress");
+            if (subchapterDiv) subchapterDiv.classList.add("loggedout");
         }
     }
 
@@ -153,9 +368,18 @@ class PageProgressBar {
         if (this.activities[div_id] === 1) {
             this.total++;
             let val = (100 * this.total) / this.possible;
-            $("#scprogresstotal").text(this.total);
-            $("#scprogressposs").text(this.possible);
-            $("#subchapterprogress").progressbar("option", "value", val);
+            const scprogresstotal2 = document.getElementById("scprogresstotal");
+            if (scprogresstotal2) scprogresstotal2.textContent = this.total;
+            const scprogressposs2 = document.getElementById("scprogressposs");
+            if (scprogressposs2) scprogressposs2.textContent = this.possible;
+            let subchapterprogress2 =
+                document.getElementById("subchapterprogress");
+            if (
+                subchapterprogress2 &&
+                subchapterprogress2.tagName === "PROGRESS"
+            ) {
+                subchapterprogress2.value = val;
+            }
             if (
                 this.assignment_spec &&
                 this.assignment_spec.activities_required !== null &&
@@ -168,10 +392,19 @@ class PageProgressBar {
             }
             if (
                 val == 100.0 &&
-                $("#completionButton").text().toLowerCase() ===
-                    "mark as completed"
+                (function () {
+                    const cb = document.getElementById("completionButton");
+                    return (
+                        cb &&
+                        cb.textContent &&
+                        cb.textContent.toLowerCase() === "mark as completed"
+                    );
+                })()
             ) {
-                $("#completionButton").click();
+                const cb = document.getElementById("completionButton");
+                if (cb && typeof cb.click === "function") {
+                    cb.click();
+                }
             }
         }
     }
@@ -206,6 +439,12 @@ class PageProgressBar {
 
 export var pageProgressTracker = {};
 
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+}
+
 async function handlePageSetup() {
     var mess;
     if (eBookConfig.useRunestoneServices) {
@@ -213,33 +452,69 @@ async function handlePageSetup() {
             "Content-type": "application/json; charset=utf-8",
             Accept: "application/json",
         });
-        let data = { timezoneoffset: new Date().getTimezoneOffset() / 60 };
-        let request = new Request(
-            `${eBookConfig.new_server_prefix}/logger/set_tz_offset`,
-            {
-                method: "POST",
-                body: JSON.stringify(data),
-                headers: headers,
-            },
-        );
-        try {
-            let response = await fetch(request);
-            if (!response.ok) {
-                console.error(`Failed to set timezone! ${response.statusText}`);
+        let data = {
+            timezoneoffset: new Date().getTimezoneOffset() / 60,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        };
+        let RS_info = getCookie("RS_info");
+        var tz_match = false;
+        if (RS_info) {
+            try {
+                let cleaned = RS_info.replace(/\\054/g, ","); // handle octal comma encoding
+                let info = JSON.parse(decodeURIComponent(cleaned));
+                info = JSON.parse(decodeURIComponent(info));
+                if (
+                    info.timezone === data.timezone &&
+                    info.tz_offset === data.timezoneoffset
+                ) {
+                    console.log(
+                        "Timezone cookie matches, not sending timezone to server",
+                    );
+                    tz_match = true;
+                }
+            } catch (e) {
+                console.error(
+                    "Error parsing RS_info cookie, sending timezone to server",
+                );
             }
-            data = await response.json();
-        } catch (e) {
-            console.error(`Error setting timezone ${e}`);
+        }
+        if (tz_match === false) {
+            // Set a cookie so we don't have to do this again for a while.
+            let request = new Request(
+                `${eBookConfig.new_server_prefix}/logger/set_tz_offset`,
+                {
+                    method: "POST",
+                    body: JSON.stringify(data),
+                    headers: headers,
+                },
+            );
+            try {
+                let response = await fetch(request);
+                if (!response.ok) {
+                    console.error(
+                        `Failed to set timezone! ${response.statusText}`,
+                    );
+                }
+                data = await response.json();
+            } catch (e) {
+                console.error(`Error setting timezone ${e}`);
+            }
         }
     }
     console.log(`This page served by ${eBookConfig.served_by}`);
     if (eBookConfig.isLoggedIn) {
         mess = `username: ${eBookConfig.username}`;
         if (!eBookConfig.isInstructor) {
-            $("#ip_dropdown_link").remove();
-            $("#inst_peer_link").remove();
+            const ipDropdown = document.getElementById("ip_dropdown_link");
+            if (ipDropdown && typeof ipDropdown.remove === "function") {
+                ipDropdown.remove();
+            }
+            const instPeer = document.getElementById("inst_peer_link");
+            if (instPeer && typeof instPeer.remove === "function") {
+                instPeer.remove();
+            }
         }
-        $(document).trigger("runestone:login");
+        document.dispatchEvent(new Event("runestone:login"));
         addReadingList();
         // Avoid the timedRefresh on the grading page.
         if (
@@ -250,7 +525,7 @@ async function handlePageSetup() {
         }
     } else {
         mess = "Not logged in";
-        $(document).trigger("runestone:logout");
+        document.dispatchEvent(new Event("runestone:logout"));
         let bw = document.getElementById("browsing_warning");
         if (bw) {
             bw.innerHTML =
@@ -262,37 +537,55 @@ async function handlePageSetup() {
                 "<p class='navbar_message'>🚫 Log-in to Remove <a href='/runestone/default/ads'>Ads!</a> 🚫 &nbsp;</p>";
         }
     }
-    $(".loggedinuser").html(mess);
+    document.querySelectorAll(".loggedinuser").forEach((el) => {
+        el.innerHTML = mess;
+    });
 
     pageProgressTracker = new PageProgressBar(eBookConfig.activities);
     notifyRunestoneComponents();
 }
 
 function setupNavbarLoggedIn() {
-    $("#profilelink").show();
-    $("#passwordlink").show();
-    $("#registerlink").hide();
-    $("li.loginout").html(
-        '<a href="' + eBookConfig.app + '/default/user/logout">Log Out</a>',
-    );
+    const profileLink = document.getElementById("profilelink");
+    if (profileLink) profileLink.style.removeProperty("display");
+    const passwordLink = document.getElementById("passwordlink");
+    if (passwordLink) passwordLink.style.removeProperty("display");
+    const registerLink = document.getElementById("registerlink");
+    if (registerLink) registerLink.style.display = "none";
+    document.querySelectorAll("li.loginout").forEach((el) => {
+        el.innerHTML =
+            '<a href="' +
+            eBookConfig.app +
+            '/default/user/logout">Log Out</a>';
+    });
 }
-$(document).on("runestone:login", setupNavbarLoggedIn);
+document.addEventListener("runestone:login", setupNavbarLoggedIn);
 
 function setupNavbarLoggedOut() {
     if (eBookConfig.useRunestoneServices) {
         console.log("setup navbar for logged out");
-        $("#registerlink").show();
-        $("#profilelink").hide();
-        $("#passwordlink").hide();
-        $("#ip_dropdown_link").hide();
-        $("#inst_peer_link").hide();
-        $("li.loginout").html(
-            '<a href="' + eBookConfig.app + '/default/user/login">Login</a>',
-        );
-        $(".footer").html("user not logged in");
+        const registerLink = document.getElementById("registerlink");
+        if (registerLink) registerLink.style.removeProperty("display");
+        const profileLink = document.getElementById("profilelink");
+        if (profileLink) profileLink.style.display = "none";
+        const passwordLink = document.getElementById("passwordlink");
+        if (passwordLink) passwordLink.style.display = "none";
+        const ipDropdown = document.getElementById("ip_dropdown_link");
+        if (ipDropdown) ipDropdown.style.display = "none";
+        const instPeer = document.getElementById("inst_peer_link");
+        if (instPeer) instPeer.style.display = "none";
+        document.querySelectorAll("li.loginout").forEach((el) => {
+            el.innerHTML =
+                '<a href="' +
+                eBookConfig.app +
+                '/default/user/login">Login</a>';
+        });
+        document.querySelectorAll(".footer").forEach((el) => {
+            el.innerHTML = "user not logged in";
+        });
     }
 }
-$(document).on("runestone:logout", setupNavbarLoggedOut);
+document.addEventListener("runestone:logout", setupNavbarLoggedOut);
 
 function notifyRunestoneComponents() {
     // Runestone components wait until login process is over to load components because of storage issues. This triggers the `dynamic import machinery`, which then sends the login complete signal when this and all dynamic imports are finished.
@@ -314,7 +607,7 @@ function placeAdCopy() {
 }
 
 // initialize stuff
-$(function () {
+document.addEventListener("DOMContentLoaded", function () {
     if (eBookConfig) {
         handlePageSetup();
         placeAdCopy();
@@ -331,22 +624,21 @@ $(function () {
 // todo:  This could be further distributed but making a video.js file just for one function seems dumb.
 window.addEventListener("load", function () {
     // add the video play button overlay image
-    $(".video-play-overlay").each(function () {
-        $(this).css(
-            "background-image",
-            "url('{{pathto('_static/play_overlay_icon.png', 1)}}')",
-        );
+    document.querySelectorAll(".video-play-overlay").forEach(function (el) {
+        el.style.backgroundImage =
+            "url('{{pathto('_static/play_overlay_icon.png', 1)}}')";
     });
 
     // This function is needed to allow the dropdown search bar to work;
     // The default behaviour is that the dropdown menu closes when something in
     // it (like the search bar) is clicked
-    $(function () {
-        // Fix input element click problem
-        $(".dropdown input, .dropdown label").click(function (e) {
-            e.stopPropagation();
+    document
+        .querySelectorAll(".dropdown input, .dropdown label")
+        .forEach(function (el) {
+            el.addEventListener("click", function (e) {
+                e.stopPropagation();
+            });
         });
-    });
 
     // re-write some urls
     // This is tricker than it looks and you have to obey the rules for # anchors
@@ -372,3 +664,31 @@ window.addEventListener("load", function () {
         });
     }
 });
+
+/**
+ * Returns true if the string appears to contain LaTeX math.
+ */
+export function looksLikeLatexMath(text) {
+    if (typeof text !== "string") return false;
+
+    // Common LaTeX math delimiters
+    const mathDelimiters = [
+        /\$\$[\s\S]+?\$\$/, // $$ ... $$
+        /\$[^$\n]+?\$/, // $ ... $
+        /\\\[[\s\S]+?\\\]/, // \[ ... \]
+        /\\\([\s\S]+?\\\)/, // \( ... \)
+    ];
+
+    // Common math commands (avoid generic \text or \ref-only cases)
+    const mathCommands =
+        /\\(frac|sqrt|sum|prod|int|lim|sin|cos|tan|log|ln|alpha|beta|gamma|pi|theta|sigma|Delta|cdot|times|leq|geq|neq)\b/;
+
+    // Superscripts/subscripts like x^2 or a_i
+    const superSubScript = /[a-zA-Z0-9]\s*[\^_]\s*\{?.+?\}?/;
+
+    return (
+        mathDelimiters.some((re) => re.test(text)) ||
+        mathCommands.test(text) ||
+        superSubScript.test(text)
+    );
+}

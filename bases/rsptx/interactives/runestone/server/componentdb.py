@@ -22,7 +22,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 from __future__ import print_function
-import pdb
 
 from datetime import datetime, timedelta
 
@@ -30,7 +29,6 @@ __author__ = "bmiller"
 
 import os
 from os import environ
-import re
 from sphinx.util import logging
 from sqlalchemy import create_engine, Table, MetaData, select, and_, or_
 from sqlalchemy.orm.session import sessionmaker
@@ -57,6 +55,9 @@ def get_dburl(outer={}):
     # nonlocal env, settings # Python 3 only
 
     dburl = None
+    if "SERVER_CONFIG" not in environ:
+        logger.warning("SERVER_CONFIG not in environment!")
+
     if "SERVER_CONFIG" in environ:
         w2py_config = environ["SERVER_CONFIG"]
         if w2py_config == "development":
@@ -91,6 +92,7 @@ def get_dburl(outer={}):
             dburl = "postgresql://" + dburl[len(remove_prefix) :]
         return dburl
 
+    logger.error("Cannot find any database environment variables!")
     raise RuntimeError("Cannot configure a Database URL!")
 
 

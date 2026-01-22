@@ -34,7 +34,6 @@ from selenium.webdriver.chrome.options import Options
 # This is necessary to bring in the shared pytest fixture.
 from runestone.shared_conftest import (
     _SeleniumUtils,
-    selenium_driver,
 )  # noqa: F401
 
 logging.basicConfig(level=logging.WARN)

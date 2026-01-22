@@ -88,7 +88,6 @@ async def upsert_lti1p3_course(course: Lti1p3Course) -> Lti1p3Course:
         )
         res = await session.execute(query)
         existing_course = res.scalars().one_or_none()
-        await session.commit()
         if existing_course:
             existing_course.update_from_dict(course.dict())
             # Validate now that we have built full object
@@ -165,22 +164,22 @@ async def fetch_lti1p3_course_by_id(
         return dep
 
 
-async def fetch_lti1p3_course_by_lti_id(
-    lti_id: str, with_config: bool = True, with_rs_course: bool = False
-) -> Lti1p3Course:
+async def fetch_lti1p3_courses_by_lti_course_id(
+    lti_course_id: str, with_config: bool = True, with_rs_course: bool = False
+) -> List[Lti1p3Course]:
     """
     Retrieve an LTI1.3 platform config by its lti identifier
     Also optionally fetches the associated Lti1p3Conf and/or Course
     """
-    query = select(Lti1p3Course).where(Lti1p3Course.lti1p3_course_id == lti_id)
+    query = select(Lti1p3Course).where(Lti1p3Course.lti1p3_course_id == lti_course_id)
     if with_config:
         query = query.options(joinedload(Lti1p3Course.lti_config))
     if with_rs_course:
         query = query.options(joinedload(Lti1p3Course.rs_course))
     async with async_session() as session:
         res = await session.execute(query)
-        dep = res.scalars().one_or_none()
-        return dep
+        courses = res.scalars().all()
+        return courses
 
 
 async def fetch_lti1p3_course_by_lti_data(
@@ -353,7 +352,9 @@ async def fetch_lti1p3_grading_data_for_assignment(
         return assign
 
 
-async def validate_user_credentials(username: str, password: str) -> Optional[AuthUserValidator]:
+async def validate_user_credentials(
+    username: str, password: str
+) -> Optional[AuthUserValidator]:
     """
     Validate a user's credentials by their username and password.
 
@@ -370,8 +371,6 @@ async def validate_user_credentials(username: str, password: str) -> Optional[Au
         return user
     else:
         return None
-
-
 
 
 # /LTI 1.3
@@ -435,4 +434,3 @@ async def delete_lti_course(course_id: int) -> bool:
         await session.execute(d_query2)
 
     return True
-

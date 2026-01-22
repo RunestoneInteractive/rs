@@ -55,7 +55,8 @@
         {% endif %}
       </td>
 
-      <td>{{assignment.duedate}}</td>
+      
+      <td {% if assignment.duedate < now %}class="overdue"{% endif %}>{{assignment.duedate.strftime("%b %d, %Y %I:%M %p")}}</td>
       <td>
         {% if assignment.id in stats and stats[assignment.id].score != None %}
         {{ stats[assignment.id].score | round(2) }} / {{ assignment.points }}

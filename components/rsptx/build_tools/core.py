@@ -41,7 +41,6 @@ from runestone.server import get_dburl
 from rsptx.db.models import Library, LibraryValidator
 from rsptx.db.crud import update_source_code_sync
 from rsptx.response_helpers.core import canonical_utcnow
-import pdb
 
 rslogger.setLevel("WARNING")
 
@@ -152,7 +151,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
 
     if not os.path.exists("project.ptx"):
         click.echo("PreTeXt books need a project.ptx file")
-        return False
+        return {"completed": False, "status": "Missing project.ptx file"}
     else:
         click.echo("Checking files")
         if not target:
@@ -161,7 +160,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         # and {"host-platform": "runestone"} in stringparams
         rs = check_project_ptx(click=click, course=course, target=target)
         if not rs:
-            return False
+            return {"completed": False, "status": "Bad configuration in project.ptx"}
 
         logger = logging.getLogger("ptxlogger")
         string_io_handler = StringIOHandler()
@@ -180,8 +179,9 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         if not log_path.parent.exists():
             log_path.parent.mkdir(parents=True, exist_ok=True)
         click.echo(f"Writing log to {log_path}")
+        log_string = string_io_handler.getvalue()
         with open(log_path, "a") as olfile:
-            olfile.write(string_io_handler.getvalue())
+            olfile.write(log_string)
 
         book_path = (
             Path(os.environ.get("BOOK_PATH"))
@@ -195,7 +195,10 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
             res = copytree(rs.output_dir_abspath(), book_path, dirs_exist_ok=True)
             if not res:
                 click.echo("Error copying files to published")
-                return False
+                return {
+                    "completed": False,
+                    "status": "Error copying files to published",
+                }
         else:
             click.echo("No need to copy files to published")
         click.echo("Book deployed successfully")
@@ -211,7 +214,20 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         click.echo("updating library metadata...")
         main_page = find_real_url(course)
         update_library(config, mpath, course, main_page=main_page, build_system="PTX")
-        return True
+
+        # since rs.build() does not return a status we have to parse the log for failures
+        if "FATAL" in log_string:
+            click.echo("Fatal errors, build aborted, check the log for details")
+            return {"completed": False, "status": "Fatal errors in build"}
+        if (
+            "ERROR" in log_string
+            or "Traceback" in log_string
+            or "compilation failed" in log_string
+        ):
+            click.echo("Nonfatal errors in build, check the log for details")
+            return {"completed": True, "status": "Nonfatal errors in build"}
+        click.echo("Build completed successfully")
+        return {"completed": True, "status": "Build completed successfully"}
 
 
 # Support Functions
@@ -635,7 +651,7 @@ def _process_appendices(sess, db_context, course_name, manifest_path):
 
     for appendix in root.findall("./appendix"):
         _process_source_elements(sess, appendix, course_name)
-        
+
         for data_file in appendix.findall("./datafile"):
             el = data_file.find(".//*[@data-component]")
             _handle_datafile(el, course_name)
@@ -643,7 +659,6 @@ def _process_appendices(sess, db_context, course_name, manifest_path):
 
 def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
     """Process a single chapter and return its database ID."""
-    rslogger.info(chapter)
     cnum = chapter.find("./number").text
     if not cnum:
         cnum = ""
@@ -664,7 +679,7 @@ def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
     res = sess.execute(ins)
     return res.inserted_primary_key[0]
 
-
+import pdb
 def _process_subchapters(sess, db_context, chapter, chapid, course_name):
     """Process all subchapters for a given chapter."""
     subchap = 0
@@ -679,17 +694,18 @@ def _process_subchapters(sess, db_context, chapter, chapid, course_name):
         # look for a subsubchapter with a time-limit attribute
         # at this point (7/28/2025) the only reason for a subsubchapter
         # is to have a timed assignment, so we can skip the rest of the
-        for subsubchapter in subchapter.findall("./subsubchapter"):
-            if "data-time" in subsubchapter.attrib:
-                _process_single_timed_assignment(
-                    sess,
-                    db_context,
-                    chapter,
-                    subsubchapter,
-                    course_name,
-                    parent=subchapter,
-                )
-                continue
+        # find all divs with a class of timedAssessment
+        #pdb.set_trace()
+        for timed_assessment_div in subchapter.findall(".//div[@class='timedAssessment']"):
+            _process_single_timed_assignment(
+                sess,
+                db_context,
+                chapter,
+                timed_assessment_div,
+                course_name,
+                parent=subchapter,
+            )
+
         subchap += 1
         _process_single_subchapter(
             sess, db_context, chapter, subchapter, chapid, subchap, course_name
@@ -837,11 +853,14 @@ def _process_single_timed_assignment(
     sess, db_context, chapter, subchapter, course_name, parent=None
 ):
     """Process a timed assignment subchapter."""
+    subchapter = subchapter.find("./ul[@data-component='timedAssessment']")
     rslogger.info("Processing timed assignment subchapter")
-    titletext = subchapter.find("./title").text.strip()
+    titletext = subchapter.find("./title")
+    if titletext is not None:
+        titletext = titletext.text.strip()
     if not titletext:
         titletext = "Timed Assignment"
-    timed_id = subchapter.find("./id").text
+    timed_id = subchapter.attrib.get("id", None)
     time_limit = subchapter.attrib.get("data-time", "0")
     # no-result, no-feedback, no-pause
     show_feedback = "F" if subchapter.attrib.get("data-no-feedback", "") else "T"
@@ -875,7 +894,6 @@ def _process_single_timed_assignment(
             [ET.tostring(y).decode("utf8") for y in question.findall("./htmlsrc/*")]
         )
         qlabel = " ".join([y.text for y in question.findall("./label")])
-        rslogger.debug(f"found label= {qlabel}")
 
         # Get question element and metadata
         el, idchild, old_ww_id, qtype = _extract_question_metadata(question, dbtext)
@@ -900,7 +918,7 @@ def _process_single_timed_assignment(
             from_source="T",
             chapter=chapter.find("./id").text,
             subchapter=subchap_label,
-            topic=f"{chapter.find('./id').text}/{subchapter.find('./id').text}",
+            topic=f"{chapter.find('./id').text}/{subchapter.attrib.get('id', '')}",
             qnumber=qlabel,
             optional="F",
             practice="F",
@@ -974,7 +992,6 @@ def _process_single_question(
         [ET.tostring(y).decode("utf8") for y in question.findall("./htmlsrc/*")]
     )
     qlabel = " ".join([y.text for y in question.findall("./label")])
-    rslogger.debug(f"found label= {qlabel}")
 
     # Get question element and metadata
     el, idchild, old_ww_id, qtype = _extract_question_metadata(question, dbtext)
@@ -983,7 +1000,18 @@ def _process_single_question(
     if qtype == "webwork" and el is not None:
         dbtext = ET.tostring(el).decode("utf8")
 
-    # Determine question properties
+    if qtype == "dual":
+        # dual questions have two components, we need to extract both
+        # the second component has the id we want
+        dynamic = el.find(".//*[@data-component]")
+        if dynamic is not None and "id" in dynamic.attrib:
+            idchild = dynamic.attrib["id"]
+            qtype = dynamic.attrib["data-component"]
+    if qtype == "doenet":
+        # rewrite the url in the dbtext to use the course name in the path
+        dbtext = re.sub(
+            r'(<iframe.*?)src="(.*?.html)"', rf'\1 src="/ns/books/published/{course_name}/\2"', dbtext
+        )
     optional = "T" if ("optional" in question.attrib or qtype == "datafile") else "F"
     practice = _determine_practice_flag(qtype, el)
     autograde = _determine_autograde(dbtext)
@@ -1110,7 +1138,6 @@ def _upsert_question(sess, db_context, namekey, valudict, course_name):
         valudict.pop("base_course", None)
         # Update existing question
         result_id = res.id
-        rslogger.debug(f"Updating question {namekey} in {course_name}")
         ins = (
             db_context["questions"]
             .update()

@@ -32,7 +32,7 @@ $(document).on("runestone:pre-login-complete", function() {
 var runestoneMathReady = new Promise((resolve) => window.rsMathReady = resolve);
 window.MathJax = {
   tex: {
-    inlineMath: [['\\(','\\)']],
+    inlineMath: [['\\(','\\)'], ['$','$']],
     tags: "none",
     tagSide: "right",
     tagIndent: ".8em",

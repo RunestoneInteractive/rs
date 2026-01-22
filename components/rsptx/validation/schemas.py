@@ -13,6 +13,7 @@
 from datetime import datetime
 from dateutil.parser import isoparse
 from typing import Container, Optional, Type, Dict, Tuple, Any, Union, List
+
 # Third-party imports
 # -------------------
 from pydantic import (
@@ -32,6 +33,7 @@ from typing_extensions import Annotated, TypedDict
 # -------------------------
 # None.
 from rsptx.response_helpers.core import canonical_utcnow
+
 
 # Schema generation
 # =================
@@ -70,7 +72,7 @@ def sqlalchemy_to_pydantic(
 
         # Determine the Python type of the column.
         python_type = column.type.python_type
-        if python_type == str and hasattr(column.type, "length"):
+        if python_type is str and hasattr(column.type, "length"):
             python_type = Annotated[
                 str, StringConstraints(max_length=column.type.length)
             ]
@@ -130,6 +132,7 @@ class LogItemIncoming(BaseModelNone):
     incorrect: Optional[int] = None
     skipped: Optional[int] = None
     time_taken: Optional[int] = None
+    selector_id: Optional[str] = None
 
 
 class AssessmentRequest(BaseModelNone):
@@ -157,6 +160,7 @@ class AssessmentRequest(BaseModelNone):
 
 class TimezoneRequest(BaseModelNone):
     timezoneoffset: float
+    timezone: Optional[str] = "UTC"
 
 
 class LogRunIncoming(BaseModelNone):
@@ -254,6 +258,7 @@ class QuestionIncoming(BaseModel):
     description: Optional[str] = None
     difficulty: Optional[float] = None
     topic: Optional[str] = None
+    is_private: Optional[bool] = False
 
 
 class AssignmentQuestionIncoming(BaseModel):
@@ -274,22 +279,23 @@ class SearchSpecification(BaseModel):
 
 class ExercisesSearchRequest(BaseModel):
     """Request model for searching exercises with pagination and filtering"""
+
     # Base course flag - when true, uses current course's base_course
     use_base_course: bool = True
     base_course: Optional[str] = None
-    
+
     # Assignment ID to filter out already assigned exercises
     assignment_id: Optional[int] = None
 
     # Pagination
     page: int = 0
     limit: int = 20
-    
+
     # Sorting
     sorting: Dict[str, Any] = Field(
         default_factory=lambda: {"field": "name", "order": 1}
     )
-    
+
     # Filters - consolidated JSON object for all filter types
     # Supports array values for multi-selection and match modes with field_matchMode pattern
     # Example: { "question_type": ["mchoice", "activecode"], "question_type_matchMode": "equals" }
@@ -315,11 +321,13 @@ class ReadingAssignmentSpec(BaseModel):
     points: int
     name: str
 
+
 class UpdateAssignmentExercisesPayload(BaseModel):
     isReading: bool
     assignmentId: int
     idsToAdd: Optional[List[int]] = None
     idsToRemove: Optional[List[int]] = None
+
 
 class AssignmentQuestionUpdateDict(TypedDict, total=False):
     # AssignmentQuestion fields
@@ -333,7 +341,7 @@ class AssignmentQuestionUpdateDict(TypedDict, total=False):
     reading_assignment: Optional[bool]
     sorting_priority: int
     activities_required: Optional[int]
-    
+
     # Question fields
     name: Optional[str]
     source: Optional[str]
@@ -347,9 +355,11 @@ class AssignmentQuestionUpdateDict(TypedDict, total=False):
     feedback: Optional[str]
     difficulty: Optional[float]
     tags: Optional[str]
-    
+    is_private: Optional[bool]
+
     # Owner field for permission checking
     owner: Optional[str]
+
 
 class CreateExercisesPayload(BaseModel):
     id: Optional[int] = None
@@ -372,11 +382,14 @@ class CreateExercisesPayload(BaseModel):
     is_reading: bool
     assignment_id: int
 
+
 class ValidateQuestionNameRequest(BaseModel):
     name: str
+
 
 class CopyQuestionRequest(BaseModel):
     original_question_id: int
     new_name: str
     assignment_id: Optional[int] = None
     copy_to_assignment: bool = False
+    htmlsrc: Optional[str] = None

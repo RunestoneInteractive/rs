@@ -4,7 +4,6 @@
 # of a PreTeXt book outside of docker
 import os
 import subprocess
-import sys
 import pathlib
 import fnmatch
 
@@ -67,19 +66,22 @@ def build_book(target, clean, generate, bookname):
         generate = True if os.environ.get("GENERATE_ASSETS", False) else False
 
     res = _build_ptx_book(config, generate, "runestone-manifest.xml", bookname, target=target)
-    if not res:
-        print("build failed")
+
+    if not res.get("completed", False):
+        print(res.get("status", "build failed"))
         exit(-1)
+    else:
+        print(res.get("status", "build Finished with errors"))
 
     # touch the file build_complete
     with open("build_success", "w") as f:
         f.write("build success")
 
-    res = subprocess.run(f"chgrp -R www-data .", shell=True, capture_output=True)
+    res = subprocess.run("chgrp -R www-data .", shell=True, capture_output=True)
     if res.returncode != 0:
         print("failed to change group")
 
-    res = subprocess.run(f"chmod -R go+rw .", shell=True, capture_output=True)
+    res = subprocess.run("chmod -R go+rw .", shell=True, capture_output=True)
     if res.returncode != 0:
         print("failed to change permissions")
 

@@ -69,7 +69,10 @@ router = APIRouter(
 # ----------------
 @router.get("/chooseAssignment")
 async def get_assignments(
-    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+    RS_info: Optional[str] = Cookie(None),
 ):
     """Create the chooseAssignment page for the user.
 
@@ -100,7 +103,22 @@ async def get_assignments(
     if not user_is_instructor:
         assignments = [a for a in assignments if a.visible or a.id in assignment_ids]
 
-    assignments.sort(key=lambda x: x.duedate, reverse=True)
+    parsed_js = json.loads(RS_info) if RS_info else {}
+    timezoneoffset = parsed_js.get("tz_offset", None)
+
+    def sort_key(assignment):
+        deadline = assignment.duedate
+        if timezoneoffset:
+            deadline = deadline + datetime.timedelta(hours=float(timezoneoffset))
+            return (deadline < canonical_utcnow(), abs((deadline - canonical_utcnow()).total_seconds()))
+        else:
+            return (assignment.duedate < canonical_utcnow(), abs((assignment.duedate - canonical_utcnow()).total_seconds()))    
+
+    # Sort assignments: upcoming assignments first (closest to current date), past due assignments last
+    now = canonical_utcnow()
+    assignments.sort(
+        key=sort_key
+    )
     stats_list = await fetch_all_assignment_stats(course.course_name, user.id)
     stats = {}
     for s in stats_list:
@@ -117,6 +135,7 @@ async def get_assignments(
             "is_instructor": user_is_instructor,
             "student_page": True,
             "lti1p1": is_lti1p1_course,
+            "now": now,
         },
     )
 
@@ -241,9 +260,13 @@ async def doAssignment(
     if (
         assignment.visible == "F"
         or assignment.visible is None
-        or assignment.visible == False
+        or assignment.visible == False  # noqa: E712
     ):
-        if not (await is_instructor(request) or deadline_exception.visible):
+        if not (
+            await is_instructor(request)
+            or deadline_exception.visible
+            or deadline_exception.allowLink
+        ):
             rslogger.error(
                 f"Attempt to access invisible assignment {assignment_id} by {user.username}"
             )
@@ -420,6 +443,26 @@ async def doAssignment(
                 questionslist.append(info)
                 questions_score += info["score"]
                 qset.add(q.Question.name)
+    # Just to be sure we are current, we will update the total score for the assignment
+    current_grade = await fetch_grade(user.id, assignment_id)
+    if current_grade and current_grade.score != (readings_score + questions_score):
+        rslogger.debug(
+            f"Updating total score for {user.id} assignment {assignment_id} to {current_grade.score}"
+        )
+        current_grade.score = readings_score + questions_score
+        await upsert_grade(current_grade)
+    elif not current_grade:
+        new_grade = GradeValidator(
+            auth_user=user.id,
+            assignment=assignment_id,
+            is_submit="",
+            manual_total=False,
+            score=readings_score + questions_score,
+        )
+        await upsert_grade(new_grade)
+        rslogger.debug(
+            f"Creating total score for {user.id} assignment {assignment_id} to {new_grade.score}"
+        )
 
     # put readings into a session variable, to enable next/prev button
     readings_names = []

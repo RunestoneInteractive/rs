@@ -4,3 +4,54 @@ div.journal div.latexoutput {
     margin-bottom: 10px;
     border-radius: 5px;
 }
+
+
+.shortanswer_section .alert {
+    margin-bottom: 0;
+}
+
+.shortanswer__timestamp {
+    font-size: 0.9em;
+    color: var(--grayToWhite, #333);
+}
+
+.journal textarea {
+    width: 100%;
+    max-width: 100%;
+    min-height: 6rem;
+
+    padding: 0.75rem 0.9rem;
+    font-size: 1rem;
+    line-height: 1.5;
+
+    border-radius: 8px;
+    border: 1px solid #d0d7de;
+    background-color: #fff;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+
+    resize: none;
+    overflow: hidden;
+
+    font-family: system-ui, -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", Roboto, sans-serif;
+    background:
+        linear-gradient(#fff, #fff) padding-box,
+        linear-gradient(to right, #eaeef2, #eaeef2) border-box;
+}
+
+.journal textarea:focus {
+    outline: none;
+    border-color: #0969da;
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+}
+
+.shortanswer__rendered-answer-div {
+    margin-top: 1rem;
+}
+
+.shortanswer__feedback {
+    margin-top: 1rem;
+}

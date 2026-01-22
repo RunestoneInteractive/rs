@@ -55,7 +55,9 @@ class ToolConfAbstract(t.Generic[REQ]):
         return self.find_registration_by_issuer(iss, *args, **kwargs)
 
     @abstractmethod
-    async def find_registration_by_issuer(self, iss: str, *args, **kwargs) -> Registration:
+    async def find_registration_by_issuer(
+        self, iss: str, *args, **kwargs
+    ) -> Registration:
         """
         Find registration in case if iss has only one client id, i.e
         in case of { ... "iss": { ... "client_id: "client" ... }, ... } config.
@@ -78,7 +80,9 @@ class ToolConfAbstract(t.Generic[REQ]):
         raise NotImplementedError
 
     @abstractmethod
-    async def find_deployment(self, iss: str, deployment_id: str) -> t.Optional[Deployment]:
+    async def find_deployment(
+        self, iss: str, deployment_id: str
+    ) -> t.Optional[Deployment]:
         """
         Find deployment in case if iss has only one client id, i.e
         in case of { ... "iss": { ... "client_id: "client" ... }, ... } config.

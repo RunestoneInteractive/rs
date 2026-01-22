@@ -54,6 +54,7 @@ from rsptx.db.crud import (
     create_instructor_course_entry,
     create_library_book,
     fetch_base_course,
+    fetch_basecourse_courses,
     fetch_books_by_author,
     fetch_course_by_id,
     fetch_course,
@@ -121,6 +122,7 @@ async def create_book_entry(
         "repo_path": repo_path,
         "target": "runestone",
     }
+    logger.debug(f"Creating library book with vals {vals}")
     await create_library_book(document_id, vals)
     await create_book_author(author, document_id)
     c_from_db = await fetch_base_course(document_id)
@@ -311,7 +313,9 @@ async def subchapmap(
 @app.get("/author/getlog/{book}")
 async def getlog(request: Request, book, user=Depends(auth_manager)):
     book_entry = await fetch_library_book(book)
-    if (
+    if (pathlib.Path(f"/books/{book}") / "author_build.log").exists():
+        work_dir = f"/books/{book}"
+    elif (
         book_entry
         and book_entry.repo_path
         and (pathlib.Path(book_entry.repo_path) / "author_build.log").exists()
@@ -343,11 +347,15 @@ async def editlib(request: Request, book: str, user=Depends(auth_manager)):
     # Get the book and populate the form with current data
     book_data = await fetch_library_book(book)
     course = await fetch_course(user.course_name)
-    book_data_dict = get_model_dict(book_data)
+    if book_data:
+        book_data_dict = get_model_dict(book_data)
+    else:
+        book_data_dict = {"basecourse": book}
     # this will either create the form with data from the submitted form or
     # from the kwargs passed if there is not form data.  So we can prepopulate
     #
     form = await LibraryForm.from_formdata(request, **book_data_dict)
+    logger.debug(f"prepost FORM data = {form.data}")
     if request.method == "POST" and await form.validate():
         print(f"Got {form.authors.data}")
         print(f"FORM data = {form.data}")
@@ -377,6 +385,11 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
     for c in courses:
         the_course = await fetch_course_by_id(c.course)
         class_list.append(the_course.course_name)
+    if is_authorp:
+        bc_courses = await fetch_basecourse_courses(user.course_name)
+        for c in bc_courses:
+            if c.course_name not in class_list:
+                class_list.append(c.course_name)
 
     lf_path = pathlib.Path("downloads", "datashop", user.username)
     logger.debug(f"WORKING DIR = {lf_path}")
@@ -454,7 +467,8 @@ async def new_course(payload=Body(...), user=Depends(auth_manager)):
     logger.debug(f"repo_path = {repo_path}")
     # check to see if this path already exists
     if pathlib.Path(repo_path).exists():
-        return JSONResponse({"detail": "repo_path already exists"})
+        if github_url.strip() != "":
+            return JSONResponse({"detail": "repo_path already exists"})
     if "DEV_DBURL" not in os.environ:
         return JSONResponse({"detail": "DBURL is not set"})
     else:

@@ -1,6 +1,8 @@
 import { ExercisePreview } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreview";
 import { FC } from "react";
 
+import { useFetchDatafilesQuery } from "@/store/datafile/datafile.logic.api";
+import { ExistingDataFile, SelectedDataFile } from "@/types/datafile";
 import { generateActiveCodePreview } from "@/utils/preview/activeCode";
 
 interface ActiveCodePreviewProps {
@@ -11,6 +13,7 @@ interface ActiveCodePreviewProps {
   suffix_code: string;
   name: string;
   stdin?: string;
+  selectedExistingDataFiles?: SelectedDataFile[];
 }
 
 export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
@@ -20,8 +23,23 @@ export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
   starter_code,
   suffix_code,
   name,
-  stdin
+  stdin,
+  selectedExistingDataFiles = []
 }) => {
+  // Fetch datafiles list to get filenames for selected acids
+  const { data: allDatafiles = [] } = useFetchDatafilesQuery();
+
+  // Map selected files with existing file info
+  const selectedDatafilesInfo = selectedExistingDataFiles
+    .map((acid) => {
+      const existingFile = allDatafiles.find((df: ExistingDataFile) => df.acid === acid);
+      return {
+        acid,
+        filename: existingFile?.filename
+      };
+    })
+    .filter((df) => df.acid);
+
   return (
     <div style={{ display: "flex", alignItems: "start", justifyContent: "center" }}>
       <ExercisePreview
@@ -32,7 +50,8 @@ export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
           starter_code,
           suffix_code,
           name,
-          stdin
+          stdin,
+          selectedDatafilesInfo
         )}
       />
     </div>

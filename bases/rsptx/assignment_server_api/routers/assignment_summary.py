@@ -5,10 +5,8 @@ from sqlalchemy import create_engine
 
 
 def create_assignment_summary(assignment_id, course, dburl):
-
     COURSE_NAME = course.course_name
     COURSE_ID = course.id
-    BASE_COURSE = course.base_course
     ASSIGNMENT_ID = assignment_id
     eng = create_engine(dburl)
 
@@ -22,8 +20,16 @@ def create_assignment_summary(assignment_id, course, dburl):
         eng,
     )
 
-    div_id_to_chapter = df[['div_id', 'chapter', 'points']].drop_duplicates().set_index('div_id').T.to_dict()
-    div_id_to_chapter = {k: {'chapter': v['chapter'], 'points': v['points']} for k, v in div_id_to_chapter.items()}
+    div_id_to_chapter = (
+        df[["div_id", "chapter", "points"]]
+        .drop_duplicates()
+        .set_index("div_id")
+        .T.to_dict()
+    )
+    div_id_to_chapter = {
+        k: {"chapter": v["chapter"], "points": v["points"]}
+        for k, v in div_id_to_chapter.items()
+    }
     pt = df.pivot(index="sid", columns="div_id", values="score").reset_index()
     students = pd.read_sql(
         f"""
@@ -112,7 +118,7 @@ def create_assignment_summary(assignment_id, course, dburl):
     merged = summary.merge(
         attp, on=["Student ID", "First Name", "Last Name"], how="outer"
     )
-    merged = merged.fillna(0)    
+    merged = merged.fillna(0)
     for col in exercises:
         # convert aaa_y columns to int
         if col + "_y" in merged.columns:
@@ -135,7 +141,9 @@ def create_assignment_summary(assignment_id, course, dburl):
     ]
     try:
         merged.iloc[0, 3:] = merged.iloc[0, 3:].apply(
-            lambda x: "{:.2f}".format(float(x.split("(")[0])) if type(x) is str and "(" in x else "{:.2f}".format(float(x))
+            lambda x: "{:.2f}".format(float(x.split("(")[0]))
+            if type(x) is str and "(" in x
+            else "{:.2f}".format(float(x))
         )
     except Exception as e:
         print(
@@ -146,6 +154,9 @@ def create_assignment_summary(assignment_id, course, dburl):
         merged.iloc[0, 1] = ""
         merged.iloc[0, 2] = "Average"
 
-    return merged.to_dict(
-        orient="records",
-    ), div_id_to_chapter
+    return (
+        merged.to_dict(
+            orient="records",
+        ),
+        div_id_to_chapter,
+    )

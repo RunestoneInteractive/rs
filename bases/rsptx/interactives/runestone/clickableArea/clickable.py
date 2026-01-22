@@ -24,11 +24,6 @@ from runestone.server.componentdb import (
     maybeAddToAssignment,
 )
 from runestone.common.runestonedirective import RunestoneIdDirective, RunestoneIdNode
-from runestone.common.xmlcommon import (
-    write_substitute,
-    substitute_visitor,
-    substitute_departure,
-)
 
 
 def setup(app):

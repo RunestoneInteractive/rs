@@ -198,7 +198,7 @@ def _get_numbered_question(assignment_id, qnum):
     done = "false"
     if qnum == total_questions - 1:
         done = "true"
-
+    logger.debug(f"qnum = {qnum} total_questions = {total_questions} done = {done}")
     current_question = all_questions[qnum]
     return current_question, done
 
@@ -396,7 +396,9 @@ def student():
 @auth.requires_login()
 def peer_question():
     if "access_token" not in request.cookies:
-        return redirect(URL("default", "accessIssue"))
+        logger.warning(f"Missing Access Token: {auth.user.username} adding one now")
+        create_rs_token()
+        
 
     assignment_id = request.vars.assignment_id
 
@@ -744,10 +746,11 @@ def log_peer_rating():
 #     )
 @auth.requires_login()
 def peer_async():
-    if "access_token" not in request.cookies or not request.cookies.get("access_token"):
-        logger.error(f"Missing Access Token: {auth.user.username} adding one Now")
+    if "access_token" not in request.cookies:
+        logger.warning(
+            f"Missing Access Token: {auth.user.username} adding one now"
+        )
         create_rs_token()
-        return redirect(URL("peer", "peer_async", vars=request.vars))
 
     assignment_id = request.vars.assignment_id
 
@@ -756,6 +759,8 @@ def peer_async():
         qnum = int(request.vars.question_num)
 
     current_question, all_done = _get_numbered_question(assignment_id, qnum)
+
+    assignment = db(db.assignments.id == assignment_id).select().first()
 
     has_vote1 = False
     has_reflection = False
@@ -777,6 +782,7 @@ def peer_async():
         course=get_course_row(db.courses.ALL),
         current_question=current_question,
         assignment_id=assignment_id,
+        assignment_name=assignment.name,
         nextQnum=qnum + 1,
         all_done=all_done,
         has_vote1=has_vote1,

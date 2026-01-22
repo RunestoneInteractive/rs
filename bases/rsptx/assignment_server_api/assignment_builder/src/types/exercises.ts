@@ -1,6 +1,7 @@
 import { BlankWithFeedback } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/FillInTheBlankExercise";
 import { FilterMatchMode } from "primereact/api";
 
+import { SelectedDataFile } from "@/types/datafile";
 import { ParsonsBlock } from "@/utils/preview/parsonsPreview";
 
 export const supportedExerciseTypesToEdit = [
@@ -11,7 +12,9 @@ export const supportedExerciseTypesToEdit = [
   "dragndrop",
   "parsonsprob",
   "matching",
-  "fillintheblank"
+  "fillintheblank",
+  "clickablearea",
+  "selectquestion"
 ];
 
 export const supportedExerciseTypes = [
@@ -94,10 +97,16 @@ export type QuestionJSON = Partial<{
   scale_max: number;
   forceCheckboxes: boolean;
   questionList: string[];
+  questionLabels: Record<string, string>;
   abExperimentName: string;
   toggleOptions: string[];
   dataLimitBasecourse: boolean;
   stdin: string;
+  selectedExistingDataFiles: SelectedDataFile[];
+  // CodeTailor support
+  enableCodeTailor: boolean;
+  parsonspersonalize: "solution-level" | "block-and-solution" | "";
+  parsonsexample: string;
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;

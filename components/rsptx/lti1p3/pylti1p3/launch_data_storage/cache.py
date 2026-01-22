@@ -4,6 +4,7 @@ from .base import LaunchDataStorage
 
 T = t.TypeVar("T")
 
+
 class CacheDataStorage(LaunchDataStorage[T], t.Generic[T]):
     _cache = None
 
