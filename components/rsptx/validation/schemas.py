@@ -180,6 +180,18 @@ class LogRunIncoming(BaseModelNone):
     changesPerSecond: Optional[float] = None
 
 
+class LogCodeTailorIncoming(BaseModelNone):
+    # required for creating a codetailor_parsons row
+    div_id: str                 # question div id
+    ctid: str                 # unique identifier for the puzzle
+    course: str            # course id
+    htmlsrc: Optional[str] = None
+    question_json: Dict[str, Any]  # JSON describing the Parsons puzzle
+    timestamp: Optional[str] = None  
+    sid: Optional[str] = None       
+    clientLoginStatus: Optional[bool] = None
+    timezoneoffset: Optional[float] = None
+
 # Schemas for Completion Data
 # ---------------------------
 class LastPageDataIncoming(BaseModelNone):

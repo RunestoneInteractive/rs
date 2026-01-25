@@ -10,6 +10,8 @@ from ..models import (
     Code,
     CodeValidator,
     runestone_component_dict,
+    CodeTailorParsons,
+    CodeTailorParsonsValidator,
 )
 from ..async_session import async_session
 from rsptx.validation import schemas
@@ -250,3 +252,20 @@ async def fetch_code(
         # We retrieved most recent first, but want to return results in chronological order
         code_list.reverse()
         return code_list
+
+# CodeTailorParsons
+# ----
+# write a function that takes a CodeTailorParsonsValidator as a parameter and inserts a new CodeTailorParsons into the database
+async def create_code_tailor_parsons_entry(data: CodeTailorParsonsValidator) -> CodeTailorParsonsValidator:
+    """
+    Create a new CodeTailorParsons entry with the given data
+
+    :param data: CodeTailorParsonsValidator, validated input data
+    :return: CodeTailorParsonsValidator, the newly created entry
+    """
+    new_entry = CodeTailorParsons(**data.dict())
+
+    async with async_session.begin() as session:
+        session.add(new_entry)
+
+    return CodeTailorParsonsValidator.from_orm(new_entry)

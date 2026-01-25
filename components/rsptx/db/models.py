@@ -613,21 +613,21 @@ class Question(Base, IdMixin):
 QuestionValidator: TypeAlias = sqlalchemy_to_pydantic(Question)  # type: ignore
 
 
+# CodeTailorParsons
+# ----
+# The CodeTailorParsons table captures the content of CodeTailorParsons problems in the activecode component.
+#
 class CodeTailorParsons(Base, IdMixin):
     __tablename__ = "codetailor_parsons"
-    __table_args__ = (
-        UniqueConstraint("question_id", "sid", "timestamp"),
-        Index("codetailor_parsons_qid_sid_idx", "question_id", "sid"),
-    )
-    # Original Question this was generated from
-    question_id = Column(
-        Integer,
-        ForeignKey("questions.id"),
+    timestamp = Column(DateTime, nullable=False)
+    sid = Column(String(512), nullable=False, index=True, unique=False)
+    ctid = Column(
+        String(512),
         nullable=False,
         index=True,
-    )
-    sid = Column(String(512), nullable=False, index=True)
-    timestamp = Column(DateTime, nullable=False)
+        unique=False,
+    )  # unique identifier for a component
+    course_id = Column(String(512), index=True, nullable=False)
     htmlsrc = Column(Text)
     question_json = Column(JSON, nullable=False)
 
