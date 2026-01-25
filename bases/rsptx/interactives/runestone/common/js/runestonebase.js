@@ -19,7 +19,7 @@ import { pageProgressTracker } from "./bookfuncs.js";
 //import "./../styles/runestone-custom-sphinx-bootstrap.css";
 
 var NO_DECORATE = ["parsonsMove", "showeval", "video", "poll", "view_toggle",
-    "dashboard", "selectquestion", "codelens", "peer", "shortanswer"]
+    "dashboard", "selectquestion", "codelens", "peer"]
 export default class RunestoneBase {
     constructor(opts) {
         this.component_ready_promise = new Promise(
