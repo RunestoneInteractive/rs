@@ -67,7 +67,7 @@ export const IframeUrlInput: FC<IframeUrlInputProps> = ({ iframeSrc, onChange })
             <iframe
               src={iframeSrc}
               title="iFrame Preview"
-              style={{ width: "100%", height: "400px", border: "none" }}
+              style={{ width: "100%", border: "none" }}
               allowFullScreen
             />
           </div>
