@@ -100,6 +100,14 @@ eBookConfig.isLoggedIn = true;
               <p id="nextStep" style="margin-top:8px; font-style:italic;"></p>
             </div>
         </div>
+        <button
+          id="readyVote2Btn"
+          class="btn btn-warning"
+          style="display:none; margin-top: 1em;"
+          onclick="enableSecondVoteAsync()"
+        >
+          Vote again
+        </button>
     </div>
     {{pass}}
 </div>
@@ -124,6 +132,32 @@ eBookConfig.isLoggedIn = true;
   window.DISABLE_ASYNC_EXPLAINER = true;
 </script>
 <script src="/runestone/static/js/peer.js?v={{=request.peer_mtime}}"></script>
+<script>
+  window._vote2Enabled = false;
+
+  function enableSecondVoteAsync() {
+    console.log("PI async: enabling vote 2");
+
+    window._vote2Enabled = true;
+
+    studentSubmittedVote2 = false;
+
+    try {
+      const comp = window.componentMap[currentQuestion];
+      comp.submitButton.disabled = false;
+
+      const root = document.getElementById(currentQuestion);
+      root?.querySelectorAll("input, button").forEach(el => {
+        el.disabled = false;
+      });
+    } catch (e) {
+      console.warn("vote 2 enable fallback failed", e);
+    }
+
+    const b = document.getElementById("readyVote2Btn");
+    if (b) b.style.display = "none";
+}
+</script>
 <script>
   (function () {
     const origShowPeerEnableVote2 = window.showPeerEnableVote2;
@@ -217,9 +251,15 @@ const resp = await fetch("/runestone/peer/get_async_llm_reflection", {
     content: data.reply
   });  
   nextStep.textContent =
-    "You may discuss this reasoning before answering again.";
-  studentSubmittedVote2 = true;
+    "Discuss this reasoning, then click 'Ready for Vote 2' to vote again.";
+
+  studentSubmittedVote2 = false; 
+
+  const readyBtn = document.getElementById("readyVote2Btn");
+  if (readyBtn) readyBtn.style.display = "inline-block";
+
   enableChat(reflection, selected);
+
 });
 })(); 
 </script>
@@ -316,16 +356,28 @@ function enableChat(reflection, selected) {
             course_name: eBookConfig.course,
         })
         setTimeout(function () {
-            $(window.componentMap[currentQuestion].submitButton).click(function () {
-                if (studentVoteCount == 1) {
-                    let currAnswer = window.componentMap[currentQuestion].answer;
-                    console.log(`current answer is ${currAnswer}`);
-                    let sAnswer = answerToString(currAnswer);
-                    console.log(sAnswer);
-                    $("#current_answer").html(sAnswer)
-                }
-            })
-        }, 2000)
+          const btn = window.componentMap[currentQuestion]?.submitButton;
+          if (!btn) return;
+
+          $(btn).off("click.pi_async").on("click.pi_async", function () {
+            const currAnswer = window.componentMap[currentQuestion].answer;
+            const sAnswer = answerToString(currAnswer);
+            $("#current_answer").html(sAnswer);
+
+            if (studentVoteCount === 1 && !window._vote2Enabled) {
+              console.log("vote 1 submitted");
+              studentVoteCount = 1;
+              return;
+            }
+
+            if (window._vote2Enabled && !studentSubmittedVote2) {
+              console.log("vote 2 submitted");
+              studentVoteCount = 2;
+              studentSubmittedVote2 = true;
+              window._vote2Enabled = false;
+            }
+          });
+        }, 2000);
     });
 </script>
 <script>
