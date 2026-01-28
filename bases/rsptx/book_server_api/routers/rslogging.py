@@ -38,6 +38,7 @@ from rsptx.configuration import settings
 from rsptx.db.crud import (
     create_answer_table_entry,
     create_code_entry,
+    create_code_tailor_parsons_entry,
     create_useinfo_entry,
     create_user_chapter_progress_entry,
     create_user_state_entry,
@@ -60,6 +61,7 @@ from rsptx.response_helpers.core import make_json_response, canonical_utcnow
 from rsptx.db.models import (
     AuthUserValidator,
     CodeValidator,
+    CodeTailorParsonsValidator,
     runestone_component_dict,
     UseinfoValidation,
 )
@@ -68,6 +70,7 @@ from rsptx.validation.schemas import (
     LastPageDataIncoming,
     LogItemIncoming,
     LogRunIncoming,
+    LogCodeTailorIncoming,
     TimezoneRequest,
     ReadingAssignmentSpec,
 )
@@ -308,6 +311,55 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
                 )
 
     return make_json_response(status=status.HTTP_201_CREATED)
+
+# codetailorlog endpoint
+# ---------------
+# The :ref:`logCodeTailorEvent` client-side function calls this endpoint to record a CodeTailor puzzle creation
+@router.post("/codetailor_log")
+async def codetailor_log(request: Request, response: Response, data: LogCodeTailorIncoming):
+    """Make an entry in the CodeTailorParsons table to record a CodeTailor Parsons puzzle creation.
+
+    :param request: A FastAPI Request object
+    :param response: A FastAPI Response object
+    :type response: JSONResponse
+    :param data: the post data
+    :type data: LogCodeTailorIncoming
+    :return: JSONResponse
+    """
+    rslogger.debug(f"INCOMING: {data}")
+
+    # --- Auth / session checks (same pattern as /runlog) ---
+    if request.state.user:
+        if data.course != request.state.user.course_name:
+            return make_json_response(
+                status=status.HTTP_401_UNAUTHORIZED,
+                detail="You appear to have changed courses in another tab. Please switch to this course",
+            )
+        sid = request.state.user.username
+        course_id = request.state.user.course_id
+    else:
+        if data.clientLoginStatus is True:
+            rslogger.error("Session Expired")
+            return make_json_response(
+                status=status.HTTP_401_UNAUTHORIZED,
+                detail="Session Expired",
+            )
+        return make_json_response(status=status.HTTP_401_UNAUTHORIZED)
+
+    codetailor_row = {
+        "timestamp": canonical_utcnow(),
+        "sid": sid,
+        "ctid": data.ctid,
+        "course_id": course_id,
+        "htmlsrc": data.htmlsrc,
+        "question_json": data.question_json,
+    }
+
+    entry = CodeTailorParsonsValidator(**codetailor_row)
+    await create_code_tailor_parsons_entry(entry)
+
+    return make_json_response(status=status.HTTP_201_CREATED)
+
 
 
 async def same_class(user1: AuthUserValidator, user2: str) -> bool:

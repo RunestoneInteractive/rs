@@ -337,6 +337,73 @@ export default class RunestoneBase {
         }
         return post_promise;
     }
+
+    // logCodeTailorEvent
+    // ------------------
+    // This function sends the provided ``eventInfo`` to the `codetailor_log endpoint` of the server.
+    // This function is modified based on logRunEvent and logBookEvent
+    async logCodeTailorEvent(eventInfo) {
+        if (this.graderactive) {
+            return;
+        }
+
+        let post_return;
+
+        // Match backend expectations
+        eventInfo.course = eBookConfig.course;
+        eventInfo.clientLoginStatus = eBookConfig.isLoggedIn;
+        eventInfo.timezoneoffset = new Date().getTimezoneOffset() / 60;
+
+        if (
+            eBookConfig.isLoggedIn &&
+            eBookConfig.useRunestoneServices &&
+            eBookConfig.logLevel > 0
+        ) {
+            let request = new Request(
+                `${eBookConfig.new_server_prefix}/logger/codetailor_log`,
+                {
+                    method: "POST",
+                    headers: this.jsonHeaders,
+                    body: JSON.stringify(eventInfo),
+                }
+            );
+
+            let response = await fetch(request);
+
+            if (!response.ok) {
+                post_return = await response.json();
+                if (eBookConfig.useRunestoneServices) {
+                    alert(`Failed to log your CodeTailor event
+                        Status is ${response.status}
+                        Detail: ${JSON.stringify(post_return.detail, null, 4)}`);
+                } else {
+                    console.log(
+                        `Did not log the CodeTailor event.
+                        Status: ${response.status}
+                        Detail: ${JSON.stringify(post_return.detail, null, 4)}`
+                    );
+                }
+            } else {
+                post_return = await response.json();
+            }
+        }
+
+        if (!this.isTimed || eBookConfig.debug) {
+            let prefix = eBookConfig.isLoggedIn ? "Save" : "Not";
+            console.log(`${prefix} codetailor logging ` + JSON.stringify(eventInfo));
+        }
+
+        if (
+            typeof pageProgressTracker.updateProgress === "function" &&
+            this.optional == false
+        ) {
+            pageProgressTracker.updateProgress(eventInfo.ctid);
+        }
+
+        return post_return;
+    }
+
+
     /* Checking/loading from storage
     **WARNING:**  DO NOT `await` this function!
     This function, although async, does not explicitly resolve its promise by returning a value.  The reason for this is because it is called by the constructor for nearly every component.  In Javascript constructors cannot be async!
