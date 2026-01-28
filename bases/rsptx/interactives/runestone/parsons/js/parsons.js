@@ -887,91 +887,91 @@ export default class Parsons extends RunestoneBase {
     }
     // Based on the data, load
     async loadData(data) {
-
-        if (this.options.scaffolding === true) {
-            var sourceHash = data.source;
-            if (sourceHash == undefined) {
-                // maintain backwards compatibility
-                sourceHash = data.trash;
-            }
-            var answerHash = data.answer;
-            var adaptiveHash = data.adaptive;
-            var options;
-            if (adaptiveHash == undefined) {
-                options = {};
-            } else {
-                options = this.optionsFromHash(adaptiveHash);
-            }
-            if (options.noindent !== undefined) {
-                this.noindent = true;
-            }
-            if (options.checkCount !== undefined) {
-                this.checkCount = options.checkCount;
-            }
-            if (options.hasSolved !== undefined) {
-                this.hasSolved = options.hasSolved;
-            }
-            await this.initializeAreas(this.blocksFromSource(), this.settledBlocksFromSource(), options);
-            if (this.needsReinitialization !== true) {
-                this.initializeInteractivity();
-                if (this.isTimed && !this.assessmentTaken) {
-                    this.resetView();
+        // guard against any failure to load/adapt problem
+        try {
+            if (this.options.scaffolding === true) {
+                var sourceHash = data.source;
+                if (sourceHash == undefined) {
+                    // maintain backwards compatibility
+                    sourceHash = data.trash;
                 }
-            }
-        } else {
-            var sourceHash = data.source;
-            if (sourceHash == undefined) {
-                // maintain backwards compatibility
-                sourceHash = data.trash;
-            }
-            var answerHash = data.answer;
-            var adaptiveHash = data.adaptive;
-            var options;
-            if (adaptiveHash == undefined) {
-                options = {};
-            } else {
-                options = this.optionsFromHash(adaptiveHash);
-            }
-            if (options.noindent !== undefined) {
-                this.noindent = true;
-            }
-            if (options.checkCount !== undefined) {
-                this.checkCount = options.checkCount;
-            }
-            if (options.hasSolved !== undefined) {
-                this.hasSolved = options.hasSolved;
-            }
-            if (
-                sourceHash == undefined ||
-                answerHash == undefined ||
-                answerHash.length == 1
-            ) {
-                await this.initializeAreas(this.blocksFromSource(), [], options);
-            } else {
-                this.initializeAreas(
-                    this.blocksFromHash(sourceHash),
-                    this.blocksFromHash(answerHash),
-                    options
-                );
-                this.grade = this.grader.grade();
-                if (this.grade == "correct") {
-                    this.correct = true;
-                } else if (this.answerLines().length == 0) {
-                    this.correct = null;
+                var answerHash = data.answer;
+                var adaptiveHash = data.adaptive;
+                var options;
+                if (adaptiveHash == undefined) {
+                    options = {};
                 } else {
-                    this.correct = false;
+                    options = this.optionsFromHash(adaptiveHash);
+                }
+                if (options.noindent !== undefined) {
+                    this.noindent = true;
+                }
+                if (options.checkCount !== undefined) {
+                    this.checkCount = options.checkCount;
+                }
+                if (options.hasSolved !== undefined) {
+                    this.hasSolved = options.hasSolved;
+                }
+                await this.initializeAreas(this.blocksFromSource(), this.settledBlocksFromSource(), options);
+            } else {
+                var sourceHash = data.source;
+                if (sourceHash == undefined) {
+                    // maintain backwards compatibility
+                    sourceHash = data.trash;
+                }
+                var answerHash = data.answer;
+                var adaptiveHash = data.adaptive;
+                var options;
+                if (adaptiveHash == undefined) {
+                    options = {};
+                } else {
+                    options = this.optionsFromHash(adaptiveHash);
+                }
+                if (options.noindent !== undefined) {
+                    this.noindent = true;
+                }
+                if (options.checkCount !== undefined) {
+                    this.checkCount = options.checkCount;
+                }
+                if (options.hasSolved !== undefined) {
+                    this.hasSolved = options.hasSolved;
+                }
+                if (
+                    sourceHash == undefined ||
+                    answerHash == undefined ||
+                    answerHash.length == 1
+                ) {
+                    await this.initializeAreas(this.blocksFromSource(), [], options);
+                } else {
+                    this.initializeAreas(
+                        this.blocksFromHash(sourceHash),
+                        this.blocksFromHash(answerHash),
+                        options
+                    );
+                    this.grade = this.grader.grade();
+                    if (this.grade == "correct") {
+                        this.correct = true;
+                    } else if (this.answerLines().length == 0) {
+                        this.correct = null;
+                    } else {
+                        this.correct = false;
+                    }
                 }
             }
-            // Start the interface
-            if (this.needsReinitialization !== true) {
-                this.initializeInteractivity();
-                // This is a bit of a hack to get the blocks to be in the right place
-                // when the page loads.  It is needed because the blocks are not
-                // visible when the page loads, so the size is off.  This forces
-                // a realignment.
-                if (this.isTimed && !this.assessmentTaken) {
-                    this.resetView();
-                }
+        } catch(err) {
+            // if anything goes wrong, just initialize based on problem source
+            await this.initializeAreas(this.blocksFromSource(), [], options);
+            console.log(`Error restoring answer for student ${data.sid} in ${data.div_id}. Defaulting to original state.`)
+        }
+        // Start the interface
+        if (this.needsReinitialization !== true) {
+            this.initializeInteractivity();
+            // This is a bit of a hack to get the blocks to be in the right place
+            // when the page loads.  It is needed because the blocks are not
+            // visible when the page loads, so the size is off.  This forces
+            // a realignment.
+            if (this.isTimed && !this.assessmentTaken) {
+                this.resetView();
             }
         }
     }
