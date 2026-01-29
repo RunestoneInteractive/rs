@@ -122,7 +122,7 @@ export const mergeQuestionJsonWithDefaults = (
     enableCodeTailor: questionJson?.enableCodeTailor ?? defaultQuestionJson.enableCodeTailor,
     parsonspersonalize:
       questionJson?.parsonspersonalize ??
-      (defaultQuestionJson.parsonspersonalize as "" | "solution-level" | "block-and-solution"),
+      (defaultQuestionJson.parsonspersonalize as "" | "movable" | "partial"),
     parsonsexample: questionJson?.parsonsexample ?? defaultQuestionJson.parsonsexample,
     questionLabels: questionJson?.questionLabels ?? {}
   };

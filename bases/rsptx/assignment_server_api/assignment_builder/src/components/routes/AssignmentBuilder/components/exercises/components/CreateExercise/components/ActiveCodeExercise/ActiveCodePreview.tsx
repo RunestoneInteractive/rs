@@ -15,7 +15,7 @@ interface ActiveCodePreviewProps {
   stdin?: string;
   selectedExistingDataFiles?: SelectedDataFile[];
   enableCodeTailor?: boolean;
-  parsonspersonalize?: "solution-level" | "block-and-solution" | "";
+  parsonspersonalize?: "movable" | "partial" | "";
   parsonsexample?: string;
   enableCodelens?: boolean;
 }

@@ -107,7 +107,7 @@ export type QuestionJSON = Partial<{
   selectedExistingDataFiles: SelectedDataFile[];
   // CodeTailor support
   enableCodeTailor: boolean;
-  parsonspersonalize: "solution-level" | "block-and-solution" | "";
+  parsonspersonalize: "movable" | "partial" | "";
   parsonsexample: string;
   enableCodelens: boolean;
   iframeSrc: string;

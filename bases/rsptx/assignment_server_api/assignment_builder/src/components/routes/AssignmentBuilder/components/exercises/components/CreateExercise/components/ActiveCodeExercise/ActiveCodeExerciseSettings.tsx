@@ -18,8 +18,8 @@ interface ActiveCodeExerciseSettingsProps {
 }
 
 const PERSONALIZATION_LEVELS = [
-  { label: "Solution", value: "solution-level" },
-  { label: "Solution & Block", value: "block-and-solution" }
+  { label: "Solution", value: "movable" },
+  { label: "Solution & Block", value: "partial" }
 ];
 
 export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = ({
@@ -30,13 +30,13 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
     onChange({
       enableCodeTailor: enabled,
       // Reset personalization level when disabling
-      parsonspersonalize: enabled ? "solution-level" : "",
+      parsonspersonalize: enabled ? "movable" : "",
       // Reset parsons example when disabling
       parsonsexample: enabled ? formData.parsonsexample : ""
     });
   };
 
-  const handlePersonalizationChange = (value: "solution-level" | "block-and-solution") => {
+  const handlePersonalizationChange = (value: "movable" | "partial") => {
     onChange({ parsonspersonalize: value });
   };
 
@@ -90,7 +90,7 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
             <span className="p-float-label">
               <Dropdown
                 id="parsonspersonalize"
-                value={formData.parsonspersonalize || "solution-level"}
+                value={formData.parsonspersonalize || "movable"}
                 options={PERSONALIZATION_LEVELS}
                 optionLabel="label"
                 className="w-full"

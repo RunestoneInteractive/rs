@@ -7,7 +7,7 @@ export interface DataFileInfo {
 
 export interface CodeTailorOptions {
   enableCodeTailor?: boolean;
-  parsonspersonalize?: "solution-level" | "block-and-solution" | "";
+  parsonspersonalize?: "movable" | "partial" | "";
   parsonsexample?: string;
   enableCodelens?: boolean;
 }
