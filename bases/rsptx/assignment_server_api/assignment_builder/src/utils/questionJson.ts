@@ -15,7 +15,8 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
       // CodeTailor support
       enableCodeTailor: data.enableCodeTailor,
       parsonspersonalize: data.parsonspersonalize,
-      parsonsexample: data.parsonsexample
+      parsonsexample: data.parsonsexample,
+      enableCodelens: data.enableCodelens
     }),
     ...(data.question_type === "shortanswer" && {
       attachment: data.attachment,
@@ -94,7 +95,8 @@ export const getDefaultQuestionJson = (languageOptions: TableDropdownOption[]) =
   // CodeTailor support
   enableCodeTailor: false,
   parsonspersonalize: "",
-  parsonsexample: ""
+  parsonsexample: "",
+  enableCodelens: true
 });
 
 export const mergeQuestionJsonWithDefaults = (

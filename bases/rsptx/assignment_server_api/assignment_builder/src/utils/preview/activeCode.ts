@@ -9,6 +9,7 @@ export interface CodeTailorOptions {
   enableCodeTailor?: boolean;
   parsonspersonalize?: "solution-level" | "block-and-solution" | "";
   parsonsexample?: string;
+  enableCodelens?: boolean;
 }
 
 export const generateActiveCodePreview = (
@@ -40,6 +41,10 @@ export const generateActiveCodePreview = (
     codeTailorAttrs += ` data-parsonsexample="${parsonsExampleValue}"`;
   }
 
+  // Codelens attribute - defaults to true
+  const codelensEnabled = codeTailorOptions?.enableCodelens !== false;
+  const codelensAttr = `data-codelens="${codelensEnabled}"`;
+
   return `
 <div class="runestone explainer ac_section ">
 <div data-component="activecode" id="${safeId}" data-question_label="${name}">
@@ -49,7 +54,7 @@ export const generateActiveCodePreview = (
 </div>
 <textarea 
     data-lang="${language}" id="${safeId}_editor" 
-    data-timelimit=25000  data-codelens="true"   
+    data-timelimit=25000  ${codelensAttr}   
     data-audio=''      
     data-wasm=/_static
     ${stdinAttr}${datafileAttr}${codeTailorAttrs}

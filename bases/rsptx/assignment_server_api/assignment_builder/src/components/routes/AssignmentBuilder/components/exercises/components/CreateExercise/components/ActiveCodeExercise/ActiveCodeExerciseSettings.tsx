@@ -47,21 +47,40 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
   const codeTailorFields = (
     <div className={styles.codeTailorSection}>
       <div className={styles.formField}>
-        <div className="flex align-items-center gap-2">
-          <InputSwitch
-            id="enableCodeTailor"
-            checked={formData.enableCodeTailor ?? false}
-            onChange={(e) => handleCodeTailorToggle(e.value)}
-          />
-          <label htmlFor="enableCodeTailor" className="font-medium">
-            Personalized Parsons Support (CodeTailor)
-          </label>
-          <i
-            className="pi pi-info-circle codetailor-info-icon"
-            data-pr-tooltip="CodeTailor provides personalized Parsons puzzles as adaptive support for students struggling with coding exercises."
-            data-pr-position="right"
-          />
-          <Tooltip target=".codetailor-info-icon" />
+        <div className="flex align-items-center gap-4">
+          <div className="flex align-items-center gap-2">
+            <InputSwitch
+              id="enableCodeTailor"
+              checked={formData.enableCodeTailor ?? false}
+              onChange={(e) => handleCodeTailorToggle(e.value)}
+            />
+            <label htmlFor="enableCodeTailor" className="font-medium">
+              Personalized Parsons Support (CodeTailor)
+            </label>
+            <i
+              className="pi pi-info-circle codetailor-info-icon"
+              data-pr-tooltip="CodeTailor provides personalized Parsons puzzles as adaptive support for students struggling with coding exercises."
+              data-pr-position="right"
+            />
+            <Tooltip target=".codetailor-info-icon" />
+          </div>
+
+          <div className="flex align-items-center gap-2">
+            <InputSwitch
+              id="enableCodelens"
+              checked={formData.enableCodelens ?? true}
+              onChange={(e) => onChange({ enableCodelens: e.value })}
+            />
+            <label htmlFor="enableCodelens" className="font-medium">
+              Show CodeLens Button
+            </label>
+            <i
+              className="pi pi-info-circle codelens-info-icon"
+              data-pr-tooltip="CodeLens button provides step-by-step visualization of code execution."
+              data-pr-position="right"
+            />
+            <Tooltip target=".codelens-info-icon" />
+          </div>
         </div>
       </div>
 

@@ -14,6 +14,10 @@ interface ActiveCodePreviewProps {
   name: string;
   stdin?: string;
   selectedExistingDataFiles?: SelectedDataFile[];
+  enableCodeTailor?: boolean;
+  parsonspersonalize?: "solution-level" | "block-and-solution" | "";
+  parsonsexample?: string;
+  enableCodelens?: boolean;
 }
 
 export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
@@ -24,7 +28,11 @@ export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
   suffix_code,
   name,
   stdin,
-  selectedExistingDataFiles = []
+  selectedExistingDataFiles = [],
+  enableCodeTailor,
+  parsonspersonalize,
+  parsonsexample,
+  enableCodelens
 }) => {
   // Fetch datafiles list to get filenames for selected acids
   const { data: allDatafiles = [] } = useFetchDatafilesQuery();
@@ -51,7 +59,13 @@ export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
           suffix_code,
           name,
           stdin,
-          selectedDatafilesInfo
+          selectedDatafilesInfo,
+          {
+            enableCodeTailor,
+            parsonspersonalize,
+            parsonsexample,
+            enableCodelens
+          }
         )}
       />
     </div>

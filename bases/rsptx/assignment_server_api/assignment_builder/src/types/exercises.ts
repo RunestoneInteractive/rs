@@ -109,6 +109,7 @@ export type QuestionJSON = Partial<{
   enableCodeTailor: boolean;
   parsonspersonalize: "solution-level" | "block-and-solution" | "";
   parsonsexample: string;
+  enableCodelens: boolean;
   iframeSrc: string;
 }>;
 
