@@ -86,12 +86,18 @@ interface ParsonsBlocksManagerProps {
   blocks: ParsonsBlock[];
   onChange: (blocks: ParsonsBlock[]) => void;
   language: string;
+  onAddBlock?: () => void;
+  grader?: "line" | "dag";
+  orderMode?: "random" | "custom";
 }
 
 export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
   blocks,
   onChange,
-  language
+  language,
+  onAddBlock,
+  grader = "line",
+  orderMode = "random"
 }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [highlightedGuide, setHighlightedGuide] = useState<number | null>(null);
@@ -452,14 +458,18 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
   );
 
   const handleAddBlock = useCallback(() => {
-    const newBlock: ParsonsBlock = {
-      id: `block-${Date.now()}`,
-      content: "",
-      indent: 0
-    };
+    if (onAddBlock) {
+      onAddBlock();
+    } else {
+      const newBlock: ParsonsBlock = {
+        id: `block-${Date.now()}`,
+        content: "",
+        indent: 0
+      };
 
-    onChange([...blocks, newBlock]);
-  }, [blocks, onChange]);
+      onChange([...blocks, newBlock]);
+    }
+  }, [blocks, onChange, onAddBlock]);
 
   const handleRemoveBlock = useCallback(
     (id: string) => {
@@ -647,6 +657,116 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
     [blocks, onChange]
   );
 
+  const handleDistractorChange = useCallback(
+    (id: string, isDistractor: boolean) => {
+      const newBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          // Reset paired when turning off distractor
+          return {
+            ...block,
+            isDistractor,
+            pairedWithBlockAbove: isDistractor ? block.pairedWithBlockAbove : false
+          };
+        }
+        return block;
+      });
+      onChange(newBlocks);
+    },
+    [blocks, onChange]
+  );
+
+  const handlePairedChange = useCallback(
+    (id: string, paired: boolean) => {
+      const newBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          return { ...block, pairedWithBlockAbove: paired };
+        }
+        return block;
+      });
+      onChange(newBlocks);
+    },
+    [blocks, onChange]
+  );
+
+  const handleCommentChange = useCallback(
+    (id: string, comment: string) => {
+      const newBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          return { ...block, comment };
+        }
+        return block;
+      });
+      onChange(newBlocks);
+    },
+    [blocks, onChange]
+  );
+
+  const handleTagChange = useCallback(
+    (id: string, tag: string) => {
+      const newBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          return { ...block, tag };
+        }
+        return block;
+      });
+      onChange(newBlocks);
+    },
+    [blocks, onChange]
+  );
+
+  const handleDependsChange = useCallback(
+    (id: string, depends: string[]) => {
+      const newBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          return { ...block, depends };
+        }
+        return block;
+      });
+      onChange(newBlocks);
+    },
+    [blocks, onChange]
+  );
+
+  const handleOrderChange = useCallback(
+    (id: string, order: number) => {
+      const newBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          return { ...block, displayOrder: order };
+        }
+        return block;
+      });
+      onChange(newBlocks);
+    },
+    [blocks, onChange]
+  );
+
+  const allTags = useMemo(() => {
+    return blocks.filter((b) => b.tag && !b.isDistractor).map((b) => b.tag as string);
+  }, [blocks]);
+
+  // Compute a standalone block index (not counting grouped alternates)
+  const blockIndexMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    let idx = 0;
+    const processedGroups = new Set<string>();
+    blocks.forEach((block) => {
+      if (block.groupId) {
+        if (!processedGroups.has(block.groupId)) {
+          processedGroups.add(block.groupId);
+          const groupBlocks = blocks.filter((b) => b.groupId === block.groupId);
+          groupBlocks.forEach((b) => {
+            map[b.id] = idx;
+          });
+          idx++;
+        }
+      } else {
+        map[block.id] = idx;
+        idx++;
+      }
+    });
+    return map;
+  }, [blocks]);
+
   const renderIndentationGuides = () => {
     return availableIndents.map((i) => {
       const isHighlighted = highlightedGuide === i;
@@ -695,8 +815,8 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
   }, [blocks]);
 
   const containerStyle = {
-    minHeight: "300px",
-    maxHeight: "500px",
+    minHeight: "200px",
+    maxHeight: "600px",
     position: "relative" as const,
     padding: 0,
     overflow: "auto",
@@ -725,19 +845,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
   );
 
   return (
-    <div className="flex flex-column gap-3" style={{ margin: "-2rem" }}>
-      <div className={styles.optionsHeader}>
-        <div className="flex justify-content-end w-full">
-          <Button
-            label="Add Block"
-            icon="pi pi-plus"
-            className={styles.addButton}
-            onClick={handleAddBlock}
-            aria-label="Add new block"
-          />
-        </div>
-      </div>
-
+    <div className="flex flex-column gap-2" style={{ margin: "-2rem" }}>
       <div className="parsons-workspace w-full position-relative">
         <div
           ref={containerRef}
@@ -778,7 +886,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
               ref={blocksContainerRef}
               className="blocks-container"
               style={{
-                minHeight: "250px",
+                minHeight: "150px",
                 position: "relative",
                 zIndex: 2,
                 minWidth: "max-content",
@@ -804,12 +912,22 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
                           indentWidth={INDENT_WIDTH}
                           maxIndent={maxAllowedIndent}
                           blockWidth={100}
+                          blockIndex={blockIndexMap[block.id]}
                           onContentChange={handleContentChange}
                           onRemove={handleRemoveBlock}
                           onAddAlternative={handleAddAlternative}
                           onSplitBlock={handleSplitBlock}
+                          onDistractorChange={handleDistractorChange}
+                          onPairedChange={handlePairedChange}
+                          onCommentChange={handleCommentChange}
+                          onTagChange={handleTagChange}
+                          onDependsChange={handleDependsChange}
+                          onOrderChange={handleOrderChange}
                           showAddAlternative={true}
                           showDragHandle={true}
+                          grader={grader}
+                          orderMode={orderMode}
+                          allTags={allTags}
                         />
                       );
                     }
@@ -846,6 +964,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
                               indentWidth={INDENT_WIDTH}
                               maxIndent={maxAllowedIndent}
                               blockWidth={blockWidth}
+                              blockIndex={blockIndexMap[block.id]}
                               onContentChange={handleContentChange}
                               onRemove={handleRemoveBlock}
                               onAddAlternative={handleAddAlternative}
@@ -854,6 +973,9 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
                               hasAlternatives={true}
                               showAddAlternative={blockGroup.length < MAX_ALTERNATIVES}
                               showDragHandle={isFirstInGroup}
+                              grader={grader}
+                              orderMode={orderMode}
+                              allTags={allTags}
                             />
                           );
                         })}
@@ -892,6 +1014,8 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
                       onContentChange={() => {}}
                       onRemove={() => {}}
                       showDragHandle={true}
+                      grader={grader}
+                      orderMode={orderMode}
                       dragHandleProps={{}}
                       style={{
                         width: dragWidths[draggingGroup[0].id]

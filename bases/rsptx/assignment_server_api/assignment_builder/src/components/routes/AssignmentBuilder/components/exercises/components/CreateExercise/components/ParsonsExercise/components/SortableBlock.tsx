@@ -13,14 +13,24 @@ interface SortableBlockProps {
   indentWidth: number;
   maxIndent: number;
   blockWidth: number;
+  blockIndex?: number;
   onContentChange: (id: string, content: string) => void;
   onRemove: (id: string) => void;
   onAddAlternative?: (id: string) => void;
   onCorrectChange?: (id: string, isCorrect: boolean) => void;
   onSplitBlock?: (id: string, lineIndex: number) => void;
+  onDistractorChange?: (id: string, isDistractor: boolean) => void;
+  onPairedChange?: (id: string, paired: boolean) => void;
+  onCommentChange?: (id: string, comment: string) => void;
+  onTagChange?: (id: string, tag: string) => void;
+  onDependsChange?: (id: string, depends: string[]) => void;
+  onOrderChange?: (id: string, order: number) => void;
   hasAlternatives?: boolean;
   showAddAlternative?: boolean;
   showDragHandle?: boolean;
+  grader?: "line" | "dag";
+  orderMode?: "random" | "custom";
+  allTags?: string[];
 }
 
 export const SortableBlock: FC<SortableBlockProps> = ({
@@ -30,14 +40,24 @@ export const SortableBlock: FC<SortableBlockProps> = ({
   indentWidth,
   maxIndent,
   blockWidth,
+  blockIndex,
   onContentChange,
   onRemove,
   onAddAlternative,
   onCorrectChange,
   onSplitBlock,
+  onDistractorChange,
+  onPairedChange,
+  onCommentChange,
+  onTagChange,
+  onDependsChange,
+  onOrderChange,
   hasAlternatives,
   showAddAlternative = true,
-  showDragHandle = true
+  showDragHandle = true,
+  grader = "line",
+  orderMode = "random",
+  allTags = []
 }) => {
   const handleRef = useRef<HTMLDivElement>(null);
 
@@ -84,15 +104,25 @@ export const SortableBlock: FC<SortableBlockProps> = ({
         indentWidth={indentWidth}
         maxIndent={maxIndent}
         blockWidth={100}
+        blockIndex={blockIndex}
         onContentChange={onContentChange}
         onRemove={onRemove}
         onAddAlternative={onAddAlternative}
         onCorrectChange={onCorrectChange}
         onSplitBlock={onSplitBlock}
+        onDistractorChange={onDistractorChange}
+        onPairedChange={onPairedChange}
+        onCommentChange={onCommentChange}
+        onTagChange={onTagChange}
+        onDependsChange={onDependsChange}
+        onOrderChange={onOrderChange}
         showCorrectCheckbox={Boolean(block.groupId)}
         hasAlternatives={hasAlternatives}
         showAddAlternative={showAddAlternative}
         showDragHandle={showDragHandle}
+        grader={grader}
+        orderMode={orderMode}
+        allTags={allTags}
         dragHandleProps={showDragHandle ? { ref: handleRef, attributes, listeners } : undefined}
       />
     </div>

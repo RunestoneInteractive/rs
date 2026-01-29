@@ -8,6 +8,11 @@ export interface ParsonsBlock {
   isPaired?: boolean;
   groupId?: string;
   isCorrect?: boolean;
+  tag?: string;
+  depends?: string[];
+  comment?: string;
+  displayOrder?: number;
+  pairedWithBlockAbove?: boolean;
 }
 
 export interface ParsonsPreviewProps {
@@ -19,6 +24,9 @@ export interface ParsonsPreviewProps {
   numbered?: "left" | "right" | "none";
   noindent?: boolean;
   questionLabel?: string;
+  grader?: "line" | "dag";
+  orderMode?: "random" | "custom";
+  customOrder?: number[];
 }
 
 export const generateParsonsPreview = ({
@@ -29,7 +37,10 @@ export const generateParsonsPreview = ({
   adaptive = true,
   numbered = "left",
   noindent = false,
-  questionLabel
+  questionLabel,
+  grader = "line",
+  orderMode = "random",
+  customOrder
 }: ParsonsPreviewProps): string => {
   const safeId = sanitizeId(name);
 
@@ -79,8 +90,16 @@ export const generateParsonsPreview = ({
           .join("\n");
       }
 
+      // Add DAG tag/depends annotations for non-distractor blocks
+      if (grader === "dag" && !block.isDistractor && block.tag) {
+        const dependsStr = block.depends?.length ? block.depends.join(",") : "";
+        blockContent += ` #tag:${block.tag}; depends:${dependsStr};`;
+      }
+
       if (block.isDistractor) {
-        blockContent += block.isPaired ? " #paired" : " #distractor";
+        // isPaired is set automatically for grouped alternatives,
+        // pairedWithBlockAbove is set by the user for standalone distractors
+        blockContent += block.isPaired || block.pairedWithBlockAbove ? " #paired" : " #distractor";
       }
 
       return blockContent;
@@ -93,7 +112,7 @@ export const generateParsonsPreview = ({
     dataAttributes += ` data-language="${language}"`;
   }
 
-  if (adaptive) {
+  if (adaptive && grader !== "dag") {
     dataAttributes += ' data-adaptive="true"';
   }
 
@@ -103,6 +122,45 @@ export const generateParsonsPreview = ({
 
   if (noindent) {
     dataAttributes += ' data-noindent="true"';
+  }
+
+  if (grader === "dag") {
+    dataAttributes += ' data-grader="dag"';
+  }
+
+  if (orderMode === "custom") {
+    // Build order from block displayOrder values
+    // First, compute the "logical block" indices (grouped blocks count as one)
+    const logicalBlocks: { displayOrder?: number; originalIndex: number }[] = [];
+    const seenGroupsForOrder = new Set<string>();
+    let logicalIdx = 0;
+    blocks.forEach((block) => {
+      if (block.groupId) {
+        if (!seenGroupsForOrder.has(block.groupId)) {
+          seenGroupsForOrder.add(block.groupId);
+          logicalBlocks.push({ displayOrder: block.displayOrder, originalIndex: logicalIdx });
+          logicalIdx++;
+        }
+      } else {
+        logicalBlocks.push({ displayOrder: block.displayOrder, originalIndex: logicalIdx });
+        logicalIdx++;
+      }
+    });
+
+    // If any blocks have displayOrder set, compute the data-order attribute
+    const hasCustomOrder = logicalBlocks.some((b) => b.displayOrder !== undefined);
+    if (hasCustomOrder) {
+      // Sort by displayOrder, keeping undefined at end
+      const sorted = [...logicalBlocks].sort((a, b) => {
+        const aOrd = a.displayOrder ?? 9999;
+        const bOrd = b.displayOrder ?? 9999;
+        return aOrd - bOrd;
+      });
+      const orderArray = sorted.map((b) => b.originalIndex);
+      dataAttributes += ` data-order="${orderArray.join(",")}"`;
+    }
+  } else if (customOrder && customOrder.length > 0) {
+    dataAttributes += ` data-order="${customOrder.join(",")}"`;
   }
 
   return `

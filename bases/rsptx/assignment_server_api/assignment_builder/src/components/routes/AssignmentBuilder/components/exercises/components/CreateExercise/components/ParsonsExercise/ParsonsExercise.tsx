@@ -14,7 +14,12 @@ import { validateCommonFields } from "../../utils/validation";
 
 import { ParsonsExerciseSettings } from "./ParsonsExerciseSettings";
 import { ParsonsPreview } from "./ParsonsPreview";
-import { ParsonsInstructions, ParsonsLanguageSelector, ParsonsBlocksManager } from "./components";
+import {
+  ParsonsInstructions,
+  ParsonsLanguageSelector,
+  ParsonsBlocksManager,
+  ParsonsOptions
+} from "./components";
 
 const PARSONS_STEPS = [
   { label: "Language" },
@@ -39,7 +44,13 @@ const getDefaultFormData = (): ParsonsData => ({
   question_type: "parsonsprob",
   language: "",
   instructions: "",
-  blocks: [{ id: `block-${Date.now()}`, content: "", indent: 0 }]
+  blocks: [{ id: `block-${Date.now()}`, content: "", indent: 0 }],
+  adaptive: true,
+  numbered: "left",
+  noindent: false,
+  grader: "line",
+  orderMode: "random",
+  customOrder: []
 });
 
 const generatePreview = (data: ParsonsData): string => {
@@ -48,10 +59,13 @@ const generatePreview = (data: ParsonsData): string => {
     blocks: data.blocks || [],
     name: data.name || "parsons_exercise",
     language: data.language || "python",
-    adaptive: true,
-    numbered: "left",
-    noindent: false,
-    questionLabel: data.name
+    adaptive: data.adaptive ?? true,
+    numbered: data.numbered ?? "left",
+    noindent: data.noindent ?? false,
+    questionLabel: data.name,
+    grader: data.grader ?? "line",
+    orderMode: data.orderMode ?? "random",
+    customOrder: data.customOrder
   });
 };
 
@@ -61,10 +75,13 @@ const generateExerciseHtmlSrc = (data: ParsonsData): string => {
     instructions: data.instructions || "",
     blocks: data.blocks || [],
     language: data.language || "python",
-    adaptive: true,
-    numbered: "left",
-    noindent: false,
-    questionLabel: data.name
+    adaptive: data.adaptive ?? true,
+    numbered: data.numbered ?? "left",
+    noindent: data.noindent ?? false,
+    questionLabel: data.name,
+    grader: data.grader ?? "line",
+    orderMode: data.orderMode ?? "random",
+    customOrder: data.customOrder
   });
 };
 
@@ -144,6 +161,15 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
     [updateFormData, formData.language, formData.tags]
   );
 
+  const handleAddBlock = useCallback(() => {
+    const newBlock: ParsonsBlock = {
+      id: `block-${Date.now()}`,
+      content: "",
+      indent: 0
+    };
+    updateFormData("blocks", [...(formData.blocks || []), newBlock]);
+  }, [updateFormData, formData.blocks]);
+
   const renderStepContent = () => {
     switch (activeStep) {
       case 0:
@@ -164,11 +190,43 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
 
       case 2:
         return (
-          <ParsonsBlocksManager
-            blocks={formData.blocks || []}
-            onChange={(blocks: ParsonsBlock[]) => updateFormData("blocks", blocks)}
-            language={formData.language || "python"}
-          />
+          <div className="flex flex-column gap-4">
+            <ParsonsOptions
+              adaptive={formData.adaptive ?? true}
+              numbered={formData.numbered ?? "left"}
+              noindent={formData.noindent ?? false}
+              grader={formData.grader ?? "line"}
+              orderMode={formData.orderMode ?? "random"}
+              onAdaptiveChange={(value: boolean) => updateFormData("adaptive", value)}
+              onNumberedChange={(value: "left" | "right" | "none") =>
+                updateFormData("numbered", value)
+              }
+              onNoindentChange={(value: boolean) => updateFormData("noindent", value)}
+              onGraderChange={(value: "line" | "dag") => {
+                updateFormData("grader", value);
+                if (value === "dag") {
+                  updateFormData("adaptive", false);
+                  // Auto-assign tags to blocks that don't have them
+                  const updatedBlocks = (formData.blocks || []).map((block, idx) => {
+                    if (!block.tag && !block.isDistractor && !block.groupId) {
+                      return { ...block, tag: String(idx) };
+                    }
+                    return block;
+                  });
+                  updateFormData("blocks", updatedBlocks);
+                }
+              }}
+              onOrderModeChange={(value: "random" | "custom") => updateFormData("orderMode", value)}
+              onAddBlock={handleAddBlock}
+            />
+            <ParsonsBlocksManager
+              blocks={formData.blocks || []}
+              onChange={(blocks: ParsonsBlock[]) => updateFormData("blocks", blocks)}
+              language={formData.language || "python"}
+              grader={formData.grader ?? "line"}
+              orderMode={formData.orderMode ?? "random"}
+            />
+          </div>
         );
 
       case 3:
@@ -181,10 +239,13 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
             blocks={formData.blocks || []}
             language={formData.language || "python"}
             name={formData.name || ""}
-            adaptive={true}
-            numbered="left"
-            noindent={false}
+            adaptive={formData.adaptive ?? true}
+            numbered={formData.numbered ?? "left"}
+            noindent={formData.noindent ?? false}
             questionLabel={formData.name}
+            grader={formData.grader ?? "line"}
+            orderMode={formData.orderMode ?? "random"}
+            customOrder={formData.customOrder}
           />
         );
 

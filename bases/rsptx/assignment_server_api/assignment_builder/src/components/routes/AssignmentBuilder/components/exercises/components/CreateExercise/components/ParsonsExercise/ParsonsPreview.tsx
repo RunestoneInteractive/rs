@@ -12,6 +12,9 @@ interface ParsonsPreviewProps {
   numbered?: "left" | "right" | "none";
   noindent?: boolean;
   questionLabel?: string;
+  grader?: "line" | "dag";
+  orderMode?: "random" | "custom";
+  customOrder?: number[];
 }
 
 export const ParsonsPreview: FC<ParsonsPreviewProps> = ({
@@ -22,7 +25,10 @@ export const ParsonsPreview: FC<ParsonsPreviewProps> = ({
   adaptive = true,
   numbered = "left",
   noindent = false,
-  questionLabel
+  questionLabel,
+  grader = "line",
+  orderMode = "random",
+  customOrder
 }) => {
   return (
     <div style={{ display: "flex", alignItems: "start", justifyContent: "center" }}>
@@ -35,7 +41,10 @@ export const ParsonsPreview: FC<ParsonsPreviewProps> = ({
           adaptive,
           numbered,
           noindent,
-          questionLabel: questionLabel || name
+          questionLabel: questionLabel || name,
+          grader,
+          orderMode,
+          customOrder
         })}
       />
     </div>

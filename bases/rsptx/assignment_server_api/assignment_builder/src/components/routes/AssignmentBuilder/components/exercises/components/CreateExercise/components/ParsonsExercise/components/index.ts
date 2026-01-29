@@ -6,3 +6,4 @@ export { ParsonsMonacoEditor } from "./ParsonsMonacoEditor";
 export { ParsonsBlocksManager } from "./ParsonsBlocksManager";
 export { SortableBlock } from "./SortableBlock";
 export { BlockItem } from "./BlockItem";
+export { ParsonsOptions } from "./ParsonsOptions";
