@@ -72,11 +72,11 @@ def _build_runestone_book(config, course, click=click):
             click.echo(
                 f"I can't find a pavement.py file in {os.getcwd()} you need that to build"
             )
-            return False
+            return {"completed": False, "status": "Missing pavement.py file"}
     except ImportError as e:
         click.echo("You do not appear to have a good pavement.py file.")
         print(e)
-        return False
+        return {"completed": False, "status": "Invalid pavement.py file"}
 
     # If the click object has a worker attribute then we are running in a worker
     # process and **know** we are making a build for a runestone server. In that
@@ -91,17 +91,26 @@ def _build_runestone_book(config, course, click=click):
 
     if hasattr(click, "worker") and dp is not True:
         click.echo("dynamic_pages must be set to True in pavement.py")
-        return False
+        return {
+            "completed": False,
+            "status": "dynamic_pages must be set to True in pavement.py",
+        }
     if paver_vars["project_name"] != course:
         click.echo(
             f"Error: {course} and {paver_vars['project_name']} do not match.  Your course name needs to match the project_name in pavement.py"
         )
-        return False
+        return {
+            "completed": False,
+            "status": "Course name does not match project_name in pavement.py",
+        }
     if paver_vars["options"].build.template_args["basecourse"] != course:
         click.echo(
             f"Error: {course} and {paver_vars['options'].build.template_args['basecourse']} do not match.  Your course name needs to match the basecourse in pavement.py"
         )
-        return False
+        return {
+            "completed": False,
+            "status": "Course name does not match basecourse in pavement.py",
+        }
 
     click.echo("Running runestone build --all")
     res = subprocess.run("runestone build --all", shell=True, capture_output=True)
@@ -114,13 +123,16 @@ def _build_runestone_book(config, course, click=click):
         click.echo(
             f"building the book failed {res}, check the log for errors and try again"
         )
-        return False
+        return {"completed": False, "status": "Build failed, check the log for errors"}
     click.echo("Build succeedeed... Now deploying to published")
     if paver_vars["dest"] != "./published":
         click.echo(
             "Incorrect deployment directory.  dest should be ./published in pavement.py"
         )
-        return False
+        return {
+            "completed": False,
+            "status": "Incorrect deployment directory in pavement.py",
+        }
 
     resd = subprocess.run("runestone deploy", shell=True, capture_output=True)
     with open("author_build.log", "ab") as olfile:
@@ -131,10 +143,10 @@ def _build_runestone_book(config, course, click=click):
         click.echo("Success! Book deployed")
     else:
         click.echo("Deploy failed, check the log to see what went wrong.")
-        return False
+        return {"completed": False, "status": "Deploy failed, check the log"}
 
     update_library(config, "", course, click, build_system="Runestone")
-    return True
+    return {"completed": True, "status": "Build completed successfully"}
 
 
 # Build a PreTeXt Book
@@ -1010,7 +1022,9 @@ def _process_single_question(
     if qtype == "doenet":
         # rewrite the url in the dbtext to use the course name in the path
         dbtext = re.sub(
-            r'(<iframe.*?)src="(.*?.html)"', rf'\1 src="/ns/books/published/{course_name}/\2"', dbtext
+            r'(<iframe.*?)src="(.*?.html)"',
+            rf'\1 src="/ns/books/published/{course_name}/\2"',
+            dbtext,
         )
     optional = "T" if ("optional" in question.attrib or qtype == "datafile") else "F"
     practice = _determine_practice_flag(qtype, el)
