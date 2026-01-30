@@ -1,0 +1,201 @@
+{% extends "_base.html" %}
+
+{% block title %}
+Peer Instruction - {{ assignment_name }}
+{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="/runestone/static/css/peer.css?v={{ peer_mtime }}">
+<style>
+    .peer-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .peer-header {
+        margin-bottom: 20px;
+    }
+
+    .peer-header h2 {
+        color: #4a90e2;
+        font-size: 2em;
+        margin-bottom: 5px;
+    }
+
+    .hidden-content {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+{% include 'common/static_assets.html' %}
+{% include 'common/ebook_config.html' %}
+<div class="hidden-content">
+    \( {{ latex_macros|safe }} \)
+</div>
+
+<div class="peer-container">
+    <div class="peer-header">
+        <h2>Peer Instruction: {{ assignment_name }}</h2>
+    </div>
+
+    <div id="pi-student-interface">
+        <div id="imessage"></div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <form action="/assignment/peer/student/question" method="GET" id="nextqform">
+                    <input type="hidden" name="assignment_id" value="{{ assignment_id }}">
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class='oneq col-md-6 runestone-sphinx'>
+                {{ current_question.htmlsrc|safe }}
+            </div>
+
+            <div id="discussion_panel" class='col-md-6' style="display: none">
+                <div id="discussion-panel-heading">
+                    <p>Peer Chat</p>
+                </div>
+
+                <div id="discussion-panel-peer-votes">
+                    <div id="discussion-panel-peer-votes-content">
+                        <p>Here is what everyone answered:</p>
+                        <div id="peerlist">
+                            <p>You: <strong><span id="first_answer"></span></strong></p>
+                        </div>
+                        <p>Please discuss your answers now :)</p>
+                    </div>
+                </div>
+
+                <div id="discussion-panel-messages">
+                    <ul id="messages" class="conversation"></ul>
+                    <div id="peer-message-box">
+                        <input type="text" id="messageText" placeholder="Type your explanation here...">
+                        <button
+                            id="sendpeermsg"
+                            class="btn disabled"
+                            onclick="sendMessage()"
+                            aria-label="Send message"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                fill="currentColor"
+                                class="bi bi-arrow-up-circle-fill"
+                                viewBox="0 0 16 16"
+                                aria-hidden="true"
+                            >
+                                <path d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0m-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="group_select_panel" class="col-md-6" style="display: none;">
+                <p><strong>In person discussion:</strong> select the people in your discussion group.</p>
+                <select id="assignment_group" multiple class="assignment_partner_select" style="width: 95%">
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <p>Please do not leave or refresh the page during a peer instruction session. <strong>Exception:</strong> If you should
+        have seen a new question at this point then you may continue.</p>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="/staticAssets/js/peer.js?v={{ peer_mtime }}"></script>
+<script>
+    eBookConfig.peer = true;
+    eBookConfig.websocket_url = "/ns";
+    var user = '{{ user.username }}';
+    var assignment_id = {{ assignment_id }};
+    var currentQuestion = '{{ current_question.name }}';
+    var vote2done = false;
+    
+    document.addEventListener("DOMContentLoaded", function (event) {
+        setTimeout(connect, 1000);
+    });
+
+    // This function serves the purpose of making sure that a variable is defined before we
+    // access it.
+    function ensureComponentMap(timeout) {
+        var start = Date.now();
+        return new Promise(waitForIt); // set the promise object
+        // waitForIt makes the decision whether the condition is met
+        // or not met or the timeout has been exceeded which means
+        // this promise will be rejected
+        function waitForIt(resolve, reject) {
+            if (window.componentMap && Object.keys(window.componentMap).length > 0) {
+                console.log("componentMap is set, resolving...")
+                resolve(window.componentMap[currentQuestion]);
+            }
+            else if (timeout && (Date.now() - start) >= timeout)
+                reject(new Error("timeout"));
+            else {
+                console.log("waiting for componentMap")
+                setTimeout(waitForIt.bind(this, resolve, reject), 30);
+            }
+        }
+    }
+
+    // This says what to do when the componentMap variable from above is defined.
+    ensureComponentMap(50000).then(function () {
+        console.log("componentMap is set");
+        window.componentMap[currentQuestion].submitButton.innerHTML = "Submit";
+        window.componentMap[currentQuestion].submitButton.addEventListener(
+            "click",
+            function () {
+                if (studentVoteCount == 2) {
+                    vote2done = true;
+                    let group = document.getElementById("assignment_group").selectedOptions;
+                    let groupList = []
+                    for (let student of group) {
+                        groupList.push(student.value);
+                    }
+                    let peerList = groupList.join(",");
+                    localStorage.setItem("peerList", peerList);
+                    if (peerList) {
+                        logPeerEvent({
+                            sid: eBookConfig.username,
+                            div_id: currentQuestion,
+                            event: "peergroup",
+                            act: `grouplist:${peerList}`,
+                            course_name: eBookConfig.course,
+                        });
+                    }
+                }
+            })
+    });
+
+    var studentVoteCount = 1;
+    var voteStopped = false;
+    $(window).on(
+        "beforeunload",
+        function (event) {
+            // this actual value gets ignored by newer browsers
+            if (this.done) {
+                return;
+            }
+            event.preventDefault();
+            event.returnValue =
+                "Please do not leave or refresh the page during a peer instruction session.";
+            return "Please do not leave or refresh the page during a peer instruction session. Exception: If you should have seen a new question at this point then you may continue.";
+        }.bind(this)
+    );
+
+    async function doIt() {
+        await setupPeerGroup();
+    }
+    doIt();
+</script>
+{% endblock %}

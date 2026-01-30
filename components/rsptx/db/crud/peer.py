@@ -1,8 +1,9 @@
-from typing import List
+from typing import List, Optional, Tuple
 from sqlalchemy import select, func, and_
 from sqlalchemy.orm import aliased
+from datetime import datetime
 
-from ..models import Useinfo
+from ..models import Useinfo, MchoiceAnswers
 from ..async_session import async_session
 
 
@@ -97,3 +98,131 @@ async def did_send_messages(sid: str, div_id: str, course_name: str) -> bool:
             return True
         else:
             return False
+
+
+async def fetch_recent_student_answers(
+    div_id: str, course_name: str, start_time: datetime, limit: int = 4000
+) -> List[Tuple[str, str, str]]:
+    """
+    Fetch the most recent answer for each student for a given question.
+
+    :param div_id: str, the question div_id
+    :param course_name: str, the course name
+    :param start_time: datetime, only fetch answers after this time
+    :param limit: int, maximum number of results to return
+    :return: List[Tuple[str, str, str]], list of (sid, answer, correct) tuples
+    """
+    async with async_session() as session:
+        # Get the most recent answer for each student
+        subquery = (
+            select(
+                MchoiceAnswers.sid,
+                MchoiceAnswers.answer,
+                MchoiceAnswers.correct,
+                func.row_number()
+                .over(
+                    partition_by=MchoiceAnswers.sid,
+                    order_by=MchoiceAnswers.id.desc(),
+                )
+                .label("rn"),
+            )
+            .where(
+                MchoiceAnswers.div_id == div_id,
+                MchoiceAnswers.course_name == course_name,
+                MchoiceAnswers.timestamp > start_time,
+            )
+            .subquery()
+        )
+
+        query = select(subquery).where(subquery.c.rn == 1).limit(limit)
+        result = await session.execute(query)
+        rows = result.all()
+
+        return [(row.sid, row.answer, row.correct) for row in rows if row.answer]
+
+
+async def fetch_student_answers_in_timerange(
+    div_id: str,
+    course_name: str,
+    start_time: datetime,
+    end_time: Optional[datetime] = None,
+    limit: int = 4000,
+) -> List[Tuple[str, str]]:
+    """
+    Fetch the most recent answer for each student within a time range.
+
+    :param div_id: str, the question div_id
+    :param course_name: str, the course name
+    :param start_time: datetime, only fetch answers after this time
+    :param end_time: Optional[datetime], only fetch answers before this time
+    :param limit: int, maximum number of results to return
+    :return: List[Tuple[str, str]], list of (sid, answer) tuples
+    """
+    async with async_session() as session:
+        subquery = select(
+            MchoiceAnswers.sid,
+            MchoiceAnswers.answer,
+            func.row_number()
+            .over(
+                partition_by=MchoiceAnswers.sid,
+                order_by=MchoiceAnswers.id.desc(),
+            )
+            .label("rn"),
+        ).where(
+            MchoiceAnswers.div_id == div_id,
+            MchoiceAnswers.course_name == course_name,
+            MchoiceAnswers.timestamp > start_time,
+        )
+
+        if end_time:
+            subquery = subquery.where(MchoiceAnswers.timestamp < end_time)
+
+        subquery = subquery.subquery()
+        query = select(subquery).where(subquery.c.rn == 1).limit(limit)
+        result = await session.execute(query)
+        rows = result.all()
+
+        return [(row.sid, row.answer) for row in rows if row.answer]
+
+
+async def count_distinct_student_answers(
+    div_id: str, course_name: str, start_time: datetime
+) -> int:
+    """
+    Count distinct students who answered a question after a given time.
+
+    :param div_id: str, the question div_id
+    :param course_name: str, the course name
+    :param start_time: datetime, only count answers after this time
+    :return: int, count of distinct students
+    """
+    async with async_session() as session:
+        query = select(func.count(func.distinct(MchoiceAnswers.sid))).where(
+            MchoiceAnswers.div_id == div_id,
+            MchoiceAnswers.course_name == course_name,
+            MchoiceAnswers.timestamp > start_time,
+        )
+        result = await session.execute(query)
+        return result.scalar() or 0
+
+
+async def count_peer_messages(
+    div_id: str, course_name: str, start_time: datetime
+) -> int:
+    """
+    Count messages sent during peer instruction for a question.
+
+    :param div_id: str, the question div_id
+    :param course_name: str, the course name
+    :param start_time: datetime, only count messages after this time
+    :return: int, count of messages
+    """
+    async with async_session() as session:
+        query = select(func.count(Useinfo.id)).where(
+            Useinfo.div_id == div_id,
+            Useinfo.course_id == course_name,
+            Useinfo.event == "sendmessage",
+            Useinfo.timestamp > start_time,
+        )
+        result = await session.execute(query)
+        return result.scalar() or 0

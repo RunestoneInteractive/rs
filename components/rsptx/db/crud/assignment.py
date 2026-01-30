@@ -207,7 +207,9 @@ async def fetch_assignments(
         vclause = True
 
     if is_peer:
-        pclause = Assignment.is_peer == True  # noqa: E712
+        pclause = or_(
+            Assignment.is_peer == True, Assignment.kind == "Peer"
+        )  # noqa: E712
     else:
         pclause = or_(
             Assignment.is_peer == False,  # noqa: E712
@@ -286,12 +288,13 @@ async def create_assignment(assignment: AssignmentValidator) -> AssignmentValida
     return AssignmentValidator.from_orm(new_assignment)
 
 
-async def update_assignment(assignment: AssignmentValidator) -> None:
+async def update_assignment(assignment: AssignmentValidator, pi_update=False) -> None:
     """
     Update an Assignment object with the given data (assignment)
     """
     assignment_updates = assignment.dict()
-    assignment_updates["current_index"] = 0
+    if not pi_update:
+        assignment_updates["current_index"] = 0
     del assignment_updates["id"]
 
     stmt = (
