@@ -102,7 +102,7 @@ eBookConfig.isLoggedIn = true;
         </div>
         <button
           id="readyVote2Btn"
-          class="btn btn-warning"
+          class="btn btn-default"
           style="display:none; margin-top: 1em;"
           onclick="enableSecondVoteAsync()"
         >
@@ -156,6 +156,11 @@ eBookConfig.isLoggedIn = true;
 
     const b = document.getElementById("readyVote2Btn");
     if (b) b.style.display = "none";
+    const nextStep = document.getElementById("nextStep");
+    if (nextStep) {
+      nextStep.textContent =
+        "Please submit your second vote now. You may keep or change your answer.";
+    }
 }
 </script>
 <script>
@@ -203,7 +208,7 @@ eBookConfig.isLoggedIn = true;
       div_id: currentQuestion,
       event: "reflection",
       act: reflection,
-      course: eBookConfig.course,
+      course_name: eBookConfig.course,
     });
   }
 
@@ -255,8 +260,7 @@ const resp = await fetch("/runestone/peer/get_async_llm_reflection", {
 
   studentSubmittedVote2 = false; 
 
-  const readyBtn = document.getElementById("readyVote2Btn");
-  if (readyBtn) readyBtn.style.display = "inline-block";
+  
 
   enableChat(reflection, selected);
 
@@ -288,6 +292,12 @@ function enableChat(reflection, selected) {
     if (!msg) return;
 
     appendMsg("user", msg);
+    llmUserMessageCount += 1;
+
+    if (llmUserMessageCount >= 1) {
+      const readyBtn = document.getElementById("readyVote2Btn");
+      if (readyBtn) readyBtn.style.display = "inline-block";
+    }
     input.value = "";
 
     window._llmMessages.push({
@@ -334,6 +344,7 @@ function enableChat(reflection, selected) {
     var studentVoteCount = 1;
     var studentSubmittedVote2 = false;
     var vote2done = false;
+    var llmUserMessageCount = 0;
     var nextQuestionNumber = {{= nextQnum}};
     var assignId = '{{=assignment_id}}'
     eBookConfig.is_peer_async = true;
@@ -348,6 +359,7 @@ function enableChat(reflection, selected) {
 
     // this cannot happen until the event that indicates components are loaded
     $(document).on("runestone:login-complete", function () {
+        llmUserMessageCount = 0;
         logPeerEvent({
             sid: eBookConfig.username,
             div_id: `${assignId}`,
@@ -375,6 +387,16 @@ function enableChat(reflection, selected) {
               studentVoteCount = 2;
               studentSubmittedVote2 = true;
               window._vote2Enabled = false;
+            }
+            if (studentSubmittedVote2) {
+              try {
+                const comp = window.componentMap[currentQuestion];
+                if (comp && typeof comp.showFeedback === "function") {
+                  comp.showFeedback();
+                }
+              } catch (e) {
+                console.warn("Could not show correctness feedback", e);
+              }
             }
           });
         }, 2000);

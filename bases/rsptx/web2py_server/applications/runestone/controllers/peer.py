@@ -196,8 +196,9 @@ def _get_numbered_question(assignment_id, qnum):
         qnum = total_questions - 1
     
     done = "false"
-    if qnum == total_questions - 1:
+    if qnum >= total_questions:
         done = "true"
+        qnum = total_questions - 1
     logger.debug(f"qnum = {qnum} total_questions = {total_questions} done = {done}")
     current_question = all_questions[qnum]
     return current_question, done
@@ -713,37 +714,6 @@ def log_peer_rating():
     return json.dumps(retmess)
 
 
-# Students Async Interface to Peer Instruction
-# --------------------------------------------
-
-
-# @auth.requires_login()
-# def peer_async():
-#     if "access_token" not in request.cookies:
-#         logger.error(f"Missing Access Token: {auth.user.username} adding one Now")
-#         create_rs_token()
-
-#     assignment_id = request.vars.assignment_id
-
-#     qnum = 0
-#     if request.vars.question_num:
-#         qnum = int(request.vars.question_num)
-
-#     current_question, all_done = _get_numbered_question(assignment_id, qnum)
-#     course = db(db.courses.course_name == auth.user.course_name).select().first()
-#     course_attrs = getCourseAttributesDict(course.id, course.base_course)
-#     if "latex_macros" not in course_attrs:
-#         course_attrs["latex_macros"] = ""
-
-#     return dict(
-#         course_id=auth.user.course_name,
-#         course=get_course_row(db.courses.ALL),
-#         current_question=current_question,
-#         assignment_id=assignment_id,
-#         nextQnum=qnum + 1,
-#         all_done=all_done,
-#         **course_attrs,
-#     )
 @auth.requires_login()
 def peer_async():
     if "access_token" not in request.cookies:
@@ -754,11 +724,14 @@ def peer_async():
 
     assignment_id = request.vars.assignment_id
 
-    qnum = 0
-    if request.vars.question_num:
-        qnum = int(request.vars.question_num)
+    question_num = 1
+    if request.vars.question_num is not None:
+        question_num = int(request.vars.question_num)
 
-    current_question, all_done = _get_numbered_question(assignment_id, qnum)
+    current_question, all_done = _get_numbered_question(
+    assignment_id,
+    question_num - 1
+    )
 
     assignment = db(db.assignments.id == assignment_id).select().first()
 
@@ -783,152 +756,13 @@ def peer_async():
         current_question=current_question,
         assignment_id=assignment_id,
         assignment_name=assignment.name,
-        nextQnum=qnum + 1,
+        nextQnum = question_num + 1,
         all_done=all_done,
         has_vote1=has_vote1,
         has_reflection=has_reflection,
         llm_reply=None,
         **course_attrs,
     )
-
-# def peer_async():
-#     if "access_token" not in request.cookies or not request.cookies.get("access_token"):
-#         logger.error(f"Missing Access Token: {auth.user.username} adding one Now")
-#         create_rs_token()
-#         return redirect(URL("peer", "peer_async", vars=request.vars))
-
-#     assignment_id = request.vars.assignment_id
-
-#     qnum = 0
-#     if request.vars.question_num:
-#         qnum = int(request.vars.question_num)
-
-#     current_question, all_done = _get_numbered_question(assignment_id, qnum)
-
-#     has_vote1 = False
-#     has_reflection = False
-
-#     if current_question:
-#         div_id = current_question.name
-#         sid = auth.user.username
-#         has_vote1 = _has_vote1(div_id, sid)
-#         has_reflection = _has_reflection(div_id, sid)
-
-#     llm_reply = None
-#     if has_vote1 and has_reflection:
-#         try:
-#             messages = [
-#                 {
-#                     "role": "user",
-#                     "content": (
-#                         "I answered this question and wrote a justification. "
-#                         "How might another student reason differently about this?"
-#                     )
-#                 }
-#             ]
-#             llm_reply = _call_openai(messages)
-#         except Exception as e:
-#             llm_reply = f"(LLM error: {e})"
-
-#     course = db(db.courses.course_name == auth.user.course_name).select().first()
-#     course_attrs = getCourseAttributesDict(course.id, course.base_course)
-
-#     if "latex_macros" not in course_attrs:
-#         course_attrs["latex_macros"] = ""
-
-#     return dict(
-#         course_id=auth.user.course_name,
-#         course=get_course_row(db.courses.ALL),
-#         current_question=current_question,
-#         assignment_id=assignment_id,
-#         nextQnum=qnum + 1,
-#         all_done=all_done,
-#         has_vote1=has_vote1,
-#         has_reflection=has_reflection,
-#         llm_reply=llm_reply,
-#         **course_attrs,
-#     )
-# @auth.requires_login()
-# def get_async_explainer():
-
-#     if request.vars.get("disable_llm_peer") == "1":
-#         return json.dumps({
-#             "mess": "",
-#             "user": "",
-#             "answer": "",
-#             "responses": {}
-#         })
-
-#     course_name = request.vars.course
-#     sid = auth.user.username
-#     div_id = request.vars.div_id
-
-#     this_answer = _get_user_answer(div_id, sid)
-    
-
-#     # Messages are in useinfo with an event of "sendmessage" and a div_id corresponding to the div_id of the question.
-#     # The act field is to:user:message
-#     # Ratings of messages are in useinfo with an event of "ratepeer"
-#     # the act field is rateduser:rating (excellent, good, poor)
-#     ratings = []
-#     for rate in ["excellent", "good"]:
-#         ratings = db(
-#             (db.useinfo.event == "ratepeer")
-#             & (db.useinfo.act.like(f"%{rate}"))
-#             & (db.useinfo.div_id == div_id)
-#             & (db.useinfo.course_id == course_name)
-#         ).select()
-#         if len(ratings) > 0:
-#             break
-
-#     if len(ratings) > 0:
-#         done = False
-#         tries = 0
-#         while not done and tries < 10:
-#             idx = random.randrange(len(ratings))
-#             act = ratings[idx].act
-#             user = act.split(":")[0]
-#             peer_answer = _get_user_answer(div_id, user)
-#             if peer_answer != this_answer:
-#                 done = True
-#             else:
-#                 tries += 1
-#         mess, participants = _get_user_messages(user, div_id, course_name)
-#         # This is the easy solution, but may result in a one-sided conversation.
-#         if user in participants:
-#             participants.remove(user)
-#     else:
-#         messages = db(
-#             (db.useinfo.event == "sendmessage")
-#             & (db.useinfo.div_id == div_id)
-#             & (db.useinfo.course_id == course_name)
-#         ).select(db.useinfo.sid)
-#         if len(messages) > 0:
-#             senders = set((row.sid for row in messages))
-#             done = False
-#             tries = 0
-#             while not done and tries < 10:
-#                 user = random.choice(list(senders))
-#                 peer_answer = _get_user_answer(div_id, user)
-#                 if peer_answer != this_answer:
-#                     done = True
-
-#                 else:
-#                     tries += 1
-#             mess, participants = _get_user_messages(user, div_id, course_name)
-#         else:
-#             mess = "Sorry there were no good explanations for you."
-#             user = "nobody"
-#             participants = set()
-
-#     responses = {}
-#     for p in participants:
-#         responses[p] = _get_user_answer(div_id, p)
-#     logger.debug(f"Get message for {div_id}")
-#     return json.dumps(
-#         {"mess": mess, "user": user, "answer": peer_answer, "responses": responses}
-#     )
-
 
 @auth.requires_login()
 def get_async_explainer():
@@ -963,6 +797,9 @@ def _get_mcq_context(div_id):
 
 @auth.requires_login()
 def get_async_llm_reflection():
+    logger.warning("LLM REFLECTION CALLED")
+    logger.warning(f"raw body = {request.body.read()}")
+    request.body.seek(0)
     try:
         data = json.loads(request.body.read().decode("utf-8"))
     except Exception:
@@ -971,6 +808,37 @@ def get_async_llm_reflection():
     div_id = (data.get("div_id") or "").strip()
     selected = (data.get("selected_answer") or "").strip()
     messages = data.get("messages")
+    try:
+        sid = auth.user.username
+        course_name = auth.user.course_name
+
+        user_msgs = [m for m in messages if m.get("role") == "user"]
+
+        for idx, m in enumerate(user_msgs):
+            content = (m.get("content") or "").strip()
+            if not content:
+                continue
+
+            if idx == 0:
+                db.useinfo.insert(
+                    course_id=course_name,
+                    sid=sid,
+                    div_id=div_id,
+                    event="reflection",
+                    act=content,
+                    timestamp=datetime.datetime.utcnow(),
+                )
+            else:
+                db.useinfo.insert(
+                    course_id=course_name,
+                    sid=sid,
+                    div_id=div_id,
+                    event="sendmessage",
+                    act=f"to:llm:{content}",
+                    timestamp=datetime.datetime.utcnow(),
+                )
+    except Exception as e:
+        logger.exception("Failed to log LLM user message")
 
     if not div_id:
         return response.json(dict(ok=False, error="missing div_id"))
@@ -1028,6 +896,17 @@ def get_async_llm_reflection():
 
     try:
         reply = _call_openai(messages)
+        try:
+            db.useinfo.insert(
+                course_id=auth.user.course_name,
+                sid="llm_peer",
+                div_id=div_id,
+                event="sendmessage",
+                act=f"to: student:{reply}",
+                timestamp=datetime.datetime.utcnow(),
+            )
+        except Exception:
+            logger.exception("Failed to log LLM reply")
 
         if not reply:
             return response.json(
