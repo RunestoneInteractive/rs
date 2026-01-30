@@ -18,8 +18,8 @@ interface ActiveCodeExerciseSettingsProps {
 }
 
 const PERSONALIZATION_LEVELS = [
-  { label: "Solution", value: "solution-level" },
-  { label: "Solution & Block", value: "block-and-solution" }
+  { label: "Solution", value: "movable" },
+  { label: "Solution & Block", value: "partial" }
 ];
 
 export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = ({
@@ -30,13 +30,13 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
     onChange({
       enableCodeTailor: enabled,
       // Reset personalization level when disabling
-      parsonspersonalize: enabled ? "solution-level" : "",
+      parsonspersonalize: enabled ? "movable" : "",
       // Reset parsons example when disabling
       parsonsexample: enabled ? formData.parsonsexample : ""
     });
   };
 
-  const handlePersonalizationChange = (value: "solution-level" | "block-and-solution") => {
+  const handlePersonalizationChange = (value: "movable" | "partial") => {
     onChange({ parsonspersonalize: value });
   };
 
@@ -47,21 +47,40 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
   const codeTailorFields = (
     <div className={styles.codeTailorSection}>
       <div className={styles.formField}>
-        <div className="flex align-items-center gap-2">
-          <InputSwitch
-            id="enableCodeTailor"
-            checked={formData.enableCodeTailor ?? false}
-            onChange={(e) => handleCodeTailorToggle(e.value)}
-          />
-          <label htmlFor="enableCodeTailor" className="font-medium">
-            Personalized Parsons Support (CodeTailor)
-          </label>
-          <i
-            className="pi pi-info-circle codetailor-info-icon"
-            data-pr-tooltip="CodeTailor provides personalized Parsons puzzles as adaptive support for students struggling with coding exercises."
-            data-pr-position="right"
-          />
-          <Tooltip target=".codetailor-info-icon" />
+        <div className="flex align-items-center gap-4">
+          <div className="flex align-items-center gap-2">
+            <InputSwitch
+              id="enableCodeTailor"
+              checked={formData.enableCodeTailor ?? false}
+              onChange={(e) => handleCodeTailorToggle(e.value)}
+            />
+            <label htmlFor="enableCodeTailor" className="font-medium">
+              Personalized Parsons Support (CodeTailor)
+            </label>
+            <i
+              className="pi pi-info-circle codetailor-info-icon"
+              data-pr-tooltip="CodeTailor provides personalized Parsons puzzles as adaptive support for students struggling with coding exercises."
+              data-pr-position="right"
+            />
+            <Tooltip target=".codetailor-info-icon" />
+          </div>
+
+          <div className="flex align-items-center gap-2">
+            <InputSwitch
+              id="enableCodelens"
+              checked={formData.enableCodelens ?? true}
+              onChange={(e) => onChange({ enableCodelens: e.value })}
+            />
+            <label htmlFor="enableCodelens" className="font-medium">
+              Show CodeLens Button
+            </label>
+            <i
+              className="pi pi-info-circle codelens-info-icon"
+              data-pr-tooltip="CodeLens button provides step-by-step visualization of code execution."
+              data-pr-position="right"
+            />
+            <Tooltip target=".codelens-info-icon" />
+          </div>
         </div>
       </div>
 
@@ -71,7 +90,7 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
             <span className="p-float-label">
               <Dropdown
                 id="parsonspersonalize"
-                value={formData.parsonspersonalize || "solution-level"}
+                value={formData.parsonspersonalize || "movable"}
                 options={PERSONALIZATION_LEVELS}
                 optionLabel="label"
                 className="w-full"
