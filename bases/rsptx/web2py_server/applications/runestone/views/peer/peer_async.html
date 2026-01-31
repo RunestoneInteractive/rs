@@ -66,13 +66,17 @@ eBookConfig.isLoggedIn = true;
     </div>
     {{ pass }}
     {{ if all_done == "false": }}
-    <div class="col-md-6">
-        <p>
-            Please provide an explanation for why you answered
-            <span id="current_answer">__</span>
-        </p>
-        <textarea id="messageText" rows="6" cols="80"> </textarea> <br />
-        <button id="submitReflection" type="button">Submit</button>        <div>
+    <div class="col-md-6" id="reflectionPanel" style="opacity:0.5; pointer-events:none;">
+      <p>
+          Please provide an explanation for why you answered
+          <span id="current_answer">__</span>
+      </p>
+      <textarea id="messageText" rows="6" cols="80"></textarea> <br />
+      <button id="submitReflection" type="button">Submit</button>
+
+      <p id="vote1Notice" style="color:#a00; margin-top:0.5em;">
+          You must submit your first vote before starting the discussion.
+      </p>
             <!-- <h4>A discussion for you to consider</h4>
             <p id="peerName"></p>
             <p id="peerJust"></p>
@@ -191,6 +195,11 @@ eBookConfig.isLoggedIn = true;
   const nextStepEl = document.getElementById("nextStep");
 
   btn.addEventListener("click", async function () {
+  if (studentVoteCount < 1) {
+    alert("Please submit your first vote before starting the discussion.");
+    return;
+  }
+
   const reflection = (ta.value || "").trim();
   if (!reflection) {
     alert("Please write a short justification first.");
@@ -378,7 +387,17 @@ function enableChat(reflection, selected) {
 
             if (studentVoteCount === 1 && !window._vote2Enabled) {
               console.log("vote 1 submitted");
-              studentVoteCount = 1;
+              window._hasVote1 = true;
+
+              const panel = document.getElementById("reflectionPanel");
+              if (panel) {
+                panel.style.opacity = "1";
+                panel.style.pointerEvents = "auto";
+              }
+
+              const notice = document.getElementById("vote1Notice");
+              if (notice) notice.remove();
+
               return;
             }
 
