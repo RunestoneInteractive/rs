@@ -91,27 +91,30 @@ eBookConfig.isLoggedIn = true;
                           margin-bottom:8px;">
               </div>
 
-              <div style="display:flex; gap:6px;">
+              <div style="display:flex; gap:6px; align-items:center;">
                 <input id="llmReplyInput"
                       class="form-control"
                       placeholder="Reply to this student…"
                       type="text" />
+
                 <button id="llmReplyBtn" class="btn btn-default">
                   Send
+                </button>
+
+                <button
+                  id="readyVote2Btn"
+                  class="btn btn-primary"
+                  disabled
+                  title="Submit your first vote to unlock"
+                  onclick="enableSecondVoteAsync()"
+                >
+                  Vote again
                 </button>
               </div>
 
               <p id="nextStep" style="margin-top:8px; font-style:italic;"></p>
             </div>
         </div>
-        <button
-          id="readyVote2Btn"
-          class="btn btn-default"
-          style="display:none; margin-top: 1em;"
-          onclick="enableSecondVoteAsync()"
-        >
-          Vote again
-        </button>
     </div>
     {{pass}}
 </div>
@@ -141,6 +144,10 @@ eBookConfig.isLoggedIn = true;
 
   function enableSecondVoteAsync() {
     console.log("PI async: enabling vote 2");
+    if (!window._vote2Enabled && studentVoteCount < 1) {
+      alert("Please submit your first vote before voting again.");
+      return;
+    }
 
     window._vote2Enabled = true;
 
@@ -303,9 +310,13 @@ function enableChat(reflection, selected) {
     appendMsg("user", msg);
     llmUserMessageCount += 1;
 
-    if (llmUserMessageCount >= 1) {
+    if (llmUserMessageCount >= 1 && hasVote1) {
       const readyBtn = document.getElementById("readyVote2Btn");
-      if (readyBtn) readyBtn.style.display = "inline-block";
+      if (readyBtn) {
+        readyBtn.style.display = "inline-block";
+        readyBtn.disabled = false;
+        readyBtn.title = "";
+      }
     }
     input.value = "";
 
@@ -351,6 +362,7 @@ function enableChat(reflection, selected) {
         setTimeout(connect, 1000);
     });
     var studentVoteCount = 1;
+    var hasVote1 = false;
     var studentSubmittedVote2 = false;
     var vote2done = false;
     var llmUserMessageCount = 0;
@@ -386,7 +398,14 @@ function enableChat(reflection, selected) {
             $("#current_answer").html(sAnswer);
 
             if (studentVoteCount === 1 && !window._vote2Enabled) {
+              hasVote1 = true;
               console.log("vote 1 submitted");
+
+              const vote2Btn = document.getElementById("readyVote2Btn");
+              if (vote2Btn) {
+                vote2Btn.disabled = false;
+                vote2Btn.title = "";
+              }
               window._hasVote1 = true;
 
               const panel = document.getElementById("reflectionPanel");
