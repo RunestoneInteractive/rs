@@ -192,9 +192,7 @@ def _get_numbered_question(assignment_id, qnum):
     
     if qnum < 0:
         qnum = 0
-    elif qnum > total_questions - 1:
-        qnum = total_questions - 1
-    
+
     done = "false"
     if qnum >= total_questions:
         done = "true"
@@ -1009,26 +1007,35 @@ def clean_text(s):
     except Exception:
         return ""
 
-def _get_openai_key():
-    return os.environ.get("OPENAI_API_KEY", "").strip()
+def _get_umgpt_settings():
+    api_key = os.environ.get("UMGPT_API_KEY", "").strip()
+    base_url = os.environ.get("UMGPT_BASE_URL", "").strip()
+    api_version = os.environ.get("UMGPT_API_VERSION", "").strip()
+    deployment = os.environ.get("UMGPT_DEPLOYMENT", "").strip()
+    organization = os.environ.get("UMGPT_ORG", "").strip()
+    return api_key, base_url, api_version, deployment, organization
 
 def _call_openai(messages):
     """
-    Minimal HTTP call. No SDK needed.
+    Minimal HTTP call to U-M GPT Toolkit (Azure OpenAI gateway). No SDK needed.
     messages: list of {role, content}
     returns reply string
     """
-    api_key = _get_openai_key()
-    if not api_key:
+    api_key, base_url, api_version, deployment, organization = _get_umgpt_settings()
+    if not api_key or not base_url or not api_version or not deployment:
         return None
 
-    url = "https://api.openai.com/v1/chat/completions"
+    url = (
+        f"{base_url.rstrip('/')}/openai/deployments/{deployment}/chat/completions"
+        f"?api-version={api_version}"
+    )
     headers = {
-        "Authorization": f"Bearer {api_key}",
+        "api-key": api_key,
         "Content-Type": "application/json",
     }
+    if organization:
+        headers["OpenAI-Organization"] = organization
     payload = {
-        "model": "gpt-4o-mini",
         "messages": messages,
         "temperature": 0.4,
         "max_tokens": 300,
@@ -1042,7 +1049,7 @@ def get_gpt_response():
     """
 
     GET ?message=...  -> echo mode
-    POST JSON {"messages":[...]} -> calls OpenAI if OPENAI_API_KEY is set, else stub
+    POST JSON {"messages":[...]} -> calls UMGPT if UMGPT_* config is set, else stub
     """
     if request.env.request_method == "GET":
         msg = request.vars.message or ""

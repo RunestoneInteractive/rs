@@ -152,6 +152,9 @@ eBookConfig.isLoggedIn = true;
     window._vote2Enabled = true;
 
     studentSubmittedVote2 = false;
+    if (typeof studentVoteCount !== "undefined" && studentVoteCount < 2) {
+      studentVoteCount = 2;
+    }
 
     try {
       const comp = window.componentMap[currentQuestion];
@@ -226,6 +229,30 @@ eBookConfig.isLoggedIn = true;
       act: reflection,
       course_name: eBookConfig.course,
     });
+    logPeerEvent({
+      sid: eBookConfig.username,
+      div_id: currentQuestion,
+      event: "pi_reflection",
+      act: JSON.stringify({
+        pi_attempt_id: getPiAttemptId(),
+        role: "student",
+        content: reflection,
+      }),
+      course_name: eBookConfig.course,
+    });
+    window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+    logPeerEvent({
+      sid: eBookConfig.username,
+      div_id: currentQuestion,
+      event: "pi_llm_turn",
+      act: JSON.stringify({
+        pi_attempt_id: getPiAttemptId(),
+        turn_index: window._llmTurnIndex,
+        role: "user",
+        content: reflection,
+      }),
+      course_name: eBookConfig.course,
+    });
   }
 
   const discussion = document.getElementById("llmDiscussion");
@@ -266,13 +293,28 @@ const resp = await fetch("/runestone/peer/get_async_llm_reflection", {
   }
 
   appendMsg("assistant", data.reply);
+  if (typeof logPeerEvent === "function") {
+    window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+    logPeerEvent({
+      sid: eBookConfig.username,
+      div_id: currentQuestion,
+      event: "pi_llm_turn",
+      act: JSON.stringify({
+        pi_attempt_id: getPiAttemptId(),
+        turn_index: window._llmTurnIndex,
+        role: "assistant",
+        content: data.reply,
+      }),
+      course_name: eBookConfig.course,
+    });
+  }
 
   window._llmMessages.push({
     role: "assistant",
     content: data.reply
   });  
   nextStep.textContent =
-    "Discuss this reasoning, then click 'Ready for Vote 2' to vote again.";
+    "Discuss this reasoning, then click 'Vote again' to vote again.";
 
   studentSubmittedVote2 = false; 
 
@@ -308,6 +350,21 @@ function enableChat(reflection, selected) {
     if (!msg) return;
 
     appendMsg("user", msg);
+    if (typeof logPeerEvent === "function") {
+      window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+      logPeerEvent({
+        sid: eBookConfig.username,
+        div_id: currentQuestion,
+        event: "pi_llm_turn",
+        act: JSON.stringify({
+          pi_attempt_id: getPiAttemptId(),
+          turn_index: window._llmTurnIndex,
+          role: "user",
+          content: msg,
+        }),
+        course_name: eBookConfig.course,
+      });
+    }
     llmUserMessageCount += 1;
 
     if (llmUserMessageCount >= 1 && hasVote1) {
@@ -342,6 +399,21 @@ function enableChat(reflection, selected) {
     }
 
     appendMsg("assistant", data.reply);
+    if (typeof logPeerEvent === "function") {
+      window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+      logPeerEvent({
+        sid: eBookConfig.username,
+        div_id: currentQuestion,
+        event: "pi_llm_turn",
+        act: JSON.stringify({
+          pi_attempt_id: getPiAttemptId(),
+          turn_index: window._llmTurnIndex,
+          role: "assistant",
+          content: data.reply,
+        }),
+        course_name: eBookConfig.course,
+      });
+    }
 
     window._llmMessages.push({
       role: "assistant",
@@ -369,6 +441,22 @@ function enableChat(reflection, selected) {
     var nextQuestionNumber = {{= nextQnum}};
     var assignId = '{{=assignment_id}}'
     eBookConfig.is_peer_async = true;
+    window._llmTurnIndex = 0;
+    window._piAttemptId = null;
+
+    function getPiAttemptId() {
+        if (!window._piAttemptId) {
+            const key = `pi_attempt_id:${eBookConfig.username}:${currentQuestion}`;
+            const existing = sessionStorage.getItem(key);
+            if (existing) {
+                window._piAttemptId = existing;
+            } else {
+                window._piAttemptId = `${eBookConfig.username}:${currentQuestion}:${Date.now()}`;
+                sessionStorage.setItem(key, window._piAttemptId);
+            }
+        }
+        return window._piAttemptId;
+    }
 
     function checkVoteCount() {
         if (studentVoteCount < 2 || studentSubmittedVote2 == false) {
@@ -397,14 +485,38 @@ function enableChat(reflection, selected) {
             const sAnswer = answerToString(currAnswer);
             $("#current_answer").html(sAnswer);
 
+            if (typeof logPeerEvent === "function") {
+              const voteNum = studentVoteCount;
+              const answerSnapshot = sAnswer;
+              setTimeout(() => {
+                const comp = window.componentMap[currentQuestion];
+                const correct =
+                  comp && typeof comp.correct !== "undefined"
+                    ? comp.correct
+                    : null;
+                logPeerEvent({
+                  sid: eBookConfig.username,
+                  div_id: currentQuestion,
+                  event: "pi_vote",
+                  act: JSON.stringify({
+                    pi_attempt_id: getPiAttemptId(),
+                    vote_num: voteNum,
+                    answer: answerSnapshot,
+                    correct: correct,
+                  }),
+                  course_name: eBookConfig.course,
+                });
+              }, 0);
+            }
+
             if (studentVoteCount === 1 && !window._vote2Enabled) {
               hasVote1 = true;
               console.log("vote 1 submitted");
 
               const vote2Btn = document.getElementById("readyVote2Btn");
               if (vote2Btn) {
-                vote2Btn.disabled = false;
-                vote2Btn.title = "";
+                vote2Btn.disabled = true;
+                vote2Btn.title = "Send at least one LLM message to unlock";
               }
               window._hasVote1 = true;
 
