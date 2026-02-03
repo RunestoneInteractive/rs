@@ -62,6 +62,28 @@ Manage API Tokens
         cursor: not-allowed;
     }
 
+    .delete-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-left: 10px;
+    }
+
+    .delete-btn:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
     .alert {
         padding: 15px;
         margin-bottom: 20px;
@@ -90,6 +112,31 @@ Manage API Tokens
     .token-row input {
         flex: 1;
     }
+
+    .token-info {
+        background-color: #e9ecef;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .token-info h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-size: 18px;
+    }
+
+    .token-info ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+    .token-info .total {
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
 </style>
 {% endblock %}
 
@@ -99,6 +146,20 @@ Manage API Tokens
     <p>Add API tokens for external services. These tokens will be encrypted and stored securely for your course.</p>
 
     <div id="alert-container"></div>
+
+    {% if total_tokens > 0 %}
+    <div class="token-info">
+        <h3>Current Tokens</h3>
+        <div class="total">Total tokens stored: {{ total_tokens }}</div>
+        {% if token_counts %}
+        <ul>
+            {% for provider, count in token_counts.items() %}
+            <li>{{ provider }}: {{ count }} token{{ 's' if count != 1 else '' }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endif %}
 
     <form id="token-form">
         <div class="form-group">
@@ -128,7 +189,10 @@ Manage API Tokens
             </div>
         </div>
 
-        <button type="submit" class="submit-btn" id="submit-btn">Save Tokens</button>
+        <div class="button-group">
+            <button type="submit" class="submit-btn" id="submit-btn">Save Tokens</button>
+            <button type="button" class="delete-btn" id="delete-btn" onclick="deleteAllTokens()">Delete All Tokens</button>
+        </div>
     </form>
 </div>
 
@@ -250,16 +314,10 @@ Manage API Tokens
 
             if (response.ok) {
                 showAlert(data.detail.message, 'success');
-                // Reset form
-                document.getElementById('token-form').reset();
-                // Reset token inputs to just one
-                document.getElementById('token-inputs').innerHTML = `
-                <div class="token-row">
-                    <input type="password" class="token-input" placeholder="Enter API token" required>
-                    <button type="button" class="add-token-btn" onclick="addTokenInput()">+ Add</button>
-                </div>
-            `;
-                tokenCount = 1;
+                // Reload the page after a short delay to update the token count
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
             } else {
                 throw new Error(data.detail || 'Failed to save tokens');
             }
@@ -271,6 +329,42 @@ Manage API Tokens
             submitBtn.textContent = 'Save Tokens';
         }
     });
+
+    async function deleteAllTokens() {
+        if (!confirm('Are you sure you want to delete ALL API tokens for this course? This action cannot be undone.')) {
+            return;
+        }
+
+        const deleteBtn = document.getElementById('delete-btn');
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = 'Deleting...';
+
+        try {
+            const response = await fetch('/assignment/instructor/delete_tokens', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showAlert(data.detail.message, 'success');
+                // Reload the page after a short delay to update the token count
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                throw new Error(data.detail || 'Failed to delete tokens');
+            }
+
+        } catch (error) {
+            showAlert(error.message, 'danger');
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = 'Delete All Tokens';
+        }
+    }
 
     // Show/hide password functionality
     document.addEventListener('click', function (e) {

@@ -324,6 +324,23 @@ async def delete_api_token(
             return count
 
 
+async def fetch_all_api_tokens(
+    course_id: int,
+) -> list[APITokenValidator]:
+    """
+    Fetch all API tokens for a given course.
+
+    :param course_id: int, the id of the course
+    :return: list[APITokenValidator], list of all tokens for the course
+    """
+    query = select(APIToken).where(APIToken.course_id == course_id)
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        tokens = res.scalars().all()
+        return [APITokenValidator.from_orm(token) for token in tokens]
+
+
 # DomainApprovals
 # ------------------
 async def check_domain_approval(
