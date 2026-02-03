@@ -288,6 +288,42 @@ async def fetch_api_token(
         return None
 
 
+async def delete_api_token(
+    course_id: int,
+    token_id: Optional[int] = None,
+) -> int:
+    """
+    Delete API token(s) for a given course.
+    If token_id is provided, only delete the token with that id.
+    If token_id is not provided, delete all tokens for the course.
+
+    :param course_id: int, the id of the course
+    :param token_id: Optional[int], the id of a specific token to delete (optional)
+    :return: int, the number of tokens deleted
+    """
+    async with async_session.begin() as session:
+        if token_id is not None:
+            # Delete only the specific token
+            query = select(APIToken).where(
+                (APIToken.id == token_id) & (APIToken.course_id == course_id)
+            )
+            res = await session.execute(query)
+            token = res.scalars().first()
+            if token:
+                await session.delete(token)
+                return 1
+            return 0
+        else:
+            # Delete all tokens for the course
+            query = select(APIToken).where(APIToken.course_id == course_id)
+            res = await session.execute(query)
+            tokens = res.scalars().all()
+            count = len(tokens)
+            for token in tokens:
+                await session.delete(token)
+            return count
+
+
 # DomainApprovals
 # ------------------
 async def check_domain_approval(
