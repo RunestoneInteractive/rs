@@ -173,6 +173,13 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         rs = check_project_ptx(click=click, course=course, target=target)
         if not rs:
             return {"completed": False, "status": "Bad configuration in project.ptx"}
+        log_path = (
+            Path(os.environ.get("BOOK_PATH")) / rs.output_dir / "author_build.log"
+        )
+        # ensure we get a clean file for each build
+        with open(log_path, "w") as olfile:
+            olfile.write(f"Build started at {datetime.datetime.utcnow()}\n")
+            olfile.write(f"Target: {target}\n")
 
         logger = logging.getLogger("ptxlogger")
         string_io_handler = StringIOHandler()
@@ -185,9 +192,6 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
             rs.generate_assets(only_changed=False, skip_cache=True)
 
         rs.build()  # build the book, generating assets as needed
-        log_path = (
-            Path(os.environ.get("BOOK_PATH")) / rs.output_dir / "author_build.log"
-        )
         if not log_path.parent.exists():
             log_path.parent.mkdir(parents=True, exist_ok=True)
         click.echo(f"Writing log to {log_path}")
