@@ -21,12 +21,12 @@ eBookConfig.basecourse = "{{=course.base_course}}";
 eBookConfig.host = window.location.origin;
 eBookConfig.isLoggedIn = true;
 </script> -->
-
+<!-- 
 {{ if has_vote1: }}
   <p><em>Vote 1 detected</em></p>
 {{ else: }}
   <p><em>No vote yet</em></p>
-{{ pass }}
+{{ pass }} -->
 <div id="peer_async_root" data-div_id="{{=current_question.name}}">
 </div>
 
@@ -141,32 +141,61 @@ eBookConfig.isLoggedIn = true;
 <script src="/runestone/static/js/peer.js?v={{=request.peer_mtime}}"></script>
 <script>
   window._vote2Enabled = false;
+  window._vote1Locked = false;
+
+  function setVoteInputsLocked(locked) {
+    try {
+      const comp = window.componentMap[currentQuestion];
+      if (comp && comp.submitButton) {
+        comp.submitButton.disabled = locked;
+      }
+      if (comp && typeof comp.disableInteraction === "function" && locked) {
+        comp.disableInteraction();
+      }
+      if (comp && typeof comp.enableInteraction === "function" && !locked) {
+        comp.enableInteraction();
+      }
+    } catch (e) {
+      console.warn("vote lock toggle failed", e);
+    }
+  }
+
+  function lockVote1AndReflection() {
+    window._vote1Locked = true;
+    setVoteInputsLocked(true);
+    const ta = document.getElementById("messageText");
+    const btn = document.getElementById("submitReflection");
+    if (ta) ta.disabled = true;
+    if (btn) btn.disabled = true;
+  }
+
+  function setReflectionPanelEnabled(enabled) {
+    const panel = document.getElementById("reflectionPanel");
+    if (!panel) return;
+    panel.style.opacity = enabled ? "1" : "0.5";
+    panel.style.pointerEvents = enabled ? "auto" : "none";
+    if (enabled) {
+      const notice = document.getElementById("vote1Notice");
+      if (notice) notice.remove();
+    }
+  }
 
   function enableSecondVoteAsync() {
     console.log("PI async: enabling vote 2");
-    if (!window._vote2Enabled && studentVoteCount < 1) {
+    if (!hasVote1) {
       alert("Please submit your first vote before voting again.");
       return;
     }
 
     window._vote2Enabled = true;
+    window._vote1Locked = false;
 
     studentSubmittedVote2 = false;
     if (typeof studentVoteCount !== "undefined" && studentVoteCount < 2) {
       studentVoteCount = 2;
     }
 
-    try {
-      const comp = window.componentMap[currentQuestion];
-      comp.submitButton.disabled = false;
-
-      const root = document.getElementById(currentQuestion);
-      root?.querySelectorAll("input, button").forEach(el => {
-        el.disabled = false;
-      });
-    } catch (e) {
-      console.warn("vote 2 enable fallback failed", e);
-    }
+    setVoteInputsLocked(false);
 
     const b = document.getElementById("readyVote2Btn");
     if (b) b.style.display = "none";
@@ -205,8 +234,11 @@ eBookConfig.isLoggedIn = true;
   const nextStepEl = document.getElementById("nextStep");
 
   btn.addEventListener("click", async function () {
-  if (studentVoteCount < 1) {
+  if (!hasVote1) {
     alert("Please submit your first vote before starting the discussion.");
+    return;
+  }
+  if (window._vote1Locked) {
     return;
   }
 
@@ -258,6 +290,7 @@ eBookConfig.isLoggedIn = true;
   const discussion = document.getElementById("llmDiscussion");
   const chat = document.getElementById("llmChat");
   const nextStep = document.getElementById("nextStep");
+  lockVote1AndReflection();
 
   discussion.style.display = "block";
   chat.innerHTML = "<p><em>Thinking about your explanation…</em></p>";
@@ -434,7 +467,8 @@ function enableChat(reflection, selected) {
         setTimeout(connect, 1000);
     });
     var studentVoteCount = 1;
-    var hasVote1 = false;
+    var hasVote1 = {{='true' if has_vote1 else 'false'}};
+    var hasReflection = {{='true' if has_reflection else 'false'}};
     var studentSubmittedVote2 = false;
     var vote2done = false;
     var llmUserMessageCount = 0;
@@ -469,6 +503,9 @@ function enableChat(reflection, selected) {
     // this cannot happen until the event that indicates components are loaded
     $(document).on("runestone:login-complete", function () {
         llmUserMessageCount = 0;
+        if (hasVote1 && !hasReflection) {
+            setReflectionPanelEnabled(true);
+        }
         logPeerEvent({
             sid: eBookConfig.username,
             div_id: `${assignId}`,
@@ -476,11 +513,21 @@ function enableChat(reflection, selected) {
             act: "start_async",
             course_name: eBookConfig.course,
         })
-        setTimeout(function () {
+        let bindAttempts = 0;
+        const bindVoteHandler = function () {
           const btn = window.componentMap[currentQuestion]?.submitButton;
-          if (!btn) return;
+          if (!btn) {
+            bindAttempts += 1;
+            if (bindAttempts < 40) {
+              setTimeout(bindVoteHandler, 100);
+            }
+            return;
+          }
 
           $(btn).off("click.pi_async").on("click.pi_async", function () {
+            if (window._vote1Locked && !window._vote2Enabled) {
+              return;
+            }
             const currAnswer = window.componentMap[currentQuestion].answer;
             const sAnswer = answerToString(currAnswer);
             $("#current_answer").html(sAnswer);
@@ -519,15 +566,7 @@ function enableChat(reflection, selected) {
                 vote2Btn.title = "Send at least one LLM message to unlock";
               }
               window._hasVote1 = true;
-
-              const panel = document.getElementById("reflectionPanel");
-              if (panel) {
-                panel.style.opacity = "1";
-                panel.style.pointerEvents = "auto";
-              }
-
-              const notice = document.getElementById("vote1Notice");
-              if (notice) notice.remove();
+              setReflectionPanelEnabled(true);
 
               return;
             }
@@ -549,7 +588,8 @@ function enableChat(reflection, selected) {
               }
             }
           });
-        }, 2000);
+        };
+        bindVoteHandler();
     });
 </script>
 <script>
