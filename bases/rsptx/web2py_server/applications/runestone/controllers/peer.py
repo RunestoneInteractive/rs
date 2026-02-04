@@ -25,7 +25,7 @@ import altair as alt
 import pandas as pd
 import redis
 from dateutil.parser import parse
-from rsptx.db.crud import fetch_lti_version
+from rsptx.db.crud import fetch_api_token, fetch_lti_version
 from rs_grading import _try_to_send_lti_grade
 
 try:
@@ -861,7 +861,7 @@ def get_async_llm_reflection():
         "never clearly describe the final result of the code.\n"
         "never fully state what the program prints.\n"
         "keep reasoning partial or uncertain.\n"
-        "use common misconceptions and focus on only one part of the code.\n"
+        "use common misconceptions relating to the specific problem.\n"
         "refer to code loosely like 'that line' or 'the loop' or 'the head' or 'the print'.\n"
         "often hedge with uncertainty.\n"
         "never agree with the other student's interpretation even if it sounds correct.\n"
@@ -1010,43 +1010,41 @@ def send_lti_scores():
 
 
 
-def _get_umgpt_settings():
-    api_key = os.environ.get("UMGPT_API_KEY", "").strip()
-    base_url = os.environ.get("UMGPT_BASE_URL", "").strip()
-    api_version = os.environ.get("UMGPT_API_VERSION", "").strip()
-    deployment = os.environ.get("UMGPT_DEPLOYMENT", "").strip()
-    organization = os.environ.get("UMGPT_ORG", "").strip()
-    return api_key, base_url, api_version, deployment, organization
+def _get_course_openai_key():
+    try:
+        token_record = asyncio.get_event_loop().run_until_complete(
+            fetch_api_token(course_id=auth.user.course_id, provider="openai")
+        )
+        if token_record and token_record.token:
+            return token_record.token.strip()
+    except Exception:
+        logger.exception("Failed to fetch course-wide OpenAI token for peer LLM")
+    return ""
 
 def _call_openai(messages):
     """
-    Minimal HTTP call to U-M GPT Toolkit (Azure OpenAI gateway). No SDK needed.
+    Minimal HTTP call using the instructor-provided course-wide OpenAI token.
     messages: list of {role, content}
     returns reply string
     """
-    api_key, base_url, api_version, deployment, organization = _get_umgpt_settings()
-    if not api_key or not base_url or not api_version or not deployment:
-        return None
+    api_key = _get_course_openai_key()
+    if not api_key:
+        raise Exception("missing api key")
 
-    url = (
-        f"{base_url.rstrip('/')}/openai/deployments/{deployment}/chat/completions"
-        f"?api-version={api_version}"
-    )
+    model = os.environ.get("PI_OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
+    url = "https://api.openai.com/v1/chat/completions"
     headers = {
-        "api-key": api_key,
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    if organization:
-        headers["OpenAI-Organization"] = organization
     payload = {
+        "model": model,
         "messages": messages,
         "temperature": 0.4,
         "max_tokens": 300,
     }
     resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
-    logger.warning(
-        f"UMGPT CALL | deployment={deployment} | api_version={api_version}"
-    )
+    logger.warning(f"PEER LLM CALL | provider=openai-course-token | model={model}")
     resp.raise_for_status()
     data = resp.json()
     return data["choices"][0]["message"]["content"].strip()
