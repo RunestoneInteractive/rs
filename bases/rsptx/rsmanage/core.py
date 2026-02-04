@@ -401,9 +401,10 @@ async def addcourse(
     "--gen", is_flag=True, help="Build PreTeXt generated assets (a one time thing)"
 )
 @click.option("--manifest", default="runestone-manifest.xml", help="Manifest file")
+@click.option("--target", default="runestone", help="Target for PreTeXt build")
 @click.argument("course", nargs=1)
 @pass_config
-async def build(config, clone, ptx, gen, manifest, course):
+async def build(config, clone, ptx, gen, manifest, target, course):
     """
     rsmanage build [options] COURSE
     Build the book for an existing course
@@ -435,7 +436,7 @@ async def build(config, clone, ptx, gen, manifest, course):
     click.echo(f"Switching to book dir {course}")
     os.chdir(course)
     if ptx:
-        res = _build_ptx_book(config, gen, manifest, course)
+        res = _build_ptx_book(config, gen, manifest, course, target=target)
 
     else:
         res = _build_runestone_book(config, course)
