@@ -4,10 +4,7 @@
 </script>
 <script>
   window.DISABLE_LLMTEST = true;
-  window.PI_LLM_MODE = false;
-</script>
-<script>
-  window.PI_LLM_MODE = false;
+  window.PI_LLM_MODE = {{='true' if llm_enabled else 'false'}};
   window.DISABLE_LLMTEST = true;
 
   window.eBookConfig = window.eBookConfig || {};
@@ -42,6 +39,8 @@ eBookConfig.isLoggedIn = true;
     eBookConfig.peer = true;
     eBookConfig.peerMode = "async";
 </script>
+<!-- <script>window.PI_LLM_MODE = false;</script> -->
+
 
 <div class="hidden-content" style="display: none">
     \( {{=XML(latex_macros)}} \)
@@ -298,65 +297,109 @@ eBookConfig.isLoggedIn = true;
   discussion.style.display = "block";
   chat.innerHTML = "<p><em>Thinking about your explanation…</em></p>";
 
-const mcq = document.querySelector('.mchoice');
-
-const questionText = mcq ? mcq.innerText : "";
-
-window._llmMessages = [
-  {
-    role: "user",
-    content: `i chose answer ${selected}. my explanation was:\n\n${reflection}`
-  }
-];
-
-
-const resp = await fetch("/runestone/peer/get_async_llm_reflection", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    div_id: currentQuestion,
-    selected_answer: selected,
-    messages: window._llmMessages
-  })
-});
-
-  const data = await resp.json();
-  chat.innerHTML = "";
-
-  if (!data.ok) {
-    chat.innerHTML = "<p><em>Error talking to peer.</em></p>";
-    return;
-  }
-
-  appendMsg("assistant", data.reply);
-  if (typeof logPeerEvent === "function") {
-    window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
-    logPeerEvent({
-      sid: eBookConfig.username,
-      div_id: currentQuestion,
-      event: "pi_llm_turn",
-      act: JSON.stringify({
-        pi_attempt_id: getPiAttemptId(),
-        turn_index: window._llmTurnIndex,
-        role: "assistant",
-        content: data.reply,
-      }),
-      course_name: eBookConfig.course,
+  if (window.PI_LLM_MODE !== true) {
+    const resp = await fetch("/runestone/peer/get_async_explainer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        div_id: currentQuestion,
+        course: eBookConfig.course
+      })
     });
+
+    if (!resp.ok) {
+      chat.innerHTML = "<p><em>Error talking to peer.</em></p>";
+      return;
+    }
+
+    const spec = await resp.json();
+    let res = "";
+    for (let response in spec.responses) {
+      res += `User ${response} answered ${answerToString(
+        spec.responses[response]
+      )} <br />`;
+    }
+    chat.innerHTML = "";
+    chat.innerHTML += `<p><strong>Other students said:</strong></p>`;
+    if (res) {
+      chat.innerHTML += `<p>${res}</p>`;
+    }
+    if (spec.mess) {
+      chat.innerHTML += spec.mess;
+    }
+    const replyInput = document.getElementById("llmReplyInput");
+    const replyBtn = document.getElementById("llmReplyBtn");
+    if (replyInput) replyInput.style.display = "none";
+    if (replyBtn) replyBtn.style.display = "none";
+    nextStep.textContent =
+      "Please answer the question again, even if you do not wish to change your answer.";
+    const readyBtn = document.getElementById("readyVote2Btn");
+    if (readyBtn) {
+      readyBtn.style.display = "inline-block";
+      readyBtn.disabled = false;
+      readyBtn.title = "";
+    }
+    studentSubmittedVote2 = false;
+    return;
+  } else {
+    const mcq = document.querySelector('.mchoice');
+
+    const questionText = mcq ? mcq.innerText : "";
+
+    window._llmMessages = [
+      {
+        role: "user",
+        content: `i chose answer ${selected}. my explanation was:\n\n${reflection}`
+      }
+    ];
+
+
+    const resp = await fetch("/runestone/peer/get_async_llm_reflection", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        div_id: currentQuestion,
+        selected_answer: selected,
+        messages: window._llmMessages
+      })
+    });
+
+    const data = await resp.json();
+    chat.innerHTML = "";
+
+    if (!data.ok) {
+      chat.innerHTML = "<p><em>Error talking to peer.</em></p>";
+      return;
+    }
+
+    appendMsg("assistant", data.reply);
+    if (typeof logPeerEvent === "function") {
+      window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+      logPeerEvent({
+        sid: eBookConfig.username,
+        div_id: currentQuestion,
+        event: "pi_llm_turn",
+        act: JSON.stringify({
+          pi_attempt_id: getPiAttemptId(),
+          turn_index: window._llmTurnIndex,
+          role: "assistant",
+          content: data.reply,
+        }),
+        course_name: eBookConfig.course,
+      });
+    }
+
+    window._llmMessages.push({
+      role: "assistant",
+      content: data.reply
+    });  
+    nextStep.textContent =
+      "Discuss this reasoning, then click 'Vote again' to vote again.";
+
+    studentSubmittedVote2 = false; 
+
+    enableChat(reflection, selected);
   }
-
-  window._llmMessages.push({
-    role: "assistant",
-    content: data.reply
-  });  
-  nextStep.textContent =
-    "Discuss this reasoning, then click 'Vote again' to vote again.";
-
-  studentSubmittedVote2 = false; 
-
-  
-
-  enableChat(reflection, selected);
 
 });
 })(); 

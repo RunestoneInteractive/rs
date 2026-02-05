@@ -778,12 +778,29 @@ def peer_async():
 
 @auth.requires_login()
 def get_async_explainer():
-    return json.dumps({
-        "mess": "",
-        "user": "",
-        "answer": "",
-        "responses": {}
-    })
+    course_name = request.vars.course
+    div_id = request.vars.div_id
+
+    messages = db(
+        (db.useinfo.event == "sendmessage")
+        & (db.useinfo.div_id == div_id)
+        & (db.useinfo.course_id == course_name)
+    ).select(orderby=db.useinfo.id)
+
+    if len(messages) == 0:
+        mess = "Sorry there are no explanations yet."
+    else:
+        parts = []
+        for row in messages:
+            try:
+                msg = row.act.split(":", 2)[2]
+            except Exception:
+                msg = row.act
+            parts.append(f"<li><strong>{row.sid}</strong> said: {msg}</li>")
+        mess = "<ul>" + "".join(parts) + "</ul>"
+
+    logger.debug(f"Get message for {div_id}")
+    return json.dumps({"mess": mess, "user": "", "answer": "", "responses": {}})
 
 
 def _get_mcq_context(div_id):
@@ -885,6 +902,7 @@ def get_async_llm_reflection():
         "do not continue reasoning after telling them to vote again.\n"
         "focus on reasoning not teaching.\n\n"
     )
+
 
     if question:
         sys_content += f"question:\n{question}\n\n"
