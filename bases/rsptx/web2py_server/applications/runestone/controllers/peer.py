@@ -748,6 +748,19 @@ def peer_async():
     if "latex_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
 
+    llm_enabled = _llm_enabled()
+    try:
+        db.useinfo.insert(
+            course_id=auth.user.course_name,
+            sid=auth.user.username,
+            div_id=current_question.name if current_question else None,
+            event="pi_mode",
+            act=json.dumps({"mode": "llm" if llm_enabled else "legacy"}),
+            timestamp=datetime.datetime.utcnow(),
+        )
+    except Exception:
+        logger.exception("Failed to log pi_mode for peer_async")
+
     return dict(
         course_id=auth.user.course_name,
         course=get_course_row(db.courses.ALL),
@@ -758,7 +771,7 @@ def peer_async():
         all_done=all_done,
         has_vote1=has_vote1,
         has_reflection=has_reflection,
-        llm_enabled=_llm_enabled(),
+        llm_enabled=llm_enabled,
         llm_reply=None,
         **course_attrs,
     )
