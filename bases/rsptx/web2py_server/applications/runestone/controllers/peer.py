@@ -758,6 +758,7 @@ def peer_async():
         all_done=all_done,
         has_vote1=has_vote1,
         has_reflection=has_reflection,
+        llm_enabled=_llm_enabled(),
         llm_reply=None,
         **course_attrs,
     )
@@ -1008,6 +1009,10 @@ def send_lti_scores():
 
     return json.dumps("success")
 
+
+
+def _llm_enabled():
+    return bool(_get_course_openai_key())
 
 
 def _get_course_openai_key():

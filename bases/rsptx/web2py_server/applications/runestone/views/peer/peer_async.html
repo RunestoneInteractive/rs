@@ -1,5 +1,8 @@
 {{extend 'runestone.html'}}
 <script>
+  window.ASYNC_LLM_ENABLED = {{='true' if llm_enabled else 'false'}};
+</script>
+<script>
   window.DISABLE_LLMTEST = true;
   window.PI_LLM_MODE = false;
 </script>
