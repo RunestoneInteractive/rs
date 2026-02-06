@@ -38,6 +38,15 @@ RUN rm /usr/src/app/$wheel
 FROM python:3.13-slim
 WORKDIR /usr/src/app
 
+# Install Java JDK (so `javac` is available)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      default-jdk ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Java environment variables
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH="$JAVA_HOME/bin:$PATH"
+
 COPY --from=builder /usr/local /usr/local
 
 CMD ["uvicorn", "rsptx.book_server_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
