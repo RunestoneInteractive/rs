@@ -377,29 +377,46 @@ export class ActiveCode extends RunestoneBase {
         }
         // capture current this for use in event handler
         let acElement = this;
-        $(window).keydown(function (e) {
-            //Solving Keyboard Trap of ActiveCode: If user use tab for navigation outside of ActiveCode, then change tab behavior in ActiveCode to enable tab user to tab out of the textarea
-            var code = e.keyCode ? e.keyCode : e.which;
-            if (code == 9 && $("textarea:focus").length === 0) {
+
+        // document level event handler for tab key to handle context switching
+        // detect if tab key was used to get into the editor
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Tab") {
+                editor.tabDown = true;
+            }
+        });
+        document.addEventListener("keyup", function (e) {
+            if (e.key === "Tab") {
+                editor.tabDown = false;
+            }
+        });
+        editor.getInputField().addEventListener("focus", function (e) {
+            // Solving Keyboard Trap of ActiveCode: If user uses Tab to navigate to the
+            // activecode, let Tab get them out
+            if (editor.tabDown) {
                 editor.setOption("extraKeys", {
-                    Tab: function (cm) {
-                        $(document.activeElement)
-                            .closest(".tab-content")
-                            .nextSibling.focus();
-                    },
-                    "Shift-Tab": function (cm) {
-                        $(document.activeElement)
-                            .closest(".tab-content")
-                            .previousSibling.focus();
-                    },
+                    Tab: false,
+                    "Shift-Tab": false,
+                });
+            } else {
+                editor.setOption("extraKeys", {
+                    Tab: "indentMore",
+                    "Shift-Tab": "indentLess",
                 });
             }
-            if ((e.originalEvent.code == "KeyS") && e.originalEvent.ctrlKey) {
+        });
+        // keyboard shortcuts for run (ctrl/cmd + s) and comment (ctrl/cmd + /)
+        this.containerDiv.addEventListener("keydown", function (e) {
+            if (e.code === "KeyS" && (e.ctrlKey || e.metaKey)) {
+                if (acElement.runButton.disabled)
+                    return;
                 acElement.runButton.click();
                 e.preventDefault();
             }
-            if ((e.originalEvent.code == "Slash") && e.originalEvent.ctrlKey) {
-                editor.toggleComment();
+            if (e.code === "Slash" && (e.ctrlKey || e.metaKey)) {
+                if (typeof editor.toggleComment === "function") {
+                    editor.toggleComment();
+                }
                 e.preventDefault();
             }
         });
