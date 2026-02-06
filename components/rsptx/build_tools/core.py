@@ -15,6 +15,7 @@
 import datetime
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 import logging
@@ -186,6 +187,11 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         logger.addHandler(string_io_handler)
         if hasattr(click, "worker"):
             click.add_logger(logger)
+        # clean out the output directory
+        pdb.set_trace()
+        if rs.output_dir_abspath().exists():
+            shutil.rmtree(rs.output_dir_abspath())
+        
         click.echo("Building the book")
         if gen:
             click.echo("Generating assets")
@@ -208,6 +214,10 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
 
         click.echo(f"Book will be deployed to {book_path}")
         if rs.output_dir_abspath() != book_path:
+            if book_path.exists():
+                # clean out the published directory so it is a clone of the output directory
+                # This ensures we don't have old bits of webpack junk lingering
+                shutil.rmtree(book_path)
             res = copytree(rs.output_dir_abspath(), book_path, dirs_exist_ok=True)
             if not res:
                 click.echo("Error copying files to published")
@@ -331,7 +341,7 @@ def check_project_ptx(click=click, course=None, target="runestone"):
     tgt.output_dir = Path(docid)
 
     tgt.stringparams.update({"host-platform": "runestone"})
-
+    
     return tgt
 
 
