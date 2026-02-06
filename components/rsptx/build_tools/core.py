@@ -188,7 +188,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         if hasattr(click, "worker"):
             click.add_logger(logger)
         # clean out the output directory
-        pdb.set_trace()
+
         if rs.output_dir_abspath().exists():
             shutil.rmtree(rs.output_dir_abspath())
         
