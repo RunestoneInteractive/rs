@@ -1079,7 +1079,7 @@ def _call_openai(messages):
         "temperature": 0.4,
         "max_tokens": 300,
     }
-    resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
+    resp = requests.post(url, headers=headers, json=payload, timeout=30)
     logger.warning(f"PEER LLM CALL | provider=openai-course-token | model={model}")
     resp.raise_for_status()
     data = resp.json()

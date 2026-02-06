@@ -222,8 +222,6 @@ eBookConfig.isLoggedIn = true;
     };
   })();
 </script>
-
-<!-- <script src="/runestone/static/js/llmtest.js"></script> -->
  
 <script>
 (function () {
@@ -354,21 +352,27 @@ eBookConfig.isLoggedIn = true;
     ];
 
 
-    const resp = await fetch("/runestone/peer/get_async_llm_reflection", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        div_id: currentQuestion,
-        selected_answer: selected,
-        messages: window._llmMessages
-      })
-    });
+    let resp;
+    try {
+      resp = await fetchWithRetry("/runestone/peer/get_async_llm_reflection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          div_id: currentQuestion,
+          selected_answer: selected,
+          messages: window._llmMessages
+        })
+      });
+    } catch (e) {
+      chat.innerHTML = "<p><em>LLM error. Please try again.</em></p>";
+      return;
+    }
 
     const data = await resp.json();
     chat.innerHTML = "";
 
     if (!data.ok) {
-      chat.innerHTML = "<p><em>Error talking to peer.</em></p>";
+      chat.innerHTML = "<p><em>LLM error. Please try again.</em></p>";
       return;
     }
 
@@ -461,23 +465,40 @@ function enableChat(reflection, selected) {
       content: msg
     });
 
-    const resp = await fetch("/runestone/peer/get_async_llm_reflection", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        div_id: currentQuestion,
-        selected_answer: selected,
-        messages: window._llmMessages
-      })
-    });
+    btn.disabled = true;
+    input.disabled = true;
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    let resp;
+    try {
+      resp = await fetchWithRetry("/runestone/peer/get_async_llm_reflection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          div_id: currentQuestion,
+          selected_answer: selected,
+          messages: window._llmMessages
+        })
+      });
+    } catch (e) {
+      appendMsg("assistant", "LLM error. Please try again.");
+      btn.disabled = false;
+      input.disabled = false;
+      return;
+    }
 
     const data = await resp.json();
     if (!data.ok) {
-      appendMsg("assistant", "(error talking to peer)");
+      appendMsg("assistant", "LLM error. Please try again.");
+      btn.disabled = false;
+      input.disabled = false;
       return;
     }
 
     appendMsg("assistant", data.reply);
+    btn.disabled = false;
+    input.disabled = false;
     if (typeof logPeerEvent === "function") {
       window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
       logPeerEvent({
