@@ -757,7 +757,7 @@ qq.enableInteraction();
     }
 }
 
-
+//re-enable interaction so the student can submit their second vote (async PI)
 function enableSecondVoteAsync() {
     console.log("Enabling second vote (async)");
 
@@ -848,6 +848,7 @@ async function setupPeerGroup() {
 
 }
 
+//insert the "Ready for Vote 2" button into the discussion area (async PI only)
 function insertReadyVote2Button() {
     if (document.getElementById("readyVote2Btn")) return;
 

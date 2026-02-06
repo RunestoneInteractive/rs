@@ -802,7 +802,7 @@ def get_async_explainer():
     logger.debug(f"Get message for {div_id}")
     return json.dumps({"mess": mess, "user": "", "answer": "", "responses": {}})
 
-
+#get question text, code, and answer choices for an MCQ
 def _get_mcq_context(div_id):
     q = db(db.questions.name == div_id).select().first()
     if not q:
@@ -824,6 +824,9 @@ def _get_mcq_context(div_id):
         logger.warning(f"Could not parse choices for {div_id}: {e}")
     return question, code, choices    
 
+
+#handle async peer instruction reflection using an LLM:
+#logs student messages and return an LLM peer-style reply
 @auth.requires_login()
 def get_async_llm_reflection():
     logger.warning("LLM REFLECTION CALLED")
@@ -948,9 +951,9 @@ def get_async_llm_reflection():
         try:
             db.useinfo.insert(
                 course_id=auth.user.course_name,
-                sid="llm_peer",
+                sid=auth.user.username,
                 div_id=div_id,
-                event="sendmessage",
+                event="llm_peer_sendmessage",
                 act=f"to: student:{reply}",
                 timestamp=datetime.datetime.utcnow(),
             )
@@ -981,7 +984,7 @@ def _get_user_answer(div_id, s):
         return ans.act.split(":")[1]
     else:
         return ""
-
+#check if the student has already submitted a reflection for the question
 def _has_reflection(div_id, sid):
     row = (
         db(
@@ -1041,11 +1044,11 @@ def send_lti_scores():
     return json.dumps("success")
 
 
-
+#determine whether LLM-based async peer discussion is enabled for this course based on coursewide api key
 def _llm_enabled():
     return bool(_get_course_openai_key())
 
-
+#fetch the course-wide openai API key used to enable LLM-based async peer discussion (only works for openai currently)
 def _get_course_openai_key():
     try:
         token_record = asyncio.get_event_loop().run_until_complete(
@@ -1057,6 +1060,8 @@ def _get_course_openai_key():
         logger.exception("Failed to fetch course-wide OpenAI token for peer LLM")
     return ""
 
+
+#call the openai chat completion API using the course-wide token and return the model reply
 def _call_openai(messages):
     """
     Minimal HTTP call using the instructor-provided course-wide OpenAI token.
