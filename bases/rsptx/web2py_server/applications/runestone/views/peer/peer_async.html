@@ -14,19 +14,6 @@
   eBookConfig.isLoggedIn = true;
 </script>
 
-<!-- <script>
-window.eBookConfig = window.eBookConfig || {};
-eBookConfig.course = "{{=course_id}}";
-eBookConfig.basecourse = "{{=course.base_course}}";
-eBookConfig.host = window.location.origin;
-eBookConfig.isLoggedIn = true;
-</script> -->
-<!-- 
-{{ if has_vote1: }}
-  <p><em>Vote 1 detected</em></p>
-{{ else: }}
-  <p><em>No vote yet</em></p>
-{{ pass }} -->
 <div id="peer_async_root" data-div_id="{{=current_question.name}}">
 </div>
 
@@ -39,7 +26,6 @@ eBookConfig.isLoggedIn = true;
     eBookConfig.peer = true;
     eBookConfig.peerMode = "async";
 </script>
-<!-- <script>window.PI_LLM_MODE = false;</script> -->
 
 
 <div class="hidden-content" style="display: none">
@@ -224,6 +210,25 @@ eBookConfig.isLoggedIn = true;
 </script>
  
 <script>
+async function fetchWithRetry(url, options, retries = 1, delayMs = 400) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await fetch(url, options);
+      if (resp.ok) {
+        return resp;
+      }
+      lastError = new Error(`HTTP ${resp.status}`);
+    } catch (err) {
+      lastError = err;
+    }
+    if (attempt < retries) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
+
 (function () {
   const btn = document.getElementById("submitReflection");
   const ta  = document.getElementById("messageText");

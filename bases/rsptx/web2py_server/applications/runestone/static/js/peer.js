@@ -856,12 +856,6 @@ function insertReadyVote2Button() {
 
     if (!container) return;
 
-    const btn = document.createElement("button");
-    btn.id = "readyVote2Btn";
-    btn.className = "btn btn-warning";
-    btn.style.display = "none";
-    btn.style.marginTop = "10px";
-    btn.textContent = "I'm ready to vote again";
 
     btn.addEventListener("click", enableSecondVoteAsync);
 
