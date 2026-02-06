@@ -1,3 +1,22 @@
+{{extend 'runestone.html'}}
+<script>
+  window.ASYNC_LLM_ENABLED = {{='true' if llm_enabled else 'false'}};
+</script>
+<script>
+  window.DISABLE_LLMTEST = true;
+  window.PI_LLM_MODE = {{='true' if llm_enabled else 'false'}};
+  window.DISABLE_LLMTEST = true;
+
+  window.eBookConfig = window.eBookConfig || {};
+  eBookConfig.course = "{{=course_id}}";
+  eBookConfig.basecourse = "{{=course.base_course}}";
+  eBookConfig.host = window.location.origin;
+  eBookConfig.isLoggedIn = true;
+</script>
+
+<div id="peer_async_root" data-div_id="{{=current_question.name}}">
+</div>
+
 {{extend 'layout.html'}}
 {{block moreincludes}}
 {{include '_sphinx_static_files.html'}}
@@ -7,6 +26,7 @@
     eBookConfig.peer = true;
     eBookConfig.peerMode = "async";
 </script>
+
 
 <div class="hidden-content" style="display: none">
     \( {{=XML(latex_macros)}} \)
@@ -22,7 +42,7 @@
             <li>Answer the question <strong>again.</strong>  Even if you are not changing your answer from the first time.</li>
         </ol>
     </p>
-</div>
+</div> 
 
 <div class="row">
     {{ if all_done == "false": }}
@@ -34,22 +54,65 @@
     </div>
     {{ pass }}
     {{ if all_done == "false": }}
-    <div class="col-md-6">
-        <p>
-            Please provide an explanation for why you answered
-            <span id="current_answer">__</span>
-        </p>
-        <textarea id="messageText" rows="6" cols="80"> </textarea> <br />
-        <button type="button" onclick="showPeerEnableVote2()">Submit</button>
-        <div>
-            <h4>A discussion for you to consider</h4>
+    <div class="col-md-6" id="reflectionPanel" style="opacity:0.5; pointer-events:none;">
+      <p>
+          Please provide an explanation for why you answered
+          <span id="current_answer">__</span>
+      </p>
+      <textarea id="messageText" rows="6" cols="80"></textarea> <br />
+      <button id="submitReflection" type="button">Submit</button>
+
+      <p id="vote1Notice" style="color:#a00; margin-top:0.5em;">
+          You must submit your first vote before starting the discussion.
+      </p>
+            <!-- <h4>A discussion for you to consider</h4>
             <p id="peerName"></p>
             <p id="peerJust"></p>
-            <p id="nextStep"></p>
+            <p id="nextStep"></p> -->
+            <div id="llmDiscussion" style="display:none">
+              <div id="llmChat"
+                  style="background:#f5f5f5;
+                          padding:8px;
+                          border-radius:4px;
+                          max-height:220px;
+                          overflow-y:auto;
+                          margin-bottom:8px;">
+              </div>
+
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input id="llmReplyInput"
+                      class="form-control"
+                      placeholder="Reply to this student…"
+                      type="text" />
+
+                <button id="llmReplyBtn" class="btn btn-default">
+                  Send
+                </button>
+
+                <button
+                  id="readyVote2Btn"
+                  class="btn btn-primary"
+                  disabled
+                  title="Submit your first vote to unlock"
+                  onclick="enableSecondVoteAsync()"
+                >
+                  Vote again
+                </button>
+              </div>
+
+              <p id="nextStep" style="margin-top:8px; font-style:italic;"></p>
+            </div>
         </div>
     </div>
     {{pass}}
 </div>
+{{ if has_vote1 and has_reflection and llm_reply: }}
+<hr>
+<div style="background:#f0f0f0; padding:10px; border-radius:4px;">
+  <strong>An LLM peer said:</strong>
+  <p>{{=llm_reply}}</p>
+</div>
+{{ pass }}
 
 {{ if all_done == "false": }}
 <div>
@@ -60,7 +123,415 @@
     </form>
 </div>
 {{ pass }}
+<script>
+  window.DISABLE_ASYNC_EXPLAINER = true;
+</script>
 <script src="/runestone/static/js/peer.js?v={{=request.peer_mtime}}"></script>
+<script>
+  window._vote2Enabled = false;
+  window._vote1Locked = false;
+
+  function setVoteInputsLocked(locked) {
+    try {
+      const comp = window.componentMap[currentQuestion];
+      if (comp && comp.submitButton) {
+        comp.submitButton.disabled = locked;
+      }
+      if (comp && typeof comp.disableInteraction === "function" && locked) {
+        comp.disableInteraction();
+      }
+      if (comp && typeof comp.enableInteraction === "function" && !locked) {
+        comp.enableInteraction();
+      }
+    } catch (e) {
+      console.warn("vote lock toggle failed", e);
+    }
+  }
+
+  function lockVote1AndReflection() {
+    window._vote1Locked = true;
+    setVoteInputsLocked(true);
+    const ta = document.getElementById("messageText");
+    const btn = document.getElementById("submitReflection");
+    if (ta) ta.disabled = true;
+    if (btn) btn.disabled = true;
+  }
+
+  function setReflectionPanelEnabled(enabled) {
+    const panel = document.getElementById("reflectionPanel");
+    if (!panel) return;
+    panel.style.opacity = enabled ? "1" : "0.5";
+    panel.style.pointerEvents = enabled ? "auto" : "none";
+    if (enabled) {
+      const notice = document.getElementById("vote1Notice");
+      if (notice) notice.remove();
+    }
+  }
+
+  function enableSecondVoteAsync() {
+    console.log("PI async: enabling vote 2");
+    if (!hasVote1) {
+      alert("Please submit your first vote before voting again.");
+      return;
+    }
+
+    window._vote2Enabled = true;
+    window._vote1Locked = false;
+
+    studentSubmittedVote2 = false;
+    if (typeof studentVoteCount !== "undefined" && studentVoteCount < 2) {
+      studentVoteCount = 2;
+    }
+
+    setVoteInputsLocked(false);
+
+    const b = document.getElementById("readyVote2Btn");
+    if (b) b.style.display = "none";
+    const nextStep = document.getElementById("nextStep");
+    if (nextStep) {
+      nextStep.textContent =
+        "Please submit your second vote now. You may keep or change your answer.";
+    }
+}
+</script>
+<script>
+  (function () {
+    const origShowPeerEnableVote2 = window.showPeerEnableVote2;
+    window.showPeerEnableVote2 = function () {
+      if (window._piReflectionSubmitted) {
+        console.log("PI async: suppressing peer.js UI reset after reflection");
+        return;
+      }
+      if (origShowPeerEnableVote2) {
+        origShowPeerEnableVote2();
+      }
+    };
+  })();
+</script>
+ 
+<script>
+async function fetchWithRetry(url, options, retries = 1, delayMs = 400) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await fetch(url, options);
+      if (resp.ok) {
+        return resp;
+      }
+      lastError = new Error(`HTTP ${resp.status}`);
+    } catch (err) {
+      lastError = err;
+    }
+    if (attempt < retries) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
+
+(function () {
+  const btn = document.getElementById("submitReflection");
+  const ta  = document.getElementById("messageText");
+  if (!btn || !ta) return;
+
+  const peerNameEl = document.getElementById("peerName");
+  const peerJustEl = document.getElementById("peerJust");
+  const nextStepEl = document.getElementById("nextStep");
+
+  btn.addEventListener("click", async function () {
+  if (!hasVote1) {
+    alert("Please submit your first vote before starting the discussion.");
+    return;
+  }
+  if (window._vote1Locked) {
+    return;
+  }
+
+  const reflection = (ta.value || "").trim();
+  if (!reflection) {
+    alert("Please write a short justification first.");
+    return;
+  }
+
+  let selected = "";
+  try {
+    selected = answerToString(window.componentMap[currentQuestion].answer);
+  } catch {}
+
+  if (typeof logPeerEvent === "function") {
+    logPeerEvent({
+      sid: eBookConfig.username,
+      div_id: currentQuestion,
+      event: "reflection",
+      act: reflection,
+      course_name: eBookConfig.course,
+    });
+    logPeerEvent({
+      sid: eBookConfig.username,
+      div_id: currentQuestion,
+      event: "pi_reflection",
+      act: JSON.stringify({
+        pi_attempt_id: getPiAttemptId(),
+        role: "student",
+        content: reflection,
+      }),
+      course_name: eBookConfig.course,
+    });
+    window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+    logPeerEvent({
+      sid: eBookConfig.username,
+      div_id: currentQuestion,
+      event: "pi_llm_turn",
+      act: JSON.stringify({
+        pi_attempt_id: getPiAttemptId(),
+        turn_index: window._llmTurnIndex,
+        role: "user",
+        content: reflection,
+      }),
+      course_name: eBookConfig.course,
+    });
+  }
+
+  const discussion = document.getElementById("llmDiscussion");
+  const chat = document.getElementById("llmChat");
+  const nextStep = document.getElementById("nextStep");
+  lockVote1AndReflection();
+
+  discussion.style.display = "block";
+  chat.innerHTML = "<p><em>Thinking about your explanation…</em></p>";
+
+  if (window.PI_LLM_MODE !== true) {
+    const resp = await fetch("/runestone/peer/get_async_explainer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        div_id: currentQuestion,
+        course: eBookConfig.course
+      })
+    });
+
+    if (!resp.ok) {
+      chat.innerHTML = "<p><em>Error talking to peer.</em></p>";
+      return;
+    }
+
+    const spec = await resp.json();
+    let res = "";
+    for (let response in spec.responses) {
+      res += `User ${response} answered ${answerToString(
+        spec.responses[response]
+      )} <br />`;
+    }
+    chat.innerHTML = "";
+    chat.innerHTML += `<p><strong>Other students said:</strong></p>`;
+    if (res) {
+      chat.innerHTML += `<p>${res}</p>`;
+    }
+    if (spec.mess) {
+      chat.innerHTML += spec.mess;
+    }
+    const replyInput = document.getElementById("llmReplyInput");
+    const replyBtn = document.getElementById("llmReplyBtn");
+    if (replyInput) replyInput.style.display = "none";
+    if (replyBtn) replyBtn.style.display = "none";
+    nextStep.textContent =
+      "Please answer the question again, even if you do not wish to change your answer.";
+    const readyBtn = document.getElementById("readyVote2Btn");
+    if (readyBtn) {
+      readyBtn.style.display = "inline-block";
+      readyBtn.disabled = false;
+      readyBtn.title = "";
+    }
+    studentSubmittedVote2 = false;
+    return;
+  } else {
+    const mcq = document.querySelector('.mchoice');
+
+    const questionText = mcq ? mcq.innerText : "";
+
+    window._llmMessages = [
+      {
+        role: "user",
+        content: `i chose answer ${selected}. my explanation was:\n\n${reflection}`
+      }
+    ];
+
+
+    let resp;
+    try {
+      resp = await fetchWithRetry("/runestone/peer/get_async_llm_reflection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          div_id: currentQuestion,
+          selected_answer: selected,
+          messages: window._llmMessages
+        })
+      });
+    } catch (e) {
+      chat.innerHTML = "<p><em>LLM error. Please try again.</em></p>";
+      return;
+    }
+
+    const data = await resp.json();
+    chat.innerHTML = "";
+
+    if (!data.ok) {
+      chat.innerHTML = "<p><em>LLM error. Please try again.</em></p>";
+      return;
+    }
+
+    appendMsg("assistant", data.reply);
+    if (typeof logPeerEvent === "function") {
+      window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+      logPeerEvent({
+        sid: eBookConfig.username,
+        div_id: currentQuestion,
+        event: "pi_llm_turn",
+        act: JSON.stringify({
+          pi_attempt_id: getPiAttemptId(),
+          turn_index: window._llmTurnIndex,
+          role: "assistant",
+          content: data.reply,
+        }),
+        course_name: eBookConfig.course,
+      });
+    }
+
+    window._llmMessages.push({
+      role: "assistant",
+      content: data.reply
+    });  
+    nextStep.textContent =
+      "Discuss this reasoning, then click 'Vote again' to vote again.";
+
+    studentSubmittedVote2 = false; 
+
+    enableChat(reflection, selected);
+  }
+
+});
+})(); 
+</script>
+<script>
+function appendMsg(role, text) {
+  const chat = document.getElementById("llmChat");
+  const p = document.createElement("p");
+  p.style.margin = "6px 0";
+  p.style.whiteSpace = "pre-wrap";
+
+  p.innerHTML =
+    role === "user"
+      ? `<strong>You:</strong> ${text}`
+      : `<strong>LLM Peer:</strong> ${text}`;
+
+  chat.appendChild(p);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function enableChat(reflection, selected) {
+  const input = document.getElementById("llmReplyInput");
+  const btn = document.getElementById("llmReplyBtn");
+
+  btn.onclick = async () => {
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    appendMsg("user", msg);
+    if (typeof logPeerEvent === "function") {
+      window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+      logPeerEvent({
+        sid: eBookConfig.username,
+        div_id: currentQuestion,
+        event: "pi_llm_turn",
+        act: JSON.stringify({
+          pi_attempt_id: getPiAttemptId(),
+          turn_index: window._llmTurnIndex,
+          role: "user",
+          content: msg,
+        }),
+        course_name: eBookConfig.course,
+      });
+    }
+    llmUserMessageCount += 1;
+
+    if (llmUserMessageCount >= 1 && hasVote1) {
+      const readyBtn = document.getElementById("readyVote2Btn");
+      if (readyBtn) {
+        readyBtn.style.display = "inline-block";
+        readyBtn.disabled = false;
+        readyBtn.title = "";
+      }
+    }
+    input.value = "";
+
+    window._llmMessages.push({
+      role: "user",
+      content: msg
+    });
+
+    btn.disabled = true;
+    input.disabled = true;
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    let resp;
+    try {
+      resp = await fetchWithRetry("/runestone/peer/get_async_llm_reflection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          div_id: currentQuestion,
+          selected_answer: selected,
+          messages: window._llmMessages
+        })
+      });
+    } catch (e) {
+      appendMsg("assistant", "LLM error. Please try again.");
+      btn.disabled = false;
+      input.disabled = false;
+      return;
+    }
+
+    const data = await resp.json();
+    if (!data.ok) {
+      appendMsg("assistant", "LLM error. Please try again.");
+      btn.disabled = false;
+      input.disabled = false;
+      return;
+    }
+
+    appendMsg("assistant", data.reply);
+    btn.disabled = false;
+    input.disabled = false;
+    if (typeof logPeerEvent === "function") {
+      window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+      logPeerEvent({
+        sid: eBookConfig.username,
+        div_id: currentQuestion,
+        event: "pi_llm_turn",
+        act: JSON.stringify({
+          pi_attempt_id: getPiAttemptId(),
+          turn_index: window._llmTurnIndex,
+          role: "assistant",
+          content: data.reply,
+        }),
+        course_name: eBookConfig.course,
+      });
+    }
+
+    window._llmMessages.push({
+      role: "assistant",
+      content: data.reply
+    });
+  };
+
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") btn.click();
+  });
+}
+</script>
+
 <script>
     var user = "{{=auth.user.username}}";
     var currentQuestion = "{{=XML(current_question.name)}}";
@@ -68,11 +539,30 @@
         setTimeout(connect, 1000);
     });
     var studentVoteCount = 1;
+    var hasVote1 = {{='true' if has_vote1 else 'false'}};
+    var hasReflection = {{='true' if has_reflection else 'false'}};
     var studentSubmittedVote2 = false;
     var vote2done = false;
+    var llmUserMessageCount = 0;
     var nextQuestionNumber = {{= nextQnum}};
     var assignId = '{{=assignment_id}}'
     eBookConfig.is_peer_async = true;
+    window._llmTurnIndex = 0;
+    window._piAttemptId = null;
+
+    function getPiAttemptId() {
+        if (!window._piAttemptId) {
+            const key = `pi_attempt_id:${eBookConfig.username}:${currentQuestion}`;
+            const existing = sessionStorage.getItem(key);
+            if (existing) {
+                window._piAttemptId = existing;
+            } else {
+                window._piAttemptId = `${eBookConfig.username}:${currentQuestion}:${Date.now()}`;
+                sessionStorage.setItem(key, window._piAttemptId);
+            }
+        }
+        return window._piAttemptId;
+    }
 
     function checkVoteCount() {
         if (studentVoteCount < 2 || studentSubmittedVote2 == false) {
@@ -84,6 +574,10 @@
 
     // this cannot happen until the event that indicates components are loaded
     $(document).on("runestone:login-complete", function () {
+        llmUserMessageCount = 0;
+        if (hasVote1 && !hasReflection) {
+            setReflectionPanelEnabled(true);
+        }
         logPeerEvent({
             sid: eBookConfig.username,
             div_id: `${assignId}`,
@@ -91,16 +585,87 @@
             act: "start_async",
             course_name: eBookConfig.course,
         })
-        setTimeout(function () {
-            $(window.componentMap[currentQuestion].submitButton).click(function () {
-                if (studentVoteCount == 1) {
-                    let currAnswer = window.componentMap[currentQuestion].answer;
-                    console.log(`current answer is ${currAnswer}`);
-                    let sAnswer = answerToString(currAnswer);
-                    console.log(sAnswer);
-                    $("#current_answer").html(sAnswer)
+        let bindAttempts = 0;
+        const bindVoteHandler = function () {
+          const btn = window.componentMap[currentQuestion]?.submitButton;
+          if (!btn) {
+            bindAttempts += 1;
+            if (bindAttempts < 40) {
+              setTimeout(bindVoteHandler, 100);
+            }
+            return;
+          }
+
+          $(btn).off("click.pi_async").on("click.pi_async", function () {
+            if (window._vote1Locked && !window._vote2Enabled) {
+              return;
+            }
+            const currAnswer = window.componentMap[currentQuestion].answer;
+            const sAnswer = answerToString(currAnswer);
+            $("#current_answer").html(sAnswer);
+
+            if (typeof logPeerEvent === "function") {
+              const voteNum = studentVoteCount;
+              const answerSnapshot = sAnswer;
+              setTimeout(() => {
+                const comp = window.componentMap[currentQuestion];
+                const correct =
+                  comp && typeof comp.correct !== "undefined"
+                    ? comp.correct
+                    : null;
+                logPeerEvent({
+                  sid: eBookConfig.username,
+                  div_id: currentQuestion,
+                  event: "pi_vote",
+                  act: JSON.stringify({
+                    pi_attempt_id: getPiAttemptId(),
+                    vote_num: voteNum,
+                    answer: answerSnapshot,
+                    correct: correct,
+                  }),
+                  course_name: eBookConfig.course,
+                });
+              }, 0);
+            }
+
+            if (studentVoteCount === 1 && !window._vote2Enabled) {
+              hasVote1 = true;
+              console.log("vote 1 submitted");
+
+              const vote2Btn = document.getElementById("readyVote2Btn");
+              if (vote2Btn) {
+                vote2Btn.disabled = true;
+                vote2Btn.title = "Send at least one LLM message to unlock";
+              }
+              window._hasVote1 = true;
+              setReflectionPanelEnabled(true);
+
+              return;
+            }
+
+            if (window._vote2Enabled && !studentSubmittedVote2) {
+              console.log("vote 2 submitted");
+              studentVoteCount = 2;
+              studentSubmittedVote2 = true;
+              window._vote2Enabled = false;
+            }
+            if (studentSubmittedVote2) {
+              try {
+                const comp = window.componentMap[currentQuestion];
+                if (comp && typeof comp.showFeedback === "function") {
+                  comp.showFeedback();
                 }
-            })
-        }, 2000)
+              } catch (e) {
+                console.warn("Could not show correctness feedback", e);
+              }
+            }
+          });
+        };
+        bindVoteHandler();
     });
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('.pi-ask-btn').forEach(btn => btn.remove());
+  });
 </script>
