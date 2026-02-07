@@ -78,8 +78,6 @@ def _ensure_file_on_jobe(sess: rq.Session, base_host: str, file_id: str, content
         raise RuntimeError(f"Failed to push file to JOBE: {pr.status_code} {pr.text[:300]}")
 
 # Match what the JS client uses
-API_KEY = "67033pV7eUUvqo07OJDIV8UZ049aLEK1"
-RUN_PROXY = "/ns/rsproxy/jobeRun"
 PUSH_PROXY = "/ns/rsproxy/jobePushFile/"
 CHECK_PROXY = "/ns/rsproxy/jobeCheckFile/"
 
