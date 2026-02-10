@@ -204,9 +204,11 @@ def generate_partial_Parsons(
     blocks = fixed_lines + unchanged_lines + matched_fixed_lines
     for fixed_line_key in distractor_tuple_dict.keys():
         blocks = [
-            (line[0], line[1], line[2].rstrip() + " #matched-fixed\n")
-            if line[2].strip() == fixed_line_key[2].strip()
-            else (line[0], line[1], line[2])
+            (
+                (line[0], line[1], line[2].rstrip() + " #matched-fixed\n")
+                if line[2].strip() == fixed_line_key[2].strip()
+                else (line[0], line[1], line[2])
+            )
             for line in blocks
         ]
         fixed_line_code = fixed_line_key[2]
