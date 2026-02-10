@@ -1,4 +1,5 @@
 from typing import Optional, List
+from datetime import datetime
 from fastapi import HTTPException, status
 from asyncpg.exceptions import UniqueViolationError
 from rsptx.validation import schemas
@@ -8,6 +9,7 @@ from rsptx.validation.schemas import (
 )
 from rsptx.data_types.which_to_grade import WhichToGradeOptions
 from rsptx.data_types.autograde import AutogradeOptions
+from rsptx.response_helpers.core import canonical_utcnow
 
 import logging
 from sqlalchemy import select, update, delete, and_, or_, func
@@ -33,6 +35,53 @@ from ..models import (
 from ..async_session import async_session
 
 rslogger = logging.getLogger(__name__)
+
+
+def is_assignment_visible_to_students(assignment: Assignment) -> bool:
+    """
+    Check if an assignment is currently visible to students based on visible, visible_on, and hidden_on fields.
+
+    Logic:
+    - If visible = False and both visible_on and hidden_on are set: scheduled period
+      - Visible only between visible_on and hidden_on
+    - If visible = False and only visible_on is set: will become visible at that time
+      - Visible once visible_on has passed
+    - If visible = False with no dates: always hidden
+    - If visible = True:
+      - If visible_on is set and current time < visible_on, assignment is hidden
+      - If hidden_on is set and current time >= hidden_on, assignment is hidden
+      - Otherwise, assignment is visible
+
+    :param assignment: Assignment object
+    :return: bool, True if assignment should be visible to students
+    """
+    now = canonical_utcnow()
+
+    # Handle scheduled period (both dates set, visible=False)
+    if not assignment.visible and assignment.visible_on and assignment.hidden_on:
+        # Assignment is visible only during the specified period
+        return assignment.visible_on <= now < assignment.hidden_on
+
+    # If visible = False, check other conditions
+    if not assignment.visible:
+        # "Visible on" mode: visible_on is set, no hidden_on
+        # Assignment becomes visible once visible_on passes
+        if assignment.visible_on:
+            return now >= assignment.visible_on
+        # No dates set - always hidden
+        return False
+
+    # visible = True cases
+
+    # Check if assignment should become visible in the future
+    if assignment.visible_on and now < assignment.visible_on:
+        return False
+
+    # Check if assignment should be hidden now
+    if assignment.hidden_on and now >= assignment.hidden_on:
+        return False
+
+    return True
 
 
 async def fetch_deadline_exception(
@@ -195,14 +244,47 @@ async def fetch_assignments(
     """
     Fetch all Assignment objects for the given course name.
     If is_peer is True then only select asssigments for peer isntruction.
-    If is_visible is True then only fetch visible assignments.
+    If is_visible is True then only fetch visible assignments (considering visible_on and hidden_on).
 
     :param course_name: str, the course name
     :param is_peer: bool, whether or not the assignment is a peer assignment
+    :param is_visible: bool, whether to filter by visibility (including scheduled visibility)
+    :param fetch_all: bool, whether to fetch all assignments regardless of visibility/peer status
     :return: List[AssignmentValidator], a list of AssignmentValidator objects
     """
     if is_visible:
-        vclause = Assignment.visible == is_visible
+        # For students: check visible flag AND scheduled visibility
+        now = canonical_utcnow()
+
+        # Complex visibility logic:
+        # 1. Scheduled period: visible=False AND both dates set AND now is between them
+        # 2. "Visible on" mode: visible=False AND only visible_on set AND visible_on has passed
+        # 3. Regular visible: visible=True AND (no visible_on OR visible_on passed) AND (no hidden_on OR hidden_on not reached)
+        vclause = or_(
+            # Case 1: Scheduled period (visible during specific timeframe)
+            and_(
+                Assignment.visible == False,  # noqa: E712
+                Assignment.visible_on.isnot(None),
+                Assignment.hidden_on.isnot(None),
+                Assignment.visible_on <= now,
+                Assignment.hidden_on > now
+            ),
+            # Case 2: "Visible on" mode (visible once visible_on passes)
+            and_(
+                Assignment.visible == False,  # noqa: E712
+                Assignment.visible_on.isnot(None),
+                Assignment.hidden_on.is_(None),
+                Assignment.visible_on <= now,
+            ),
+            # Case 3: Regular visible assignment
+            and_(
+                Assignment.visible == True,  # noqa: E712
+                # visible_on check
+                or_(Assignment.visible_on.is_(None), Assignment.visible_on <= now),
+                # hidden_on check
+                or_(Assignment.hidden_on.is_(None), Assignment.hidden_on > now)
+            )
+        )
     else:
         vclause = True
 
@@ -295,6 +377,10 @@ async def update_assignment(assignment: AssignmentValidator, pi_update=False) ->
     assignment_updates = assignment.dict()
     if not pi_update:
         assignment_updates["current_index"] = 0
+
+    # Always update the updated_date to track last modification
+    assignment_updates["updated_date"] = canonical_utcnow()
+
     del assignment_updates["id"]
 
     stmt = (
@@ -565,6 +651,8 @@ async def update_assignment_exercises(
 
         # Step 5: Update points in Assignment
         assignment.points += points_to_add - points_to_remove
+        # Update the updated_date to track when exercises were modified
+        assignment.updated_date = canonical_utcnow()
         session.add(assignment)
 
         # Step 6: Apply changes
@@ -622,6 +710,8 @@ async def add_assignment_question(
             )
         )
         assignment.points += data.points
+        # Update the updated_date to track when question was added
+        assignment.updated_date = canonical_utcnow()
 
         await session.commit()
 
@@ -837,6 +927,7 @@ async def duplicate_assignment(
             name=new_name,
             description=original_assignment.description,
             duedate=original_assignment.duedate,
+            updated_date=canonical_utcnow(),
             points=original_assignment.points,
             kind=original_assignment.kind,
             time_limit=original_assignment.time_limit,

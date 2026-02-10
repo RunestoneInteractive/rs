@@ -5,7 +5,6 @@ import { useDialogContext } from "@components/ui/DialogContext";
 import classNames from "classnames";
 import { BreadCrumb } from "primereact/breadcrumb";
 import { Button } from "primereact/button";
-import { Calendar } from "primereact/calendar";
 import { Checkbox } from "primereact/checkbox";
 import { InputNumber } from "primereact/inputnumber";
 import { InputText } from "primereact/inputtext";
@@ -17,9 +16,11 @@ import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
-import { convertDateToISO, getDateFormat } from "@/utils/date";
+
+import { DateTimePicker } from "../../../../ui/DateTimePicker";
 
 import { AssignmentReadings } from "../reading/AssignmentReadings";
+import { VisibilityControl } from "./VisibilityControl";
 
 interface AssignmentEditProps {
   control: Control<Assignment>;
@@ -239,16 +240,9 @@ export const AssignmentEdit = ({
                       control={control}
                       defaultValue=""
                       render={({ field }) => (
-                        <Calendar
-                          hideOnDateTimeSelect
-                          dateFormat={getDateFormat()}
-                          stepMinute={5}
-                          value={field.value ? new Date(field.value) : null}
-                          onChange={(e) => field.onChange(convertDateToISO(e.value!))}
-                          showTime
-                          showIcon
-                          appendTo={document.body}
-                          panelClassName="calendar-panel"
+                        <DateTimePicker
+                          value={field.value}
+                          onChange={(val) => field.onChange(val)}
                         />
                       )}
                     />
@@ -273,6 +267,7 @@ export const AssignmentEdit = ({
                     />
                   </div>
                 </div>
+                <VisibilityControl control={control} watch={watch} setValue={setValue} />
                 <div className={styles.typeSettings}>
                   <div className={styles.formFields}>
                     <div className={styles.formField}>

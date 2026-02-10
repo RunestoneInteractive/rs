@@ -71,7 +71,7 @@ from rsptx.db.crud import (
     delete_datafile,
 )
 from rsptx.db.crud.question import validate_question_name_unique, copy_question
-from rsptx.db.crud.assignment import add_assignment_question, delete_assignment
+from rsptx.db.crud.assignment import add_assignment_question, delete_assignment, is_assignment_visible_to_students
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
 from rsptx.configuration import settings
@@ -157,11 +157,7 @@ async def review_peer_assignment(
         )
         return RedirectResponse("/runestone/peer/instructor.html")
 
-    if (
-        assignment.visible == "F"
-        or assignment.visible is None
-        or assignment.visible == False  # noqa: E712
-    ):
+    if not is_assignment_visible_to_students(assignment):
         if not user_is_instructor:
             rslogger.error(
                 f"Attempt to access invisible assignment {assignment_id} by {user.username}"
@@ -430,10 +426,10 @@ async def new_assignment(
     new_assignment = AssignmentValidator(
         **request_data.model_dump(),
         course=course.id,
-        visible=False,
         released=True,
         from_source=False,
         current_index=0,
+        updated_date=canonical_utcnow(),
     )
     try:
         res = await create_assignment(new_assignment)

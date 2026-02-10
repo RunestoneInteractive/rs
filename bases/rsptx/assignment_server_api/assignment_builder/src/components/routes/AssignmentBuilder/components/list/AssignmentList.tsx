@@ -7,6 +7,9 @@ import { InputSwitch } from "primereact/inputswitch";
 import { classNames } from "primereact/utils";
 
 import { Assignment } from "@/types/assignment";
+import { formatLocalDateForDisplay, formatUTCDateForDisplay } from "@/utils/date";
+
+import { VisibilityDropdown } from "./VisibilityDropdown";
 
 // eslint-disable-next-line no-restricted-imports
 import styles from "../../AssignmentBuilder.module.css";
@@ -18,9 +21,12 @@ interface AssignmentListProps {
   onCreateNew: () => void;
   onEdit: (assignment: Assignment) => void;
   onDuplicate: (assignment: Assignment) => void;
-  onVisibilityChange: (assignment: Assignment, visible: boolean) => void;
   onReleasedChange: (assignment: Assignment, released: boolean) => void;
   onEnforceDueChange: (assignment: Assignment, enforce_due: boolean) => void;
+  onVisibilityChange: (
+    assignment: Assignment,
+    data: { visible: boolean; visible_on: string | null; hidden_on: string | null }
+  ) => void;
   onRemove: (assignment: Assignment) => void;
 }
 
@@ -31,23 +37,13 @@ export const AssignmentList = ({
   onCreateNew,
   onEdit,
   onDuplicate,
-  onVisibilityChange,
   onReleasedChange,
   onEnforceDueChange,
+  onVisibilityChange,
   onRemove
 }: AssignmentListProps) => {
   const visibilityBodyTemplate = (rowData: Assignment) => (
-    <div className="flex align-items-center justify-content-center">
-      <InputSwitch
-        checked={rowData.visible}
-        onChange={(e) => onVisibilityChange(rowData, e.value)}
-        tooltip={rowData.visible ? "Visible to students" : "Hidden from students"}
-        tooltipOptions={{
-          position: "top"
-        }}
-        className={styles.smallSwitch}
-      />
-    </div>
+    <VisibilityDropdown assignment={rowData} onChange={onVisibilityChange} />
   );
 
   const releasedBodyTemplate = (rowData: Assignment) => (
@@ -106,13 +102,29 @@ export const AssignmentList = ({
   const dueDateBodyTemplate = (rowData: Assignment) => (
     <div className={styles.dueDateCell}>
       <span className={styles.dueDateText}>
-        {new Date(rowData.duedate).toLocaleDateString(undefined, {
+        {formatLocalDateForDisplay(rowData.duedate, {
           year: "numeric",
           month: "short",
           day: "numeric",
           hour: "2-digit",
           minute: "2-digit"
         })}
+      </span>
+    </div>
+  );
+
+  const updatedDateBodyTemplate = (rowData: Assignment) => (
+    <div className={styles.dueDateCell}>
+      <span className={styles.dueDateText}>
+        {rowData.updated_date
+          ? formatUTCDateForDisplay(rowData.updated_date, {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+            })
+          : ""}
       </span>
     </div>
   );
@@ -246,6 +258,13 @@ export const AssignmentList = ({
           className={styles.dueDateColumn}
         />
         <Column
+          field="updated_date"
+          header="Last Updated"
+          sortable
+          body={updatedDateBodyTemplate}
+          className={styles.dueDateColumn}
+        />
+        <Column
           style={{ width: "12px" }}
           field="enforce_due"
           header={
@@ -266,9 +285,9 @@ export const AssignmentList = ({
           className={styles.pointsColumn}
         />
         <Column
-          style={{ width: "12px" }}
+          style={{ width: "150px", minWidth: "150px" }}
           field="visible"
-          header="Visible"
+          header="Visibility Status"
           body={visibilityBodyTemplate}
           className={styles.visibilityColumn}
         />

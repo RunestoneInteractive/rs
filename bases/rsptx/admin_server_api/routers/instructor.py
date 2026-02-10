@@ -1081,6 +1081,7 @@ async def _copy_one_assignment(
             course=target_course.id,
             name=old_assignment.name,
             duedate=due_date,
+            updated_date=datetime.datetime.now(),
             description=old_assignment.description,
             points=old_assignment.points,
             threshold_pct=old_assignment.threshold_pct,

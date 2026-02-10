@@ -77,6 +77,7 @@ from rsptx.db.crud import (
     fetch_instructor_courses,
     validate_user_credentials,
 )
+from rsptx.db.crud.assignment import is_assignment_visible_to_students
 
 from rsptx.configuration import settings
 from rsptx.logging import rslogger
@@ -445,7 +446,7 @@ async def launch(request: Request):
                 status_code=400, detail=f"Assignment {lineitem_assign_id} not found"
             )
 
-        if not rs_assign.visible and not message_launch.check_teacher_access():
+        if not is_assignment_visible_to_students(rs_assign) and not message_launch.check_teacher_access():
             raise HTTPException(
                 status_code=400,
                 detail=f"Assignment {rs_assign.name} is not open for students",
