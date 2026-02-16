@@ -1049,15 +1049,36 @@ def _llm_enabled():
     return bool(_get_course_openai_key())
 
 #fetch the course-wide openai API key used to enable LLM-based async peer discussion (only works for openai currently)
+# def _get_course_openai_key():
+#     try:
+#         token_record = asyncio.get_event_loop().run_until_complete(
+#             fetch_api_token(course_id=auth.user.course_id, provider="openai")
+#         )
+#         if token_record and token_record.token:
+#             return token_record.token.strip()
+#     except Exception:
+#         logger.exception("Failed to fetch course-wide OpenAI token for peer LLM")
+#     return ""
 def _get_course_openai_key():
     try:
+        course = db(
+            db.courses.course_name == auth.user.course_name
+        ).select().first()
+
+        if not course:
+            logger.warning("PEER LLM: no course row found")
+            return ""
+        logger.warning(f"PEER LLM USING KEY PREFIX: {api_key[:6]}")
         token_record = asyncio.get_event_loop().run_until_complete(
-            fetch_api_token(course_id=auth.user.course_id, provider="openai")
+            fetch_api_token(course_id=course.id, provider="openai")
         )
+
         if token_record and token_record.token:
             return token_record.token.strip()
+
     except Exception:
         logger.exception("Failed to fetch course-wide OpenAI token for peer LLM")
+
     return ""
 
 
