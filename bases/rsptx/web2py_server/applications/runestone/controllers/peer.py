@@ -1068,7 +1068,9 @@ def _get_course_openai_key():
         if not course:
             logger.warning("PEER LLM: no course row found")
             return ""
-        logger.warning(f"PEER LLM USING KEY PREFIX: {api_key[:6]}")
+        logger.warning(f"PEER LLM course_name={auth.user.course_name}")
+        logger.warning(f"PEER LLM auth.user.course_id={auth.user.course_id}")
+        logger.warning(f"PEER LLM resolved course.id={course.id if course else None}")
         token_record = asyncio.get_event_loop().run_until_complete(
             fetch_api_token(course_id=course.id, provider="openai")
         )
