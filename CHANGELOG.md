@@ -1,5 +1,30 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-02-07 → 2026-02-11)
+
+Coverage: commits from **2026-02-07** through **2026-02-11** (since the prior cutoff of 2026-02-06).
+
+### Highlights
+
+- **Java/ActiveCode execution (JOBE) + unit test results:** wired in JOBE-based submission flow for Java ActiveCode with unit tests, and surfaced results end-to-end. This work primarily touched the personalized-parsons endpoints and ActiveCode client JS.
+- **Personalized Parsons cleanup:** removed unused variables and tidied related evaluation code.
+- **Question counting fixes:** corrected “number of questions” accounting in both backend CRUD (`question.py`) and frontend book utilities (`bookfuncs.js`).
+- **Build output enhancements:** added a new preprocessor to inject **GitHub source links** into generated HTML output (`add_github_links.py`).
+- **Repo hygiene:** removed empty placeholder files (`content`, `docker-compose.override.yml`, `pi_attempt_id`).
+- **Release/version bump:** bumped interactives version (`projects/interactives/pyproject.toml`).
+
+### Commit notes (for reference)
+
+- 682e940d Applied JOBE for submitting Javacode with unit tests and get results
+- bf3b9553 removed unused variables
+- 06b5b8da Remove empty placeholder files
+- 2ebf9adb preprocessor to add github links to html output
+- 30773448 Fix: get number of questions correct
+- 6c6d1fa9 Count questions correctly
+- 4bfc6ed4 new version
+
+---
+
 ## 2026 (Year to Date)
 
 Coverage: commits from **2026-01-01** through **2026-02-06**.
