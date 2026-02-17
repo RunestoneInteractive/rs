@@ -1,4 +1,5 @@
 // Configuration for the PI steps and helper functions to handle step progression in the instructor's interface
+console.log("PEER JS VERSION TEST 12345");
 const STEP_CONFIG = {
     vote1: {
         next: ['makep', 'facechat', 'makeabgroups'],
@@ -485,15 +486,17 @@ async function sendMessage(event) {
     input.value = "";
     input.focus();
 
-    // Disable the send button after sending a message
-    sendButton.classList.add("disabled");
-    llmMessageCount += 1;
-    console.log("LLM message count:", llmMessageCount);
+    // Only apply LLM restrictions in async mode
+    if (window.PI_LLM_MODE === true) {
+        sendButton.classList.add("disabled");
+        llmMessageCount += 1;
+        console.log("LLM message count:", llmMessageCount);
 
-    if (llmMessageCount >= REQUIRED_LLM_MESSAGES) {
-        const btn = document.getElementById("readyVote2Btn");
-        if (btn) {
-            btn.style.display = "inline-block";
+        if (llmMessageCount >= REQUIRED_LLM_MESSAGES) {
+            const btn = document.getElementById("readyVote2Btn");
+            if (btn) {
+                btn.style.display = "inline-block";
+            }
         }
     }
 }
@@ -857,6 +860,11 @@ function insertReadyVote2Button() {
 
     if (!container) return;
 
+    const btn = document.createElement("button");
+    btn.id = "readyVote2Btn";
+    btn.className = "btn btn-info";
+    btn.style.display = "none";
+    btn.innerText = "Ready for Vote 2";
 
     btn.addEventListener("click", enableSecondVoteAsync);
 
@@ -868,11 +876,16 @@ $(function () {
 
     let tinput = document.getElementById("messageText");
     let sendButton = document.getElementById("sendpeermsg");
-    if (tinput && sendButton) {
+    if (window.PI_LLM_MODE !== true && sendButton) {
+        sendButton.classList.remove("disabled");
+    }
+
+    if (tinput && sendButton && window.PI_LLM_MODE === true) {
         tinput.addEventListener("input", function () {
             let message = this.value.trim();
-            if (message !== "") {
+            if (window.PI_LLM_MODE !== true && sendButton) {
                 sendButton.classList.remove("disabled");
+                sendButton.disabled = false;
             } else {
                 sendButton.classList.add("disabled");
             }
