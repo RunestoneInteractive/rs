@@ -874,10 +874,19 @@ async def dynamic_link_entry(request: Request):
     assignments.sort(key=lambda a: a.name)
     assignments.sort(key=lambda a: a.duedate)
 
-    # all lineitems in the LMS
-    ags = message_launch.get_ags()
-    l_items = await ags.get_lineitems()
+    try:
+        # all lineitems in the LMS - may be rejected if course is closed in LMS
+        ags = message_launch.get_ags()
+        l_items = await ags.get_lineitems()
+    except LtiServiceException as e:
+        rslogger.error(f"LTI1p3 - Error accessing course line items: {e}")
+        raise HTTPException(
+            status_code=422,
+            detail="This course appears to be closed in your Learning Management System.",
+        )
+
     l_items.sort(key=lambda li: li.get("label"))
+
     # build lookup dicts for line items
     l_items_resourceId_dict = {li.get("resourceId"): li for li in l_items}
     l_items_label_dict = {li.get("label"): li for li in l_items}
