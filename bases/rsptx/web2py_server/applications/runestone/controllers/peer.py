@@ -1049,16 +1049,6 @@ def _llm_enabled():
     return bool(_get_course_openai_key())
 
 #fetch the course-wide openai API key used to enable LLM-based async peer discussion (only works for openai currently)
-# def _get_course_openai_key():
-#     try:
-#         token_record = asyncio.get_event_loop().run_until_complete(
-#             fetch_api_token(course_id=auth.user.course_id, provider="openai")
-#         )
-#         if token_record and token_record.token:
-#             return token_record.token.strip()
-#     except Exception:
-#         logger.exception("Failed to fetch course-wide OpenAI token for peer LLM")
-#     return ""
 def _get_course_openai_key():
     try:
         course = db(
@@ -1066,18 +1056,33 @@ def _get_course_openai_key():
         ).select().first()
 
         if not course:
-            logger.warning("PEER LLM: no course row found")
+            logger.warning("PEER LLM: no course row found for %s", auth.user.course_name)
             return ""
-        logger.warning(f"PEER LLM course_name={auth.user.course_name}")
-        logger.warning(f"PEER LLM auth.user.course_id={auth.user.course_id}")
-        logger.warning(f"PEER LLM resolved course.id={course.id if course else None}")
-        token_record = asyncio.get_event_loop().run_until_complete(
-            fetch_api_token(course_id=course.id, provider="openai")
+
+        logger.warning("PEER LLM: looking up token for course_id=%s (%s)",
+                        course.id, auth.user.course_name)
+
+        rows = db.executesql(
+            "SELECT token FROM api_tokens "
+            "WHERE course_id = %s AND provider = %s "
+            "ORDER BY last_used ASC NULLS FIRST LIMIT 1",
+            placeholders=[course.id, "openai"],
         )
+        logger.warning("PEER LLM: executesql returned %d rows", len(rows) if rows else 0)
 
-        if token_record and token_record.token:
-            return token_record.token.strip()
+        if rows and rows[0][0]:
+            from cryptography.fernet import Fernet
+            secret = os.environ.get("FERNET_SECRET", "").strip()
+            if not secret:
+                raise RuntimeError("FERNET_SECRET environment variable is not set")
+            f = Fernet(secret.encode() if isinstance(secret, str) else secret)
+            encrypted = rows[0][0]
+            decrypted = f.decrypt(encrypted.encode()).decode().strip()
+            logger.warning("PEER LLM: decrypted key for course %s: %s****",
+                            course.id, decrypted[:4])
+            return decrypted
 
+        logger.warning("PEER LLM: no openai token found for course_id=%s", course.id)
     except Exception:
         logger.exception("Failed to fetch course-wide OpenAI token for peer LLM")
 
