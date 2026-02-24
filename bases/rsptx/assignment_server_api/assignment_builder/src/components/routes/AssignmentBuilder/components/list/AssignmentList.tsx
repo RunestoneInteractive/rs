@@ -1,8 +1,10 @@
+import { useCallback, useState } from "react";
+
 import { SearchInput } from "@components/ui/SearchInput";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { confirmDialog, ConfirmDialog } from "primereact/confirmdialog";
-import { DataTable } from "primereact/datatable";
+import { DataTable, DataTableSortEvent } from "primereact/datatable";
 import { InputSwitch } from "primereact/inputswitch";
 import { classNames } from "primereact/utils";
 
@@ -42,6 +44,28 @@ export const AssignmentList = ({
   onVisibilityChange,
   onRemove
 }: AssignmentListProps) => {
+  const SORT_STORAGE_KEY = "assignmentList_sortField";
+  const ORDER_STORAGE_KEY = "assignmentList_sortOrder";
+
+  const [sortField, setSortField] = useState<string>(() => {
+    return localStorage.getItem(SORT_STORAGE_KEY) || "name";
+  });
+  const [sortOrder, setSortOrder] = useState<1 | -1 | 0>(() => {
+    const stored = localStorage.getItem(ORDER_STORAGE_KEY);
+
+    return stored ? (Number(stored) as 1 | -1) : 1;
+  });
+
+  const handleSort = useCallback((e: DataTableSortEvent) => {
+    const field = (e.sortField as string) || "name";
+    const order = e.sortOrder as 1 | -1;
+
+    setSortField(field);
+    setSortOrder(order);
+    localStorage.setItem(SORT_STORAGE_KEY, field);
+    localStorage.setItem(ORDER_STORAGE_KEY, String(order));
+  }, []);
+
   const visibilityBodyTemplate = (rowData: Assignment) => (
     <VisibilityDropdown assignment={rowData} onChange={onVisibilityChange} />
   );
@@ -233,8 +257,9 @@ export const AssignmentList = ({
           name: { value: globalFilter, matchMode: "contains" }
         }}
         sortMode="single"
-        sortField="name"
-        sortOrder={1}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
       >
         <Column
           field="name"
