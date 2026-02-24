@@ -24,7 +24,7 @@ export const ActivitiesRequiredCell = ({
 
   const handleValueChange = (newValue: number | null | undefined) => {
     const numValue = newValue ?? MIN_ACTIVITIES;
-    const activityCount = exercise.numQuestions || MIN_ACTIVITIES;
+    const activityCount = Math.max(exercise.numQuestions ?? 0, MIN_ACTIVITIES);
 
     if (numValue > activityCount) {
       showToast({
@@ -46,7 +46,7 @@ export const ActivitiesRequiredCell = ({
       value={currentValue}
       onValueChange={(e) => handleValueChange(e.value)}
       min={MIN_ACTIVITIES}
-      max={exercise.numQuestions || MIN_ACTIVITIES}
+      max={Math.max(exercise.numQuestions ?? 0, MIN_ACTIVITIES)}
       showButtons={false}
       style={{
         width: "100%",

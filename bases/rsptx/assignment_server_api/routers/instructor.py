@@ -664,9 +664,9 @@ async def get_assignment_questions(
 
         if aq["reading_assignment"] == True:  # noqa: E712
             try:
-                aq["numQuestions"] = countd[q["chapter"]][q["subchapter"]]
+                aq["numQuestions"] = max(countd[q["chapter"]][q["subchapter"]], 1)
             except KeyError:
-                aq["numQuestions"] = 0
+                aq["numQuestions"] = 1
 
         # augment the assignment question with additional question data
         aq["name"] = q["name"]
