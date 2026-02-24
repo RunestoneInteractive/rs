@@ -787,16 +787,57 @@ def get_async_explainer():
         & (db.useinfo.course_id == course_name)
     ).select(orderby=db.useinfo.id)
 
-    if len(messages) == 0:
+    # Deduplicate sendmessage events — keep last message per student
+    seen = {}
+    for row in messages:
+        try:
+            msg = row.act.split(":", 2)[2]
+        except Exception:
+            msg = row.act
+        seen[row.sid] = msg
+
+    # Fetch LLM conversation turns for this question
+    llm_turns = db(
+        (db.useinfo.event == "pi_llm_turn")
+        & (db.useinfo.div_id == div_id)
+        & (db.useinfo.course_id == course_name)
+    ).select(orderby=db.useinfo.id)
+
+    # Group turns by sid, keeping only the most recent pi_attempt_id per student
+    llm_by_sid = {}
+    for row in llm_turns:
+        try:
+            turn = json.loads(row.act)
+            attempt_id = turn.get("pi_attempt_id", "")
+            turn_index = turn.get("turn_index", 0)
+            role = turn.get("role", "")
+            content = turn.get("content", "")
+            if row.sid not in llm_by_sid:
+                llm_by_sid[row.sid] = {}
+            if attempt_id not in llm_by_sid[row.sid]:
+                llm_by_sid[row.sid][attempt_id] = []
+            llm_by_sid[row.sid][attempt_id].append((turn_index, role, content))
+        except Exception:
+            pass
+
+    parts = []
+    all_sids = set(list(seen.keys()) + list(llm_by_sid.keys()))
+    for sid in all_sids:
+        if sid in seen:
+            parts.append(f"<li><strong>{sid}</strong> said: {seen[sid]}</li>")
+        if sid in llm_by_sid:
+            latest_attempt = max(
+                llm_by_sid[sid].keys(),
+                key=lambda a: max(t[0] for t in llm_by_sid[sid][a])
+            )
+            turns = sorted(llm_by_sid[sid][latest_attempt], key=lambda t: t[0])
+            for _, role, content in turns:
+                label = sid if role == "user" else "LLM Peer"
+                parts.append(f"<li><strong>{label}</strong> said: {content}</li>")
+
+    if not parts:
         mess = "Sorry there are no explanations yet."
     else:
-        parts = []
-        for row in messages:
-            try:
-                msg = row.act.split(":", 2)[2]
-            except Exception:
-                msg = row.act
-            parts.append(f"<li><strong>{row.sid}</strong> said: {msg}</li>")
         mess = "<ul>" + "".join(parts) + "</ul>"
 
     logger.debug(f"Get message for {div_id}")
