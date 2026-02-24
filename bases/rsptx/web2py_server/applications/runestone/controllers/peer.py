@@ -787,7 +787,6 @@ def get_async_explainer():
         & (db.useinfo.course_id == course_name)
     ).select(orderby=db.useinfo.id)
 
-    # Deduplicate sendmessage events — keep last message per student
     seen = {}
     for row in messages:
         try:
@@ -796,15 +795,14 @@ def get_async_explainer():
             msg = row.act
         seen[row.sid] = msg
 
-    # Fetch LLM conversation turns for this question
     llm_turns = db(
         (db.useinfo.event == "pi_llm_turn")
         & (db.useinfo.div_id == div_id)
         & (db.useinfo.course_id == course_name)
     ).select(orderby=db.useinfo.id)
 
-    # Group turns by sid, keeping only the most recent pi_attempt_id per student
     llm_by_sid = {}
+    sid_order = [] 
     for row in llm_turns:
         try:
             turn = json.loads(row.act)
@@ -814,15 +812,19 @@ def get_async_explainer():
             content = turn.get("content", "")
             if row.sid not in llm_by_sid:
                 llm_by_sid[row.sid] = {}
+                sid_order.append(row.sid)
             if attempt_id not in llm_by_sid[row.sid]:
                 llm_by_sid[row.sid][attempt_id] = []
             llm_by_sid[row.sid][attempt_id].append((turn_index, role, content))
         except Exception:
             pass
 
+    for sid in seen:
+        if sid not in llm_by_sid:
+            sid_order.append(sid)
+
     parts = []
-    all_sids = set(list(seen.keys()) + list(llm_by_sid.keys()))
-    for sid in all_sids:
+    for sid in sid_order:
         if sid in seen:
             parts.append(f"<li><strong>{sid}</strong> said: {seen[sid]}</li>")
         if sid in llm_by_sid:
@@ -832,8 +834,8 @@ def get_async_explainer():
             )
             turns = sorted(llm_by_sid[sid][latest_attempt], key=lambda t: t[0])
             for _, role, content in turns:
-                label = sid if role == "user" else "LLM Peer"
-                parts.append(f"<li><strong>{label}</strong> said: {content}</li>")
+                if role == "assistant":
+                    parts.append(f"<li><strong>LLM Peer</strong> said: {content}</li>")
 
     if not parts:
         mess = "Sorry there are no explanations yet."
