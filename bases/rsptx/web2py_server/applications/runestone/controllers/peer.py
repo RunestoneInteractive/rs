@@ -782,18 +782,24 @@ def get_async_explainer():
     div_id = request.vars.div_id
 
     messages = db(
-        (db.useinfo.event == "sendmessage")
+        (db.useinfo.event.belongs(["sendmessage", "reflection"]))
         & (db.useinfo.div_id == div_id)
         & (db.useinfo.course_id == course_name)
     ).select(orderby=db.useinfo.id)
 
-    seen = {}
+    all_msgs = []  #list of (sid, msg) in insertion order
+    last_per_sid = {}
     for row in messages:
-        try:
-            msg = row.act.split(":", 2)[2]
-        except Exception:
+        if row.event == "reflection":
             msg = row.act
-        seen[row.sid] = msg
+        else:
+            try:
+                msg = row.act.split(":", 2)[2]
+            except Exception:
+                msg = row.act
+        if last_per_sid.get(row.sid) != msg:  #skip exact consecutive duplicates only
+            all_msgs.append((row.sid, msg))
+            last_per_sid[row.sid] = msg
 
     llm_turns = db(
         (db.useinfo.event == "pi_llm_turn")
@@ -802,7 +808,6 @@ def get_async_explainer():
     ).select(orderby=db.useinfo.id)
 
     llm_by_sid = {}
-    sid_order = [] 
     for row in llm_turns:
         try:
             turn = json.loads(row.act)
@@ -812,27 +817,31 @@ def get_async_explainer():
             content = turn.get("content", "")
             if row.sid not in llm_by_sid:
                 llm_by_sid[row.sid] = {}
-                sid_order.append(row.sid)
             if attempt_id not in llm_by_sid[row.sid]:
                 llm_by_sid[row.sid][attempt_id] = []
             llm_by_sid[row.sid][attempt_id].append((turn_index, role, content))
         except Exception:
             pass
 
-    for sid in seen:
-        if sid not in llm_by_sid:
-            sid_order.append(sid)
-
     parts = []
-    for sid in sid_order:
-        if sid in seen:
-            parts.append(f"<li><strong>{sid}</strong> said: {seen[sid]}</li>")
-        if sid in llm_by_sid:
+    sids_with_llm_shown = set()
+    for sid, msg in all_msgs:
+        parts.append(f"<li><strong>{sid}</strong> said: {msg}</li>")
+        if sid in llm_by_sid and sid not in sids_with_llm_shown:
+            sids_with_llm_shown.add(sid)
             latest_attempt = max(
                 llm_by_sid[sid].keys(),
                 key=lambda a: max(t[0] for t in llm_by_sid[sid][a])
             )
             turns = sorted(llm_by_sid[sid][latest_attempt], key=lambda t: t[0])
+            for _, role, content in turns:
+                if role == "assistant":
+                    parts.append(f"<li><strong>LLM Peer</strong> said: {content}</li>")
+
+    for sid, attempts in llm_by_sid.items():
+        if sid not in sids_with_llm_shown and not any(s == sid for s, _ in all_msgs):
+            latest_attempt = max(attempts.keys(), key=lambda a: max(t[0] for t in attempts[a]))
+            turns = sorted(attempts[latest_attempt], key=lambda t: t[0])
             for _, role, content in turns:
                 if role == "assistant":
                     parts.append(f"<li><strong>LLM Peer</strong> said: {content}</li>")
@@ -932,20 +941,23 @@ def get_async_llm_reflection():
         "do not use new lines.\n"
         "do not sound like a teacher.\n"
         "do not explain step by step.\n"
-        "do not mention libraries formally.\n"
         "never say something is right or wrong.\n"
+        "your answer can shift throughout the conversation\n"
         "never mention a choice letter as the correct answer.\n"
         "never clearly describe the final result of the code.\n"
         "never fully state what the program prints.\n"
-        "keep reasoning partial or uncertain.\n"
         "use common misconceptions relating to the specific problem.\n"
         "refer to code loosely like 'that line' or 'the loop' or 'the head' or 'the print'.\n"
         "often hedge with uncertainty.\n"
-        "never agree with the other student's interpretation even if it sounds correct.\n"
+        #"never agree with the other student's interpretation even if it sounds correct.\n" #porter found when PI is adversarial students disengage
         "use content from the other multiple choice options in your reponses when needed\n"
-        "maintain a mistaken or incomplete mental model throughout the conversation.\n"
+        "let your mental model shift slightly under pressure but keep reasoning partial and never fully resolve\n"
         "if the other student clearly sounds confident or repeats the same answer twice stop debating and tell them to vote again or submit it.\n"
         "do not continue reasoning after telling them to vote again.\n"
+        "sometimes question whether you even read the code correctly before forming an opinion.\n"
+        "occasionally bring up a wrong answer option as if it might be right without committing to it.\n"
+        "pick an answer choice different than the one the student selected and ask the student to explain why it cannot be correct.\n"
+        "show reasoning process not conclusions, think out loud rather than arriving anywhere.\n"
         "focus on reasoning not teaching.\n\n"
     )
 
