@@ -1,5 +1,35 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-02-12 → 2026-02-20)
+
+Coverage: commits from **2026-02-12** through **2026-02-20** (i.e., changes after the prior cutoff on 2026-02-11).
+
+### Highlights
+
+- **Peer chat cleanup + reliability:** merged fixes to clean up the peer A/B chat experience and to ensure students can still send messages during synchronous chat.
+- **Interactive evaluation UX:** added a new `showEval` capability for interactives.
+- **Assessment data correctness:** fixed a shortanswer issue by correcting the underlying answers table name.
+- **Verbal discussion improvements:** updated the verbal discussion UI to show who a student is grouped with.
+- **Scratch ActiveCode layout polish:** adjusted Scratch ActiveCode positioning / CSS.
+- **Ops/config + dependency updates:** multiple internal updates (logging, course OpenAI key plumbing, fernet secret handling) plus package/version bumps.
+
+### Commit notes (for reference)
+
+- 6d5383df Merge PR #1153 (peer A/B chat cleanup)
+- 3efce80b new showEval for use with interactives
+- 8d56fcaa Fix: correct the table name for shortanswer answers
+- b2dfc2f1 Updated the verbal discussion to show who students are in a group with
+- 6a40b256 Merge PR #1147 (Scratch AC CSS update)
+- 36c319a3 Update packages
+- 0ccdc6e5 Merge PR #10 (fastapi-peer-llm)
+- dea3f13d ensure students can send message during sync chat
+- 90b2636f update logging
+- de3fa2a7 update get course openai key
+- 21f64240 update fernet secret
+- b6134724 new version
+
+---
+
 ## Updates since last changelog entry (2026-02-07 → 2026-02-11)
 
 Coverage: commits from **2026-02-07** through **2026-02-11** (since the prior cutoff of 2026-02-06).
