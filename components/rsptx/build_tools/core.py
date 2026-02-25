@@ -191,7 +191,7 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
 
         if rs.output_dir_abspath().exists():
             shutil.rmtree(rs.output_dir_abspath())
-        
+
         click.echo("Building the book")
         if gen:
             click.echo("Generating assets")
@@ -341,7 +341,7 @@ def check_project_ptx(click=click, course=None, target="runestone"):
     tgt.output_dir = Path(docid)
 
     tgt.stringparams.update({"host-platform": "runestone"})
-    
+
     return tgt
 
 
@@ -705,7 +705,7 @@ def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
     res = sess.execute(ins)
     return res.inserted_primary_key[0]
 
-import pdb
+
 def _process_subchapters(sess, db_context, chapter, chapid, course_name):
     """Process all subchapters for a given chapter."""
     subchap = 0
@@ -721,8 +721,10 @@ def _process_subchapters(sess, db_context, chapter, chapid, course_name):
         # at this point (7/28/2025) the only reason for a subsubchapter
         # is to have a timed assignment, so we can skip the rest of the
         # find all divs with a class of timedAssessment
-        #pdb.set_trace()
-        for timed_assessment_div in subchapter.findall(".//div[@class='timedAssessment']"):
+        # pdb.set_trace()
+        for timed_assessment_div in subchapter.findall(
+            ".//div[@class='timedAssessment']"
+        ):
             _process_single_timed_assignment(
                 sess,
                 db_context,

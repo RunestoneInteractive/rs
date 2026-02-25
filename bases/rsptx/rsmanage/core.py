@@ -312,7 +312,9 @@ async def addcourse(
         basecourse = click.prompt("Base Course: ")
     bookrec = await fetch_library_book(basecourse)
     if not bookrec:
-        click.echo(f"{basecourse} Not Found: Please add the book first using `addbookauthor")
+        click.echo(
+            f"{basecourse} Not Found: Please add the book first using `addbookauthor"
+        )
         exit(1)
     if bookrec and bookrec.build_system is None:
         click.echo(
@@ -955,7 +957,9 @@ def grade(config, course, pset, enforce):
 )
 @click.option("--sample_size", help="Number of courses to sample", default=0)
 @click.option("--course_list", help="List of courses to sample", default=None)
-@click.option("--preserve_user_ids", is_flag=True, help="Preserve user ids in the datashop export")
+@click.option(
+    "--preserve_user_ids", is_flag=True, help="Preserve user ids in the datashop export"
+)
 @pass_config
 async def datashop(config, basecourse, sample_size, course_list, preserve_user_ids):
     """Export the course data to the datashop format"""

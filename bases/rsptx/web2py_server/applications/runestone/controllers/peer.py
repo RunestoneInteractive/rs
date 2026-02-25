@@ -1,3 +1,4 @@
+# pyright: reportUndefinedVariable=false
 # *******************************
 # |docname| - route to a textbook
 # *******************************
@@ -26,7 +27,7 @@ import pandas as pd
 import redis
 from dateutil.parser import parse
 from rsptx.db.crud import fetch_api_token, fetch_lti_version
-from rs_grading import _try_to_send_lti_grade
+from rs_grading import _try_to_send_lti_grade  # pyright: ignore[reportMissingImports]
 
 try:
     logger = logging.getLogger(settings.logger)
@@ -42,7 +43,6 @@ except FileNotFoundError:
     mtime = random.randrange(10000)
 
 request.peer_mtime = str(mtime)
-
 
 
 @auth.requires(
@@ -178,7 +178,7 @@ def _get_current_question(assignment_id, get_next):
         db(db.assignments.id == assignment_id).update(current_index=idx)
     else:
         idx = assignment.current_index
-    db.commit() 
+    db.commit()
     question, done = _get_numbered_question(assignment_id, idx)
     return question, done, idx
 
@@ -189,7 +189,7 @@ def _get_numbered_question(assignment_id, qnum):
 
     if total_questions == 0:
         return None, "true"
-    
+
     if qnum < 0:
         qnum = 0
 
@@ -397,7 +397,6 @@ def peer_question():
     if "access_token" not in request.cookies:
         logger.warning(f"Missing Access Token: {auth.user.username} adding one now")
         create_rs_token()
-        
 
     assignment_id = request.vars.assignment_id
 
@@ -715,9 +714,7 @@ def log_peer_rating():
 @auth.requires_login()
 def peer_async():
     if "access_token" not in request.cookies:
-        logger.warning(
-            f"Missing Access Token: {auth.user.username} adding one now"
-        )
+        logger.warning(f"Missing Access Token: {auth.user.username} adding one now")
         create_rs_token()
 
     assignment_id = request.vars.assignment_id
@@ -726,10 +723,7 @@ def peer_async():
     if request.vars.question_num is not None:
         question_num = int(request.vars.question_num)
 
-    current_question, all_done = _get_numbered_question(
-    assignment_id,
-    question_num - 1
-    )
+    current_question, all_done = _get_numbered_question(assignment_id, question_num - 1)
 
     assignment = db(db.assignments.id == assignment_id).select().first()
 
@@ -767,7 +761,7 @@ def peer_async():
         current_question=current_question,
         assignment_id=assignment_id,
         assignment_name=assignment.name,
-        nextQnum = question_num + 1,
+        nextQnum=question_num + 1,
         all_done=all_done,
         has_vote1=has_vote1,
         has_reflection=has_reflection,
@@ -775,6 +769,7 @@ def peer_async():
         llm_reply=None,
         **course_attrs,
     )
+
 
 @auth.requires_login()
 def get_async_explainer():
@@ -854,7 +849,8 @@ def get_async_explainer():
     logger.debug(f"Get message for {div_id}")
     return json.dumps({"mess": mess, "user": "", "answer": "", "responses": {}})
 
-#get question text, code, and answer choices for an MCQ
+
+# get question text, code, and answer choices for an MCQ
 def _get_mcq_context(div_id):
     q = db(db.questions.name == div_id).select().first()
     if not q:
@@ -874,11 +870,11 @@ def _get_mcq_context(div_id):
                 choices.append(f"{chr(65+i)}. {opt.strip()}")
     except Exception as e:
         logger.warning(f"Could not parse choices for {div_id}: {e}")
-    return question, code, choices    
+    return question, code, choices
 
 
-#handle async peer instruction reflection using an LLM:
-#logs student messages and return an LLM peer-style reply
+# handle async peer instruction reflection using an LLM:
+# logs student messages and return an LLM peer-style reply
 @auth.requires_login()
 def get_async_llm_reflection():
     logger.warning("LLM REFLECTION CALLED")
@@ -961,7 +957,6 @@ def get_async_llm_reflection():
         "focus on reasoning not teaching.\n\n"
     )
 
-
     if question:
         sys_content += f"question:\n{question}\n\n"
 
@@ -1022,8 +1017,9 @@ def get_async_llm_reflection():
         return response.json(dict(ok=True, reply=reply))
     except Exception as e:
         logger.exception("LLM reflection failed")
-        return response.json(dict(ok=False, error=str(e))) 
- 
+        return response.json(dict(ok=False, error=str(e)))
+
+
 def _get_user_answer(div_id, s):
     ans = (
         db(
@@ -1039,7 +1035,9 @@ def _get_user_answer(div_id, s):
         return ans.act.split(":")[1]
     else:
         return ""
-#check if the student has already submitted a reflection for the question
+
+
+# check if the student has already submitted a reflection for the question
 def _has_reflection(div_id, sid):
     row = (
         db(
@@ -1051,6 +1049,8 @@ def _has_reflection(div_id, sid):
         .first()
     )
     return row is not None
+
+
 def _has_vote1(div_id, sid):
     row = (
         db(
@@ -1099,16 +1099,14 @@ def send_lti_scores():
     return json.dumps("success")
 
 
-#determine whether LLM-based async peer discussion is enabled for this course based on coursewide api key
+# determine whether LLM-based async peer discussion is enabled for this course based on coursewide api key
 def _llm_enabled():
     return bool(_get_course_openai_key())
 
 #fetch the course-wide openai API key used to enable LLM-based async peer discussion (only works for openai currently)
 def _get_course_openai_key():
     try:
-        course = db(
-            db.courses.course_name == auth.user.course_name
-        ).select().first()
+        course = db(db.courses.course_name == auth.user.course_name).select().first()
 
         if not course:
             logger.warning("PEER LLM: no course row found for %s", auth.user.course_name)
@@ -1144,7 +1142,7 @@ def _get_course_openai_key():
     return ""
 
 
-#call the openai chat completion API using the course-wide token and return the model reply
+# call the openai chat completion API using the course-wide token and return the model reply
 def _call_openai(messages):
     """
     Minimal HTTP call using the instructor-provided course-wide OpenAI token.

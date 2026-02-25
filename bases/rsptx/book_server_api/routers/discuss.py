@@ -84,7 +84,8 @@ class ConnectionManager:
         self.active_connections[user] = websocket
 
     def disconnect(self, sockid: str):
-        del self.active_connections[sockid]
+        if sockid in self.active_connections:
+            del self.active_connections[sockid]
 
     async def send_personal_message(
         self,
@@ -186,14 +187,14 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
             psfail, wsfail = failures
 
             if wsfail is not None:
-                rslogger.info(f"PEERCOMM websocket fail {wsfail}")
+                rslogger.info(f"PEERCOMM websocket fail {wsfail} for {username}")
                 # The fail is more than likely a runtime error from a page close or refresh
                 # RuntimeError('Cannot call "receive" once a disconnect message has been received.')
                 manager.disconnect(username)
                 return
 
             if psfail is not None:
-                rslogger.error(f"PEERCOM pubsub fail {psfail}")
+                rslogger.error(f"PEERCOM pubsub fail {psfail} for {username}")
                 # probably do not want to return
 
             # handle message from the pubsub queue

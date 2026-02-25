@@ -11,6 +11,8 @@ interface ActivitiesRequiredCellProps {
   itemId: number;
 }
 
+const MIN_ACTIVITIES = 1;
+
 export const ActivitiesRequiredCell = ({
   value,
   exercise,
@@ -18,11 +20,11 @@ export const ActivitiesRequiredCell = ({
   itemId
 }: ActivitiesRequiredCellProps) => {
   const { showToast } = useToastContext();
-  const [currentValue, setCurrentValue] = useState(value || 0);
+  const [currentValue, setCurrentValue] = useState(value || MIN_ACTIVITIES);
 
   const handleValueChange = (newValue: number | null | undefined) => {
-    const numValue = newValue ?? 0;
-    const activityCount = exercise.numQuestions || 0;
+    const numValue = newValue ?? MIN_ACTIVITIES;
+    const activityCount = Math.max(exercise.numQuestions ?? 0, MIN_ACTIVITIES);
 
     if (numValue > activityCount) {
       showToast({
@@ -31,7 +33,7 @@ export const ActivitiesRequiredCell = ({
         detail: `# required (${numValue}) must not exceed the activity count (${activityCount}).`
       });
 
-      setCurrentValue(value || 0);
+      setCurrentValue(value || MIN_ACTIVITIES);
       return;
     }
 
@@ -43,8 +45,8 @@ export const ActivitiesRequiredCell = ({
     <InputNumber
       value={currentValue}
       onValueChange={(e) => handleValueChange(e.value)}
-      min={0}
-      max={exercise.numQuestions || 0}
+      min={MIN_ACTIVITIES}
+      max={Math.max(exercise.numQuestions ?? 0, MIN_ACTIVITIES)}
       showButtons={false}
       style={{
         width: "100%",

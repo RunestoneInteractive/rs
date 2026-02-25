@@ -9,7 +9,9 @@ from rsptx.logging import rslogger
 
 # We need a synchronous version of this function for use in manifest_data_to_db
 # if/when process_manifest moves to being async we could remove this
-def update_source_code_sync(acid: str, filename: str, course_id: str, main_code: str, owner: str = None):
+def update_source_code_sync(
+    acid: str, filename: str, course_id: str, main_code: str, owner: str = None
+):
     """
     Update the source code for a given acid or filename
     """
@@ -40,7 +42,9 @@ def update_source_code_sync(acid: str, filename: str, course_id: str, main_code:
         session.commit()
 
 
-async def update_source_code(acid: str, filename: str, course_id: str, main_code: str, owner: str = None):
+async def update_source_code(
+    acid: str, filename: str, course_id: str, main_code: str, owner: str = None
+):
     """
     Update the source code for a given acid or filename
     """
@@ -253,6 +257,3 @@ async def delete_datafile(acid: str, course_id: str) -> bool:
         await session.delete(source_code_obj)
         await session.commit()
         return True
-
-
-

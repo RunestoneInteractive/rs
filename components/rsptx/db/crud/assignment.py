@@ -208,7 +208,7 @@ async def fetch_assignments(
 
     if is_peer:
         pclause = or_(
-            Assignment.is_peer == True, Assignment.kind == "Peer"
+            Assignment.is_peer == True, Assignment.kind == "Peer"  # noqa: E712
         )  # noqa: E712
     else:
         pclause = or_(

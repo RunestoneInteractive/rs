@@ -116,9 +116,7 @@ async def index(
             )
 
     now = canonical_utcnow()
-    assignments.sort(
-        key=sort_key
-    )
+    assignments.sort(key=sort_key)
 
     stats_list = await fetch_all_assignment_stats(course_name, user.id)
     stats = {}

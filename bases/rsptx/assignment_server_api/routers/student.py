@@ -110,15 +110,19 @@ async def get_assignments(
         deadline = assignment.duedate
         if timezoneoffset:
             deadline = deadline + datetime.timedelta(hours=float(timezoneoffset))
-            return (deadline < canonical_utcnow(), abs((deadline - canonical_utcnow()).total_seconds()))
+            return (
+                deadline < canonical_utcnow(),
+                abs((deadline - canonical_utcnow()).total_seconds()),
+            )
         else:
-            return (assignment.duedate < canonical_utcnow(), abs((assignment.duedate - canonical_utcnow()).total_seconds()))    
+            return (
+                assignment.duedate < canonical_utcnow(),
+                abs((assignment.duedate - canonical_utcnow()).total_seconds()),
+            )
 
     # Sort assignments: upcoming assignments first (closest to current date), past due assignments last
     now = canonical_utcnow()
-    assignments.sort(
-        key=sort_key
-    )
+    assignments.sort(key=sort_key)
     stats_list = await fetch_all_assignment_stats(course.course_name, user.id)
     stats = {}
     for s in stats_list:
