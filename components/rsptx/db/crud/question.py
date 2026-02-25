@@ -366,9 +366,9 @@ async def fetch_question_count_per_subchapter(
                 Question.base_course == course_name,
                 Question.from_source == True,  # noqa 711
                 or_(
-                    Question.optional == False, # noqa 711
+                    Question.optional == False,  # noqa 711
                     Question.optional == None,  # noqa 711
-                )
+                ),
             )
         )
         .group_by(Question.chapter, Question.subchapter)

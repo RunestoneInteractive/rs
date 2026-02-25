@@ -4,7 +4,9 @@ import os
 from pathlib import Path
 
 
-def build_github_url(owner: str, repo: str, branch: str, root: Path, file_path: Path, line: int | None) -> str:
+def build_github_url(
+    owner: str, repo: str, branch: str, root: Path, file_path: Path, line: int | None
+) -> str:
     # "root" should be the repository root; we build a URL
     # relative to that so it matches the layout on GitHub.
     rel = file_path.relative_to(root).as_posix()
@@ -41,7 +43,9 @@ def find_exercise_open_line(lines: list[str], close_index: int) -> int | None:
     return None
 
 
-def process_file(path: Path, root: Path, owner: str, repo: str, branch: str, dry_run: bool) -> int:
+def process_file(
+    path: Path, root: Path, owner: str, repo: str, branch: str, dry_run: bool
+) -> int:
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines(keepends=True)
 
@@ -93,7 +97,11 @@ def process_file(path: Path, root: Path, owner: str, repo: str, branch: str, dry
 
     # Build fast lookup tables for rewriting.
     close_to_ex = {e["close_idx"]: e for e in exercises}
-    url_to_ex = {e["existing_url_index"]: e for e in exercises if e["existing_url_index"] is not None}
+    url_to_ex = {
+        e["existing_url_index"]: e
+        for e in exercises
+        if e["existing_url_index"] is not None
+    }
 
     # Third pass: rebuild the file contents with corrected URLs and without
     # counting our local-only <url> lines toward GitHub line numbers.
@@ -119,8 +127,12 @@ def process_file(path: Path, root: Path, owner: str, repo: str, branch: str, dry
                 newline = "\r\n"
 
             exercise_line_number = ex["exercise_line_number"]
-            github_url = build_github_url(owner, repo, branch, root, path, exercise_line_number)
-            url_line = f'{indent}<url href="{github_url}">Source on GitHub</url>{newline}'
+            github_url = build_github_url(
+                owner, repo, branch, root, path, exercise_line_number
+            )
+            url_line = (
+                f'{indent}<url href="{github_url}">Source on GitHub</url>{newline}'
+            )
 
             new_lines.append(url_line)
 
@@ -167,7 +179,7 @@ def main():
         "--file",
         type=str,
         help="Single XML file to process (relative to --root or absolute). "
-             "If omitted, all XML files under --root are processed.",
+        "If omitted, all XML files under --root are processed.",
     )
     parser.add_argument(
         "--dry-run",
@@ -188,10 +200,14 @@ def main():
         if target.suffix != ".xml":
             print(f"Warning: file does not have .xml suffix: {target}")
 
-        inserts = process_file(target, root, args.owner, args.repo, args.branch, args.dry_run)
+        inserts = process_file(
+            target, root, args.owner, args.repo, args.branch, args.dry_run
+        )
         prefix = "[DRY-RUN] " if args.dry_run else ""
         print(f"{prefix}Updated {target}: added {inserts} <url> tag(s)")
-        print(f"Done. Files changed: {1 if inserts else 0}, <url> tags added: {inserts}")
+        print(
+            f"Done. Files changed: {1 if inserts else 0}, <url> tags added: {inserts}"
+        )
         return
 
     # No --file: process all XML files under root
@@ -208,7 +224,9 @@ def main():
             if inserts:
                 total_files += 1
                 total_inserts += inserts
-                print(f"{'[DRY-RUN] ' if args.dry_run else ''}Updated {fpath}: added {inserts} <url> tag(s)")
+                print(
+                    f"{'[DRY-RUN] ' if args.dry_run else ''}Updated {fpath}: added {inserts} <url> tag(s)"
+                )
 
     print(f"Done. Files changed: {total_files}, <url> tags added: {total_inserts}")
 

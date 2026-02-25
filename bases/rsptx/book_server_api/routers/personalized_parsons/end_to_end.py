@@ -138,10 +138,10 @@ def request_fixed_code_from_openai(
         old_fixed_code=old_fixed_code,
     )
     unittest_result, cleaned_fixed_code = unittest_evaluation(
-        language, 
-        fixed_code, 
-        default_start_code, 
-        default_test_code, 
+        language,
+        fixed_code,
+        default_start_code,
+        default_test_code,
         unittest_code,
     )
 

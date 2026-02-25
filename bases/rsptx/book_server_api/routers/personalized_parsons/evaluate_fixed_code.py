@@ -31,13 +31,16 @@ class TimeoutError(Exception):
 def handler(signum, frame):
     raise TimeoutError("Test execution exceeded time limit")
 
+
 def _runestone_file_id(filename: str, content: str) -> str:
     # Exactly: "runestone" + MD5(fileName + fileContent)
     md5 = hashlib.md5((filename + content).encode("utf-8")).hexdigest()
     return "runestone" + md5
 
+
 def _b64_text_utf8(s: str) -> str:
     return base64.b64encode(s.encode("utf-8")).decode("ascii")
+
 
 def _jobe_session():
     s = rq.Session()
@@ -48,7 +51,9 @@ def _jobe_session():
     return s
 
 
-def _ensure_file_on_jobe(sess: rq.Session, base_host: str, file_id: str, content: str) -> None:
+def _ensure_file_on_jobe(
+    sess: rq.Session, base_host: str, file_id: str, content: str
+) -> None:
     """
     Mirrors JS logic:
       - HEAD /jobeCheckFile/<id>
@@ -64,7 +69,9 @@ def _ensure_file_on_jobe(sess: rq.Session, base_host: str, file_id: str, content
         return  # already there
 
     if r.status_code not in (404, 208):
-        raise RuntimeError(f"Unexpected HEAD status from JOBE checkFile: {r.status_code} {r.text[:300]}")
+        raise RuntimeError(
+            f"Unexpected HEAD status from JOBE checkFile: {r.status_code} {r.text[:300]}"
+        )
 
     put_url = base_host + PUSH_PROXY + file_id
     payload = {"file_contents": _b64_text_utf8(content)}
@@ -75,11 +82,15 @@ def _ensure_file_on_jobe(sess: rq.Session, base_host: str, file_id: str, content
         timeout=10,
     )
     if pr.status_code != 204:
-        raise RuntimeError(f"Failed to push file to JOBE: {pr.status_code} {pr.text[:300]}")
+        raise RuntimeError(
+            f"Failed to push file to JOBE: {pr.status_code} {pr.text[:300]}"
+        )
+
 
 # Match what the JS client uses
 PUSH_PROXY = "/ns/rsproxy/jobePushFile/"
 CHECK_PROXY = "/ns/rsproxy/jobeCheckFile/"
+
 
 def inject_pass_fail_prints(test_code):
     """
@@ -96,7 +107,7 @@ def inject_pass_fail_prints(test_code):
         test_code = re.sub(
             r"(TestHelper\.runAllTests\(\);\s*)(System\.exit\(0\);)",
             r'\1System.out.println("PASS");\n            \2',
-            test_code
+            test_code,
         )
 
     # Insert FAIL prints before System.exit(1) inside catch(Exception e)
@@ -104,10 +115,11 @@ def inject_pass_fail_prints(test_code):
         test_code = re.sub(
             r"(catch\s*\(\s*Exception\s+e\s*\)\s*\{\s*)(System\.exit\(1\);)",
             r'\1System.out.println("FAIL");\n            System.out.println(e.getMessage());\n            \2',
-            test_code
+            test_code,
         )
 
     return test_code
+
 
 # modified from rsproxy.py and livecode.js logic
 def load_and_run_java_tests(java_code, test_code):
@@ -126,7 +138,7 @@ def load_and_run_java_tests(java_code, test_code):
             return match.group(1)
         else:
             raise ValueError("Could not find a public class declaration.")
-    
+
     test_code = inject_pass_fail_prints(test_code)
     print("modified_test_code\n", test_code)
     student_class = extract_class_name(java_code)
@@ -135,12 +147,20 @@ def load_and_run_java_tests(java_code, test_code):
     student_filename = f"{student_class}.java"
     test_filename = f"{test_class}.java"
 
-    # Runestone-style file ids: "runestone" + md5(filename + content) 
-    student_id = "runestone" + hashlib.md5((student_filename + java_code).encode("utf-8")).hexdigest()
-    test_id = "runestone" + hashlib.md5((test_filename + test_code).encode("utf-8")).hexdigest()
+    # Runestone-style file ids: "runestone" + md5(filename + content)
+    student_id = (
+        "runestone"
+        + hashlib.md5((student_filename + java_code).encode("utf-8")).hexdigest()
+    )
+    test_id = (
+        "runestone"
+        + hashlib.md5((test_filename + test_code).encode("utf-8")).hexdigest()
+    )
 
     runs_url = settings.jobe_server + "/jobe/index.php/restapi/runs/"
-    student_file_url = settings.jobe_server + "/jobe/index.php/restapi/files/" + student_id
+    student_file_url = (
+        settings.jobe_server + "/jobe/index.php/restapi/files/" + student_id
+    )
     test_file_url = settings.jobe_server + "/jobe/index.php/restapi/files/" + test_id
 
     sess = rq.Session()
@@ -157,15 +177,25 @@ def load_and_run_java_tests(java_code, test_code):
         r = sess.head(student_file_url, timeout=10)
         if r.status_code != 204:
             # if not found (typically 404), push it
-            put = sess.put(student_file_url, json={"file_contents": student_b64}, timeout=10)
+            put = sess.put(
+                student_file_url, json={"file_contents": student_b64}, timeout=10
+            )
             if put.status_code != 204:
-                return False, {"error": "Failed to push student file", "status": put.status_code, "body": put.text[:500]}
+                return False, {
+                    "error": "Failed to push student file",
+                    "status": put.status_code,
+                    "body": put.text[:500],
+                }
 
         r = sess.head(test_file_url, timeout=10)
         if r.status_code != 204:
             put = sess.put(test_file_url, json={"file_contents": test_b64}, timeout=10)
             if put.status_code != 204:
-                return False, {"error": "Failed to push test file", "status": put.status_code, "body": put.text[:500]}
+                return False, {
+                    "error": "Failed to push test file",
+                    "status": put.status_code,
+                    "body": put.text[:500],
+                }
 
         # JOBE runs this, and it calls test class main()
         runner_code = f"""public class TestRunner {{
@@ -190,7 +220,11 @@ def load_and_run_java_tests(java_code, test_code):
         try:
             result = resp.json()
         except Exception:
-            return False, {"error": "Non-JSON JOBE response", "status": resp.status_code, "body": resp.text[:800]}
+            return False, {
+                "error": "Non-JSON JOBE response",
+                "status": resp.status_code,
+                "body": resp.text[:800],
+            }
 
         out = (result.get("stdout") or "").strip()
         passed = (result.get("outcome") == 15) and out.startswith("PASS")
@@ -198,6 +232,7 @@ def load_and_run_java_tests(java_code, test_code):
 
     except Exception:
         return False
+
 
 def load_and_run_tests(unittest_case, code_to_test, time_limit=6):
     """
