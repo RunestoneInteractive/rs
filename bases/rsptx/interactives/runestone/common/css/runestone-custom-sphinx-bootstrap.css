@@ -393,6 +393,27 @@ div.container {
   background-color: #f5f5f5;
 }
 
+/*Dark mode-force dropdown menus to black background with white text */
+[data-theme="dark"] .dropdown-menu {
+    background-color: #000000;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .dropdown-menu > li > a,
+[data-theme="dark"] .dropdown-menu > li > span,
+[data-theme="dark"] .dropdown-menu > li > div,
+[data-theme="dark"] .dropdown-menu > li > label {
+    color: #ffffff;
+}
+
+[data-theme="dark"] .dropdown-menu > li > a:hover,
+[data-theme="dark"] .dropdown-menu > li > a:focus,
+[data-theme="dark"] .dropdown-menu > li > label:hover,
+[data-theme="dark"] .dropdown-menu > li > label:focus {
+    color: #ffffff;
+    background-color: #333333;
+}
+
 .dropdown-menu > li > a {
     color: var(--grayToWhite);
 }
