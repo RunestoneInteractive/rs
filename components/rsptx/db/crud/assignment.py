@@ -1,5 +1,4 @@
 from typing import Optional, List
-from datetime import datetime
 from fastapi import HTTPException, status
 from asyncpg.exceptions import UniqueViolationError
 from rsptx.validation import schemas

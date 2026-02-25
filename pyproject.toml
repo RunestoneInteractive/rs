@@ -127,6 +127,8 @@ json2xml = "^3.21.0"
 pytest-asyncio = "^0.24.0"
 openai = "^1.59.3"
 javalang = "^0.13.0"
+pre-commit = "^4.5.1"
+ruff = "^0.15.2"
 
 
 

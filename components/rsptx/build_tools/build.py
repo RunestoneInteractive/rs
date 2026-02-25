@@ -431,9 +431,9 @@ def wheel(config):
 
                             res = subprocess.run(lock_opts, capture_output=True)
                             if res.returncode != 0:
-                                status[
-                                    proj
-                                ] = f"[red]Fail[/red] probable dependency conflict see {projdir}/build.log"
+                                status[proj] = (
+                                    f"[red]Fail[/red] probable dependency conflict see {projdir}/build.log"
+                                )
                                 lt.update(generate_wheel_table(status))
                                 if config.verbose:
                                     console.print(

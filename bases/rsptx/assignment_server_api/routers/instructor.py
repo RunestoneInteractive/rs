@@ -357,7 +357,7 @@ async def get_assignment_gb(
 
     names = {}
     for ix, row in pt.iterrows():
-        if type(row.first_name) is str and type(row.last_name) is str:
+        if isinstance(row.first_name, str) and isinstance(row.last_name, str):
             names[row.username] = row.first_name + " " + row.last_name
 
     # pt = pt.drop(columns=["username"], axis=1)
@@ -1222,9 +1222,9 @@ async def do_download_assignment(
         csv_buffer,
         media_type="text/csv",
     )
-    response.headers[
-        "Content-Disposition"
-    ] = f"attachment; filename=assignment_{assignment_id}.csv"
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename=assignment_{assignment_id}.csv"
+    )
 
     return response
 
