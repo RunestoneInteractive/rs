@@ -339,6 +339,9 @@ class PageProgressBar {
             let completeActivities = this.total - 1; // subtract 1 for the page reading which is in total but not an activity
             let requiredActivities =
                 this.assignment_spec.activities_required || 0;
+            if (this.assignment_spec.activities_required === null) {
+                this.assignment_spec.activities_required = this.possible - 1; // if activities_required is null, then there are none on the page
+            }
             if (completeActivities >= requiredActivities) {
                 this.sendCompletedReadingScore().then(() => {
                     console.log("Reading score sent for page");

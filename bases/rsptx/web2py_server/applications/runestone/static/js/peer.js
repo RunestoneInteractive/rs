@@ -1,4 +1,5 @@
 // Configuration for the PI steps and helper functions to handle step progression in the instructor's interface
+console.log("PEER JS VERSION TEST 12345");
 const STEP_CONFIG = {
     vote1: {
         next: ['makep', 'facechat', 'makeabgroups'],
@@ -28,6 +29,9 @@ const STEP_CONFIG = {
 
 const CHAT_MODALITIES = ['makep', 'facechat', 'makeabgroups'];
 var currentStep = null;
+const REQUIRED_LLM_MESSAGES = 1;
+let llmMessageCount = 0;
+let readyForVote2 = false;
 
 function disableButton(btn) {
     if (btn) btn.disabled = true;
@@ -282,7 +286,7 @@ function connect(event) {
                         "Submit";
                     window.componentMap[currentQuestion].enableInteraction();
                     if (typeof studentVoteCount !== "undefined") {
-                        studentVoteCount += 1;
+                        // studentVoteCount += 1;
                         if (studentVoteCount > 2) {
                             studentVoteCount = 2;
                             console.log("WARNING: resetting studentVoteCount to 2");
@@ -482,8 +486,19 @@ async function sendMessage(event) {
     input.value = "";
     input.focus();
 
-    // Disable the send button after sending a message
-    sendButton.classList.add("disabled");
+    // Only apply LLM restrictions in async mode
+    if (window.PI_LLM_MODE === true) {
+        sendButton.classList.add("disabled");
+        llmMessageCount += 1;
+        console.log("LLM message count:", llmMessageCount);
+
+        if (llmMessageCount >= REQUIRED_LLM_MESSAGES) {
+            const btn = document.getElementById("readyVote2Btn");
+            if (btn) {
+                btn.style.display = "inline-block";
+            }
+        }
+    }
 }
 
 function warnAndStopVote(event) {
@@ -712,9 +727,23 @@ async function showPeerEnableVote2() {
     let peerEl = document.getElementById("peerJust");
     peerEl.innerHTML = peerMess;
     let nextStep = document.getElementById("nextStep");
+
+if (llmMessageCount < REQUIRED_LLM_MESSAGES) {
     nextStep.innerHTML =
-        "Please answer the question again, even if you do not wish to change your answer. After answering, click the button to go on to the next question.";
+        `Please continue the discussion. You must send at least ${REQUIRED_LLM_MESSAGES} messages before voting again.`;
     nextStep.style.color = "red";
+    return; 
+}
+
+nextStep.innerHTML =
+    "Please answer the question again, even if you do not wish to change your answer. After answering, click the button to go on to the next question.";
+nextStep.style.color = "red";
+voteStopped = false;
+
+let qq = window.componentMap[currentQuestion];
+qq.submitButton.disabled = false;
+qq.enableInteraction();
+
     let cq = document.getElementById(`${currentQuestion}_feedback`);
     cq.style.display = "none";
 
@@ -730,6 +759,42 @@ async function showPeerEnableVote2() {
         });
     }
 }
+
+//re-enable interaction so the student can submit their second vote (async PI)
+function enableSecondVoteAsync() {
+    console.log("Enabling second vote (async)");
+
+    voteStopped = false;
+
+    let qq = window.componentMap[currentQuestion];
+    if (!qq) {
+        console.error("No component found for currentQuestion");
+        return;
+    }
+
+    qq.submitButton.disabled = false;
+    qq.enableInteraction();
+
+    let feedbackDiv = document.getElementById(`${currentQuestion}_feedback`);
+    if (feedbackDiv) {
+        feedbackDiv.style.display = "none";
+    }
+
+    $(".runestone [type=radio]").prop("checked", false);
+    $(".runestone [type=checkbox]").prop("checked", false);
+
+    document.getElementById("readyVote2Btn").style.display = "none";
+
+    let nextStep = document.getElementById("nextStep");
+    if (nextStep) {
+        nextStep.innerHTML =
+            "please submit your answer again, even if you keep the same choice.";
+        nextStep.style.color = "red";
+    }
+
+    console.log("Second vote enabled");
+}
+
 
 async function setupPeerGroup() {
     let jsonHeaders = new Headers({
@@ -786,15 +851,41 @@ async function setupPeerGroup() {
 
 }
 
+//insert the "Ready for Vote 2" button into the discussion area (async PI only)
+function insertReadyVote2Button() {
+    if (document.getElementById("readyVote2Btn")) return;
+
+    const container = document.getElementById("discussion_panel") 
+        || document.getElementById("imessage");
+
+    if (!container) return;
+
+    const btn = document.createElement("button");
+    btn.id = "readyVote2Btn";
+    btn.className = "btn btn-info";
+    btn.style.display = "none";
+    btn.innerText = "Ready for Vote 2";
+
+    btn.addEventListener("click", enableSecondVoteAsync);
+
+    container.appendChild(btn);
+}
+
 $(function () {
+    insertReadyVote2Button();
+
     let tinput = document.getElementById("messageText");
     let sendButton = document.getElementById("sendpeermsg");
+    if (window.PI_LLM_MODE !== true && sendButton) {
+        sendButton.classList.remove("disabled");
+    }
 
-    if (tinput && sendButton) {
+    if (tinput && sendButton && window.PI_LLM_MODE === true) {
         tinput.addEventListener("input", function () {
             let message = this.value.trim();
-            if (message !== "") {
+            if (window.PI_LLM_MODE !== true && sendButton) {
                 sendButton.classList.remove("disabled");
+                sendButton.disabled = false;
             } else {
                 sendButton.classList.add("disabled");
             }

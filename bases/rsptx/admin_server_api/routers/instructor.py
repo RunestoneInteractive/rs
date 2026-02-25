@@ -1256,9 +1256,7 @@ async def post_create_course_page(
 
         # if invoice is true then we need to create an invoice for the course
         if invoice == "true":
-            res = await create_invoice_request(
-                user.username, projectname, 0.0, user.email
-            )
+            await create_invoice_request(user.username, projectname, 0.0, user.email)
         # Copy attributes from base course
         bc = await fetch_course(coursetype)
         attrs = await fetch_all_course_attributes(bc.id)

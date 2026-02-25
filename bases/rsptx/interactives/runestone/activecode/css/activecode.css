@@ -240,11 +240,12 @@
     /* Hidden by default */
     position: fixed;
     /* Stay in place */
-    z-index: 200;
+    z-index: 9000;
     /* Sit on top */
-    left: 200px;
-    top: 200px;
+    left: calc((100% - 800px) / 2);
     width: 800px;
+    top: 5%;
+    max-height: 90%;
     overflow: auto;
     /* Enable scroll if needed */
     padding: 20px;
@@ -253,9 +254,11 @@
     background-color: var(--background);
 }
 
-.scratch-ac-modal {
-    max-height: 90%;
-    overflow-y: scroll;
+@media (max-width: 960px) {
+    .scratch-ac-modal {
+        width: 90%;
+        left: 5%;
+    }
 }
 
 .ac-modal-body,

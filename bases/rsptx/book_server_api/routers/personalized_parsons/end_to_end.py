@@ -1,11 +1,15 @@
 # import necessary packages
-from .buggy_code_checker import *
-from .get_personalized_solution import *
-from .evaluate_fixed_code import *
-from .generate_parsons_blocks import *
-from .personalize_parsons import *
-from .token_compare import *
-from .get_parsons_code_distractors import *
+from .buggy_code_checker import student_code_checker
+from .evaluate_fixed_code import (
+    clean_student_code,
+    code_distractor_unittest_evaluation,
+    unittest_evaluation,
+)
+from .generate_parsons_blocks import generate_Parsons_block
+from .get_parsons_code_distractors import generate_code_with_distrator
+from .get_personalized_solution import get_example_solution, get_fixed_code
+from .personalize_parsons import compare_code, personalize_Parsons_block
+from .token_compare import code_similarity_score
 
 
 def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
@@ -142,14 +146,14 @@ def request_fixed_code_from_openai(
         fixed_code,
         default_start_code,
         default_test_code,
-        unittest_case=unittest_code,
+        unittest_code,
     )
 
     print("this-round-result:", unittest_result, cleaned_fixed_code)
     if not unittest_result:
         return example_solution.lstrip(), "example_solution"
 
-    if unittest_result == True:
+    if unittest_result:
         similarity_personalized = code_similarity_score(
             cleaned_buggy_code, cleaned_fixed_code, language
         )
@@ -248,7 +252,7 @@ def generate_personalized_fixed_code(
             default_test_code,
             unittest_case=unittest_code,
         )
-        if unittest_result != True:
+        if not unittest_result:
             # If the code is not correct, we will TRY to get an example solution first
             example_solution = generate_example_solution(
                 api_token,
@@ -358,7 +362,7 @@ def generate_multi_personalized_Parsons_blocks(
                 unittest_code,
             )
             # If the code with distractors passes the unittest, we will remove the distractor from the distractors list
-            if unittest_flag == True:
+            if unittest_flag:
                 distractors.pop(distractor_correct_line)
 
     if Parsons_type == "Correct":

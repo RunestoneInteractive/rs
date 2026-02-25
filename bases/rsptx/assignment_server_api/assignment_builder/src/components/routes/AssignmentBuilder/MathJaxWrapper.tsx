@@ -13,12 +13,12 @@ export const mathJaxConfig = {
   },
   tex: {
     inlineMath: [
-      ["$", "$"],
-      ["\\(", "\\)"]
+      ["\\(", "\\)"],
+      ["$", "$"]
     ],
     displayMath: [
-      ["$$", "$$"],
-      ["\\[", "\\]"]
+      ["\\[", "\\]"],
+      ["$$", "$$"]
     ],
     processEscapes: true,
     packages: {
@@ -64,7 +64,7 @@ export const mathJaxConfig = {
       "code",
       "annotation",
       "annotation-xml"
-    ],
+    ]
   }
 };
 

@@ -550,7 +550,7 @@ export class ActiveCode extends RunestoneBase {
         // This function is used to convert JUnit test code to a format suitable for backend processing.
         function junitToBackend(junitCode) {
             // Extract only the TestHelper class - match from the first line to the first empty line after it 
-            const helperMatch = junitCode.match(/class TestHelper[\s\S]*?\n\s*\n/);
+            const helperMatch = junitCode.match(/class\s+TestHelper\s*\{[\s\S]*?\}\s*/);
             const helperCode = helperMatch ? helperMatch[0] : "";
 
             // Add backend runner - it always calls TestHelper
