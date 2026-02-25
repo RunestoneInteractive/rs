@@ -105,13 +105,13 @@ export const AssignmentList = ({
       </span>
       {rowData.kind === "Peer" && (
         <label className={styles.asyncPeerGroup}>
+          <span className={styles.asyncPeerText}>Async Peer</span>
           <Checkbox
             checked={rowData.peer_async_visible}
             onChange={(e) => onPeerAsyncChange(rowData, !!e.checked)}
             tooltip={rowData.peer_async_visible ? "Disable async peer" : "Enable async peer"}
             tooltipOptions={{ position: "top" }}
           />
-          <span className={styles.asyncPeerText}>Async Peer</span>
         </label>
       )}
     </div>
