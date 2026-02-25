@@ -101,9 +101,12 @@ async def index(
         # Also include assignments the student has deadline exceptions for,
         # even if they are not currently visible via scheduled dates
         if assignment_ids:
-            all_assignments = await fetch_assignments(course.course_name, fetch_all=True)
+            all_assignments = await fetch_assignments(
+                course.course_name, fetch_all=True
+            )
             exception_assignments = [
-                a for a in all_assignments
+                a
+                for a in all_assignments
                 if a.id in assignment_ids and not is_assignment_visible_to_students(a)
             ]
             assignments = list(assignments) + exception_assignments
@@ -127,9 +130,7 @@ async def index(
             )
 
     now = canonical_utcnow()
-    assignments.sort(
-        key=sort_key
-    )
+    assignments.sort(key=sort_key)
 
     stats_list = await fetch_all_assignment_stats(course_name, user.id)
     stats = {}

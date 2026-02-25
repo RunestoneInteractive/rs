@@ -267,7 +267,7 @@ async def fetch_assignments(
                 Assignment.visible_on.isnot(None),
                 Assignment.hidden_on.isnot(None),
                 Assignment.visible_on <= now,
-                Assignment.hidden_on > now
+                Assignment.hidden_on > now,
             ),
             # Case 2: "Visible on" mode (visible once visible_on passes)
             and_(
@@ -282,8 +282,8 @@ async def fetch_assignments(
                 # visible_on check
                 or_(Assignment.visible_on.is_(None), Assignment.visible_on <= now),
                 # hidden_on check
-                or_(Assignment.hidden_on.is_(None), Assignment.hidden_on > now)
-            )
+                or_(Assignment.hidden_on.is_(None), Assignment.hidden_on > now),
+            ),
         )
     else:
         vclause = True

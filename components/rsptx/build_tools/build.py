@@ -431,9 +431,9 @@ def wheel(config):
 
                             res = subprocess.run(lock_opts, capture_output=True)
                             if res.returncode != 0:
-                                status[proj] = (
-                                    f"[red]Fail[/red] probable dependency conflict see {projdir}/build.log"
-                                )
+                                status[
+                                    proj
+                                ] = f"[red]Fail[/red] probable dependency conflict see {projdir}/build.log"
                                 lt.update(generate_wheel_table(status))
                                 if config.verbose:
                                     console.print(
@@ -894,7 +894,8 @@ def dev(ctx, config):
     ctx.invoke(image)
     ctx.invoke(restart)
 
-# This command should be used when you pull new code from github and want to rebuild and make 
+
+# This command should be used when you pull new code from github and want to rebuild and make
 # sure you are using the latest database schema.  Many people forget to run migrations
 # after pulling new code.
 @cli.command()

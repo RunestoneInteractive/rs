@@ -103,7 +103,10 @@ async def is_assigned(
                     return scoringSpec
             else:
                 if not row.Assignment.enforce_due:
-                    if is_assignment_visible_to_students(row.Assignment) or visible_exception:
+                    if (
+                        is_assignment_visible_to_students(row.Assignment)
+                        or visible_exception
+                    ):
                         scoringSpec.assigned = True
                         return scoringSpec
         return schemas.ScoringSpecification()
@@ -127,6 +130,7 @@ async def fetch_reading_assignment_spec(
     course_tz_now = datetime.datetime.now(tz)
     course_tz_now = course_tz_now.replace(tzinfo=None)
     from rsptx.response_helpers.core import canonical_utcnow
+
     now = canonical_utcnow()
     # Visibility clause that respects visible_on and hidden_on scheduling
     vclause = or_(

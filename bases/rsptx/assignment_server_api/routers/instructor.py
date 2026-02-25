@@ -71,7 +71,11 @@ from rsptx.db.crud import (
     delete_datafile,
 )
 from rsptx.db.crud.question import validate_question_name_unique, copy_question
-from rsptx.db.crud.assignment import add_assignment_question, delete_assignment, is_assignment_visible_to_students
+from rsptx.db.crud.assignment import (
+    add_assignment_question,
+    delete_assignment,
+    is_assignment_visible_to_students,
+)
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
 from rsptx.configuration import settings
@@ -1218,9 +1222,9 @@ async def do_download_assignment(
         csv_buffer,
         media_type="text/csv",
     )
-    response.headers["Content-Disposition"] = (
-        f"attachment; filename=assignment_{assignment_id}.csv"
-    )
+    response.headers[
+        "Content-Disposition"
+    ] = f"attachment; filename=assignment_{assignment_id}.csv"
 
     return response
 
