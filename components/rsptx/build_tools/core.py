@@ -706,9 +706,6 @@ def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
     return res.inserted_primary_key[0]
 
 
-import pdb
-
-
 def _process_subchapters(sess, db_context, chapter, chapid, course_name):
     """Process all subchapters for a given chapter."""
     subchap = 0

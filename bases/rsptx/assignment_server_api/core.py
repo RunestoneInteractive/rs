@@ -22,7 +22,6 @@ from fastapi.staticfiles import StaticFiles
 from .routers import student
 from .routers import instructor
 from .routers import peer
-from rsptx.configuration import settings
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.logging import rslogger
 from rsptx.templates import template_folder

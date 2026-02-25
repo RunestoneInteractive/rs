@@ -4,16 +4,11 @@ import difflib
 from types import ModuleType
 import threading
 import signal
-import subprocess
-import tempfile
-import os
-import shutil
-from unittest import result
 import requests as rq
 import hashlib
 import base64
 import json
-from ..rsproxy import get_jobe_server, settings
+from ..rsproxy import settings
 
 
 class NullOutput:
@@ -504,7 +499,7 @@ def code_distractor_unittest_evaluation(
                 return results.wasSuccessful(), code_with_distrator
             else:
                 return "No starting code", code_with_distrator
-        except:
+        except Exception:
             try:
                 code_with_distrator = fix_indentation(code_with_distrator)
                 results = load_and_run_tests(unittest_case, code_with_distrator)
@@ -512,8 +507,8 @@ def code_distractor_unittest_evaluation(
                     return results.wasSuccessful(), code_with_distrator
                 else:
                     return "No starting code", code_with_distrator
-            except Exception:
-                return False, code_with_distrator
+            except Exception as e:
+                return f"We got errors, {e}", code_with_distrator
 
 
 def clean_student_code(student_code, default_test_code):
@@ -530,7 +525,7 @@ def clean_student_code(student_code, default_test_code):
         cleaned_student_code = remove_default_testline(student_code, default_test_code)
         cleaned_student_code = remove_empty_lines(cleaned_student_code)
         cleaned_student_code = remove_python_comments(cleaned_student_code)
-    except:
+    except Exception:
         cleaned_student_code = student_code
 
     return cleaned_student_code
