@@ -68,13 +68,34 @@
 }
 
 .typeColumn {
-  width: 120px;
+  width: 160px;
 }
 
 .typeCell {
   display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.asyncPeerGroup {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  gap: 0.2rem;
+  padding-bottom: 0.25rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.asyncPeerText {
+  font-size: 0.7rem;
+  color: var(--surface-500);
+  white-space: nowrap;
+}
+
+.asyncPeerGroup:hover .asyncPeerText {
+  color: var(--surface-700);
 }
 
 .typeTag {

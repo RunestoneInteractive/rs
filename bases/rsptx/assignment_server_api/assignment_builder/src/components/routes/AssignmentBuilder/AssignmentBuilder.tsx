@@ -144,6 +144,18 @@ export const AssignmentBuilder = () => {
     }
   };
 
+  const handlePeerAsyncChange = async (assignment: Assignment, peer_async_visible: boolean) => {
+    try {
+      await updateAssignment({
+        ...assignment,
+        peer_async_visible
+      });
+      toast.success(`Async peer ${peer_async_visible ? "enabled" : "disabled"}`);
+    } catch (error) {
+      toast.error("Failed to update async peer setting");
+    }
+  };
+
   const handleWizardComplete = async () => {
     const formValues = getValues();
     const payload: CreateAssignmentPayload = {
@@ -195,6 +207,7 @@ export const AssignmentBuilder = () => {
           onVisibilityChange={handleVisibilityChange}
           onReleasedChange={handleReleasedChange}
           onEnforceDueChange={handleEnforceDueChange}
+          onPeerAsyncChange={handlePeerAsyncChange}
           onRemove={onRemove}
         />
       )}
