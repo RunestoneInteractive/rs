@@ -140,27 +140,6 @@ div.section {
     white-space: nowrap;
 }
 
-/*Dark mode- force dropdown menus to black background with white text */
-[data-theme="dark"] .dropdown-menu {
-    background-color: #000000 !important;
-    color: #ffffff !important;
-}
-
-[data-theme="dark"] .dropdown-menu > li > a,
-[data-theme="dark"] .dropdown-menu > li > span,
-[data-theme="dark"] .dropdown-menu > li > div,
-[data-theme="dark"] .dropdown-menu > li > label {
-    color: #ffffff !important;
-}
-
-[data-theme="dark"] .dropdown-menu > li > a:hover,
-[data-theme="dark"] .dropdown-menu > li > a:focus,
-[data-theme="dark"] .dropdown-menu > li > label:hover,
-[data-theme="dark"] .dropdown-menu > li > label:focus {
-    color: #ffffff !important;
-    background-color: #333333 !important;
-}
-
 .loggedinuser {
     font-weight: bold;
 }
