@@ -16,6 +16,7 @@ type VisibilityMode =
 
 interface VisibilityStatus {
   text: string;
+  secondLine?: string;
   color: string;
   icon: string;
 }
@@ -49,21 +50,35 @@ const getVisibilityStatus = (assignment: Assignment): VisibilityStatus => {
     const visibleDate = parseUTCDate(visible_on);
     const hiddenDate = parseUTCDate(hidden_on);
 
+    const fmt = (d: Date) =>
+      d.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
     if (now < visibleDate) {
       return {
-        text: visibleDate.toLocaleDateString(undefined, {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit"
-        }),
+        text: fmt(visibleDate),
+        secondLine: fmt(hiddenDate),
         color: "#FFA500",
         icon: "pi pi-clock"
       };
     } else if (now >= visibleDate && now < hiddenDate) {
-      return { text: "Visible", color: "#28A745", icon: "pi pi-eye" };
+      return {
+        text: fmt(visibleDate),
+        secondLine: fmt(hiddenDate),
+        color: "#28A745",
+        icon: "pi pi-calendar"
+      };
     } else {
-      return { text: "Hidden", color: "#DC3545", icon: "pi pi-eye-slash" };
+      return {
+        text: fmt(visibleDate),
+        secondLine: fmt(hiddenDate),
+        color: "#DC3545",
+        icon: "pi pi-calendar-times"
+      };
     }
   }
 
@@ -165,19 +180,25 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
     let newHiddenOn = hiddenOn;
 
     if (newMode === "scheduled_visible" && !newVisibleOn) {
-      newVisibleOn = convertDateToISO(new Date());
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      newVisibleOn = convertDateToISO(startOfDay);
     }
     if (newMode === "scheduled_hidden" && !newHiddenOn) {
-      newHiddenOn = convertDateToISO(new Date());
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 0, 0);
+      newHiddenOn = convertDateToISO(endOfDay);
     }
     if (newMode === "scheduled_period") {
       if (!newVisibleOn) {
-        newVisibleOn = convertDateToISO(new Date());
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        newVisibleOn = convertDateToISO(startOfDay);
       }
       if (!newHiddenOn) {
-        const twoHoursLater = new Date();
-        twoHoursLater.setHours(twoHoursLater.getHours() + 2);
-        newHiddenOn = convertDateToISO(twoHoursLater);
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 0, 0);
+        newHiddenOn = convertDateToISO(endOfDay);
       }
     }
 
@@ -189,15 +210,37 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
     onChange(assignment, values);
   };
 
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
   const handleVisibleOnChange = (val: string) => {
+    let newHiddenOn = hiddenOn;
+    if (mode === "scheduled_period" && newHiddenOn) {
+      const newVisibleDate = parseUTCDate(val);
+      const currentHiddenDate = parseUTCDate(newHiddenOn);
+      if (newVisibleDate >= currentHiddenDate) {
+        const adjusted = new Date(newVisibleDate.getTime() + DAY_MS);
+        newHiddenOn = convertDateToISO(adjusted);
+        setHiddenOn(newHiddenOn);
+      }
+    }
     setVisibleOn(val);
-    const values = computeValues(mode, val, hiddenOn);
+    const values = computeValues(mode, val, newHiddenOn);
     onChange(assignment, values);
   };
 
   const handleHiddenOnChange = (val: string) => {
+    let newVisibleOn = visibleOn;
+    if (mode === "scheduled_period" && newVisibleOn) {
+      const newHiddenDate = parseUTCDate(val);
+      const currentVisibleDate = parseUTCDate(newVisibleOn);
+      if (newHiddenDate <= currentVisibleDate) {
+        const adjusted = new Date(newHiddenDate.getTime() - DAY_MS);
+        newVisibleOn = convertDateToISO(adjusted);
+        setVisibleOn(newVisibleOn);
+      }
+    }
     setHiddenOn(val);
-    const values = computeValues(mode, visibleOn, val);
+    const values = computeValues(mode, newVisibleOn, val);
     onChange(assignment, values);
   };
 
@@ -211,18 +254,32 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
           fontWeight: 500,
           cursor: "pointer",
           display: "flex",
+          flexDirection: status.secondLine ? "column" : "row",
           alignItems: "center",
           justifyContent: "center",
-          gap: "4px"
+          gap: status.secondLine ? "0px" : "4px"
         }}
         title="Click to change visibility"
       >
-        <i className={status.icon} style={{ fontSize: "0.9rem" }} />
-        <span>{status.text}</span>
-        <i
-          className="pi pi-chevron-down"
-          style={{ fontSize: "0.7rem", marginLeft: "2px", opacity: 0.6 }}
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <i className={status.icon} style={{ fontSize: "0.9rem" }} />
+          <span>{status.text}</span>
+          {!status.secondLine && (
+            <i
+              className="pi pi-chevron-down"
+              style={{ fontSize: "0.7rem", marginLeft: "2px", opacity: 0.6 }}
+            />
+          )}
+        </div>
+        {status.secondLine && (
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <span>{status.secondLine}</span>
+            <i
+              className="pi pi-chevron-down"
+              style={{ fontSize: "0.7rem", marginLeft: "2px", opacity: 0.6 }}
+            />
+          </div>
+        )}
       </div>
       <OverlayPanel
         ref={overlayRef}

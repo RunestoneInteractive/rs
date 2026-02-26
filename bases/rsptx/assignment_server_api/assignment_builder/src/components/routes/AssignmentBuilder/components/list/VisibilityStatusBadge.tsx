@@ -5,6 +5,7 @@ import { parseUTCDate } from "@/utils/date";
 
 interface VisibilityStatus {
   text: string;
+  secondLine?: string;
   color: string;
   icon: string;
   tooltip: string;
@@ -23,34 +24,37 @@ const getVisibilityStatus = (assignment: Assignment): VisibilityStatus => {
     const visibleDate = parseUTCDate(visible_on);
     const hiddenDate = parseUTCDate(hidden_on);
 
+    const formatShort = (d: Date) =>
+      d.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
     if (now < visibleDate) {
-      // Period hasn't started yet
       return {
-        text: visibleDate.toLocaleDateString(undefined, {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit"
-        }),
+        text: formatShort(visibleDate),
+        secondLine: formatShort(hiddenDate),
         color: "#FFA500",
         icon: "pi pi-clock",
         tooltip: `Visible from ${visibleDate.toLocaleString()} to ${hiddenDate.toLocaleString()}`
       };
     } else if (now >= visibleDate && now < hiddenDate) {
-      // Currently in visible period
       return {
-        text: "Visible",
+        text: formatShort(visibleDate),
+        secondLine: formatShort(hiddenDate),
         color: "#28A745",
-        icon: "pi pi-eye",
+        icon: "pi pi-calendar",
         tooltip: `Visible until ${hiddenDate.toLocaleString()}`
       };
     } else {
-      // Period has ended
       return {
-        text: "Hidden",
+        text: formatShort(visibleDate),
+        secondLine: formatShort(hiddenDate),
         color: "#DC3545",
-        icon: "pi pi-eye-slash",
-        tooltip: ""
+        icon: "pi pi-calendar-times",
+        tooltip: `Period ended on ${hiddenDate.toLocaleString()}`
       };
     }
   }
@@ -157,8 +161,8 @@ export const VisibilityStatusBadge = ({ assignment }: VisibilityStatusBadgeProps
       <div
         className={
           hasTooltip
-            ? "visibility-status-badge flex align-items-center justify-content-center gap-1"
-            : "flex align-items-center justify-content-center gap-1"
+            ? "visibility-status-badge flex flex-column align-items-center justify-content-center"
+            : "flex flex-column align-items-center justify-content-center"
         }
         style={{
           fontSize: "0.85rem",
@@ -171,8 +175,11 @@ export const VisibilityStatusBadge = ({ assignment }: VisibilityStatusBadgeProps
           "data-pr-position": "top"
         })}
       >
-        <i className={status.icon} style={{ fontSize: "0.9rem" }}></i>
-        <span>{status.text}</span>
+        <div className="flex align-items-center gap-1">
+          <i className={status.icon} style={{ fontSize: "0.9rem" }}></i>
+          <span>{status.text}</span>
+        </div>
+        {status.secondLine && <span>{status.secondLine}</span>}
       </div>
     </>
   );

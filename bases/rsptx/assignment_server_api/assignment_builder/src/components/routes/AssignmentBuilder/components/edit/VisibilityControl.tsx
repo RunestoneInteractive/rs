@@ -2,7 +2,7 @@ import { RadioButton } from "primereact/radiobutton";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
 import { Assignment } from "@/types/assignment";
-import { convertDateToISO, formatUTCDateLocaleString } from "@/utils/date";
+import { convertDateToISO, formatUTCDateLocaleString, parseUTCDate } from "@/utils/date";
 
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
 
@@ -47,6 +47,32 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
 
   const visibilityMode = getVisibilityMode();
 
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  const handleVisibleOnChange = (val: string) => {
+    setValue("visible_on", val);
+    if (hiddenOn) {
+      const newVisibleDate = parseUTCDate(val);
+      const currentHiddenDate = parseUTCDate(hiddenOn);
+      if (newVisibleDate >= currentHiddenDate) {
+        const adjusted = new Date(newVisibleDate.getTime() + DAY_MS);
+        setValue("hidden_on", convertDateToISO(adjusted));
+      }
+    }
+  };
+
+  const handleHiddenOnChange = (val: string) => {
+    setValue("hidden_on", val);
+    if (visibleOn) {
+      const newHiddenDate = parseUTCDate(val);
+      const currentVisibleDate = parseUTCDate(visibleOn);
+      if (newHiddenDate <= currentVisibleDate) {
+        const adjusted = new Date(newHiddenDate.getTime() - DAY_MS);
+        setValue("visible_on", convertDateToISO(adjusted));
+      }
+    }
+  };
+
   const handleModeChange = (mode: VisibilityMode) => {
     switch (mode) {
       case "hidden":
@@ -62,30 +88,33 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
       case "scheduled_visible":
         setValue("visible", false);
         setValue("hidden_on", null);
-        // Keep visible_on or set to current date if null
         if (!visibleOn) {
-          setValue("visible_on", convertDateToISO(new Date()));
+          const startOfDay = new Date();
+          startOfDay.setHours(0, 0, 0, 0);
+          setValue("visible_on", convertDateToISO(startOfDay));
         }
         break;
       case "scheduled_hidden":
         setValue("visible", true);
         setValue("visible_on", null);
-        // Keep hidden_on or set to current date if null
         if (!hiddenOn) {
-          setValue("hidden_on", convertDateToISO(new Date()));
+          const endOfDay = new Date();
+          endOfDay.setHours(23, 59, 0, 0);
+          setValue("hidden_on", convertDateToISO(endOfDay));
         }
         break;
       case "scheduled_period":
         setValue("visible", false);
         // Set both dates if not already set
         if (!visibleOn) {
-          const now = new Date();
-          setValue("visible_on", convertDateToISO(now));
+          const startOfDay = new Date();
+          startOfDay.setHours(0, 0, 0, 0);
+          setValue("visible_on", convertDateToISO(startOfDay));
         }
         if (!hiddenOn) {
-          const twoHoursLater = new Date();
-          twoHoursLater.setHours(twoHoursLater.getHours() + 2);
-          setValue("hidden_on", convertDateToISO(twoHoursLater));
+          const endOfDay = new Date();
+          endOfDay.setHours(23, 59, 0, 0);
+          setValue("hidden_on", convertDateToISO(endOfDay));
         }
         break;
     }
@@ -192,7 +221,7 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
                     render={({ field: dateField }) => (
                       <DateTimePicker
                         value={dateField.value}
-                        onChange={(val) => dateField.onChange(val)}
+                        onChange={(val) => handleVisibleOnChange(val)}
                         utc
                       />
                     )}
@@ -206,7 +235,7 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
                     render={({ field: dateField }) => (
                       <DateTimePicker
                         value={dateField.value}
-                        onChange={(val) => dateField.onChange(val)}
+                        onChange={(val) => handleHiddenOnChange(val)}
                         utc
                       />
                     )}
