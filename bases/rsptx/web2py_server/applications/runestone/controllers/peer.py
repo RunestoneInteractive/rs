@@ -777,21 +777,73 @@ def get_async_explainer():
     div_id = request.vars.div_id
 
     messages = db(
-        (db.useinfo.event == "sendmessage")
+        (db.useinfo.event.belongs(["sendmessage", "reflection"]))
         & (db.useinfo.div_id == div_id)
         & (db.useinfo.course_id == course_name)
     ).select(orderby=db.useinfo.id)
 
-    if len(messages) == 0:
-        mess = "Sorry there are no explanations yet."
-    else:
-        parts = []
-        for row in messages:
+    all_msgs = []  #list of (sid, msg) in insertion order
+    last_per_sid = {}
+    for row in messages:
+        if row.event == "reflection":
+            msg = row.act
+        else:
             try:
                 msg = row.act.split(":", 2)[2]
             except Exception:
                 msg = row.act
-            parts.append(f"<li><strong>{row.sid}</strong> said: {msg}</li>")
+        if last_per_sid.get(row.sid) != msg:  #skip exact consecutive duplicates only
+            all_msgs.append((row.sid, msg))
+            last_per_sid[row.sid] = msg
+
+    llm_turns = db(
+        (db.useinfo.event == "pi_llm_turn")
+        & (db.useinfo.div_id == div_id)
+        & (db.useinfo.course_id == course_name)
+    ).select(orderby=db.useinfo.id)
+
+    llm_by_sid = {}
+    for row in llm_turns:
+        try:
+            turn = json.loads(row.act)
+            attempt_id = turn.get("pi_attempt_id", "")
+            turn_index = turn.get("turn_index", 0)
+            role = turn.get("role", "")
+            content = turn.get("content", "")
+            if row.sid not in llm_by_sid:
+                llm_by_sid[row.sid] = {}
+            if attempt_id not in llm_by_sid[row.sid]:
+                llm_by_sid[row.sid][attempt_id] = []
+            llm_by_sid[row.sid][attempt_id].append((turn_index, role, content))
+        except Exception:
+            pass
+
+    parts = []
+    sids_with_llm_shown = set()
+    for sid, msg in all_msgs:
+        parts.append(f"<li><strong>{sid}</strong> said: {msg}</li>")
+        if sid in llm_by_sid and sid not in sids_with_llm_shown:
+            sids_with_llm_shown.add(sid)
+            latest_attempt = max(
+                llm_by_sid[sid].keys(),
+                key=lambda a: max(t[0] for t in llm_by_sid[sid][a])
+            )
+            turns = sorted(llm_by_sid[sid][latest_attempt], key=lambda t: t[0])
+            for _, role, content in turns:
+                if role == "assistant":
+                    parts.append(f"<li><strong>LLM Peer</strong> said: {content}</li>")
+
+    for sid, attempts in llm_by_sid.items():
+        if sid not in sids_with_llm_shown and not any(s == sid for s, _ in all_msgs):
+            latest_attempt = max(attempts.keys(), key=lambda a: max(t[0] for t in attempts[a]))
+            turns = sorted(attempts[latest_attempt], key=lambda t: t[0])
+            for _, role, content in turns:
+                if role == "assistant":
+                    parts.append(f"<li><strong>LLM Peer</strong> said: {content}</li>")
+
+    if not parts:
+        mess = "Sorry there are no explanations yet."
+    else:
         mess = "<ul>" + "".join(parts) + "</ul>"
 
     logger.debug(f"Get message for {div_id}")
@@ -885,20 +937,23 @@ def get_async_llm_reflection():
         "do not use new lines.\n"
         "do not sound like a teacher.\n"
         "do not explain step by step.\n"
-        "do not mention libraries formally.\n"
         "never say something is right or wrong.\n"
+        "your answer can shift throughout the conversation\n"
         "never mention a choice letter as the correct answer.\n"
         "never clearly describe the final result of the code.\n"
         "never fully state what the program prints.\n"
-        "keep reasoning partial or uncertain.\n"
         "use common misconceptions relating to the specific problem.\n"
         "refer to code loosely like 'that line' or 'the loop' or 'the head' or 'the print'.\n"
         "often hedge with uncertainty.\n"
-        "never agree with the other student's interpretation even if it sounds correct.\n"
+        #"never agree with the other student's interpretation even if it sounds correct.\n" #porter found when PI is adversarial students disengage
         "use content from the other multiple choice options in your reponses when needed\n"
-        "maintain a mistaken or incomplete mental model throughout the conversation.\n"
+        "let your mental model shift slightly under pressure but keep reasoning partial and never fully resolve\n"
         "if the other student clearly sounds confident or repeats the same answer twice stop debating and tell them to vote again or submit it.\n"
         "do not continue reasoning after telling them to vote again.\n"
+        "sometimes question whether you even read the code correctly before forming an opinion.\n"
+        "occasionally bring up a wrong answer option as if it might be right without committing to it.\n"
+        "pick an answer choice different than the one the student selected and ask the student to explain why it cannot be correct.\n"
+        "show reasoning process not conclusions, think out loud rather than arriving anywhere.\n"
         "focus on reasoning not teaching.\n\n"
     )
 
@@ -1048,35 +1103,39 @@ def send_lti_scores():
 def _llm_enabled():
     return bool(_get_course_openai_key())
 
-
-# fetch the course-wide openai API key used to enable LLM-based async peer discussion (only works for openai currently)
-# def _get_course_openai_key():
-#     try:
-#         token_record = asyncio.get_event_loop().run_until_complete(
-#             fetch_api_token(course_id=auth.user.course_id, provider="openai")
-#         )
-#         if token_record and token_record.token:
-#             return token_record.token.strip()
-#     except Exception:
-#         logger.exception("Failed to fetch course-wide OpenAI token for peer LLM")
-#     return ""
+#fetch the course-wide openai API key used to enable LLM-based async peer discussion (only works for openai currently)
 def _get_course_openai_key():
     try:
         course = db(db.courses.course_name == auth.user.course_name).select().first()
 
         if not course:
-            logger.warning("PEER LLM: no course row found")
+            logger.warning("PEER LLM: no course row found for %s", auth.user.course_name)
             return ""
-        logger.warning(f"PEER LLM course_name={auth.user.course_name}")
-        logger.warning(f"PEER LLM auth.user.course_id={auth.user.course_id}")
-        logger.warning(f"PEER LLM resolved course.id={course.id if course else None}")
-        token_record = asyncio.get_event_loop().run_until_complete(
-            fetch_api_token(course_id=course.id, provider="openai")
+
+        logger.warning("PEER LLM: looking up token for course_id=%s (%s)",
+                        course.id, auth.user.course_name)
+
+        rows = db.executesql(
+            "SELECT token FROM api_tokens "
+            "WHERE course_id = %s AND provider = %s "
+            "ORDER BY last_used ASC NULLS FIRST LIMIT 1",
+            placeholders=[course.id, "openai"],
         )
+        logger.warning("PEER LLM: executesql returned %d rows", len(rows) if rows else 0)
 
-        if token_record and token_record.token:
-            return token_record.token.strip()
+        if rows and rows[0][0]:
+            from cryptography.fernet import Fernet
+            secret = os.environ.get("FERNET_SECRET", "").strip()
+            if not secret:
+                raise RuntimeError("FERNET_SECRET environment variable is not set")
+            f = Fernet(secret.encode() if isinstance(secret, str) else secret)
+            encrypted = rows[0][0]
+            decrypted = f.decrypt(encrypted.encode()).decode().strip()
+            logger.warning("PEER LLM: decrypted key for course %s: %s****",
+                            course.id, decrypted[:4])
+            return decrypted
 
+        logger.warning("PEER LLM: no openai token found for course_id=%s", course.id)
     except Exception:
         logger.exception("Failed to fetch course-wide OpenAI token for peer LLM")
 
