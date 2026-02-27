@@ -140,6 +140,35 @@ div.section {
     white-space: nowrap;
 }
 
+:root {
+    --dropdownBg: #ffffff;
+    --dropdownHoverBg: #f5f5f5;
+}
+
+[data-theme="dark"] {
+    --dropdownBg: #1a1a1a;
+    --dropdownHoverBg: #333333;
+}
+
+.dropdown-menu {
+    background-color: var(--dropdownBg, #ffffff);
+}
+
+.dropdown-menu > li > a,
+.dropdown-menu > li > span,
+.dropdown-menu > li > div,
+.dropdown-menu > li > label {
+    color: var(--grayToWhite, #333);
+}
+
+.dropdown-menu > li > a:hover,
+.dropdown-menu > li > a:focus,
+.dropdown-menu > li > label:hover,
+.dropdown-menu > li > label:focus {
+    color: var(--grayToWhite, #333);
+    background-color: var(--dropdownHoverBg, #f5f5f5);
+}
+
 .loggedinuser {
     font-weight: bold;
 }
