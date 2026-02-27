@@ -1387,6 +1387,17 @@ async def add_api_token(
         )
 
 
+@router.get("/has_api_key")
+@instructor_role_required()
+@with_course()
+async def has_api_key(request: Request, user=Depends(auth_manager), course=None):
+    """Return whether the course has at least one API token configured."""
+    tokens = await fetch_all_api_tokens(course.id)
+    return make_json_response(
+        status=status.HTTP_200_OK, detail={"has_api_key": len(tokens) > 0}
+    )
+
+
 @router.get("/add_token")
 @instructor_role_required()
 @with_course()

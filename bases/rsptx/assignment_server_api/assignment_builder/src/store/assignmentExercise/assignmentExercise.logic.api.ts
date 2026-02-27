@@ -167,6 +167,14 @@ export const assignmentExerciseApi = createApi({
         body
       })
     }),
+    hasApiKey: build.query<boolean, void>({
+      query: () => ({
+        method: "GET",
+        url: "/assignment/instructor/has_api_key"
+      }),
+      transformResponse: (response: DetailResponse<{ has_api_key: boolean }>) =>
+        response.detail.has_api_key
+    }),
     copyQuestion: build.mutation<
       DetailResponse<{ status: string; question_id: number; message: string }>,
       {
@@ -218,5 +226,6 @@ export const {
   useReorderAssignmentExercisesMutation,
   useUpdateAssignmentExercisesMutation,
   useValidateQuestionNameMutation,
-  useCopyQuestionMutation
+  useCopyQuestionMutation,
+  useHasApiKeyQuery
 } = assignmentExerciseApi;

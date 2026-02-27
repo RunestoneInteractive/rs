@@ -1,14 +1,25 @@
 import { EditableCellFactory } from "@components/ui/EditableTable/EditableCellFactory";
 import { TableSelectionOverlay } from "@components/ui/EditableTable/TableOverlay";
 import { ExerciseTypeTag } from "@components/ui/ExerciseTypeTag";
-import { useReorderAssignmentExercisesMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
+import { useToastContext } from "@components/ui/ToastContext";
+import {
+  useHasApiKeyQuery,
+  useReorderAssignmentExercisesMutation,
+  useUpdateAssignmentQuestionsMutation
+} from "@store/assignmentExercise/assignmentExercise.logic.api";
+import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { DataTable, DataTableSelectionMultipleChangeEvent } from "primereact/datatable";
+import { Dropdown } from "primereact/dropdown";
+import { OverlayPanel } from "primereact/overlaypanel";
 import { Tooltip } from "primereact/tooltip";
 import { useRef, useState } from "react";
 
+import { useExercisesSelector } from "@/hooks/useExercisesSelector";
+
 import { difficultyOptions } from "@/config/exerciseTypes";
 import { useJwtUser } from "@/hooks/useJwtUser";
+import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise, supportedExerciseTypesToEdit } from "@/types/exercises";
 
@@ -18,6 +29,68 @@ import { EditInputValueHeader } from "../components/EditAllExercises/EditInputVa
 import { ExercisePreviewModal } from "../components/ExercisePreview/ExercisePreviewModal";
 
 import { SetCurrentEditExercise, ViewModeSetter, MouseUpHandler } from "./types";
+
+const AsyncModeHeader = ({ hasApiKey }: { hasApiKey: boolean }) => {
+  const { showToast } = useToastContext();
+  const [updateExercises] = useUpdateAssignmentQuestionsMutation();
+  const { assignmentExercises = [] } = useExercisesSelector();
+  const overlayRef = useRef<OverlayPanel>(null);
+  const [value, setValue] = useState("Standard");
+
+  const handleSubmit = async () => {
+    const exercises = assignmentExercises.map((ex) => ({
+      ...ex,
+      question_json: JSON.stringify(ex.question_json),
+      use_llm: value === "LLM"
+    }));
+    const { error } = await updateExercises(exercises);
+    if (!error) {
+      overlayRef.current?.hide();
+      showToast({ severity: "success", summary: "Success", detail: "Exercises updated successfully" });
+    } else {
+      showToast({ severity: "error", summary: "Error", detail: "Failed to update exercises" });
+    }
+  };
+
+  return (
+    <div className="flex align-items-center gap-2">
+      <span>Async Mode</span>
+      <Button
+        className="icon-button-sm"
+        tooltip='Edit "Async Mode" for all exercises'
+        rounded
+        text
+        severity="secondary"
+        size="small"
+        icon="pi pi-pencil"
+        onClick={(e) => overlayRef.current?.toggle(e)}
+      />
+      <OverlayPanel closeIcon ref={overlayRef} style={{ width: "17rem" }}>
+        <div className="p-1 flex gap-2 flex-column align-items-center justify-content-around">
+          <div><span>Edit "Async Mode" for all exercises</span></div>
+          <div style={{ width: "100%" }}>
+            <Dropdown
+              style={{ width: "100%" }}
+              value={value}
+              onChange={(e) => setValue(e.value)}
+              options={[
+                { label: "Standard", value: "Standard" },
+                { label: "LLM", value: "LLM", disabled: !hasApiKey }
+              ]}
+              optionLabel="label"
+              optionDisabled="disabled"
+              scrollHeight="auto"
+            />
+          </div>
+          <div className="flex flex-row justify-content-around align-items-center w-full">
+            <Button size="small" severity="danger" onClick={() => overlayRef.current?.hide()}>Cancel</Button>
+            <Button size="small" onClick={handleSubmit}>Submit</Button>
+          </div>
+        </div>
+      </OverlayPanel>
+    </div>
+  );
+};
 
 interface AssignmentExercisesTableProps {
   assignmentExercises: Exercise[];
@@ -48,6 +121,11 @@ export const AssignmentExercisesTable = ({
 }: AssignmentExercisesTableProps) => {
   const { username } = useJwtUser();
   const [reorderExercises] = useReorderAssignmentExercisesMutation();
+  const [updateAssignmentQuestions] = useUpdateAssignmentQuestionsMutation();
+  const { selectedAssignment } = useSelectedAssignment();
+  const { data: hasApiKey = false } = useHasApiKeyQuery();
+  const isPeerAsync =
+    selectedAssignment?.kind === "Peer" && selectedAssignment?.peer_async_visible === true;
   const dataTableRef = useRef<DataTable<Exercise[]>>(null);
   const [copyModalVisible, setCopyModalVisible] = useState(false);
   const [selectedExerciseForCopy, setSelectedExerciseForCopy] = useState<Exercise | null>(null);
@@ -276,6 +354,32 @@ export const AssignmentExercisesTable = ({
             />
           )}
         />
+        {isPeerAsync && (
+          <Column
+            resizeable={false}
+            style={{ width: "12rem" }}
+            header={() => <AsyncModeHeader hasApiKey={hasApiKey} />}
+            bodyStyle={{ padding: 0 }}
+            body={(data: Exercise) => (
+              <div className="editable-table-cell" style={{ position: "relative" }}>
+                <Dropdown
+                  className="editable-table-dropdown"
+                  value={data.use_llm && hasApiKey ? "LLM" : "Standard"}
+                  onChange={(e) => updateAssignmentQuestions([{ ...data, use_llm: e.value === "LLM" }])}
+                  options={[
+                    { label: "Standard", value: "Standard" },
+                    { label: "LLM", value: "LLM", disabled: !hasApiKey }
+                  ]}
+                  optionLabel="label"
+                  optionDisabled="disabled"
+                  scrollHeight="auto"
+                  tooltip={!hasApiKey ? "Add an API key to enable LLM mode" : undefined}
+                  tooltipOptions={{ showOnDisabled: true }}
+                />
+              </div>
+            )}
+          />
+        )}
         <Column resizeable={false} rowReorder style={{ width: "3rem" }} />
       </DataTable>
       <TableSelectionOverlay

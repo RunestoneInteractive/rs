@@ -678,6 +678,7 @@ class AssignmentQuestion(Base, IdMixin):
     activities_required = Column(
         Integer
     )  # only reading assignments will have this populated
+    use_llm = Column(Web2PyBoolean, default=False)
 
 
 AssignmentQuestionValidator: TypeAlias = sqlalchemy_to_pydantic(AssignmentQuestion)  # type: ignore

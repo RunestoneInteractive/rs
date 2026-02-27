@@ -341,6 +341,7 @@ class AssignmentQuestionUpdateDict(TypedDict, total=False):
     reading_assignment: Optional[bool]
     sorting_priority: int
     activities_required: Optional[int]
+    use_llm: Optional[bool]
 
     # Question fields
     name: Optional[str]
