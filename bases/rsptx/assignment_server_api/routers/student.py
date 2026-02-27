@@ -191,8 +191,7 @@ async def studyclues_query(
     response_class=JSONResponse,
 ):
     """Proxy a student query to StudyClues and return the response payload."""
-
-    course = await fetch_course(user.course_name)
+    
     api_base_domain = getattr(
         settings,
         "studyclues_api_base_url",
