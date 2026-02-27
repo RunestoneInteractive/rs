@@ -617,7 +617,7 @@ function createStudyCluesWidget() {
             return;
         }
 
-        appendStudyCluesMessage(messagesEl, "user", query);
+        appendStudyCluesMessage(messagesEl, "user", query); // todo: make this conditional on being a book page and on the book being one of the supported books
         inputEl.value = "";
         sendBtn.disabled = true;
 
