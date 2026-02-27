@@ -178,6 +178,23 @@ class UpdateStatusRequest(BaseModel):
     assignment_id: int
     new_state: Optional[str] = None
 
+def get_studyclues_book_id(course: CoursesValidator) -> str:
+    """Get the StudyClues book ID for a given course.
+
+    :param course: The course object.
+    :type course: CoursesValidator
+    :return: The StudyClues book ID.
+    :rtype: str
+    """
+    # This is a placeholder implementation. You should replace this with your actual logic to get the book ID.
+    # For example, you might have a mapping of course names to book IDs.
+    course_to_book_id = {
+        "csawesome2": 28,
+        "thinkcspy": 29,
+        "py4e-int": 30,
+        # Add more mappings as needed
+    }
+    return course_to_book_id.get(course.base_course, 28)
 
 class StudyCluesQueryRequest(BaseModel):
     query: str
@@ -198,9 +215,10 @@ async def studyclues_query(
         "https://api.demo.learningclues.com/",
     )
     query_studyclues_post_url = f"{api_base_domain.rstrip('/')}/studyclues/query"
-
+    course = await fetch_course(user.course_name)
+    book_id = get_studyclues_book_id(course)
     studyclues_params = {
-        "course_id": 28, # todo: make this dynamic based on the basecourse
+        "course_id": book_id, # todo: make this dynamic based on the basecourse
         "query": request_data.query,
         "num_passages": 20,
         "dry_run": False,
