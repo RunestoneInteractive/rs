@@ -446,6 +446,239 @@ function getCookie(name) {
     if (parts.length === 2) return parts.pop().split(";").shift();
 }
 
+let studyCluesConversationId = -1;
+
+function appendStudyCluesMessage(messagesEl, role, text) {
+    const bubble = document.createElement("div");
+    bubble.className = `studyclues-message ${role}`;
+    bubble.textContent = text;
+    messagesEl.appendChild(bubble);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function createStudyCluesWidget() {
+    if (document.getElementById("studyclues-fab")) {
+        return;
+    }
+
+    const style = document.createElement("style");
+    style.textContent = `
+        #studyclues-fab {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 9999;
+            border: none;
+            border-radius: 9999px;
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #fff;
+            background: #2563eb;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        #studyclues-chat {
+            position: fixed;
+            right: 24px;
+            bottom: 78px;
+            z-index: 9999;
+            width: min(420px, calc(100vw - 32px));
+            height: min(520px, calc(100vh - 120px));
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.25);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #studyclues-chat.open {
+            display: flex;
+        }
+
+        .studyclues-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
+            background: #f9fafb;
+        }
+
+        .studyclues-close {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .studyclues-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #f8fafc;
+        }
+
+        .studyclues-message {
+            max-width: 85%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .studyclues-message.user {
+            margin-left: auto;
+            background: #dbeafe;
+            border: 1px solid #bfdbfe;
+        }
+
+        .studyclues-message.assistant {
+            margin-right: auto;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+        }
+
+        .studyclues-inputbar {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            border-top: 1px solid #e5e7eb;
+            background: #fff;
+        }
+
+        .studyclues-inputbar input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+
+        .studyclues-inputbar button {
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            color: #fff;
+            background: #2563eb;
+            font-weight: 600;
+        }
+    `;
+    document.head.appendChild(style);
+
+    const button = document.createElement("button");
+    button.id = "studyclues-fab";
+    button.textContent = "StudyClues Chat";
+
+    const chat = document.createElement("div");
+    chat.id = "studyclues-chat";
+    chat.innerHTML = `
+        <div class="studyclues-header">
+            <span>StudyClues</span>
+            <button class="studyclues-close" aria-label="Close chat">✕</button>
+        </div>
+        <div class="studyclues-messages"></div>
+        <div class="studyclues-inputbar">
+            <input type="text" placeholder="Ask a question about this course..." />
+            <button type="button">Send</button>
+        </div>
+    `;
+
+    document.body.appendChild(button);
+    document.body.appendChild(chat);
+
+    const closeBtn = chat.querySelector(".studyclues-close");
+    const messagesEl = chat.querySelector(".studyclues-messages");
+    const inputEl = chat.querySelector(".studyclues-inputbar input");
+    const sendBtn = chat.querySelector(".studyclues-inputbar button");
+
+    const toggleChat = () => {
+        chat.classList.toggle("open");
+        if (chat.classList.contains("open")) {
+            inputEl.focus();
+        }
+    };
+
+    const sendMessage = async () => {
+        const query = inputEl.value.trim();
+        if (!query) {
+            return;
+        }
+
+        appendStudyCluesMessage(messagesEl, "user", query);
+        inputEl.value = "";
+        sendBtn.disabled = true;
+
+        try {
+            const response = await fetch(
+                `/assignment/student/studyclues_query`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                    },
+                    body: JSON.stringify({
+                        query,
+                        conversation_id: studyCluesConversationId,
+                    }),
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+
+            const payload = await response.json();
+            const detail = payload?.detail || {};
+            const studycluesResponse = detail?.response || {};
+            const llmResponse = studycluesResponse?.llm_response;
+
+            if (typeof detail.conversation_id === "number") {
+                studyCluesConversationId = detail.conversation_id;
+            }
+
+            appendStudyCluesMessage(
+                messagesEl,
+                "assistant",
+                llmResponse || "No response available from StudyClues.",
+            );
+        } catch (err) {
+            appendStudyCluesMessage(
+                messagesEl,
+                "assistant",
+                "Sorry, StudyClues is unavailable right now. Please try again.",
+            );
+            console.error("StudyClues chat error:", err);
+        } finally {
+            sendBtn.disabled = false;
+            inputEl.focus();
+        }
+    };
+
+    button.addEventListener("click", toggleChat);
+    closeBtn.addEventListener("click", toggleChat);
+    sendBtn.addEventListener("click", sendMessage);
+    inputEl.addEventListener("keydown", (evt) => {
+        if (evt.key === "Enter") {
+            evt.preventDefault();
+            sendMessage();
+        }
+    });
+}
+
 async function handlePageSetup() {
     var mess;
     if (eBookConfig.useRunestoneServices) {
@@ -517,6 +750,7 @@ async function handlePageSetup() {
         }
         document.dispatchEvent(new Event("runestone:login"));
         addReadingList();
+        createStudyCluesWidget();
         // Avoid the timedRefresh on the grading page.
         if (
             window.location.pathname.indexOf("/admin/grading") == -1 &&

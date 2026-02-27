@@ -16,6 +16,7 @@ import datetime
 from typing import Optional
 import json
 import re
+import requests
 
 # Third-party imports
 # -------------------
@@ -176,6 +177,67 @@ class UpdateStatusRequest(BaseModel):
 
     assignment_id: int
     new_state: Optional[str] = None
+
+
+class StudyCluesQueryRequest(BaseModel):
+    query: str
+    conversation_id: Optional[int] = -1
+
+
+@router.post("/studyclues_query")
+async def studyclues_query(
+    request_data: StudyCluesQueryRequest,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    """Proxy a student query to StudyClues and return the response payload."""
+
+    course = await fetch_course(user.course_name)
+    api_base_domain = getattr(
+        settings,
+        "studyclues_api_base_url",
+        "https://api.demo.learningclues.com/",
+    )
+    query_studyclues_post_url = f"{api_base_domain.rstrip('/')}/studyclues/query"
+
+    studyclues_params = {
+        "course_id": 28, # todo: make this dynamic based on the basecourse
+        "query": request_data.query,
+        "num_passages": 20,
+        "dry_run": False,
+        "user_id": user.id,
+        "conversation_id": request_data.conversation_id,
+        "coach_mode": True,
+    }
+
+    try:
+        with requests.Session() as session:
+            upstream_response = session.post(
+                query_studyclues_post_url,
+                json=studyclues_params,
+                timeout=30,
+            )
+            upstream_response.raise_for_status()
+            studyclues_response = upstream_response.json()
+    except requests.RequestException as err:
+        rslogger.error(f"StudyClues request failed: {err}")
+        return make_json_response(
+            status=502,
+            detail={"success": False, "message": "StudyClues request failed"},
+        )
+    except ValueError:
+        rslogger.error("StudyClues returned non-JSON response")
+        return make_json_response(
+            status=502,
+            detail={"success": False, "message": "Invalid StudyClues response"},
+        )
+
+    conversation_id = studyclues_response.get(
+        "conversation_id", request_data.conversation_id
+    )
+    return make_json_response(
+        detail={"response": studyclues_response, "conversation_id": conversation_id}
+    )
 
 
 @router.post("/update_submit")
