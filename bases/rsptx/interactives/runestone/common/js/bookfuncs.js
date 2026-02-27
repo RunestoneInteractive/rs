@@ -612,11 +612,19 @@ function createStudyCluesWidget() {
     };
 
     const sendMessage = async () => {
-        const query = inputEl.value.trim();
+        let query = inputEl.value.trim();
         if (!query) {
             return;
         }
 
+        // find the section title on the page to include in the initial query
+        let section = document.querySelector('section.section');
+        let sectionTitle = section.querySelector('span.title').innerText;
+        let sectionNumber = section.querySelector('span.codenumber').innerText;
+        let sectionInfo = `${sectionNumber} ${sectionTitle}`;
+        if (studyCluesConversationId === -1) {
+            query = `Regarding section "${sectionInfo}": ${query}`;
+        }
         appendStudyCluesMessage(messagesEl, "user", query); // todo: make this conditional on being a book page and on the book being one of the supported books
         inputEl.value = "";
         sendBtn.disabled = true;
