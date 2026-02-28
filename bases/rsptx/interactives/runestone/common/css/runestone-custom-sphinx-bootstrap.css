@@ -59,6 +59,8 @@ Needed??? */
     --bodyFont: #99aab5;
     --tooltip: #000000;
     --grayToWhite: #ffffff;
+    --dropdownBg: #1a1a1a;
+    --dropdownHoverBg: #333333;
     --navbar: #3d3d3d;
     --navbarFont: #ffffff;
     --navbarFontHover: #d6d6d6;
@@ -388,13 +390,26 @@ div.container {
 }
 
 .dropdown-menu > li > label:hover, .dropdown-menu > li > label:focus {
-  color: #262626;
+  color: var(--grayToWhite);
   text-decoration: none;
-  background-color: #f5f5f5;
+  background-color: var(--dropdownHoverBg, #f5f5f5);
+}
+
+
+.dropdown-menu {
+    background-color: var(--dropdownBg, #ffffff);
 }
 
 .dropdown-menu > li > a {
     color: var(--grayToWhite);
+}
+
+.dropdown-menu > li > a:hover,
+.dropdown-menu > li > a:focus,
+.dropdown-menu > li > label:hover,
+.dropdown-menu > li > label:focus {
+    color: var(--grayToWhite);
+    background-color: var(--dropdownHoverBg, #f5f5f5);
 }
 
 .loggedinuser {
