@@ -1753,7 +1753,7 @@ export default class Parsons extends RunestoneBase {
                 $(this.checkButton).prop("disabled", true);
                 // CodeTailor: make the Copy Answer button visible when the puzzle is solved
                 if (this.hasSolved && this.options.scaffolding) {
-                    const copyBtn = document.querySelector(`#copy-answer-button-${this.divid}`); // copy-answer-button-${puzzleScaffoldingDivid}
+                    const copyBtn = document.querySelector(`#copy-answer-button-${this.puzzleScaffoldingDivid}`); // copy-answer-button-${puzzleScaffoldingDivid}
                     if (copyBtn) {
                         copyBtn.classList.remove('copy-button-hide');
                     }
@@ -2998,7 +2998,7 @@ export default class Parsons extends RunestoneBase {
         this.clearFeedback();
         // CodeTailor: Hide the Copy Answer Button again
         if (this.options.scaffolding === true) {
-            const copyBtn = document.querySelector(`#copy-answer-button-${this.divid}`); // copy-answer-button-${puzzleScaffoldingDivid}
+            const copyBtn = document.querySelector(`#copy-answer-button-${this.puzzleScaffoldingDivid}`); // copy-answer-button-${puzzleScaffoldingDivid}
             if (copyBtn) {
                 copyBtn.classList.add('copy-button-hide');
             }

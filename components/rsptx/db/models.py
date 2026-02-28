@@ -613,6 +613,27 @@ class Question(Base, IdMixin):
 QuestionValidator: TypeAlias = sqlalchemy_to_pydantic(Question)  # type: ignore
 
 
+# CodeTailorParsons
+# ----
+# The CodeTailorParsons table captures the content of CodeTailorParsons problems in the activecode component.
+#
+class CodeTailorParsons(Base, IdMixin):
+    __tablename__ = "codetailor_parsons"
+    timestamp = Column(DateTime, nullable=False)
+    sid = Column(String(512), nullable=False, index=True, unique=False)
+    ctid = Column(
+        String(512),
+        nullable=False,
+        index=True,
+        unique=False,
+    )  # unique identifier for a component
+    course_id = Column(String(512), index=True, nullable=False)
+    htmlsrc = Column(Text)
+    question_json = Column(JSON, nullable=False)
+
+CodeTailorParsonsValidator: TypeAlias = sqlalchemy_to_pydantic(CodeTailorParsons)  # type: ignore
+
+
 class Tag(Base, IdMixin):
     __tablename__ = "tags"
 
