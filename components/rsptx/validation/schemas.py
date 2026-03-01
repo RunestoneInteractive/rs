@@ -241,6 +241,9 @@ class AssignmentIncoming(BaseModel):
     is_timed: Optional[bool] = False
     is_peer: Optional[bool] = False
     enforce_due: Optional[bool] = False
+    visible: Optional[bool] = False
+    visible_on: Optional[datetime] = None
+    hidden_on: Optional[datetime] = None
 
 
 class QuestionIncoming(BaseModel):

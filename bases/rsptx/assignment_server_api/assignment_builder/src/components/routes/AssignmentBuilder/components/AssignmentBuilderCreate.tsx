@@ -2,7 +2,7 @@ import {
   useCreateAssignmentMutation,
   useGetAssignmentsQuery
 } from "@store/assignment/assignment.logic.api";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 import { CreateAssignmentPayload } from "@/types/assignment";
 
@@ -16,6 +16,7 @@ import { AssignmentWizard } from "./wizard/AssignmentWizard";
 
 export const AssignmentBuilderCreate = () => {
   const { step } = useParams<{ step?: string }>();
+  const navigate = useNavigate();
   const { isLoading, isError, data: assignments = [] } = useGetAssignmentsQuery();
   const [createAssignment] = useCreateAssignmentMutation();
 
@@ -32,18 +33,24 @@ export const AssignmentBuilderCreate = () => {
     watch
   });
 
-  const wizardStep = step === "type" ? "type" : "basic";
-
+  const wizardStep = step === "type" ? "type" : step === "visibility" ? "visibility" : "basic";
+  console.log(step, wizardStep);
   const handleBack = () => {
-    if (wizardStep === "type") {
-      window.location.href = "/builder/create";
-    } else {
-      window.location.href = "/builder";
+    if (wizardStep === "basic") {
+      navigate("/builder");
+    } else if (wizardStep === "type") {
+      navigate("/builder/create");
+    } else if (wizardStep === "visibility") {
+      navigate("/builder/create/type");
     }
   };
 
   const handleNext = () => {
-    window.location.href = "/builder/create/type";
+    if (wizardStep === "basic") {
+      navigate("/builder/create/type");
+    } else if (wizardStep === "type") {
+      navigate("/builder/create/visibility");
+    }
   };
 
   const handleWizardComplete = () => {
@@ -58,13 +65,15 @@ export const AssignmentBuilderCreate = () => {
       nofeedback: formValues.nofeedback,
       nopause: formValues.nopause,
       peer_async_visible: formValues.peer_async_visible,
-      visible: false,
+      visible: formValues.visible,
+      visible_on: formValues.visible_on || null,
+      hidden_on: formValues.hidden_on || null,
       released: true,
       enforce_due: formValues.enforce_due || false
     };
 
     createAssignment(payload);
-    window.location.href = "/builder";
+    navigate("/builder");
   };
 
   if (isLoading) {

@@ -329,7 +329,6 @@
 .formField textarea,
 .formField :global(.p-inputtext),
 .formField :global(.p-inputtextarea),
-.formField :global(.p-calendar),
 .formField :global(.p-inputnumber),
 .formField :global(.p-selectbutton) {
   width: 100%;
