@@ -758,7 +758,11 @@ async function handlePageSetup() {
         }
         document.dispatchEvent(new Event("runestone:login"));
         addReadingList();
-        createStudyCluesWidget();
+        // Only show the StudyClues widget for certain base courses and when the path includes "/ns/books/".
+        if (["csawesome2", "py4e-int", "thinkcspy"].includes(eBookConfig.basecourse) 
+            && location.pathname.includes("/ns/books/")) {
+            createStudyCluesWidget();
+        }
         // Avoid the timedRefresh on the grading page.
         if (
             window.location.pathname.indexOf("/admin/grading") == -1 &&
