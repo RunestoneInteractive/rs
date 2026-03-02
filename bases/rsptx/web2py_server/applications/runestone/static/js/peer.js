@@ -286,7 +286,7 @@ function connect(event) {
                         "Submit";
                     window.componentMap[currentQuestion].enableInteraction();
                     if (typeof studentVoteCount !== "undefined") {
-                        // studentVoteCount += 1;
+                        studentVoteCount += 1;
                         if (studentVoteCount > 2) {
                             studentVoteCount = 2;
                             console.log("WARNING: resetting studentVoteCount to 2");
