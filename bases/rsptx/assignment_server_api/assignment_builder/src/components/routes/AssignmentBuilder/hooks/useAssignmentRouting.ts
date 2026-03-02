@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 export type AssignmentMode = "list" | "create" | "edit";
-export type WizardStep = "basic" | "type";
+export type WizardStep = "basic" | "type" | "visibility";
 export type EditTab = "basic" | "readings" | "exercises";
 export type ExerciseViewMode = "list" | "browse" | "search" | "create" | "edit";
 
@@ -52,6 +52,8 @@ export const useAssignmentRouting = () => {
       state.mode = "create";
       if (path.includes("/type")) {
         state.wizardStep = "type";
+      } else if (path.includes("/visibility")) {
+        state.wizardStep = "visibility";
       } else {
         state.wizardStep = "basic";
       }
@@ -96,6 +98,8 @@ export const useAssignmentRouting = () => {
     (step?: WizardStep) => {
       if (step === "type") {
         navigate("/builder/create/type");
+      } else if (step === "visibility") {
+        navigate("/builder/create/visibility");
       } else {
         navigate("/builder/create");
       }

@@ -23,11 +23,17 @@
   </thead>
   <tbody>
     {% for assignment in assignment_list %}
-    {% if assignment.visible %}
+    {% if visibility_map is defined and assignment.id in visibility_map %}
+    {% if visibility_map[assignment.id] %}
     <tr class="visible_assign">
-      {% else %}
+    {% else %}
     <tr class="hidden_assign">
-      {% endif %}
+    {% endif %}
+    {% elif assignment.visible %}
+    <tr class="visible_assign">
+    {% else %}
+    <tr class="hidden_assign">
+    {% endif %}
       <td>
         <a href="/assignment/student/doAssignment?assignment_id={{assignment.id}}">{{assignment.name}}</a>
       </td>
