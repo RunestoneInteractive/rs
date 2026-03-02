@@ -86,7 +86,13 @@ div.assignment-nav {
     border-width: 1px;
     padding-bottom: 5px;
     padding-top: 5px;
+}
 
+div.assignment-nav a {
+    /* use link color from PTX if available */
+    color: var(--link-alt-text-color, var(--links));
+    /* match PTX link styling and differentiate from standard text for AA compliance */
+    font-weight: 700;
 }
 
 /* custom modification of basic.css for color-contrast (AA compliant) */
