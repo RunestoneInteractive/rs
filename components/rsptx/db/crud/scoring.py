@@ -16,6 +16,7 @@ from ..async_session import async_session
 from rsptx.validation import schemas
 from .crud import EVENT2TABLE
 from rsptx.logging import rslogger
+from .assignment import is_assignment_visible_to_students
 
 
 async def fetch_answers(question_id: str, event: str, course_name: str, username: str):
@@ -97,12 +98,15 @@ async def is_assigned(
             if accommodation and accommodation.duedate:
                 row.Assignment.duedate += datetime.timedelta(days=accommodation.duedate)
             if course_tz_now <= row.Assignment.duedate.replace(tzinfo=tz):
-                if row.Assignment.visible:  # todo update this when we have a visible by
+                if is_assignment_visible_to_students(row.Assignment):
                     scoringSpec.assigned = True
                     return scoringSpec
             else:
                 if not row.Assignment.enforce_due:
-                    if row.Assignment.visible or visible_exception:
+                    if (
+                        is_assignment_visible_to_students(row.Assignment)
+                        or visible_exception
+                    ):
                         scoringSpec.assigned = True
                         return scoringSpec
         return schemas.ScoringSpecification()
@@ -125,6 +129,33 @@ async def fetch_reading_assignment_spec(
     tz = ZoneInfo(timezone)
     course_tz_now = datetime.datetime.now(tz)
     course_tz_now = course_tz_now.replace(tzinfo=None)
+    from rsptx.response_helpers.core import canonical_utcnow
+
+    now = canonical_utcnow()
+    # Visibility clause that respects visible_on and hidden_on scheduling
+    vclause = or_(
+        # Case 1: Scheduled period (visible=False, both dates set, now is between them)
+        and_(
+            Assignment.visible == False,  # noqa: E712
+            Assignment.visible_on.isnot(None),
+            Assignment.hidden_on.isnot(None),
+            Assignment.visible_on <= now,
+            Assignment.hidden_on > now,
+        ),
+        # Case 2: "Visible on" mode (visible=False, only visible_on set, passed)
+        and_(
+            Assignment.visible == False,  # noqa: E712
+            Assignment.visible_on.isnot(None),
+            Assignment.hidden_on.is_(None),
+            Assignment.visible_on <= now,
+        ),
+        # Case 3: Regular visible assignment
+        and_(
+            Assignment.visible == True,  # noqa: E712
+            or_(Assignment.visible_on.is_(None), Assignment.visible_on <= now),
+            or_(Assignment.hidden_on.is_(None), Assignment.hidden_on > now),
+        ),
+    )
     query = (
         select(
             AssignmentQuestion.activities_required,
@@ -142,7 +173,7 @@ async def fetch_reading_assignment_spec(
                 AssignmentQuestion.reading_assignment == True,  # noqa: E712
                 Question.chapter == chapter,
                 Question.subchapter == subchapter,
-                Assignment.visible == True,  # noqa: E712
+                vclause,
                 or_(
                     Assignment.duedate > course_tz_now,
                     Assignment.enforce_due == False,  # noqa: E712

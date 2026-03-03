@@ -96,7 +96,7 @@ export const AssignmentBuilder = () => {
   // Event handlers
   const handleCreateNew = () => {
     navigateToCreate("basic");
-    reset(defaultAssignment);
+    reset(defaultAssignment as unknown as Assignment);
   };
 
   const handleEdit = (assignment: Assignment) => {
@@ -106,18 +106,6 @@ export const AssignmentBuilder = () => {
 
   const handleDuplicate = async (assignment: Assignment) => {
     await duplicateAssignment(assignment.id);
-  };
-
-  const handleVisibilityChange = async (assignment: Assignment, visible: boolean) => {
-    try {
-      await updateAssignment({
-        ...assignment,
-        visible
-      });
-      toast.success(`Assignment ${visible ? "visible" : "hidden"} for students`);
-    } catch (error) {
-      toast.error("Failed to update assignment visibility");
-    }
   };
 
   const handleReleasedChange = async (assignment: Assignment, released: boolean) => {
@@ -144,6 +132,21 @@ export const AssignmentBuilder = () => {
     }
   };
 
+  const handleVisibilityChange = async (
+    assignment: Assignment,
+    data: { visible: boolean; visible_on: string | null; hidden_on: string | null }
+  ) => {
+    try {
+      await updateAssignment({
+        ...assignment,
+        ...data
+      });
+      toast.success("Visibility updated");
+    } catch (error) {
+      toast.error("Failed to update visibility");
+    }
+  };
+
   const handleWizardComplete = async () => {
     const formValues = getValues();
     const payload: CreateAssignmentPayload = {
@@ -156,7 +159,9 @@ export const AssignmentBuilder = () => {
       nofeedback: formValues.nofeedback,
       nopause: formValues.nopause,
       peer_async_visible: formValues.peer_async_visible,
-      visible: false,
+      visible: formValues.visible,
+      visible_on: formValues.visible_on || null,
+      hidden_on: formValues.hidden_on || null,
       released: true,
       enforce_due: formValues.enforce_due || false
     };
@@ -192,9 +197,9 @@ export const AssignmentBuilder = () => {
           onCreateNew={handleCreateNew}
           onEdit={handleEdit}
           onDuplicate={handleDuplicate}
-          onVisibilityChange={handleVisibilityChange}
           onReleasedChange={handleReleasedChange}
           onEnforceDueChange={handleEnforceDueChange}
+          onVisibilityChange={handleVisibilityChange}
           onRemove={onRemove}
         />
       )}
@@ -205,13 +210,21 @@ export const AssignmentBuilder = () => {
           nameError={nameError}
           canProceed={canProceed}
           onBack={() => {
-            if (wizardStep === "type") {
+            if (wizardStep === "visibility") {
+              updateWizardStep("type");
+            } else if (wizardStep === "type") {
               updateWizardStep("basic");
             } else {
               navigateToList();
             }
           }}
-          onNext={() => updateWizardStep("type")}
+          onNext={() => {
+            if (wizardStep === "basic") {
+              updateWizardStep("type");
+            } else if (wizardStep === "type") {
+              updateWizardStep("visibility");
+            }
+          }}
           onComplete={handleWizardComplete}
           onNameChange={handleNameChange}
           onTypeSelect={(type) => handleTypeSelect(type, setValue)}
