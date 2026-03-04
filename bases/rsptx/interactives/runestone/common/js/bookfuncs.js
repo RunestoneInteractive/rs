@@ -759,7 +759,7 @@ async function handlePageSetup() {
         document.dispatchEvent(new Event("runestone:login"));
         addReadingList();
         // Only show the StudyClues widget for certain base courses and when the path includes "/ns/books/".
-        if (["csawesome2", "py4e-int", "thinkcspy"].includes(eBookConfig.basecourse) 
+        if (["csawesome2", "py4e-int", "thinkcspy", "PTXSB"].includes(eBookConfig.basecourse) 
             && location.pathname.includes("/ns/books/")) {
             createStudyCluesWidget();
         }
