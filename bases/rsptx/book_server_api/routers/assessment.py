@@ -321,7 +321,7 @@ async def getpollresults(request: Request, course: str, div_id: str):
             my_vote = int(user_res.split(":")[0])
             my_comment = user_res.split(":")[1]
         else:
-            my_vote = int(user_res)
+            my_vote = int(user_res) if user_res.isnumeric() else -1
             my_comment = ""
     else:
         my_vote = -1
