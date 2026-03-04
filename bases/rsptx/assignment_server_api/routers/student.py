@@ -178,6 +178,7 @@ class UpdateStatusRequest(BaseModel):
     assignment_id: int
     new_state: Optional[str] = None
 
+
 def get_studyclues_book_id(course: CoursesValidator) -> str:
     """Get the StudyClues book ID for a given course.
 
@@ -192,9 +193,11 @@ def get_studyclues_book_id(course: CoursesValidator) -> str:
         "csawesome2": 28,
         "thinkcspy": 29,
         "py4e-int": 30,
+        "PTXSB": 28,
         # Add more mappings as needed
     }
     return course_to_book_id.get(course.base_course, 28)
+
 
 class StudyCluesQueryRequest(BaseModel):
     query: str
@@ -208,7 +211,7 @@ async def studyclues_query(
     response_class=JSONResponse,
 ):
     """Proxy a student query to StudyClues and return the response payload."""
-    
+
     api_base_domain = getattr(
         settings,
         "studyclues_api_base_url",
@@ -218,7 +221,7 @@ async def studyclues_query(
     course = await fetch_course(user.course_name)
     book_id = get_studyclues_book_id(course)
     studyclues_params = {
-        "course_id": book_id, # todo: make this dynamic based on the basecourse
+        "course_id": book_id,  # todo: make this dynamic based on the basecourse
         "query": request_data.query,
         "num_passages": 20,
         "dry_run": False,
