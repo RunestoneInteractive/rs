@@ -3,6 +3,45 @@ Running a Runestone Server
 
 Maybe you just want to run your own server for a small course. Maybe you are an author who just wants to preview what your book will look like in Runestone.  (Hint:  Its going to look very much like the plain html, unless you have Java, C or C++ code) Or maybe you are interested in getting involved in the development of the Runestone tools, but want to experiment first.  This document will help you get started without having to install a lot of software on your own machine, or having to worry about setting up a web server or database or any development environment.  This will work for both linux and macOS on Apple Silicon or Intel based machines.  It will also work on Windows, but you will need to install WSL2 and Docker Desktop for Windows.
 
+Automated Setup (Recommended for First-Time Users)
+---------------------------------------------------
+
+For new users, we provide an automated setup script that handles all of the essential configuration steps for you. The script will guide you through the entire process with interactive prompts.
+
+**Prerequisites:**
+
+- Docker Desktop with Docker Compose 2.20.2 or later (current version: 2.38.2)
+- Git
+- For Windows: WSL2 with Docker Desktop WSL integration enabled
+
+**Quick Start:**
+
+#. Clone the Runestone repository: ``git clone https://github.com/RunestoneInteractive/rs.git``
+
+#. Change to the rs directory: ``cd rs``
+
+#. Run the setup script: ``./init_runestone.sh``
+
+   **Note for Windows users:** You must run this script from a WSL2 terminal, not from PowerShell or Command Prompt.
+
+The script will:
+
+- Validate that Docker and Git are installed and running
+- Create and configure your ``.env`` file with the ``BOOK_PATH``
+- Pull all required Docker images
+- Start and initialize the database
+- Optionally clone, build, and configure your first book
+- Optionally create a course for students
+
+After the script completes, you can access your Runestone server at http://localhost with the default test credentials (username: ``testuser1``, password: ``xxx``).
+
+**Note:** The script creates a log file (``init_runestone.log``) that you can review if you encounter any issues.
+
+Manual Setup
+------------
+
+If you prefer more control over the setup process, or if you're troubleshooting issues, you can set up the Runestone server manually by following these steps:
+
 The Runestone server uses docker compose to start up a number of containers that work together to provide the Runestone environment.  Here are the steps to get started:
 
 #. Install Docker and Docker Compose on your machine.  You can find instructions for your operating system here: https://docs.docker.com/compose/install/  If you already have docker installed you can skip this step. but make sure that ``docker compose version`` tells you that you are running 2.20.2 or later. The current version is 2.38.2.
@@ -50,6 +89,31 @@ The Runestone server uses docker compose to start up a number of containers that
 
 #. Additional commands are available (for example to add an instructor to a course).  Run ``docker compose run --rm rsmanage rsmanage --help`` to see a list of available commands.
 
-If you want to stop the server, you can run the following command: ``docker compose stop``
+Managing Your Server
+--------------------
 
-Almost all of this could be scripted, and it would be an awesome idea for a PR if someone wanted to create a little script that would do all of this for you.  If you are interested in doing that, please let us know and we can help you get started.
+**Stopping and Starting:**
+
+- Stop the server: ``docker compose stop``
+- Start the server: ``docker compose start``
+- Restart services: ``docker compose restart``
+- Shut down and remove containers: ``docker compose down``
+- Shut down and remove volumes (WARNING: deletes all data): ``docker compose down -v``
+
+**Viewing Logs:**
+
+To view logs from all services: ``docker compose logs -f``
+
+**Common Management Tasks:**
+
+- Add another book: ``docker compose run --rm rsmanage rsmanage addbookauthor``
+- Build a book: ``docker compose run --rm rsmanage rsmanage build <bookname>``
+- Build a PreTeXt book: ``docker compose run --rm rsmanage rsmanage build --ptx <bookname>``
+- Create a course: ``docker compose run --rm rsmanage rsmanage addcourse``
+- Add an instructor to a course: ``docker compose run --rm rsmanage rsmanage addinstructor``
+
+**Troubleshooting:**
+
+If you used the automated setup script (``init_runestone.sh``), check the ``init_runestone.log`` file in the rs directory for detailed information about the setup process. This log can help diagnose any issues that occurred during initialization.
+
+For database issues, you can reset the database by running ``docker compose down -v`` to remove all volumes, then re-run the initialization steps (either manually or via ``./init_runestone.sh``).
