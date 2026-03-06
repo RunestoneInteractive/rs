@@ -37,6 +37,7 @@ from rsptx.db.crud import (
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow, make_json_response
 from rsptx.auth.session import is_instructor
+from rsptx.db.crud.assignment import is_assignment_visible_to_students
 from rsptx.grading_helpers.core import adjust_deadlines
 
 
@@ -87,7 +88,9 @@ async def index(
         # if the user is an instructor, we need to show all assignments
         assignments = await fetch_assignments(course.course_name, fetch_all=True)
     else:
-        assignments = await fetch_assignments(course.course_name)
+        # Use is_visible=True to apply SQL-level scheduled visibility filtering
+        # (respects visible_on and hidden_on dates)
+        assignments = await fetch_assignments(course.course_name, is_visible=True)
 
     accommodations = await fetch_deadline_exception(
         course.id, user.username, fetch_all=True
@@ -95,7 +98,18 @@ async def index(
     # filter assignments based on deadline exceptions
     assignment_ids = [a.assignment_id for a in accommodations]
     if not user_is_instructor:
-        assignments = [a for a in assignments if a.visible or a.id in assignment_ids]
+        # Also include assignments the student has deadline exceptions for,
+        # even if they are not currently visible via scheduled dates
+        if assignment_ids:
+            all_assignments = await fetch_assignments(
+                course.course_name, fetch_all=True
+            )
+            exception_assignments = [
+                a
+                for a in all_assignments
+                if a.id in assignment_ids and not is_assignment_visible_to_students(a)
+            ]
+            assignments = list(assignments) + exception_assignments
     assignments = adjust_deadlines(assignments, accommodations)
 
     parsed_js = json.loads(RS_info) if RS_info else {}
@@ -123,6 +137,14 @@ async def index(
     for s in stats_list:
         stats[s.assignment] = s
     rslogger.debug(f"stats: {stats}")
+
+    # Build a visibility map for the template.
+    # For instructors: enables the "Student View: Hide Hidden Assignments" toggle
+    # For students: ensures scheduled assignments (visible_on/hidden_on) get correct CSS class
+    visibility_map = {}
+    for a in assignments:
+        visibility_map[a.id] = is_assignment_visible_to_students(a)
+
     return templates.TemplateResponse(
         "book/course/current_course.html",
         {
@@ -142,6 +164,7 @@ async def index(
             "has_discussion_group": any([book.social_url for book in books]),
             "lti1p1": is_lti1p1_course,
             "now": now,
+            "visibility_map": visibility_map,
         },
     )
 

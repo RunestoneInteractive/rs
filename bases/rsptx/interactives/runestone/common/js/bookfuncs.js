@@ -45,9 +45,9 @@ This page is not part of that assignment. Select a page to return to it:
 */
 function addReadingList() {
     let assignment_info_string = localStorage.getItem(`currentAssignmentInfo_${eBookConfig.course}`)
-        
+
     if (assignment_info_string && eBookConfig.readings) {
-        var top,bottom,active,page_name,exit_link,fst,snd, new_pos, path_parts, new_pos_link;
+        var top, bottom, active, page_name, exit_link, fst, snd, new_pos, path_parts, new_pos_link;
         var assignment_info = JSON.parse(assignment_info_string);
         let assignment_id = assignment_info.id;
         let assignment_name = assignment_info.name;
@@ -59,14 +59,14 @@ function addReadingList() {
         page_name = document.createElement("a");
         page_name.textContent = assignment_name;
         page_name.href = `/assignment/student/doAssignment?assignment_id=${assignment_id}`;
-        
+
         active.append(page_name);
 
         exit_link = document.createElement("a");
         exit_link.textContent = " Exit Assignment";
-        exit_link.href=window.location.pathname;
+        exit_link.href = window.location.pathname;
 
-        exit_link.addEventListener('click',function(event) {
+        exit_link.addEventListener('click', function (event) {
             localStorage.removeItem(`currentAssignmentInfo_${eBookConfig.course}`);
         });
 
@@ -102,13 +102,12 @@ function addReadingList() {
             var fst_lnk = document.createElement("a");
             //fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
             fst_lnk.href = new_pos_link;
-            fst_lnk.textContent = `Back to page ${
-                position
-            } of ${num_readings}: ${reading_names[position-1]}.`;
+            fst_lnk.textContent = `Back to page ${position
+                } of ${num_readings}: ${reading_names[position - 1]}.`;
             txt.append(fst_lnk);
             fst.append(txt);
-            
-        } else if (position == 0){
+
+        } else if (position == 0) {
             fst = active.cloneNode(true);
             let txt = document.createElement("p");
             txt.textContent = `Page 1 of ${num_readings}.`;
@@ -120,7 +119,7 @@ function addReadingList() {
             let pageExercises = Object.keys(componentMap);
             if (pageExercises.length == 0) {
                 pageExercises = document.querySelectorAll("[data-component]");
-                pageExercises = Array.from(pageExercises).map(function(el) {
+                pageExercises = Array.from(pageExercises).map(function (el) {
                     return el.id;
                 })
             }
@@ -160,25 +159,24 @@ function addReadingList() {
             var snd_lnk = document.createElement("a");
             //snd_lnk.className = "btn btn-lg reading-navigation next-reading";
             snd_lnk.href = new_pos_link;
-            snd_lnk.textContent = `Continue to page ${
-                position + 2
-            } of ${num_readings}: ${reading_names[position+1]}`;
+            snd_lnk.textContent = `Continue to page ${position + 2
+                } of ${num_readings}: ${reading_names[position + 1]}`;
             let txt = document.createElement("p");
             txt.append(snd_lnk);
             snd.append(txt);
-            
+
         } else {
             snd = active.cloneNode(true);
             let txt = document.createElement("p");
             txt.textContent = "Notice: this page is not part of the assignment. To remove this warning click ";
             let exit_clone = exit_link.cloneNode(true);
 
-            exit_clone.addEventListener('click',function(event) {
+            exit_clone.addEventListener('click', function (event) {
                 localStorage.removeItem(`currentAssignmentInfo_${eBookConfig.course}`);
             });
             txt.append(exit_clone);
             snd.append(txt);
-            
+
 
         }
 
@@ -197,7 +195,7 @@ function addReadingList() {
         //bottom.style.backgroundColor = "var(--componentBgColor)"
         //bottom.style.borderColor = "var(--componentBorderColor)"
         //bottom.style.borderWidth = "1px"
-        
+
         //bottom.append(active.cloneNode(true));
         //bottom.append(fst.cloneNode(true));
         bottom.append(snd);
@@ -219,9 +217,9 @@ function addReadingList() {
         }
         const mainContent = document.getElementById("main-content");
         if (mainContent && snd) {
-            mainContent.insertBefore(top,mainContent.firstChild)
+            mainContent.insertBefore(top, mainContent.firstChild)
             mainContent.appendChild(bottom);
-            
+
         }
     }
 }
@@ -336,11 +334,11 @@ class PageProgressBar {
             // This handles the case where there are no activities on the page or
             //  where the user completed activities on the assignment page and now
             //  is viewing the reading page.
-            let completeActivities = this.total - 1; // subtract 1 for the page reading which is in total but not an activity
+            let completeActivities = this.total; // subtract 1 for the page reading which is in total but not an activity
             let requiredActivities =
-                this.assignment_spec.activities_required || 0;
+                this.assignment_spec.activities_required || 1;
             if (this.assignment_spec.activities_required === null) {
-                this.assignment_spec.activities_required = this.possible - 1; // if activities_required is null, then there are none on the page
+                this.assignment_spec.activities_required = this.possible; // if activities_required is null, then there are none on the page
             }
             if (completeActivities >= requiredActivities) {
                 this.sendCompletedReadingScore().then(() => {

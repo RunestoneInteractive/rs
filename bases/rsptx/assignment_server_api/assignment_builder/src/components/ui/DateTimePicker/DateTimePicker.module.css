@@ -1,0 +1,197 @@
+.wrapper {
+  width: 100%;
+}
+
+.datepickerWrapper {
+  width: 100% !important;
+  display: block !important;
+}
+
+.input {
+  width: 100% !important;
+  padding: 0.5rem 0.75rem 0.5rem 2.5rem !important;
+  border: 1px solid var(--surface-border, #dee2e6) !important;
+  border-radius: var(--border-radius, 6px) !important;
+  font-size: 1rem !important;
+  font-family: inherit !important;
+  color: var(--text-color, #495057) !important;
+  background: var(--surface-card, #ffffff) !important;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box !important;
+  height: 2.6rem;
+}
+
+.input:focus {
+  outline: none !important;
+  border-color: var(--primary-color, #3B82F6) !important;
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
+}
+
+.input::placeholder {
+  color: var(--text-color-secondary, #6c757d);
+}
+
+/* Icon styling */
+.wrapper :global(.react-datepicker__input-container) {
+  display: flex !important;
+  align-items: center;
+  width: 100%;
+}
+
+.wrapper :global(.react-datepicker__calendar-icon) {
+  position: absolute !important;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0 !important;
+  color: var(--text-color-secondary, #6c757d);
+  font-size: 1rem;
+  pointer-events: none;
+  z-index: 1;
+  width: auto !important;
+  height: auto !important;
+}
+
+.wrapper :global(.react-datepicker__calendar-icon svg) {
+  display: none;
+}
+
+/* Popper / dropdown */
+.popper {
+  z-index: 9999 !important;
+}
+
+/* Calendar panel */
+.calendar {
+  font-family: inherit !important;
+  border: 1px solid var(--surface-border, #dee2e6) !important;
+  border-radius: var(--border-radius, 6px) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1) !important;
+  background: var(--surface-card, #ffffff) !important;
+  padding: 0.5rem !important;
+}
+
+/* Header */
+.calendar :global(.react-datepicker__header) {
+  background: var(--surface-card, #ffffff) !important;
+  border-bottom: 1px solid var(--surface-border, #dee2e6) !important;
+  padding-top: 0.5rem !important;
+  border-top-left-radius: var(--border-radius, 6px) !important;
+  border-top-right-radius: var(--border-radius, 6px) !important;
+}
+
+.calendar :global(.react-datepicker__current-month),
+.calendar :global(.react-datepicker-time__header) {
+  font-weight: 600 !important;
+  color: var(--text-color, #495057) !important;
+  font-size: 1rem !important;
+  padding-bottom: 0.5rem;
+}
+
+/* Navigation arrows */
+.calendar :global(.react-datepicker__navigation) {
+  top: 0.75rem !important;
+}
+
+.calendar :global(.react-datepicker__navigation-icon::before) {
+  border-color: var(--text-color-secondary, #6c757d) !important;
+  border-width: 2px 2px 0 0 !important;
+  height: 8px !important;
+  width: 8px !important;
+}
+
+.calendar :global(.react-datepicker__navigation:hover .react-datepicker__navigation-icon::before) {
+  border-color: var(--primary-color, #3B82F6) !important;
+}
+
+/* Day names */
+.calendar :global(.react-datepicker__day-name) {
+  color: var(--text-color-secondary, #6c757d) !important;
+  font-weight: 600 !important;
+  width: 2.25rem !important;
+  line-height: 2.25rem !important;
+  margin: 0.1rem !important;
+  font-size: 0.85rem !important;
+}
+
+/* Days */
+.calendar :global(.react-datepicker__day) {
+  color: var(--text-color, #495057) !important;
+  width: 2.25rem !important;
+  line-height: 2.25rem !important;
+  margin: 0.1rem !important;
+  border-radius: 50% !important;
+  font-size: 0.9rem !important;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.calendar :global(.react-datepicker__day:hover) {
+  background-color: var(--surface-hover, #e9ecef) !important;
+  color: var(--text-color, #495057) !important;
+  border-radius: 50% !important;
+}
+
+.calendar :global(.react-datepicker__day--selected),
+.calendar :global(.react-datepicker__day--keyboard-selected) {
+  background-color: var(--primary-color, #3B82F6) !important;
+  color: var(--primary-color-text, #ffffff) !important;
+  border-radius: 50% !important;
+  font-weight: 600 !important;
+}
+
+.calendar :global(.react-datepicker__day--selected:hover) {
+  background-color: var(--primary-color, #3B82F6) !important;
+  opacity: 0.9;
+}
+
+.calendar :global(.react-datepicker__day--today) {
+  font-weight: 700 !important;
+}
+
+.calendar :global(.react-datepicker__day--outside-month) {
+  color: var(--text-color-secondary, #6c757d) !important;
+  opacity: 0.5;
+}
+
+/* Time select */
+.calendar :global(.react-datepicker__time-container) {
+  border-left: 1px solid var(--surface-border, #dee2e6) !important;
+  width: 100px !important;
+}
+
+.calendar :global(.react-datepicker__time-container .react-datepicker__time) {
+  background: var(--surface-card, #ffffff) !important;
+}
+
+.calendar :global(.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box) {
+  width: 100px !important;
+}
+
+.calendar :global(.react-datepicker__navigation--next--with-time:not(.react-datepicker__navigation--next--with-today-button)) {
+  right: 105px;
+}
+
+.calendar :global(.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item) {
+  height: auto !important;
+  padding: 0.35rem 0.5rem !important;
+  font-size: 0.85rem !important;
+  color: var(--text-color, #495057);
+  transition: background-color 0.2s;
+}
+
+.calendar :global(.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item:hover) {
+  background-color: var(--surface-hover, #e9ecef) !important;
+  color: var(--text-color, #495057) !important;
+}
+
+.calendar :global(.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item--selected) {
+  background-color: var(--primary-color, #3B82F6) !important;
+  color: var(--primary-color-text, #ffffff) !important;
+  font-weight: 600 !important;
+}
+
+/* Triangle arrow */
+.calendar :global(.react-datepicker__triangle) {
+  display: none;
+}
+
