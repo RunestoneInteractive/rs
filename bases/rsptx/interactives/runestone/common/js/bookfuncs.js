@@ -549,6 +549,47 @@ function createStudyCluesWidget() {
             border: 1px solid #e5e7eb;
         }
 
+        .studyclues-message.studyclues-loading {
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .studyclues-spinner {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .studyclues-spinner-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #6b7280;
+            opacity: 0.35;
+            animation: studyclues-dot-pulse 1s infinite ease-in-out;
+        }
+
+        .studyclues-spinner-dot:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .studyclues-spinner-dot:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes studyclues-dot-pulse {
+            0%,
+            80%,
+            100% {
+                opacity: 0.35;
+                transform: scale(1);
+            }
+            40% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
         .studyclues-inputbar {
             display: flex;
             gap: 8px;
@@ -629,6 +670,14 @@ function createStudyCluesWidget() {
         inputEl.value = "";
         sendBtn.disabled = true;
 
+        const loadingBubble = document.createElement("div");
+        loadingBubble.className =
+            "studyclues-message assistant studyclues-loading";
+        loadingBubble.innerHTML =
+            'Thinking <span class="studyclues-spinner"><span class="studyclues-spinner-dot"></span><span class="studyclues-spinner-dot"></span><span class="studyclues-spinner-dot"></span></span>';
+        messagesEl.appendChild(loadingBubble);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+
         try {
             const response = await fetch(
                 `/assignment/student/studyclues_query`,
@@ -671,6 +720,7 @@ function createStudyCluesWidget() {
             );
             console.error("StudyClues chat error:", err);
         } finally {
+            loadingBubble.remove();
             sendBtn.disabled = false;
             inputEl.focus();
         }
@@ -759,7 +809,7 @@ async function handlePageSetup() {
         document.dispatchEvent(new Event("runestone:login"));
         addReadingList();
         // Only show the StudyClues widget for certain base courses and when the path includes "/ns/books/".
-        if (["csawesome2", "py4e-int", "thinkcspy", "PTXSB"].includes(eBookConfig.basecourse) 
+        if (["csawesome2", "py4e-int", "thinkcspy", "PTXSB"].includes(eBookConfig.basecourse)
             && location.pathname.includes("/ns/books/")) {
             createStudyCluesWidget();
         }
