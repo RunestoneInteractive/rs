@@ -218,6 +218,26 @@ async def studyclues_query(
         "https://api.demo.learningclues.com/",
     )
     query_studyclues_post_url = f"{api_base_domain.rstrip('/')}/studyclues/query"
+
+    # Maybe cache the user_id for StudyClues in the future in Redis
+    runestone_login_url = f"{api_base_domain}/auth/runestone_login"
+    params = {"runestone_username": user.username}
+    response = requests.get(runestone_login_url, params=params)
+    if response.status_code != 200:
+        rslogger.error(
+            f"StudyClues login request failed with status {response.status_code}: {response.text}"
+        )
+        return make_json_response(
+            status=502,
+            detail={
+                "success": False,
+                "message": "StudyClues login request failed",
+                "status_code": response.status_code,
+            },
+        )
+    data = response.json()
+    lc_user = data.get("user_id")
+
     course = await fetch_course(user.course_name)
     book_id = get_studyclues_book_id(course)
     studyclues_params = {
@@ -225,7 +245,7 @@ async def studyclues_query(
         "query": request_data.query,
         "num_passages": 20,
         "dry_run": False,
-        "user_id": user.id,
+        "user_id": lc_user,
         "conversation_id": request_data.conversation_id,
         "coach_mode": True,
     }
