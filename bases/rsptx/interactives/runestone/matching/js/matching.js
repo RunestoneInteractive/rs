@@ -61,9 +61,7 @@ export class MatchingProblem extends RunestoneBase {
         this.renderBoxes();
         this.attachEvents();
 
-        if (window.MathJax && MathJax.typesetPromise) {
-            MathJax.typesetPromise();
-        }
+        this.queueMathJax(this.containerDiv);
     }
 
     // required elements for a Runestone component
