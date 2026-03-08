@@ -1,13 +1,18 @@
+import { useCallback, useState } from "react";
+
 import { SearchInput } from "@components/ui/SearchInput";
 import { Button } from "primereact/button";
 import { Checkbox } from "primereact/checkbox";
 import { Column } from "primereact/column";
 import { confirmDialog, ConfirmDialog } from "primereact/confirmdialog";
-import { DataTable } from "primereact/datatable";
+import { DataTable, DataTableSortEvent } from "primereact/datatable";
 import { InputSwitch } from "primereact/inputswitch";
 import { classNames } from "primereact/utils";
 
 import { Assignment } from "@/types/assignment";
+import { formatLocalDateForDisplay, formatUTCDateForDisplay } from "@/utils/date";
+
+import { VisibilityDropdown } from "./VisibilityDropdown";
 
 // eslint-disable-next-line no-restricted-imports
 import styles from "../../AssignmentBuilder.module.css";
@@ -19,10 +24,13 @@ interface AssignmentListProps {
   onCreateNew: () => void;
   onEdit: (assignment: Assignment) => void;
   onDuplicate: (assignment: Assignment) => void;
-  onVisibilityChange: (assignment: Assignment, visible: boolean) => void;
   onReleasedChange: (assignment: Assignment, released: boolean) => void;
   onEnforceDueChange: (assignment: Assignment, enforce_due: boolean) => void;
   onPeerAsyncChange: (assignment: Assignment, peer_async_visible: boolean) => void;
+  onVisibilityChange: (
+    assignment: Assignment,
+    data: { visible: boolean; visible_on: string | null; hidden_on: string | null }
+  ) => void;
   onRemove: (assignment: Assignment) => void;
 }
 
@@ -33,24 +41,36 @@ export const AssignmentList = ({
   onCreateNew,
   onEdit,
   onDuplicate,
-  onVisibilityChange,
   onReleasedChange,
   onEnforceDueChange,
   onPeerAsyncChange,
+  onVisibilityChange,
   onRemove
 }: AssignmentListProps) => {
+  const SORT_STORAGE_KEY = "assignmentList_sortField";
+  const ORDER_STORAGE_KEY = "assignmentList_sortOrder";
+
+  const [sortField, setSortField] = useState<string>(() => {
+    return localStorage.getItem(SORT_STORAGE_KEY) || "name";
+  });
+  const [sortOrder, setSortOrder] = useState<1 | -1 | 0>(() => {
+    const stored = localStorage.getItem(ORDER_STORAGE_KEY);
+
+    return stored ? (Number(stored) as 1 | -1) : 1;
+  });
+
+  const handleSort = useCallback((e: DataTableSortEvent) => {
+    const field = (e.sortField as string) || "name";
+    const order = e.sortOrder as 1 | -1;
+
+    setSortField(field);
+    setSortOrder(order);
+    localStorage.setItem(SORT_STORAGE_KEY, field);
+    localStorage.setItem(ORDER_STORAGE_KEY, String(order));
+  }, []);
+
   const visibilityBodyTemplate = (rowData: Assignment) => (
-    <div className="flex align-items-center justify-content-center">
-      <InputSwitch
-        checked={rowData.visible}
-        onChange={(e) => onVisibilityChange(rowData, e.value)}
-        tooltip={rowData.visible ? "Visible to students" : "Hidden from students"}
-        tooltipOptions={{
-          position: "top"
-        }}
-        className={styles.smallSwitch}
-      />
-    </div>
+    <VisibilityDropdown assignment={rowData} onChange={onVisibilityChange} />
   );
 
   const releasedBodyTemplate = (rowData: Assignment) => (
@@ -120,13 +140,29 @@ export const AssignmentList = ({
   const dueDateBodyTemplate = (rowData: Assignment) => (
     <div className={styles.dueDateCell}>
       <span className={styles.dueDateText}>
-        {new Date(rowData.duedate).toLocaleDateString(undefined, {
+        {formatLocalDateForDisplay(rowData.duedate, {
           year: "numeric",
           month: "short",
           day: "numeric",
           hour: "2-digit",
           minute: "2-digit"
         })}
+      </span>
+    </div>
+  );
+
+  const updatedDateBodyTemplate = (rowData: Assignment) => (
+    <div className={styles.dueDateCell}>
+      <span className={styles.dueDateText}>
+        {rowData.updated_date
+          ? formatUTCDateForDisplay(rowData.updated_date, {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+            })
+          : ""}
       </span>
     </div>
   );
@@ -235,8 +271,9 @@ export const AssignmentList = ({
           name: { value: globalFilter, matchMode: "contains" }
         }}
         sortMode="single"
-        sortField="name"
-        sortOrder={1}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
       >
         <Column
           field="name"
@@ -260,6 +297,13 @@ export const AssignmentList = ({
           className={styles.dueDateColumn}
         />
         <Column
+          field="updated_date"
+          header="Last Updated"
+          sortable
+          body={updatedDateBodyTemplate}
+          className={styles.dueDateColumn}
+        />
+        <Column
           style={{ width: "12px" }}
           field="enforce_due"
           header={
@@ -280,9 +324,9 @@ export const AssignmentList = ({
           className={styles.pointsColumn}
         />
         <Column
-          style={{ width: "12px" }}
+          style={{ width: "150px", minWidth: "150px" }}
           field="visible"
-          header="Visible"
+          header="Visibility Status"
           body={visibilityBodyTemplate}
           className={styles.visibilityColumn}
         />

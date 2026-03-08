@@ -7,6 +7,9 @@ export type Assignment = {
   name: string;
   description: string;
   duedate: string;
+  updated_date: string | null;
+  visible_on: string | null;
+  hidden_on: string | null;
   points: number;
   visible: boolean;
   is_peer: boolean;
@@ -42,6 +45,8 @@ export type CreateAssignmentPayload = {
   nopause: boolean;
   peer_async_visible: boolean;
   visible: boolean;
+  visible_on: string | null;
+  hidden_on: string | null;
   released: boolean;
   enforce_due: boolean;
 };

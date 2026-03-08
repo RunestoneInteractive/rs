@@ -1,5 +1,33 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-02-21 → 2026-02-27)
+
+Coverage: commits from **2026-02-21** through **2026-02-27** (i.e., changes after the prior cutoff on 2026-02-20).
+
+### Highlights
+
+- **Learning clues (prototype) + student context improvements:** initial prototype of “learning clues” integration landed, plus follow-on work to add context and automate lookup of book ids (primarily in `assignment_server_api/routers/student.py` and `bookfuncs.js`).
+- **Peer/LLM chat robustness:** improvements to async peer messaging (prompt + behavior), fixes for message ordering, and a key fix so the correct API token field is used and LLM peer lookup can retrieve keys at call time.
+- **LTI1p3 UX:** better messaging when an LMS rejects access to an **expired course**.
+- **UI theming iteration:** dark-mode dropdown styling changes were introduced and then reverted (net effect: continued iteration/experimentation in this area).
+- **Code quality + dependencies:** a broad pass fixing **Black/Ruff** issues and updating lock files / dependencies.
+
+### Commit notes (for reference)
+
+- 1a181c81 Initial prototype of learning clues integration
+- 3f42fae0 log todos
+- 5964439a Add context and automate lookup of book ids
+- c523c054 Fix API token field selection + make LLM peer lookup retrieve keys at call time
+- 8e375a9c Fix message ordering in async peer chat display
+- c34931a8 update prompt and async peer messaging
+- bde25ecd LTI1p3: better message when LMS rejects accessing an expired course
+- eca2ee17 fix dark mode for dropdown menu…
+- cacd4e49 Revert "fix dark mode for dropdown menu…"
+- 968f1cd9 Fix all black errors
+- 0b40954b Fix all black and ruff issues
+
+---
+
 ## Updates since last changelog entry (2026-02-12 → 2026-02-20)
 
 Coverage: commits from **2026-02-12** through **2026-02-20** (i.e., changes after the prior cutoff on 2026-02-11).

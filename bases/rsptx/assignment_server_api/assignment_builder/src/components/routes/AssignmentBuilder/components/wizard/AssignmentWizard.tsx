@@ -1,6 +1,5 @@
 import classNames from "classnames";
 import { Button } from "primereact/button";
-import { Calendar } from "primereact/calendar";
 import { Card } from "primereact/card";
 import { Checkbox } from "primereact/checkbox";
 import { InputNumber } from "primereact/inputnumber";
@@ -11,14 +10,17 @@ import { Steps } from "primereact/steps";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
 import { Assignment, KindOfAssignment } from "@/types/assignment";
-import { convertDateToISO, getDateFormat } from "@/utils/date";
+
+import { DateTimePicker } from "../../../../ui/DateTimePicker";
+
+import { VisibilityControl } from "../edit/VisibilityControl";
 
 // eslint-disable-next-line no-restricted-imports
 import styles from "../../AssignmentBuilder.module.css";
 
 interface AssignmentWizardProps {
   control: Control<Assignment>;
-  wizardStep: "basic" | "type";
+  wizardStep: "basic" | "type" | "visibility";
   nameError: string | null;
   canProceed: boolean;
   onBack: () => void;
@@ -30,7 +32,11 @@ interface AssignmentWizardProps {
   setValue: UseFormSetValue<Assignment>;
 }
 
-const wizardSteps = [{ label: "Basic Info" }, { label: "Assignment Type" }];
+const wizardSteps = [
+  { label: "Basic Info" },
+  { label: "Assignment Type" },
+  { label: "Visibility" }
+];
 
 const assignmentTypeCards = [
   {
@@ -112,17 +118,7 @@ export const AssignmentWizard = ({
               control={control}
               defaultValue=""
               render={({ field }) => (
-                <Calendar
-                  hideOnDateTimeSelect
-                  dateFormat={getDateFormat()}
-                  stepMinute={5}
-                  value={field.value ? new Date(field.value) : null}
-                  onChange={(e) => field.onChange(convertDateToISO(e.value!))}
-                  showTime
-                  showIcon
-                  // appendTo={document.body}
-                  panelClassName="calendar-panel"
-                />
+                <DateTimePicker value={field.value} onChange={(val) => field.onChange(val)} />
               )}
             />
           </div>
@@ -282,7 +278,29 @@ export const AssignmentWizard = ({
           onClick={onBack}
           className="p-button-secondary"
         />
-        <Button label="Create" icon="pi pi-check" onClick={onComplete} />
+        <Button label="Next" icon="pi pi-arrow-right" onClick={onNext} />
+      </div>
+    </div>
+  );
+
+  const renderVisibility = () => (
+    <div className={styles.wizardStep}>
+      <h2>Visibility Settings</h2>
+      <div className={styles.wizardStepContent}>
+        <p className="mb-4 text-gray-700">
+          Control when this assignment becomes visible to students. You can make it visible
+          immediately, schedule it for a future date, or set it to hide automatically.
+        </p>
+        <VisibilityControl control={control} watch={watch} setValue={setValue} />
+      </div>
+      <div className={styles.wizardActions}>
+        <Button
+          label="Back"
+          icon="pi pi-arrow-left"
+          onClick={onBack}
+          className="p-button-secondary"
+        />
+        <Button label="Create Assignment" icon="pi pi-check" onClick={onComplete} />
       </div>
     </div>
   );
@@ -297,6 +315,8 @@ export const AssignmentWizard = ({
               return s.label === "Basic Info";
             case "type":
               return s.label === "Assignment Type";
+            case "visibility":
+              return s.label === "Visibility";
             default:
               return false;
           }
@@ -304,6 +324,7 @@ export const AssignmentWizard = ({
       />
       {wizardStep === "basic" && renderBasicInfo()}
       {wizardStep === "type" && renderTypeSelection()}
+      {wizardStep === "visibility" && renderVisibility()}
     </div>
   );
 };

@@ -1,10 +1,10 @@
 import { CreateAssignmentPayload } from "@/types/assignment";
-import { convertDateToISO } from "@/utils/date";
+import { convertDateToLocalISO } from "@/utils/date";
 
 export const defaultAssignment: CreateAssignmentPayload = {
   name: "",
   description: "",
-  duedate: convertDateToISO(new Date()),
+  duedate: convertDateToLocalISO(new Date()),
   points: 0,
   kind: "Regular",
   time_limit: null,
@@ -12,6 +12,8 @@ export const defaultAssignment: CreateAssignmentPayload = {
   nopause: false,
   peer_async_visible: false,
   visible: false,
+  visible_on: null,
+  hidden_on: null,
   released: true,
   enforce_due: false
 };
