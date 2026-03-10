@@ -3,10 +3,44 @@ Running a Runestone Server
 
 Maybe you just want to run your own server for a small course. Maybe you are an author who just wants to preview what your book will look like in Runestone.  (Hint:  Its going to look very much like the plain html, unless you have Java, C or C++ code) Or maybe you are interested in getting involved in the development of the Runestone tools, but want to experiment first.  This document will help you get started without having to install a lot of software on your own machine, or having to worry about setting up a web server or database or any development environment.  This will work for both linux and macOS on Apple Silicon or Intel based machines.  It will also work on Windows, but you will need to install WSL2 and Docker Desktop for Windows.
 
-Automated Setup (Recommended for First-Time Users)
----------------------------------------------------
+Standalone Installation (No Repository Clone)
+----------------------------------------------
 
-For new users, we provide an automated setup script that handles all of the essential configuration steps for you. The script will guide you through the entire process with interactive prompts.
+For the quickest setup, you can run the initialization script directly without cloning the repository. This is the recommended method for users who want to run a Runestone server without needing the source code:
+
+.. code-block:: bash
+
+   curl -fsSL https://raw.githubusercontent.com/RunestoneInteractive/rs/main/init_runestone.sh -o init_runestone.sh
+   bash init_runestone.sh
+
+This will:
+
+- Download the initialization script to your current directory
+- When you run it, the script will automatically fetch required configuration files (``docker-compose.yml`` and ``sample.env``)
+- Guide you through the complete setup process with interactive prompts
+
+**Important Notes:**
+
+- The script creates files in your **current working directory**, so run it from where you want the Runestone configuration to live (e.g., ``mkdir ~/runestone && cd ~/runestone``)
+- Your Runestone server runs using pre-built Docker images from GitHub Container Registry—no source code clone required
+- Only the configuration files and your books directory are stored locally
+
+**Prerequisites:**
+
+- Docker Desktop with Docker Compose 2.20.2 or later (current version: 2.38.2)
+- Git (if downloading books from GitHub repositories)
+- For Windows: WSL2 with Docker Desktop WSL integration enabled
+
+**Note for Windows users:** You must run this command from a WSL2 terminal, not from PowerShell or Command Prompt.
+
+After the script completes, you can access your Runestone server at http://localhost with the default test credentials (username: ``testuser1``, password: ``xxx``).
+
+The script creates a log file (``init_runestone.log``) that you can review if you encounter any issues.
+
+Automated Setup (From Cloned Repository)
+-----------------------------------------
+
+If you prefer to work from a cloned repository (recommended for developers and contributors), you can clone the repository first and run the setup script from within it.
 
 **Prerequisites:**
 

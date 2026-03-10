@@ -19,8 +19,9 @@
 #   - For Windows: WSL2 with this script run from WSL terminal
 #
 # USAGE:
-#   Standalone (one-line install - no repo clone needed):
-#     curl -fsSL https://raw.githubusercontent.com/RunestoneInteractive/rs/main/init_runestone.sh | bash
+#   Standalone (two-line install - no repo clone needed):
+#     curl -fsSL https://raw.githubusercontent.com/RunestoneInteractive/rs/main/init_runestone.sh -o init_runestone.sh
+#     bash init_runestone.sh
 #
 #   Traditional (from cloned repo):
 #     git clone https://github.com/RunestoneInteractive/rs.git
@@ -231,7 +232,7 @@ ensure_required_files() {
     print_header "Standalone Mode"
     print_info "Running in standalone mode - configuration files will be downloaded"
     echo ""
-    echo "Files will be created in: ${BOLD}$(pwd)${NC}"
+    echo -e "Files will be created in: ${BOLD}$(pwd)${NC}"
     echo ""
     echo "The following files will be downloaded from the official Runestone repository:"
     if ! $has_compose; then
@@ -462,11 +463,11 @@ check_git() {
 validate_prerequisites() {
     print_header "Validating Prerequisites"
     
-    ensure_required_files
     detect_platform
     check_docker
     check_docker_compose
     check_docker_group
+    ensure_required_files
     
     print_success "All prerequisites validated"
     echo ""
