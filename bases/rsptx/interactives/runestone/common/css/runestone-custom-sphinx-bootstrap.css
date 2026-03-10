@@ -1256,7 +1256,7 @@ summary.ptx-footnote__number {
     display: inline;
 }
 
-summary.knowl__link {
+details > summary:first-of-type {
     display: list-item inline;
 }
 
