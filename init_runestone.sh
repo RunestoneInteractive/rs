@@ -462,11 +462,11 @@ check_git() {
 validate_prerequisites() {
     print_header "Validating Prerequisites"
     
+    ensure_required_files
     detect_platform
     check_docker
     check_docker_compose
     check_docker_group
-    ensure_required_files
     
     print_success "All prerequisites validated"
     echo ""
