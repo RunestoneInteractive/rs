@@ -15,11 +15,21 @@
 #
 # REQUIREMENTS:
 #   - Docker Desktop with Docker Compose 2.20.2+ (current: 2.38.2)
-#   - Git
+#   - Git (only required if you want to clone book repositories)
 #   - For Windows: WSL2 with this script run from WSL terminal
 #
 # USAGE:
-#   ./init_runestone.sh
+#   Standalone (one-line install - no repo clone needed):
+#     curl -fsSL https://raw.githubusercontent.com/RunestoneInteractive/rs/main/init_runestone.sh | bash
+#
+#   Traditional (from cloned repo):
+#     git clone https://github.com/RunestoneInteractive/rs.git
+#     cd rs
+#     ./init_runestone.sh
+#
+# NOTE: Standalone mode downloads only configuration files (docker-compose.yml, 
+#       sample.env). Application code runs inside pre-built Docker images from 
+#       ghcr.io. Files are created in your current working directory.
 #
 # The script will prompt you for required information and guide you through
 # each step of the setup process.
@@ -138,6 +148,159 @@ prompt_input() {
 }
 
 ################################################################################
+# File Management
+################################################################################
+
+# Download a file from GitHub's raw content
+download_file_from_github() {
+    local filename="$1"
+    local target_path="$2"
+    local base_url="https://raw.githubusercontent.com/RunestoneInteractive/rs/main"
+    local file_url="${base_url}/${filename}"
+    
+    log "Attempting to download ${filename} from ${file_url}"
+    
+    # Try curl first
+    if command -v curl &> /dev/null; then
+        if curl -fsSL "${file_url}" -o "${target_path}" 2>> "$LOG_FILE"; then
+            # Verify file was downloaded and is not empty
+            if [[ -s "${target_path}" ]]; then
+                log "Successfully downloaded ${filename} using curl"
+                return 0
+            else
+                log "Downloaded file ${filename} is empty"
+                rm -f "${target_path}"
+                return 1
+            fi
+        else
+            log "Failed to download ${filename} using curl"
+        fi
+    fi
+    
+    # Fallback to wget
+    if command -v wget &> /dev/null; then
+        if wget -qO "${target_path}" "${file_url}" 2>> "$LOG_FILE"; then
+            # Verify file was downloaded and is not empty
+            if [[ -s "${target_path}" ]]; then
+                log "Successfully downloaded ${filename} using wget"
+                return 0
+            else
+                log "Downloaded file ${filename} is empty"
+                rm -f "${target_path}"
+                return 1
+            fi
+        else
+            log "Failed to download ${filename} using wget"
+        fi
+    fi
+    
+    # Both methods failed
+    log "Failed to download ${filename} - no working download tool"
+    return 1
+}
+
+# Ensure required configuration files exist
+ensure_required_files() {
+    local has_compose=false
+    local has_sample=false
+    local in_standalone_mode=false
+    
+    # Check if files already exist
+    if [[ -f docker-compose.yml ]]; then
+        has_compose=true
+        log "Found existing docker-compose.yml"
+    fi
+    
+    if [[ -f sample.env ]]; then
+        has_sample=true
+        log "Found existing sample.env"
+    fi
+    
+    # If both files exist, we're in traditional mode
+    if $has_compose && $has_sample; then
+        print_info "Configuration files found - running in traditional mode"
+        log "Running in traditional mode (files exist)"
+        return 0
+    fi
+    
+    # At least one file is missing - enter standalone mode
+    in_standalone_mode=true
+    log "Entering standalone mode - downloading missing files"
+    
+    echo ""
+    print_header "Standalone Mode"
+    print_info "Running in standalone mode - configuration files will be downloaded"
+    echo ""
+    echo "Files will be created in: ${BOLD}$(pwd)${NC}"
+    echo ""
+    echo "The following files will be downloaded from the official Runestone repository:"
+    if ! $has_compose; then
+        echo "  - docker-compose.yml (Docker service configuration)"
+    fi
+    if ! $has_sample; then
+        echo "  - sample.env (Environment variable template)"
+    fi
+    echo ""
+    print_info "Your Runestone server will run using pre-built Docker images"
+    print_info "No source code repository clone is required"
+    echo ""
+    
+    # Download missing files
+    local download_failed=false
+    
+    if ! $has_compose; then
+        print_step "Downloading docker-compose.yml..."
+        if download_file_from_github "docker-compose.yml" "./docker-compose.yml"; then
+            print_success "Downloaded docker-compose.yml"
+        else
+            print_error "Failed to download docker-compose.yml"
+            download_failed=true
+        fi
+    fi
+    
+    if ! $has_sample; then
+        print_step "Downloading sample.env..."
+        if download_file_from_github "sample.env" "./sample.env"; then
+            print_success "Downloaded sample.env"
+        else
+            print_error "Failed to download sample.env"
+            download_failed=true
+        fi
+    fi
+    
+    # Check if any downloads failed
+    if $download_failed; then
+        echo ""
+        print_error "Failed to download required files"
+        echo ""
+        echo "This may be due to:"
+        echo "  - Network connectivity issues"
+        echo "  - GitHub being unavailable"
+        echo "  - Missing curl/wget tools"
+        echo ""
+        echo "Manual download instructions:"
+        echo "  curl -fsSL https://raw.githubusercontent.com/RunestoneInteractive/rs/main/docker-compose.yml -o docker-compose.yml"
+        echo "  curl -fsSL https://raw.githubusercontent.com/RunestoneInteractive/rs/main/sample.env -o sample.env"
+        echo ""
+        echo "Or clone the repository:"
+        echo "  git clone https://github.com/RunestoneInteractive/rs.git"
+        echo "  cd rs"
+        echo "  ./init_runestone.sh"
+        echo ""
+        exit 1
+    fi
+    
+    echo ""
+    print_success "Configuration files downloaded successfully"
+    echo ""
+    print_info "You can inspect these files before continuing if needed"
+    echo ""
+    
+    log "Standalone mode setup complete"
+    return 0
+}
+
+################################################################################
 # Platform Detection
 ################################################################################
 
@@ -239,21 +402,61 @@ check_docker_compose() {
     fi
 }
 
+check_docker_group() {
+    # Only check on native Linux (not WSL, not macOS)
+    # Docker Desktop on WSL and macOS handles permissions differently
+    if ! $IS_LINUX || $IS_WSL; then
+        log "Skipping docker group check (not native Linux)"
+        return 0
+    fi
+    
+    print_step "Checking Docker group membership..."
+    
+    # Check if user is in docker group
+    if groups | grep -q docker || id -nG | grep -q docker; then
+        print_success "User is in docker group"
+        log "Docker group check: OK"
+        return 0
+    fi
+    
+    # User is not in docker group
+    print_warning "You are not in the docker group"
+    echo ""
+    echo "Without docker group membership, you may need to run Docker commands with sudo."
+    echo ""
+    echo "To add yourself to the docker group, run these commands:"
+    echo -e "  ${CYAN}sudo usermod -aG docker \$USER${NC}"
+    echo -e "  ${CYAN}newgrp docker${NC}"
+    echo ""
+    echo "Or log out and back in for the change to take effect."
+    echo ""
+    log "Docker group check: WARNING - user not in docker group"
+    
+    # Non-fatal - allow user to continue with sudo if they want
+    if ! prompt_yes_no "Continue anyway?" "y"; then
+        echo ""
+        echo "Please add yourself to the docker group and run this script again."
+        exit 1
+    fi
+    
+    echo ""
+}
+
 check_git() {
     print_step "Checking Git installation..."
     
     if ! command -v git &> /dev/null; then
         print_error "Git is not installed or not in PATH"
         echo ""
-        echo "Please install Git:"
-        echo "  https://git-scm.com/downloads"
-        exit 1
+        log "Git check: FAILED - not installed"
+        return 1
     fi
     
     local git_version
     git_version=$(git --version | cut -d' ' -f3)
     print_success "Git version: $git_version"
     log "Git version: $git_version"
+    return 0
 }
 
 validate_prerequisites() {
@@ -262,7 +465,8 @@ validate_prerequisites() {
     detect_platform
     check_docker
     check_docker_compose
-    check_git
+    check_docker_group
+    ensure_required_files
     
     print_success "All prerequisites validated"
     echo ""
@@ -824,6 +1028,16 @@ setup_book() {
     if ! prompt_add_book; then
         return 0
     fi
+
+    # Check for Git now that we know we need to clone a book
+    if ! check_git; then
+        print_warning "Skipping book setup"
+        echo "Please either:"
+        echo "  1. Install Git: https://git-scm.com/downloads"
+        echo "  2. Manually download your book repository and place it in your BOOK_PATH"
+        return 1
+    fi
+    echo ""
     
     # Get book details
     local book_repo
@@ -969,11 +1183,21 @@ cleanup_on_error() {
     echo "To resume or retry:"
     echo "  1. Review any error messages above"
     echo "  2. Fix any issues (e.g., Docker not running, missing directories)"
-    echo "  3. Run ./init_runestone.sh again"
+    echo "  3. Run the script again"
     echo ""
     echo "To clean up and start fresh:"
     echo "  docker compose down"
     echo "  rm .env (or restore from backup)"
+    
+    # Provide additional context if in standalone mode
+    if [[ -f docker-compose.yml ]] && [[ -f sample.env ]]; then
+        echo ""
+        echo "Downloaded configuration files:"
+        echo "  - docker-compose.yml"
+        echo "  - sample.env"
+        echo "These files will be reused if you run the script again."
+    fi
+    
     echo ""
     exit 1
 }
@@ -993,7 +1217,7 @@ main() {
     print_header "Runestone Server Setup Wizard"
     echo "This script will guide you through setting up your Runestone server."
     echo "The process will:"
-    echo "  1. Validate prerequisites (Docker, Git)"
+    echo "  1. Validate prerequisites (Docker)"
     echo "  2. Configure your environment (.env file)"
     echo "  3. Pull Docker images and start services"
     echo "  4. Initialize the database"
