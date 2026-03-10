@@ -972,13 +972,6 @@ add_book_to_db() {
     local book_name="$1"
     
     print_step "Adding book to database..."
-    echo ""
-    echo "You will be prompted for:"
-    echo "  - document-id or basecourse: $book_name"
-    echo "  - Runestone username of author/admin: testuser1"
-    echo ""
-    print_info "Press Enter to continue..."
-    read -r
     
     # Run the addbookauthor command interactively
     # We'll provide the inputs via echo pipe
@@ -1218,11 +1211,12 @@ main() {
     print_header "Runestone Server Setup Wizard"
     echo "This script will guide you through setting up your Runestone server."
     echo "The process will:"
-    echo "  1. Validate prerequisites (Docker)"
+    echo "  1. Validate prerequisites"
     echo "  2. Configure your environment (.env file)"
     echo "  3. Pull Docker images and start services"
     echo "  4. Initialize the database"
-    echo "  5. Optionally help you add and build your first book"
+    echo "  5. Optionally help you add and build a book from a git repository"
+    echo "  6. Optionally help you create a new course for students"
     echo ""
     
     if ! prompt_yes_no "Ready to begin?" "y"; then
