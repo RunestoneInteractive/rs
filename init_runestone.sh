@@ -500,8 +500,22 @@ create_env_from_sample() {
     fi
     
     cp sample.env .env
+    
+    # Add default values for optional variables to suppress Docker Compose warnings
+    cat >> .env << 'EOF'
+
+# Optional variables (set to empty to suppress Docker Compose warnings)
+HOSTNAME=
+LOAD_BALANCER_HOST=
+SPACES_KEY=
+SPACES_SECRET=
+EMAIL_SENDER=
+EMAIL_SERVER=
+EMAIL_LOGIN=
+EOF
+    
     print_success "Created .env file"
-    log "Created .env from sample.env"
+    log "Created .env from sample.env with optional variable defaults"
 }
 
 convert_windows_path() {
