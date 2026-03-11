@@ -19,9 +19,8 @@
 #   - For Windows: WSL2 with this script run from WSL terminal
 #
 # USAGE:
-#   Standalone (two-line install - no repo clone needed):
-#     curl -fsSL https://raw.githubusercontent.com/RunestoneInteractive/rs/main/init_runestone.sh -o init_runestone.sh
-#     bash init_runestone.sh
+#   Standalone (one-line install - no repo clone needed):
+#     bash <(curl -fsSL https://raw.githubusercontent.com/RunestoneInteractive/rs/main/init_runestone.sh)
 #
 #   Traditional (from cloned repo):
 #     git clone https://github.com/RunestoneInteractive/rs.git
@@ -1104,7 +1103,8 @@ prompt_add_course() {
     print_header "Course Setup (Optional)"
     echo ""
     echo "Would you like to create a course for students?"
-    echo "A base course was already created with your book."
+    echo "Note: Base courses were created during database initialization."
+    echo "This creates a teaching/student course linked to a base course."
     echo "You can create additional courses later with: docker compose run --rm rsmanage rsmanage addcourse"
     echo ""
     
