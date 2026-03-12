@@ -1,4 +1,7 @@
-import React, { FC, useCallback } from "react";
+import React, { FC, useCallback, useState } from "react";
+
+import { SelectButton } from "primereact/selectbutton";
+import { confirmDialog, ConfirmDialog } from "primereact/confirmdialog";
 
 import { CreateExerciseFormType } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
@@ -20,6 +23,15 @@ import {
   ParsonsBlocksManager,
   ParsonsOptions
 } from "./components";
+import { ParsonsExerciseTour } from "./components/ParsonsExerciseTour";
+import parsonsStyles from "./components/ParsonsExercise.module.css";
+
+export type ParsonsMode = "simple" | "enhanced";
+
+const MODE_OPTIONS = [
+  { label: "Simple", value: "simple" },
+  { label: "Enhanced", value: "enhanced" }
+];
 
 const PARSONS_STEPS = [
   { label: "Language" },
@@ -170,6 +182,82 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
     updateFormData("blocks", [...(formData.blocks || []), newBlock]);
   }, [updateFormData, formData.blocks]);
 
+  // --- Mode switcher ---
+  const isEnhancedExercise =
+    isEdit &&
+    (initialData?.grader === "dag" ||
+      initialData?.orderMode === "custom" ||
+      initialData?.numbered === "right" ||
+      initialData?.numbered === "none" ||
+      initialData?.noindent === true);
+
+  const [mode, setMode] = useState<ParsonsMode>(isEnhancedExercise ? "enhanced" : "simple");
+
+  const directSetMode = useCallback((newMode: ParsonsMode) => {
+    setMode(newMode);
+  }, []);
+
+  const tourButton = (
+    <ParsonsExerciseTour
+      mode={mode}
+      formData={formData}
+      onModeChange={directSetMode}
+      updateFormData={updateFormData as (key: string, value: any) => void}
+    />
+  );
+
+  const handleModeChange = useCallback(
+    (newMode: ParsonsMode) => {
+      if (newMode === mode || !newMode) return;
+
+      if (newMode === "simple") {
+        // Enhanced → Simple: confirm and reset
+        confirmDialog({
+          message:
+            "Switching to Simple Mode will reset Grader, Order, Line Numbers, and No Indent to their default values. Block dropdown settings (DAG tags, dependencies, custom order) will be cleared. Continue?",
+          header: "Switch to Simple Mode",
+          icon: "pi pi-exclamation-triangle",
+          acceptClassName: "p-button-warning",
+          accept: () => {
+            // Reset locked fields
+            updateFormData("grader", "line");
+            updateFormData("orderMode", "random");
+            updateFormData("numbered", "left");
+            updateFormData("noindent", false);
+            updateFormData("adaptive", true);
+            updateFormData("customOrder", []);
+            // Clear DAG / order block fields
+            const clearedBlocks = (formData.blocks || []).map((block) => ({
+              ...block,
+              tag: undefined,
+              depends: undefined,
+              displayOrder: undefined
+            }));
+            updateFormData("blocks", clearedBlocks);
+            setMode("simple");
+          }
+        });
+      } else {
+        // Simple → Enhanced: no data loss, just switch
+        setMode("enhanced");
+      }
+    },
+    [mode, updateFormData, formData.blocks]
+  );
+
+  const modeSwitcher = (
+    <div className={parsonsStyles.modeSwitcher} data-tour="mode-switcher">
+      <span className={parsonsStyles.modeSwitcherLabel}>Mode</span>
+      <SelectButton
+        value={mode}
+        options={MODE_OPTIONS}
+        onChange={(e) => handleModeChange(e.value)}
+        className={parsonsStyles.modeSwitcherButton}
+        allowEmpty={false}
+      />
+    </div>
+  );
+
   const renderStepContent = () => {
     switch (activeStep) {
       case 0:
@@ -197,6 +285,7 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
               noindent={formData.noindent ?? false}
               grader={formData.grader ?? "line"}
               orderMode={formData.orderMode ?? "random"}
+              mode={mode}
               onAdaptiveChange={(value: boolean) => updateFormData("adaptive", value)}
               onNumberedChange={(value: "left" | "right" | "none") =>
                 updateFormData("numbered", value)
@@ -218,6 +307,7 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
               }}
               onOrderModeChange={(value: "random" | "custom") => updateFormData("orderMode", value)}
               onAddBlock={handleAddBlock}
+              tourButton={tourButton}
             />
             <ParsonsBlocksManager
               blocks={formData.blocks || []}
@@ -225,6 +315,7 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
               language={formData.language || "python"}
               grader={formData.grader ?? "line"}
               orderMode={formData.orderMode ?? "random"}
+              mode={mode}
             />
           </div>
         );
@@ -255,23 +346,27 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
   };
 
   return (
-    <ExerciseLayout
-      title="Parsons Exercise"
-      exerciseType="parsonsprob"
-      isEdit={isEdit}
-      steps={PARSONS_STEPS}
-      activeStep={activeStep}
-      isCurrentStepValid={isCurrentStepValid}
-      isSaving={isSaving}
-      stepsValidity={stepsValidity}
-      onCancel={onCancel}
-      onBack={goToPrevStep}
-      onNext={handleNext}
-      onSave={handleSave}
-      onStepSelect={handleStepSelect}
-      validation={validation}
-    >
-      {renderStepContent()}
-    </ExerciseLayout>
+    <>
+      <ConfirmDialog />
+      <ExerciseLayout
+        title="Parsons Exercise"
+        exerciseType="parsonsprob"
+        isEdit={isEdit}
+        steps={PARSONS_STEPS}
+        activeStep={activeStep}
+        isCurrentStepValid={isCurrentStepValid}
+        isSaving={isSaving}
+        stepsValidity={stepsValidity}
+        onCancel={onCancel}
+        onBack={goToPrevStep}
+        onNext={handleNext}
+        onSave={handleSave}
+        onStepSelect={handleStepSelect}
+        validation={validation}
+        headerExtra={modeSwitcher}
+      >
+        {renderStepContent()}
+      </ExerciseLayout>
+    </>
   );
 };

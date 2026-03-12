@@ -10,7 +10,7 @@ export interface ParsonsBlock {
   isCorrect?: boolean;
   tag?: string;
   depends?: string[];
-  comment?: string;
+  explanation?: string;
   displayOrder?: number;
   pairedWithBlockAbove?: boolean;
 }
@@ -99,7 +99,8 @@ export const generateParsonsPreview = ({
       if (block.isDistractor) {
         // isPaired is set automatically for grouped alternatives,
         // pairedWithBlockAbove is set by the user for standalone distractors
-        blockContent += block.isPaired || block.pairedWithBlockAbove ? " #paired" : " #distractor";
+        const marker = block.isPaired || block.pairedWithBlockAbove ? "#paired" : "#distractor";
+        blockContent += block.explanation ? ` ${marker}: ${block.explanation}` : ` ${marker}`;
       }
 
       return blockContent;
@@ -161,6 +162,36 @@ export const generateParsonsPreview = ({
     }
   } else if (customOrder && customOrder.length > 0) {
     dataAttributes += ` data-order="${customOrder.join(",")}"`;
+  }
+
+  // Build explanations map for blocks that have explanations
+  const explanationMap: Record<number, string> = {};
+  let blockIdx = 0;
+  const seenGroupsForExplanations = new Set<string>();
+  processedBlocks.forEach((block) => {
+    if (block.groupId) {
+      if (!seenGroupsForExplanations.has(block.groupId)) {
+        seenGroupsForExplanations.add(block.groupId);
+        if (block.explanation) {
+          explanationMap[blockIdx] = block.explanation;
+        }
+        blockIdx++;
+      }
+    } else {
+      if (block.explanation) {
+        explanationMap[blockIdx] = block.explanation;
+      }
+      blockIdx++;
+    }
+  });
+
+  if (Object.keys(explanationMap).length > 0) {
+    const escapedJson = JSON.stringify(explanationMap)
+      .replace(/&/g, "&amp;")
+      .replace(/'/g, "&#39;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    dataAttributes += ` data-explanations='${escapedJson}'`;
   }
 
   return `

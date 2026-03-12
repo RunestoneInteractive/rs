@@ -21,16 +21,19 @@ interface SortableBlockProps {
   onSplitBlock?: (id: string, lineIndex: number) => void;
   onDistractorChange?: (id: string, isDistractor: boolean) => void;
   onPairedChange?: (id: string, paired: boolean) => void;
-  onCommentChange?: (id: string, comment: string) => void;
+  onExplanationChange?: (id: string, explanation: string) => void;
   onTagChange?: (id: string, tag: string) => void;
   onDependsChange?: (id: string, depends: string[]) => void;
   onOrderChange?: (id: string, order: number) => void;
   hasAlternatives?: boolean;
   showAddAlternative?: boolean;
   showDragHandle?: boolean;
+  isFirstInLine?: boolean;
   grader?: "line" | "dag";
   orderMode?: "random" | "custom";
   allTags?: string[];
+  mode?: "simple" | "enhanced";
+  "data-tour"?: string;
 }
 
 export const SortableBlock: FC<SortableBlockProps> = ({
@@ -48,16 +51,19 @@ export const SortableBlock: FC<SortableBlockProps> = ({
   onSplitBlock,
   onDistractorChange,
   onPairedChange,
-  onCommentChange,
+  onExplanationChange,
   onTagChange,
   onDependsChange,
   onOrderChange,
   hasAlternatives,
   showAddAlternative = true,
   showDragHandle = true,
+  isFirstInLine = false,
   grader = "line",
   orderMode = "random",
-  allTags = []
+  allTags = [],
+  mode = "enhanced",
+  "data-tour": dataTour
 }) => {
   const handleRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +102,7 @@ export const SortableBlock: FC<SortableBlockProps> = ({
       data-indent={block.indent}
       data-group-id={block.groupId || ""}
       data-id={id}
+      data-tour={dataTour}
     >
       <BlockItem
         block={block}
@@ -112,7 +119,7 @@ export const SortableBlock: FC<SortableBlockProps> = ({
         onSplitBlock={onSplitBlock}
         onDistractorChange={onDistractorChange}
         onPairedChange={onPairedChange}
-        onCommentChange={onCommentChange}
+        onExplanationChange={onExplanationChange}
         onTagChange={onTagChange}
         onDependsChange={onDependsChange}
         onOrderChange={onOrderChange}
@@ -120,9 +127,11 @@ export const SortableBlock: FC<SortableBlockProps> = ({
         hasAlternatives={hasAlternatives}
         showAddAlternative={showAddAlternative}
         showDragHandle={showDragHandle}
+        isFirstInLine={isFirstInLine}
         grader={grader}
         orderMode={orderMode}
         allTags={allTags}
+        mode={mode}
         dragHandleProps={showDragHandle ? { ref: handleRef, attributes, listeners } : undefined}
       />
     </div>

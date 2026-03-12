@@ -1,8 +1,10 @@
 import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
 import { Button } from "primereact/button";
 import { Checkbox, CheckboxChangeEvent } from "primereact/checkbox";
+import { Divider } from "primereact/divider";
 import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
+import { OverlayPanel } from "primereact/overlaypanel";
 import { Tooltip } from "primereact/tooltip";
 import React, { FC, useRef, useCallback, useMemo, useState, useEffect, CSSProperties } from "react";
 
@@ -26,7 +28,7 @@ interface BlockItemProps {
   onSplitBlock?: (id: string, lineIndex: number) => void;
   onDistractorChange?: (id: string, isDistractor: boolean) => void;
   onPairedChange?: (id: string, paired: boolean) => void;
-  onCommentChange?: (id: string, comment: string) => void;
+  onExplanationChange?: (id: string, explanation: string) => void;
   onTagChange?: (id: string, tag: string) => void;
   onDependsChange?: (id: string, depends: string[]) => void;
   onOrderChange?: (id: string, order: number) => void;
@@ -34,9 +36,11 @@ interface BlockItemProps {
   hasAlternatives?: boolean;
   showAddAlternative?: boolean;
   showDragHandle?: boolean;
+  isFirstInLine?: boolean;
   grader?: "line" | "dag";
   orderMode?: "random" | "custom";
   allTags?: string[];
+  mode?: "simple" | "enhanced";
   style?: React.CSSProperties;
   dragHandleProps?: {
     ref?: React.RefObject<HTMLDivElement>;
@@ -64,7 +68,7 @@ export const BlockItem: FC<BlockItemProps> = ({
   onSplitBlock,
   onDistractorChange,
   onPairedChange,
-  onCommentChange,
+  onExplanationChange,
   onTagChange,
   onDependsChange,
   onOrderChange,
@@ -72,9 +76,11 @@ export const BlockItem: FC<BlockItemProps> = ({
   hasAlternatives = false,
   showAddAlternative = true,
   showDragHandle = true,
+  isFirstInLine = false,
   grader = "line",
   orderMode = "random",
   allTags = [],
+  mode = "enhanced",
   style = {},
   dragHandleProps
 }) => {
@@ -83,12 +89,13 @@ export const BlockItem: FC<BlockItemProps> = ({
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const dividerRef = useRef<HTMLDivElement>(null);
   const splitButtonContainerRef = useRef<HTMLDivElement>(null);
+  const optionsPanelRef = useRef<OverlayPanel>(null);
 
   const [editorHeight, setEditorHeight] = useState<number>(MIN_EDITOR_HEIGHT);
   const [hoveredLine, setHoveredLine] = useState<number | null>(null);
   const [hoveredLineOffset, setHoveredLineOffset] = useState<number>(0);
   const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
-  const [showComment, setShowComment] = useState<boolean>(!!block.comment);
+  const [showExplanation, setShowExplanation] = useState<boolean>(!!block.explanation);
 
   useEffect(() => {
     return () => {
@@ -130,6 +137,7 @@ export const BlockItem: FC<BlockItemProps> = ({
     (e: React.MouseEvent) => {
       e.stopPropagation();
       hideAllTooltips();
+      optionsPanelRef.current?.hide();
       if (onAddAlternative) onAddAlternative(block.id);
     },
     [block.id, onAddAlternative, hideAllTooltips]
@@ -249,9 +257,28 @@ export const BlockItem: FC<BlockItemProps> = ({
       : styles.stripSolution;
 
   const isStandalone = !hasAlternatives;
-  const showDagFields = grader === "dag" && !block.isDistractor && isStandalone;
-  const showOrderField = orderMode === "custom" && isStandalone;
-  const showDistractorToggle = isStandalone && !!onDistractorChange;
+  const isFirstBlock = blockIndex === 0;
+  // Show full options for standalone blocks or the first block in a line (alternatives)
+  const showOptions = isStandalone || isFirstInLine;
+  const isSimple = mode === "simple";
+  const showDagFields = grader === "dag" && !block.isDistractor && showOptions;
+  const showOrderField = orderMode === "custom" && showOptions;
+  const showDistractorToggle = showOptions && !!onDistractorChange;
+
+  // Determine if there are any options to show in the popover (never in simple mode)
+  const hasPopoverOptions = !isSimple && (
+    showDistractorToggle ||
+    showDagFields ||
+    showOrderField ||
+    (onExplanationChange && showOptions) ||
+    (onAddAlternative && showAddAlternative && showOptions)
+  );
+
+  // In simple mode, show inline controls for distractor, alternative, note
+  const showInlineDistractor = isSimple && showDistractorToggle;
+  const showInlineAlternative = isSimple && onAddAlternative && showAddAlternative && showOptions;
+  const showInlineExplanation = isSimple && onExplanationChange && showOptions;
+  const showInlinePaired = isSimple && onPairedChange && !isFirstBlock && block.isDistractor;
 
   // Render split line overlay
   const renderSplitOverlay = () => {
@@ -330,9 +357,195 @@ export const BlockItem: FC<BlockItemProps> = ({
     );
   };
 
+  // Render the options popover content
+  const renderOptionsPanel = () => (
+    <div className={styles.optionsPanel} onMouseDown={(e) => e.stopPropagation()}>
+      {/* Block type section — Toggle switch */}
+      {showDistractorToggle && (
+        <div className={styles.optionsPanelSection}>
+          <span className={styles.optionsPanelSectionTitle}>Block Type</span>
+          <div className={styles.blockTypeToggleWrapper}>
+            <div
+              className={styles.blockTypeToggle}
+              data-tour={blockIndex === 0 ? "block-type-toggle" : undefined}
+              onClick={(e) => {
+                e.stopPropagation();
+                const newIsDistractor = !block.isDistractor;
+                onDistractorChange!(block.id, newIsDistractor);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              role="switch"
+              aria-checked={block.isDistractor}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  const newIsDistractor = !block.isDistractor;
+                  onDistractorChange!(block.id, newIsDistractor);
+                }
+              }}
+            >
+              <span
+                className={`${styles.blockTypeToggleLabel} ${!block.isDistractor ? styles.blockTypeToggleLabelActive : ""}`}
+              >
+                <i className="pi pi-check-circle" />
+                Solution
+              </span>
+              <span
+                className={`${styles.blockTypeToggleLabel} ${block.isDistractor ? styles.blockTypeToggleLabelActive : ""}`}
+              >
+                <i className="pi pi-times-circle" />
+                Distractor
+              </span>
+              <div
+                className={`${styles.blockTypeToggleSlider} ${block.isDistractor ? styles.blockTypeToggleSliderRight : ""}`}
+              />
+            </div>
+          </div>
+
+          {/* Paired checkbox — only visible when NOT the first block */}
+          {onPairedChange && !isFirstBlock && (
+            <div className={styles.pairedCheckboxRow}>
+              <Checkbox
+                inputId={`paired-${block.id}`}
+                checked={block.isDistractor === true && block.pairedWithBlockAbove === true}
+                onChange={(e) => {
+                  const paired = e.checked ?? false;
+                  if (paired && !block.isDistractor) {
+                    onDistractorChange!(block.id, true);
+                  }
+                  onPairedChange(block.id, paired);
+                }}
+                className={styles.modernCheckbox}
+                onMouseDown={(e) => e.stopPropagation()}
+              />
+              <label
+                htmlFor={`paired-${block.id}`}
+                className={styles.pairedCheckboxLabel}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <i className="pi pi-link" />
+                Pair with block above
+              </label>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* DAG fields section */}
+      {showDagFields && (onTagChange || onDependsChange) && (
+        <>
+          {showDistractorToggle && <Divider className={styles.optionsPanelDivider} />}
+          <div className={styles.optionsPanelSection} data-tour={blockIndex === 0 ? "dag-config" : undefined}>
+            <span className={styles.optionsPanelSectionTitle}>DAG Configuration</span>
+            {onTagChange && (
+              <div className={styles.optionsPanelField}>
+                <label className={styles.optionsPanelLabel}>Tag</label>
+                <InputText
+                  value={block.tag || ""}
+                  onChange={(e) => onTagChange(block.id, e.target.value)}
+                  className={styles.optionsPanelInput}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  placeholder={`${blockIndex ?? 0}`}
+                />
+              </div>
+            )}
+            {onDependsChange && (
+              <div className={styles.optionsPanelField}>
+                <label className={styles.optionsPanelLabel}>
+                  Depends on
+                  {allTags.length > 0 && (
+                    <span className={styles.optionsPanelHint}>
+                      ({allTags.filter((t) => t !== block.tag).join(", ")})
+                    </span>
+                  )}
+                </label>
+                <InputText
+                  value={block.depends?.join(", ") || ""}
+                  onChange={(e) => {
+                    const deps = e.target.value
+                      .split(",")
+                      .map((d) => d.trim())
+                      .filter((d) => d !== "");
+                    onDependsChange(block.id, deps);
+                  }}
+                  className={styles.optionsPanelInput}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  placeholder="e.g. 0, 1"
+                />
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Order field section */}
+      {showOrderField && onOrderChange && (
+        <>
+          {(showDistractorToggle || showDagFields) && (
+            <Divider className={styles.optionsPanelDivider} />
+          )}
+          <div className={styles.optionsPanelSection} data-tour={blockIndex === 0 ? "position-field" : undefined}>
+            <span className={styles.optionsPanelSectionTitle}>Display Order</span>
+            <div className={styles.optionsPanelField}>
+              <label className={styles.optionsPanelLabel}>Position</label>
+              <InputText
+                value={block.displayOrder !== undefined ? String(block.displayOrder) : ""}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  onOrderChange(block.id, isNaN(val) ? 0 : val);
+                }}
+                className={styles.optionsPanelInput}
+                onMouseDown={(e) => e.stopPropagation()}
+                placeholder="Auto"
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Actions section */}
+      {((onExplanationChange && showOptions) || (onAddAlternative && showAddAlternative && showOptions)) && (
+        <>
+          {(showDistractorToggle || showDagFields || showOrderField) && (
+            <Divider className={styles.optionsPanelDivider} />
+          )}
+          <div className={styles.optionsPanelSection}>
+            {onAddAlternative && showAddAlternative && showOptions && (
+              <button
+                className={styles.optionsPanelAction}
+                onClick={handleAddAlternative}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <i className="pi pi-copy" />
+                <span>Add Alternative</span>
+              </button>
+            )}
+            {onExplanationChange && showOptions && (
+              <button
+                className={styles.optionsPanelAction}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowExplanation(!showExplanation);
+                  optionsPanelRef.current?.hide();
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <i className="pi pi-comment" />
+                <span>{showExplanation ? "Hide Explanation" : "Add Explanation"}</span>
+                {block.explanation && <span className={styles.optionsPanelBadge}>1</span>}
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <div
       ref={containerRef}
+      className={styles.blockCard}
       style={{
         width: `${blockWidth}%`,
         maxWidth: "800px",
@@ -341,10 +554,10 @@ export const BlockItem: FC<BlockItemProps> = ({
         ...style
       }}
     >
-      {/* Main row */}
+      {/* Main block row */}
       <div
         className={`${styles.blockRow} ${block.isDistractor ? styles.blockRowDistractor : ""}`}
-        style={showComment ? { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 } : undefined}
+        style={showExplanation ? { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 } : undefined}
       >
         {/* Color strip */}
         <div className={`${styles.blockStrip} ${stripClass}`} />
@@ -356,19 +569,70 @@ export const BlockItem: FC<BlockItemProps> = ({
             {...dragHandleProps.attributes}
             {...dragHandleProps.listeners}
             className={styles.dragHandle}
+            title="Drag to reorder"
+            data-tour={blockIndex === 0 ? "drag-handle" : undefined}
           >
             <i className="pi pi-bars" />
           </div>
         )}
 
-        {/* Block number */}
+        {/* Block number badge */}
         {blockIndex !== undefined && isStandalone && (
           <div className={styles.blockNum}>{blockIndex + 1}</div>
         )}
 
+        {/* Inline distractor toggle — Simple mode only */}
+        {showInlineDistractor && (
+          <div className={styles.inlineDistractorArea}>
+            <Tooltip target=".inline-distractor-pill" position="top" />
+            <div
+              className={`${styles.inlineDistractorPill} ${block.isDistractor ? styles.inlineDistractorPillActive : ""} inline-distractor-pill`}
+              data-tour={blockIndex === 0 ? "distractor-pill" : undefined}
+              data-pr-tooltip={block.isDistractor ? "Distractor block" : "Solution block"}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDistractorChange!(block.id, !block.isDistractor);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              role="switch"
+              aria-checked={block.isDistractor}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onDistractorChange!(block.id, !block.isDistractor);
+                }
+              }}
+            >
+              {block.isDistractor ? "D" : "S"}
+            </div>
+            {/* Inline paired checkbox */}
+            {showInlinePaired && (
+              <div className={styles.inlinePairedWrapper}>
+                <Tooltip target=".inline-paired-check" position="top" />
+                <Checkbox
+                  inputId={`paired-inline-${block.id}`}
+                  checked={block.isDistractor === true && block.pairedWithBlockAbove === true}
+                  onChange={(e) => {
+                    const paired = e.checked ?? false;
+                    if (paired && !block.isDistractor) {
+                      onDistractorChange!(block.id, true);
+                    }
+                    onPairedChange!(block.id, paired);
+                  }}
+                  className={`${styles.modernCheckbox} inline-paired-check`}
+                  data-pr-tooltip="Pair with block above"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  style={{ width: "0.85rem", height: "0.85rem" }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Correct checkbox for alternatives */}
         {showCorrectCheckbox && (
-          <div style={{ display: "flex", alignItems: "center", padding: "0 4px", flexShrink: 0 }}>
+          <div className={styles.correctCheckboxWrapper}>
             <Tooltip target=".correct-checkbox" position="top" />
             <Checkbox
               inputId={`correct-${block.id}`}
@@ -382,178 +646,76 @@ export const BlockItem: FC<BlockItemProps> = ({
           </div>
         )}
 
-        {/* Editor */}
+        {/* Editor area */}
         <div className={styles.blockEditor}>{renderEditor()}</div>
 
-        {/* Inline meta fields */}
-        {(showDistractorToggle || showDagFields || showOrderField) && (
-          <div className={styles.inlineMeta}>
-            {/* Distractor toggle chip */}
-            {showDistractorToggle && (
-              <button
-                className={`${styles.distractorChip} ${
-                  block.isDistractor ? styles.isDistractor : styles.isSolution
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDistractorChange!(block.id, !block.isDistractor);
-                  // Reset paired when turning off distractor
-                  if (block.isDistractor && onPairedChange) {
-                    onPairedChange(block.id, false);
-                  }
-                }}
-                onMouseDown={(e) => e.stopPropagation()}
-                title={block.isDistractor ? "Mark as solution block" : "Mark as distractor"}
-              >
-                <i
-                  className={`pi ${block.isDistractor ? "pi-times" : "pi-check"}`}
-                  style={{ fontSize: "0.55rem" }}
-                />
-                {block.isDistractor ? "D" : "S"}
-              </button>
-            )}
-
-            {/* Paired toggle — only shown for distractor blocks */}
-            {showDistractorToggle && block.isDistractor && onPairedChange && (
-              <button
-                className={`${styles.pairedChip} ${
-                  block.pairedWithBlockAbove ? styles.isPaired : styles.isUnpaired
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPairedChange(block.id, !block.pairedWithBlockAbove);
-                }}
-                onMouseDown={(e) => e.stopPropagation()}
-                title={
-                  block.pairedWithBlockAbove
-                    ? "Unpair from block above (will become a free distractor)"
-                    : "Pair with block above (always shown together, student must choose)"
-                }
-              >
-                <i className="pi pi-link" style={{ fontSize: "0.55rem" }} />P
-              </button>
-            )}
-
-            {/* Order */}
-            {showOrderField && onOrderChange && (
-              <div className={styles.inlineField}>
-                <span className={styles.inlineFieldLabel}>#</span>
-                <InputText
-                  value={block.displayOrder !== undefined ? String(block.displayOrder) : ""}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value);
-                    onOrderChange(block.id, isNaN(val) ? 0 : val);
-                  }}
-                  className={styles.orderInlineInput}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  placeholder="—"
-                />
-              </div>
-            )}
-
-            {/* DAG tag */}
-            {showDagFields && onTagChange && (
-              <div className={styles.inlineField}>
-                <span className={styles.inlineFieldLabel}>tag</span>
-                <InputText
-                  value={block.tag || ""}
-                  onChange={(e) => onTagChange(block.id, e.target.value)}
-                  className={styles.tagInlineInput}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  placeholder={`${blockIndex ?? 0}`}
-                />
-              </div>
-            )}
-
-            {/* DAG depends */}
-            {showDagFields && onDependsChange && (
-              <div className={styles.inlineField}>
-                <span className={styles.inlineFieldLabel}>dep</span>
-                <Tooltip
-                  target={`.depends-input-${block.id}`}
-                  position="top"
-                  mouseTrack
-                  mouseTrackTop={10}
-                />
-                <InputText
-                  value={block.depends?.join(",") || ""}
-                  onChange={(e) => {
-                    const deps = e.target.value
-                      .split(",")
-                      .map((d) => d.trim())
-                      .filter((d) => d !== "");
-                    onDependsChange(block.id, deps);
-                  }}
-                  className={`${styles.dependsInlineInput} depends-input-${block.id}`}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  placeholder="0,1"
-                  data-pr-tooltip={
-                    allTags.length > 0
-                      ? `Available: ${allTags.filter((t) => t !== block.tag).join(", ")}`
-                      : undefined
-                  }
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Action buttons */}
+        {/* Compact action bar — replaces old inlineMeta + blockActions */}
         <div className={styles.blockActions}>
-          {/* Comment toggle */}
-          {onCommentChange && isStandalone && (
+          {/* Options menu trigger — Enhanced mode only */}
+          {hasPopoverOptions && (
+            <>
+              <Button
+                icon="pi pi-ellipsis-v"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  optionsPanelRef.current?.toggle(e);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                className={`p-button-rounded p-button-text ${styles.actionBtn}`}
+                aria-label="Block options"
+              />
+              <OverlayPanel ref={optionsPanelRef} className={styles.optionsPanelOverlay}>
+                {renderOptionsPanel()}
+              </OverlayPanel>
+            </>
+          )}
+          {/* Inline alternative button — Simple mode only */}
+          {showInlineAlternative && (
+            <Button
+              icon="pi pi-copy"
+              onClick={handleAddAlternative}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={`p-button-rounded p-button-text ${styles.actionBtn}`}
+              aria-label="Add alternative"
+              tooltip="Add alternative"
+              tooltipOptions={{ position: "top" }}
+            />
+          )}
+          {/* Inline explanation button — Simple mode only */}
+          {showInlineExplanation && (
             <Button
               icon="pi pi-comment"
               onClick={(e) => {
                 e.stopPropagation();
-                setShowComment(!showComment);
+                setShowExplanation(!showExplanation);
               }}
-              className={`p-button-rounded p-button-text ${styles.tinyBtn}`}
-              aria-label="Toggle comment"
-              style={{ color: block.comment ? "#f59e0b" : "#94a3b8" }}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={`p-button-rounded p-button-text ${styles.actionBtn} ${block.explanation ? styles.actionBtnHighlight : ""}`}
+              aria-label={showExplanation ? "Hide explanation" : "Add explanation"}
+              tooltip={showExplanation ? "Hide explanation" : "Add explanation"}
+              tooltipOptions={{ position: "top" }}
             />
           )}
-          {/* Add alternative */}
-          {onAddAlternative && showAddAlternative && (
-            <>
-              <Tooltip target=".add-alt-btn" mouseTrack mouseTrackTop={10} />
-              <Button
-                icon="pi pi-copy"
-                onClick={handleAddAlternative}
-                className={`p-button-rounded p-button-info p-button-text add-alt-btn ${styles.tinyBtn}`}
-                aria-label="Add alternative"
-                data-pr-tooltip="Add alternative"
-                onMouseLeave={hideAllTooltips}
-              />
-            </>
-          )}
-          {/* Remove */}
+          {/* Remove — always visible */}
           <Button
             icon="pi pi-trash"
             onClick={handleRemove}
-            className={`p-button-rounded p-button-danger p-button-text ${styles.tinyBtn}`}
-            aria-label="Remove"
+            className={`p-button-rounded p-button-text ${styles.actionBtn} ${styles.actionBtnDanger}`}
+            aria-label="Remove block"
           />
         </div>
       </div>
 
-      {/* Comment row — appears below the main row when toggled */}
-      {showComment && onCommentChange && (
-        <div
-          className={styles.commentRow}
-          style={{
-            border: "1px solid #e2e8f0",
-            borderTop: "none",
-            borderBottomLeftRadius: "5px",
-            borderBottomRightRadius: "5px"
-          }}
-        >
+      {/* Explanation row — appears below the main row when toggled */}
+      {showExplanation && onExplanationChange && (
+        <div className={styles.explanationRow} data-tour={blockIndex === 0 ? "explanation-row" : undefined}>
+          <i className={`pi pi-comment ${styles.explanationIcon}`} />
           <InputTextarea
-            value={block.comment || ""}
-            onChange={(e) => onCommentChange(block.id, e.target.value)}
-            className={styles.commentInput}
+            value={block.explanation || ""}
+            onChange={(e) => onExplanationChange(block.id, e.target.value)}
+            className={styles.explanationInput}
             onMouseDown={(e) => e.stopPropagation()}
-            placeholder="Author note (not shown to students)..."
+            placeholder="Block explanation (shown to students after solving)..."
             autoResize
             rows={1}
           />
