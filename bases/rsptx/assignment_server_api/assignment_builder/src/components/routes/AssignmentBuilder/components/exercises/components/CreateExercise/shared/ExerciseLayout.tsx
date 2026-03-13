@@ -103,6 +103,7 @@ export const ExerciseLayout = ({
                 onClick={toggleFullscreen}
                 tooltip={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                 tooltipOptions={{ position: "bottom" }}
+                data-tour="fullscreen-btn"
               />
             )}
             <Button label="Cancel" icon="pi pi-times" severity="secondary" onClick={handleCancel} />

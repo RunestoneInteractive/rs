@@ -182,6 +182,11 @@ export const ParsonsExerciseTour: FC<ParsonsExerciseTourProps> = ({
       await ensureBlockExists();
       await nextTick();
       await waitForElement('[data-tour="first-block"] [aria-label="Block options"]');
+    },
+    /* 14 — Fullscreen */
+    13: async () => {
+      await nextTick();
+      await waitForElement('[data-tour="fullscreen-btn"]');
     }
   };
 

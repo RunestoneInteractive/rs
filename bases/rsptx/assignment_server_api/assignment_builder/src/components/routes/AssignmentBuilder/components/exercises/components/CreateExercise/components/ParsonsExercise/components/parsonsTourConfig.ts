@@ -137,5 +137,15 @@ export const PARSONS_TOUR_STEPS: TourStepConfig[] = [
       "In Enhanced Mode, click the <strong>⋮</strong> button to open a dropdown with advanced block settings: <strong>Block Type</strong> (Solution / Distractor), <strong>Paired</strong> toggle, <strong>DAG Configuration</strong> (Tag & DependsOn), <strong>Display Order</strong>, <strong>Add Alternative</strong>, and <strong>Add Explanation</strong>.",
     side: "left",
     align: "start"
+  },
+
+  /* 14 — Fullscreen */
+  {
+    element: '[data-tour="fullscreen-btn"]',
+    title: "Fullscreen Mode",
+    description:
+      "Click this button to enter <strong>Fullscreen</strong> mode. It gives you more screen space to work with blocks comfortably, especially for larger exercises.",
+    side: "bottom",
+    align: "end"
   }
 ];
