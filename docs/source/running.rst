@@ -3,29 +3,6 @@ Running a Runestone Server
 
 Maybe you just want to run your own server for a small course. Maybe you are an author who just wants to preview what your book will look like in Runestone.  (Hint:  Its going to look very much like the plain html, unless you have Java, C or C++ code) Or maybe you are interested in getting involved in the development of the Runestone tools, but want to experiment first.  This document will help you get started without having to install a lot of software on your own machine, or having to worry about setting up a web server or database or any development environment.  This will work for both linux and macOS on Apple Silicon or Intel based machines.  It will also work on Windows, but you will need to install WSL2 and Docker Desktop for Windows.
 
-Quick Start
------------
-
-Get Runestone running with a single command:
-
-.. code-block:: bash
-
-   bash <(curl -fsSL https://raw.githubusercontent.com/RunestoneInteractive/rs/main/init_runestone.sh)
-
-The script will guide you through an interactive setup process, asking questions along the way to configure your Runestone server.
-
-**Before running the command:**
-
-#. Navigate to where you want the configuration files created (e.g., ``mkdir ~/runestone && cd ~/runestone``)
-#. Make sure you have the prerequisites installed (see below)
-#. For Windows users: Run this from a WSL2 terminal, not PowerShell or Command Prompt
-
-**After setup completes:**
-
-- Access your server at http://localhost
-- Log in with username: ``testuser1``, password: ``xxx``
-- Check ``init_runestone.log`` if you encounter any issues
-
 Prerequisites
 -------------
 
@@ -51,6 +28,82 @@ Before running the setup script, you need:
 
   - Most users will want to add books, so this is recommended
   - You can install it later if you skip book setup initially
+
+Quick Start
+-----------
+
+Get Runestone running with a single command:
+
+.. code-block:: bash
+
+   bash <(curl -fsSL https://raw.githubusercontent.com/RunestoneInteractive/rs/main/init_runestone.sh)
+
+The script will guide you through an interactive setup process, asking questions along the way to configure your Runestone server.
+
+**Before running the command:**
+
+#. Navigate to where you want the configuration files created (e.g., ``mkdir ~/runestone && cd ~/runestone``)
+#. Make sure you have the prerequisites installed (see above)
+#. For Windows users: Run this from a WSL2 terminal, not PowerShell or Command Prompt
+
+**After setup completes:**
+
+- Access your server at http://localhost
+- Log in with username: ``testuser1``, password: ``xxx``
+- Check ``init_runestone.log`` if you encounter any issues
+
+Managing Your Server
+--------------------
+
+**Stopping and Starting:**
+
+- Stop the server: ``docker compose stop``
+- Start the server: ``docker compose start``
+- Restart services: ``docker compose restart``
+- Shut down and remove containers: ``docker compose down``
+- Shut down and remove volumes (WARNING: deletes all data): ``docker compose down -v``
+
+**Viewing Logs:**
+
+To view logs from all services: ``docker compose logs -f``
+
+**Common Management Tasks:**
+
+- Add another book: ``docker compose run --rm rsmanage rsmanage addbookauthor``
+- Build a book: ``docker compose run --rm rsmanage rsmanage build <bookname>``
+- Build a PreTeXt book: ``docker compose run --rm rsmanage rsmanage build --ptx <bookname>``
+- Create a course: ``docker compose run --rm rsmanage rsmanage addcourse``
+- Add an instructor to a course: ``docker compose run --rm rsmanage rsmanage addinstructor``
+
+**Troubleshooting:**
+
+If you used the automated setup script (``init_runestone.sh``), check the ``init_runestone.log`` file in the rs directory for detailed information about the setup process. This log can help diagnose any issues that occurred during initialization.
+
+For database issues, you can reset the database by running ``docker compose down -v`` to remove all volumes, then re-run the initialization steps (either manually or via ``./init_runestone.sh``).
+
+Developer Setup (From Cloned Repository)
+-----------------------------------------
+
+If you're contributing to Runestone development or want the source code locally, clone the repository first:
+
+.. code-block:: bash
+
+   git clone https://github.com/RunestoneInteractive/rs.git
+   cd rs
+   ./init_runestone.sh
+
+The script will detect that ``docker-compose.yml`` and ``sample.env`` already exist and run in "traditional mode" without downloading files. All the same setup steps occur — you just have the source code available for development.
+
+**Why clone the repository?**
+
+- You want to modify Runestone server code
+- You're contributing features or bug fixes
+- You need to build Docker images locally instead of using pre-built ones
+- You want to run tests or use additional development tools
+
+For most users just running a Runestone server, cloning the repository is not necessary.
+
+**For full development environment setup** (building from source, running tests, etc.), see the :doc:`developing` documentation.
 
 How the Setup Script Works
 ---------------------------
@@ -166,55 +219,3 @@ Students will register for your course and use the book content within that cour
 
 After these steps, your Runestone server is fully operational and accessible at http://localhost.
 
-Developer Setup (From Cloned Repository)
------------------------------------------
-
-If you're contributing to Runestone development or want the source code locally, clone the repository first:
-
-.. code-block:: bash
-
-   git clone https://github.com/RunestoneInteractive/rs.git
-   cd rs
-   ./init_runestone.sh
-
-The script will detect that ``docker-compose.yml`` and ``sample.env`` already exist and run in "traditional mode" without downloading files. All the same setup steps occur — you just have the source code available for development.
-
-**Why clone the repository?**
-
-- You want to modify Runestone server code
-- You're contributing features or bug fixes
-- You need to build Docker images locally instead of using pre-built ones
-- You want to run tests or use additional development tools
-
-For most users just running a Runestone server, cloning the repository is not necessary.
-
-**For full development environment setup** (building from source, running tests, etc.), see the :doc:`developing` documentation.
-
-Managing Your Server
---------------------
-
-**Stopping and Starting:**
-
-- Stop the server: ``docker compose stop``
-- Start the server: ``docker compose start``
-- Restart services: ``docker compose restart``
-- Shut down and remove containers: ``docker compose down``
-- Shut down and remove volumes (WARNING: deletes all data): ``docker compose down -v``
-
-**Viewing Logs:**
-
-To view logs from all services: ``docker compose logs -f``
-
-**Common Management Tasks:**
-
-- Add another book: ``docker compose run --rm rsmanage rsmanage addbookauthor``
-- Build a book: ``docker compose run --rm rsmanage rsmanage build <bookname>``
-- Build a PreTeXt book: ``docker compose run --rm rsmanage rsmanage build --ptx <bookname>``
-- Create a course: ``docker compose run --rm rsmanage rsmanage addcourse``
-- Add an instructor to a course: ``docker compose run --rm rsmanage rsmanage addinstructor``
-
-**Troubleshooting:**
-
-If you used the automated setup script (``init_runestone.sh``), check the ``init_runestone.log`` file in the rs directory for detailed information about the setup process. This log can help diagnose any issues that occurred during initialization.
-
-For database issues, you can reset the database by running ``docker compose down -v`` to remove all volumes, then re-run the initialization steps (either manually or via ``./init_runestone.sh``).
