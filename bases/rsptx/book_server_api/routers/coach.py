@@ -208,7 +208,7 @@ async def parsons_scaffolding(request: Request, course: Optional[str]):
     rslogger.warning("CodeTailor: api_token obtained successfully")
     # Start to process the request from activecode.js
     req_bytes = await request.body()
-    req = req_bytes.decode("utf-8")
+    _ = req_bytes.decode("utf-8")
     data = await request.json()
 
     language = data.get("language")  # Capture the question language from the front end

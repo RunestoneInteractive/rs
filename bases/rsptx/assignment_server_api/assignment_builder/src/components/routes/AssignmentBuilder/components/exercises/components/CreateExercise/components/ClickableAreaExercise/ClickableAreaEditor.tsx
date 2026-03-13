@@ -185,7 +185,7 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
         }
       }),
       MathExtension.configure({
-        delimiters: "dollar",
+        delimiters: "bracket",
         katexOptions: {
           throwOnError: false,
           strict: false,

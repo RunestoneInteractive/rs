@@ -59,6 +59,8 @@ Needed??? */
     --bodyFont: #99aab5;
     --tooltip: #000000;
     --grayToWhite: #ffffff;
+    --dropdownBg: #1a1a1a;
+    --dropdownHoverBg: #333333;
     --navbar: #3d3d3d;
     --navbarFont: #ffffff;
     --navbarFontHover: #d6d6d6;
@@ -84,7 +86,13 @@ div.assignment-nav {
     border-width: 1px;
     padding-bottom: 5px;
     padding-top: 5px;
+}
 
+div.assignment-nav a {
+    /* use link color from PTX if available */
+    color: var(--link-alt-text-color, var(--links));
+    /* match PTX link styling and differentiate from standard text for AA compliance */
+    font-weight: 700;
 }
 
 /* custom modification of basic.css for color-contrast (AA compliant) */
@@ -388,13 +396,26 @@ div.container {
 }
 
 .dropdown-menu > li > label:hover, .dropdown-menu > li > label:focus {
-  color: #262626;
+  color: var(--grayToWhite);
   text-decoration: none;
-  background-color: #f5f5f5;
+  background-color: var(--dropdownHoverBg, #f5f5f5);
+}
+
+
+.dropdown-menu {
+    background-color: var(--dropdownBg, #ffffff);
 }
 
 .dropdown-menu > li > a {
     color: var(--grayToWhite);
+}
+
+.dropdown-menu > li > a:hover,
+.dropdown-menu > li > a:focus,
+.dropdown-menu > li > label:hover,
+.dropdown-menu > li > label:focus {
+    color: var(--grayToWhite);
+    background-color: var(--dropdownHoverBg, #f5f5f5);
 }
 
 .loggedinuser {
@@ -1235,7 +1256,7 @@ summary.ptx-footnote__number {
     display: inline;
 }
 
-summary.knowl__link {
+details > summary:first-of-type {
     display: list-item inline;
 }
 

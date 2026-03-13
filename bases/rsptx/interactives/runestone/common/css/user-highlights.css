@@ -99,6 +99,17 @@ div.sphinxsidebar {
 	margin-left: auto;
 	margin-right: auto;
 }
+
+[data-theme="dark"] #jump-to-chapter {
+    background-color: #000000;
+    color: #ffffff;
+    border-color: #555555;
+}
+
+[data-theme="dark"] #jump-to-chapter option {
+    background-color: #000000;
+    color: #ffffff;
+}
 #navigation-links{
 	background-color: #F8F8F8;
     border: 1px solid #CCCCCC;

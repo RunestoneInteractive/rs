@@ -100,60 +100,64 @@ export const TipTapDocModal: FC<TipTapDocModalProps> = ({ visible, onHide }) => 
         <section className={styles.section}>
           <h3>Math Expressions</h3>
           <p>
-            <strong>All math must be wrapped in dollar signs!</strong> Use LaTeX syntax for
-            mathematical expressions:
+            <strong>
+              All math must be wrapped in <code>\(</code> and <code>\)</code> delimiters!
+            </strong>{" "}
+            Use LaTeX syntax for mathematical expressions:
           </p>
           <ul>
             <li>
-              <strong>Inline math:</strong> <code>$x^2 + y^2 = z^2$</code> (single dollar signs)
+              <strong>Inline math:</strong> <code>\(x^2 + y^2 = z^2\)</code> (backslash-parentheses)
             </li>
             <li>
-              <strong>Block math:</strong> <code>$$\int_0^1 x^2 dx$$</code> (double dollar signs for
+              <strong>Block math:</strong> <code>\[\int_0^1 x^2 dx\]</code> (backslash-brackets for
               centered display)
             </li>
           </ul>
           <p>
-            <strong>Quick tip:</strong> Type <code>$\alpha$</code> to get α, <code>$\beta$</code> to
-            get β, etc.
+            <strong>Quick tip:</strong> Type <code>\(\alpha\)</code> to get α,{" "}
+            <code>\(\beta\)</code> to get β, etc.
           </p>
           <p>
-            <strong>Important:</strong> All LaTeX symbols must be wrapped in dollar signs ($).
+            <strong>Important:</strong> All LaTeX symbols must be wrapped in <code>\(</code> and{" "}
+            <code>\)</code> delimiters.
           </p>
           <p>Common symbols and usage:</p>
           <ul>
             <li>
               <strong>Greek letters:</strong>{" "}
               <code>
-                $\alpha$, $\beta$, $\gamma$, $\delta$, $\epsilon$, $\theta$, $\lambda$, $\mu$,
-                $\pi$, $\sigma$, $\phi$, $\omega$
+                \(\alpha\), \(\beta\), \(\gamma\), \(\delta\), \(\epsilon\), \(\theta\),
+                \(\lambda\), \(\mu\), \(\pi\), \(\sigma\), \(\phi\), \(\omega\)
               </code>
             </li>
             <li>
               <strong>Fractions:</strong>{" "}
               <code>
-                $\frac{"{numerator}"}
-                {"{denominator}"}$
+                \(\frac{"{numerator}"}
+                {"{denominator}"}\)
               </code>
             </li>
             <li>
-              <strong>Superscripts:</strong> <code>$x^{"{superscript}"}$</code> or{" "}
-              <code>$x^2$</code>
+              <strong>Superscripts:</strong> <code>\(x^{"{superscript}"}\)</code> or{" "}
+              <code>\(x^2\)</code>
             </li>
             <li>
-              <strong>Subscripts:</strong> <code>$x_{"{subscript}"}$</code> or <code>$x_1$</code>
+              <strong>Subscripts:</strong> <code>\(x_{"{subscript}"}\)</code> or{" "}
+              <code>\(x_1\)</code>
             </li>
             <li>
-              <strong>Square root:</strong> <code>$\sqrt{"{x}"}$</code> or{" "}
-              <code>$\sqrt[n]{"{x}"}$</code>
+              <strong>Square root:</strong> <code>\(\sqrt{"{x}"}\)</code> or{" "}
+              <code>\(\sqrt[n]{"{x}"}\)</code>
             </li>
             <li>
-              <strong>Integrals:</strong> <code>$\int$, $\sum$, $\prod$</code>
+              <strong>Integrals:</strong> <code>\(\int\), \(\sum\), \(\prod\)</code>
             </li>
             <li>
               <strong>Number sets (with shortcuts):</strong>{" "}
               <code>
-                $\R$, $\N$, $\Z$, $\Q$, $\C$ (shortcuts for $\mathbb{"{R}"}$, $\mathbb{"{N}"}$,
-                etc.)
+                \(\R\), \(\N\), \(\Z\), \(\Q\), \(\C\) (shortcuts for \(\mathbb{"{R}"}\), \(\mathbb
+                {"{N}"}\), etc.)
               </code>
             </li>
           </ul>
@@ -162,36 +166,36 @@ export const TipTapDocModal: FC<TipTapDocModalProps> = ({ visible, onHide }) => 
           </p>
           <ul>
             <li>
-              <code>$\alpha + \beta = \gamma$</code> → α + β = γ
+              <code>\(\alpha + \beta = \gamma\)</code> → α + β = γ
             </li>
             <li>
               <code>
-                $\frac{"{1}"}
+                \(\frac{"{1}"}
                 {"{2}"} + \frac{"{1}"}
                 {"{3}"} = \frac{"{5}"}
-                {"{6}"}$
+                {"{6}"}\)
               </code>{" "}
               → ½ + ⅓ = ⅚
             </li>
             <li>
               <code>
-                $\int_0^1 x^2 dx = \frac{"{1}"}
-                {"{3}"}$
+                \(\int_0^1 x^2 dx = \frac{"{1}"}
+                {"{3}"}\)
               </code>{" "}
               → ∫₀¹ x² dx = ⅓
             </li>
             <li>
-              <code>$x^2 + y^2 = r^2$</code> → x² + y² = r²
+              <code>\(x^2 + y^2 = r^2\)</code> → x² + y² = r²
             </li>
             <li>
               <code>
-                $\sum_{"{i=1}"}^n i = \frac{"{n(n+1)}"}
-                {"{2}"}$
+                \(\sum_{"{i=1}"}^n i = \frac{"{n(n+1)}"}
+                {"{2}"}\)
               </code>{" "}
               → Σᵢ₌₁ⁿ i = n(n+1)/2
             </li>
             <li>
-              <code>$\R \subseteq \C$ and $\alpha \in \R$</code> → ℝ ⊆ ℂ and α ∈ ℝ
+              <code>\(\R \subseteq \C\) and \(\alpha \in \R\)</code> → ℝ ⊆ ℂ and α ∈ ℝ
             </li>
           </ul>
         </section>

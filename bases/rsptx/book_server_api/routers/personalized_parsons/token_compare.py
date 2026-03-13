@@ -82,7 +82,7 @@ def code_similarity_score(code1, code2, language):
     try:
         tokens1, type1 = tokenize_code(code1, language)
         tokens2 = following_tokenize_code(code2, type1, language)
-    except:
+    except Exception:
         tokens2, type2 = tokenize_code(code2, language)
         tokens1 = following_tokenize_code(code1, type2, language)
 

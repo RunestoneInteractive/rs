@@ -23,6 +23,7 @@ class DataFile extends RunestoneBase {
         this.divid = orig.id;
         this.dataEdit = this.parseBooleanAttribute(orig, "data-edit");
         this.isImage = this.parseBooleanAttribute(orig, "data-isimage");
+        this.fileName = orig.dataset.filename || null;
         this.displayClass = "block"; // Users can specify the non-edit component to be hidden--default is not hidden
         if (this.parseBooleanAttribute(orig, "data-hidden")) {
             this.displayClass = "none";

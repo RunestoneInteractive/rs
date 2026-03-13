@@ -141,9 +141,11 @@ def create_assignment_summary(assignment_id, course, dburl):
     ]
     try:
         merged.iloc[0, 3:] = merged.iloc[0, 3:].apply(
-            lambda x: "{:.2f}".format(float(x.split("(")[0]))
-            if type(x) is str and "(" in x
-            else "{:.2f}".format(float(x))
+            lambda x: (
+                "{:.2f}".format(float(x.split("(")[0]))
+                if type(x) is str and "(" in x
+                else "{:.2f}".format(float(x))
+            )
         )
     except Exception as e:
         print(

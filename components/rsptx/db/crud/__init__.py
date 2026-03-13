@@ -5,6 +5,8 @@ from .crud import (
     create_initial_courses_users,
     create_invoice_request,
     create_traceback,
+    delete_api_token,
+    fetch_all_api_tokens,
     fetch_api_token,
     is_server_feedback,
     EVENT2TABLE,
@@ -130,7 +132,15 @@ from .lti import (
     validate_user_credentials,
 )
 
-from .peer import fetch_last_useinfo_peergroup, get_peer_votes, did_send_messages
+from .peer import (
+    fetch_last_useinfo_peergroup,
+    get_peer_votes,
+    did_send_messages,
+    fetch_recent_student_answers,
+    fetch_student_answers_in_timerange,
+    count_distinct_student_answers,
+    count_peer_messages,
+)
 
 from .practice import (
     create_user_topic_practice,
@@ -161,7 +171,17 @@ from .question import (
     update_question_grade_entry,
 )
 
-from .rsfiles import fetch_source_code, update_source_code, update_source_code_sync, fetch_all_datafiles, check_datafile_exists, generate_datafile_acid, fetch_datafile_by_acid, update_datafile, delete_datafile
+from .rsfiles import (
+    fetch_source_code,
+    update_source_code,
+    update_source_code_sync,
+    fetch_all_datafiles,
+    check_datafile_exists,
+    generate_datafile_acid,
+    fetch_datafile_by_acid,
+    update_datafile,
+    delete_datafile,
+)
 
 from .rslogging import (
     count_useinfo_for,
@@ -236,6 +256,8 @@ __all__ += [
     "create_initial_courses_users",
     "create_invoice_request",
     "create_traceback",
+    "delete_api_token",
+    "fetch_all_api_tokens",
     "fetch_api_token",
     "is_server_feedback",
     "EVENT2TABLE",
@@ -344,6 +366,10 @@ __all__ += [
     "fetch_last_useinfo_peergroup",
     "get_peer_votes",
     "did_send_messages",
+    "fetch_recent_student_answers",
+    "fetch_student_answers_in_timerange",
+    "count_distinct_student_answers",
+    "count_peer_messages",
 ]
 
 # from .practice

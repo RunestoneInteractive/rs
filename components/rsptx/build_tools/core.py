@@ -15,6 +15,7 @@
 import datetime
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 import logging
@@ -72,11 +73,11 @@ def _build_runestone_book(config, course, click=click):
             click.echo(
                 f"I can't find a pavement.py file in {os.getcwd()} you need that to build"
             )
-            return False
+            return {"completed": False, "status": "Missing pavement.py file"}
     except ImportError as e:
         click.echo("You do not appear to have a good pavement.py file.")
         print(e)
-        return False
+        return {"completed": False, "status": "Invalid pavement.py file"}
 
     # If the click object has a worker attribute then we are running in a worker
     # process and **know** we are making a build for a runestone server. In that
@@ -91,17 +92,26 @@ def _build_runestone_book(config, course, click=click):
 
     if hasattr(click, "worker") and dp is not True:
         click.echo("dynamic_pages must be set to True in pavement.py")
-        return False
+        return {
+            "completed": False,
+            "status": "dynamic_pages must be set to True in pavement.py",
+        }
     if paver_vars["project_name"] != course:
         click.echo(
             f"Error: {course} and {paver_vars['project_name']} do not match.  Your course name needs to match the project_name in pavement.py"
         )
-        return False
+        return {
+            "completed": False,
+            "status": "Course name does not match project_name in pavement.py",
+        }
     if paver_vars["options"].build.template_args["basecourse"] != course:
         click.echo(
             f"Error: {course} and {paver_vars['options'].build.template_args['basecourse']} do not match.  Your course name needs to match the basecourse in pavement.py"
         )
-        return False
+        return {
+            "completed": False,
+            "status": "Course name does not match basecourse in pavement.py",
+        }
 
     click.echo("Running runestone build --all")
     res = subprocess.run("runestone build --all", shell=True, capture_output=True)
@@ -114,13 +124,16 @@ def _build_runestone_book(config, course, click=click):
         click.echo(
             f"building the book failed {res}, check the log for errors and try again"
         )
-        return False
+        return {"completed": False, "status": "Build failed, check the log for errors"}
     click.echo("Build succeedeed... Now deploying to published")
     if paver_vars["dest"] != "./published":
         click.echo(
             "Incorrect deployment directory.  dest should be ./published in pavement.py"
         )
-        return False
+        return {
+            "completed": False,
+            "status": "Incorrect deployment directory in pavement.py",
+        }
 
     resd = subprocess.run("runestone deploy", shell=True, capture_output=True)
     with open("author_build.log", "ab") as olfile:
@@ -131,10 +144,10 @@ def _build_runestone_book(config, course, click=click):
         click.echo("Success! Book deployed")
     else:
         click.echo("Deploy failed, check the log to see what went wrong.")
-        return False
+        return {"completed": False, "status": "Deploy failed, check the log"}
 
     update_library(config, "", course, click, build_system="Runestone")
-    return True
+    return {"completed": True, "status": "Build completed successfully"}
 
 
 # Build a PreTeXt Book
@@ -161,21 +174,30 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
         rs = check_project_ptx(click=click, course=course, target=target)
         if not rs:
             return {"completed": False, "status": "Bad configuration in project.ptx"}
+        log_path = (
+            Path(os.environ.get("BOOK_PATH")) / rs.output_dir / "author_build.log"
+        )
+        # ensure we get a clean file for each build
+        with open(log_path, "w") as olfile:
+            olfile.write(f"Build started at {datetime.datetime.utcnow()}\n")
+            olfile.write(f"Target: {target}\n")
 
         logger = logging.getLogger("ptxlogger")
         string_io_handler = StringIOHandler()
         logger.addHandler(string_io_handler)
         if hasattr(click, "worker"):
             click.add_logger(logger)
+        # clean out the output directory
+
+        if rs.output_dir_abspath().exists():
+            shutil.rmtree(rs.output_dir_abspath())
+
         click.echo("Building the book")
         if gen:
             click.echo("Generating assets")
             rs.generate_assets(only_changed=False, skip_cache=True)
 
         rs.build()  # build the book, generating assets as needed
-        log_path = (
-            Path(os.environ.get("BOOK_PATH")) / rs.output_dir / "author_build.log"
-        )
         if not log_path.parent.exists():
             log_path.parent.mkdir(parents=True, exist_ok=True)
         click.echo(f"Writing log to {log_path}")
@@ -192,6 +214,10 @@ def _build_ptx_book(config, gen, manifest, course, click=click, target="runeston
 
         click.echo(f"Book will be deployed to {book_path}")
         if rs.output_dir_abspath() != book_path:
+            if book_path.exists():
+                # clean out the published directory so it is a clone of the output directory
+                # This ensures we don't have old bits of webpack junk lingering
+                shutil.rmtree(book_path)
             res = copytree(rs.output_dir_abspath(), book_path, dirs_exist_ok=True)
             if not res:
                 click.echo("Error copying files to published")
@@ -679,7 +705,7 @@ def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
     res = sess.execute(ins)
     return res.inserted_primary_key[0]
 
-import pdb
+
 def _process_subchapters(sess, db_context, chapter, chapid, course_name):
     """Process all subchapters for a given chapter."""
     subchap = 0
@@ -695,8 +721,10 @@ def _process_subchapters(sess, db_context, chapter, chapid, course_name):
         # at this point (7/28/2025) the only reason for a subsubchapter
         # is to have a timed assignment, so we can skip the rest of the
         # find all divs with a class of timedAssessment
-        #pdb.set_trace()
-        for timed_assessment_div in subchapter.findall(".//div[@class='timedAssessment']"):
+        # pdb.set_trace()
+        for timed_assessment_div in subchapter.findall(
+            ".//div[@class='timedAssessment']"
+        ):
             _process_single_timed_assignment(
                 sess,
                 db_context,
@@ -1010,7 +1038,9 @@ def _process_single_question(
     if qtype == "doenet":
         # rewrite the url in the dbtext to use the course name in the path
         dbtext = re.sub(
-            r'(<iframe.*?)src="(.*?.html)"', rf'\1 src="/ns/books/published/{course_name}/\2"', dbtext
+            r'(<iframe.*?)src="(.*?.html)"',
+            rf'\1 src="/ns/books/published/{course_name}/\2"',
+            dbtext,
         )
     optional = "T" if ("optional" in question.attrib or qtype == "datafile") else "F"
     practice = _determine_practice_flag(qtype, el)

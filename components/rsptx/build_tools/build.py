@@ -894,7 +894,8 @@ def dev(ctx, config):
     ctx.invoke(image)
     ctx.invoke(restart)
 
-# This command should be used when you pull new code from github and want to rebuild and make 
+
+# This command should be used when you pull new code from github and want to rebuild and make
 # sure you are using the latest database schema.  Many people forget to run migrations
 # after pulling new code.
 @cli.command()

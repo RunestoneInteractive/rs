@@ -40,6 +40,7 @@ from rsptx.db.crud import (
     fetch_base_course,
     fetch_course_by_id,
     fetch_course,
+    fetch_courses_for_user,
     fetch_group,
     fetch_instructor_courses,
     fetch_library_books,
@@ -862,16 +863,44 @@ async def enroll_students(
                 accept_tcp=False,
             )
             # Check if user exists
-            if await fetch_user(user_data.username):
-                results.append(
-                    {
-                        "username": user_data.username,
-                        "status": "already exists",
-                        "category": "duplicate",
-                    }
-                )
-                failed += 1
-                continue
+            temp_user = await fetch_user(user_data.username)
+            if temp_user:
+                if temp_user.username == row[0] and temp_user.email == row[1]:
+                    # User exists, enroll in course if not already enrolled
+                    user_courses = await fetch_courses_for_user(temp_user.id)
+                    if any(mc.id == course.id for mc in user_courses):
+                        results.append(
+                            {
+                                "username": user_data.username,
+                                "status": "already enrolled",
+                                "category": "duplicate",
+                            }
+                        )
+                        failed += 1
+                        continue
+                    else:
+                        await create_user_course_entry(
+                            temp_user.id, course.id
+                        )  # Enroll the user in the course
+                    results.append(
+                        {
+                            "username": user_data.username,
+                            "status": "enrolled existing user",
+                            "category": "success",
+                        }
+                    )
+                    enrolled += 1
+                    continue
+                else:
+                    results.append(
+                        {
+                            "username": user_data.username,
+                            "status": "already exists with a different email",
+                            "category": "duplicate",
+                        }
+                    )
+                    failed += 1
+                    continue
             new_user = await create_user(user_data)
             await create_user_course_entry(
                 new_user.id, course.id
@@ -1052,6 +1081,7 @@ async def _copy_one_assignment(
             course=target_course.id,
             name=old_assignment.name,
             duedate=due_date,
+            updated_date=datetime.datetime.now(),
             description=old_assignment.description,
             points=old_assignment.points,
             threshold_pct=old_assignment.threshold_pct,
@@ -1226,9 +1256,7 @@ async def post_create_course_page(
 
         # if invoice is true then we need to create an invoice for the course
         if invoice == "true":
-            res = await create_invoice_request(
-                user.username, projectname, 0.0,  user.email
-            )
+            await create_invoice_request(user.username, projectname, 0.0, user.email)
         # Copy attributes from base course
         bc = await fetch_course(coursetype)
         attrs = await fetch_all_course_attributes(bc.id)

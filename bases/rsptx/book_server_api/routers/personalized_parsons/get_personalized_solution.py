@@ -1,7 +1,7 @@
 from openai import OpenAI
 import re
 
-from .evaluate_fixed_code import *
+from .evaluate_fixed_code import clean_student_code, unittest_evaluation
 
 # Below is the system message as part of the prompt to generate the fixed code
 system_message = """
@@ -263,7 +263,7 @@ def get_example_solution(api_token, language, problem_description, unittest_code
     unittest_result, cleaned_LLM_example_code = unittest_evaluation(
         language, LLM_example_code, "", "", unittest_case=unittest_code
     )
-    if unittest_result == True:
+    if unittest_result:
         # LLM_example_code is correct
         return cleaned_LLM_example_code
     else:

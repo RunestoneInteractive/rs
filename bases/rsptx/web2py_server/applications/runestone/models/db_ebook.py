@@ -220,7 +220,7 @@ db.define_table(
 # shortanswer_answers
 # -------------------
 db.define_table(
-    "shortanswe_answers",
+    "shortanswer_answers",
     Field("timestamp", "datetime"),
     Field("div_id", "string"),
     Field("sid", "string"),

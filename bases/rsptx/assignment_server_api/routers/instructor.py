@@ -60,6 +60,8 @@ from rsptx.db.crud import (
     get_peer_votes,
     search_exercises,
     create_api_token,
+    delete_api_token,
+    fetch_all_api_tokens,
     update_source_code,
     fetch_all_datafiles,
     check_datafile_exists,
@@ -69,7 +71,11 @@ from rsptx.db.crud import (
     delete_datafile,
 )
 from rsptx.db.crud.question import validate_question_name_unique, copy_question
-from rsptx.db.crud.assignment import add_assignment_question, delete_assignment
+from rsptx.db.crud.assignment import (
+    add_assignment_question,
+    delete_assignment,
+    is_assignment_visible_to_students,
+)
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
 from rsptx.configuration import settings
@@ -155,11 +161,7 @@ async def review_peer_assignment(
         )
         return RedirectResponse("/runestone/peer/instructor.html")
 
-    if (
-        assignment.visible == "F"
-        or assignment.visible is None
-        or assignment.visible == False  # noqa: E712
-    ):
+    if not is_assignment_visible_to_students(assignment):
         if not user_is_instructor:
             rslogger.error(
                 f"Attempt to access invisible assignment {assignment_id} by {user.username}"
@@ -355,7 +357,7 @@ async def get_assignment_gb(
 
     names = {}
     for ix, row in pt.iterrows():
-        if type(row.first_name) is str and type(row.last_name) is str:
+        if isinstance(row.first_name, str) and isinstance(row.last_name, str):
             names[row.username] = row.first_name + " " + row.last_name
 
     # pt = pt.drop(columns=["username"], axis=1)
@@ -428,10 +430,10 @@ async def new_assignment(
     new_assignment = AssignmentValidator(
         **request_data.model_dump(),
         course=course.id,
-        visible=False,
         released=True,
         from_source=False,
         current_index=0,
+        updated_date=canonical_utcnow(),
     )
     try:
         res = await create_assignment(new_assignment)
@@ -662,9 +664,9 @@ async def get_assignment_questions(
 
         if aq["reading_assignment"] == True:  # noqa: E712
             try:
-                aq["numQuestions"] = countd[q["chapter"]][q["subchapter"]]
+                aq["numQuestions"] = max(countd[q["chapter"]][q["subchapter"]], 1)
             except KeyError:
-                aq["numQuestions"] = 0
+                aq["numQuestions"] = 1
 
         # augment the assignment question with additional question data
         aq["name"] = q["name"]
@@ -1220,9 +1222,9 @@ async def do_download_assignment(
         csv_buffer,
         media_type="text/csv",
     )
-    response.headers[
-        "Content-Disposition"
-    ] = f"attachment; filename=assignment_{assignment_id}.csv"
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename=assignment_{assignment_id}.csv"
+    )
 
     return response
 
@@ -1373,7 +1375,7 @@ async def add_api_token(
             status=status.HTTP_201_CREATED,
             detail={
                 "status": "success",
-                "message": f"Added {len(created_tokens)} tokens for provider {request_data.provider}",
+                "message": f"You have {len(created_tokens)} tokens for provider {request_data.provider}",
                 "token_ids": created_tokens,
             },
         )
@@ -1397,6 +1399,17 @@ async def get_add_token_page(
     """
     Display the token management page for instructors.
     """
+    # Fetch all tokens for the course
+    tokens = await fetch_all_api_tokens(course.id)
+
+    # Count tokens by provider
+    token_counts = {}
+    for token in tokens:
+        provider = token.provider
+        token_counts[provider] = token_counts.get(provider, 0) + 1
+
+    total_tokens = len(tokens)
+
     templates = Jinja2Templates(directory=template_folder)
     context = {
         "course": course,
@@ -1404,9 +1417,43 @@ async def get_add_token_page(
         "request": request,
         "is_instructor": True,
         "student_page": False,
+        "total_tokens": total_tokens,
+        "token_counts": token_counts,
     }
 
     return templates.TemplateResponse("assignment/instructor/add_token.html", context)
+
+
+@router.delete("/delete_tokens")
+@instructor_role_required()
+@with_course()
+async def delete_course_tokens(
+    request: Request,
+    course=None,
+):
+    """
+    Delete all API tokens for the instructor's course.
+
+    :param course: Course object from decorator
+    :return: JSON response with success status and count of deleted tokens
+    """
+    try:
+        deleted_count = await delete_api_token(course_id=course.id)
+
+        return make_json_response(
+            status=status.HTTP_200_OK,
+            detail={
+                "status": "success",
+                "message": f"Successfully deleted {deleted_count} token(s)",
+                "deleted_count": deleted_count,
+            },
+        )
+    except Exception as e:
+        rslogger.error(f"Error deleting API tokens for course {course.id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error deleting tokens: {str(e)}",
+        )
 
 
 @router.delete("/assignments/{assignment_id}")
@@ -1572,6 +1619,7 @@ async def duplicate_assignment_endpoint(
             detail=f"Error duplicating assignment: {str(e)}",
         )
 
+
 class CreateDatafilePayload(BaseModel):
     filename: str
     main_code: str
@@ -1595,14 +1643,20 @@ async def get_datafiles(
         datafiles_list = []
         for df in datafiles:
             if df is not None:
-                datafiles_list.append({
-                    "id": df.id,
-                    "acid": df.acid,
-                    "filename": df.filename,
-                    "course_id": df.course_id,
-                    "owner": df.owner,
-                    "main_code": df.main_code[:100] + "..." if df.main_code and len(df.main_code) > 100 else df.main_code,  # Truncate for list view
-                })
+                datafiles_list.append(
+                    {
+                        "id": df.id,
+                        "acid": df.acid,
+                        "filename": df.filename,
+                        "course_id": df.course_id,
+                        "owner": df.owner,
+                        "main_code": (
+                            df.main_code[:100] + "..."
+                            if df.main_code and len(df.main_code) > 100
+                            else df.main_code
+                        ),  # Truncate for list view
+                    }
+                )
 
         return make_json_response(
             status=status.HTTP_200_OK,
@@ -1614,8 +1668,6 @@ async def get_datafiles(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error fetching datafiles: {str(e)}",
         )
-
-
 
 
 @router.post("/datafile")
@@ -1864,5 +1916,3 @@ async def get_datafile_endpoint(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error fetching datafile: {str(e)}",
         )
-
-

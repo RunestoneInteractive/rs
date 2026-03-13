@@ -60,7 +60,8 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
   // CodeTailor support
   enableCodeTailor: false,
   parsonspersonalize: "",
-  parsonsexample: ""
+  parsonsexample: "",
+  enableCodelens: true
 });
 
 export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
@@ -98,7 +99,8 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
         {
           enableCodeTailor: data.enableCodeTailor,
           parsonspersonalize: data.parsonspersonalize,
-          parsonsexample: data.parsonsexample
+          parsonsexample: data.parsonsexample,
+          enableCodelens: data.enableCodelens
         }
       );
     },
@@ -232,6 +234,10 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
             name={formData.name || ""}
             stdin={formData.stdin || ""}
             selectedExistingDataFiles={formData.selectedExistingDataFiles || []}
+            enableCodeTailor={formData.enableCodeTailor}
+            parsonspersonalize={formData.parsonspersonalize}
+            parsonsexample={formData.parsonsexample}
+            enableCodelens={formData.enableCodelens}
           />
         );
 

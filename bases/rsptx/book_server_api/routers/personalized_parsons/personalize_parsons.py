@@ -1,7 +1,6 @@
 import difflib
 from collections import namedtuple
-from .generate_parsons_blocks import *
-from .token_compare import *
+from .token_compare import code_similarity_score
 import random
 import re
 
@@ -163,8 +162,8 @@ def find_distractor(fixed_line, removed_lines, language):
         )
         if (
             (similarity > highest_similarity)
-            & (similarity != 1)
-            & (normalized_line_comparision == False)
+            and (similarity != 1)
+            and (not normalized_line_comparision)
         ):
             highest_similarity = similarity
             distractor_line = student_line
@@ -291,12 +290,12 @@ def personalize_Parsons_block(
             normalize_and_compare = normalize_and_compare_lines(
                 pair[0][2], pair[1][2], pair[2]
             )
-            if normalize_and_compare == False:
+            if not normalize_and_compare:
                 # if the student code is wrong (not just a different way to write the same code), generate a distractor using student buggy code
                 distractor_similarity, distractor = find_distractor(
                     pair[1][2], removed_lines, language
                 )
-                if distractor != False:
+                if distractor:
                     distractors[pair[1]] = (distractor_similarity, distractor)
                 else:
                     continue

@@ -1,0 +1,193 @@
+{% extends "_base.html" %}
+
+{% block title %}
+Peer Instruction - Instructor
+{% endblock %}
+
+{% block css %}
+<style>
+    .peer-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 30px;
+    }
+
+    .peer-header {
+        margin-bottom: 30px;
+    }
+
+    .peer-header h1 {
+        color: #4a90e2;
+        font-size: 2.5em;
+        font-weight: 300;
+        margin-bottom: 10px;
+    }
+
+    .table-container {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, #4a90e2, #357abd);
+        color: white;
+        border: none;
+        padding: 15px;
+        font-weight: 600;
+    }
+
+    .table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .table td {
+        padding: 12px 15px;
+        vertical-align: middle;
+    }
+
+    .table a {
+        color: #4a90e2;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+
+    .table a:hover {
+        color: #357abd;
+        text-decoration: underline;
+    }
+
+    .note-box {
+        margin-top: 30px;
+        padding: 15px 20px;
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        border-radius: 4px;
+    }
+
+    .note-box p {
+        margin: 0;
+        color: #856404;
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="peer-container">
+    <div class="peer-header">
+        <h1>Peer Instruction</h1>
+        <h2>Course: {{ course.course_name }}</h2>
+    </div>
+
+    <div class="table-container">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Visible</th>
+                    <th>Extra**</th>
+                    <th>Review</th>
+                    <th>Due</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assignment in assignments %}
+                <tr>
+                    <td>
+                        <a href="/assignment/peer/instructor/dashboard?assignment_id={{ assignment.id }}&next=Reset">
+                            {{ assignment.name }}
+                        </a>
+                    </td>
+                    <td>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input visibility-toggle" type="checkbox" role="switch"
+                                id="vis-{{ assignment.id }}" data-assignment-id="{{ assignment.id }}"
+                                {% if assignment.visible %}checked{% endif %}>
+                            <label class="form-check-label" for="vis-{{ assignment.id }}">
+                                {{ 'Visible' if assignment.visible else 'Hidden' }}
+                            </label>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="/assignment/peer/instructor/extra?assignment_id={{ assignment.id }}">
+                            {{ assignment.name }} - Extra Info
+                        </a>
+                    </td>
+                    <td>
+                        <a href="/assignment/peer/instructor/review?assignment_id={{ assignment.id }}">
+                            {{ assignment.name }} - Review
+                        </a>
+                    </td>
+                    <td>{{ assignment.duedate.strftime('%Y-%m-%d %H:%M') if assignment.duedate else 'N/A' }}</td>
+                    <td>{{ assignment.description or '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="note-box">
+        <p><strong>**Note:</strong> The Extra Info link for each peer assignment can be brought up on your phone or another device or in a different window. It contains information that you might not want to share with your students.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggles = document.querySelectorAll('.visibility-toggle');
+
+        toggles.forEach((toggle) => {
+            toggle.addEventListener('change', async (e) => {
+                const checkbox = e.target;
+                const assignmentId = checkbox.getAttribute('data-assignment-id');
+                const visible = checkbox.checked;
+                const label = checkbox.closest('.form-check').querySelector('label');
+
+                // Optimistic UI update
+                label.textContent = visible ? 'Visible' : 'Hidden';
+                checkbox.disabled = true;
+
+                try {
+                    const resp = await fetch('/assignment/peer/api/set_visibility', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ assignment_id: Number(assignmentId), visible })
+                    });
+
+                    if (!resp.ok) {
+                        throw new Error(`Server responded ${resp.status}`);
+                    }
+
+                    const data = await resp.json();
+                    // Ensure label matches server state just in case
+                    if (typeof data.visible === 'boolean') {
+                        label.textContent = data.visible ? 'Visible' : 'Hidden';
+                    }
+                } catch (err) {
+                    // Revert on error
+                    checkbox.checked = !visible;
+                    label.textContent = checkbox.checked ? 'Visible' : 'Hidden';
+                    alert('Failed to update visibility. Please try again.');
+                } finally {
+                    checkbox.disabled = false;
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

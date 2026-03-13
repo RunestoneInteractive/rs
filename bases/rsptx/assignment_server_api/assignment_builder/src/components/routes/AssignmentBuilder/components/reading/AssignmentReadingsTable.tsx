@@ -48,7 +48,7 @@ export const AssignmentReadingsTable = ({
   const getNumQuestionsOrDefault = (numQuestions: Nullable<number>): number => {
     const defaultNumQuestions = 1;
 
-    return numQuestions ?? defaultNumQuestions;
+    return Math.max(numQuestions ?? 0, defaultNumQuestions);
   };
 
   return (
