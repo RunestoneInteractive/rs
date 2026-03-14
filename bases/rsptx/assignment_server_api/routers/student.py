@@ -202,6 +202,7 @@ def get_studyclues_book_id(course: CoursesValidator) -> str:
 class StudyCluesQueryRequest(BaseModel):
     query: str
     conversation_id: Optional[int] = -1
+    coachMode: Optional[bool] = False
 
 
 @router.post("/studyclues_query")
@@ -247,7 +248,7 @@ async def studyclues_query(
         "dry_run": False,
         "user_id": lc_user,
         "conversation_id": request_data.conversation_id,
-        "coach_mode": True,
+        "coach_mode": request_data.coachMode,
     }
 
     try:

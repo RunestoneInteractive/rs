@@ -517,6 +517,48 @@ function createStudyCluesWidget() {
             line-height: 1;
         }
 
+        .studyclues-coach-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #4b5563;
+        }
+
+        .studyclues-coach-toggle input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 32px;
+            height: 18px;
+            border-radius: 9999px;
+            background: #d1d5db;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .studyclues-coach-toggle input[type="checkbox"]::after {
+            content: "";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform 0.2s;
+        }
+
+        .studyclues-coach-toggle input[type="checkbox"]:checked {
+            background: #2563eb;
+        }
+
+        .studyclues-coach-toggle input[type="checkbox"]:checked::after {
+            transform: translateX(14px);
+        }
+
         .studyclues-messages {
             flex: 1;
             overflow-y: auto;
@@ -628,6 +670,10 @@ function createStudyCluesWidget() {
     chat.innerHTML = `
         <div class="studyclues-header">
             <span>StudyClues</span>
+            <label class="studyclues-coach-toggle">
+                <input type="checkbox" id="studyclues-coach-mode" />
+                Coach Mode
+            </label>
             <button class="studyclues-close" aria-label="Close chat">✕</button>
         </div>
         <div class="studyclues-messages"></div>
@@ -644,6 +690,12 @@ function createStudyCluesWidget() {
     const messagesEl = chat.querySelector(".studyclues-messages");
     const inputEl = chat.querySelector(".studyclues-inputbar input");
     const sendBtn = chat.querySelector(".studyclues-inputbar button");
+    const coachToggle = chat.querySelector("#studyclues-coach-mode");
+
+    let coachMode = false;
+    coachToggle.addEventListener("change", () => {
+        coachMode = coachToggle.checked;
+    });
 
     const toggleChat = () => {
         chat.classList.toggle("open");
@@ -690,6 +742,7 @@ function createStudyCluesWidget() {
                     body: JSON.stringify({
                         query,
                         conversation_id: studyCluesConversationId,
+                        coachMode,
                     }),
                 },
             );
