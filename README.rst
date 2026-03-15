@@ -21,6 +21,37 @@ If you want to do development on Runestone, or run your own server, you will nee
 
 Chat with us on `Discord <https://discord.gg/f3Qmbk9P3U>`_
 
+Quick Start: Run Your Own Runestone Server
+===========================================
+
+Get a fully functional Runestone server running on your local machine with a single command:
+
+.. code-block:: bash
+
+   bash <(curl -fsSL https://raw.githubusercontent.com/RunestoneInteractive/rs/main/init_runestone.sh)
+
+The setup script will guide you through an interactive installation process.
+
+**Prerequisites:**
+
+* Docker Desktop with Docker Compose 2.20.2 or later
+* WSL2 (Windows users only - run the command from a WSL2 terminal)
+* Git (optional, but recommended for cloning book repositories)
+
+**Before you start:**
+
+Navigate to the directory where you want Runestone configuration files created:
+
+.. code-block:: bash
+
+   mkdir ~/runestone && cd ~/runestone
+
+**After installation:**
+
+* Access your server at http://localhost
+* Log in with username: ``testuser1``, password: ``xxx``
+* See the `Running a Server guide <https://runestone-monorepo.readthedocs.io/en/latest/running.html>`_ for complete documentation
+
 Runestone MonoRepo
 ==================
 
