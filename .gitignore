@@ -33,3 +33,4 @@ _build
 **/test/_static
 bake.log
 WARP.md
+.claude

@@ -1,7 +1,8 @@
 from sqlalchemy import select
 
-from ..models import CourseAttribute
+from ..models import CourseAttribute, Courses
 from ..async_session import async_session
+from rsptx.logging import rslogger
 
 
 async def fetch_all_course_attributes(course_id: int) -> dict:
@@ -48,7 +49,7 @@ async def copy_course_attributes(basecourse_id: int, new_course_id: int):
     async with async_session() as session:
         res = await session.execute(query)
         for row in res.scalars().fetchall():
-            print(row.attr, row.value)
+            rslogger.debug(f"copy_course_attributes: {row.attr}={row.value}")
             new_attr = CourseAttribute(
                 course_id=new_course_id, attr=row.attr, value=row.value
             )
@@ -56,19 +57,23 @@ async def copy_course_attributes(basecourse_id: int, new_course_id: int):
         await session.commit()
 
 
-async def get_course_origin(base_course):
+async def get_course_origin(base_course: str):
     """
-    Retrieve the origin of a given course (base_course)
+    Retrieve the origin (markup system) of a given course by its name.
 
-    :param base_course: str, the name of the base course
-    :return: str, the origin of the course
+    :param base_course: str, the name of the base course (i.e. ``courses.course_name``)
+    :return: str, the value of the ``markup_system`` course attribute, or None if not found
     """
-    query = select(CourseAttribute).where(
-        (CourseAttribute.course_id == base_course)
-        & (CourseAttribute.attr == "markup_system")
+    query = (
+        select(CourseAttribute)
+        .join(Courses, Courses.id == CourseAttribute.course_id)
+        .where(
+            (Courses.course_name == base_course)
+            & (CourseAttribute.attr == "markup_system")
+        )
     )
 
     async with async_session() as session:
         res = await session.execute(query)
         ca = res.scalars().first()
-        return ca.value
+        return ca.value if ca else None

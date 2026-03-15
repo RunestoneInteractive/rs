@@ -638,8 +638,8 @@ async def fetch_questions_for_chapter_subchapter(
             Question.id,
         )
     )
-    print(f"{query=}")
-    print(f"{base_course=},{skipreading=},{from_source_only=},{pages_only=},{owner=}")
+    rslogger.debug(f"{query=}")
+    rslogger.debug(f"{base_course=},{skipreading=},{from_source_only=},{pages_only=},{owner=}")
     async with async_session() as session:
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
