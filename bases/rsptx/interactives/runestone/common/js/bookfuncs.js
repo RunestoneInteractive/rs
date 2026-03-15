@@ -448,10 +448,14 @@ function getCookie(name) {
 
 let studyCluesConversationId = -1;
 
-function appendStudyCluesMessage(messagesEl, role, text) {
+function appendStudyCluesMessage(messagesEl, role, text, isHtml = false) {
     const bubble = document.createElement("div");
     bubble.className = `studyclues-message ${role}`;
-    bubble.textContent = text;
+    if (isHtml) {
+        bubble.innerHTML = text;
+    } else {
+        bubble.textContent = text;
+    }
     messagesEl.appendChild(bubble);
     messagesEl.scrollTop = messagesEl.scrollHeight;
 }
@@ -671,7 +675,7 @@ function createStudyCluesWidget() {
         <div class="studyclues-header">
             <span>StudyClues</span>
             <label class="studyclues-coach-toggle">
-                <input type="checkbox" id="studyclues-coach-mode" />
+                <input type="checkbox" id="studyclues-coach-mode" checked />
                 Coach Mode
             </label>
             <button class="studyclues-close" aria-label="Close chat">✕</button>
@@ -692,7 +696,7 @@ function createStudyCluesWidget() {
     const sendBtn = chat.querySelector(".studyclues-inputbar button");
     const coachToggle = chat.querySelector("#studyclues-coach-mode");
 
-    let coachMode = false;
+    let coachMode = coachToggle.checked;
     coachToggle.addEventListener("change", () => {
         coachMode = coachToggle.checked;
     });
@@ -755,15 +759,25 @@ function createStudyCluesWidget() {
             const detail = payload?.detail || {};
             const studycluesResponse = detail?.response || {};
             const llmResponse = studycluesResponse?.llm_response;
+            const references = studycluesResponse?.references || {};
 
             if (typeof detail.conversation_id === "number") {
                 studyCluesConversationId = detail.conversation_id;
             }
 
+            const formattedResponse = (llmResponse || "No response available from StudyClues.").replace(
+                /\[([^\]]+)\]\(([^)]+)\)/g,
+                (match, text, key) => {
+                    const url = references[key]?.content_url;
+                    return url ? `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>` : match;
+                }
+            );
+
             appendStudyCluesMessage(
                 messagesEl,
                 "assistant",
-                llmResponse || "No response available from StudyClues.",
+                formattedResponse,
+                true,
             );
         } catch (err) {
             appendStudyCluesMessage(
