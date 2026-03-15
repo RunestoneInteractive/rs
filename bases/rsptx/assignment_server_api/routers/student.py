@@ -249,6 +249,7 @@ async def studyclues_query(
         "user_id": lc_user,
         "conversation_id": request_data.conversation_id,
         "coach_mode": request_data.coachMode,
+        "source_filter": "GITHUB_FILE",
     }
 
     try:
