@@ -105,22 +105,21 @@
         </div>
     </div>
     {{pass}}
+    {{ if all_done == "false": }}
+    <div class="col-md-12" style="text-align: right; margin-top: 10px; margin-bottom: 20px;">
+        <form action="/peer/peer_async" style="display: inline;">
+            <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
+            <input type="hidden" name="question_num" value="{{=nextQnum}}" />
+            <button type="submit" onclick="return checkVoteCount()" class="btn btn-default">Next Question</button>
+        </form>
+    </div>
+    {{ pass }}
 </div>
 {{ if has_vote1 and has_reflection and llm_reply: }}
 <hr>
 <div style="background:#f0f0f0; padding:10px; border-radius:4px;">
   <strong>An LLM peer said:</strong>
   <p>{{=llm_reply}}</p>
-</div>
-{{ pass }}
-
-{{ if all_done == "false": }}
-<div>
-    <form action="/peer/peer_async">
-        <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
-        <input type="hidden" name="question_num" value="{{=nextQnum}}" />
-        <button type="submit" onclick="return checkVoteCount()" style="float: right; margin-bottom: 20px;">Next Question</button>
-    </form>
 </div>
 {{ pass }}
 <script>
