@@ -33,6 +33,21 @@
  </div>
 
 <h2>Peer Instruction Question (After Class)</h2>
+
+{{ if all_done == "false": }}
+<div id="stepBanner" style="
+  background: #337ab7;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: bold;
+">
+  Step 1 of 3: Answer the question
+</div>
+{{ pass }}
+
 <div id="imessage">
     <p>This page is meant for you to use <i>after</i> the inclass peer instruction is over.
         <ol>
@@ -42,7 +57,7 @@
             <li>Answer the question <strong>again.</strong>  Even if you are not changing your answer from the first time.</li>
         </ol>
     </p>
-</div> 
+</div>
 
 <div class="row">
     {{ if all_done == "false": }}
@@ -110,7 +125,7 @@
         <form action="/peer/peer_async" style="display: inline;">
             <input type="hidden" name="assignment_id" value="{{=assignment_id}}" />
             <input type="hidden" name="question_num" value="{{=nextQnum}}" />
-            <button type="submit" onclick="return checkVoteCount()" class="btn btn-default">Next Question</button>
+            <button type="submit" onclick="return checkVoteCount()" class="btn btn-default">{{ if is_last_question: }}Done{{ else: }}Next Question{{ pass }}</button>
         </form>
     </div>
     {{ pass }}
@@ -156,6 +171,28 @@
     if (btn) btn.disabled = true;
   }
 
+  function updateStepBanner(step) {
+    const banner = document.getElementById("stepBanner");
+    if (!banner) return;
+    if (step === 1) {
+      banner.textContent = "Step 1 of 3: Answer the question";
+      banner.style.background = "#337ab7";
+    } else if (step === 2) {
+      banner.textContent = "Step 2 of 3: Explain your answer and discuss";
+      banner.style.background = "#f0ad4e";
+      banner.style.color = "#333";
+    } else if (step === 3) {
+      banner.textContent = "Step 3 of 3: Vote again — you may keep or change your answer";
+      banner.style.background = "#427e44";
+      banner.style.color = "#fff";
+    } else if (step === 4) {
+      const hasNextQ = document.querySelector('form[action="/peer/peer_async"]');
+      banner.textContent = hasNextQ ? "Done! Move to the next question." : "Done! You have completed this assignment.";
+      banner.style.background = "#427e44";
+      banner.style.color = "#fff";
+    }
+  }
+
   function setReflectionPanelEnabled(enabled) {
     const panel = document.getElementById("reflectionPanel");
     if (!panel) return;
@@ -173,6 +210,7 @@
       alert("Please submit your first vote before voting again.");
       return;
     }
+    updateStepBanner(3);
 
     window._vote2Enabled = true;
     window._vote1Locked = false;
@@ -630,6 +668,7 @@ function enableChat(reflection, selected) {
             if (studentVoteCount === 1 && !window._vote2Enabled) {
               hasVote1 = true;
               console.log("vote 1 submitted");
+              updateStepBanner(2);
 
               const vote2Btn = document.getElementById("readyVote2Btn");
               if (vote2Btn) {
@@ -647,6 +686,7 @@ function enableChat(reflection, selected) {
               studentVoteCount = 2;
               studentSubmittedVote2 = true;
               window._vote2Enabled = false;
+              updateStepBanner(4);
             }
             if (studentSubmittedVote2) {
               try {

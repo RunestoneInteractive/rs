@@ -724,6 +724,7 @@ def peer_async():
         question_num = int(request.vars.question_num)
 
     current_question, all_done = _get_numbered_question(assignment_id, question_num - 1)
+    total_questions = len(_get_assignment_questions(assignment_id))
 
     assignment = db(db.assignments.id == assignment_id).select().first()
 
@@ -762,6 +763,8 @@ def peer_async():
         assignment_id=assignment_id,
         assignment_name=assignment.name,
         nextQnum=question_num + 1,
+        total_questions=total_questions,
+        is_last_question=(question_num >= total_questions),
         all_done=all_done,
         has_vote1=has_vote1,
         has_reflection=has_reflection,
