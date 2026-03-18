@@ -36,7 +36,7 @@
 
 {{ if all_done == "false": }}
 <div id="stepBanner" style="
-  background: #337ab7;
+  background: #4A9FDE;
   color: #fff;
   padding: 10px 16px;
   border-radius: 4px;
@@ -44,7 +44,7 @@
   font-size: 16px;
   font-weight: bold;
 ">
-  Step 1 of 3: Answer the question
+  <span style="opacity:1">●</span> <span style="opacity:0.4">●</span> <span style="opacity:0.4">●</span> &nbsp;&nbsp;Step 1 of 3: Answer the question
 </div>
 {{ pass }}
 
@@ -174,23 +174,33 @@
   function updateStepBanner(step) {
     const banner = document.getElementById("stepBanner");
     if (!banner) return;
+    banner.style.color = "#fff";
+    var dots = function(filled) {
+      var html = "";
+      for (var i = 0; i < 3; i++) {
+        var style = i < filled ? "opacity:1" : "opacity:0.4";
+        html += '<span style="' + style + '">●</span> ';
+      }
+      return html;
+    };
+    var label;
+    var bg;
     if (step === 1) {
-      banner.textContent = "Step 1 of 3: Answer the question";
-      banner.style.background = "#337ab7";
+      label = "Step 1 of 3: Answer the question";
+      bg = "#4A9FDE";
     } else if (step === 2) {
-      banner.textContent = "Step 2 of 3: Explain your answer and discuss";
-      banner.style.background = "#f0ad4e";
-      banner.style.color = "#333";
+      label = "Step 2 of 3: Explain your answer and discuss";
+      bg = "#2878B5";
     } else if (step === 3) {
-      banner.textContent = "Step 3 of 3: Vote again — you may keep or change your answer";
-      banner.style.background = "#427e44";
-      banner.style.color = "#fff";
+      label = "Step 3 of 3: Vote again — you may keep or change your answer";
+      bg = "#1A5276";
     } else if (step === 4) {
-      const hasNextQ = document.querySelector('form[action="/peer/peer_async"]');
-      banner.textContent = hasNextQ ? "Done! Move to the next question." : "Done! You have completed this assignment.";
-      banner.style.background = "#427e44";
-      banner.style.color = "#fff";
+      var hasNextQ = document.querySelector('form[action="/peer/peer_async"]');
+      label = hasNextQ ? "Done! Move to the next question." : "Done! You have completed this assignment.";
+      bg = "#0E3D56";
     }
+    banner.innerHTML = dots(step > 3 ? 3 : step) + "&nbsp;&nbsp;" + label;
+    banner.style.background = bg;
   }
 
   function setReflectionPanelEnabled(enabled) {
