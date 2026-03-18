@@ -29,6 +29,9 @@
 
  */
 
+import RunestoneBase from "./runestonebase.js";
+var rb = new RunestoneBase();
+
 //
 // Page decoration functions
 //
@@ -722,6 +725,7 @@ function createStudyCluesWidget() {
         if (studyCluesConversationId === -1) {
             query = `Regarding section "${sectionInfo}": ${query}`;
         }
+        rb.logBookEvent({ event: "studyclues_query", act: `query: ${query}`, div_id: `${sectionInfo}` });
         appendStudyCluesMessage(messagesEl, "user", query); // todo: make this conditional on being a book page and on the book being one of the supported books
         inputEl.value = "";
         sendBtn.disabled = true;
@@ -769,7 +773,7 @@ function createStudyCluesWidget() {
                 /\[([^\]]+)\]\(([^)]+)\)/g,
                 (match, text, key) => {
                     const url = references[key]?.content_url;
-                    return url ? `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>` : match;
+                    return url ? `<a href="${url}" target="_blank" rel="noopener noreferrer">(${text})</a>` : match;
                 }
             );
 
