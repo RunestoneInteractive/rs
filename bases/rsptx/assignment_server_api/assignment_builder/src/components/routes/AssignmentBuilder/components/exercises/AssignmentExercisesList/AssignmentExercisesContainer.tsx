@@ -18,7 +18,7 @@ import { EditView } from "./EditView";
 import { ErrorDisplay } from "./ErrorDisplay";
 import { ExerciseListView } from "./ExerciseListView";
 import { ExerciseSuccessDialog } from "./ExerciseSuccessDialog";
-import { AssignmentExercisesComponentProps, ViewMode } from "./types";
+import { AssignmentExercisesComponentProps } from "./types";
 
 export const AssignmentExercisesContainer = ({
   startItemId,
@@ -100,7 +100,14 @@ export const AssignmentExercisesContainer = ({
 
       {viewMode === "browse" && <ChooseExercises />}
 
-      {viewMode === "search" && <SmartSearchExercises />}
+      {viewMode === "search" && (
+        <SmartSearchExercises
+          setCurrentEditExercise={setCurrentEditExercise}
+          setViewMode={(mode: "list" | "browse" | "search" | "create" | "edit") =>
+            updateExerciseViewMode(mode)
+          }
+        />
+      )}
 
       {viewMode === "create" && (
         <CreateView

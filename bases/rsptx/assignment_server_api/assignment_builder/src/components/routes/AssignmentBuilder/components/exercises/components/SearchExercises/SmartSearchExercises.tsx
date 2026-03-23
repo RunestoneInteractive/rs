@@ -29,7 +29,15 @@ import styles from "./SmartSearchExercises.module.css";
 /**
  * Smart exercise search component with fixed layout and enhanced UX
  */
-export const SmartSearchExercises = () => {
+interface SmartSearchExercisesProps {
+  setCurrentEditExercise?: (exercise: Exercise | null) => void;
+  setViewMode?: (mode: "list" | "browse" | "search" | "create" | "edit") => void;
+}
+
+export const SmartSearchExercises = ({
+  setCurrentEditExercise,
+  setViewMode
+}: SmartSearchExercisesProps) => {
   const dispatch = useDispatch();
   const selectedExercises = useSelector(searchExercisesSelectors.getSelectedExercises);
   const exerciseTypes = useSelector(datasetSelectors.getQuestionTypeOptions);
@@ -440,7 +448,8 @@ export const SmartSearchExercises = () => {
         visible={copyModalVisible}
         onHide={handleCopyModalHide}
         exercise={selectedExerciseForCopy}
-        copyToAssignment={false}
+        setCurrentEditExercise={setCurrentEditExercise}
+        setViewMode={setViewMode}
       />
     </div>
   );

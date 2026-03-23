@@ -18,7 +18,6 @@ interface CopyExerciseModalProps {
   visible: boolean;
   onHide: () => void;
   exercise: Exercise | null;
-  copyToAssignment?: boolean;
   setCurrentEditExercise?: (exercise: Exercise | null) => void;
   setViewMode?: (mode: "list" | "browse" | "search" | "create" | "edit") => void;
 }
@@ -27,7 +26,6 @@ export const CopyExerciseModal = ({
   visible,
   onHide,
   exercise,
-  copyToAssignment = false,
   setCurrentEditExercise,
   setViewMode
 }: CopyExerciseModalProps) => {
@@ -43,6 +41,15 @@ export const CopyExerciseModal = ({
   const { refetch: refetchExercises } = useGetExercisesQuery(selectedAssignment?.id ?? 0, {
     skip: !selectedAssignment?.id
   });
+
+  // Determine if the exercise type supports direct editing
+  const canEditDirectly =
+    exercise &&
+    supportedExerciseTypesToEdit.includes(exercise.question_type) &&
+    !!exercise.question_json;
+
+  // Determine if we have the edit infrastructure available
+  const hasEditSupport = !!setCurrentEditExercise && !!setViewMode;
 
   useEffect(() => {
     if (exercise && visible) {
@@ -92,6 +99,7 @@ export const CopyExerciseModal = ({
     try {
       // Generate new HTML source with the new name if the exercise type is supported
       let newHtmlSrc: string | undefined;
+
       if (exercise.question_json && supportedExerciseTypesToEdit.includes(exercise.question_type)) {
         try {
           newHtmlSrc = regenerateHtmlSrc(exercise, newName.trim());
@@ -103,75 +111,116 @@ export const CopyExerciseModal = ({
       const result = await copyQuestion({
         original_question_id: exercise.question_id ?? exercise.id,
         new_name: newName.trim(),
-        assignment_id: copyToAssignment ? selectedAssignment?.id : undefined,
-        copy_to_assignment: copyToAssignment,
+        assignment_id: selectedAssignment?.id,
+        copy_to_assignment: true,
         htmlsrc: newHtmlSrc
       }).unwrap();
 
-      if (setCurrentEditExercise && setViewMode && copyToAssignment && result.detail.question_id) {
-        const exercises = await refetchExercises();
-        const newExercise = exercises.data?.find(
-          (ex) => ex.question_id === result.detail.question_id
-        );
-        const canEdit =
-          newExercise &&
-          supportedExerciseTypesToEdit.includes(newExercise.question_type) &&
-          !!newExercise.question_json;
+      // Refetch the exercises list to pick up the newly added copy
+      const exercises = await refetchExercises();
+      const newExercise = exercises.data?.find(
+        (ex) => ex.question_id === result.detail.question_id
+      );
 
-        if (canEdit) {
-          setCurrentEditExercise(newExercise);
-          setViewMode("edit");
-        }
+      const canEdit =
+        newExercise &&
+        supportedExerciseTypesToEdit.includes(newExercise.question_type) &&
+        !!newExercise.question_json;
+
+      if (canEdit && hasEditSupport) {
+        toast.success("Exercise copied and added to assignment. Opening editor…");
+        setCurrentEditExercise!(newExercise);
+        setViewMode!("edit");
+      } else if (newExercise) {
+        toast.success("Exercise copied and added to your assignment. You are now the owner.", {
+          duration: 5000
+        });
+      } else {
+        toast.success("Exercise copied successfully! You are now the owner.");
       }
 
-      toast.success("Exercise copied successfully!");
-      onHide();
+      handleClose();
     } catch (error) {
       toast.error("Error copying exercise");
     }
   };
 
-  const handleCancel = () => {
+  const handleClose = () => {
     setNewName("");
     setValidationMessage(null);
     setIsValid(false);
     onHide();
   };
 
+  const getPrimaryButtonLabel = () => {
+    if (isCopying) return "Copying…";
+    if (canEditDirectly && hasEditSupport) return "Copy, Add & Edit";
+    return "Copy & Add to Assignment";
+  };
+
+  const getPrimaryButtonIcon = () => {
+    if (canEditDirectly && hasEditSupport) return "pi pi-pencil";
+    return "pi pi-plus";
+  };
+
   return (
     <Dialog
       visible={visible}
-      onHide={handleCancel}
+      onHide={handleClose}
       header="Copy Exercise"
-      style={{ width: "400px" }}
+      style={{ width: "480px" }}
       modal
       draggable={false}
       resizable={false}
     >
       <div className="flex flex-column gap-3">
+        <Message
+          severity="info"
+          text="The copy will be added to your current assignment and you will become its owner."
+          className="w-full"
+        />
+
         <div>
           <label htmlFor="exerciseName" className="block text-900 font-medium mb-2">
-            Exercise Name
+            New Exercise Name
           </label>
           <InputText
             id="exerciseName"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Enter new exercise name"
+            placeholder="Enter a unique name for the copy"
             className="w-full"
             invalid={validationMessage !== null}
           />
           {validationMessage && (
-            <Message severity="error" text={validationMessage} className="mt-2" />
+            <Message severity="error" text={validationMessage} className="mt-2 w-full" />
           )}
         </div>
 
-        <div className="flex justify-content-end gap-2 mt-3">
-          <Button label="Cancel" outlined onClick={handleCancel} disabled={isCopying} />
+        {canEditDirectly && hasEditSupport && (
+          <Message
+            severity="success"
+            text="The copy will open in the editor immediately after it is created."
+            className="w-full"
+          />
+        )}
+
+        {!canEditDirectly && (
+          <Message
+            severity="warn"
+            text="This exercise type does not support the visual editor. The copy will be added to your assignment but must be edited via other means."
+            className="w-full"
+          />
+        )}
+
+        <div className="flex justify-content-end gap-2 mt-2">
+          <Button label="Cancel" outlined onClick={handleClose} disabled={isCopying} />
           <Button
-            label="Copy Exercise"
+            label={getPrimaryButtonLabel()}
+            icon={getPrimaryButtonIcon()}
             onClick={handleCopy}
             disabled={!isValid || isCopying || isValidating}
+            loading={isCopying}
           />
         </div>
       </div>

@@ -291,7 +291,6 @@ export const AssignmentExercisesTable = ({
         visible={copyModalVisible}
         onHide={handleCopyModalHide}
         exercise={selectedExerciseForCopy}
-        copyToAssignment={true}
         setCurrentEditExercise={setCurrentEditExercise}
         setViewMode={setViewMode}
       />
