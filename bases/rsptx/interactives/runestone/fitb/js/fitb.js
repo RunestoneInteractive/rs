@@ -442,11 +442,15 @@ export default class FITB extends RunestoneBase {
         if (len > 0) {
             var ex = localStorage.getItem(this.localStorageKey());
             if (ex !== null) {
+                let error = false;
                 try {
                     storedData = JSON.parse(ex);
                 } catch (err) {
                     // error while parsing; likely due to bad value stored in storage
-                    console.assert(false, err.message);
+                    console.log(`Error parsing stored FITB data for ${this.divid}: ${err.message}`);
+                    error = true;
+                }
+                if (error || storedData.timestamp < eBookConfig.termStartDate) {
                     localStorage.removeItem(this.localStorageKey());
                     return;
                 }

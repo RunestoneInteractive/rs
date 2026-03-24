@@ -278,6 +278,11 @@ export default class HParsons extends RunestoneBase {
             return;
         }
         let localData = this.localData();
+        // Guard against no timestamp as it was only added 3/24/2026
+        if (localData.timestamp && localData.timestamp < eBookConfig.termStartDate) {
+            localStorage.removeItem(this.storageId);
+            return;
+        }
         if (localData.answerIndices && this.hparsonsInput.restoreAnswerByIndices) {
             this.hparsonsInput.restoreAnswerByIndices(localData.answerIndices.map(Number));
         } else if (localData.answer) {
@@ -299,7 +304,6 @@ export default class HParsons extends RunestoneBase {
     setLocalStorage(data) {
         let currentState = {};
         if (data == undefined) {
-
             if (this.isBlockGrading) {
                 const answerIndices = this.hparsonsInput.getBlockIndices();
                 currentState = { answerIndices: answerIndices };
@@ -308,7 +312,7 @@ export default class HParsons extends RunestoneBase {
                 const userAnswer = this.hparsonsInput.getParsonsTextArray();
                 currentState = { answer: userAnswer };
             }
-
+            currentState.timestamp = new Date();
         } else {
             currentState = data;
         }

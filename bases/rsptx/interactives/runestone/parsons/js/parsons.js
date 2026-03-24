@@ -998,7 +998,12 @@ export default class Parsons extends RunestoneBase {
         if (this.graderactive) {
             return;
         }
-        this.loadData(this.localData());
+        const localData = this.localData();
+        if (localData.timestamp && localData.timestamp < eBookConfig.termStartDate) {
+            localStorage.removeItem(this.storageId);
+            localData= {};
+        }
+        this.loadData(localData);
     }
     // RunestoneBase: Set the state of the problem in local storage
     setLocalStorage(data) {
