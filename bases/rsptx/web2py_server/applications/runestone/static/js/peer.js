@@ -1,5 +1,4 @@
 // Configuration for the PI steps and helper functions to handle step progression in the instructor's interface
-console.log("PEER JS VERSION TEST 12345");
 const STEP_CONFIG = {
     vote1: {
         next: ['makep', 'facechat', 'makeabgroups'],
