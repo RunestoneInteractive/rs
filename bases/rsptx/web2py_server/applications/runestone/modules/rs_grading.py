@@ -598,9 +598,9 @@ def _scorable_lp_answers(
     if deadline:
         query = query & (db.lp_answers.timestamp < deadline)
     if practice_start_time:
-        query = query & (db.codelens_answers.timestamp >= practice_start_time)
+        query = query & (db.lp_answers.timestamp >= practice_start_time)
         if now:
-            query = query & (db.codelens_answers.timestamp <= now)
+            query = query & (db.lp_answers.timestamp <= now)
 
     return db(query).select(orderby=db.lp_answers.timestamp)
 
