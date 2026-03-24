@@ -1505,11 +1505,17 @@ async def validate_question_name(
 
 @router.post("/copy_question")
 @instructor_role_required()
+@with_course()
 async def copy_question_endpoint(
-    request: Request, request_data: CopyQuestionRequest, user=Depends(auth_manager)
+    request: Request,
+    request_data: CopyQuestionRequest,
+    user=Depends(auth_manager),
+    course=None,
 ):
     """
     Copy a question with a new name and owner.
+    The user making the copy becomes the owner and author.
+    The base_course is updated to the current user's course base_course.
     Optionally copy it to an assignment as well.
     """
     try:
@@ -1523,6 +1529,7 @@ async def copy_question_endpoint(
             new_owner=user.username,
             assignment_id=assignment_id,
             htmlsrc=request_data.htmlsrc,
+            new_base_course=course.base_course,
         )
 
         return make_json_response(
