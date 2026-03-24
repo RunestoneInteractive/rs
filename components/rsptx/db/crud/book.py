@@ -4,6 +4,7 @@ from sqlalchemy import select, update, distinct
 from ..models import (
     Chapter,
     ChapterValidator,
+    Courses,
     SubChapter,
     SubChapterValidator,
     Question,
@@ -137,11 +138,16 @@ async def fetch_page_activity_counts(
         page_divids = await session.execute(query)
     rslogger.debug(f"PDVD {page_divids}")
     div_counts = {q.name: 0 for q in page_divids.scalars()}
-    query = select(distinct(Useinfo.div_id)).where(
-        where_clause_common
-        & (Question.name == Useinfo.div_id)
-        & (Useinfo.course_id == course_name)
-        & (Useinfo.sid == username)
+    query = (
+        select(distinct(Useinfo.div_id))
+        .join(Courses, Courses.course_name == Useinfo.course_id)
+        .where(
+            where_clause_common
+            & (Question.name == Useinfo.div_id)
+            & (Useinfo.course_id == course_name)
+            & (Useinfo.sid == username)
+            & (Useinfo.timestamp > Courses.term_start_date)
+        )
     )
     async with async_session() as session:
         sid_counts = await session.execute(query)
