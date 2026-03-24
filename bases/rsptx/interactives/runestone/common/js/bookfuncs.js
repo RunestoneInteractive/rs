@@ -808,6 +808,26 @@ function createStudyCluesWidget() {
     });
 }
 
+function shouldShowStudyCluesWidget() {
+    if (!location.pathname.includes("/ns/books/")) {
+        return false;
+    }
+
+    const enabledBasecourses = ["csawesome2", "py4e-int", "thinkcspy", "PTXSB"];
+    const enabledCourses = ["SI201-W26-MW and SI201-W26-TTh", "DukeCS101SP26", "mcd-csa-schoology", "mcd-csa-canvas"];
+    const host = window.location.hostname;
+
+    if (host === "localhost") {
+        return enabledBasecourses.includes(eBookConfig.basecourse);
+    }
+
+    if (host === "runestone.academy") {
+        return enabledCourses.includes(eBookConfig.course);
+    }
+
+    return false;
+}
+
 async function handlePageSetup() {
     var mess;
     if (eBookConfig.useRunestoneServices) {
@@ -880,8 +900,8 @@ async function handlePageSetup() {
         document.dispatchEvent(new Event("runestone:login"));
         addReadingList();
         // Only show the StudyClues widget for certain base courses and when the path includes "/ns/books/".
-        if (["csawesome2", "py4e-int", "thinkcspy", "PTXSB"].includes(eBookConfig.basecourse)
-            && location.pathname.includes("/ns/books/")) {
+        // This is a temporary measure to limit the widget to courses that are known to work well with it and to avoid showing it on non-book pages where it may not be as useful.
+        if (shouldShowStudyCluesWidget()) {
             createStudyCluesWidget();
         }
         // Avoid the timedRefresh on the grading page.
