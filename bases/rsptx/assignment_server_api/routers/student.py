@@ -16,6 +16,7 @@ import datetime
 from typing import Optional
 import json
 import re
+import requests
 
 # Third-party imports
 # -------------------
@@ -176,6 +177,109 @@ class UpdateStatusRequest(BaseModel):
 
     assignment_id: int
     new_state: Optional[str] = None
+
+
+def get_studyclues_book_id(course: CoursesValidator) -> str:
+    """Get the StudyClues book ID for a given course.
+
+    :param course: The course object.
+    :type course: CoursesValidator
+    :return: The StudyClues book ID.
+    :rtype: str
+    """
+    # This is a placeholder implementation. You should replace this with your actual logic to get the book ID.
+    # For example, you might have a mapping of course names to book IDs.
+    course_to_book_id = {
+        "csawesome2": 28,
+        "thinkcspy": 29,
+        "py4e-int": 30,
+        "PTXSB": 28,
+        # Add more mappings as needed
+    }
+    return course_to_book_id.get(course.base_course, 28)
+
+
+class StudyCluesQueryRequest(BaseModel):
+    query: str
+    conversation_id: Optional[int] = -1
+    coachMode: Optional[bool] = False
+
+
+@router.post("/studyclues_query")
+async def studyclues_query(
+    request_data: StudyCluesQueryRequest,
+    user=Depends(auth_manager),
+    response_class=JSONResponse,
+):
+    """Proxy a student query to StudyClues and return the response payload."""
+
+    api_base_domain = getattr(
+        settings,
+        "studyclues_api_base_url",
+        "https://api.demo.learningclues.com/",
+    )
+    query_studyclues_post_url = f"{api_base_domain.rstrip('/')}/studyclues/query"
+
+    # Maybe cache the user_id for StudyClues in the future in Redis
+    runestone_login_url = f"{api_base_domain}/auth/runestone_login"
+    params = {"runestone_username": user.username}
+    response = requests.get(runestone_login_url, params=params)
+    if response.status_code != 200:
+        rslogger.error(
+            f"StudyClues login request failed with status {response.status_code}: {response.text}"
+        )
+        return make_json_response(
+            status=502,
+            detail={
+                "success": False,
+                "message": "StudyClues login request failed",
+                "status_code": response.status_code,
+            },
+        )
+    data = response.json()
+    lc_user = data.get("user_id")
+
+    course = await fetch_course(user.course_name)
+    book_id = get_studyclues_book_id(course)
+    studyclues_params = {
+        "course_id": book_id,  # todo: make this dynamic based on the basecourse
+        "query": request_data.query,
+        "num_passages": 20,
+        "dry_run": False,
+        "user_id": lc_user,
+        "conversation_id": request_data.conversation_id,
+        "coach_mode": request_data.coachMode,
+        "source_filter": "GITHUB_FILE",
+    }
+
+    try:
+        with requests.Session() as session:
+            upstream_response = session.post(
+                query_studyclues_post_url,
+                json=studyclues_params,
+                timeout=30,
+            )
+            upstream_response.raise_for_status()
+            studyclues_response = upstream_response.json()
+    except requests.RequestException as err:
+        rslogger.error(f"StudyClues request failed: {err}")
+        return make_json_response(
+            status=502,
+            detail={"success": False, "message": "StudyClues request failed"},
+        )
+    except ValueError:
+        rslogger.error("StudyClues returned non-JSON response")
+        return make_json_response(
+            status=502,
+            detail={"success": False, "message": "Invalid StudyClues response"},
+        )
+
+    conversation_id = studyclues_response.get(
+        "conversation_id", request_data.conversation_id
+    )
+    return make_json_response(
+        detail={"response": studyclues_response, "conversation_id": conversation_id}
+    )
 
 
 @router.post("/update_submit")
