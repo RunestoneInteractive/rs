@@ -13,14 +13,27 @@ interface SortableBlockProps {
   indentWidth: number;
   maxIndent: number;
   blockWidth: number;
+  blockIndex?: number;
   onContentChange: (id: string, content: string) => void;
   onRemove: (id: string) => void;
   onAddAlternative?: (id: string) => void;
   onCorrectChange?: (id: string, isCorrect: boolean) => void;
   onSplitBlock?: (id: string, lineIndex: number) => void;
+  onDistractorChange?: (id: string, isDistractor: boolean) => void;
+  onPairedChange?: (id: string, paired: boolean) => void;
+  onExplanationChange?: (id: string, explanation: string) => void;
+  onTagChange?: (id: string, tag: string) => void;
+  onDependsChange?: (id: string, depends: string[]) => void;
+  onOrderChange?: (id: string, order: number) => void;
   hasAlternatives?: boolean;
   showAddAlternative?: boolean;
   showDragHandle?: boolean;
+  isFirstInLine?: boolean;
+  grader?: "line" | "dag";
+  orderMode?: "random" | "custom";
+  allTags?: string[];
+  mode?: "simple" | "enhanced";
+  "data-tour"?: string;
 }
 
 export const SortableBlock: FC<SortableBlockProps> = ({
@@ -30,14 +43,27 @@ export const SortableBlock: FC<SortableBlockProps> = ({
   indentWidth,
   maxIndent,
   blockWidth,
+  blockIndex,
   onContentChange,
   onRemove,
   onAddAlternative,
   onCorrectChange,
   onSplitBlock,
+  onDistractorChange,
+  onPairedChange,
+  onExplanationChange,
+  onTagChange,
+  onDependsChange,
+  onOrderChange,
   hasAlternatives,
   showAddAlternative = true,
-  showDragHandle = true
+  showDragHandle = true,
+  isFirstInLine = false,
+  grader = "line",
+  orderMode = "random",
+  allTags = [],
+  mode = "enhanced",
+  "data-tour": dataTour
 }) => {
   const handleRef = useRef<HTMLDivElement>(null);
 
@@ -76,6 +102,7 @@ export const SortableBlock: FC<SortableBlockProps> = ({
       data-indent={block.indent}
       data-group-id={block.groupId || ""}
       data-id={id}
+      data-tour={dataTour}
     >
       <BlockItem
         block={block}
@@ -84,15 +111,27 @@ export const SortableBlock: FC<SortableBlockProps> = ({
         indentWidth={indentWidth}
         maxIndent={maxIndent}
         blockWidth={100}
+        blockIndex={blockIndex}
         onContentChange={onContentChange}
         onRemove={onRemove}
         onAddAlternative={onAddAlternative}
         onCorrectChange={onCorrectChange}
         onSplitBlock={onSplitBlock}
+        onDistractorChange={onDistractorChange}
+        onPairedChange={onPairedChange}
+        onExplanationChange={onExplanationChange}
+        onTagChange={onTagChange}
+        onDependsChange={onDependsChange}
+        onOrderChange={onOrderChange}
         showCorrectCheckbox={Boolean(block.groupId)}
         hasAlternatives={hasAlternatives}
         showAddAlternative={showAddAlternative}
         showDragHandle={showDragHandle}
+        isFirstInLine={isFirstInLine}
+        grader={grader}
+        orderMode={orderMode}
+        allTags={allTags}
+        mode={mode}
         dragHandleProps={showDragHandle ? { ref: handleRef, attributes, listeners } : undefined}
       />
     </div>

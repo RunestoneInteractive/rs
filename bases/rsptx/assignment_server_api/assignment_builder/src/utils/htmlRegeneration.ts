@@ -41,7 +41,12 @@ export const regenerateHtmlSrc = (exercise: Exercise, newName: string): string =
         return generateParsonsPreview({
           instructions: questionJson.instructions || questionJson.questionText || "",
           blocks: questionJson.blocks || [],
-          name: newName
+          name: newName,
+          language: questionJson.language || "python",
+          adaptive: questionJson.adaptive ?? true,
+          numbered: questionJson.numbered ?? "left",
+          noindent: questionJson.noindent ?? false,
+          questionLabel: newName
         });
 
       case "activecode":

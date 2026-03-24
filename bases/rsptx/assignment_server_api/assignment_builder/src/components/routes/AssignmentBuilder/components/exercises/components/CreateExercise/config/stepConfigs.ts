@@ -279,6 +279,64 @@ export const PARSONS_STEP_VALIDATORS: StepValidator<ParsonsData>[] = [
     } else if (data.blocks.some((block) => !block.content.trim())) {
       errors.push("All blocks must contain content");
     }
+
+    // DAG validation
+    if (data.grader === "dag" && data.blocks?.length) {
+      const nonDistractorBlocks = data.blocks.filter((b) => !b.isDistractor && !b.groupId);
+      const tags = nonDistractorBlocks.map((b) => b.tag).filter(Boolean) as string[];
+
+      // Check that all non-distractor blocks have tags
+      const missingTags = nonDistractorBlocks.filter((b) => !b.tag);
+      if (missingTags.length > 0) {
+        errors.push("All non-distractor blocks must have a tag when using DAG grader");
+      }
+
+      // Check for duplicate tags
+      const tagSet = new Set<string>();
+      for (const tag of tags) {
+        if (tagSet.has(tag)) {
+          errors.push(`Duplicate tag "${tag}" found. Each block must have a unique tag`);
+          break;
+        }
+        tagSet.add(tag);
+      }
+
+      // Check depends reference existing tags
+      for (const block of nonDistractorBlocks) {
+        if (block.depends?.length) {
+          for (const dep of block.depends) {
+            if (!tagSet.has(dep)) {
+              errors.push(`Block "${block.tag}" depends on unknown tag "${dep}"`);
+            }
+            if (dep === block.tag) {
+              errors.push(`Block "${block.tag}" cannot depend on itself`);
+            }
+          }
+        }
+      }
+    }
+
+    // Paired distractor validation
+    if (data.blocks?.length) {
+      for (let i = 0; i < data.blocks.length; i++) {
+        const block = data.blocks[i];
+        if (block.pairedWithBlockAbove && block.isDistractor) {
+          if (i === 0) {
+            errors.push(
+              "A paired distractor cannot be the first block (nothing above to pair with)"
+            );
+          } else {
+            const blockAbove = data.blocks[i - 1];
+            if (blockAbove.isDistractor) {
+              errors.push(
+                `Paired distractor "${block.content.substring(0, 30)}..." must be placed directly after a solution block, not another distractor`
+              );
+            }
+          }
+        }
+      }
+    }
+
     return errors;
   },
   // Settings

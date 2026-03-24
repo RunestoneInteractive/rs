@@ -111,6 +111,13 @@ export type QuestionJSON = Partial<{
   parsonsexample: string;
   enableCodelens: boolean;
   iframeSrc: string;
+  // Parsons problem options
+  adaptive: boolean;
+  numbered: "left" | "right" | "none";
+  noindent: boolean;
+  grader: "line" | "dag";
+  orderMode: "random" | "custom";
+  customOrder: number[];
 }>;
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;
