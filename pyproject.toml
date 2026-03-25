@@ -175,6 +175,10 @@ exclude = [
     "bases/rsptx/library_server_api",
 ]
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+
 [tool.black]
 line-length = 88
 
