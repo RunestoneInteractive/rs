@@ -1,4 +1,4 @@
-name: CRUD Tests
+name: Tests
 
 on:
   pull_request:
@@ -62,6 +62,6 @@ jobs:
       - name: Install dependencies
         run: poetry install --with dev --no-interaction
 
-      - name: Run CRUD tests
+      - name: Run tests
         run: |
-          poetry run pytest test/components/rsptx/db/ -v --tb=short
+          poetry run pytest -v --tb=short
