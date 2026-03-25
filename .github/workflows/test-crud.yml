@@ -7,8 +7,10 @@ on:
       - 'components/rsptx/configuration/**'
       - 'components/rsptx/validation/**'
       - 'components/rsptx/response_helpers/**'
-      - 'test/components/rsptx/db/**'
-      - 'test/conftest.py'
+      - 'components/rsptx/endpoint_validators/**'
+      - 'bases/rsptx/book_server_api/**'
+      - 'bases/rsptx/assignment_server_api/**'
+      - 'test/**'
       - '.github/workflows/test-crud.yml'
       - 'pyproject.toml'
 
