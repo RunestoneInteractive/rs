@@ -17,7 +17,11 @@ If you want to do development on Runestone, or run your own server, you will nee
 
 .. image:: https://readthedocs.org/projects/runestone-monorepo/badge/?version=latest
     :target: https://runestone-monorepo.readthedocs.io/en/latest/?badge=latest
-    :alt: Documentation Status 
+    :alt: Documentation Status
+
+.. image:: https://github.com/RunestoneInteractive/rs/actions/workflows/test-crud.yml/badge.svg
+    :target: https://github.com/RunestoneInteractive/rs/actions/workflows/test-crud.yml
+    :alt: Tests
 
 Chat with us on `Discord <https://discord.gg/f3Qmbk9P3U>`_
 
