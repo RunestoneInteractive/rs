@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 
 import { SearchInput } from "@components/ui/SearchInput";
 import { Button } from "primereact/button";
-import { Checkbox } from "primereact/checkbox";
 import { Column } from "primereact/column";
 import { confirmDialog, ConfirmDialog } from "primereact/confirmdialog";
 import { DataTable, DataTableSortEvent } from "primereact/datatable";
@@ -26,7 +25,6 @@ interface AssignmentListProps {
   onDuplicate: (assignment: Assignment) => void;
   onReleasedChange: (assignment: Assignment, released: boolean) => void;
   onEnforceDueChange: (assignment: Assignment, enforce_due: boolean) => void;
-  onPeerAsyncChange: (assignment: Assignment, peer_async_visible: boolean) => void;
   onVisibilityChange: (
     assignment: Assignment,
     data: { visible: boolean; visible_on: string | null; hidden_on: string | null }
@@ -43,7 +41,6 @@ export const AssignmentList = ({
   onDuplicate,
   onReleasedChange,
   onEnforceDueChange,
-  onPeerAsyncChange,
   onVisibilityChange,
   onRemove
 }: AssignmentListProps) => {
@@ -123,17 +120,6 @@ export const AssignmentList = ({
       >
         {rowData.kind || "Unknown"}
       </span>
-      {rowData.kind === "Peer" && (
-        <label className={styles.asyncPeerGroup}>
-          <span className={styles.asyncPeerText}>Async Peer</span>
-          <Checkbox
-            checked={rowData.peer_async_visible}
-            onChange={(e) => onPeerAsyncChange(rowData, !!e.checked)}
-            tooltip={rowData.peer_async_visible ? "Disable async peer" : "Enable async peer"}
-            tooltipOptions={{ position: "top" }}
-          />
-        </label>
-      )}
     </div>
   );
 

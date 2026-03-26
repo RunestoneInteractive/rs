@@ -132,18 +132,6 @@ export const AssignmentBuilder = () => {
     }
   };
 
-  const handlePeerAsyncChange = async (assignment: Assignment, peer_async_visible: boolean) => {
-    try {
-      await updateAssignment({
-        ...assignment,
-        peer_async_visible
-      });
-      toast.success(`Async peer ${peer_async_visible ? "enabled" : "disabled"}`);
-    } catch (error) {
-      toast.error("Failed to update async peer setting");
-    }
-  };
-
   const handleVisibilityChange = async (
     assignment: Assignment,
     data: { visible: boolean; visible_on: string | null; hidden_on: string | null }
@@ -211,7 +199,6 @@ export const AssignmentBuilder = () => {
           onDuplicate={handleDuplicate}
           onReleasedChange={handleReleasedChange}
           onEnforceDueChange={handleEnforceDueChange}
-          onPeerAsyncChange={handlePeerAsyncChange}
           onVisibilityChange={handleVisibilityChange}
           onRemove={onRemove}
         />
