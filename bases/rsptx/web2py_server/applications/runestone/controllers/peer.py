@@ -143,8 +143,23 @@ def dashboard():
         is_last=done,
         lti=is_lti,
         has_vote1=has_vote1,
+        peer_async_visible=assignment.peer_async_visible or False,
         **course_attrs,
     )
+
+
+@auth.requires(
+    lambda: verifyInstructorStatus(auth.user.course_id, auth.user),
+    requires_login=True,
+)
+def toggle_async():
+    response.headers["content-type"] = "application/json"
+    assignment_id = request.vars.assignment_id
+    assignment = db(db.assignments.id == assignment_id).select().first()
+    new_value = not (assignment.peer_async_visible or False)
+    db(db.assignments.id == assignment_id).update(peer_async_visible=new_value)
+    db.commit()
+    return json.dumps({"peer_async_visible": new_value})
 
 
 def extra():

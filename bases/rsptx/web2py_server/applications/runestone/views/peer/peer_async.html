@@ -53,7 +53,11 @@
         <ol>
             <li>Answer the question as best you can.</li>
             <li>Then, in the space provided write a justification for your answer.</li>
-            <li>Read the dialog between two of your peers on why they answered the question the way they did.</li>
+            {{ if llm_enabled: }}
+            <li>Discuss the question with an AI peer — explain your reasoning and respond to their questions.</li>
+            {{ else: }}
+            <li>Read the discussion between other students on why they answered the question the way they did.</li>
+            {{ pass }}
             <li>Answer the question <strong>again.</strong>  Even if you are not changing your answer from the first time.</li>
         </ol>
     </p>
@@ -116,7 +120,7 @@
               </div>
 
               <p id="llmDisclaimer" style="display:none; font-size:0.8em; color:#888; margin-top:4px; margin-bottom:0;">
-                You are chatting with an AI, not a real peer.
+                You are chatting with an LLM, not a real peer.
               </p>
               <p id="nextStep" style="margin-top:8px; font-style:italic;"></p>
             </div>
@@ -142,6 +146,7 @@
 {{ pass }}
 <script>
   window.DISABLE_ASYNC_EXPLAINER = true;
+  window.PI_LLM_MODE = {{="true" if llm_enabled else "false"}};
 </script>
 <script src="/runestone/static/js/peer.js?v={{=request.peer_mtime}}"></script>
 <script>
@@ -192,7 +197,9 @@
       label = "Step 1 of 3: Answer the question";
       bg = "#4A9FDE";
     } else if (step === 2) {
-      label = "Step 2 of 3: Explain your answer and discuss";
+      label = window.PI_LLM_MODE
+        ? "Step 2 of 3: Explain your answer and discuss with the LLM peer"
+        : "Step 2 of 3: Explain your answer and read the previous discussions";
       bg = "#2878B5";
     } else if (step === 3) {
       label = "Step 3 of 3: Vote again — you may keep or change your answer";
