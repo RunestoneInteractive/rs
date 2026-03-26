@@ -174,7 +174,9 @@ def _get_current_question(assignment_id, get_next):
         idx = 0
         db(db.assignments.id == assignment_id).update(current_index=idx)
     elif get_next is True:
-        idx = assignment.current_index + 1
+        all_questions = _get_assignment_questions(assignment_id)
+        total_questions = len(all_questions)
+        idx = min(assignment.current_index + 1, max(total_questions - 1, 0))
         db(db.assignments.id == assignment_id).update(current_index=idx)
     else:
         idx = assignment.current_index
