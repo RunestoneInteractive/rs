@@ -12,6 +12,7 @@ __pycache__
 .ssh
 .nova
 .env
+.env.backup*
 logfiles
 datashop
 build_info
@@ -33,3 +34,5 @@ _build
 **/test/_static
 bake.log
 WARP.md
+init_runestone.log
+.claude

@@ -1,5 +1,43 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-02-28 → 2026-03-13)
+
+Coverage: changes merged/landed after the previous changelog update commit on **2026-02-28**, through **2026-03-13**.
+
+### Highlights
+
+- **Assignment visibility / date logic (issue-814):** enhanced visibility control logic and UI to support dual date display, including related plumbing (merge of the issue-814 workstream).
+- **Assignment list UX:** added sorting in `AssignmentList` with persistence via `localStorage`.
+- **Accessibility + theming:** WCAG AA fixes for assignment navigation links and dark-mode color adjustments.
+- **Peer Instruction grading correctness:** restored `studentVoteCount` increment for sync PI grading.
+- **Interactives fixes + polish:**
+  - Matching: use `queuMathJax` instead of `typesetPromise`.
+  - Multiple choice: ensure MathJax renders in feedback.
+  - ShortAnswer: preserve event handlers when rebuilding.
+  - ActiveCode: updated hotkeys/keybindings.
+- **Ops / tooling:** added pre-commit configuration, updated dependencies, and bumped releases (**7.11.18**, **7.11.19**) with assorted bugfixes; also updated `pgcli`.
+
+### Commit notes (for reference)
+
+- 7f2ec9c8 update - bugfixes
+- 7375c073 Release 7.11.18
+- e02df4fd update pgcli
+- 5cfa6569 ShortAnswer: preserve event handlers when building
+- 67e6d21e CSS: override bootstrap summary styling
+- 6c5fe9ea Fix: make sure to render mathjax in mchoice feedback
+- d78bebb1 Matching: use queuMathJax instead of typesetPromise
+- ffaf9192 fix activities required for new logic
+- b2e38cd9 issue-814 Enhance visibility control logic and UI to support dual date display
+- 70ff1e55 issue-1145 Implement sorting functionality in AssignmentList with localStorage persistence
+- 5815b226 issue-814 Rename created_date to updated_date in assignments and related components
+- f2581a22 Update activecode keybindings
+- 65e2bca3 Add pre-commit configuration and update dependencies in pyproject.toml
+- 27cb3b60 restore studentVoteCount increment for sync PI grading
+- cfa3ea2a WCAG AA fix for assignment nav links
+- 7ec65dae WCAG AA fix for darkmode grayToWhite
+
+---
+
 ## Updates since last changelog entry (2026-02-21 → 2026-02-27)
 
 Coverage: commits from **2026-02-21** through **2026-02-27** (i.e., changes after the prior cutoff on 2026-02-20).

@@ -1,69 +1,33 @@
-from rsptx.db.crud import *
+"""
+Smoke tests for the top-level crud module (create_initial_courses_users, etc.).
+
+The detailed per-domain tests live in test_user.py, test_course.py,
+test_rslogging.py, test_question.py, and test_assignment.py.
+"""
 import pytest
-import asyncio
+
+pytestmark = pytest.mark.asyncio(loop_scope="session")
+
+from rsptx.db import crud
+from rsptx.db.crud import fetch_user, fetch_course
 
 
-@pytest.mark.asyncio
-async def test_create_useinfo_entry():
-    assert create_useinfo_entry is not None
-    # Write the code for the test here.
-    # Tip: use the pytest.raises context manager to test for exceptions.
-    # create and new entry
-    with pytest.raises(Exception):
-        create_useinfo_entry(
-            sid="test_sid",
-            div_id="test_div_id",
-            event="test_event",
-            act="test_act",
-            timestamp="test_timestamp",
-            course_id="test_course_id",
-            chapter="test_chapter",
-            subchapter="test_subchapter",
-            session="test_session",
-            ip_address="test_ip_address",
-        )
-    x = await create_useinfo_entry(
-        sid="test_sid",
-        div_id="test_div_id",
-        event="test_event",
-        act="test_act",
-        timestamp="test_timestamp",
-        course_id="test_course_id",
-        chapter="test_chapter",
-        subchapter="test_subchapter",
-        session="test_session",
-        ip_address="test_ip_address",
-    )
-    assert x is not None
-    assert x.sid == "test_sid"
-    assert x.div_id == "test_div_id"
-    assert x.event == "test_event"
-    assert x.act == "test_act"
-    assert x.timestamp == "test_timestamp"
-    assert x.course_id == "test_course_id"
-    assert x.chapter == "test_chapter"
-    assert x.subchapter == "test_subchapter"
-    assert x.session == "test_session"
-    assert x.ip_address == "test_ip_address"
+async def test_crud_module_importable():
+    """The crud module must be importable."""
+    assert crud is not None
 
 
-@pytest.mark.asyncio
-async def test_create_question_grade_entry():
-    # Test creating a new QuestionGrade entry
-    sid = "test_sid"
-    course_name = "test_course"
-    qid = "test_qid"
-    grade = 85
+async def test_seeded_courses_exist(init_test_db):
+    """create_initial_courses_users must have seeded the expected base courses."""
+    for course_name in ("overview", "test_course_1", "fopp", "thinkcspy"):
+        course = await fetch_course(course_name)
+        assert course is not None, f"Expected seeded course '{course_name}' not found"
+        assert course.course_name == course_name
 
-    # Call the function to create a new QuestionGrade entry
-    new_qg = await create_question_grade_entry(sid, course_name, qid, grade)
 
-    # Assert that the returned object is not None
-    assert new_qg is not None
-
-    # Assert that the returned object has the correct attributes
-    assert new_qg.sid == sid
-    assert new_qg.course_name == course_name
-    assert new_qg.div_id == qid
-    assert new_qg.score == grade
-    assert new_qg.comment == "autograded"
+async def test_seeded_user_exists(init_test_db):
+    """testuser1 must exist after seeding."""
+    user = await fetch_user("testuser1")
+    assert user is not None
+    assert user.username == "testuser1"
+    assert user.email == "testuser1@example.com"

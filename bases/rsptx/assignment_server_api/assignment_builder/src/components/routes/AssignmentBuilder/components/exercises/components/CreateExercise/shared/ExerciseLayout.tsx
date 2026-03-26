@@ -37,6 +37,7 @@ interface ExerciseLayoutProps {
   onStepSelect: (index: number) => void;
   children: ReactNode;
   validation?: ValidationState;
+  headerExtra?: ReactNode;
 }
 
 export const ExerciseLayout = ({
@@ -54,7 +55,8 @@ export const ExerciseLayout = ({
   onSave,
   onStepSelect,
   children,
-  validation
+  validation,
+  headerExtra
 }: ExerciseLayoutProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { isFullscreen, toggleFullscreen, exitFullscreen, isSupported } =
@@ -91,6 +93,7 @@ export const ExerciseLayout = ({
       <div id="exercise-layout" className={styles.container} ref={containerRef}>
         <div className={styles.header}>
           <h2>{isEdit ? `Edit ${title}` : `Create ${title}`}</h2>
+          {headerExtra}
           <div className={styles.headerButtons}>
             {isSupported && (
               <Button
@@ -100,6 +103,7 @@ export const ExerciseLayout = ({
                 onClick={toggleFullscreen}
                 tooltip={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                 tooltipOptions={{ position: "bottom" }}
+                data-tour="fullscreen-btn"
               />
             )}
             <Button label="Cancel" icon="pi pi-times" severity="secondary" onClick={handleCancel} />

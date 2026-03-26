@@ -105,7 +105,7 @@ async def get_book_subchapters(course_name: str) -> List[SubChapterValidator]:
         .order_by(Chapter.chapter_num, SubChapter.sub_chapter_num)
     )
     async with async_session() as session:
-        print(query)
+        rslogger.debug(f"{query=}")
         res = await session.execute(query)
         return [SubChapterValidator.from_orm(x) for x in res.scalars().fetchall()]
 

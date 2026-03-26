@@ -1258,6 +1258,7 @@ async def addbookauthor(config, book, author, github):
         await create_course(new_course)
     # Try to deduce the github url from the working directory
     repo_path = None
+    book_path = None
     if not github:
         lib_entry = await fetch_library_book(book)
         if lib_entry:
@@ -1287,6 +1288,15 @@ async def addbookauthor(config, book, author, github):
         vals = dict(title=f"Temporary title for {book}", github_url=github)
         if repo_path:
             vals["repo_path"] = repo_path
+        else:
+            if not book_path:
+                book_path = os.environ.get("BOOK_PATH", "/books/") + "/" + book
+        proj_path = book_path or repo_path
+        if os.path.exists(os.path.join(proj_path, "project.ptx")):
+            vals["build_system"] = "PTX"
+        else:
+            vals["build_system"] = "Runestone"
+
         await create_library_book(book, vals)
     except Exception:
         click.echo(f"Warning: Book: {book} already exists in library")

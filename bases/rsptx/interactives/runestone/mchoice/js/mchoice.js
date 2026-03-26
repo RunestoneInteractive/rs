@@ -546,6 +546,7 @@ export default class MultipleChoice extends RunestoneBase {
                 `✖️ You gave ${numGiven} ${answerStr} and got ${numCorrect} correct of ${numNeeded} needed.<ol type="A">${feedbackText}</ul>`;
             this.feedBackDiv.className = "alert alert-danger";
         }
+        this.queueMathJax(this.feedBackDiv);
     }
 
     processMCMFSubmission(logFlag) {
@@ -627,6 +628,7 @@ export default class MultipleChoice extends RunestoneBase {
             this.feedBackDiv.innerHTML = "✖️ " + feedbackText;
             this.feedBackDiv.className = "alert alert-danger";
         }
+        this.queueMathJax(this.feedBackDiv);
     }
     enableMCComparison() {
         if (eBookConfig.enableCompareMe) {

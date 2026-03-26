@@ -47,7 +47,10 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
     ...(data.question_type === "parsonsprob" && {
       blocks: data.blocks,
       language: data.language,
-      instructions: data.instructions
+      instructions: data.instructions,
+      adaptive: data.adaptive,
+      numbered: data.numbered,
+      noindent: data.noindent
     }),
     ...(data.question_type === "fillintheblank" && {
       questionText: data.questionText,
@@ -92,6 +95,10 @@ export const getDefaultQuestionJson = (languageOptions: TableDropdownOption[]) =
   correctAnswers: [["a", "x"]],
   feedback: "Incorrect. Please try again.",
   blocks: [{ id: `block-${Date.now()}`, content: "", indent: 0 }],
+  // Parsons problem options
+  adaptive: true,
+  numbered: "left" as "left" | "right" | "none",
+  noindent: false,
   // CodeTailor support
   enableCodeTailor: false,
   parsonspersonalize: "",
@@ -118,6 +125,10 @@ export const mergeQuestionJsonWithDefaults = (
     language: questionJson?.language ?? defaultQuestionJson.language,
     instructions: questionJson?.instructions ?? defaultQuestionJson.instructions,
     stdin: questionJson?.stdin ?? defaultQuestionJson.stdin,
+    // Parsons problem options
+    adaptive: questionJson?.adaptive ?? defaultQuestionJson.adaptive,
+    numbered: questionJson?.numbered ?? defaultQuestionJson.numbered,
+    noindent: questionJson?.noindent ?? defaultQuestionJson.noindent,
     // CodeTailor support
     enableCodeTailor: questionJson?.enableCodeTailor ?? defaultQuestionJson.enableCodeTailor,
     parsonspersonalize:

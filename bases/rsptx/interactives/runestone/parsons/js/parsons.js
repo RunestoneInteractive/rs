@@ -167,6 +167,17 @@ export default class Parsons extends RunestoneBase {
         options["prettifyLanguage"] = prettifyLanguage;
         //runnable if the parent has a parsons-runnable attr
         options["runnable"] = $(this.origElem).data("runnable");
+        // Parse block explanations if present
+        var explanationsRaw = $(this.origElem).attr("data-explanations");
+        if (explanationsRaw) {
+            try {
+                this.blockExplanations = JSON.parse(explanationsRaw);
+            } catch (e) {
+                this.blockExplanations = {};
+            }
+        } else {
+            this.blockExplanations = {};
+        }
         this.options = options;
     }
     // Based on what is specified in the original HTML, create the HTML view
@@ -1843,6 +1854,8 @@ export default class Parsons extends RunestoneBase {
             setTimeout(() => {
                 feedbackArea.html(message);
             }, 10);
+            // Show block explanations after solving
+            this.showBlockExplanations();
         }
 
         if (this.grade === "incorrectTooShort") {
@@ -1916,6 +1929,45 @@ export default class Parsons extends RunestoneBase {
                 feedbackArea.html($.i18n("msg_parson_wrong_order"));
             }, 10);
         }
+    }
+
+    // Show explanations for blocks after the student solves the exercise
+    // Uses the same tooltip mechanism as distractor help text (hover to see)
+    showBlockExplanations() {
+        if (!this.blockExplanations || Object.keys(this.blockExplanations).length === 0) {
+            return;
+        }
+        this.hideBlockExplanations(); // clear any previous
+        var answerBlocks = this.answerBlocks();
+        for (var i = 0; i < answerBlocks.length; i++) {
+            var block = answerBlocks[i];
+            var blockIndex = block.lines[0].index;
+            // The explanation map keys are block indices as they appear in the original source
+            // Try matching by the block's first line index in the original order
+            var explanation = this.blockExplanations[String(blockIndex)];
+            if (!explanation) {
+                // Also try by position in the answer area
+                explanation = this.blockExplanations[String(i)];
+            }
+            if (explanation) {
+                // Use the same tooltip approach as distractors:
+                // set data-toggle="tooltip" and title attribute for hover display
+                block.view.setAttribute("data-toggle", "tooltip");
+                block.view.setAttribute("title", explanation);
+                $(block.view).addClass("has-explanation");
+            }
+        }
+    }
+
+    // Remove all block explanations (tooltip attributes)
+    hideBlockExplanations() {
+        var blocks = $(this.answerArea).find(".has-explanation");
+        blocks.each(function () {
+            this.removeAttribute("data-toggle");
+            this.removeAttribute("title");
+            this.removeAttribute("data-original-title");
+        });
+        blocks.removeClass("has-explanation");
     }
 
     /* =====================================================================
@@ -2583,6 +2635,7 @@ export default class Parsons extends RunestoneBase {
             );
         }
         this.messageDiv.style.visibility = "hidden";
+        this.hideBlockExplanations();
     }
     // Disable the interface
     async disableInteraction() {

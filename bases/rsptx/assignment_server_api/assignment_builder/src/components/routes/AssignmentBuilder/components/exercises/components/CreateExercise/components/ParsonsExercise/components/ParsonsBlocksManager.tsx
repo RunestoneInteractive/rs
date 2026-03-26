@@ -1,27 +1,19 @@
 import {
   DndContext,
-  closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
   DragStartEvent,
-  DragOverEvent,
   DragMoveEvent,
   DragOverlay,
   defaultDropAnimation,
   pointerWithin,
-  getFirstCollision,
-  rectIntersection,
   CollisionDetection,
-  UniqueIdentifier,
-  MeasuringStrategy,
-  Modifier,
-  DroppableContainer
+  MeasuringStrategy
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
@@ -41,10 +33,6 @@ const INDENT_WIDTH = 39;
 
 const MAX_ALTERNATIVES = 3;
 
-const BLOCK_WIDTH = 30;
-
-const ALTERNATIVE_BLOCK_WIDTH = 30;
-
 const SNAP_THRESHOLD = 12;
 
 const customDropAnimation = {
@@ -59,7 +47,7 @@ const customCollisionDetection: CollisionDetection = (args) => {
     return pointerCollisions;
   }
 
-  const { droppableContainers, droppableRects } = args;
+  const { droppableRects } = args;
 
   const containerRect = droppableRects.get("blocks-container");
 
@@ -86,12 +74,20 @@ interface ParsonsBlocksManagerProps {
   blocks: ParsonsBlock[];
   onChange: (blocks: ParsonsBlock[]) => void;
   language: string;
+  onAddBlock?: () => void;
+  grader?: "line" | "dag";
+  orderMode?: "random" | "custom";
+  mode?: "simple" | "enhanced";
 }
 
 export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
   blocks,
   onChange,
-  language
+  language,
+  onAddBlock,
+  grader = "line",
+  orderMode = "random",
+  mode = "enhanced"
 }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [highlightedGuide, setHighlightedGuide] = useState<number | null>(null);
@@ -169,7 +165,6 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
     useSensor(PointerSensor, {
       activationConstraint: {
         delay: 250,
-
         distance: 5
       }
     }),
@@ -452,14 +447,18 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
   );
 
   const handleAddBlock = useCallback(() => {
-    const newBlock: ParsonsBlock = {
-      id: `block-${Date.now()}`,
-      content: "",
-      indent: 0
-    };
+    if (onAddBlock) {
+      onAddBlock();
+    } else {
+      const newBlock: ParsonsBlock = {
+        id: `block-${Date.now()}`,
+        content: "",
+        indent: 0
+      };
 
-    onChange([...blocks, newBlock]);
-  }, [blocks, onChange]);
+      onChange([...blocks, newBlock]);
+    }
+  }, [blocks, onChange, onAddBlock]);
 
   const handleRemoveBlock = useCallback(
     (id: string) => {
@@ -647,6 +646,114 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
     [blocks, onChange]
   );
 
+  const handleDistractorChange = useCallback(
+    (id: string, isDistractor: boolean) => {
+      const newBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          return {
+            ...block,
+            isDistractor,
+            pairedWithBlockAbove: isDistractor ? block.pairedWithBlockAbove : false
+          };
+        }
+        return block;
+      });
+      onChange(newBlocks);
+    },
+    [blocks, onChange]
+  );
+
+  const handlePairedChange = useCallback(
+    (id: string, paired: boolean) => {
+      const newBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          return { ...block, pairedWithBlockAbove: paired };
+        }
+        return block;
+      });
+      onChange(newBlocks);
+    },
+    [blocks, onChange]
+  );
+
+  const handleExplanationChange = useCallback(
+    (id: string, explanation: string) => {
+      const newBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          return { ...block, explanation };
+        }
+        return block;
+      });
+      onChange(newBlocks);
+    },
+    [blocks, onChange]
+  );
+
+  const handleTagChange = useCallback(
+    (id: string, tag: string) => {
+      const newBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          return { ...block, tag };
+        }
+        return block;
+      });
+      onChange(newBlocks);
+    },
+    [blocks, onChange]
+  );
+
+  const handleDependsChange = useCallback(
+    (id: string, depends: string[]) => {
+      const newBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          return { ...block, depends };
+        }
+        return block;
+      });
+      onChange(newBlocks);
+    },
+    [blocks, onChange]
+  );
+
+  const handleOrderChange = useCallback(
+    (id: string, order: number) => {
+      const newBlocks = blocks.map((block) => {
+        if (block.id === id) {
+          return { ...block, displayOrder: order };
+        }
+        return block;
+      });
+      onChange(newBlocks);
+    },
+    [blocks, onChange]
+  );
+
+  const allTags = useMemo(() => {
+    return blocks.filter((b) => b.tag && !b.isDistractor).map((b) => b.tag as string);
+  }, [blocks]);
+
+  const blockIndexMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    let idx = 0;
+    const processedGroups = new Set<string>();
+    blocks.forEach((block) => {
+      if (block.groupId) {
+        if (!processedGroups.has(block.groupId)) {
+          processedGroups.add(block.groupId);
+          const groupBlocks = blocks.filter((b) => b.groupId === block.groupId);
+          groupBlocks.forEach((b) => {
+            map[b.id] = idx;
+          });
+          idx++;
+        }
+      } else {
+        map[block.id] = idx;
+        idx++;
+      }
+    });
+    return map;
+  }, [blocks]);
+
   const renderIndentationGuides = () => {
     return availableIndents.map((i) => {
       const isHighlighted = highlightedGuide === i;
@@ -654,18 +761,9 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
       return (
         <div
           key={`indent-${i}`}
-          className={`indent-guide ${isHighlighted ? "highlighted" : ""}`}
+          className={`${styles.indentGuide} ${isHighlighted ? styles.indentGuideHighlighted : ""}`}
           style={{
-            position: "absolute",
-            left: `${i * INDENT_WIDTH}px`,
-            top: 0,
-            bottom: 0,
-            width: isHighlighted ? "2px" : "1px",
-            backgroundColor: isHighlighted ? "var(--primary-color)" : "var(--surface-300)",
-            zIndex: isHighlighted ? 2 : 0,
-            transition: "background-color 0.2s, width 0.2s",
-            height: "100%",
-            pointerEvents: "none"
+            left: `${i * INDENT_WIDTH}px`
           }}
         />
       );
@@ -674,7 +772,6 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
 
   const organizedBlocks = useMemo(() => {
     const result: ParsonsBlock[][] = [];
-
     const processedIds = new Set<string>();
 
     blocks.forEach((block) => {
@@ -694,18 +791,6 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
     return result;
   }, [blocks]);
 
-  const containerStyle = {
-    minHeight: "300px",
-    maxHeight: "500px",
-    position: "relative" as const,
-    padding: 0,
-    overflow: "auto",
-    border: "1px solid var(--surface-300)",
-    borderRadius: "4px",
-    background: "var(--surface-50)",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
-  };
-
   const shouldShowDragHandle = useCallback(
     (blockId: string) => {
       const block = blocks.find((b) => b.id === blockId);
@@ -724,43 +809,54 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
     [blocks]
   );
 
-  return (
-    <div className="flex flex-column gap-3" style={{ margin: "-2rem" }}>
-      <div className={styles.optionsHeader}>
-        <div className="flex justify-content-end w-full">
-          <Button
-            label="Add Block"
-            icon="pi pi-plus"
-            className={styles.addButton}
-            onClick={handleAddBlock}
-            aria-label="Add new block"
-          />
-        </div>
-      </div>
+  // Count stats for the header
+  const solutionCount = blocks.filter((b) => !b.isDistractor).length;
+  const distractorCount = blocks.filter((b) => b.isDistractor).length;
+  const groupCount = Object.keys(blockGroups).length;
 
-      <div className="parsons-workspace w-full position-relative">
-        <div
-          ref={containerRef}
-          className="parsons-blocks-container relative w-full"
-          style={{
-            ...containerStyle,
-            overflowX: "auto"
-          }}
-        >
-          <div
-            className="indentation-guides-container"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              bottom: 0,
-              width: "100%",
-              zIndex: 1,
-              pointerEvents: "none"
-            }}
-          >
-            {renderIndentationGuides()}
+  return (
+    <div className={styles.managerContainer} data-tour="blocks-manager">
+      {/* Stats bar */}
+      {blocks.length > 0 && (
+        <div className={styles.statsBar} data-tour="stats-bar">
+          <div className={styles.statItem}>
+            <span className={styles.statCount}>{blocks.length}</span>
+            <span className={styles.statLabel}>blocks</span>
           </div>
+          <div className={styles.statDivider} />
+          <div className={styles.statItem}>
+            <span className={`${styles.statDot} ${styles.statDotSolution}`} />
+            <span className={styles.statCount}>{solutionCount}</span>
+            <span className={styles.statLabel}>solution</span>
+          </div>
+          {distractorCount > 0 && (
+            <>
+              <div className={styles.statDivider} />
+              <div className={styles.statItem}>
+                <span className={`${styles.statDot} ${styles.statDotDistractor}`} />
+                <span className={styles.statCount}>{distractorCount}</span>
+                <span className={styles.statLabel}>distractor</span>
+              </div>
+            </>
+          )}
+          {groupCount > 0 && (
+            <>
+              <div className={styles.statDivider} />
+              <div className={styles.statItem}>
+                <span className={`${styles.statDot} ${styles.statDotGroup}`} />
+                <span className={styles.statCount}>{groupCount}</span>
+                <span className={styles.statLabel}>groups</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Blocks workspace */}
+      <div className={styles.workspace}>
+        <div ref={containerRef} className={styles.blocksOuter} data-tour="blocks-workspace">
+          {/* Indentation guides */}
+          <div className={styles.indentGuidesContainer}>{renderIndentationGuides()}</div>
 
           <DndContext
             sensors={sensors}
@@ -774,18 +870,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
               }
             }}
           >
-            <div
-              ref={blocksContainerRef}
-              className="blocks-container"
-              style={{
-                minHeight: "250px",
-                position: "relative",
-                zIndex: 2,
-                minWidth: "max-content",
-                width: "100%"
-              }}
-              id="blocks-container"
-            >
+            <div ref={blocksContainerRef} className={styles.blocksInner} id="blocks-container">
               <SortableContext
                 items={blocks.map((block) => block.id)}
                 strategy={verticalListSortingStrategy}
@@ -804,12 +889,24 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
                           indentWidth={INDENT_WIDTH}
                           maxIndent={maxAllowedIndent}
                           blockWidth={100}
+                          blockIndex={blockIndexMap[block.id]}
                           onContentChange={handleContentChange}
                           onRemove={handleRemoveBlock}
                           onAddAlternative={handleAddAlternative}
                           onSplitBlock={handleSplitBlock}
+                          onDistractorChange={handleDistractorChange}
+                          onPairedChange={handlePairedChange}
+                          onExplanationChange={handleExplanationChange}
+                          onTagChange={handleTagChange}
+                          onDependsChange={handleDependsChange}
+                          onOrderChange={handleOrderChange}
                           showAddAlternative={true}
                           showDragHandle={true}
+                          grader={grader}
+                          orderMode={orderMode}
+                          allTags={allTags}
+                          mode={mode}
+                          data-tour={groupIndex === 0 ? "first-block" : undefined}
                         />
                       );
                     }
@@ -846,14 +943,26 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
                               indentWidth={INDENT_WIDTH}
                               maxIndent={maxAllowedIndent}
                               blockWidth={blockWidth}
+                              blockIndex={blockIndexMap[block.id]}
                               onContentChange={handleContentChange}
                               onRemove={handleRemoveBlock}
                               onAddAlternative={handleAddAlternative}
                               onCorrectChange={handleCorrectChange}
                               onSplitBlock={handleSplitBlock}
+                              onDistractorChange={isFirstInGroup ? handleDistractorChange : undefined}
+                              onPairedChange={isFirstInGroup ? handlePairedChange : undefined}
+                              onExplanationChange={isFirstInGroup ? handleExplanationChange : undefined}
+                              onTagChange={isFirstInGroup ? handleTagChange : undefined}
+                              onDependsChange={isFirstInGroup ? handleDependsChange : undefined}
+                              onOrderChange={isFirstInGroup ? handleOrderChange : undefined}
                               hasAlternatives={true}
                               showAddAlternative={blockGroup.length < MAX_ALTERNATIVES}
                               showDragHandle={isFirstInGroup}
+                              isFirstInLine={isFirstInGroup}
+                              grader={grader}
+                              orderMode={orderMode}
+                              allTags={allTags}
+                              mode={mode}
                             />
                           );
                         })}
@@ -892,6 +1001,8 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
                       onContentChange={() => {}}
                       onRemove={() => {}}
                       showDragHandle={true}
+                      grader={grader}
+                      orderMode={orderMode}
                       dragHandleProps={{}}
                       style={{
                         width: dragWidths[draggingGroup[0].id]
@@ -933,9 +1044,26 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
             </DragOverlay>
           </DndContext>
 
+          {/* Empty state */}
           {blocks.length === 0 && (
-            <div className="flex align-items-center justify-content-center h-full text-500 absolute top-0 left-0 right-0 bottom-0">
-              <p>No code blocks yet. Click "Add Block" to create your first code block.</p>
+            <div className={styles.emptyState}>
+              <div className={styles.emptyStateIcon}>
+                <i className="pi pi-code" />
+              </div>
+              <p className={styles.emptyStateTitle}>No code blocks yet</p>
+              <p className={styles.emptyStateDesc}>
+                Click <strong>"Add Block"</strong> in the toolbar above to create your first code
+                block.
+              </p>
+              <Button
+                label="Add Your First Block"
+                icon="pi pi-plus"
+                className={styles.emptyStateBtn}
+                onClick={handleAddBlock}
+                severity="info"
+                outlined
+                size="small"
+              />
             </div>
           )}
         </div>

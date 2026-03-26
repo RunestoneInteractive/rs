@@ -41,6 +41,7 @@
     "@tiptap/suggestion": "^2.11.5",
     "better-react-mathjax": "^2.1.0",
     "classnames": "^2.5.1",
+    "driver.js": "^1.4.0",
     "handsontable": "^14.2.0",
     "highlight.js": "^11.11.1",
     "html-react-parser": "^5.1.18",

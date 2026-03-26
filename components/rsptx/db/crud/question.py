@@ -638,8 +638,10 @@ async def fetch_questions_for_chapter_subchapter(
             Question.id,
         )
     )
-    print(f"{query=}")
-    print(f"{base_course=},{skipreading=},{from_source_only=},{pages_only=},{owner=}")
+    rslogger.debug(f"{query=}")
+    rslogger.debug(
+        f"{base_course=},{skipreading=},{from_source_only=},{pages_only=},{owner=}"
+    )
     async with async_session() as session:
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
@@ -744,6 +746,7 @@ async def copy_question(
     new_owner: str,
     assignment_id: Optional[int] = None,
     htmlsrc: Optional[str] = None,
+    new_base_course: Optional[str] = None,
 ) -> QuestionValidator:
     """
     Copy a question to create a new one with the same content but different name and owner.
@@ -753,6 +756,7 @@ async def copy_question(
     :param new_owner: str, the username of the new owner
     :param assignment_id: Optional[int], the assignment ID if copying to an assignment
     :param htmlsrc: Optional[str], the HTML source to use for the new question (if provided, overrides original)
+    :param new_base_course: Optional[str], the base course for the new question (if provided, overrides original)
     :return: QuestionValidator, the newly created question
     """
     async with async_session() as session:
@@ -769,13 +773,20 @@ async def copy_question(
         # Use provided htmlsrc or fall back to original
         question_htmlsrc = htmlsrc if htmlsrc is not None else original_question.htmlsrc
 
+        # Use provided base_course or fall back to original
+        question_base_course = (
+            new_base_course
+            if new_base_course is not None
+            else original_question.base_course
+        )
+
         # Create new question with copied data
         new_question = Question(
-            base_course=original_question.base_course,
+            base_course=question_base_course,
             name=new_name,
             chapter=original_question.chapter,
             subchapter=original_question.subchapter,
-            author=original_question.author,
+            author=new_owner,
             question=original_question.question,
             timestamp=canonical_utcnow(),
             question_type=original_question.question_type,
@@ -802,9 +813,9 @@ async def copy_question(
         await session.flush()
         await session.refresh(new_question)
 
-        # If assignment_id is provided, also copy the assignment question
+        # If assignment_id is provided, also add the new question to the assignment
         if assignment_id:
-            # Get the original assignment question
+            # Try to get the original assignment question for copying settings
             original_aq_query = select(AssignmentQuestion).where(
                 (AssignmentQuestion.question_id == original_question_id)
                 & (AssignmentQuestion.assignment_id == assignment_id)
@@ -812,14 +823,15 @@ async def copy_question(
             original_aq_result = await session.execute(original_aq_query)
             original_aq = original_aq_result.scalars().first()
 
-            if original_aq:
-                # Get the next sorting priority
-                max_priority_query = select(
-                    func.max(AssignmentQuestion.sorting_priority)
-                ).where(AssignmentQuestion.assignment_id == assignment_id)
-                max_priority_result = await session.execute(max_priority_query)
-                max_priority = max_priority_result.scalar() or 0
+            # Get the next sorting priority
+            max_priority_query = select(
+                func.max(AssignmentQuestion.sorting_priority)
+            ).where(AssignmentQuestion.assignment_id == assignment_id)
+            max_priority_result = await session.execute(max_priority_query)
+            max_priority = max_priority_result.scalar() or 0
 
+            if original_aq:
+                # Copy settings from the original assignment question
                 new_assignment_question = AssignmentQuestion(
                     assignment_id=assignment_id,
                     question_id=new_question.id,
@@ -831,7 +843,20 @@ async def copy_question(
                     sorting_priority=max_priority + 1,
                     activities_required=original_aq.activities_required,
                 )
-                session.add(new_assignment_question)
+            else:
+                # Original question wasn't in this assignment; add with defaults
+                new_assignment_question = AssignmentQuestion(
+                    assignment_id=assignment_id,
+                    question_id=new_question.id,
+                    points=1,
+                    timed=False,
+                    autograde="pct_correct",
+                    which_to_grade="best_answer",
+                    reading_assignment=False,
+                    sorting_priority=max_priority + 1,
+                    activities_required=0,
+                )
+            session.add(new_assignment_question)
 
         await session.commit()
         return QuestionValidator.from_orm(new_question)
