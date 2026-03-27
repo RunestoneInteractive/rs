@@ -15,7 +15,11 @@ import os
 
 def pytest_configure(config):
     """Set test environment variables before any rsptx modules are imported."""
-    os.environ.setdefault("SERVER_CONFIG", "test")
+    server_config = os.environ.setdefault("SERVER_CONFIG", "test")
+    if server_config != "test":
+        raise RuntimeError(
+            f"SERVER_CONFIG is set to '{server_config}', but must be 'test' for the test suite."
+        )
     os.environ.setdefault(
         "TEST_DBURL",
         "postgresql://runestone:runestone@localhost:2345/runestone_test",

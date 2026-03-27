@@ -56,7 +56,7 @@ Base: TypeAlias = declarative_base()  # type: ignore
 # Generate this key once and store it securely (e.g., env var or config file)
 fernet = Fernet(settings.fernet_secret)
 
-
+import pdb
 async def init_models():
     async with engine.begin() as conn:
         # Never, ever drop tables in a production environment!
@@ -65,6 +65,7 @@ async def init_models():
             in [BookServerConfig.development, BookServerConfig.test]
             and settings.drop_tables == "Yes"
         ):
+            pdb.set_trace()
             await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
