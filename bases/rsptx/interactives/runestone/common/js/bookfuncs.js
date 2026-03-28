@@ -814,7 +814,7 @@ function shouldShowStudyCluesWidget() {
     }
 
     const enabledBasecourses = ["csawesome2", "py4e-int", "thinkcspy", "PTXSB"];
-    const enabledCourses = ["SI201-W26-MW and SI201-W26-TTh", "DukeCS101SP26", "mcd-csa-schoology", "mcd-csa-canvas"];
+    const enabledCourses = ["SI201-W26-MW", "SI201-W26-TTh", "DukeCS101SP26", "mcd-csa-schoology", "mcd-csa-canvas"];
     const host = window.location.hostname;
 
     if (host === "localhost") {
