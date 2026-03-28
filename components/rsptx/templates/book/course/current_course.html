@@ -36,6 +36,12 @@ textbook
     {% if course_description %}
     <p>{{course_description}}</p>
     {% endif %}
+    <p><strong>Course start date:</strong> {{course.term_start_date}}</p>
+    {% if is_old_course and is_instructor %}
+    <div class="alert alert-warning">
+      <strong>Warning</strong>: Course is over one year old.
+    </div>
+    {% endif %}
     <p><b>School:</b> {{institution}}</p>
     <p><b>Student:</b> {{user.first_name}} {{user.last_name}} (<a href="/runestone/default/user/logout">Not you?</a>)</p>
     <h2>Instructors</h2>
@@ -46,6 +52,7 @@ textbook
       </li>
       {% endfor %}
     </ul>
+    <p>{{course}}</p>
 </div>
 <div>
 <h2>Textbooks</h2>

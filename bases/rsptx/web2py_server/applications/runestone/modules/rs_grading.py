@@ -284,6 +284,14 @@ def _scorable_mchoice_answers(
         & (db.mchoice_answers.sid == sid)
         & (db.mchoice_answers.div_id == question_name)
     )
+
+    course = (
+        db(db.courses.course_name == course_name)
+        .select()
+        .first()
+    )
+    query = query & (db.mchoice_answers.timestamp >= course.term_start_date)
+
     if deadline:
         query = query & (db.mchoice_answers.timestamp < deadline)
     if practice_start_time:
@@ -351,6 +359,13 @@ def _scorable_useinfos(
     else:
         query = query & (db.useinfo.div_id == div_id)
 
+    course = (
+        db(db.courses.course_name == course_name)
+        .select()
+        .first()
+    )
+    query = query & (db.useinfo.timestamp >= course.term_start_date)
+
     if event_filter:
         query = query & (db.useinfo.event == event_filter)
     if deadline:
@@ -379,6 +394,12 @@ def _scorable_webwork_answers(
         & (db.webwork_answers.sid == sid)
         & (db.webwork_answers.div_id == question_name)
     )
+    course = (
+        db(db.courses.course_name == course_name)
+        .select()
+        .first()
+    )
+    query = query & (db.webwork_answers.timestamp >= course.term_start_date)
     if deadline:
         query = query & (db.webwork_answers.timestamp < deadline)
     if practice_start_time:
@@ -403,6 +424,12 @@ def _scorable_parsons_answers(
         & (db.parsons_answers.sid == sid)
         & (db.parsons_answers.div_id == question_name)
     )
+    course = (
+        db(db.courses.course_name == course_name)
+        .select()
+        .first()
+    )
+    query = query & (db.parsons_answers.timestamp >= course.term_start_date)
     if deadline:
         query = query & (db.parsons_answers.timestamp < deadline)
     if practice_start_time:
@@ -427,6 +454,12 @@ def _scorable_microparsons_answers(
         & (db.microparsons_answers.sid == sid)
         & (db.microparsons_answers.div_id == question_name)
     )
+    course = (
+        db(db.courses.course_name == course_name)
+        .select()
+        .first()
+    )
+    query = query & (db.microparsons_answers.timestamp >= course.term_start_date)
     if deadline:
         query = query & (db.microparsons_answers.timestamp < deadline)
     if practice_start_time:
@@ -451,6 +484,12 @@ def _scorable_fitb_answers(
         & (db.fitb_answers.sid == sid)
         & (db.fitb_answers.div_id == question_name)
     )
+    course = (
+        db(db.courses.course_name == course_name)
+        .select()
+        .first()
+    )
+    query = query & (db.fitb_answers.timestamp >= course.term_start_date)
     if deadline:
         query = query & (db.fitb_answers.timestamp < deadline)
     if practice_start_time:
@@ -475,6 +514,12 @@ def _scorable_clickablearea_answers(
         & (db.clickablearea_answers.sid == sid)
         & (db.clickablearea_answers.div_id == question_name)
     )
+    course = (
+        db(db.courses.course_name == course_name)
+        .select()
+        .first()
+    )
+    query = query & (db.clickablearea_answers.timestamp >= course.term_start_date)
     if deadline:
         query = query & (db.clickablearea_answers.timestamp < deadline)
     if practice_start_time:
@@ -499,6 +544,12 @@ def _scorable_dragndrop_answers(
         & (db.dragndrop_answers.sid == sid)
         & (db.dragndrop_answers.div_id == question_name)
     )
+    course = (
+        db(db.courses.course_name == course_name)
+        .select()
+        .first()
+    )
+    query = query & (db.dragndrop_answers.timestamp >= course.term_start_date)
     if deadline:
         query = query & (db.dragndrop_answers.timestamp < deadline)
     if practice_start_time:
@@ -547,6 +598,12 @@ def _scorable_splice_answers(
         & (db.splice_answers.sid == sid)
         & (db.splice_answers.div_id == question_name)
     )
+    course = (
+        db(db.courses.course_name == course_name)
+        .select()
+        .first()
+    )
+    query = query & (db.splice_answers.timestamp >= course.term_start_date)
     if deadline:
         query = query & (db.splice_answers.timestamp < deadline)
     if practice_start_time:
@@ -571,6 +628,12 @@ def _scorable_codelens_answers(
         & (db.codelens_answers.sid == sid)
         & (db.codelens_answers.div_id == question_name)
     )
+    course = (
+        db(db.courses.course_name == course_name)
+        .select()
+        .first()
+    )
+    query = query & (db.codelens_answers.timestamp >= course.term_start_date)
     if deadline:
         query = query & (db.codelens_answers.timestamp < deadline)
     if practice_start_time:
@@ -595,12 +658,18 @@ def _scorable_lp_answers(
         & (db.lp_answers.sid == sid)
         & (db.lp_answers.div_id == question_name)
     )
+    course = (
+        db(db.courses.course_name == course_name)
+        .select()
+        .first()
+    )
+    query = query & (db.lp_answers.timestamp >= course.term_start_date)
     if deadline:
         query = query & (db.lp_answers.timestamp < deadline)
     if practice_start_time:
-        query = query & (db.codelens_answers.timestamp >= practice_start_time)
+        query = query & (db.lp_answers.timestamp >= practice_start_time)
         if now:
-            query = query & (db.codelens_answers.timestamp <= now)
+            query = query & (db.lp_answers.timestamp <= now)
 
     return db(query).select(orderby=db.lp_answers.timestamp)
 

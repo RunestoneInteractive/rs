@@ -53,6 +53,7 @@ class WebWork extends RunestoneBase {
         var ex = localStorage.getItem(this.localStorageKey());
 
         if (ex !== null) {
+            let error = false;
             try {
                 storedData = JSON.parse(ex);
                 // Save the answers so that when the question is activated we can restore.
@@ -63,7 +64,10 @@ class WebWork extends RunestoneBase {
                 this.decorateStatus();
             } catch (err) {
                 // error while parsing; likely due to bad value stored in storage
-                console.log(err.message);
+                console.log(`Error parsing stored WebWork data for ${this.divid}: ${err.message}`);
+                error = true;
+            }
+            if (error || storedData.timestamp < eBookConfig.termStartDate) {
                 localStorage.removeItem(this.localStorageKey());
                 return;
             }

@@ -700,6 +700,7 @@ export default class DragNDrop extends RunestoneBase {
             var ex = localStorage.getItem(this.localStorageKey());
             if (ex !== null) {
                 this.hasStoredDropzones = true;
+                let error = false;
                 try {
                     storedObj = JSON.parse(ex);
                     this.minheight = storedObj.min_height;
@@ -707,12 +708,16 @@ export default class DragNDrop extends RunestoneBase {
                     this.dropwidth = storedObj.drop_width;
                 } catch (err) {
                     // error while parsing; likely due to bad value stored in storage
-                    console.log(err.message);
+                    console.log(`Error parsing stored DragNDrop data for ${this.divid}: ${err}`);
+                    error = true;
+                }
+                if (error || storedObj.timestamp < eBookConfig.termStartDate) {
                     localStorage.removeItem(this.localStorageKey());
                     this.hasStoredDropzones = false;
                     this.finishSettingUp();
                     return;
                 }
+                localStorage.removeItem(this.localStorageKey());
                 this.answerState = storedObj.answer;
                 if (this.useRunestoneServices) {
                     // store answer in database

@@ -402,6 +402,7 @@ async def serve_page(
     context = dict(
         request=request,
         course_name=course_name,
+        term_start_date=course_row.term_start_date.isoformat(),
         base_course=course_row.base_course,
         user_id=user.username if user else "",
         # _`root_path`: The server is mounted in a different location depending on how it's run (directly from gunicorn/uvicorn or under the ``/ns`` prefix using nginx). Tell the JS what prefix to use for Ajax requests. See also `setting root_path <setting root_path>` and the `FastAPI docs <https://fastapi.tiangolo.com/advanced/behind-a-proxy/>`_. This is then used in the ``eBookConfig`` of :doc:`runestone/common/project_template/_templates/plugin_layouts/sphinx_bootstrap/layout.html`.

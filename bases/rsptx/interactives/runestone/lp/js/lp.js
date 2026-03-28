@@ -253,11 +253,15 @@ class LP extends RunestoneBase {
             var key = this.localStorageKey();
             var ex = localStorage.getItem(key);
             if (ex !== null) {
+                let error = false;
                 try {
                     storedData = JSON.parse(ex);
                 } catch (err) {
                     // error while parsing; likely due to bad value stored in storage
-                    console.log(err.message);
+                    console.log(`Error parsing stored LP data for ${this.divid}: ${err.message}`);
+                    error = true;
+                }
+                if (error || storedData.timestamp < eBookConfig.termStartDate) {
                     localStorage.removeItem(key);
                     return;
                 }

@@ -151,6 +151,8 @@ async def index(
             "assignment_list": assignments,
             "stats": stats,
             "course": course,
+            "is_old_course": course.term_start_date
+            < (datetime.datetime.now() - datetime.timedelta(weeks=52)).date(),
             "user": user,
             "request": request,
             "institution": course.institution,
