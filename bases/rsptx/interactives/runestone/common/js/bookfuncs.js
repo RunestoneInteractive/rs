@@ -716,12 +716,19 @@ function createStudyCluesWidget() {
         if (!query) {
             return;
         }
-
+        var sectionInfo = "this page";
         // find the section title on the page to include in the initial query
-        let section = document.querySelector('section.section');
-        let sectionTitle = section.querySelector('span.title').innerText;
-        let sectionNumber = section.querySelector('span.codenumber').innerText;
-        let sectionInfo = `${sectionNumber} ${sectionTitle}`;
+        if (document.querySelector("body.pretext")) {
+            let section = document.querySelector('section.section');
+            let sectionTitle = section.querySelector('span.title').innerText;
+            let sectionNumber = section.querySelector('span.codenumber').innerText;
+            sectionInfo = `${sectionNumber} ${sectionTitle}`;
+        } else {
+            let sectionSpan = document.querySelector("span.section-number");
+            if (sectionSpan) {
+                sectionInfo = sectionSpan.parentElement.innerText.trim();
+            }
+        }
         if (studyCluesConversationId === -1) {
             query = `Regarding section "${sectionInfo}": ${query}`;
         }
