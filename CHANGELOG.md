@@ -1,5 +1,68 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-03-14 → 2026-03-28)
+
+Coverage: changes merged/landed after the previous changelog update commit on **2026-03-13**, through **2026-03-28**.
+
+### Highlights
+
+- **Term start date enforcement (issue-1167 / PR #1185):** major cross-cutting workstream to respect `term_start_date` everywhere — `fetch_last_answer`, `fetch_code`, `fetch_page_activity_counts`, all `_scorable_X` functions, `checkLocalStorage` in interactives, and the `eBookConfig` context dict / layout template; course home page now warns instructors of old/expired courses.
+- **Automated testing + CI (new):** full GitHub Actions CI pipeline landed — CRUD test suite, route smoke tests (book + assignment servers), functional route tests with real DB and fake auth, and a CI status badge in the README.
+- **Learning clues (continued):** merged the `learning_clues` branch into main; follow-on additions include coach-mode switch, source filter, citation links, study-clues logic abstraction, and logging.
+- **Async Peer Instruction UX:** added a step banner with progress dots to async PI, improved voting-stage clarity, and updated the LLM prompt; banner colors refined to shades of blue (PR from conzty01).
+- **Canvas timezone fix (PR #1189):** updated LTI1p3 timezone handling to accommodate a recent Canvas change.
+- **SmartSearch / CopyExercise modal (issue-829-3 / PR #1175):** refactored `SmartSearchExercises` and `CopyExerciseModal` to support editing and improve UX; added Prism to component templates.
+- **Next-question placement fix (PR #1178):** corrected next-question placement and styling.
+- **Ops / tooling:** dependency and lock-file updates, pgcli bump, black formatting fixes, Linux build-system init fix, LLM prompt hallucination fix, micro-parsons dependency bump, and a course-list typo fix.
+
+### Commit notes (for reference)
+
+- d3d901ae Fix typo in course list
+- 06f8480e Merge pull request #1185 from ascholerChemeketa/no-work-before-term-start
+- fd5cb654 Test fixes — safety first STOP if not in test mode
+- 861470a1 Merge pull request #1189 from ascholerChemeketa/canvas-tz-fix
+- a1563c1a LTI1p3: update timezone handling to accomodate Canvas change
+- 29289cc4 Merge branch 'automated_testing'
+- 20a47f22 Add CI test status badge to README
+- 8235da93 Phase 4: add functional route tests with real DB and fake auth
+- 1245b286 Phase 3: add route smoke tests for book and assignment servers
+- 8ea0695c Update CI to run full test suite via poetry run pytest
+- 22481225 Add automated CRUD test suite with GitHub Actions CI
+- 6fe58f54 Add term_start_date to course home page. Warn instructors of old courses
+- ea2187a9 Merge pull request #1178 from sethbern/fix-next-question-placement
+- e6e12b9e Merge pull request #1175 from morozov-av/issue-829-3
+- eb1599da Merge branch 'learning_clues'
+- 78142449 abstract the shouldShowStudyClues logic
+- 140f811f Interactives: checkLocalStorage respects termStartDate from eBookConfig
+- bede5cc0 Interactives: update micro-parsons dependancy to 0.2.0
+- 16647263 Add eBookConfig.termStartDate to layout.html template
+- 95a97c50 serve_page: add term_start_date to eBookConfig context dict
+- e69cff37 Merge branch 'morozov-av-issue-1167'
+- e1f0a3ea All _scorable_X functions check term start date
+- c05bbc28 Bugfix for lp_answers practice start time
+- c1b90ba7 fetch_last_answer and fetch_code respect term_start_date
+- 236f942d Book fetch_page_activity_counts respects term_start_date
+- 377080d1 Add prism to component templates
+- 6495b7cc Refactor: enhance SmartSearchExercises and CopyExerciseModal to support editing and improve UX
+- b860d1ee Add logging for learning clues
+- a4f44d45 update LLM prompt to stop hallucinating a code snippet when there is none
+- edf40963 fix black formatting
+- fbc69136 change banner to be shades of blue. added step dots to show which stage they are at
+- 228138ca Merge branch 'conzty01-main'
+- cab35979 Fix: linux needs -T for piped input, use parms instead
+- 1d781c12 make sure build system is initialized
+- e7e0e99f Add step banner to async PI and improve voting stage clarity
+- c76b918f update prompt
+- 9c8a5bc6 fix next question placement/style
+- ee4e25c4 clean up random print statements
+- 9f0fd727 Update pgcli
+- 8b5d7752 Update lock files
+- 5fe4ca7c Add citation links
+- 7854735b Add source filter
+- 2ad0f730 Add switch for coach mode
+
+---
+
 ## Updates since last changelog entry (2026-02-28 → 2026-03-13)
 
 Coverage: changes merged/landed after the previous changelog update commit on **2026-02-28**, through **2026-03-13**.

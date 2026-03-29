@@ -100,7 +100,7 @@ RUN wget https://github.com/catchorg/Catch2/releases/download/v2.13.10/catch.hpp
 
 # Get doctest.h - could instead point to stable version like
 #   https://github.com/doctest/doctest/releases/download/v2.4.11/doctest.h
-RUN wget https://github.com/doctest/doctest/releases/latest/download/doctest.h -O /usr/include/doctest.h
+RUN wget https://github.com/doctest/doctest/releases/download/v2.4.12/doctest.h -O /usr/include/doctest.h
 
 # Install Kotlin
 ENV KOTLIN_VERSION=2.3.0
