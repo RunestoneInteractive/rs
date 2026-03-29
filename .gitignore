@@ -34,5 +34,6 @@ _build
 **/test/_static
 bake.log
 WARP.md
+CLAUDE.md
 init_runestone.log
 .claude
