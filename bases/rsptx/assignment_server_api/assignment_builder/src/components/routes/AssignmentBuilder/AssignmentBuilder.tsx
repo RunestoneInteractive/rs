@@ -108,17 +108,6 @@ export const AssignmentBuilder = () => {
     await duplicateAssignment(assignment.id);
   };
 
-  const handleReleasedChange = async (assignment: Assignment, released: boolean) => {
-    try {
-      await updateAssignment({
-        ...assignment,
-        released
-      });
-      toast.success(`Assignment ${released ? "released" : "not released"} for students`);
-    } catch (error) {
-      toast.error("Failed to update assignment release status");
-    }
-  };
 
   const handleEnforceDueChange = async (assignment: Assignment, enforce_due: boolean) => {
     try {
@@ -197,7 +186,6 @@ export const AssignmentBuilder = () => {
           onCreateNew={handleCreateNew}
           onEdit={handleEdit}
           onDuplicate={handleDuplicate}
-          onReleasedChange={handleReleasedChange}
           onEnforceDueChange={handleEnforceDueChange}
           onVisibilityChange={handleVisibilityChange}
           onRemove={onRemove}
