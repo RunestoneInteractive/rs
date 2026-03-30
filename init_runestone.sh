@@ -463,6 +463,12 @@ validate_prerequisites() {
     print_header "Validating Prerequisites"
     
     detect_platform
+    BASH_VERSION=$(bash --version | head -n 1 | awk '{print $4}')
+    if [[ "$BASH_VERSION" < "5.0" ]]; then
+        print_warning "You are using an old version of Bash ($BASH_VERSION). It is recommended to install a newer version via Homebrew: brew install bash then rerun the script with the new bash: /usr/local/bin/bash init_runestone.sh"
+        exit
+    fi
+
     check_docker
     check_docker_compose
     check_docker_group

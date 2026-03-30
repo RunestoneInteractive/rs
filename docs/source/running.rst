@@ -22,6 +22,10 @@ Before running the setup script, you need:
   - The script must run from a WSL2 terminal (Ubuntu, Debian, etc.)
   - Do not use PowerShell or Command Prompt
 
+- **bash** (Linux and macOS have this by default, but...)
+
+  - The script uses features of bash introduced in version 5.0 so make sure you have a compatible version (Linux typically has this, macOS may require installing a newer version via Homebrew)
+
 **Optional:**
 
 - **Git** - Only needed if you want to clone book repositories
