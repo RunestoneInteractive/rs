@@ -64,6 +64,11 @@ jobs:
       - name: Install dependencies
         run: poetry install --with dev --no-interaction
 
+      - name: Create stub static asset directories
+        run: |
+          mkdir -p bases/rsptx/assignment_server_api/react
+          mkdir -p bases/rsptx/assignment_server_api/staticAssets
+
       - name: Run tests
         run: |
           poetry run pytest -v --tb=short
