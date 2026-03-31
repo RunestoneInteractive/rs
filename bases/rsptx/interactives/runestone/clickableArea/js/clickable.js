@@ -152,17 +152,21 @@ export default class ClickableArea extends RunestoneBase {
             var ex = localStorage.getItem(this.localStorageKey());
             if (ex !== null) {
                 this.hasStoredAnswers = true;
+                let error = false;
                 try {
                     storageObj = JSON.parse(ex);
-                    this.clickedIndexArray = storageObj.answer.split(";");
                 } catch (err) {
                     // error while parsing; likely due to bad value stored in storage
-                    console.log(err.message);
+                    console.log(`Error parsing stored ClickableArea data for ${this.divid}: ${err.message}`);
+                    error = true;
+                }
+                if (error || storageObj.timestamp < eBookConfig.termStartDate) {
                     localStorage.removeItem(this.localStorageKey());
                     this.hasStoredAnswers = false;
                     this.restoreAnswers({});
                     return;
                 }
+                this.clickedIndexArray = storageObj.answer.split(";");
                 if (this.useRunestoneServices) {
                     // log answer to server
                     this.givenIndexArray = [];

@@ -6,6 +6,7 @@ from sqlalchemy import select, and_, func, text
 from ..models import (
     Useinfo,
     UseinfoValidation,
+    Courses,
     CoursesValidator,
     Code,
     CodeValidator,
@@ -169,12 +170,14 @@ async def fetch_last_answer_table_entry(
     deadline_offset_naive = query_data.deadline.replace(tzinfo=None)
     query = (
         select(tbl)
+        .join(Courses, Courses.course_name == tbl.course_name)
         .where(
             and_(
                 tbl.div_id == query_data.div_id,
                 tbl.course_name == query_data.course,
                 tbl.sid == query_data.sid,
                 tbl.timestamp <= deadline_offset_naive,
+                tbl.timestamp >= Courses.term_start_date,
             )
         )
         .order_by(tbl.timestamp.desc())
@@ -238,7 +241,13 @@ async def fetch_code(
     """
     query = (
         select(Code)
-        .where((Code.sid == sid) & (Code.acid == acid) & (Code.course_id == course_id))
+        .join(Courses, Courses.id == Code.course_id)
+        .where(
+            (Code.sid == sid)
+            & (Code.acid == acid)
+            & (Code.course_id == course_id)
+            & (Code.timestamp >= Courses.term_start_date)
+        )
         .order_by(Code.id.desc())
     )
     if limit > 0:

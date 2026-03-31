@@ -530,6 +530,12 @@ class AuthGroup(Base, IdMixin):
 
     role = Column(String(512))
     description = Column(Text)
+    memberships = relationship(
+        "AuthMembership",
+        back_populates="group",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class AuthMembership(Base, IdMixin):
@@ -537,6 +543,7 @@ class AuthMembership(Base, IdMixin):
 
     user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"))
     group_id = Column(ForeignKey("auth_group.id", ondelete="CASCADE"))
+    group = relationship("AuthGroup", back_populates="memberships")
 
 
 class CourseInstructor(Base, IdMixin):

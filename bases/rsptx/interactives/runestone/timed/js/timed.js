@@ -1193,13 +1193,19 @@ export default class Timed extends RunestoneBase {
         this.taken = 1;
         var tmpArr;
         if (data === "") {
+            let error = false;
+            let storageObj;
             try {
-                tmpArr = JSON.parse(
+                storageObj = JSON.parse(
                     localStorage.getItem(this.localStorageKey())
-                ).answer;
+                );
+                tmpArr = storageObj.answer;
             } catch (err) {
                 // error while parsing; likely due to bad value stored in storage
-                console.log(err.message);
+                console.log(`Error parsing stored Timed data for ${this.divid}: ${err.message}`);
+                error = true;
+            }
+            if (error || storageObj.timestamp < eBookConfig.termStartDate) {
                 localStorage.removeItem(this.localStorageKey());
                 this.taken = 0;
                 return;

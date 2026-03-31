@@ -170,6 +170,10 @@ export class MatchingProblem extends RunestoneBase {
         const data = localStorage.getItem(this.divid);
         if (data) {
             const parsedData = JSON.parse(data);
+            if (parsedData.timestamp && parsedData.timestamp < eBookConfig.termStartDate) {
+                localStorage.removeItem(this.divid);
+                return;
+            }
             this.connections = parsedData.connections.map(conn => ({
                 fromBox: this.allBoxes.find(box => box.dataset.id === conn.from),
                 toBox: this.allBoxes.find(box => box.dataset.id === conn.to)
@@ -184,6 +188,7 @@ export class MatchingProblem extends RunestoneBase {
         }
     }
     setLocalStorage() {
+        const timeStamp = new Date();
         const data = {
             connections: this.connections.map(conn => ({
                 from: conn.fromBox.dataset.id,
@@ -192,7 +197,8 @@ export class MatchingProblem extends RunestoneBase {
             score: this.scorePercent,
             correctCount: this.correctCount,
             incorrectCount: this.incorrectCount,
-            missingCount: this.missingCount
+            missingCount: this.missingCount,
+            timestamp: timeStamp
         };
         localStorage.setItem(this.divid, JSON.stringify(data));
     }
