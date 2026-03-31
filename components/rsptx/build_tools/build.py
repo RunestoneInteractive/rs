@@ -890,6 +890,7 @@ def full(ctx, config):
 @click.pass_context
 def dev(ctx, config):
     """Build the wheels, images, and restart the services"""
+    ctx.invoke(test)
     ctx.invoke(wheel)
     ctx.invoke(image)
     ctx.invoke(restart)
@@ -903,10 +904,49 @@ def dev(ctx, config):
 @click.pass_context
 def sync(ctx, config):
     """Build the wheels, images, check the database, and restart the services"""
+    ctx.invoke(test)
     ctx.invoke(wheel)
     ctx.invoke(image)
     ctx.invoke(checkdb)
     ctx.invoke(restart)
+
+
+@cli.command()
+@pass_config
+def test(config):
+    """Run format checks and tests"""
+    checks = [
+        ["black", "--check", "--config", "pyproject.toml", "bases"],
+        ["black", "--check", "--config", "pyproject.toml", "components"],
+    ]
+
+    for command_list in checks:
+        console.print(f"Running {' '.join(command_list)}...", style="bold")
+        ret = subprocess.run(command_list, capture_output=True)
+        if ret.returncode != 0:
+            console.print(
+                f"Command failed: {' '.join(command_list)}",
+                style="bold red",
+            )
+            if ret.stdout:
+                console.print(ret.stdout.decode(stdout_err_encoding))
+            if ret.stderr:
+                console.print(ret.stderr.decode(stdout_err_encoding))
+            exit(1)
+
+    console.print("Running pytest in test with SERVER_CONFIG=test...", style="bold")
+    test_env = os.environ.copy()
+    test_env["SERVER_CONFIG"] = "test"
+    ret = subprocess.run(["pytest"], cwd="test", env=test_env, capture_output=True)
+    if ret.returncode != 0:
+        console.print("Pytest failed", style="bold red")
+        if ret.stdout:
+            console.print(ret.stdout.decode(stdout_err_encoding))
+        if ret.stderr:
+            console.print(ret.stderr.decode(stdout_err_encoding))
+        exit(1)
+
+    console.print("All checks passed", style="green")
 
 
 # Bake
@@ -929,6 +969,8 @@ def bake(ctx, config, version):
         with open(".last_version", "w") as f:
             f.write(version)
     # we need to build the wheels first
+
+    ctx.invoke(test)
     ctx.invoke(wheel)
     for service in config.ym["services"]:
         if service == "nginx_dstart_dev":
