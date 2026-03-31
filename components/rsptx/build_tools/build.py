@@ -58,8 +58,11 @@ console = Console()
     "--clean", is_flag=True, help="Remove all containers and images before starting"
 )
 @click.option("--skip-pre", is_flag=True, default=False, help="Skip pre-build steps")
+@click.option(
+    "--skip-tests", is_flag=True, default=False, help="Skip running tests before build"
+)
 @pass_config
-def cli(config, verbose, all, core, service, clean, skip_pre):
+def cli(config, verbose, all, core, service, clean, skip_pre, skip_tests):
     """
     Build the wheels and Docker containers needed for this application
     You can control which parts of the pipeline to run and which services to build or
@@ -85,6 +88,10 @@ def cli(config, verbose, all, core, service, clean, skip_pre):
         config.skip_pre = True
     else:
         config.skip_pre = False
+    if skip_tests:
+        config.skip_tests = True
+    else:
+        config.skip_tests = False
     if clean:
         clean_all()
 
@@ -915,6 +922,9 @@ def sync(ctx, config):
 @pass_config
 def test(config):
     """Run format checks and tests"""
+    if getattr(config, "skip_tests", False):
+        console.print("Skipping tests and format checks", style="bold yellow")
+        return
     checks = [
         ["black", "--check", "--config", "pyproject.toml", "bases"],
         ["black", "--check", "--config", "pyproject.toml", "components"],
