@@ -24,6 +24,7 @@ Runestone Developer Documentation
    contributing
    server_feature
    javascript_feature
+   question_json_schema
    new_language
    tutorial
    debugging
