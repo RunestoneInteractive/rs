@@ -123,7 +123,7 @@ export const AssignmentExercisesTable = ({
   const [reorderExercises] = useReorderAssignmentExercisesMutation();
   const [updateAssignmentQuestions] = useUpdateAssignmentQuestionsMutation();
   const { selectedAssignment } = useSelectedAssignment();
-  const { data: hasApiKey = false } = useHasApiKeyQuery();
+  const { data: { hasApiKey = false, asyncLlmModesEnabled = false } = {} } = useHasApiKeyQuery();
   const isPeerAsync =
     selectedAssignment?.kind === "Peer" && selectedAssignment?.peer_async_visible === true;
   const dataTableRef = useRef<DataTable<Exercise[]>>(null);
@@ -354,7 +354,7 @@ export const AssignmentExercisesTable = ({
             />
           )}
         />
-        {isPeerAsync && (
+        {isPeerAsync && asyncLlmModesEnabled && (
           <Column
             resizeable={false}
             style={{ width: "12rem" }}

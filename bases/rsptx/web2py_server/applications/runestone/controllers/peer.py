@@ -766,8 +766,12 @@ def peer_async():
             (db.assignment_questions.assignment_id == assignment_id)
             & (db.assignment_questions.question_id == current_question.id)
         ).select().first()
-    question_use_llm = bool(aq.use_llm) if aq else False
-    llm_enabled = _llm_enabled() and question_use_llm
+    async_llm_modes_enabled = course_attrs.get("enable_async_llm_modes", "false") == "true"
+    if async_llm_modes_enabled:
+        question_use_llm = bool(aq.use_llm) if aq else False
+        llm_enabled = _llm_enabled() and question_use_llm
+    else:
+        llm_enabled = _llm_enabled()
     try:
         db.useinfo.insert(
             course_id=auth.user.course_name,

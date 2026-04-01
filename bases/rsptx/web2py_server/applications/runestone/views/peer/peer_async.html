@@ -54,7 +54,7 @@
             <li>Answer the question as best you can.</li>
             <li>Then, in the space provided write a justification for your answer.</li>
             {{ if llm_enabled: }}
-            <li>Discuss the question with an AI peer — explain your reasoning and respond to their questions.</li>
+            <li>Discuss the question with an LLM peer — explain your reasoning and respond to their questions.</li>
             {{ else: }}
             <li>Read the discussion between other students on why they answered the question the way they did.</li>
             {{ pass }}
@@ -359,7 +359,7 @@ async function fetchWithRetry(url, options, retries = 1, delayMs = 400) {
     const disclaimer = document.getElementById("llmDisclaimer");
     if (disclaimer) disclaimer.style.display = "block";
   }
-  chat.innerHTML = "<p><em>Thinking about your explanation…</em></p>";
+  chat.innerHTML = "<p><em>Processing your explanation…</em></p>";
 
   async function showStandardDiscussion(chat, nextStep, showInstructorNote) {
     const resp = await fetch("/runestone/peer/get_async_explainer", {
