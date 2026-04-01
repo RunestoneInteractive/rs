@@ -56,6 +56,7 @@ Base: TypeAlias = declarative_base()  # type: ignore
 # Generate this key once and store it securely (e.g., env var or config file)
 fernet = Fernet(settings.fernet_secret)
 
+
 async def init_models():
     async with engine.begin() as conn:
         # Never, ever drop tables in a production environment!
