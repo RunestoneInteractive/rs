@@ -23,7 +23,6 @@ interface AssignmentListProps {
   onCreateNew: () => void;
   onEdit: (assignment: Assignment) => void;
   onDuplicate: (assignment: Assignment) => void;
-  onReleasedChange: (assignment: Assignment, released: boolean) => void;
   onEnforceDueChange: (assignment: Assignment, enforce_due: boolean) => void;
   onVisibilityChange: (
     assignment: Assignment,
@@ -39,7 +38,6 @@ export const AssignmentList = ({
   onCreateNew,
   onEdit,
   onDuplicate,
-  onReleasedChange,
   onEnforceDueChange,
   onVisibilityChange,
   onRemove
@@ -70,19 +68,6 @@ export const AssignmentList = ({
     <VisibilityDropdown assignment={rowData} onChange={onVisibilityChange} />
   );
 
-  const releasedBodyTemplate = (rowData: Assignment) => (
-    <div className="flex align-items-center justify-content-center">
-      <InputSwitch
-        checked={rowData.released}
-        onChange={(e) => onReleasedChange(rowData, e.value)}
-        tooltip={rowData.released ? "Released to students" : "Not released to students"}
-        tooltipOptions={{
-          position: "top"
-        }}
-        className={styles.smallSwitch}
-      />
-    </div>
-  );
 
   const enforceDueBodyTemplate = (rowData: Assignment) => (
     <div className="flex align-items-center justify-content-center">
@@ -315,13 +300,6 @@ export const AssignmentList = ({
           header="Visibility Status"
           body={visibilityBodyTemplate}
           className={styles.visibilityColumn}
-        />
-        <Column
-          style={{ width: "12px" }}
-          field="released"
-          header="Released"
-          body={releasedBodyTemplate}
-          className={styles.releasedColumn}
         />
         <Column header="Preview" body={previewBodyTemplate} className={styles.previewColumn} />
         <Column body={actionsBodyTemplate} className={styles.actionsColumn} />
