@@ -1,5 +1,38 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-03-28 → 2026-04-02)
+
+Coverage: changes merged/landed after the previous changelog update commit on **2026-03-28**, through **2026-04-02**.
+
+### Highlights
+
+- **New release:** tagged a new release point (7e074ed5).
+- **issue-1186 / issue-1187:** removed "released" status handling from `AssignmentBuilder` and `AssignmentList` components (issue-1186); added JSON schema documentation for the `question_json` field (issue-1187).
+- **Build system hardening:** added tests to the build command, introduced a `--skip-tests` flag, and fixed CI by creating stub static-asset directories before running tests.
+- **StudyClues content:** added new books and courses for StudyClues.
+- **JSON format docs:** added documentation for the JSON question format.
+- **Bug fixes:** correctly identify sections for RST books; remove leftover debug code from course home; require bash 5.x (Homebrew) on macOS for build scripts; fix `pkg_resources` import removed from `setuptools`.
+- **Ops / tooling:** black formatting fixes; added `.claude` to `.gitignore`.
+
+### Commit notes (for reference)
+
+- 34ff6e89 Fix: pkg_resources removed from setuputils
+- ebf72281 Merge branch 'issue-1187'
+- 784bb7d0 Docs for json format
+- 9290dd22 Add new books and courses for StudyClues
+- 70bd574d Add —skip-tests flag
+- e95ffb5a Add tests to the build command
+- b0b482f0 black fixes
+- 7cbb8c9f Fix CI: create stub static asset directories before running tests
+- 209620df Fix: remove debug from course home
+- ebb11858 Fix: MacOS needs bash 5.x from homebrew
+- 6fd6c056 issue-1186 Remove released status handling from AssignmentBuilder and AssignmentList components / issue-1187 Add JSON schema documentation for question_json field
+- bc3e21b4 Fix: correctly identify section for RST books
+- a50d6bec ignore CLAUDE
+- 7e074ed5 New Release
+
+---
+
 ## Updates since last changelog entry (2026-03-14 → 2026-03-28)
 
 Coverage: changes merged/landed after the previous changelog update commit on **2026-03-13**, through **2026-03-28**.
