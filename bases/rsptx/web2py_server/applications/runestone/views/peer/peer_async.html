@@ -56,7 +56,7 @@
             {{ if llm_enabled: }}
             <li>Discuss the question with an LLM peer — explain your reasoning and respond to their questions.</li>
             {{ else: }}
-            <li>Read the discussion between other students on why they answered the question the way they did.</li>
+            <li>Read the justification or discussion.</li>
             {{ pass }}
             <li>Answer the question <strong>again.</strong>  Even if you are not changing your answer from the first time.</li>
         </ol>
@@ -199,7 +199,7 @@
     } else if (step === 2) {
       label = window.PI_LLM_MODE
         ? "Step 2 of 3: Explain your answer and discuss with the LLM peer"
-        : "Step 2 of 3: Explain your answer and read the previous discussions";
+        : "Step 2 of 3: Explain your answer and read the justification or discussion";
       bg = "#2878B5";
     } else if (step === 3) {
       label = "Step 3 of 3: Vote again — you may keep or change your answer";
