@@ -2859,14 +2859,14 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "pretext"
-version = "2.37.1"
+version = "2.38.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "pretext-2.37.1-py3-none-any.whl", hash = "sha256:edac7ab9aed84cfa9b4ad2d07d07f8e55320e012a256ebd93c8a2fe2a045acd2"},
-    {file = "pretext-2.37.1.tar.gz", hash = "sha256:b1641949645b372708fdfb1fa4accaf25d651f7e0972bbb9d86b445218dc0b4a"},
+    {file = "pretext-2.38.0-py3-none-any.whl", hash = "sha256:6588d0c8ed566824a7bc23dca35844b4df48c6f4cc2c8a42892b6a0b22033975"},
+    {file = "pretext-2.38.0.tar.gz", hash = "sha256:62347be15c6d6b8e51e220a27520060986a1d28831f0ad516615cc43a72dc2d7"},
 ]
 
 [package.dependencies]
@@ -2890,9 +2890,9 @@ requests = ">=2,<3"
 single-version = ">=1,<2"
 
 [package.extras]
-all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.5.7,<0.6.0)"]
+all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.5.13,<0.6.0)"]
 homepage = ["pelican[markdown] (>=4.10,<5.0)"]
-prefigure = ["prefig[text] (>=0.5.7,<0.6.0)"]
+prefigure = ["prefig[text] (>=0.5.13,<0.6.0)"]
 
 [[package]]
 name = "prometheus-client"
@@ -3881,14 +3881,14 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.12.1"
+version = "7.13.0"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "<4.0.0,>=3.10.0"
 groups = ["main"]
 files = [
-    {file = "runestone-7.12.1-py3-none-any.whl", hash = "sha256:e68bd9b885689f15e91afe81e2a3697b8edc9626e23061ac8e81976fbd68122b"},
-    {file = "runestone-7.12.1.tar.gz", hash = "sha256:c92b0c9b56bdb4d3c23c6cd3d547391cd901aa02ba861567798c1e78f30804c8"},
+    {file = "runestone-7.13.0-py3-none-any.whl", hash = "sha256:9cd20a69296e3ce5d8a2c56b0015ca5d9d32415bdc4326a94d8c5df5937fb1c7"},
+    {file = "runestone-7.13.0.tar.gz", hash = "sha256:58333487d5972716894b601682fa718d6b788a7a0b1a8eed55e2df90a0ce0082"},
 ]
 
 [package.dependencies]
@@ -3918,11 +3918,15 @@ pydantic-settings = ">=2.0.3,<3.0.0"
 pyhumps = ">=3.8.0,<4.0.0"
 python-dotenv = ">=1.0.0,<2.0.0"
 scikit-learn = ">=1.5.1,<2.0.0"
+setuptools = "<81.0.0"
 six = ">1.12"
 Sphinx = ">=5.0.0,<6.0.0"
 sphinx-reredirects = ">=0.1.2,<0.2.0"
 sphinxcontrib-paverutils = ">=1.18.1"
 SQLAlchemy = ">=2.0.0,<3.0.0"
+standard-asyncore = ">=3.13.0,<4.0.0"
+standard-cgi = ">=3.13.0,<4.0.0"
+standard-imghdr = ">=3.13.0,<4.0.0"
 toml = ">=0.10.2,<0.11.0"
 
 [[package]]
@@ -4421,6 +4425,30 @@ pure-eval = "*"
 
 [package.extras]
 tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
+
+[[package]]
+name = "standard-asyncore"
+version = "3.13.0"
+description = "Standard library asyncore redistribution. \"dead battery\"."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "standard_asyncore-3.13.0-py3-none-any.whl", hash = "sha256:de5743678b5331d56bbb3bb80a09e2aa49f7779ce3867072ddd79485ff765dca"},
+    {file = "standard_asyncore-3.13.0.tar.gz", hash = "sha256:03f25918feaaa3ec13e5684c5289e80682bb584effc97c6d0ecd1e2f45bd0d7d"},
+]
+
+[[package]]
+name = "standard-cgi"
+version = "3.13.0"
+description = "Standard library cgi redistribution. \"dead battery\"."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "standard_cgi-3.13.0-py3-none-any.whl", hash = "sha256:3770017d2e43b4ef94b16b50206aeb3bb33b31429e7f47e9d4c2eeb0c7800902"},
+    {file = "standard_cgi-3.13.0.tar.gz", hash = "sha256:7ba8089fdcbd7d7a46a737e24cb5e4e2892db48678ad0e5f8726699a9d4ed53a"},
+]
 
 [[package]]
 name = "standard-imghdr"

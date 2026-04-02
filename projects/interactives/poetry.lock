@@ -3872,24 +3872,24 @@ win32 = ["pywin32 ; sys_platform == \"win32\""]
 
 [[package]]
 name = "setuptools"
-version = "75.1.0"
+version = "80.10.2"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "setuptools-75.1.0-py3-none-any.whl", hash = "sha256:35ab7fd3bcd95e6b7fd704e4a1539513edad446c097797f2985e0e4b960772f2"},
-    {file = "setuptools-75.1.0.tar.gz", hash = "sha256:d59a21b17a275fb872a9c3dae73963160ae079f1049ed956880cd7c09b120538"},
+    {file = "setuptools-80.10.2-py3-none-any.whl", hash = "sha256:95b30ddfb717250edb492926c92b5221f7ef3fbcc2b07579bcd4a27da21d0173"},
+    {file = "setuptools-80.10.2.tar.gz", hash = "sha256:8b0e9d10c784bf7d262c4e5ec5d4ec94127ce206e8738f29a437945fbc219b70"},
 ]
 
 [package.extras]
-check = ["pytest-checkdocs (>=2.4)", "pytest-ruff (>=0.2.1) ; sys_platform != \"cygwin\"", "ruff (>=0.5.2) ; sys_platform != \"cygwin\""]
-core = ["importlib-metadata (>=6) ; python_version < \"3.10\"", "importlib-resources (>=5.10.2) ; python_version < \"3.9\"", "jaraco.collections", "jaraco.functools", "jaraco.text (>=3.7)", "more-itertools", "more-itertools (>=8.8)", "packaging", "packaging (>=24)", "platformdirs (>=2.6.2)", "tomli (>=2.0.1) ; python_version < \"3.11\"", "wheel (>=0.43.0)"]
+check = ["pytest-checkdocs (>=2.4)", "pytest-ruff (>=0.2.1) ; sys_platform != \"cygwin\"", "ruff (>=0.8.0) ; sys_platform != \"cygwin\""]
+core = ["importlib_metadata (>=6) ; python_version < \"3.10\"", "jaraco.functools (>=4)", "jaraco.text (>=3.7)", "more_itertools", "more_itertools (>=8.8)", "packaging (>=24.2)", "platformdirs (>=4.2.2)", "tomli (>=2.0.1) ; python_version < \"3.11\"", "wheel (>=0.43.0)"]
 cover = ["pytest-cov"]
 doc = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "pygments-github-lexers (==0.0.5)", "pyproject-hooks (!=1.1)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-favicon", "sphinx-inline-tabs", "sphinx-lint", "sphinx-notfound-page (>=1,<2)", "sphinx-reredirects", "sphinxcontrib-towncrier", "towncrier (<24.7)"]
 enabler = ["pytest-enabler (>=2.2)"]
-test = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "ini2toml[lite] (>=0.14)", "jaraco.develop (>=7.21) ; python_version >= \"3.9\" and sys_platform != \"cygwin\"", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "jaraco.test", "packaging (>=23.2)", "pip (>=19.1)", "pyproject-hooks (!=1.1)", "pytest (>=6,!=8.1.*)", "pytest-home (>=0.5)", "pytest-perf ; sys_platform != \"cygwin\"", "pytest-subprocess", "pytest-timeout", "pytest-xdist (>=3)", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel (>=0.44.0)"]
-type = ["importlib-metadata (>=7.0.2) ; python_version < \"3.10\"", "jaraco.develop (>=7.21) ; sys_platform != \"cygwin\"", "mypy (==1.11.*)", "pytest-mypy"]
+test = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "ini2toml[lite] (>=0.14)", "jaraco.develop (>=7.21) ; python_version >= \"3.9\" and sys_platform != \"cygwin\"", "jaraco.envs (>=2.2)", "jaraco.path (>=3.7.2)", "jaraco.test (>=5.5)", "packaging (>=24.2)", "pip (>=19.1)", "pyproject-hooks (!=1.1)", "pytest (>=6,!=8.1.*)", "pytest-home (>=0.5)", "pytest-perf ; sys_platform != \"cygwin\"", "pytest-subprocess", "pytest-timeout", "pytest-xdist (>=3)", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel (>=0.44.0)"]
+type = ["importlib_metadata (>=7.0.2) ; python_version < \"3.10\"", "jaraco.develop (>=7.21) ; sys_platform != \"cygwin\"", "mypy (==1.14.*)", "pytest-mypy"]
 
 [[package]]
 name = "single-version"
@@ -4254,7 +4254,7 @@ version = "3.13.0"
 description = "Standard library asyncore redistribution. \"dead battery\"."
 optional = false
 python-versions = "*"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "standard_asyncore-3.13.0-py3-none-any.whl", hash = "sha256:de5743678b5331d56bbb3bb80a09e2aa49f7779ce3867072ddd79485ff765dca"},
     {file = "standard_asyncore-3.13.0.tar.gz", hash = "sha256:03f25918feaaa3ec13e5684c5289e80682bb584effc97c6d0ecd1e2f45bd0d7d"},
@@ -4266,7 +4266,7 @@ version = "3.13.0"
 description = "Standard library cgi redistribution. \"dead battery\"."
 optional = false
 python-versions = "*"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "standard_cgi-3.13.0-py3-none-any.whl", hash = "sha256:3770017d2e43b4ef94b16b50206aeb3bb33b31429e7f47e9d4c2eeb0c7800902"},
     {file = "standard_cgi-3.13.0.tar.gz", hash = "sha256:7ba8089fdcbd7d7a46a737e24cb5e4e2892db48678ad0e5f8726699a9d4ed53a"},
@@ -4278,7 +4278,7 @@ version = "3.13.0"
 description = "Standard library imghdr redistribution. \"dead battery\"."
 optional = false
 python-versions = "*"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "standard_imghdr-3.13.0-py3-none-any.whl", hash = "sha256:30a1bff5465605bb496f842a6ac3cc1f2131bf3025b0da28d4877d6d4b7cc8e9"},
     {file = "standard_imghdr-3.13.0.tar.gz", hash = "sha256:8d9c68058d882f6fc3542a8d39ef9ff94d2187dc90bd0c851e0902776b7b7a42"},
@@ -4811,4 +4811,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10.0"
-content-hash = "98731b6355678e7d66b2a04404487f32ec82b63b14d333ad7533a3c4afbd7b37"
+content-hash = "836feb8ef94492b3d5b1a806606afe4672ea13ba2304a26752aa1fa04b26b92a"

@@ -34,7 +34,7 @@ license = "GPL"
 name = "runestone"
 readme = "README.rst"
 repository = "https://github.com/RunestoneInteractive/rs"
-version = "7.12.1"
+version = "7.13.0"
 
 # See https://python-poetry.org/docs/pyproject/#include-and-exclude.
 include = [
@@ -125,6 +125,10 @@ scikit-learn = "^1.5.1"
 ipyleaflet = "^0.19.2"
 aiosqlite = ">=0.18.0"
 cryptography = "^3.0.0"
+setuptools = "<81.0.0"
+standard-asyncore = "^3.13.0"
+standard-imghdr = "^3.13.0"
+standard-cgi = "^3.13.0"
 
 # Development dependencies
 # ========================
@@ -148,7 +152,6 @@ json2xml = "~3"
 standard-asyncore = "^3.13.0"
 standard-imghdr = "^3.13.0"
 standard-cgi = "^3.13.0"
-
 
 # Scripts
 # =======
