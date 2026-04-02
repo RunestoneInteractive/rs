@@ -820,8 +820,8 @@ function shouldShowStudyCluesWidget() {
         return false;
     }
 
-    const enabledBasecourses = ["csawesome2", "py4e-int", "thinkcspy", "PTXSB", "cppds2"];
-    const enabledCourses = ["SI201-W26-MW", "SI201-W26-TTh", "DukeCS101SP26", "mcd-csa-schoology", "mcd-csa-canvas", "csawesome2-MOOC", "test_py4e-int_api", "bc_cppds_s26"];
+    const enabledBasecourses = ["csawesome2", "py4e-int", "thinkcspy", "httlacs", "PTXSB", "cppds2"];
+    const enabledCourses = ["SI201-W26-MW", "SI201-W26-TTh", "DukeCS101SP26", "mcd-csa-schoology", "mcd-csa-canvas", "csawesome2-MOOC", "test_py4e-int_api", "bc_cppds_s26", "test-py4e-int"];
     const host = window.location.hostname;
 
     if (host === "localhost") {
