@@ -26,6 +26,7 @@ from rsptx.db.crud import (
     fetch_assignments,
     fetch_all_assignment_stats,
     fetch_course,
+    fetch_all_course_attributes,
     fetch_courses_for_user,
     fetch_course_instructors,
     fetch_deadline_exception,
@@ -68,6 +69,7 @@ async def index(
     course = await fetch_course(course_name)
     instructors = await fetch_course_instructors(course_name)
     rslogger.debug(f"{instructors=}")
+    attrs = await fetch_all_course_attributes(course.id)
     templates = Jinja2Templates(directory=template_folder)
     books = await fetch_library_book(course.base_course)
     if books is None:
@@ -167,6 +169,7 @@ async def index(
             "lti1p1": is_lti1p1_course,
             "now": now,
             "visibility_map": visibility_map,
+            "course_attrs": attrs,
         },
     )
 

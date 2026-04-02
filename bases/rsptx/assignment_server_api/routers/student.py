@@ -680,6 +680,7 @@ async def doAssignment(
         latex_preamble_dict=preambles,
         wp_imports=get_webpack_static_imports(course),
         settings=settings,
+        course_attrs=course_attrs,
     )
     response = templates.TemplateResponse(
         "assignment/student/doAssignment.html", context

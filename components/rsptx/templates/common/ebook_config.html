@@ -22,6 +22,7 @@
   {% endif %}
   eBookConfig.useRunestoneServices = true;
   eBookConfig.basecourse = "{{course.base_course}}";
+  eBookConfig.course_attrs = {{ course_attrs | default({}) | tojson | safe }};
   eBookConfig.gradeRecordingUrl = `${eBookConfig.app}/assignments/record_grade`;
   eBookConfig.new_server_prefix = "/ns";
   eBookConfig.websocketUrl = "{{settings.websocket_url}}"
