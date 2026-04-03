@@ -155,7 +155,14 @@ def dashboard():
 def toggle_async():
     response.headers["content-type"] = "application/json"
     assignment_id = request.vars.assignment_id
+    if not assignment_id:
+        return json.dumps({"ok": False, "error": "missing assignment_id"})
     assignment = db(db.assignments.id == assignment_id).select().first()
+    if not assignment:
+        return json.dumps({"ok": False, "error": "assignment not found"})
+    course = db(db.courses.course_name == auth.user.course_name).select().first()
+    if not course or assignment.course != course.id:
+        return json.dumps({"ok": False, "error": "assignment does not belong to your course"})
     new_value = not (assignment.peer_async_visible or False)
     db(db.assignments.id == assignment_id).update(peer_async_visible=new_value)
     db.commit()

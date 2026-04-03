@@ -365,7 +365,7 @@ export const AssignmentExercisesTable = ({
                 <Dropdown
                   className="editable-table-dropdown"
                   value={data.use_llm && hasApiKey ? "LLM" : "Standard"}
-                  onChange={(e) => updateAssignmentQuestions([{ ...data, use_llm: e.value === "LLM" }])}
+                  onChange={(e) => updateAssignmentQuestions([{ ...data, question_json: JSON.stringify(data.question_json), use_llm: e.value === "LLM" }])}
                   options={[
                     { label: "Standard", value: "Standard" },
                     { label: "LLM", value: "LLM", disabled: !hasApiKey }
