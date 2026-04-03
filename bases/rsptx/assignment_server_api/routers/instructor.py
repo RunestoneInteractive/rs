@@ -1387,6 +1387,25 @@ async def add_api_token(
         )
 
 
+@router.get("/has_api_key")
+@instructor_role_required()
+@with_course()
+async def has_api_key(request: Request, user=Depends(auth_manager), course=None):
+    """Return whether the course has at least one API token configured and whether async LLM modes are enabled."""
+    tokens = await fetch_all_api_tokens(course.id)
+    course_attrs = await fetch_all_course_attributes(course.id)
+    async_llm_modes_enabled = (
+        course_attrs.get("enable_async_llm_modes", "false") == "true"
+    )
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "has_api_key": len(tokens) > 0,
+            "async_llm_modes_enabled": async_llm_modes_enabled,
+        },
+    )
+
+
 @router.get("/add_token")
 @instructor_role_required()
 @with_course()

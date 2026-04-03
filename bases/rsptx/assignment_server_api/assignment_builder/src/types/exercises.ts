@@ -56,6 +56,7 @@ export type Exercise = {
   reading_assignment: boolean;
   sorting_priority: number;
   activities_required: number;
+  use_llm: boolean;
   qnumber: string;
   name: string;
   subchapter: string;

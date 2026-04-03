@@ -200,6 +200,10 @@ export class ActiveCode extends RunestoneBase {
         }
         let baseCode = this.trimLockedCode(this.code);
         this.history = [baseCode];
+        this.highlightedLines = [];
+        this.lockedLines = [];
+        this.lockTextMarkers = [];
+        this.lockGutterLines = [];
 
         this.createEditor();
         this.createOutput();
@@ -220,9 +224,6 @@ export class ActiveCode extends RunestoneBase {
         setTimeout(
             function () {
                 this.editor.refresh();
-                // need to regen/highlight locked decoration
-                this.setLockedRegions();
-                this.setHighlightLines();
             }.bind(this),
             1000
         );
@@ -299,8 +300,6 @@ export class ActiveCode extends RunestoneBase {
         // Handle hidden codemirror (in tab) coming into view
         CodeMirror.on(editor, "refresh", (cm) => {
             window.requestAnimationFrame(() => {
-                this.setLockedRegions();
-                this.setHighlightLines();
                 // make sure vscrollbar does not overlap the resize handle
                 editor.display.scrollbars.vert.style.bottom =  "16px";
             });
@@ -430,7 +429,6 @@ export class ActiveCode extends RunestoneBase {
 
         // lock down code prefix/suffix
         this.setLockedRegions();
-
         this.setHighlightLines();
 
         if (this.hidecode) {
@@ -439,90 +437,137 @@ export class ActiveCode extends RunestoneBase {
     }
 
     async setHighlightLines() {
-        if (this.highlightLines) {
-            if (typeof this.highlightLines === "number")
-                this.highlightLines = this.highlightLines.toString();
-
-            let highlightList = this.highlightLines.split(",");
-            let lines = this.containerDiv.querySelectorAll(".CodeMirror-code > div");
-            highlightList.forEach((line) => {
-                // addLineClass not used here for reason described in setLockedRegions
-                line = line.trim();
-                let lineNum = line.split("-");
-                if (lineNum.length > 1) {
-                    for (let i = parseInt(lineNum[0]); i <= parseInt(lineNum[1]); i++) {
-                        lines[i - 1].classList.add("CodeMirror__highlight-line");
-                    }
-                } else {
-                    lines[lineNum - 1].classList.add("CodeMirror__highlight-line");
-                }
+        this.editor.operation(() => {
+            this.highlightedLines.forEach((lineNumber) => {
+                this.editor.removeLineClass(
+                    lineNumber,
+                    "wrap",
+                    "CodeMirror__highlight-line"
+                );
             });
-        }
+            this.highlightedLines = [];
+
+            if (this.highlightLines) {
+                if (typeof this.highlightLines === "number")
+                    this.highlightLines = this.highlightLines.toString();
+
+                let highlightList = this.highlightLines.split(",");
+                highlightList.forEach((line) => {
+                    line = line.trim();
+                    let lineNum = line.split("-");
+                    if (lineNum.length > 1) {
+                        let startLine = parseInt(lineNum[0]) - 1;
+                        let endLine = parseInt(lineNum[1]) - 1;
+                        for (let i = startLine; i <= endLine; i++) {
+                            if (i >= 0 && i <= this.editor.doc.lastLine()) {
+                                this.editor.addLineClass(
+                                    i,
+                                    "wrap",
+                                    "CodeMirror__highlight-line"
+                                );
+                                this.highlightedLines.push(i);
+                            }
+                        }
+                    } else {
+                        let highlightLine = parseInt(lineNum[0]) - 1;
+                        if (highlightLine >= 0 && highlightLine <= this.editor.doc.lastLine()) {
+                            this.editor.addLineClass(
+                                highlightLine,
+                                "wrap",
+                                "CodeMirror__highlight-line"
+                            );
+                            this.highlightedLines.push(highlightLine);
+                        }
+                    }
+                });
+            }
+        });
     }
 
 
     async setLockedRegions() {
-        function decorateLines(start, end) {
-            let lines = this.containerDiv.querySelectorAll(".CodeMirror-code > div");
-            for (let i = start; i <= end; i++) {
-                // addLineClass looks like the way this "should" be done
-                // codemirror appears to remove the line and insert a modified one
-                // causing a lot of rerendering. Can slow page load down substantially
-                //this.editor.addLineClass(i, "behind", "CodeMirror__locked-line");
-                // So manually just go add a class after verifying component is rendered
-                if (lines[i])
-                    lines[i].classList.add("CodeMirror__locked-line");
-                // downside is that this is not preserved on editor.refresh()
-                // so setLockedRegions() must be called again
-            }
-            let midLine = Math.floor((start + end) / 2);
-            var marker = document.createElement("div");
-            marker.className = "CodeMirror__gutter-locked-marker";
-            this.editor.setGutterMarker(midLine, "CodeMirror-lock-markers", marker);
-        }
+        this.editor.operation(() => {
+            this.lockedLines.forEach((lineNumber) => {
+                this.editor.removeLineClass(
+                    lineNumber,
+                    "wrap",
+                    "CodeMirror__locked-line"
+                );
+            });
+            this.lockedLines = [];
 
-        this.containerDiv.querySelectorAll(".CodeMirror-code > div").forEach(
-            (line) => {
-                line.classList.remove("CodeMirror__locked-line");
-            }
-        );
+            this.lockGutterLines.forEach((lineNumber) => {
+                this.editor.setGutterMarker(lineNumber, "CodeMirror-lock-markers", null);
+            });
+            this.lockGutterLines = [];
 
-        if (this.visiblePrefixEnd) {
-            let lastLine = this.editor.posFromIndex(
-                this.visiblePrefixEnd - 1
-            ).line;
-            decorateLines.call(this, 0, lastLine);
-            let endPos = this.editor.posFromIndex(this.visiblePrefixEnd);
-            this.editor.markText(
-                { line: 0, ch: 0 },
-                { line: endPos.line, ch: endPos.ch },
-                {
-                    readOnly: true,
-                    atomic: false,
-                    inclusiveLeft: true,
-                    inclusiveRight: false,
+            this.lockTextMarkers.forEach((marker) => marker.clear());
+            this.lockTextMarkers = [];
+
+            function placeLock(lineNumber) {
+                var marker = document.createElement("div");
+                marker.className = "CodeMirror__gutter-locked-marker";
+                this.editor.setGutterMarker(lineNumber, "CodeMirror-lock-markers", marker);
+                this.lockGutterLines.push(lineNumber);
+            }
+
+            if (this.visiblePrefixEnd) {
+                let lastLine = this.editor.posFromIndex(
+                    this.visiblePrefixEnd - 1
+                ).line;
+                placeLock.call(this, Math.floor((0 + lastLine) / 2));
+                for (let lineNumber = 0; lineNumber <= lastLine; lineNumber++) {
+                    this.editor.addLineClass(
+                        lineNumber,
+                        "wrap",
+                        "CodeMirror__locked-line"
+                    );
+                    this.lockedLines.push(lineNumber);
                 }
-            );
-        }
-        if (this.visibleSuffixLength) {
-            let endIndex =
-                this.editor.doc.getValue().length - this.visibleSuffixLength;
-            let endPos = this.editor.posFromIndex(endIndex);
-            let lastLine = this.editor.doc.lastLine();
-            decorateLines.call(this, endPos.line, lastLine);
-            // include preceeding newline
-            let endPos2 = this.editor.posFromIndex(endIndex - 1);
-            this.editor.markText(
-                { line: endPos2.line, ch: endPos2.ch },
-                { line: this.editor.doc.lastLine() + 1 },
-                {
-                    readOnly: true,
-                    atomic: false,
-                    inclusiveLeft: false,
-                    inclusiveRight: true,
+                let endPos = this.editor.posFromIndex(this.visiblePrefixEnd);
+                this.lockTextMarkers.push(
+                    this.editor.markText(
+                        { line: 0, ch: 0 },
+                        { line: endPos.line, ch: endPos.ch },
+                        {
+                            readOnly: true,
+                            atomic: false,
+                            inclusiveLeft: true,
+                            inclusiveRight: false,
+                        }
+                    )
+                );
+            }
+            if (this.visibleSuffixLength) {
+                let endIndex =
+                    this.editor.doc.getValue().length - this.visibleSuffixLength;
+                let endPos = this.editor.posFromIndex(endIndex);
+                let lastLine = this.editor.doc.lastLine();
+                placeLock.call(this, Math.floor((endPos.line + lastLine) / 2));
+                for (let lineNumber = endPos.line; lineNumber <= lastLine; lineNumber++) {
+                    this.editor.addLineClass(
+                        lineNumber,
+                        "wrap",
+                        "CodeMirror__locked-line"
+                    );
+                    this.lockedLines.push(lineNumber);
                 }
-            );
-        }
+                // include preceeding newline
+                let endPos2 = this.editor.posFromIndex(endIndex - 1);
+                this.lockTextMarkers.push(
+                    this.editor.markText(
+                        { line: endPos2.line, ch: endPos2.ch },
+                        { line: this.editor.doc.lastLine() + 1 },
+                        {
+                            readOnly: true,
+                            atomic: false,
+                            inclusiveLeft: false,
+                            inclusiveRight: true,
+                        }
+                    )
+                );
+            }
+        });
     };
 
     async runButtonHandler() {
@@ -1498,10 +1543,7 @@ export class ActiveCode extends RunestoneBase {
                     div_id: this.divid,
                 });
             }
-            // Only re-highlight lines if we are at initial position
-            // otherwise may be highlighting wrong ones
-            if(pos === 0)
-                this.setHighlightLines();
+            this.setHighlightLines();
         };
         $(scrubber).slider({
             max: this.history.length - 1,

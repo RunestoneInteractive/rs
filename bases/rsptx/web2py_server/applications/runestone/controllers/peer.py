@@ -143,8 +143,30 @@ def dashboard():
         is_last=done,
         lti=is_lti,
         has_vote1=has_vote1,
+        peer_async_visible=assignment.peer_async_visible or False,
         **course_attrs,
     )
+
+
+@auth.requires(
+    lambda: verifyInstructorStatus(auth.user.course_id, auth.user),
+    requires_login=True,
+)
+def toggle_async():
+    response.headers["content-type"] = "application/json"
+    assignment_id = request.vars.assignment_id
+    if not assignment_id:
+        return json.dumps({"ok": False, "error": "missing assignment_id"})
+    assignment = db(db.assignments.id == assignment_id).select().first()
+    if not assignment:
+        return json.dumps({"ok": False, "error": "assignment not found"})
+    course = db(db.courses.course_name == auth.user.course_name).select().first()
+    if not course or assignment.course != course.id:
+        return json.dumps({"ok": False, "error": "assignment does not belong to your course"})
+    new_value = not (assignment.peer_async_visible or False)
+    db(db.assignments.id == assignment_id).update(peer_async_visible=new_value)
+    db.commit()
+    return json.dumps({"peer_async_visible": new_value})
 
 
 def extra():
@@ -174,7 +196,9 @@ def _get_current_question(assignment_id, get_next):
         idx = 0
         db(db.assignments.id == assignment_id).update(current_index=idx)
     elif get_next is True:
-        idx = assignment.current_index + 1
+        all_questions = _get_assignment_questions(assignment_id)
+        total_questions = len(all_questions)
+        idx = min(assignment.current_index + 1, max(total_questions - 1, 0))
         db(db.assignments.id == assignment_id).update(current_index=idx)
     else:
         idx = assignment.current_index
@@ -743,7 +767,18 @@ def peer_async():
     if "latex_macros" not in course_attrs:
         course_attrs["latex_macros"] = ""
 
-    llm_enabled = _llm_enabled()
+    aq = None
+    if current_question:
+        aq = db(
+            (db.assignment_questions.assignment_id == assignment_id)
+            & (db.assignment_questions.question_id == current_question.id)
+        ).select().first()
+    async_llm_modes_enabled = course_attrs.get("enable_async_llm_modes", "false") == "true"
+    if async_llm_modes_enabled:
+        question_use_llm = bool(aq.use_llm) if aq else False
+        llm_enabled = _llm_enabled() and question_use_llm
+    else:
+        llm_enabled = _llm_enabled()
     try:
         db.useinfo.insert(
             course_id=auth.user.course_name,

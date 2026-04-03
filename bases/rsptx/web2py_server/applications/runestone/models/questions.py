@@ -73,5 +73,6 @@ db.define_table(
     Field(
         "activities_required", type="integer"
     ),  # specifies how many activities in a sub chapter a student must perform in order to receive credit
+    Field("use_llm", type="boolean", default=False),
     migrate=bookserver_owned("assignment_questions"),
 )
