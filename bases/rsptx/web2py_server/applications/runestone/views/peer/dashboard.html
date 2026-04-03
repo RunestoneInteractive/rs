@@ -76,9 +76,9 @@
                         <button
                             type="button"
                             id="toggleAsyncBtn"
-                            class="btn btn-info" {{ if peer_async_visible: }}style="background-color:#a3d4ec; border-color:#a3d4ec; color:#fff;"{{ pass }}
+                            class="btn btn-info"
                             onclick="showAsyncConfirm()"
-                            style="margin-right: 4px;"
+                            style="margin-right: 4px;{{ if peer_async_visible: }} background-color:#a3d4ec; border-color:#a3d4ec; color:#fff;{{ pass }}"
                         >
                             {{ if peer_async_visible: }}Undo After-Class Release{{ else: }}Release After-Class PI{{ pass }}
                         </button>
