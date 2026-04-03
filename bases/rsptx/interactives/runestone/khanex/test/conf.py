@@ -20,7 +20,7 @@
 #sys.path.insert(0, os.path.abspath('../modules'))
 
 from runestone import runestone_static_dirs, runestone_extensions
-import pkg_resources
+import importlib.resources
 
 # -- General configuration -----------------------------------------------------
 
@@ -35,7 +35,7 @@ extensions = ['sphinx.ext.mathjax'] + runestone_extensions()
 
 # This sets up your project to use the defaults.  If you want to create a custom  set of templates
 # for your own project you can over ride them by creating your own _templates folder
-templates_path = [pkg_resources.resource_filename('runestone', 'common/project_template/_templates')]
+templates_path = [str(importlib.resources.files("runestone").joinpath("common/project_template/_templates"))]
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -206,7 +206,7 @@ html_theme_options = {
 # This is set up to use the default runestone themes, you can override them by
 # creating your own folder and modifying this path.
 # Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = [pkg_resources.resource_filename('runestone', 'common/project_template/_templates/plugin_layouts')]
+html_theme_path = [str(importlib.resources.files("runestone").joinpath("common/project_template/_templates/plugin_layouts"))]
 
 
 # The name for this set of Sphinx documents.  If None, it defaults to

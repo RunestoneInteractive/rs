@@ -19,7 +19,7 @@ import sys, os
 # sys.path.insert(0, os.path.abspath('../modules'))
 
 from runestone import runestone_static_dirs, runestone_extensions, setup
-import pkg_resources
+import importlib.resources
 
 # -- General configuration -----------------------------------------------------
 
@@ -34,7 +34,7 @@ extensions = ["sphinx.ext.mathjax"] + runestone_extensions()
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = [
-    pkg_resources.resource_filename("runestone", "common/project_template/_templates")
+    str(importlib.resources.files("runestone").joinpath("common/project_template/_templates"))
 ]
 
 # The suffix of source filenames.
@@ -170,9 +170,7 @@ html_theme_options = {
 
 # Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = [
-    pkg_resources.resource_filename(
-        "runestone", "common/project_template/_templates/plugin_layouts"
-    )
+    str(importlib.resources.files("runestone").joinpath("common/project_template/_templates/plugin_layouts"))
 ]
 
 # The name for this set of Sphinx documents.  If None, it defaults to

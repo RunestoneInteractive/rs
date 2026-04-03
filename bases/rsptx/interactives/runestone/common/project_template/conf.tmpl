@@ -21,7 +21,7 @@ import sys, os
 #sys.path.insert(0, os.path.abspath('../modules'))
 
 from runestone import runestone_static_dirs, runestone_extensions, setup
-import pkg_resources
+import importlib.resources
 
 # -- General configuration -----------------------------------------------------
 
@@ -156,7 +156,7 @@ inline_highlight_literals = False
 html_theme = 'sphinx_bootstrap'
 
 # If using a non-sphinx theme, the path to the theme folder must be in this list
-html_theme_path = [pkg_resources.resource_filename('runestone', 'common/project_template/_templates/plugin_layouts')]
+html_theme_path = [str(importlib.resources.files('runestone').joinpath('common/project_template/_templates/plugin_layouts'))]
 
 # To override individual templates from the theme, you can make a directory and add its path
 # relative to this file to the templates_path list. In it, place copies of any template files

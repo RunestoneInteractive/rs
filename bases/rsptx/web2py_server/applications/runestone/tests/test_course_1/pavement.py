@@ -6,7 +6,7 @@ paver.setuputils.install_distutils_tasks()
 import os, sys
 from runestone.server import get_dburl
 from sphinxcontrib import paverutils
-import pkg_resources
+import importlib.metadata
 from socket import gethostname
 
 sys.path.append(os.getcwd())
@@ -57,7 +57,7 @@ if gethostname() == "runestone-deploy":
     del options.build.template_args["proxy_uri_runs"]
     del options.build.template_args["proxy_uri_files"]
 
-version = pkg_resources.require("runestone")[0].version
+version = importlib.metadata.version("runestone")
 options.build.template_args["runestone_version"] = version
 
 # If DBURL is in the environment override dburl

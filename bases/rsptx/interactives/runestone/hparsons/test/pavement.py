@@ -1,6 +1,6 @@
 import os
 import sys
-import pkg_resources
+import importlib.metadata
 from socket import gethostname
 
 from paver.easy import options, Bunch
@@ -60,7 +60,7 @@ if gethostname() == "runestone-deploy":
     del options.build.template_args["proxy_uri_runs"]
     del options.build.template_args["proxy_uri_files"]
 
-version = pkg_resources.require("runestone")[0].version
+version = importlib.metadata.version("runestone")
 options.build.template_args["runestone_version"] = version
 
 # If DBURL is in the environment override dburl
