@@ -18,11 +18,19 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    #Add use_llm column to assignment_questions table as nullable
-    #controls whether a peer instruction question uses an LLM peer for async mode
-    op.add_column('assignment_questions',
-        sa.Column('use_llm', sa.String(length=1), nullable=True)
+    # Add use_llm column to assignment_questions table.
+    # Controls whether a peer instruction question uses an LLM peer for async mode.
+    op.add_column(
+        'assignment_questions',
+        sa.Column(
+            'use_llm',
+            sa.String(length=1),
+            nullable=True,
+            server_default=sa.text("'F'"),
+        ),
     )
+    op.execute("UPDATE assignment_questions SET use_llm = 'F' WHERE use_llm IS NULL")
+    op.alter_column('assignment_questions', 'use_llm', nullable=False)
 
 
 def downgrade() -> None:
