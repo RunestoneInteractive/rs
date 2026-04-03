@@ -61,6 +61,7 @@
                 </div>
 
                 <div id="pi-assignment-navigation">
+                    {{ if current_qnum < num_questions: }}
                     <button
                         type="submit"
                         id="nextq"
@@ -70,6 +71,19 @@
                     >
                         Next Question
                     </button>
+                    {{ else: }}
+                    <div id="asyncBtnArea" style="display:inline-block;">
+                        <button
+                            type="button"
+                            id="toggleAsyncBtn"
+                            class="btn btn-info"
+                            onclick="showAsyncConfirm()"
+                            style="margin-right: 4px;{{ if peer_async_visible: }} background-color:#a3d4ec; border-color:#a3d4ec; color:#fff;{{ pass }}"
+                        >
+                            {{ if peer_async_visible: }}Undo After-Class Release{{ else: }}Release After-Class PI{{ pass }}
+                        </button>
+                    </div>
+                    {{ pass }}
                     <button
                         type="submit"
                         id="restart"
@@ -349,8 +363,33 @@
     var mess_count = 0;
     var answerCount = 0;
     var done = {{=is_last }}
-    if (done) {
-        document.getElementById("nextq").disabled = true;
+
+    var asyncReleased = {{=peer_async_visible}};
+
+    function showAsyncConfirm() {
+        var area = document.getElementById("asyncBtnArea");
+        var msg = asyncReleased
+            ? "Undo the after-class PI release?"
+            : "Release after-class PI questions to students?";
+        area.innerHTML = `
+            <span style="margin-right:6px; font-weight:bold;">${msg}</span>
+            <button type="button" class="btn btn-sm btn-default" onclick="confirmToggleAsync()" style="margin-right:4px;">Yes</button>
+            <button type="button" class="btn btn-sm btn-default" onclick="cancelAsyncConfirm()">Cancel</button>
+        `;
+    }
+
+    function cancelAsyncConfirm() {
+        var area = document.getElementById("asyncBtnArea");
+        var label = asyncReleased ? "Undo After-Class Release" : "Release After-Class PI";
+        var extraStyle = asyncReleased ? 'style="background-color:#a3d4ec; border-color:#a3d4ec; color:#fff; margin-right:4px;"' : 'style="margin-right:4px;"';
+        area.innerHTML = `<button type="button" id="toggleAsyncBtn" class="btn btn-info" onclick="showAsyncConfirm()" ${extraStyle}>${label}</button>`;
+    }
+
+    async function confirmToggleAsync() {
+        var resp = await fetch("/runestone/peer/toggle_async?assignment_id={{=assignment_id}}", { method: "POST" });
+        var data = await resp.json();
+        asyncReleased = data.peer_async_visible;
+        cancelAsyncConfirm();
     }
 </script>
 {{ end }}

@@ -167,6 +167,18 @@ export const assignmentExerciseApi = createApi({
         body
       })
     }),
+    hasApiKey: build.query<{ hasApiKey: boolean; asyncLlmModesEnabled: boolean }, void>({
+      query: () => ({
+        method: "GET",
+        url: "/assignment/instructor/has_api_key"
+      }),
+      transformResponse: (
+        response: DetailResponse<{ has_api_key: boolean; async_llm_modes_enabled: boolean }>
+      ) => ({
+        hasApiKey: response.detail.has_api_key,
+        asyncLlmModesEnabled: response.detail.async_llm_modes_enabled
+      })
+    }),
     copyQuestion: build.mutation<
       DetailResponse<{ status: string; question_id: number; message: string }>,
       {
@@ -218,5 +230,6 @@ export const {
   useReorderAssignmentExercisesMutation,
   useUpdateAssignmentExercisesMutation,
   useValidateQuestionNameMutation,
-  useCopyQuestionMutation
+  useCopyQuestionMutation,
+  useHasApiKeyQuery
 } = assignmentExerciseApi;

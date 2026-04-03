@@ -53,7 +53,11 @@
         <ol>
             <li>Answer the question as best you can.</li>
             <li>Then, in the space provided write a justification for your answer.</li>
-            <li>Read the dialog between two of your peers on why they answered the question the way they did.</li>
+            {{ if llm_enabled: }}
+            <li>Discuss the question with an LLM peer — explain your reasoning and respond to their questions.</li>
+            {{ else: }}
+            <li>Read the justification or discussion.</li>
+            {{ pass }}
             <li>Answer the question <strong>again.</strong>  Even if you are not changing your answer from the first time.</li>
         </ol>
     </p>
@@ -115,6 +119,9 @@
                 </button>
               </div>
 
+              <p id="llmDisclaimer" style="display:none; font-size:0.8em; color:#888; margin-top:4px; margin-bottom:0;">
+                You are chatting with an LLM, not a real peer.
+              </p>
               <p id="nextStep" style="margin-top:8px; font-style:italic;"></p>
             </div>
         </div>
@@ -139,6 +146,7 @@
 {{ pass }}
 <script>
   window.DISABLE_ASYNC_EXPLAINER = true;
+  window.PI_LLM_MODE = {{="true" if llm_enabled else "false"}};
 </script>
 <script src="/runestone/static/js/peer.js?v={{=request.peer_mtime}}"></script>
 <script>
@@ -189,7 +197,9 @@
       label = "Step 1 of 3: Answer the question";
       bg = "#4A9FDE";
     } else if (step === 2) {
-      label = "Step 2 of 3: Explain your answer and discuss";
+      label = window.PI_LLM_MODE
+        ? "Step 2 of 3: Explain your answer and discuss with the LLM peer"
+        : "Step 2 of 3: Explain your answer and read the justification or discussion";
       bg = "#2878B5";
     } else if (step === 3) {
       label = "Step 3 of 3: Vote again — you may keep or change your answer";
@@ -345,9 +355,13 @@ async function fetchWithRetry(url, options, retries = 1, delayMs = 400) {
   lockVote1AndReflection();
 
   discussion.style.display = "block";
-  chat.innerHTML = "<p><em>Thinking about your explanation…</em></p>";
+  if (window.PI_LLM_MODE === true) {
+    const disclaimer = document.getElementById("llmDisclaimer");
+    if (disclaimer) disclaimer.style.display = "block";
+  }
+  chat.innerHTML = "<p><em>Processing your explanation…</em></p>";
 
-  if (window.PI_LLM_MODE !== true) {
+  async function showStandardDiscussion(chat, nextStep, showInstructorNote) {
     const resp = await fetch("/runestone/peer/get_async_explainer", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -370,6 +384,11 @@ async function fetchWithRetry(url, options, retries = 1, delayMs = 400) {
       )} <br />`;
     }
     chat.innerHTML = "";
+    if (showInstructorNote) {
+      chat.innerHTML += `<div style="background:#fff3cd; border:1px solid #ffc107; border-radius:4px; padding:8px; margin-bottom:8px;">
+        <strong>Note:</strong> The AI peer is currently unavailable. Please contact your instructor.
+      </div>`;
+    }
     chat.innerHTML += `<p><strong>Other students said:</strong></p>`;
     if (res) {
       chat.innerHTML += `<p>${res}</p>`;
@@ -390,6 +409,10 @@ async function fetchWithRetry(url, options, retries = 1, delayMs = 400) {
       readyBtn.title = "";
     }
     studentSubmittedVote2 = false;
+  }
+
+  if (window.PI_LLM_MODE !== true) {
+    await showStandardDiscussion(chat, nextStep, false);
     return;
   } else {
     const mcq = document.querySelector('.mchoice');
@@ -416,7 +439,7 @@ async function fetchWithRetry(url, options, retries = 1, delayMs = 400) {
         })
       });
     } catch (e) {
-      chat.innerHTML = "<p><em>LLM error. Please try again.</em></p>";
+      await showStandardDiscussion(chat, nextStep, true);
       return;
     }
 
@@ -424,7 +447,7 @@ async function fetchWithRetry(url, options, retries = 1, delayMs = 400) {
     chat.innerHTML = "";
 
     if (!data.ok) {
-      chat.innerHTML = "<p><em>LLM error. Please try again.</em></p>";
+      await showStandardDiscussion(chat, nextStep, true);
       return;
     }
 
@@ -534,7 +557,7 @@ function enableChat(reflection, selected) {
         })
       });
     } catch (e) {
-      appendMsg("assistant", "LLM error. Please try again.");
+      appendMsg("assistant", "The AI peer is currently unavailable. Please contact your instructor.");
       btn.disabled = false;
       input.disabled = false;
       return;
@@ -542,7 +565,7 @@ function enableChat(reflection, selected) {
 
     const data = await resp.json();
     if (!data.ok) {
-      appendMsg("assistant", "LLM error. Please try again.");
+      appendMsg("assistant", "The AI peer is currently unavailable. Please contact your instructor.");
       btn.disabled = false;
       input.disabled = false;
       return;
