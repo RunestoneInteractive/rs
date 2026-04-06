@@ -28,7 +28,7 @@
         resetUI();
         showStatus("Submitting report request\u2026");
 
-        fetch("/analytics/subchapoverview/generate", {
+        fetch("/admin/analytics/subchapoverview/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chapter, tablekind }),
@@ -48,7 +48,7 @@
     // -------------------------------------------------------------------------
     window.downloadCSV = function () {
         if (!currentTaskId) return;
-        window.location.href = `/analytics/subchapoverview/csv/${currentTaskId}`;
+        window.location.href = `/admin/analytics/subchapoverview/csv/${currentTaskId}`;
     };
 
     // -------------------------------------------------------------------------
@@ -57,7 +57,7 @@
     function pollResult() {
         if (!currentTaskId) return;
 
-        fetch(`/analytics/subchapoverview/result/${currentTaskId}`)
+        fetch(`/admin/analytics/subchapoverview/result/${currentTaskId}`)
             .then(handleFetchError)
             .then((res) => res.json())
             .then((payload) => {
@@ -111,7 +111,16 @@
 
         const keys = Object.keys(data[0]);
         const columns = keys.map((k) => ({ data: k, renderer: "html" }));
-        const colHeaders = keys.map((k) => `<b>${escapeHtml(k)}</b>`);
+        const colHeaders = keys.map((k, i) => {
+            if (i === 0) return `<b>${escapeHtml(k)}</b>`;
+            // Student labels are formatted as "Last, First (username)".
+            // Extract the username from the trailing parentheses for the link.
+            const match = k.match(/\(([^)]+)\)$/);
+            const sid = match ? match[1] : k;
+            const label = escapeHtml(k);
+            const url = `/admin/analytics/student_detail?sid=${encodeURIComponent(sid)}`;
+            return `<b><a href="${url}" target="_blank" style="color:inherit;">${label}</a></b>`;
+        });
 
         hotInstance = new Handsontable(container, {
             data: data,

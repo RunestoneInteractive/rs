@@ -83,6 +83,21 @@ ANSWER_TABLES = [
     "unittest_answers",
 ]
 
+# Subset that have a boolean `correct` column (used by student drilldown)
+CORRECT_ANSWER_TABLES = [
+    "mchoice_answers",
+    "fitb_answers",
+    "parsons_answers",
+    "codelens_answers",
+    "clickablearea_answers",
+    "splice_answers",
+    "dragndrop_answers",
+    "unittest_answers",
+    "matching_answers",
+    "microparsons_answers",
+    "webwork_answers",
+]
+
 
 def _build_report(
     task_id: str,
@@ -153,10 +168,9 @@ def _make_activity_table(
     tdoff = pd.Timedelta(hours=tz_offset_hours)
     data["timestamp"] = data["timestamp"].map(lambda x: x - tdoff)
 
-    # Build student label.
-    # TODO: once a student detail drilldown page exists in the new system, replace
-    # the plain text label below with an HTML link, e.g.:
-    #   f'<a href="/analytics/student_detail?sid={sid}&course={course_name}">{label}</a>'
+    # Build student label — "Last, First (username)".
+    # subchapoverview.js extracts the username from the trailing parens to
+    # build a link to the student_detail drilldown page.
     data["sid"] = (
         data["last_name"] + ", " + data["first_name"] + " (" + data["sid"] + ")"
     )
@@ -337,6 +351,225 @@ def _make_correct_count(
 
 
 # ---------------------------------------------------------------------------
+# Student drilldown helpers
+# ---------------------------------------------------------------------------
+
+
+def _build_student_detail(
+    engine,
+    course_name: str,
+    base_course: str,
+    sid: str,
+    tz_offset_hours: float,
+) -> dict:
+    """
+    Returns two lists of records for the student detail page:
+      - ``subchapter_summary``: one row per subchapter with visit/attempt counts
+      - ``exercise_detail``:    one row per exercise with click counts and answer status
+    """
+    tdoff = pd.Timedelta(hours=tz_offset_hours)
+
+    # ------------------------------------------------------------------
+    # 1. Activity from useinfo (every click this student made)
+    # ------------------------------------------------------------------
+    activity = pd.read_sql_query(
+        """
+        select useinfo.div_id, chapter, subchapter,
+               count(*) as clicks,
+               min(useinfo.timestamp) as first_visit,
+               max(useinfo.timestamp) as last_visit
+        from useinfo
+        join questions on div_id = name and base_course = %(base_course)s
+        where useinfo.course_id = %(course_name)s and useinfo.sid = %(sid)s
+        group by useinfo.div_id, chapter, subchapter
+        order by chapter, subchapter, useinfo.div_id
+        """,
+        engine,
+        params={"base_course": base_course, "course_name": course_name, "sid": sid},
+        parse_dates=["first_visit", "last_visit"],
+    )
+
+    # Apply timezone offset
+    if not activity.empty:
+        activity["first_visit"] = activity["first_visit"].map(lambda x: x - tdoff)
+        activity["last_visit"] = activity["last_visit"].map(lambda x: x - tdoff)
+
+    # ------------------------------------------------------------------
+    # 2. Answers from all graded answer tables
+    # ------------------------------------------------------------------
+    union_parts = "\n    union all\n    ".join(
+        f"(select div_id, correct, percent, timestamp"
+        f" from {tbl}"
+        f" where course_name = %(course_name)s and sid = %(sid)s)"
+        for tbl in CORRECT_ANSWER_TABLES
+    )
+    answers = pd.read_sql_query(
+        f"select div_id, correct, percent, timestamp from ({union_parts}) as t",
+        engine,
+        params={"course_name": course_name, "sid": sid},
+        parse_dates=["timestamp"],
+    )
+
+    if not answers.empty:
+        ans_agg = (
+            answers.groupby("div_id")
+            .agg(
+                attempts=("correct", "count"),
+                correct_count=("correct", lambda x: (x == "T").sum()),
+                last_answer=(
+                    "timestamp",
+                    lambda x: (
+                        (x.max() - tdoff).isoformat() if pd.notna(x.max()) else None
+                    ),
+                ),
+            )
+            .reset_index()
+        )
+        ans_agg["ever_correct"] = ans_agg["correct_count"] > 0
+    else:
+        ans_agg = pd.DataFrame(
+            columns=[
+                "div_id",
+                "attempts",
+                "correct_count",
+                "ever_correct",
+                "last_answer",
+            ]
+        )
+
+    # ------------------------------------------------------------------
+    # 3. Total activities available per subchapter (from questions table)
+    # ------------------------------------------------------------------
+    act_count = pd.read_sql_query(
+        """
+        select chapter, subchapter, count(*) as total_activities
+        from questions
+        where base_course = %(base_course)s and from_source = 'T'
+        group by chapter, subchapter
+        """,
+        engine,
+        params={"base_course": base_course},
+    )
+
+    # ------------------------------------------------------------------
+    # 4. Build exercise detail rows (one per div_id)
+    # ------------------------------------------------------------------
+    if activity.empty:
+        exercise_detail = []
+    else:
+        detail = activity.merge(ans_agg, on="div_id", how="left")
+        detail["first_visit"] = detail["first_visit"].dt.strftime("%Y-%m-%d %H:%M")
+        detail["last_visit"] = detail["last_visit"].dt.strftime("%Y-%m-%d %H:%M")
+
+        # Human-readable correct column
+        def _correct_label(row):
+            if pd.isna(row.get("attempts")) or row["attempts"] == 0:
+                return ""
+            return "Yes" if row["ever_correct"] else "No"
+
+        detail["correct"] = detail.apply(_correct_label, axis=1)
+        detail["attempts"] = detail["attempts"].fillna(0).astype(int)
+        detail = detail.rename(
+            columns={
+                "div_id": "Exercise",
+                "chapter": "Chapter",
+                "subchapter": "Subchapter",
+                "clicks": "Clicks",
+                "attempts": "Attempts",
+                "correct": "Correct",
+                "first_visit": "First Visit",
+                "last_visit": "Last Visit",
+            }
+        )
+        cols = [
+            "Chapter",
+            "Subchapter",
+            "Exercise",
+            "Clicks",
+            "Attempts",
+            "Correct",
+            "First Visit",
+            "Last Visit",
+        ]
+        exercise_detail = json.loads(detail[cols].to_json(orient="records"))
+
+    # ------------------------------------------------------------------
+    # 5. Build subchapter summary (one per chapter/subchapter)
+    # ------------------------------------------------------------------
+    if activity.empty:
+        subchapter_summary = []
+    else:
+        sc = (
+            activity.groupby(["chapter", "subchapter"])
+            .agg(
+                exercises_visited=("div_id", "nunique"),
+                total_clicks=("clicks", "sum"),
+                first_visit=("first_visit", "min"),
+                last_visit=("last_visit", "max"),
+            )
+            .reset_index()
+        )
+
+        # Add answer stats per subchapter
+        if not ans_agg.empty:
+            ans_with_sc = ans_agg.merge(
+                activity[["div_id", "chapter", "subchapter"]].drop_duplicates(),
+                on="div_id",
+                how="left",
+            )
+            sc_ans = (
+                ans_with_sc.groupby(["chapter", "subchapter"])
+                .agg(
+                    attempted=("attempts", "sum"),
+                    correct_sum=("correct_count", "sum"),
+                )
+                .reset_index()
+            )
+            sc = sc.merge(sc_ans, on=["chapter", "subchapter"], how="left")
+        else:
+            sc["attempted"] = 0
+            sc["correct_sum"] = 0
+
+        sc = sc.merge(act_count, on=["chapter", "subchapter"], how="left")
+        sc["attempted"] = sc["attempted"].fillna(0).astype(int)
+        sc["correct_sum"] = sc["correct_sum"].fillna(0).astype(int)
+        sc["total_activities"] = sc["total_activities"].fillna(0).astype(int)
+        sc["first_visit"] = sc["first_visit"].dt.strftime("%Y-%m-%d %H:%M")
+        sc["last_visit"] = sc["last_visit"].dt.strftime("%Y-%m-%d %H:%M")
+
+        sc = sc.rename(
+            columns={
+                "chapter": "Chapter",
+                "subchapter": "Subchapter",
+                "exercises_visited": "Visited",
+                "total_activities": "Available",
+                "total_clicks": "Total Clicks",
+                "attempted": "Answered",
+                "correct_sum": "Correct",
+                "first_visit": "First Visit",
+                "last_visit": "Last Visit",
+            }
+        )
+        sc_cols = [
+            "Chapter",
+            "Subchapter",
+            "Visited",
+            "Available",
+            "Total Clicks",
+            "Answered",
+            "Correct",
+            "First Visit",
+            "Last Visit",
+        ]
+        subchapter_summary = json.loads(sc[sc_cols].to_json(orient="records"))
+
+    return {
+        "subchapter_summary": subchapter_summary,
+        "exercise_detail": exercise_detail,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
@@ -476,3 +709,69 @@ async def download_subchapoverview_csv(
         media_type="application/vnd.ms-excel",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@router.get("/student_detail", response_class=HTMLResponse)
+@instructor_role_required()
+@with_course()
+async def get_student_detail(
+    request: Request,
+    sid: str,
+    user=Depends(auth_manager),
+    course=None,
+    RS_info: Optional[str] = Cookie(None),
+):
+    """
+    Render the student drilldown page.
+
+    Queries are run synchronously (single-student data is manageable without
+    a background task). Results are embedded directly in the rendered template.
+    """
+    tz_offset_hours = 0.0
+    if RS_info:
+        try:
+            parsed_rs = json.loads(RS_info)
+            tz_offset_hours = float(parsed_rs.get("tz_offset", 0))
+        except Exception:
+            rslogger.warning("Could not parse RS_info cookie for tz_offset")
+
+    engine = create_engine(settings.dburl)
+
+    # Basic student info
+    student_row = pd.read_sql_query(
+        """
+        select username, first_name, last_name, email
+        from auth_user
+        where username = %(sid)s
+        limit 1
+        """,
+        engine,
+        params={"sid": sid},
+    )
+    if student_row.empty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Student '{sid}' not found",
+        )
+    student = student_row.iloc[0].to_dict()
+
+    data = _build_student_detail(
+        engine,
+        course_name=course.course_name,
+        base_course=course.base_course,
+        sid=sid,
+        tz_offset_hours=tz_offset_hours,
+    )
+
+    context = {
+        "request": request,
+        "user": user,
+        "course": course,
+        "student": student,
+        "subchapter_summary_json": json.dumps(data["subchapter_summary"]),
+        "exercise_detail_json": json.dumps(data["exercise_detail"]),
+        "is_instructor": True,
+        "student_page": False,
+        "settings": settings,
+    }
+    return templates.TemplateResponse("admin/analytics/student_detail.html", context)
