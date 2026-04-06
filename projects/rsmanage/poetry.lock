@@ -3827,7 +3827,7 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.13.0"
+version = "7.13.1"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "^3.10.0"
