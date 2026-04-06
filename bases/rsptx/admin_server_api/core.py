@@ -26,6 +26,7 @@ from rsptx.auth.session import auth_manager
 
 from .routers import lti1p3
 from .routers import instructor
+from .routers import analytics
 
 # FastAPI setup
 # =============
@@ -45,6 +46,7 @@ auth_manager.attach_middleware(app)
 
 app.include_router(lti1p3.router)
 app.include_router(instructor.router)
+app.include_router(analytics.router)
 
 # load a common set of middleware/exception handlers
 add_exception_handlers(app)
