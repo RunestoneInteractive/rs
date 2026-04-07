@@ -969,7 +969,7 @@ async def datashop(config, basecourse, sample_size, course_list, preserve_user_i
         course_list = click.prompt("Course list")
     if course_list:
         course_list = [c.strip() for c in course_list.split(",")]
-    if len(course_list) == 1:
+    if course_list and len(course_list) == 1:
         course_list = course_list[0]
 
     dburl = config.dburl.replace("+asyncpg", "")
@@ -977,7 +977,7 @@ async def datashop(config, basecourse, sample_size, course_list, preserve_user_i
     a = Anonymizer(
         basecourse,
         dburl,
-        sample_size=3,
+        sample_size=sample_size,
         specific_course=course_list,
         preserve_user_ids=preserve_user_ids,
     )
