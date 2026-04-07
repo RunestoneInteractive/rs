@@ -372,17 +372,25 @@ def _build_student_detail(
     # ------------------------------------------------------------------
     # 1. Activity from useinfo (every click this student made)
     # ------------------------------------------------------------------
+    # Use a DISTINCT subquery on questions so that if a div_id appears more
+    # than once in the questions table (duplicate rows or multi-chapter entries)
+    # we still get exactly one (chapter, subchapter) per div_id.  Without this,
+    # the plain JOIN fans out and inflates count(*) / sum() values.
     activity = pd.read_sql_query(
         """
-        select useinfo.div_id, chapter, subchapter,
+        select useinfo.div_id, q.chapter, q.subchapter,
                count(*) as clicks,
                min(useinfo.timestamp) as first_visit,
                max(useinfo.timestamp) as last_visit
         from useinfo
-        join questions on div_id = name and base_course = %(base_course)s
+        join (
+            select distinct name, chapter, subchapter
+            from questions
+            where base_course = %(base_course)s
+        ) q on useinfo.div_id = q.name
         where useinfo.course_id = %(course_name)s and useinfo.sid = %(sid)s
-        group by useinfo.div_id, chapter, subchapter
-        order by chapter, subchapter, useinfo.div_id
+        group by useinfo.div_id, q.chapter, q.subchapter
+        order by q.chapter, q.subchapter, useinfo.div_id
         """,
         engine,
         params={"base_course": base_course, "course_name": course_name, "sid": sid},
