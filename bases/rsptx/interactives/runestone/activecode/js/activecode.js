@@ -343,6 +343,7 @@ export class ActiveCode extends RunestoneBase {
                         act: "edit",
                         div_id: this.divid,
                     });
+                    editor.acEditEvent = true; // this is set to false when we programmatically change the editor value, so we can ignore those changes in the log and not mark the activity as answered.
                 }
                 if (this.firstAfterRun) {
                     this.firstAfterRun = false;
@@ -2468,6 +2469,7 @@ Yet another is that there is an internal error.  The internal error message is: 
                     e.redrawConnectors();
                 });
             }
+            this.editor.acEditEvent = false;
         }
     }
 
