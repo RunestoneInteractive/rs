@@ -821,7 +821,7 @@ function shouldShowStudyCluesWidget() {
     }
 
     const enabledBasecourses = ["csawesome2", "py4e-int", "thinkcspy", "httlacs", "PTXSB", "cppds2"];
-    const enabledCourses = ["SI201-W26-MW", "SI201-W26-TTh", "DukeCS101SP26", "mcd-csa-schoology", "mcd-csa-canvas", "csawesome2-MOOC", "test_py4e-int_api", "bc_cppds_s26", "Test-py4e-int"];
+    const enabledCourses = ["SI201-W26-MW", "SI201-W26-TTh", "DukeCS101SP26", "mcd-csa-schoology", "mcd-csa-canvas", "csawesome2-MOOC", "test_py4e-int_api", "bc_cppds_s26", "Test-py4e-int", "virginiatech_py4e-int_spring26"];
     const host = window.location.hostname;
 
     if (host === "localhost") {
