@@ -1,0 +1,96 @@
+{% extends "_base.html" %}
+
+{% block title %}Chapter Summary Report{% endblock %}
+
+{% block css %}
+<link href="/staticAssets/css/subchapoverview.css" rel="stylesheet" media="screen" />
+<script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css"
+      rel="stylesheet" media="screen" />
+{% endblock %}
+
+{% block content %}
+<div class="sco-page">
+
+  <div class="page-header">
+    <h1>Chapter Summary Report</h1>
+    <p class="course-subtitle">{{ course.course_name }}</p>
+  </div>
+
+  <div class="course-info">
+    <strong>Course:</strong> {{ course.course_name }} &nbsp;|&nbsp;
+    <strong>Base Course:</strong> {{ course.base_course }}
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-card">
+    <div class="controls-row">
+      <div class="control-group">
+        <label for="chapter-select">Chapter</label>
+        <select id="chapter-select" class="form-control">
+          <option value="all">All Chapters</option>
+          {% for ch in chapters %}
+          <option value="{{ ch.chapter_label }}">{{ ch.chapter_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Report Type</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="tablekind" value="sccount" checked />
+            Activity Count
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="tablekind" value="correctcount" />
+            Correct Answers
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="tablekind" value="dividmin" />
+            First Visit
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="tablekind" value="dividmax" />
+            Last Visit
+          </label>
+        </div>
+      </div>
+
+      <div class="control-group control-group--action">
+        <button id="generate-btn" class="btn btn-primary btn-generate" onclick="generateReport()">
+          Generate Report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status / spinner -->
+  <div id="status-area" class="status-area" style="display:none;">
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <span id="status-text">Building report&hellip;</span>
+    </div>
+  </div>
+
+  <!-- Error message -->
+  <div id="error-area" class="alert alert-danger" style="display:none;"></div>
+
+  <!-- Results -->
+  <div id="results-area" style="display:none;">
+    <div class="results-toolbar">
+      <span id="row-count" class="row-count"></span>
+      <button id="csv-btn" class="btn btn-outline-secondary btn-sm" onclick="downloadCSV()">
+        <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;">download</span>
+        Download CSV
+      </button>
+    </div>
+    <div id="hot-container"></div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="/staticAssets/js/subchapoverview.js"></script>
+{% endblock %}

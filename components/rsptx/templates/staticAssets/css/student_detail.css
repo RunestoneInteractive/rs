@@ -1,0 +1,51 @@
+/* ============================================================
+   student_detail.css — Student drilldown page styles
+   Extends subchapoverview.css (loaded first in the template).
+   ============================================================ */
+
+/* Back link in course-info bar */
+.back-link {
+    float: right;
+    font-size: 13px;
+    color: #4a90e2;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+/* Section headers (Summary / Detail) */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 24px 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+.section-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+/* Handsontable wrapper for each section */
+.hot-section {
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+/* Empty-state message */
+.no-data {
+    padding: 24px;
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    margin: 0;
+}

@@ -1,0 +1,64 @@
+{% extends "_base.html" %}
+
+{% block title %}Student Detail — {{ student.first_name }} {{ student.last_name }}{% endblock %}
+
+{% block css %}
+<link href="/staticAssets/css/subchapoverview.css" rel="stylesheet" media="screen" />
+<link href="/staticAssets/css/student_detail.css" rel="stylesheet" media="screen" />
+<script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css"
+      rel="stylesheet" media="screen" />
+{% endblock %}
+
+{% block content %}
+<div class="sco-page">
+
+  <div class="page-header">
+    <h1>{{ student.first_name }} {{ student.last_name }}</h1>
+    <p class="course-subtitle">{{ student.username }} &mdash; {{ course.course_name }}</p>
+  </div>
+
+  <div class="course-info">
+    <strong>Course:</strong> {{ course.course_name }} &nbsp;|&nbsp;
+    <strong>Base Course:</strong> {{ course.base_course }} &nbsp;|&nbsp;
+    <strong>Email:</strong> {{ student.email }}
+    &nbsp;&nbsp;
+    <a href="/admin/analytics/subchapoverview" class="back-link">
+      &larr; Back to Chapter Summary
+    </a>
+  </div>
+
+  <!-- Subchapter summary -->
+  <div class="section-header">
+    <h2>Subchapter Summary</h2>
+    <button class="btn btn-outline-secondary btn-sm" onclick="downloadCSV('summary')">
+      <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;">download</span>
+      Download CSV
+    </button>
+  </div>
+  <div id="summary-container" class="hot-section"></div>
+
+  <!-- Exercise detail -->
+  <div class="section-header" style="margin-top: 32px;">
+    <h2>Exercise Detail</h2>
+    <button class="btn btn-outline-secondary btn-sm" onclick="downloadCSV('detail')">
+      <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;">download</span>
+      Download CSV
+    </button>
+  </div>
+  <div id="detail-container" class="hot-section"></div>
+
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+  window.STUDENT_DATA = {
+    summaryData: {{ subchapter_summary_json | safe }},
+    detailData:  {{ exercise_detail_json | safe }},
+    studentName: "{{ student.last_name }}_{{ student.first_name }}",
+    courseName:  "{{ course.course_name }}"
+  };
+</script>
+<script src="/staticAssets/js/student_detail.js"></script>
+{% endblock %}
