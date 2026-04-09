@@ -2859,14 +2859,14 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "pretext"
-version = "2.38.1"
+version = "2.38.2"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "pretext-2.38.1-py3-none-any.whl", hash = "sha256:3adecbc276ebf3e9d295155f30bfe13c677f02939fb743de8831fc7501bf981a"},
-    {file = "pretext-2.38.1.tar.gz", hash = "sha256:26fc1430007ed2da7044deadb7ec03e572f6298c5d86bdca5a9fb9f88bce3423"},
+    {file = "pretext-2.38.2-py3-none-any.whl", hash = "sha256:6cc9839f1ff16c3b1888b898ee6b557f0efc53b202ff7a6d905d1bbd2b7eed60"},
+    {file = "pretext-2.38.2.tar.gz", hash = "sha256:a29fd9471ddcd0a95d1ea184cb18853791b0962b1e892804a361611c6d44471f"},
 ]
 
 [package.dependencies]
@@ -2890,9 +2890,9 @@ requests = ">=2,<3"
 single-version = ">=1,<2"
 
 [package.extras]
-all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.5.13,<0.6.0)"]
+all = ["pelican[markdown] (>=4.10,<5.0)", "prefig[text] (>=0.5.14,<0.6.0)"]
 homepage = ["pelican[markdown] (>=4.10,<5.0)"]
-prefigure = ["prefig[text] (>=0.5.13,<0.6.0)"]
+prefigure = ["prefig[text] (>=0.5.14,<0.6.0)"]
 
 [[package]]
 name = "prometheus-client"
@@ -3881,14 +3881,14 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.13.2"
+version = "7.13.3"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
 python-versions = "<4.0.0,>=3.10.0"
 groups = ["main"]
 files = [
-    {file = "runestone-7.13.2-py3-none-any.whl", hash = "sha256:3415fd039dcc05dea4ca37924b8abac373bd184385790abf3b172bc79dde1206"},
-    {file = "runestone-7.13.2.tar.gz", hash = "sha256:fae9f3b7fad638a4ee3892b304b2bbf5f6ca478706fcdb950d4066510c5ad5b5"},
+    {file = "runestone-7.13.3-py3-none-any.whl", hash = "sha256:346ad3990154ff4d56d6670707d5656497b85027ba8dd6b55d519cf227477a9d"},
+    {file = "runestone-7.13.3.tar.gz", hash = "sha256:0c112770cbf244356c3121a78c5965acede2a70f83b4ae9c168a7580c8b9d4ab"},
 ]
 
 [package.dependencies]
