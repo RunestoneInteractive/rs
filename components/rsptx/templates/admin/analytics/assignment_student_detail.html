@@ -1,0 +1,58 @@
+{% extends "_base.html" %}
+
+{% block title %}Assignment Detail — {{ student.first_name }} {{ student.last_name }}{% endblock %}
+
+{% block css %}
+<link href="/staticAssets/css/subchapoverview.css" rel="stylesheet" media="screen" />
+<link href="/staticAssets/css/student_detail.css" rel="stylesheet" media="screen" />
+<script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css"
+      rel="stylesheet" media="screen" />
+{% endblock %}
+
+{% block content %}
+<div class="sco-page">
+
+  <div class="page-header">
+    <h1>{{ student.first_name }} {{ student.last_name }}</h1>
+    <p class="course-subtitle">{{ student.username }} &mdash; {{ assignment.name }}</p>
+  </div>
+
+  <div class="course-info">
+    <strong>Course:</strong> {{ course.course_name }} &nbsp;|&nbsp;
+    <strong>Assignment:</strong> {{ assignment.name }} &nbsp;|&nbsp;
+    <strong>Due:</strong> {{ assignment.duedate }} &nbsp;|&nbsp;
+    <strong>Total Points:</strong> {{ assignment.points }}
+    {% if total_score is not none %}
+    &nbsp;|&nbsp; <strong>Grade:</strong> {{ total_score }}
+    {% endif %}
+    &nbsp;&nbsp;
+    <a href="/admin/analytics/assignmentoverview" class="back-link">
+      &larr; Back to Assignment Summary
+    </a>
+  </div>
+
+  <!-- Question detail table -->
+  <div class="section-header">
+    <h2>Question Detail</h2>
+    <button class="btn btn-outline-secondary btn-sm" onclick="downloadCSV()">
+      <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;">download</span>
+      Download CSV
+    </button>
+  </div>
+  <div id="detail-container" class="hot-section"></div>
+
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+  window.ASSIGNMENT_STUDENT_DATA = {
+    detailData:     {{ detail_json | safe }},
+    studentName:    "{{ student.last_name }}_{{ student.first_name }}",
+    assignmentName: "{{ assignment.name }}",
+    courseName:     "{{ course.course_name }}"
+  };
+</script>
+<script src="/staticAssets/js/assignment_student_detail.js"></script>
+{% endblock %}

@@ -1,0 +1,27 @@
+/* ============================================================
+   assignmentoverview.css — Assignment Summary Report styles
+   Extends subchapoverview.css (loaded first in the template).
+   ============================================================ */
+
+/* Assignment selector — wider than chapter selector */
+#assignment-select {
+    min-width: 320px;
+}
+
+/* Stat columns (Interactions, # Correct, etc.) — subtle highlight */
+.ao-stat-cell {
+    background-color: #f8f9fa;
+    color: #555;
+    font-size: 13px;
+    text-align: center;
+}
+
+/* Score cells — student columns */
+.ao-score-zero {
+    color: #c62828;
+}
+
+.ao-score-positive {
+    color: #2e7d32;
+    font-weight: 600;
+}

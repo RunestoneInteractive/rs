@@ -719,6 +719,663 @@ async def download_subchapoverview_csv(
     )
 
 
+# ---------------------------------------------------------------------------
+# Assignment Overview — Redis helpers
+# ---------------------------------------------------------------------------
+
+
+def _ao_task_key(task_id: str) -> str:
+    return f"assignmentoverview:{task_id}"
+
+
+def _set_ao_task(r: redis_lib.Redis, task_id: str, payload: dict) -> None:
+    r.set(_ao_task_key(task_id), json.dumps(payload), ex=TASK_TTL_SECONDS)
+
+
+def _get_ao_task(r: redis_lib.Redis, task_id: str) -> Optional[dict]:
+    raw = r.get(_ao_task_key(task_id))
+    if raw is None:
+        return None
+    return json.loads(raw)
+
+
+# ---------------------------------------------------------------------------
+# Assignment Overview — background report generation
+# ---------------------------------------------------------------------------
+
+
+def _build_assignment_report(
+    task_id: str,
+    assignment_id: int,
+    course_name: str,
+    tz_offset_hours: float,
+) -> None:
+    """Run in a BackgroundTask. Builds per-question stats for an assignment."""
+    r = _get_redis()
+    try:
+        engine = create_engine(settings.dburl)
+        data = _make_assignment_table(
+            engine, assignment_id, course_name, tz_offset_hours
+        )
+        _set_ao_task(
+            r,
+            task_id,
+            {"status": "complete", "data": data, "assignment_id": assignment_id},
+        )
+    except Exception as exc:
+        rslogger.exception(
+            f"assignmentoverview background task {task_id} failed: {exc}"
+        )
+        _set_ao_task(r, task_id, {"status": "error", "message": str(exc)})
+
+
+def _make_assignment_table(
+    engine,
+    assignment_id: int,
+    course_name: str,
+    tz_offset_hours: float,
+) -> list:
+    """
+    Build the assignment overview pivot table.
+
+    Rows = questions in the assignment (sorted by sorting_priority).
+    Fixed stat columns: Question, Type, Points, Interactions, First, Last,
+                        # Correct, # Incorrect, # Never Tried, Avg Score.
+    Per-student columns: their score from question_grades (or blank if none).
+    """
+    tdoff = pd.Timedelta(hours=tz_offset_hours)
+
+    # 1. Questions in this assignment
+    questions = pd.read_sql_query(
+        """
+        SELECT q.name AS div_id, q.question_type,
+               aq.points, aq.sorting_priority
+        FROM assignment_questions aq
+        JOIN questions q ON q.id = aq.question_id
+        WHERE aq.assignment_id = %(assignment_id)s
+        ORDER BY aq.sorting_priority
+        """,
+        engine,
+        params={"assignment_id": assignment_id},
+    )
+    if questions.empty:
+        return []
+
+    div_ids = tuple(questions["div_id"].tolist())
+
+    # 2. Enrolled students (non-LTI, non-instructor)
+    enrolled = pd.read_sql_query(
+        """
+        SELECT DISTINCT u.username, u.first_name, u.last_name
+        FROM user_courses uc
+        JOIN auth_user u ON u.id = uc.user_id
+        WHERE uc.course_id = (
+            SELECT id FROM courses WHERE course_name = %(course_name)s
+        )
+          AND u.id NOT IN (
+            SELECT instructor FROM course_instructor
+            WHERE course = (
+                SELECT id FROM courses WHERE course_name = %(course_name)s
+            )
+          )
+        ORDER BY u.last_name, u.first_name, u.username
+        """,
+        engine,
+        params={"course_name": course_name},
+    )
+    enrolled = enrolled[
+        ~enrolled["username"].str.contains(r"^\d{38,}@", regex=True, na=False)
+    ]
+    n_enrolled = len(enrolled)
+
+    # 3. Interaction data from useinfo
+    interactions = pd.read_sql_query(
+        """
+        SELECT sid, div_id,
+               COUNT(*) AS interactions,
+               MIN(timestamp) AS first_interaction,
+               MAX(timestamp) AS last_interaction
+        FROM useinfo
+        WHERE course_id = %(course_name)s
+          AND div_id IN %(div_ids)s
+        GROUP BY sid, div_id
+        """,
+        engine,
+        params={"course_name": course_name, "div_ids": div_ids},
+        parse_dates=["first_interaction", "last_interaction"],
+    )
+    if not interactions.empty:
+        interactions["first_interaction"] = interactions["first_interaction"].map(
+            lambda x: x - tdoff
+        )
+        interactions["last_interaction"] = interactions["last_interaction"].map(
+            lambda x: x - tdoff
+        )
+
+    # 4. Per-question scores from question_grades (use grades table as primary source)
+    scores = pd.read_sql_query(
+        """
+        SELECT sid, div_id, score
+        FROM question_grades
+        WHERE course_name = %(course_name)s
+          AND div_id IN %(div_ids)s
+        """,
+        engine,
+        params={"course_name": course_name, "div_ids": div_ids},
+    )
+
+    # 5. Class-wide stats per question
+    if not interactions.empty:
+        int_stats = (
+            interactions.groupby("div_id")
+            .agg(
+                total_interactions=("interactions", "sum"),
+                first_interaction=("first_interaction", "min"),
+                last_interaction=("last_interaction", "max"),
+            )
+            .reset_index()
+        )
+    else:
+        int_stats = pd.DataFrame(
+            columns=[
+                "div_id",
+                "total_interactions",
+                "first_interaction",
+                "last_interaction",
+            ]
+        )
+
+    if not scores.empty:
+        score_stats = (
+            scores.groupby("div_id")
+            .agg(
+                n_correct=("score", lambda x: (x > 0).sum()),
+                n_attempted=("score", "count"),
+                avg_score=("score", "mean"),
+            )
+            .reset_index()
+        )
+        score_stats["n_incorrect"] = (
+            score_stats["n_attempted"] - score_stats["n_correct"]
+        )
+        score_stats["n_never_tried"] = n_enrolled - score_stats["n_attempted"]
+    else:
+        score_stats = pd.DataFrame(
+            columns=[
+                "div_id",
+                "n_correct",
+                "n_incorrect",
+                "n_never_tried",
+                "avg_score",
+            ]
+        )
+
+    # 6. Per-student score pivot (student label → score per question)
+    # Build label map for all enrolled students regardless of whether they have scores.
+    if not enrolled.empty:
+        enrolled["label"] = (
+            enrolled["last_name"]
+            + ", "
+            + enrolled["first_name"]
+            + " ("
+            + enrolled["username"]
+            + ")"
+        )
+        label_map = dict(zip(enrolled["username"], enrolled["label"]))
+    else:
+        label_map = {}
+
+    if not scores.empty and label_map:
+        scores_labeled = scores.copy()
+        scores_labeled["label"] = scores_labeled["sid"].map(label_map)
+        scores_labeled = scores_labeled.dropna(subset=["label"])
+        if not scores_labeled.empty:
+            score_pivot = scores_labeled.pivot_table(
+                index="div_id",
+                columns="label",
+                values="score",
+                aggfunc="first",
+            ).reset_index()
+        else:
+            score_pivot = pd.DataFrame({"div_id": list(div_ids)})
+    else:
+        score_pivot = pd.DataFrame({"div_id": list(div_ids)})
+
+    # Ensure every enrolled student has a column, even with no scores at all.
+    for label in label_map.values():
+        if label not in score_pivot.columns:
+            score_pivot[label] = None
+
+    # 7. Merge everything onto the questions frame
+    result = questions[["div_id", "question_type", "points", "sorting_priority"]].copy()
+    result = result.merge(int_stats, on="div_id", how="left")
+    result = result.merge(
+        score_stats[
+            ["div_id", "n_correct", "n_incorrect", "n_never_tried", "avg_score"]
+        ],
+        on="div_id",
+        how="left",
+    )
+    result = result.merge(score_pivot, on="div_id", how="left")
+
+    result["total_interactions"] = result["total_interactions"].fillna(0).astype(int)
+    result["n_correct"] = result["n_correct"].fillna(0).astype(int)
+    result["n_incorrect"] = result["n_incorrect"].fillna(0).astype(int)
+    result["n_never_tried"] = result["n_never_tried"].fillna(n_enrolled).astype(int)
+    result["avg_score"] = result["avg_score"].fillna(0.0).round(2)
+
+    def _fmt_ts(x):
+        try:
+            return x.strftime("%Y-%m-%d %H:%M") if pd.notna(x) else ""
+        except Exception:
+            return ""
+
+    if "first_interaction" in result.columns:
+        result["first_interaction"] = result["first_interaction"].map(_fmt_ts)
+        result["last_interaction"] = result["last_interaction"].map(_fmt_ts)
+
+    result = result.sort_values("sorting_priority")
+
+    result = result.rename(
+        columns={
+            "div_id": "Question",
+            "question_type": "Type",
+            "points": "Points",
+            "total_interactions": "Interactions",
+            "first_interaction": "First",
+            "last_interaction": "Last",
+            "n_correct": "# Correct",
+            "n_incorrect": "# Incorrect",
+            "n_never_tried": "# Never Tried",
+            "avg_score": "Avg Score",
+        }
+    )
+
+    fixed_cols = [
+        "Question",
+        "Type",
+        "# Correct",
+        "# Incorrect",
+        "# Never Tried",
+        "Avg Score",
+        "Points",
+        "Interactions",
+        "First",
+        "Last",
+    ]
+    student_cols = sorted(
+        [c for c in result.columns if c not in fixed_cols and c != "sorting_priority"],
+        key=lambda x: x.lower(),
+    )
+    result = result[[c for c in fixed_cols + student_cols if c in result.columns]]
+
+    return json.loads(result.to_json(orient="records", date_format="iso"))
+
+
+# ---------------------------------------------------------------------------
+# Assignment Overview — student drilldown helper
+# ---------------------------------------------------------------------------
+
+
+def _build_assignment_student_detail(
+    engine,
+    assignment_id: int,
+    course_name: str,
+    sid: str,
+    tz_offset_hours: float,
+) -> list:
+    """
+    Per-question detail for one student within an assignment.
+    Returns a list of records (one per question).
+    """
+    tdoff = pd.Timedelta(hours=tz_offset_hours)
+
+    questions = pd.read_sql_query(
+        """
+        SELECT q.name AS div_id, q.question_type,
+               aq.points AS max_points, aq.sorting_priority
+        FROM assignment_questions aq
+        JOIN questions q ON q.id = aq.question_id
+        WHERE aq.assignment_id = %(assignment_id)s
+        ORDER BY aq.sorting_priority
+        """,
+        engine,
+        params={"assignment_id": assignment_id},
+    )
+    if questions.empty:
+        return []
+
+    div_ids = tuple(questions["div_id"].tolist())
+
+    interactions = pd.read_sql_query(
+        """
+        SELECT div_id,
+               COUNT(*) AS interactions,
+               MIN(timestamp) AS first_interaction,
+               MAX(timestamp) AS last_interaction
+        FROM useinfo
+        WHERE course_id = %(course_name)s
+          AND sid = %(sid)s
+          AND div_id IN %(div_ids)s
+        GROUP BY div_id
+        """,
+        engine,
+        params={"course_name": course_name, "sid": sid, "div_ids": div_ids},
+        parse_dates=["first_interaction", "last_interaction"],
+    )
+    if not interactions.empty:
+        interactions["first_interaction"] = interactions["first_interaction"].map(
+            lambda x: x - tdoff
+        )
+        interactions["last_interaction"] = interactions["last_interaction"].map(
+            lambda x: x - tdoff
+        )
+
+    scores = pd.read_sql_query(
+        """
+        SELECT div_id, score
+        FROM question_grades
+        WHERE course_name = %(course_name)s
+          AND sid = %(sid)s
+          AND div_id IN %(div_ids)s
+        """,
+        engine,
+        params={"course_name": course_name, "sid": sid, "div_ids": div_ids},
+    )
+
+    result = questions[
+        ["div_id", "question_type", "max_points", "sorting_priority"]
+    ].copy()
+    if not interactions.empty:
+        result = result.merge(interactions, on="div_id", how="left")
+    else:
+        result["interactions"] = 0
+        result["first_interaction"] = None
+        result["last_interaction"] = None
+    if not scores.empty:
+        result = result.merge(scores, on="div_id", how="left")
+    else:
+        result["score"] = None
+
+    result["interactions"] = result["interactions"].fillna(0).astype(int)
+
+    def _fmt_ts(x):
+        try:
+            return x.strftime("%Y-%m-%d %H:%M") if pd.notna(x) else ""
+        except Exception:
+            return ""
+
+    result["first_interaction"] = result["first_interaction"].map(_fmt_ts)
+    result["last_interaction"] = result["last_interaction"].map(_fmt_ts)
+    result["score"] = result["score"].apply(
+        lambda x: round(float(x), 2) if pd.notna(x) else ""
+    )
+    result = result.sort_values("sorting_priority")
+    result = result.rename(
+        columns={
+            "div_id": "Question",
+            "question_type": "Type",
+            "max_points": "Max Points",
+            "interactions": "Interactions",
+            "first_interaction": "First Interaction",
+            "last_interaction": "Last Interaction",
+            "score": "Score",
+        }
+    )
+    cols = [
+        "Question",
+        "Type",
+        "Score",
+        "Max Points",
+        "Interactions",
+        "First Interaction",
+        "Last Interaction",
+    ]
+    return json.loads(result[cols].to_json(orient="records"))
+
+
+# ---------------------------------------------------------------------------
+# Assignment Overview — endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/assignmentoverview", response_class=HTMLResponse)
+@instructor_role_required()
+@with_course()
+async def get_assignmentoverview(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """Serve the assignment overview report shell page."""
+    engine = create_engine(settings.dburl)
+    assignments_df = pd.read_sql_query(
+        """
+        SELECT a.id, a.name, a.duedate, a.points
+        FROM assignments a
+        JOIN courses c ON c.id = a.course
+        WHERE c.course_name = %(course_name)s
+        ORDER BY a.duedate DESC NULLS LAST
+        """,
+        engine,
+        params={"course_name": course.course_name},
+    )
+    assignments = assignments_df.to_dict(orient="records")
+    # Convert Timestamps to strings for template rendering
+    for row in assignments:
+        dt = row.get("duedate")
+        if dt is not None and pd.notna(dt):
+            try:
+                row["duedate"] = dt.strftime("%Y-%m-%d")
+            except Exception:
+                row["duedate"] = str(dt)
+        else:
+            row["duedate"] = ""
+
+    context = {
+        "request": request,
+        "user": user,
+        "course": course,
+        "assignments": assignments,
+        "is_instructor": True,
+        "student_page": False,
+        "settings": settings,
+    }
+    return templates.TemplateResponse(
+        "admin/analytics/assignmentoverview.html", context
+    )
+
+
+@router.post("/assignmentoverview/generate")
+@instructor_role_required()
+@with_course()
+async def generate_assignmentoverview(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    user=Depends(auth_manager),
+    course=None,
+    RS_info: Optional[str] = Cookie(None),
+):
+    """Kick off a background report for the chosen assignment."""
+    body = await request.json()
+    assignment_id = body.get("assignment_id")
+    if not assignment_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="assignment_id is required",
+        )
+
+    tz_offset_hours = 0.0
+    if RS_info:
+        try:
+            tz_offset_hours = float(json.loads(RS_info).get("tz_offset", 0))
+        except Exception:
+            rslogger.warning("Could not parse RS_info cookie for tz_offset")
+
+    task_id = str(uuid.uuid4())
+    r = _get_redis()
+    _set_ao_task(r, task_id, {"status": "pending"})
+
+    background_tasks.add_task(
+        _build_assignment_report,
+        task_id=task_id,
+        assignment_id=int(assignment_id),
+        course_name=course.course_name,
+        tz_offset_hours=tz_offset_hours,
+    )
+
+    rslogger.info(
+        f"Queued assignmentoverview task {task_id} for {course.course_name} "
+        f"assignment_id={assignment_id}"
+    )
+    return JSONResponse(
+        {"task_id": task_id, "status": "pending", "assignment_id": assignment_id}
+    )
+
+
+@router.get("/assignmentoverview/result/{task_id}")
+@instructor_role_required()
+async def get_assignmentoverview_result(
+    task_id: str,
+    request: Request,
+    user=Depends(auth_manager),
+):
+    """Poll Redis for the status/result of an assignment report task."""
+    r = _get_redis()
+    payload = _get_ao_task(r, task_id)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found or expired",
+        )
+    return JSONResponse(payload)
+
+
+@router.get("/assignmentoverview/csv/{task_id}")
+@instructor_role_required()
+@with_course()
+async def download_assignmentoverview_csv(
+    task_id: str,
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """Stream the cached assignment report as a CSV download."""
+    r = _get_redis()
+    payload = _get_ao_task(r, task_id)
+    if payload is None or payload.get("status") != "complete":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found, not yet complete, or expired",
+        )
+    df = pd.DataFrame(payload["data"])
+    csv_content = df.to_csv(index=False, na_rep="")
+    filename = f"assignment_report_{course.course_name}.csv"
+    return StreamingResponse(
+        iter([csv_content]),
+        media_type="application/vnd.ms-excel",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.get("/assignmentoverview/student", response_class=HTMLResponse)
+@instructor_role_required()
+@with_course()
+async def get_assignment_student_detail(
+    request: Request,
+    sid: str,
+    assignment_id: int,
+    user=Depends(auth_manager),
+    course=None,
+    RS_info: Optional[str] = Cookie(None),
+):
+    """Render the per-student drilldown for an assignment."""
+    tz_offset_hours = 0.0
+    if RS_info:
+        try:
+            tz_offset_hours = float(json.loads(RS_info).get("tz_offset", 0))
+        except Exception:
+            rslogger.warning("Could not parse RS_info cookie for tz_offset")
+
+    engine = create_engine(settings.dburl)
+
+    student_row = pd.read_sql_query(
+        """
+        SELECT username, first_name, last_name, email
+        FROM auth_user WHERE username = %(sid)s LIMIT 1
+        """,
+        engine,
+        params={"sid": sid},
+    )
+    if student_row.empty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Student '{sid}' not found",
+        )
+    student = student_row.iloc[0].to_dict()
+
+    assignment_row = pd.read_sql_query(
+        """
+        SELECT id, name, duedate, points
+        FROM assignments WHERE id = %(assignment_id)s LIMIT 1
+        """,
+        engine,
+        params={"assignment_id": assignment_id},
+    )
+    if assignment_row.empty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Assignment {assignment_id} not found",
+        )
+    assignment = assignment_row.iloc[0].to_dict()
+    dt = assignment.get("duedate")
+    if dt is not None and pd.notna(dt):
+        try:
+            assignment["duedate"] = dt.strftime("%Y-%m-%d")
+        except Exception:
+            assignment["duedate"] = str(dt)
+    else:
+        assignment["duedate"] = ""
+
+    detail = _build_assignment_student_detail(
+        engine, assignment_id, course.course_name, sid, tz_offset_hours
+    )
+
+    # Total assignment grade from grades table
+    total_grade_row = pd.read_sql_query(
+        """
+        SELECT g.score
+        FROM grades g
+        JOIN auth_user u ON u.id = g.auth_user
+        WHERE u.username = %(sid)s AND g.assignment = %(assignment_id)s
+        LIMIT 1
+        """,
+        engine,
+        params={"sid": sid, "assignment_id": assignment_id},
+    )
+    total_score = None
+    if not total_grade_row.empty:
+        raw = total_grade_row.iloc[0]["score"]
+        if raw is not None and pd.notna(raw):
+            total_score = round(float(raw), 2)
+
+    context = {
+        "request": request,
+        "user": user,
+        "course": course,
+        "student": student,
+        "assignment": assignment,
+        "detail_json": json.dumps(detail),
+        "total_score": total_score,
+        "is_instructor": True,
+        "student_page": False,
+        "settings": settings,
+    }
+    return templates.TemplateResponse(
+        "admin/analytics/assignment_student_detail.html", context
+    )
+
+
 @router.get("/student_detail", response_class=HTMLResponse)
 @instructor_role_required()
 @with_course()
