@@ -219,3 +219,17 @@
             .replace(/"/g, "&quot;");
     }
 })();
+
+
+// -------------------------------------------------------------------------
+// Auto-generate if assignment_id was passed as a query parameter.
+// Scripts in {% block js %} run after the DOM is ready, so no need to
+// wait for DOMContentLoaded — just run directly.
+// -------------------------------------------------------------------------
+if (window.AUTO_ASSIGNMENT_ID) {
+    const sel = document.getElementById("assignment-select");
+    sel.value = String(window.AUTO_ASSIGNMENT_ID);
+    if (sel.value) {
+        window.generateReport();
+    }
+}

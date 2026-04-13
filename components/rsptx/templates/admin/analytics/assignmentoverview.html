@@ -71,5 +71,8 @@
 {% endblock %}
 
 {% block js %}
+{% if auto_assignment_id %}
+<script>window.AUTO_ASSIGNMENT_ID = {{ auto_assignment_id }};</script>
+{% endif %}
 <script src="/staticAssets/js/assignmentoverview.js"></script>
 {% endblock %}

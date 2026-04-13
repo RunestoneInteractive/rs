@@ -1146,8 +1146,13 @@ async def get_assignmentoverview(
     request: Request,
     user=Depends(auth_manager),
     course=None,
+    assignment_id: Optional[int] = None,
 ):
-    """Serve the assignment overview report shell page."""
+    """Serve the assignment overview report shell page.
+
+    If ``assignment_id`` is supplied as a query parameter the template will
+    pre-select that assignment and auto-generate the report on page load.
+    """
     engine = create_engine(settings.dburl)
     assignments_df = pd.read_sql_query(
         """
@@ -1177,6 +1182,7 @@ async def get_assignmentoverview(
         "user": user,
         "course": course,
         "assignments": assignments,
+        "auto_assignment_id": assignment_id,
         "is_instructor": True,
         "student_page": False,
         "settings": settings,
