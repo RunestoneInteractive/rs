@@ -124,7 +124,9 @@ async def fetch_source_code(
     :param acid: str, the acid of the source code
     :return: SourceCodeValidator, the SourceCodeValidator object
     """
-    rslogger.debug(f"fetch_source_code: -{acid}-{filename}-{course_name}-{base_course}")
+    rslogger.debug(
+        f"fetch_source_code: -{repr(acid)}-{repr(filename)}-{repr(course_name)}-{repr(base_course)}"
+    )
     if acid is None and filename is None:
         return None
     elif acid is None:
