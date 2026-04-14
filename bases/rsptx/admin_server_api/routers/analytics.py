@@ -1159,7 +1159,7 @@ async def get_assignmentoverview(
         SELECT a.id, a.name, a.duedate, a.points
         FROM assignments a
         JOIN courses c ON c.id = a.course
-        WHERE c.course_name = %(course_name)s
+        WHERE c.course_name = %(course_name)s and a.is_peer = 'F'
         ORDER BY a.duedate DESC NULLS LAST
         """,
         engine,
