@@ -2254,7 +2254,8 @@ Yet another is that there is an internal error.  The internal error message is: 
         $(this.codecoach).css("display", "none");
 
         //get code, run coaches
-        let code = await this.buildProg(false);
+        //let code = await this.buildProg(false);
+        let code = this.coachCode;
         let results = [];
         for (let coach of this.codeCoachList) {
             results.push(coach.check(code));
@@ -2371,6 +2372,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             noUI = false;
         }
         var prog = await this.buildProg(true);
+        this.coachCode = prog;
         this.saveCode = "True";
         $(this.output).text("");
         if (this.unit_results_divid) {
