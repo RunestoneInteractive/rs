@@ -67,7 +67,7 @@ psycopg2-binary = "^2.9.7"
 pydantic-settings = "^2.0.3"
 pyjwt = "^2.0.0"
 numpy = "^2.1.0"
-cryptography = "^3.0.0"
+cryptography = "^46.0.0"
 greenlet = "^3.2.2"
 requests = "^2.0.0"
 
