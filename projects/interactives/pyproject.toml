@@ -44,12 +44,7 @@ include = [
     #../../bases/rsptx/interactives/ Some of the Runestone Components doesn't use webpack; they still need raw JS/CSS available. See ``runestone_static_dirs()``
     { path = "runestone/animation/js/*", format=["sdist", "wheel"]},
     { path = "runestone/codelens/js/*", format=["sdist", "wheel"]},
-    { path = "runestone/webgldemo/js/*", format=["sdist", "wheel"]},
-    { path = "runestone/matrixeq/js/*", format=["sdist", "wheel"]},
     { path = "runestone/accessibility/css/*", format=["sdist", "wheel"]},
-    { path = "runestone/webgldemo/css/*", format=["sdist", "wheel"]},
-    { path = "runestone/matrixeq/css/*", format=["sdist", "wheel"]},
-    { path = "runestone/lp/css/*", format=["sdist", "wheel"]},
     # We need to include the templates used by Sphinx
     { path = "runestone/common/project_template/**/*", format=["sdist", "wheel"]},
 ]

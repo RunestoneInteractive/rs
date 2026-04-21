@@ -40,9 +40,6 @@ import "./runestone/common/js/bookfuncs.js";
 import "./runestone/common/js/user-highlights.js";
 import "./runestone/common/js/pretext.js";
 
-// These belong in dynamic imports for the obvious component; however, these components don't include a ``data-component`` attribute.
-import "./runestone/matrixeq/css/matrixeq.css";
-import "./runestone/webgldemo/css/webglinteractive.css";
 
 // These are only needed for the Runestone book, but not in a library mode (such as pretext). I would prefer to dynamically load them. However, these scripts are so small I haven't bothered to do so.
 import { getSwitch, switchTheme } from "./runestone/common/js/theme.js";
@@ -60,7 +57,6 @@ const module_map = {
     //
     // The keys must match the value of each component's ``data-component`` attribute -- the ``runestone_import`` and ``runestone_auto_import`` functions assume this.
     activecode: () => import("./runestone/activecode/js/acfactory.js"),
-    ble: () => import("./runestone/cellbotics/js/ble.js"),
     // Always import the timed version of a component if available, since the timed components also define the component's factory and include the component as well. Note that ``acfactory`` imports the timed components of ActiveCode, so it follows this pattern.
     clickablearea: () =>
         import("./runestone/clickableArea/js/timedclickable.js"),
@@ -69,24 +65,16 @@ const module_map = {
     dragndrop: () => import("./runestone/dragndrop/js/timeddnd.js"),
     fillintheblank: () => import("./runestone/fitb/js/timedfitb.js"),
     groupsub: () => import("./runestone/groupsub/js/groupsub.js"),
-    khanex: () => import("./runestone/khanex/js/khanex.js"),
-    lp_build: () => import("./runestone/lp/js/lp.js"),
     matching: () => import("./runestone/matching/js/matching.js"),
     multiplechoice: () => import("./runestone/mchoice/js/timedmc.js"),
     hparsons: () => import("./runestone/hparsons/js/hparsons.js"),
     parsons: () => import("./runestone/parsons/js/timedparsons.js"),
     poll: () => import("./runestone/poll/js/poll.js"),
-    quizly: () => import("./runestone/quizly/js/quizly.js"),
-    reveal: () => import("./runestone/reveal/js/reveal.js"),
     selectquestion: () => import("./runestone/selectquestion/js/selectone.js"),
     shortanswer: () =>
         import("./runestone/shortanswer/js/timed_shortanswer.js"),
     showeval: () => import("./runestone/showeval/js/showEval.js"),
-    simple_sensor: () => import("./runestone/cellbotics/js/simple_sensor.js"),
-    spreadsheet: () => import("./runestone/spreadsheet/js/spreadsheet.js"),
-    tabbedStuff: () => import("./runestone/tabbedStuff/js/tabbedstuff.js"),
     timedAssessment: () => import("./runestone/timed/js/timed.js"),
-    wavedrom: () => import("./runestone/wavedrom/js/wavedrom.js"),
     // TODO: since this isn't in a ``data-component``, need to trigger an import of this code manually.
     webwork: () => import("./runestone/webwork/js/webwork.js"),
     youtube: () => import("./runestone/video/js/runestonevideo.js"),

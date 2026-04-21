@@ -1,1 +1,0 @@
-from .quizly import *

@@ -4,30 +4,21 @@
 import json
 
 from .activecode import ActiveCode
-from .animation import Animation
-from .blockly import Blockly
 from .codelens import Codelens
 from .clickableArea import ClickableArea
 from .datafile import DataFile
-from .disqus import DisqusDirective
 from .dragndrop import DragNDrop
 from .fitb import FillInTheBlank
 from .groupsub import GroupSubmission
 from .hparsons import HParsonsDirective
-from .khanex import Khanex
 from .selectquestion import SelectQuestion
 from .mchoice import MChoice, QuestionNumber
-from .meta import Meta
 from .parsons import ParsonsProblem
 from .poll import Poll
-from .quizly import Quizly
-from .reveal import RevealDirective
 from .shortanswer import JournalDirective
 from .showeval import ShowEval
-from .tabbedStuff import TabbedStuffDirective, TabDirective
 from .timed import TimedDirective
 from .video import Youtube, Vimeo, Video
-from .webgldemo import WebglDemo
 
 
 import os
@@ -250,19 +241,14 @@ cmap = {
     "codelens": Codelens,
     "clickablearea": ClickableArea,
     "datafile": DataFile,
-    "disqus": DisqusDirective,
     "dragndrop": DragNDrop,
     "groupsub": GroupSubmission,
     "hparsons": HParsonsDirective,
     "parsonsprob": ParsonsProblem,
     "poll": Poll,
-    "quizly": Quizly,
-    "reveal": RevealDirective,
     "selectquestion": SelectQuestion,
     "shortanswer": JournalDirective,
     "showeval": ShowEval,
-    "tabbed": TabbedStuffDirective,
-    "tab": TabDirective,
     "video": Video,
     "youtube": Youtube,
     "vimeo": Vimeo,
