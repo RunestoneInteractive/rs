@@ -130,8 +130,6 @@ if sys.argv[1:] == ["--publish"]:
             " ".join(["mv", f"dist-{VERSION}.tgz", "../jsdist"]), check=True, shell=True
         )
     with pushd("../author_server"):
-        subprocess.run(["poetry", "update", "runestone"], check=True)
         subprocess.run(["poetry", "update", "pretext"], check=True)
     with pushd("../rsmanage"):
-        subprocess.run(["poetry", "update", "runestone"], check=True)
         subprocess.run(["poetry", "update", "pretext"], check=True)
