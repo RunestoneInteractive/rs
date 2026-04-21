@@ -8,7 +8,9 @@ If you need to build a book using the old RST markup language, you can use versi
 .. code-block:: bash
 
     pip install runestone==7.13.5
-    
+
+
+If you need to fix a bug in the old RST version you can clone the repository and checkout the legacy_support branch.  That branch will be maintained with bug fixes for the RST version of the components, but no new features will be added to that branch.  The master branch will be used for development of the components as they are used in PreTeXt.
 
 Runestone Version 7
 -------------------
