@@ -30,6 +30,8 @@
  */
 
 import RunestoneBase from "./runestonebase.js";
+import { marked } from "marked";
+
 var rb = new RunestoneBase();
 
 //
@@ -776,13 +778,14 @@ function createStudyCluesWidget() {
                 studyCluesConversationId = detail.conversation_id;
             }
 
-            const formattedResponse = (llmResponse || "No response available from StudyClues.").replace(
+            const markdownResponse = (llmResponse || "No response available from StudyClues.").replace(
                 /\[([^\]]+)\]\(([^)]+)\)/g,
                 (match, text, key) => {
                     const url = references[key]?.content_url;
-                    return url ? `<a href="${url}" target="_blank" rel="noopener noreferrer">(${text})</a>` : match;
-                }
+                    return url ? `[${text}](${url})` : match;
+                },
             );
+            const formattedResponse = marked.parse(markdownResponse);
 
             appendStudyCluesMessage(
                 messagesEl,
