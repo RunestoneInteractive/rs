@@ -1,5 +1,15 @@
 Packaging of the Runestone components for publishing educational materials using Sphinx and restructuredText. Check out the `Overview <https://runestone.academy/ns/books/published/overview/overview.html>`_ To see all of the extensions in action.
 
+Runestone Version 8
+-------------------
+Version 8 and beyond just support the components as they are used in PreTeXt.  
+
+If you need to build a book using the old RST markup language, you can use version 7.13.x of the runestone package.  You can install that version using pip like this:
+.. code-block:: bash
+
+    pip install runestone==7.13.5
+    
+
 Runestone Version 7
 -------------------
 
