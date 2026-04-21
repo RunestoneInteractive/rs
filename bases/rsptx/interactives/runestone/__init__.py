@@ -3,24 +3,6 @@
 # *********************************
 import json
 
-from .activecode import ActiveCode
-from .codelens import Codelens
-from .clickableArea import ClickableArea
-from .datafile import DataFile
-from .dragndrop import DragNDrop
-from .fitb import FillInTheBlank
-from .groupsub import GroupSubmission
-from .hparsons import HParsonsDirective
-from .selectquestion import SelectQuestion
-from .mchoice import MChoice, QuestionNumber
-from .parsons import ParsonsProblem
-from .poll import Poll
-from .shortanswer import JournalDirective
-from .showeval import ShowEval
-from .timed import TimedDirective
-from .video import Youtube, Vimeo, Video
-
-
 import os
 import socket
 from importlib.metadata import version
@@ -233,23 +215,4 @@ css_files = [
 
 
 cmap = {
-    "activecode": ActiveCode,
-    "mchoice": MChoice,
-    "fillintheblank": FillInTheBlank,
-    "timed": TimedDirective,
-    "qnum": QuestionNumber,
-    "codelens": Codelens,
-    "clickablearea": ClickableArea,
-    "datafile": DataFile,
-    "dragndrop": DragNDrop,
-    "groupsub": GroupSubmission,
-    "hparsons": HParsonsDirective,
-    "parsonsprob": ParsonsProblem,
-    "poll": Poll,
-    "selectquestion": SelectQuestion,
-    "shortanswer": JournalDirective,
-    "showeval": ShowEval,
-    "video": Video,
-    "youtube": Youtube,
-    "vimeo": Vimeo,
 }

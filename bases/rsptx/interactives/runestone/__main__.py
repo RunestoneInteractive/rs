@@ -5,13 +5,11 @@
 from runestone import cmap
 import sys
 import os
-import six
 import click
 import pathlib
-from paver.easy import sh
 import importlib.metadata
 from runestone.server import get_dburl
-from rsptx.build_tools.core import update_library, populate_static, manifest_data_to_db
+from rsptx.build_tools.core import populate_static, manifest_data_to_db
 from rsptx.cl_utils.core import load_project_dotenv
 
 
@@ -82,59 +80,8 @@ def build(all, wd):
 @click.option("--port", default=8000, help="port for server to listen on")
 @click.option("--listen", default="", help="address for server to listen on")
 def preview(port, listen):
-    _preview(port, listen)
-
-
-def _preview(port, listen):
-    click.echo("Note: this is a minimal static server without templates or a database.")
-    click.echo("For many use cases this is fine.")
-    click.echo(
-        "For the full server, see https://github.com/RunestoneInteractive/rs"
-    )
-    os.chdir(findProjectRoot())
-    sys.path.insert(0, os.getcwd())
-    try:
-        import pavement
-
-        try:
-            if pavement.dynamic_pages == True:
-                click.echo(
-                    click.style(
-                        """Error -- dynamic_pages is True, but this preview server does not support templates.
-                    Please edit pavement.py and set dynamic_pages=False""",
-                        color="red",
-                    ),
-                    err=True,
-                )
-                click.echo("You should update pavement.py and rebuild")
-                return
-        except:
-            click.echo("dynamic_pages is not defined")
-    except:
-        print("Error, you must be in your project root directory")
-        return
-
-    os.chdir(pavement.serving_dir)
-
-    if six.PY2:
-        import SimpleHTTPServer
-        import SocketServer
-
-        Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
-        httpd = SocketServer.TCPServer((listen, port), Handler, bind_and_activate=False)
-    else:
-        import http.server
-        import socketserver
-
-        Handler = http.server.SimpleHTTPRequestHandler
-        httpd = socketserver.TCPServer((listen, port), Handler, bind_and_activate=False)
-
-    print("serving at port", port)
-    httpd.allow_reuse_address = True
-    httpd.server_bind()
-    httpd.server_activate()
-    sys.stderr = open("runestone.log", "a")
-    httpd.serve_forever()
+    click.echo("The runestone command is deprecated, you should convert your book to PreTeXt.")
+    click.echo("if you want to continue with RST, you can install 7.13.x")
 
 
 # configure preview as an alias for serve
@@ -143,8 +90,6 @@ def _preview(port, listen):
 @click.option("--listen", default="", help="address for server to listen on")
 def serve(port, listen):
     click.echo("The serve command is deprecated, use runestone preview")
-    _preview(port, listen)
-
 
 
 
@@ -218,7 +163,6 @@ def main(args=None):
         lets_exit(0)
     cli.add_command(init)
     cli.add_command(build)
-    cli.add_command(serve)
     cli.add_command(doc)
     cli.add_command(update)
     cli()
