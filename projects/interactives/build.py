@@ -90,7 +90,8 @@ if "--fromroot" not in sys.argv:
 
 
 if sys.argv[1:] == ["--publish"]:
-    subprocess.run(["poetry", "publish"], check=True)
+    # Do not send to PYPI, just publish the .tgz to the CDN and update the author_server and rsmanage dependencies.  The .tgz is published to the CDN so that it can be used in the package.json for author_server and rsmanage without needing to publish to PYPI first.
+    #subprocess.run(["poetry", "publish"], check=True)
 
     with pushd("../../bases/rsptx/interactives/runestone"):
         subprocess.run(
