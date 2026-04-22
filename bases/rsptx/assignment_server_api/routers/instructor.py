@@ -1438,11 +1438,54 @@ async def get_add_token_page(
         "student_page": False,
         "total_tokens": total_tokens,
         "token_counts": token_counts,
+        "tokens": tokens,
     }
 
     return templates.TemplateResponse("assignment/instructor/add_token.html", context)
 
 
+
+@router.delete("/delete_token/{token_id}")
+@instructor_role_required()
+@with_course()
+async def delete_single_token(
+    request: Request,
+    token_id: int,
+    course=None,
+):
+    """
+    Delete a single API token for the instructor's course.
+
+    :param token_id: int, the id of the token to delete
+    :param course: Course object from decorator
+    :return: JSON response with success status
+    """
+    try:
+        deleted_count = await delete_api_token(course_id=course.id, token_id=token_id)
+
+        if deleted_count == 0:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "status": "error",
+                    "message": "Token not found",
+                },
+            )
+
+        return make_json_response(
+            status=status.HTTP_200_OK,
+            detail={
+                "status": "success",
+                "message": "Token deleted successfully",
+                "deleted_count": deleted_count,
+            },
+        )
+    except Exception as e:
+        rslogger.error(f"Error deleting API token {token_id} for course {course.id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error deleting token: {str(e)}",
+        )
 @router.delete("/delete_tokens")
 @instructor_role_required()
 @with_course()

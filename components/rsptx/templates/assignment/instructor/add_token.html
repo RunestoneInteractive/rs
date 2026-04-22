@@ -158,6 +158,28 @@ Manage API Tokens
             {% endfor %}
         </ul>
         {% endif %}
+        <table class="table table-sm mt-3">
+            <thead>
+                <tr>
+                    <th>Provider</th>
+                    <th>Token</th>
+                    <th>Last Used</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for token in tokens %}
+                <tr data-token-id="{{ token.id }}">
+                    <td>{{ token.provider }}</td>
+                    <td>****{{ token.token[-4:] if token.token else '****' }}</td>
+                    <td>{{ token.last_used or 'Never' }}</td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteToken({{ token.id }})">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
     {% endif %}
 
@@ -329,6 +351,38 @@ Manage API Tokens
             submitBtn.textContent = 'Save Tokens';
         }
     });
+
+    async function deleteToken(tokenId) {
+        if (!confirm('Are you sure you want to delete this API token?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/assignment/instructor/delete_token/${tokenId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showAlert(data.detail.message, 'success');
+                // Remove the row from the table without reloading
+                const row = document.querySelector(`tr[data-token-id="${tokenId}"]`);
+                if (row) row.remove();
+                // Reload the page after a short delay to ensure counts are updated
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                throw new Error(data.detail || 'Failed to delete token');
+            }
+        } catch (error) {
+            showAlert(error.message, 'danger');
+        }
+    }
 
     async function deleteAllTokens() {
         if (!confirm('Are you sure you want to delete ALL API tokens for this course? This action cannot be undone.')) {
