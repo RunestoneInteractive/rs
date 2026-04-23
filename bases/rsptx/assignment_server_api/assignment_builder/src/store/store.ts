@@ -4,6 +4,7 @@ import { assignmentExerciseApi } from "@store/assignmentExercise/assignmentExerc
 import { datafileApi } from "@store/datafile/datafile.logic.api";
 import { datasetApi } from "@store/dataset/dataset.logic.api";
 import { exercisesApi } from "@store/exercises/exercises.logic.api";
+import { graderApi } from "@store/grader/grader.logic.api";
 import { readingsApi } from "@store/readings/readings.logic.api";
 import { rootReducer, RootState } from "@store/rootReducer";
 
@@ -18,7 +19,8 @@ export const setupStore = (preloadedState?: Partial<RootState>) => {
         readingsApi.middleware,
         exercisesApi.middleware,
         datasetApi.middleware,
-        datafileApi.middleware
+        datafileApi.middleware,
+        graderApi.middleware
       );
     }
   });
