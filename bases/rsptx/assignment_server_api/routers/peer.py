@@ -254,26 +254,34 @@ async def get_peer_extra(
     course=None,
 ):
     """
-    Display extra information for peer instruction that instructors
-    might not want to share with students (e.g., correct answers, insights).
+    Instructor-only view showing live percent-correct for the current question.
+    Meant to be opened on a separate device so students can't see it.
     """
     rslogger.info(f"Peer extra info for assignment {assignment_id}")
-
-    # TODO: Implement extra info display
-    # This will show:
-    # - Correct answers
-    # - Instructor notes
-    # - Common misconceptions
+    templates = Jinja2Templates(directory=template_folder)
 
     assignment = await fetch_one_assignment(assignment_id)
+    questions_result = await fetch_assignment_questions(assignment_id)
+    questions = [q for q, _aq in questions_result]
 
-    return JSONResponse(
-        content={
-            "message": "Extra info functionality to be implemented",
-            "assignment_id": assignment_id,
-            "assignment_name": assignment.name,
-        }
-    )
+    current_idx = assignment.current_index if assignment.current_index is not None else 0
+    if current_idx >= len(questions):
+        current_idx = len(questions) - 1 if questions else 0
+    current_question = questions[current_idx] if questions else None
+
+    if not current_question:
+        return JSONResponse(status_code=404, content={"detail": "No questions found for this assignment"})
+
+    context = {
+        "request": request,
+        "course": course,
+        "user": user,
+        "assignment_id": assignment_id,
+        "current_question": current_question,
+        "is_instructor": True,
+    }
+
+    return templates.TemplateResponse("assignment/instructor/peer_extra.html", context)
 
 
 @router.get("/instructor/review", response_class=HTMLResponse)
