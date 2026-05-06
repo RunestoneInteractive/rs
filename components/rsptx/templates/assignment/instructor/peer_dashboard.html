@@ -47,9 +47,23 @@ Peer Instruction Dashboard - {{ assignment_name }}
                 </div>
 
                 <div id="pi-assignment-navigation">
+                    {% if not is_last %}
                     <button type="submit" id="nextq" class="btn btn-info" name="next" value="Next">
                         Next Question
                     </button>
+                    {% else %}
+                    <div id="asyncBtnArea" style="display:inline-block;">
+                        <button
+                            type="button"
+                            id="toggleAsyncBtn"
+                            class="btn btn-info"
+                            onclick="showAsyncConfirm()"
+                            {% if peer_async_visible %}style="background-color:#a3d4ec; border-color:#a3d4ec; color:#fff; margin-right:4px;"{% else %}style="margin-right:4px;"{% endif %}
+                        >
+                            {% if peer_async_visible %}Undo After-Class Release{% else %}Release After-Class PI{% endif %}
+                        </button>
+                    </div>
+                    {% endif %}
                     <button type="submit" id="restart" class="btn btn-danger" name="next" value="Reset">
                         Start Over
                     </button>
@@ -279,7 +293,41 @@ Peer Instruction Dashboard - {{ assignment_name }}
     var answerCount = 0;
     var done = {{ 'true' if is_last else 'false' }};
     if (done) {
-        document.getElementById("nextq").disabled = true;
+        document.getElementById("nextq") && (document.getElementById("nextq").disabled = true);
+    }
+
+    var asyncReleased = {{ 'true' if peer_async_visible else 'false' }};
+
+    function showAsyncConfirm() {
+        var area = document.getElementById("asyncBtnArea");
+        var msg = asyncReleased
+            ? "Undo the after-class PI release?"
+            : "Release after-class PI questions to students?";
+        area.innerHTML = `
+            <span style="margin-right:6px; font-weight:bold;">${msg}</span>
+            <button type="button" class="btn btn-sm btn-default" onclick="confirmToggleAsync()" style="margin-right:4px;">Yes</button>
+            <button type="button" class="btn btn-sm btn-default" onclick="cancelAsyncConfirm()">Cancel</button>
+        `;
+    }
+
+    function cancelAsyncConfirm() {
+        var area = document.getElementById("asyncBtnArea");
+        var label = asyncReleased ? "Undo After-Class Release" : "Release After-Class PI";
+        var extraStyle = asyncReleased
+            ? 'style="background-color:#a3d4ec; border-color:#a3d4ec; color:#fff; margin-right:4px;"'
+            : 'style="margin-right:4px;"';
+        area.innerHTML = `<button type="button" id="toggleAsyncBtn" class="btn btn-info" onclick="showAsyncConfirm()" ${extraStyle}>${label}</button>`;
+    }
+
+    async function confirmToggleAsync() {
+        var resp = await fetch("/assignment/peer/api/toggle_async", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ assignment_id: {{ assignment_id }} }),
+        });
+        var data = await resp.json();
+        asyncReleased = data.peer_async_visible;
+        cancelAsyncConfirm();
     }
 </script>
 {% endblock %}

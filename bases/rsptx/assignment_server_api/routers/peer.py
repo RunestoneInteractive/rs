@@ -229,6 +229,7 @@ async def get_peer_dashboard(
         "num_questions": num_questions,
         "is_instructor": True,
         "is_last": is_last,
+        "peer_async_visible": bool(assignment.peer_async_visible),
         "lti": is_lti,
         "latex_macros": latex_macros,
         "enable_ab": enable_ab,
@@ -1042,6 +1043,32 @@ async def log_peer_rating(
             retmess = f"Error: {str(e)}"
 
     return JSONResponse(content={"message": retmess})
+
+
+@router.post("/api/toggle_async")
+@instructor_role_required()
+@with_course()
+async def toggle_async(
+    request: Request,
+    assignment_id: int = Body(..., embed=True),
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Toggle peer_async_visible on an assignment. Instructors use this to open/close
+    the after-class async interface for students.
+    """
+    assignment = await fetch_one_assignment(assignment_id)
+    if not assignment:
+        return JSONResponse(status_code=404, content={"ok": False, "error": "assignment not found"})
+    if assignment.course != course.id:
+        return JSONResponse(status_code=403, content={"ok": False, "error": "assignment does not belong to your course"})
+
+    assignment.peer_async_visible = not bool(assignment.peer_async_visible)
+    await update_assignment(assignment, pi_update=True)
+
+    rslogger.info(f"Toggled peer_async_visible for assignment {assignment_id} to {assignment.peer_async_visible}")
+    return JSONResponse(content={"peer_async_visible": assignment.peer_async_visible})
 
 
 @router.post("/api/get_async_explainer")
