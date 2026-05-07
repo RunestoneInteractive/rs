@@ -763,7 +763,7 @@ async function setupPeerGroup() {
         Accept: "application/json",
     });
 
-    let request = new Request("/runestone/admin/course_students", {
+    let request = new Request("/assignment/peer/course_students", {
         method: "GET",
         headers: jsonHeaders,
     });
