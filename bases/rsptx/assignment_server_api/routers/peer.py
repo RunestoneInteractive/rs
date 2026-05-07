@@ -35,6 +35,8 @@ from rsptx.db.crud import (
     count_distinct_student_answers,
     count_peer_messages,
     fetch_last_useinfo_peergroup,
+    fetch_course_students,
+    fetch_all_grades_for_assignment,
 )
 from rsptx.db.models import UseinfoValidation
 from rsptx.auth.session import auth_manager
@@ -296,24 +298,9 @@ async def get_peer_review(
     """
     Review peer instruction results and student interactions.
     """
-    rslogger.info(f"Peer review for assignment {assignment_id}")
-
-    # TODO: Implement review functionality
-    # This will show:
-    # - Overall statistics
-    # - Student participation
-    # - Answer distribution
-    # - Chat transcripts
-
-    assignment = await fetch_one_assignment(assignment_id)
-
-    return JSONResponse(
-        content={
-            "message": "Review functionality to be implemented",
-            "assignment_id": assignment_id,
-            "assignment_name": assignment.name,
-        }
-    )
+    rslogger.info(f"Peer review for assignment {assignment_id} - not yet implemented, redirecting")
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url=f"/assignment/instructor/reviewPeerAssignment?assignment_id={assignment_id}")
 
 
 # Student Routes
@@ -1051,6 +1038,71 @@ async def log_peer_rating(
             retmess = f"Error: {str(e)}"
 
     return JSONResponse(content={"message": retmess})
+
+
+@router.post("/clear_pairs")
+@instructor_role_required()
+@with_course()
+async def clear_pairs(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Clear the partner assignments for the current course from Redis.
+    Called when the instructor switches to face-chat mode.
+    """
+    import os
+    import redis as redis_lib
+
+    r = redis_lib.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
+    r.delete(f"partnerdb_{course.course_name}")
+    rslogger.info(f"Cleared pairs for course {course.course_name}")
+    return JSONResponse(content="success")
+
+
+@router.get("/course_students")
+@instructor_role_required()
+@with_course()
+async def get_course_students(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Return a dict of {username: full_name} for all students in the course.
+    Used by peer.js to populate the group selection panel.
+    """
+    students = await fetch_course_students(course.id)
+    result = {
+        s.username: f"{s.first_name} {s.last_name}".strip()
+        for s in students
+    }
+    return JSONResponse(content=result)
+
+
+@router.post("/send_lti_scores")
+@instructor_role_required()
+@with_course()
+async def send_lti_scores(
+    request: Request,
+    assignment_id: int = Body(..., embed=True),
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Send LTI scores for all students in the assignment.
+    Mirrors web2py peer.send_lti_scores.
+    """
+    from rsptx.lti1p3.core import attempt_lti1p3_score_updates
+
+    rslogger.info(f"Sending LTI scores for assignment {assignment_id}")
+    try:
+        await attempt_lti1p3_score_updates(assignment_id, force=True)
+    except Exception as e:
+        rslogger.error(f"Error sending LTI scores: {e}")
+        return JSONResponse(status_code=500, content={"ok": False, "error": str(e)})
+    return JSONResponse(content="success")
 
 
 @router.post("/api/toggle_async")
