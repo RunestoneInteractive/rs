@@ -18,8 +18,8 @@ interface ActiveCodeExerciseSettingsProps {
 }
 
 const PERSONALIZATION_LEVELS = [
-  { label: "Solution", value: "movable" },
-  { label: "Solution & Block", value: "partial" }
+  { label: "Arrange all blocks", value: "movable" },
+  { label: "Correct blocks locked; arrange incorrect blocks", value: "partial" }
 ];
 
 export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = ({
@@ -96,7 +96,7 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
                 className="w-full"
                 onChange={(e) => handlePersonalizationChange(e.value)}
               />
-              <label htmlFor="parsonspersonalize">Personalization Level</label>
+              <label htmlFor="parsonspersonalize">Personalized blocks to arrange</label>
             </span>
           </div>
 
