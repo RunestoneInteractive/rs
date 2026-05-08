@@ -37,3 +37,4 @@ WARP.md
 CLAUDE.md
 init_runestone.log
 .claude
+justfile
