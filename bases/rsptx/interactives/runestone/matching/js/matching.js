@@ -500,6 +500,11 @@ export class MatchingProblem extends RunestoneBase {
         this.connections.length = 0;
         this.updateConnectionModel();
         if (this.ariaLive) this.ariaLive.textContent = "All connections have been cleared.";
+        this.logBookEvent( {
+            event: "matching_reset",
+            div_id: this.divid,
+            act: "reset all connections",
+        });
     }
 
     attachEvents() {
@@ -556,10 +561,6 @@ export class MatchingProblem extends RunestoneBase {
             });
         });
 
-        const gradeBtn = this.containerDiv.querySelector('.grade-button');
-        const resetBtn = this.containerDiv.querySelector('.reset-button');
-        if (gradeBtn) gradeBtn.addEventListener('click', () => this.gradeConnections());
-        if (resetBtn) resetBtn.addEventListener('click', () => this.resetConnections());
 
         window.addEventListener("resize", () => {
             this.connections.forEach(conn => {
@@ -608,7 +609,13 @@ export class MatchingProblem extends RunestoneBase {
         );
 
         if (this.startBox && endBox) this.createPermanentLine(this.startBox, endBox);
-
+        // 
+        console.log(`connected ${this.startBox.dataset.id ? this.startBox.dataset.id : "null"} to ${endBox.dataset.id ? endBox.dataset.id : "null"}`);
+        this.logBookEvent( {
+            event: "matching_connection",
+            div_id: this.divid,
+            act: `connected ${this.startBox.dataset.id ? this.startBox.dataset.id : "null"} to ${endBox.dataset.id ? endBox.dataset.id : "null"}`,
+        });
         this.startBox = null;
         document.removeEventListener("pointermove", this.updateTempLine);
         document.removeEventListener("pointerup", this.finishConnection);
