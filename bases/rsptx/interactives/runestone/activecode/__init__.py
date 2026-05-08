@@ -1,4 +1,0 @@
-# *********
-# |docname|
-# *********
-from .activecode import *

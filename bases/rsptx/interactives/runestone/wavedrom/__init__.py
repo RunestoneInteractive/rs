@@ -1,1 +1,0 @@
-from .wavedrom import setup

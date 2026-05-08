@@ -49,9 +49,6 @@ CodeChat = "1.9.3"
 cryptography = "^46.0.0"
 standard-imghdr = "^3.13.0"
 
-[tool.poetry.group.dev.dependencies]
-runestone = { path = "../interactives", develop = true }
-
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
