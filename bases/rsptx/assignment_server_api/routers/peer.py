@@ -37,8 +37,11 @@ from rsptx.db.crud import (
     fetch_last_useinfo_peergroup,
     fetch_course_students,
     fetch_all_grades_for_assignment,
+    fetch_api_token,
+    fetch_question,
 )
-from rsptx.db.models import UseinfoValidation
+from rsptx.db.models import UseinfoValidation, Useinfo
+from rsptx.db.async_session import async_session
 from rsptx.auth.session import auth_manager
 import pandas as pd
 import random
@@ -422,49 +425,152 @@ async def get_peer_question(
 
     return templates.TemplateResponse("assignment/student/peer_question.html", context)
 
+async def _has_vote1_async(div_id: str, sid: str) -> bool:
+    from sqlalchemy import select
+    async with async_session() as session:
+        query = (
+            select(Useinfo)
+            .where(
+                (Useinfo.event == "mChoice")
+                & (Useinfo.sid == sid)
+                & (Useinfo.div_id == div_id)
+                & Useinfo.act.like("%vote1")
+            )
+            .order_by(Useinfo.id.desc())
+            .limit(1)
+        )
+        result = await session.execute(query)
+        return result.scalar() is not None
+
+
+async def _has_reflection_async(div_id: str, sid: str) -> bool:
+    from sqlalchemy import select
+    async with async_session() as session:
+        query = (
+            select(Useinfo)
+            .where(
+                (Useinfo.event == "reflection")
+                & (Useinfo.sid == sid)
+                & (Useinfo.div_id == div_id)
+            )
+            .order_by(Useinfo.id.desc())
+            .limit(1)
+        )
+        result = await session.execute(query)
+        return result.scalar() is not None
+
+
+async def _llm_enabled_async(course_id: int) -> bool:
+    token = await fetch_api_token(course_id, "openai")
+    return token is not None and bool(token.token)
+
 
 @router.get("/student/async", response_class=HTMLResponse)
 @with_course()
 async def get_peer_async(
     request: Request,
     assignment_id: int,
+    question_num: int = 1,
     user=Depends(auth_manager),
     course=None,
 ):
-    """
-    Display the asynchronous (after-class) peer instruction interface.
-    Students can review questions and see recorded chat transcripts.
-    """
-    rslogger.info(f"Peer async for assignment {assignment_id}, user {user.username}")
 
-    # TODO: Implement async peer instruction interface
-    # This will include:
-    # - Question review
-    # - Two voting rounds
-    # - Access to recorded chat transcripts
-    # - Explanations from peers
+    import os, random
+
+    rslogger.info(f"Peer async for assignment {assignment_id}, question {question_num}, user {user.username}")
+    templates = Jinja2Templates(directory=template_folder)
 
     assignment = await fetch_one_assignment(assignment_id)
+    if not assignment:
+        return JSONResponse(status_code=404, content={"detail": "Assignment not found"})
 
-    # Check if async is enabled for this assignment
     if not assignment.peer_async_visible:
         return JSONResponse(
             status_code=403,
-            content={
-                "message": "After-class peer instruction is not available for this assignment"
-            },
+            content={"message": "After-class peer instruction is not available for this assignment"},
         )
 
-    # TODO: Use assignment_questions when implementing async interface
-    # assignment_questions = await fetch_assignment_questions(assignment_id)
+    qa_pairs = list(await fetch_assignment_questions(assignment_id))
+    questions = [q for q, _aq in qa_pairs]
+    total_questions = len(questions)
 
-    return JSONResponse(
-        content={
-            "message": "Async peer instruction functionality to be implemented",
-            "assignment_id": assignment_id,
-            "assignment_name": assignment.name,
-        }
+    idx = question_num - 1
+    if not questions or idx >= total_questions:
+        all_done = True
+        current_question = None
+        aq = None
+    else:
+        all_done = False
+        current_question = questions[idx]
+        aq = qa_pairs[idx][1]
+
+    has_vote1 = False
+    has_reflection = False
+    if current_question:
+        has_vote1 = await _has_vote1_async(current_question.name, user.username)
+        has_reflection = await _has_reflection_async(current_question.name, user.username)
+
+    course_attrs = await fetch_all_course_attributes(course.id)
+    latex_macros = course_attrs.get("latex_macros", "")
+
+    async_llm_modes_enabled = course_attrs.get("enable_async_llm_modes", "false") == "true"
+    has_api_token = await _llm_enabled_async(course.id)
+    question_async_mode = (getattr(aq, "async_mode", None) or "standard") if aq else "standard"
+    if async_llm_modes_enabled:
+        question_use_llm = question_async_mode in ("llm", "analogies")
+        llm_enabled = question_use_llm and has_api_token
+    else:
+        llm_enabled = has_api_token
+
+    try:
+        await create_useinfo_entry(UseinfoValidation(
+            course_id=course.course_name,
+            sid=user.username,
+            div_id=current_question.name if current_question else "",
+            event="pi_mode",
+            act=json.dumps({"mode": "llm" if llm_enabled else "legacy"}),
+            timestamp=datetime.datetime.utcnow(),
+        ))
+    except Exception:
+        rslogger.exception("Failed to log pi_mode for peer_async")
+
+    site_packages_path = sys.path[0]
+    peer_js_path = os.path.join(
+        site_packages_path, "rsptx/templates/staticAssets", "js", "peer.js"
     )
+    try:
+        peer_mtime = str(int(os.path.getmtime(peer_js_path)))
+    except (FileNotFoundError, AttributeError):
+        peer_mtime = str(random.randrange(10000))
+
+    wp_assets = get_webpack_static_imports(course)
+
+    context = {
+        "request": request,
+        "course": course,
+        "user": user,
+        "course_id": course.course_name,
+        "assignment_id": assignment_id,
+        "assignment_name": assignment.name,
+        "current_question": current_question,
+        "nextQnum": question_num + 1,
+        "total_questions": total_questions,
+        "is_last_question": question_num >= total_questions,
+        "all_done": all_done,
+        "has_vote1": has_vote1,
+        "has_reflection": has_reflection,
+        "llm_enabled": llm_enabled,
+        "async_mode": question_async_mode,
+        "llm_reply": None,
+        "latex_macros": latex_macros,
+        "peer_mtime": peer_mtime,
+        "is_instructor": False,
+        "student_page": True,
+        "settings": settings,
+        "wp_imports": wp_assets,
+    }
+
+    return templates.TemplateResponse("assignment/student/peer_async.html", context)
 
 
 # API Endpoints
@@ -1132,38 +1238,239 @@ async def toggle_async(
 
 
 @router.post("/api/get_async_explainer")
-@with_course()
 async def get_async_explainer(
     request: Request,
     div_id: str = Body(...),
     course: str = Body(...),
     user=Depends(auth_manager),
-    course_obj=None,
 ):
-    """
-    Get a peer's explanation for async peer instruction mode.
-    Returns a recorded explanation and the peer's answer.
-    """
+
+    from sqlalchemy import select, or_
     rslogger.info(f"Getting async explainer for {div_id} in course {course}")
 
     try:
-        # TODO: Implement the logic to fetch a recorded peer explanation
-        # This should:
-        # 1. Query the database for peer messages from this question
-        # 2. Find a good explanation to show (not from this student)
-        # 3. Return the explanation and the peer's answer
+        async with async_session() as session:
+            msg_query = (
+                select(Useinfo)
+                .where(
+                    Useinfo.event.in_(["sendmessage", "reflection"]),
+                    Useinfo.div_id == div_id,
+                    Useinfo.course_id == course,
+                )
+                .order_by(Useinfo.id)
+            )
+            msg_result = await session.execute(msg_query)
+            messages = msg_result.scalars().all()
 
-        # Placeholder response
-        return JSONResponse(
-            content={
-                "user": "peer_student",
-                "answer": "A",
-                "mess": "This is a placeholder explanation. The actual implementation will fetch recorded peer explanations from the database.",
-                "responses": {"peer1": "A", "peer2": "B"},
-            }
-        )
+            all_msgs = []
+            last_per_sid = {}
+            for row in messages:
+                if row.event == "reflection":
+                    msg = row.act
+                else:
+                    try:
+                        msg = row.act.split(":", 2)[2]
+                    except Exception:
+                        msg = row.act
+                if last_per_sid.get(row.sid) != msg:
+                    all_msgs.append((row.sid, msg))
+                    last_per_sid[row.sid] = msg
+
+        parts = []
+        for sid, msg in all_msgs:
+            parts.append(f"<li><strong>{sid}</strong> said: {msg}</li>")
+
+        if not parts:
+            mess = "Sorry there are no explanations yet."
+        else:
+            mess = "<ul>" + "".join(parts) + "</ul>"
+
+        return JSONResponse(content={"mess": mess, "user": "", "answer": "", "responses": {}})
+
     except Exception as e:
         rslogger.error(f"Error getting async explainer: {e}")
         return JSONResponse(
             status_code=500, content={"detail": f"Failed to get explainer: {str(e)}"}
         )
+
+
+async def _get_mcq_context_async(div_id: str):
+    try:
+        q = await fetch_question(div_id)
+        if not q:
+            rslogger.error(f"_get_mcq_context_async: no question row for {div_id}")
+            return "", "", []
+
+        question = (q.question or "").strip()
+        code = (q.code or "").strip() if hasattr(q, "code") else ""
+        choices = []
+        try:
+            if q.answers:
+                opts = json.loads(q.answers)
+                for i, opt in enumerate(opts):
+                    choices.append(f"{chr(65+i)}. {opt.strip()}")
+        except Exception as e:
+            rslogger.warning(f"Could not parse choices for {div_id}: {e}")
+        return question, code, choices
+    except Exception:
+        rslogger.exception(f"_get_mcq_context_async failed for {div_id}")
+        return "", "", []
+
+
+async def _call_openai_async(messages: list, course_id: int) -> str:
+    import os, aiohttp
+    token_row = await fetch_api_token(course_id, "openai")
+    if not token_row or not token_row.token:
+        raise Exception("missing api key")
+
+    api_key = token_row.token
+    model = os.environ.get("PI_OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
+    url = "https://api.openai.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.4,
+        "max_tokens": 300,
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+    rslogger.warning(f"PEER LLM CALL | provider=openai-course-token | model={model}")
+    return data["choices"][0]["message"]["content"].strip()
+
+
+@router.post("/api/get_async_llm_reflection")
+async def get_async_llm_reflection(
+    request: Request,
+    user=Depends(auth_manager),
+):
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(content={"ok": False, "error": "invalid json"})
+
+    div_id = (data.get("div_id") or "").strip()
+    selected = (data.get("selected_answer") or "").strip()
+    messages = data.get("messages")
+
+    if not div_id:
+        return JSONResponse(content={"ok": False, "error": "missing div_id"})
+
+    try:
+        user_msgs = [m for m in (messages or []) if m.get("role") == "user"]
+        for idx, m in enumerate(user_msgs):
+            content = (m.get("content") or "").strip()
+            if not content:
+                continue
+            if idx == 0:
+                await create_useinfo_entry(UseinfoValidation(
+                    course_id=user.course_name,
+                    sid=user.username,
+                    div_id=div_id,
+                    event="reflection",
+                    act=content,
+                    timestamp=datetime.datetime.utcnow(),
+                ))
+            else:
+                await create_useinfo_entry(UseinfoValidation(
+                    course_id=user.course_name,
+                    sid=user.username,
+                    div_id=div_id,
+                    event="sendmessage",
+                    act=f"to:llm:{content}",
+                    timestamp=datetime.datetime.utcnow(),
+                ))
+    except Exception:
+        rslogger.exception("Failed to log LLM user message")
+
+    question, code, choices = await _get_mcq_context_async(div_id)
+
+    sys_content = (
+        "only speak in lower case.\n"
+        "you are a student talking to another student during peer instruction.\n"
+        "you are both looking at the same multiple choice question with code and answers.\n"
+        "you remember the question and choices.\n"
+        "most messages should be short (1 to 3 sentences often very short).\n"
+        "use casual informal language and common typos.\n"
+        "never use commas.\n"
+        "never use gendered language.\n"
+        "do not use new lines.\n"
+        "do not sound like a teacher.\n"
+        "do not explain step by step.\n"
+        "never say something is right or wrong.\n"
+        "do not pretend to have picked an answer yourself.\n"
+        "never mention a choice letter as the correct answer.\n"
+        "if the question includes code never clearly describe the final result or fully state what it prints.\n"
+        "if the question does not include code do not make up or reference code that is not there.\n"
+        "only refer to what is actually in the question.\n"
+        "be aware of common misconceptions but do not introduce them yourself.\n"
+        "if there is code refer to it loosely like 'that line' or 'the loop' or 'the print'.\n"
+        "often hedge with uncertainty.\n"
+        "ask the other student to explain why they picked their answer and how they reasoned through it.\n"
+        "ask follow up questions about their reasoning like 'what makes you think that' or 'how did you trace through it'.\n"
+        "do not push them toward a different answer or imply their answer is wrong.\n"
+        "never reveal or hint at which answer is correct or incorrect.\n"
+        "never say things like 'the feedback says' or 'according to the answer' or reference any grading or correctness information.\n"
+        "do not make up information that is not in the question.\n"
+        "if you are unsure about something say so honestly instead of guessing.\n"
+        "if the other student clearly sounds confident or repeats the same answer twice tell them to vote again or submit it.\n"
+        "do not continue reasoning after telling them to vote again.\n"
+        "focus on getting them to think through the problem not on changing their mind.\n\n"
+    )
+
+    if question:
+        sys_content += f"question:\n{question}\n\n"
+    if code:
+        sys_content += f"code:\n{code}\n\n"
+    if choices:
+        sys_content += "answer choices:\n" + "\n".join(choices) + "\n\n"
+    if selected:
+        sys_content += f"the other student chose: {selected}\n\n"
+
+    system_msg = {"role": "system", "content": sys_content}
+
+    if not messages:
+        reflection = (data.get("reflection") or "").strip()
+        if not reflection:
+            return JSONResponse(content={"ok": False, "error": "missing reflection"})
+        messages = [
+            system_msg,
+            {"role": "user", "content": f"i chose answer {selected}. my explanation was:\n\n{reflection}"},
+        ]
+    else:
+        if not isinstance(messages, list):
+            return JSONResponse(content={"ok": False, "error": "messages must be a list"})
+        if len(messages) == 0 or messages[0].get("role") != "system":
+            messages = [system_msg] + messages
+        else:
+            messages[0] = system_msg
+
+    try:
+        from rsptx.db.crud import fetch_course
+        course = await fetch_course(user.course_name)
+        reply = await _call_openai_async(messages, course.id)
+    except Exception as e:
+        rslogger.exception("LLM reflection failed")
+        return JSONResponse(content={"ok": False, "error": str(e)})
+
+    try:
+        await create_useinfo_entry(UseinfoValidation(
+            course_id=user.course_name,
+            sid=user.username,
+            div_id=div_id,
+            event="llm_peer_sendmessage",
+            act=f"to: student:{reply}",
+            timestamp=datetime.datetime.utcnow(),
+        ))
+    except Exception:
+        rslogger.exception("Failed to log LLM reply")
+
+    if not reply:
+        return JSONResponse(content={"ok": False, "error": "llm returned empty reply (missing api key?)"})
+
+    return JSONResponse(content={"ok": True, "reply": reply})
