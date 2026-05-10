@@ -1,10 +1,15 @@
-<footer class="footer">
-    <div class="container">
-        <small
-            ><span class="text-muted"
-                >©
-                <a href="https://Runestone.Academy">Runestone Academy</a></span
-            ></small
-        >
+<footer style="background:#f8f8f8; border-top:1px solid #e0e0e0; padding:10px 20px; font-size:13px; color:#555; margin-top:0;">
+    <div style="max-width:1170px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+        <span>
+            &copy; Copyright <span id="footer-year"></span> Runestone Academy Ltd
+            &nbsp;&bull;&nbsp;
+            <a href="/runestone/default/privacy" style="color:#555;">Privacy Policy</a>
+            &nbsp;&bull;&nbsp;
+            <a href="/runestone/default/tos" style="color:#555;">Terms of Service</a>
+            {% if user %}
+            &nbsp; username: <strong>{{ user.username }}</strong>
+            {% endif %}
+        </span>
     </div>
+    <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
 </footer>
