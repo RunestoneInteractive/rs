@@ -475,7 +475,8 @@ async def get_peer_async(
     course=None,
 ):
 
-    import os, random
+    import os
+    import random
 
     rslogger.info(f"Peer async for assignment {assignment_id}, question {question_num}, user {user.username}")
     templates = Jinja2Templates(directory=template_folder)
@@ -1318,7 +1319,9 @@ async def _get_mcq_context_async(div_id: str):
 
 
 async def _call_openai_async(messages: list, course_id: int) -> str:
-    import os, aiohttp
+    import os
+
+    import aiohttp
     token_row = await fetch_api_token(course_id, "openai")
     if not token_row or not token_row.token:
         raise Exception("missing api key")
