@@ -289,8 +289,13 @@ async def parsons_scaffolding(request: Request, course: Optional[str]):
                 + "example_solution"
             )
         else:
-            from .personalized_parsons.get_personalized_solution import get_example_solution
-            from .personalized_parsons.generate_parsons_blocks import generate_Parsons_block
+            from .personalized_parsons.get_personalized_solution import (
+                get_example_solution,
+            )
+            from .personalized_parsons.generate_parsons_blocks import (
+                generate_Parsons_block,
+            )
+
             example_code = get_example_solution(
                 api_token, language, problem_description, internal_test_case
             )
@@ -298,12 +303,19 @@ async def parsons_scaffolding(request: Request, course: Optional[str]):
                 return (
                     "emptyHelpCode"
                     + "||split||emptyHelpParsons"
-                    + "||split||" + personalization_level
+                    + "||split||"
+                    + personalization_level
                     + "||split||example_solution"
                 )
             example_block = generate_Parsons_block(
-                "Solution", language, "Full", problem_description,
-                example_code, [], [], {}
+                "Solution",
+                language,
+                "Full",
+                problem_description,
+                example_code,
+                [],
+                [],
+                {},
             )
             example_block = re.sub(r"<(?=\S)", "< ", example_block)
             parsons_html = f"""
