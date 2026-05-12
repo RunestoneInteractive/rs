@@ -75,7 +75,7 @@ Instructors adopt Runestone and institutions support it, but students are who we
 
 Open by Default
 ---------------
-Runestone is free and open source. Anyone can run it, modify it, and extend it. Our hosted platform, Runestone Academy, exists to make adoption easy—not to create dependence.
+Runestone is free and open source. Anyone can run it, modify it, and extend it. Our hosted platform, Runestone Academy, exists to make adoption easy for instructors who cannot or do not want to run their own server. 
 
 Student Privacy is Non-Negotiable
 ---------------------------------
