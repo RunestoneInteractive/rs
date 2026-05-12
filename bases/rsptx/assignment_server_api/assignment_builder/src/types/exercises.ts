@@ -110,6 +110,7 @@ export type QuestionJSON = Partial<{
   enableCodeTailor: boolean;
   parsonspersonalize: "movable" | "partial" | "";
   parsonsexample: string;
+  parsonsPersonalized: boolean;
   enableCodelens: boolean;
   iframeSrc: string;
   // Parsons problem options

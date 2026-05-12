@@ -9,6 +9,7 @@ export interface CodeTailorOptions {
   enableCodeTailor?: boolean;
   parsonspersonalize?: "movable" | "partial" | "";
   parsonsexample?: string;
+  parsonsPersonalized?: boolean;
   enableCodelens?: boolean;
 }
 
@@ -39,6 +40,9 @@ export const generateActiveCodePreview = (
     // If parsonsexample is provided, use it; otherwise default to LLM-example
     const parsonsExampleValue = codeTailorOptions.parsonsexample?.trim() || "LLM-example";
     codeTailorAttrs += ` data-parsonsexample="${parsonsExampleValue}"`;
+    if (codeTailorOptions.parsonsPersonalized === false) {
+      codeTailorAttrs += ` data-parsons-personalized="false"`;
+    }
   }
 
   // Codelens attribute - defaults to true

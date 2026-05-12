@@ -17,6 +17,7 @@ interface ActiveCodePreviewProps {
   enableCodeTailor?: boolean;
   parsonspersonalize?: "movable" | "partial" | "";
   parsonsexample?: string;
+  parsonsPersonalized?: boolean;
   enableCodelens?: boolean;
 }
 
@@ -32,6 +33,7 @@ export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
   enableCodeTailor,
   parsonspersonalize,
   parsonsexample,
+  parsonsPersonalized,
   enableCodelens
 }) => {
   // Fetch datafiles list to get filenames for selected acids
@@ -64,6 +66,7 @@ export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
             enableCodeTailor,
             parsonspersonalize,
             parsonsexample,
+            parsonsPersonalized,
             enableCodelens
           }
         )}
