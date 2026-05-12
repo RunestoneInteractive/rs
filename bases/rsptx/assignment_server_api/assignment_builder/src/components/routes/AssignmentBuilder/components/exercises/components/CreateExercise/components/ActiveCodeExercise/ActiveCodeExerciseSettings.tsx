@@ -32,7 +32,8 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
       // Reset personalization level when disabling
       parsonspersonalize: enabled ? "movable" : "",
       // Reset parsons example when disabling
-      parsonsexample: enabled ? formData.parsonsexample : ""
+      parsonsexample: enabled ? formData.parsonsexample : "",
+      parsonsPersonalized: enabled ? (formData.parsonsPersonalized ?? true) : true
     });
   };
 
@@ -111,6 +112,25 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
               />
               <label htmlFor="parsonsexample">Backup Example Solution</label>
             </span>
+          </div>
+
+          <div className={styles.formField}>
+            <div className="flex align-items-center gap-2">
+              <InputSwitch
+                id="parsonsPersonalized"
+                checked={formData.parsonsPersonalized ?? true}
+                onChange={(e) => onChange({ parsonsPersonalized: e.value })}
+              />
+              <label htmlFor="parsonsPersonalized" className="font-medium">
+                Personalize to student's code (CodeTailor)
+              </label>
+              <i
+                className="pi pi-info-circle parsons-personalized-icon"
+                data-pr-tooltip="When off, 'Get Help' shows the example Parsons puzzle without adapting to the student's code."
+                data-pr-position="right"
+              />
+              <Tooltip target=".parsons-personalized-icon" />
+            </div>
           </div>
         </div>
       )}
