@@ -122,7 +122,6 @@ pytest = "^8.0.0"
 pyvirtualdisplay = "^3.0.0"
 pywin32 = { version = ">= 301", markers = "sys.platform == 'win32'" }
 selenium = "^3.0.0"
-runestone = { path = "./projects/interactives", develop = true }
 rsmanage = { path = "./projects/rsmanage", develop = true }
 json2xml = "^3.21.0"
 pytest-asyncio = "^0.24.0"
