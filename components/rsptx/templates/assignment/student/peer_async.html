@@ -7,6 +7,17 @@
 <style>
     .hidden-content { display: none; }
     body.pi-hide-feedback .oneq .alert-danger { display: none !important; }
+    .oneq .ptx-runestone-container > div > .alert { display: none !important; }
+    .oneq [id$="_feedback"] { display: none !important; }
+    .oneq .runestone.isCorrect::before,
+    .oneq .runestone.isCorrect::after,
+    .oneq .runestone.isInCorrect::before,
+    .oneq .runestone.isInCorrect::after { display: none !important; }
+    .oneq .runestone.isCorrect,
+    .oneq .runestone.isInCorrect { outline: none !important; border-style: solid !important; }
+    .oneq ul.form-group li { outline: none !important; border: none !important; }
+    .oneq li label, .oneq li { outline: none !important; }
+    .oneq * { outline: none !important; }
     body.pi-async-loading .oneq { opacity: 0; }
     .navbar { position: fixed !important; top: 0 !important; width: 100% !important; z-index: 1030 !important; margin-left: 0 !important; margin-right: 0 !important; }
     h2 { font-size: 1.8em !important; margin-top: 4px !important; margin-bottom: 4px !important; }
@@ -61,7 +72,9 @@
       border-top-color:#333; pointer-events:none; z-index:999;
     }
 
-    .pi-panel { border:1px solid var(--pi-line); border-radius:6px; background:#fff; overflow:hidden; }
+    .pi-panel { border:1px solid var(--pi-line); border-radius:6px; background:#fff; overflow:visible; }
+    .pi-panel > :first-child { border-radius:6px 6px 0 0; }
+    .pi-panel > :last-child { border-radius:0 0 6px 6px; }
 
     .pi-panel-head {
       display:flex; align-items:center; justify-content:space-between;
@@ -176,6 +189,25 @@
     }
     .pi-response-card-text { font-size:14px; color:var(--pi-ink); line-height:1.5; }
     .pi-no-responses { font-size:14px; color:var(--pi-ink3); font-style:italic; }
+
+    .theme-picker{ padding:0 0 10px 0; }
+    .theme-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; gap:10px; }
+    .theme-label-text{ font-size:13px; font-weight:600; color:var(--pi-ink2); }
+    .theme-hint{ font-size:12px; color:var(--pi-ink3); }
+    .theme-select-wrap{ position:relative; }
+    .theme-trigger{ width:100%; font:inherit; font-size:14px; background:#fff; border:1px solid var(--pi-line2); border-radius:5px; padding:9px 12px; cursor:pointer; display:flex; align-items:center; gap:10px; text-align:left; color:var(--pi-ink); transition:border-color .12s, box-shadow .12s; outline:none; }
+    .theme-trigger:hover{ border-color:var(--pi-blue); }
+    .theme-trigger[aria-expanded="true"]{ border-color:var(--pi-blue); box-shadow:0 0 0 3px rgba(47,127,209,.12); }
+    .theme-trigger.placeholder .tt-label{ color:var(--pi-ink3); }
+    .tt-label{ flex:1; font-size:14px; }
+    .tt-caret{ color:var(--pi-ink3); font-size:12px; }
+    .theme-menu{ position:absolute; left:0; right:0; top:calc(100% + 4px); background:#fff; border:1px solid var(--pi-line); border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.12), 0 2px 6px rgba(15,23,42,.05); max-height:280px; overflow-y:auto; padding:4px; z-index:20; }
+    .theme-menu::-webkit-scrollbar{ width:6px; }
+    .theme-menu::-webkit-scrollbar-thumb{ background:#d1d5db; border-radius:3px; }
+    .tm-opt{ width:100%; font:inherit; font-size:13.5px; background:transparent; border:0; color:var(--pi-ink); padding:7px 10px; cursor:pointer; display:flex; align-items:center; gap:10px; text-align:left; border-radius:4px; }
+    .tm-opt:hover{ background:var(--pi-blue-soft); color:var(--pi-blue-deep); }
+    .tm-opt.selected{ background:var(--pi-blue-soft); color:var(--pi-blue-deep); font-weight:500; }
+    .tm-opt.selected::after{ content:"\2713"; margin-left:auto; color:var(--pi-blue); font-weight:700; }
     #readyVote2Btn {
       background:var(--pi-blue); color:#fff;
       border:none; border-radius:4px;
@@ -204,6 +236,9 @@
   window.DISABLE_LLMTEST = true;
   window.PI_LLM_MODE = {{ 'true' if llm_enabled else 'false' }};
   window.PI_ASYNC_MODE = "{{ async_mode }}";
+  window.PI_THEMES = {{ pi_themes_json|safe }};
+  window._selectedTheme = null;
+  window._analogyMapping = "";
 
   window.eBookConfig = window.eBookConfig || {};
   eBookConfig.course = "{{ course_id }}";
@@ -284,6 +319,21 @@
           <div class="pi-pane-lock" id="justificationOverlay">
             <div class="pi-pane-lock-title">Answer the question first</div>
             <div class="pi-pane-lock-sub">Submit your first vote to write your justification.</div>
+          </div>
+          <div id="themePickerRow" style="display:none;">
+            <div class="theme-picker">
+              <div class="theme-head">
+                <span class="theme-label-text">Theme</span>
+                <span class="theme-hint">The LLM will frame examples around this.</span>
+              </div>
+              <div class="theme-select-wrap" id="themeSelectWrap">
+                <button class="theme-trigger placeholder" id="themeTrigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="tt-label" id="ttLabel">Choose a theme…</span>
+                  <span class="tt-caret">▾</span>
+                </button>
+                <div class="theme-menu" id="themeMenuList" role="listbox" hidden></div>
+              </div>
+            </div>
           </div>
           <p class="pi-reasoning-prompt">
             Please explain why you chose <strong><span id="current_answer_prompt">—</span></strong>.
@@ -450,7 +500,17 @@
     const btn = document.getElementById("submitReflection");
     if (overlay) overlay.style.display = enabled ? "none" : "flex";
     if (ta) ta.disabled = !enabled;
-    if (btn) btn.disabled = !enabled;
+    if (enabled) {
+      if (window.PI_ASYNC_MODE === "analogies") {
+        const row = document.getElementById("themePickerRow");
+        if (row) row.style.display = "block";
+        if (btn) btn.disabled = !window._selectedTheme || (ta ? ta.value.trim().length === 0 : false);
+      } else {
+        if (btn) btn.disabled = ta ? ta.value.trim().length === 0 : true;
+      }
+    } else {
+      if (btn) btn.disabled = true;
+    }
   }
 
   function startFeedbackGuard() {
@@ -612,7 +672,12 @@ function collapseJustification(text) {
   if (!btn || !ta) return;
 
   ta.addEventListener("input", function () {
-    btn.disabled = ta.value.trim().length === 0;
+    const hasText = ta.value.trim().length > 0;
+    if (window.PI_ASYNC_MODE === "analogies") {
+      btn.disabled = !hasText || !window._selectedTheme;
+    } else {
+      btn.disabled = !hasText;
+    }
   });
 
   btn.addEventListener("click", async function () {
@@ -625,6 +690,12 @@ function collapseJustification(text) {
     const reflection = (ta.value || "").trim();
     if (!reflection) {
       alert("Please write a short justification first.");
+      return;
+    }
+
+    if (window.PI_ASYNC_MODE === "analogies" && !window._selectedTheme) {
+      const trigger = document.getElementById("themeTrigger");
+      if (trigger) trigger.classList.add("invalid");
       return;
     }
 
@@ -669,6 +740,8 @@ function collapseJustification(text) {
 
     const chat = document.getElementById("llmChat");
     lockVote1AndReflection();
+    const themeTrigEl = document.getElementById("themeTrigger");
+    if (themeTrigEl) { themeTrigEl.disabled = true; themeTrigEl.style.pointerEvents = "none"; themeTrigEl.style.opacity = "0.6"; }
     collapseJustification(reflection);
 
     const disclaimer = document.getElementById("llmDisclaimer");
@@ -748,7 +821,9 @@ function collapseJustification(text) {
           body: JSON.stringify({
             div_id: currentQuestion,
             selected_answer: selected,
-            messages: window._llmMessages
+            messages: window._llmMessages,
+            theme_id: window._selectedTheme || "",
+            analogy_mapping: window._analogyMapping || ""
           })
         });
       } catch (e) {
@@ -763,6 +838,10 @@ function collapseJustification(text) {
       if (!data.ok) {
         await showStandardDiscussion(chat, true);
         return;
+      }
+
+      if (data.analogy_mapping) {
+        window._analogyMapping = data.analogy_mapping;
       }
 
       appendMsg("assistant", data.reply);
@@ -832,7 +911,9 @@ function enableChat(reflection, selected) {
         body: JSON.stringify({
           div_id: currentQuestion,
           selected_answer: selected,
-          messages: window._llmMessages
+          messages: window._llmMessages,
+          theme_id: window._selectedTheme || "",
+          analogy_mapping: window._analogyMapping || ""
         })
       });
     } catch (e) {
@@ -1092,6 +1173,52 @@ function enableChat(reflection, selected) {
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll('.pi-ask-btn').forEach(btn => btn.remove());
+
+    const themeMenuList = document.getElementById("themeMenuList");
+    const themeTriggerBtn = document.getElementById("themeTrigger");
+    const ttLabelEl = document.getElementById("ttLabel");
+
+    if (themeMenuList && themeTriggerBtn && window.PI_THEMES) {
+      function openThemeMenu() {
+        themeMenuList.hidden = false;
+        themeTriggerBtn.setAttribute("aria-expanded", "true");
+      }
+      function closeThemeMenu() {
+        themeMenuList.hidden = true;
+        themeTriggerBtn.setAttribute("aria-expanded", "false");
+      }
+
+      window.PI_THEMES.forEach(function(t) {
+        const btn = document.createElement("button");
+        btn.className = "tm-opt";
+        btn.type = "button";
+        btn.setAttribute("role", "option");
+        btn.setAttribute("data-theme-id", t.id);
+        btn.textContent = t.label;
+        btn.addEventListener("click", function() {
+          document.querySelectorAll(".tm-opt").forEach(o => o.classList.remove("selected"));
+          btn.classList.add("selected");
+          window._selectedTheme = t.id;
+          ttLabelEl.textContent = t.label;
+          themeTriggerBtn.classList.remove("placeholder", "invalid");
+          closeThemeMenu();
+          const submitBtn = document.getElementById("submitReflection");
+          if (submitBtn && window.PI_ASYNC_MODE === "analogies") {
+            const ta = document.getElementById("messageText");
+            submitBtn.disabled = ta ? ta.value.trim().length === 0 : false;
+          }
+        });
+        themeMenuList.appendChild(btn);
+      });
+
+      themeTriggerBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        if (themeMenuList.hidden) openThemeMenu(); else closeThemeMenu();
+      });
+      document.addEventListener("click", function(e) {
+        if (!themeMenuList.contains(e.target) && e.target !== themeTriggerBtn) closeThemeMenu();
+      });
+    }
   });
 </script>
 {% endblock %}
