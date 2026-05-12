@@ -36,7 +36,6 @@ from rsptx.db.crud import (
     count_peer_messages,
     fetch_last_useinfo_peergroup,
     fetch_course_students,
-    fetch_all_grades_for_assignment,
     fetch_api_token,
     fetch_question,
 )
@@ -1275,7 +1274,7 @@ async def get_async_explainer(
     user=Depends(auth_manager),
 ):
 
-    from sqlalchemy import select, or_
+    from sqlalchemy import select
 
     rslogger.info(f"Getting async explainer for {div_id} in course {course}")
 
