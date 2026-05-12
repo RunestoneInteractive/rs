@@ -269,13 +269,18 @@ async def get_peer_extra(
     questions_result = await fetch_assignment_questions(assignment_id)
     questions = [q for q, _aq in questions_result]
 
-    current_idx = assignment.current_index if assignment.current_index is not None else 0
+    current_idx = (
+        assignment.current_index if assignment.current_index is not None else 0
+    )
     if current_idx >= len(questions):
         current_idx = len(questions) - 1 if questions else 0
     current_question = questions[current_idx] if questions else None
 
     if not current_question:
-        return JSONResponse(status_code=404, content={"detail": "No questions found for this assignment"})
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "No questions found for this assignment"},
+        )
 
     context = {
         "request": request,
@@ -301,9 +306,14 @@ async def get_peer_review(
     """
     Review peer instruction results and student interactions.
     """
-    rslogger.info(f"Peer review for assignment {assignment_id} - not yet implemented, redirecting")
+    rslogger.info(
+        f"Peer review for assignment {assignment_id} - not yet implemented, redirecting"
+    )
     from fastapi.responses import RedirectResponse
-    return RedirectResponse(url=f"/assignment/instructor/reviewPeerAssignment?assignment_id={assignment_id}")
+
+    return RedirectResponse(
+        url=f"/assignment/instructor/reviewPeerAssignment?assignment_id={assignment_id}"
+    )
 
 
 # Student Routes
@@ -425,8 +435,10 @@ async def get_peer_question(
 
     return templates.TemplateResponse("assignment/student/peer_question.html", context)
 
+
 async def _has_vote1_async(div_id: str, sid: str) -> bool:
     from sqlalchemy import select
+
     async with async_session() as session:
         query = (
             select(Useinfo)
@@ -445,6 +457,7 @@ async def _has_vote1_async(div_id: str, sid: str) -> bool:
 
 async def _has_reflection_async(div_id: str, sid: str) -> bool:
     from sqlalchemy import select
+
     async with async_session() as session:
         query = (
             select(Useinfo)
@@ -478,7 +491,9 @@ async def get_peer_async(
     import os
     import random
 
-    rslogger.info(f"Peer async for assignment {assignment_id}, question {question_num}, user {user.username}")
+    rslogger.info(
+        f"Peer async for assignment {assignment_id}, question {question_num}, user {user.username}"
+    )
     templates = Jinja2Templates(directory=template_folder)
 
     assignment = await fetch_one_assignment(assignment_id)
@@ -488,7 +503,9 @@ async def get_peer_async(
     if not assignment.peer_async_visible:
         return JSONResponse(
             status_code=403,
-            content={"message": "After-class peer instruction is not available for this assignment"},
+            content={
+                "message": "After-class peer instruction is not available for this assignment"
+            },
         )
 
     qa_pairs = list(await fetch_assignment_questions(assignment_id))
@@ -509,14 +526,20 @@ async def get_peer_async(
     has_reflection = False
     if current_question:
         has_vote1 = await _has_vote1_async(current_question.name, user.username)
-        has_reflection = await _has_reflection_async(current_question.name, user.username)
+        has_reflection = await _has_reflection_async(
+            current_question.name, user.username
+        )
 
     course_attrs = await fetch_all_course_attributes(course.id)
     latex_macros = course_attrs.get("latex_macros", "")
 
-    async_llm_modes_enabled = course_attrs.get("enable_async_llm_modes", "false") == "true"
+    async_llm_modes_enabled = (
+        course_attrs.get("enable_async_llm_modes", "false") == "true"
+    )
     has_api_token = await _llm_enabled_async(course.id)
-    question_async_mode = (getattr(aq, "async_mode", None) or "standard") if aq else "standard"
+    question_async_mode = (
+        (getattr(aq, "async_mode", None) or "standard") if aq else "standard"
+    )
     if async_llm_modes_enabled:
         question_use_llm = question_async_mode in ("llm", "analogies")
         llm_enabled = question_use_llm and has_api_token
@@ -524,14 +547,16 @@ async def get_peer_async(
         llm_enabled = has_api_token
 
     try:
-        await create_useinfo_entry(UseinfoValidation(
-            course_id=course.course_name,
-            sid=user.username,
-            div_id=current_question.name if current_question else "",
-            event="pi_mode",
-            act=json.dumps({"mode": "llm" if llm_enabled else "legacy"}),
-            timestamp=datetime.datetime.utcnow(),
-        ))
+        await create_useinfo_entry(
+            UseinfoValidation(
+                course_id=course.course_name,
+                sid=user.username,
+                div_id=current_question.name if current_question else "",
+                event="pi_mode",
+                act=json.dumps({"mode": "llm" if llm_enabled else "legacy"}),
+                timestamp=datetime.datetime.utcnow(),
+            )
+        )
     except Exception:
         rslogger.exception("Failed to log pi_mode for peer_async")
 
@@ -1181,10 +1206,7 @@ async def get_course_students(
     Used by peer.js to populate the group selection panel.
     """
     students = await fetch_course_students(course.id)
-    result = {
-        s.username: f"{s.first_name} {s.last_name}".strip()
-        for s in students
-    }
+    result = {s.username: f"{s.first_name} {s.last_name}".strip() for s in students}
     return JSONResponse(content=result)
 
 
@@ -1227,14 +1249,21 @@ async def toggle_async(
     """
     assignment = await fetch_one_assignment(assignment_id)
     if not assignment:
-        return JSONResponse(status_code=404, content={"ok": False, "error": "assignment not found"})
+        return JSONResponse(
+            status_code=404, content={"ok": False, "error": "assignment not found"}
+        )
     if assignment.course != course.id:
-        return JSONResponse(status_code=403, content={"ok": False, "error": "assignment does not belong to your course"})
+        return JSONResponse(
+            status_code=403,
+            content={"ok": False, "error": "assignment does not belong to your course"},
+        )
 
     assignment.peer_async_visible = not bool(assignment.peer_async_visible)
     await update_assignment(assignment, pi_update=True)
 
-    rslogger.info(f"Toggled peer_async_visible for assignment {assignment_id} to {assignment.peer_async_visible}")
+    rslogger.info(
+        f"Toggled peer_async_visible for assignment {assignment_id} to {assignment.peer_async_visible}"
+    )
     return JSONResponse(content={"peer_async_visible": assignment.peer_async_visible})
 
 
@@ -1247,6 +1276,7 @@ async def get_async_explainer(
 ):
 
     from sqlalchemy import select, or_
+
     rslogger.info(f"Getting async explainer for {div_id} in course {course}")
 
     try:
@@ -1286,7 +1316,9 @@ async def get_async_explainer(
         else:
             mess = "<ul>" + "".join(parts) + "</ul>"
 
-        return JSONResponse(content={"mess": mess, "user": "", "answer": "", "responses": {}})
+        return JSONResponse(
+            content={"mess": mess, "user": "", "answer": "", "responses": {}}
+        )
 
     except Exception as e:
         rslogger.error(f"Error getting async explainer: {e}")
@@ -1322,6 +1354,7 @@ async def _call_openai_async(messages: list, course_id: int) -> str:
     import os
 
     import aiohttp
+
     token_row = await fetch_api_token(course_id, "openai")
     if not token_row or not token_row.token:
         raise Exception("missing api key")
@@ -1340,7 +1373,9 @@ async def _call_openai_async(messages: list, course_id: int) -> str:
         "max_tokens": 300,
     }
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+        async with session.post(
+            url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)
+        ) as resp:
             resp.raise_for_status()
             data = await resp.json()
     rslogger.warning(f"PEER LLM CALL | provider=openai-course-token | model={model}")
@@ -1371,23 +1406,27 @@ async def get_async_llm_reflection(
             if not content:
                 continue
             if idx == 0:
-                await create_useinfo_entry(UseinfoValidation(
-                    course_id=user.course_name,
-                    sid=user.username,
-                    div_id=div_id,
-                    event="reflection",
-                    act=content,
-                    timestamp=datetime.datetime.utcnow(),
-                ))
+                await create_useinfo_entry(
+                    UseinfoValidation(
+                        course_id=user.course_name,
+                        sid=user.username,
+                        div_id=div_id,
+                        event="reflection",
+                        act=content,
+                        timestamp=datetime.datetime.utcnow(),
+                    )
+                )
             else:
-                await create_useinfo_entry(UseinfoValidation(
-                    course_id=user.course_name,
-                    sid=user.username,
-                    div_id=div_id,
-                    event="sendmessage",
-                    act=f"to:llm:{content}",
-                    timestamp=datetime.datetime.utcnow(),
-                ))
+                await create_useinfo_entry(
+                    UseinfoValidation(
+                        course_id=user.course_name,
+                        sid=user.username,
+                        div_id=div_id,
+                        event="sendmessage",
+                        act=f"to:llm:{content}",
+                        timestamp=datetime.datetime.utcnow(),
+                    )
+                )
     except Exception:
         rslogger.exception("Failed to log LLM user message")
 
@@ -1443,11 +1482,16 @@ async def get_async_llm_reflection(
             return JSONResponse(content={"ok": False, "error": "missing reflection"})
         messages = [
             system_msg,
-            {"role": "user", "content": f"i chose answer {selected}. my explanation was:\n\n{reflection}"},
+            {
+                "role": "user",
+                "content": f"i chose answer {selected}. my explanation was:\n\n{reflection}",
+            },
         ]
     else:
         if not isinstance(messages, list):
-            return JSONResponse(content={"ok": False, "error": "messages must be a list"})
+            return JSONResponse(
+                content={"ok": False, "error": "messages must be a list"}
+            )
         if len(messages) == 0 or messages[0].get("role") != "system":
             messages = [system_msg] + messages
         else:
@@ -1455,6 +1499,7 @@ async def get_async_llm_reflection(
 
     try:
         from rsptx.db.crud import fetch_course
+
         course = await fetch_course(user.course_name)
         reply = await _call_openai_async(messages, course.id)
     except Exception as e:
@@ -1462,18 +1507,25 @@ async def get_async_llm_reflection(
         return JSONResponse(content={"ok": False, "error": str(e)})
 
     try:
-        await create_useinfo_entry(UseinfoValidation(
-            course_id=user.course_name,
-            sid=user.username,
-            div_id=div_id,
-            event="llm_peer_sendmessage",
-            act=f"to: student:{reply}",
-            timestamp=datetime.datetime.utcnow(),
-        ))
+        await create_useinfo_entry(
+            UseinfoValidation(
+                course_id=user.course_name,
+                sid=user.username,
+                div_id=div_id,
+                event="llm_peer_sendmessage",
+                act=f"to: student:{reply}",
+                timestamp=datetime.datetime.utcnow(),
+            )
+        )
     except Exception:
         rslogger.exception("Failed to log LLM reply")
 
     if not reply:
-        return JSONResponse(content={"ok": False, "error": "llm returned empty reply (missing api key?)"})
+        return JSONResponse(
+            content={
+                "ok": False,
+                "error": "llm returned empty reply (missing api key?)",
+            }
+        )
 
     return JSONResponse(content={"ok": True, "reply": reply})
