@@ -53,6 +53,24 @@ from rsptx.response_helpers.core import (
     get_webpack_static_imports,
 )
 
+# Analogy themes for async LLM mode
+# ==================================
+PI_THEMES = [
+    {"id": "family_tree", "label": "Family Tree"},
+    {"id": "geographic", "label": "Geographic Hierarchy"},
+    {"id": "html_dom", "label": "HTML/DOM Tree"},
+    {"id": "university", "label": "Organizational Hierarchy"},
+    {"id": "apartment", "label": "Apartment Building"},
+    {"id": "grocery", "label": "Grocery Store"},
+    {"id": "airport", "label": "Airport"},
+    {"id": "discord", "label": "Discord Server"},
+    {"id": "video_game", "label": "Video Game World"},
+    {"id": "music_library", "label": "Music Library"},
+    {"id": "audio_production", "label": "Audio Production"},
+    {"id": "kitchen", "label": "Kitchen Storage"},
+]
+THEME_BY_ID = {t["id"]: t for t in PI_THEMES}
+
 # Routing
 # =======
 router = APIRouter(
@@ -586,6 +604,7 @@ async def get_peer_async(
         "has_reflection": has_reflection,
         "llm_enabled": llm_enabled,
         "async_mode": question_async_mode,
+        "pi_themes_json": json.dumps(PI_THEMES),
         "llm_reply": None,
         "latex_macros": latex_macros,
         "peer_mtime": peer_mtime,
@@ -1381,6 +1400,112 @@ async def _call_openai_async(messages: list, course_id: int) -> str:
     return data["choices"][0]["message"]["content"].strip()
 
 
+async def _generate_analogy_mapping_async(
+    question: str,
+    code: str,
+    choices: list,
+    theme_label: str,
+    selected: str = "",
+    reflection: str = "",
+    course_id: int = 0,
+):
+    """
+    Produces a structural mapping between the question's CS concept and the
+    student's chosen theme, plus the first message to send to the student.
+    Returns (mapping_string, first_message) or ("", "") on failure.
+    """
+    context_parts = []
+    if question:
+        context_parts.append(f"Question: {question}")
+    if code:
+        context_parts.append(f"Code:\n{code}")
+    if choices:
+        context_parts.append("Choices:\n" + "\n".join(choices))
+    if selected:
+        context_parts.append(f"Student's answer: {selected}")
+    if reflection:
+        context_parts.append(f"Student's explanation: {reflection}")
+    context = "\n\n".join(context_parts)
+
+    prompt = (
+        f"Read this CS question carefully:\n\n"
+        f"{context}\n\n"
+        f"The student chose '{theme_label}' as their analogy theme.\n\n"
+        f"Step 1: Identify the underlying CS concept this question is testing — one sentence, specific about what structurally happens (not just the topic name).\n\n"
+        f"Step 2: Break the question's structure down into its meaningful spatial or logical elements — the starting point, the required location to perform the action, the target item, and the action itself. Do NOT include the command syntax itself as an element. Do NOT evaluate the outcome or describe dependencies (do not write elements like 'the outcome depends on...' or 'the action requires...'). Focus only on what factually exists: where the student currently is, where the target item is, and what location is needed to perform the action. Describe elements factually and neutrally. The structure should describe what exists, not what the right reasoning is. Use bullet points, one element per line.\n\n"
+        f"Step 3: Find a real, concrete, familiar situation in '{theme_label}' that structurally mirrors the question. Map each element from step 2 to a specific, real, recognizable thing from that situation — not invented names or generic labels. CRITICAL: never use CS or file system terminology on the right side of the mapping — do not name a theme item after a folder name, variable name, or command (e.g. do not write 'project aisle' or 'backup section' — those are just CS names with a theme word appended). Instead use things that actually exist in '{theme_label}' (e.g. 'dairy section', 'frozen foods aisle', 'checkout counter'). The theme items should feel like something a person familiar with '{theme_label}' would immediately picture with no knowledge of CS. CRITICAL: if the question is about being in the right location to perform an action, the target item DOES exist at the required location — the only issue is whether the student is in the right place to reach it. Make this clear in the mapping: the item is there, the student just needs to get there. Do not create any ambiguity about whether the item exists. The required location must be somewhere the person would normally go — do not map it to a staff-only or restricted area (e.g. do not use 'back stockroom' in a grocery store — customers do not go there; use a specific aisle or section instead). The scene must start in a natural, already-stable state — do not invent events to explain how things came to be. IMPORTANT: if the question involves navigating toward a root or parent (e.g. `..` in a file path), that means moving toward the outermost container — in a building this is the ground floor or lobby, NOT a higher floor. Deep nested = higher up, closer to root = lower/ground. Make sure the direction in your theme matches this intuition. CRITICAL: the mapped action must be a concrete, physical, presence-required activity — something that only makes sense when you are physically at the required location. Do NOT map 'edit/run/modify a file' to any kind of writing, editing, or rewriting action on a document, card, or paper — documents are portable and can be edited anywhere, which breaks the analogy. Instead map the CS action to the act of REACHING, GRABBING, OR USING a fixed item that lives at that location: reach for a jar on a shelf, use the blender on the counter, pick up a bag at a carousel, order at a specific counter. The mapped item should be something fixed at the required location that you can only interact with by being there.\n\n"
+        f"Step 4: Write the first message the LLM peer will send to the student. This message should:\n"
+        f"- Be in casual, lowercase, peer voice — like a student talking to another student\n"
+        f"- Use minimal commas\n"
+        f"- Introduce the scene to the student from scratch — they have never heard of this scenario. Do not say 'i'm picturing X' or reference the scenario as if they already know it. Start with 'imagine you're in...' or 'so picture this...' to actually place them in the situation\n"
+        f"- Set the scene in 1-2 sentences using theme vocabulary only — no file paths, no CS terms, no variable names\n"
+        f"- Name the specific locations from your mapping (e.g. 'the dairy section' not 'an aisle') so the conversation is grounded from the start\n"
+        f"- After placing them in the scene, ask a specific, concrete location question using the exact mapped action — e.g. 'can you board your flight from the lobby or do you need to get to gate 12 first?' not vague questions like 'can you use it from here' or 'where does the item end up'. The action in the question must be the specific mapped action, not a generic 'use it' or 'access it'.\n"
+        f"- Do NOT assume the student is wrong — the question works whether they are right or wrong\n"
+        f"- Never imply the student is wrong or ask a rhetorical question with an obvious answer\n"
+        f"- Never say 'our scenario' or announce it as an analogy\n"
+        f"- Do not narrate the full trace — set the scene then ask them to trace it\n\n"
+        f"Output ONLY in this exact format:\n"
+        f"CONCEPT: [one sentence]\n"
+        f"STRUCTURE:\n"
+        f"- [element 1]\n"
+        f"- [element 2]\n"
+        f"- ...\n"
+        f"MAPPING:\n"
+        f"- [element 1] -> [theme equivalent]\n"
+        f"- [element 2] -> [theme equivalent]\n"
+        f"- ...\n"
+        f"FIRST_MESSAGE: [the first message to send]\n"
+    )
+
+    try:
+        import os
+        import aiohttp
+
+        token_row = await fetch_api_token(course_id, "openai")
+        if not token_row or not token_row.token:
+            return "", ""
+        api_key = token_row.token
+        model = (
+            os.environ.get("PI_OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
+        )
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.5,
+            "max_tokens": 700,
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=45),
+            ) as resp:
+                resp.raise_for_status()
+                result = await resp.json()
+        raw = result["choices"][0]["message"]["content"].strip()
+        rslogger.warning(f"ANALOGY MAPPING RAW RESPONSE:\n{raw}")
+        first_message = ""
+        mapping = raw
+        if "FIRST_MESSAGE:" in raw:
+            parts = raw.split("FIRST_MESSAGE:", 1)
+            mapping = parts[0].strip()
+            first_message = parts[1].strip()
+        rslogger.warning(
+            f"ANALOGY MAPPING parsed | mapping_len={len(mapping)} first_message_len={len(first_message)} first_message_preview={first_message[:120]!r}"
+        )
+        return mapping, first_message
+    except Exception:
+        rslogger.exception("Failed to generate analogy mapping")
+        return "", ""
+
+
 @router.post("/api/get_async_llm_reflection")
 async def get_async_llm_reflection(
     request: Request,
@@ -1394,6 +1519,8 @@ async def get_async_llm_reflection(
     div_id = (data.get("div_id") or "").strip()
     selected = (data.get("selected_answer") or "").strip()
     messages = data.get("messages")
+    theme_id = (data.get("theme_id") or "").strip()
+    analogy_mapping = (data.get("analogy_mapping") or "").strip()
 
     if not div_id:
         return JSONResponse(content={"ok": False, "error": "missing div_id"})
@@ -1431,7 +1558,67 @@ async def get_async_llm_reflection(
 
     question, code, choices = await _get_mcq_context_async(div_id)
 
-    sys_content = (
+    reflection_text = (data.get("reflection") or "").strip()
+    if not reflection_text and messages:
+        first_user = next((m for m in messages if m.get("role") == "user"), None)
+        if first_user:
+            reflection_text = (first_user.get("content") or "").strip()
+
+    generated_mapping = ""
+    generated_first_message = ""
+    if theme_id and not analogy_mapping:
+        theme_obj = THEME_BY_ID.get(theme_id)
+        if theme_obj:
+            try:
+                from rsptx.db.crud import fetch_course
+
+                course_row = await fetch_course(user.course_name)
+                generated_mapping, generated_first_message = (
+                    await _generate_analogy_mapping_async(
+                        question,
+                        code,
+                        choices,
+                        theme_obj["label"],
+                        selected=selected,
+                        reflection=reflection_text,
+                        course_id=course_row.id,
+                    )
+                )
+                if generated_mapping:
+                    analogy_mapping = generated_mapping
+            except Exception:
+                rslogger.exception("Failed to generate analogy mapping")
+
+    analogy_preamble = ""
+    if theme_id:
+        theme = THEME_BY_ID.get(theme_id)
+        rslogger.warning(
+            f"PEER ANALOGY | theme_id={theme_id!r} theme={theme} has_mapping={bool(analogy_mapping)}"
+        )
+        if theme:
+            theme_label = theme["label"]
+            if analogy_mapping:
+                analogy_preamble = (
+                    f"the student chose '{theme_label}' as their analogy theme. here is a structural mapping between the question and the theme:\n"
+                    f"{analogy_mapping}\n"
+                    f"\n"
+                    f"use this mapping to frame your conversation naturally. the student has never seen this mapping — you are introducing this scenario to them for the first time.\n"
+                    f"IMPORTANT: in conversation only ever use the RIGHT side of the mapping (the theme terms). never use the LEFT side (the CS/file system terms) when talking in the analogy — so if the mapping says 'project/ folder -> dairy section' you say 'dairy section' never 'project folder' or 'project aisle'. this means never say words like 'staging', 'commit', 'repository', 'directory', 'git', or any CS term while you are in the analogy — stay fully in theme vocabulary until the explicit bridge-back moment.\n"
+                    f"in your first message: paint the scenario in natural language — describe the situation as if you are telling a story, not reading a list. do not recite the mapping labels (e.g. do not say 'the move action' or 'forest of wisdom' as if they are technical terms — say 'imagine you're walking through...' or 'so you're in the...'). place the student in the scene concretely, then connect it to what they said, then ask a question. do not say 'our scenario' — introduce it fresh.\n"
+                    f"in follow-ups: keep using the theme vocabulary. if the student engages with it, build on it. when they seem to understand the structure through the theme, bridge back to the actual question.\n"
+                    f"do not formally announce the analogy. do not say 'in the {theme_label} analogy' or 'using {theme_label} as a metaphor'. just talk in those terms naturally.\n"
+                    f"if the student makes a claim or assumption, use the theme to have them test it — like 'hmm would that floor even exist in that building tho?'\n"
+                )
+            else:
+                # Mapping generation failed — still enforce the correct theme
+                analogy_preamble = (
+                    f"the student chose '{theme_label}' as their analogy theme.\n"
+                    f"you MUST use only '{theme_label}' vocabulary to frame this conversation — do not invent a different scenario or theme.\n"
+                    f"introduce a concrete scene from '{theme_label}' that mirrors the question structure, then ask the student to trace through it.\n"
+                    f"never use CS terms or file-system terminology while in the analogy — stay fully in '{theme_label}' language.\n\n"
+                )
+
+    base_rules = (
         "only speak in lower case.\n"
         "you are a student talking to another student during peer instruction.\n"
         "you are both looking at the same multiple choice question with code and answers.\n"
@@ -1441,9 +1628,27 @@ async def get_async_llm_reflection(
         "never use commas.\n"
         "never use gendered language.\n"
         "do not use new lines.\n"
+        "never use em dashes (—) or formal punctuation. write the way you actually talk.\n"
         "do not sound like a teacher.\n"
         "do not explain step by step.\n"
         "never say something is right or wrong.\n"
+        "STRICT RULE: every message must begin with one of these allowed openers: a question word ('what', 'where', 'how', 'do', 'can', 'if', 'wait', 'hmm'), or the word 'so' followed immediately by a scenario observation (not 'so exactly' or 'so right'). never begin with 'yeah', 'right', 'exactly', 'correct', 'yes', 'yep', 'true', 'good', 'nice', 'great', 'perfect', 'cool', 'totally', 'sure', 'got it', or any variation. these imply the student is correct. check your first word before every message.\n"
+        "never confirm or explain the code outcome after the student says something — only ask them to keep tracing or elaborate.\n"
+        "if the student introduces a new assumption or claim, do not build on it as if it is correct — instead use the analogy to make them test that assumption themselves. for example if they claim 'it creates the directory' ask them through the analogy: 'does trying to walk to a floor that doesn't exist create it, or does something else happen?' never validate the assumption, never deny it — just ask them to examine it through the scenario.\n"
+        "if an analogy scenario was established, always bring follow-up questions back through that scenario — do not abandon it for direct code talk. never use CS terms (like 'staging', 'commit', 'directory', 'repository', 'file path') in a message that is otherwise in analogy vocabulary — stay fully in the theme language until you are explicitly bridging back.\n"
+        "each follow-up must move the conversation forward — do not ask the same question twice in different words. if the student answered your last question, accept that and go one level deeper or bridge back to the actual problem.\n"
+        "when referencing a structural detail of the scenario in a follow-up, briefly restate that detail in the same message — do not assume the student remembers the exact structure from the first message. for example: 'remember in that tree the grandparent has two children — user and shared. you are currently under user...' then ask your question.\n"
+        "never say things like 'let's focus on the code' or 'going back to the code' — always route through the scenario instead.\n"
+        "if the student themselves references the analogy, use that as an opening to deepen it — never redirect away from it.\n"
+        "once the student has traced through the analogy and seems to understand the structure, explicitly bridge back to the question — ask them to apply that same reasoning to the actual problem values or code.\n"
+        "do not let the analogy float indefinitely without connecting it back to the question. the goal is for the student to say 'oh so in the question that means...' — guide them there.\n"
+        "never use phrases like 'not quite' or 'not exactly' or 'almost' or 'close' or 'not yet' or any phrase that implies the student is incorrect.\n"
+        "never react to whether the student's answer is correct or incorrect — only ask them to explain their reasoning.\n"
+        "never use the analogy to imply the student's answer is wrong.\n"
+        "never end a message with a rhetorical question whose obvious answer signals the student is wrong — like 'does that room just appear?' or 'is there really a backup area there?' — these tell the student they are wrong.\n"
+        "instead: have the student trace through the scenario step by step. ask where they end up after each step, or ask them to walk you through what they think each part of the command does in the scenario. keep questions open — 'where does that put you?' not 'does that even exist?'\n"
+        "the student should discover whether their answer is right or wrong by tracing through the analogy themselves.\n"
+        "never connect the analogy conclusion back to a specific answer choice — do not say things like 'answer B says you need to be in X — does that match up with needing to be in the new server?' because this confirms the answer without saying it. if the student has traced through the analogy and reached a conclusion ask them what that tells them about the problem and let THEM connect it back to their choice — never make that connection for them.\n"
         "do not pretend to have picked an answer yourself.\n"
         "never mention a choice letter as the correct answer.\n"
         "if the question includes code never clearly describe the final result or fully state what it prints.\n"
@@ -1459,20 +1664,23 @@ async def get_async_llm_reflection(
         "never say things like 'the feedback says' or 'according to the answer' or reference any grading or correctness information.\n"
         "do not make up information that is not in the question.\n"
         "if you are unsure about something say so honestly instead of guessing.\n"
-        "if the other student clearly sounds confident or repeats the same answer twice tell them to vote again or submit it.\n"
+        "if the other student mentions the same answer more than once or sounds confident in their answer you must tell them to go ahead and vote again — this overrides everything else.\n"
+        "do not ask another question or continue the analogy after they have confirmed their answer — just tell them to vote.\n"
         "do not continue reasoning after telling them to vote again.\n"
         "focus on getting them to think through the problem not on changing their mind.\n\n"
     )
 
+    context_suffix = ""
     if question:
-        sys_content += f"question:\n{question}\n\n"
+        context_suffix += f"question:\n{question}\n\n"
     if code:
-        sys_content += f"code:\n{code}\n\n"
+        context_suffix += f"code:\n{code}\n\n"
     if choices:
-        sys_content += "answer choices:\n" + "\n".join(choices) + "\n\n"
+        context_suffix += "answer choices:\n" + "\n".join(choices) + "\n\n"
     if selected:
-        sys_content += f"the other student chose: {selected}\n\n"
+        context_suffix += f"the other student chose: {selected}\n\n"
 
+    sys_content = analogy_preamble + base_rules + context_suffix
     system_msg = {"role": "system", "content": sys_content}
 
     if not messages:
@@ -1500,7 +1708,11 @@ async def get_async_llm_reflection(
         from rsptx.db.crud import fetch_course
 
         course = await fetch_course(user.course_name)
-        reply = await _call_openai_async(messages, course.id)
+        user_turn_count = sum(1 for m in messages if m.get("role") == "user")
+        if generated_first_message and user_turn_count <= 1:
+            reply = generated_first_message
+        else:
+            reply = await _call_openai_async(messages, course.id)
     except Exception as e:
         rslogger.exception("LLM reflection failed")
         return JSONResponse(content={"ok": False, "error": str(e)})
@@ -1527,4 +1739,7 @@ async def get_async_llm_reflection(
             }
         )
 
-    return JSONResponse(content={"ok": True, "reply": reply})
+    result = {"ok": True, "reply": reply}
+    if generated_mapping:
+        result["analogy_mapping"] = generated_mapping
+    return JSONResponse(content=result)
