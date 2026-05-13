@@ -6453,55 +6453,53 @@ files = [
 
 [[package]]
 name = "runestone"
-version = "7.13.4"
+version = "7.13.5"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
-python-versions = "^3.10.0"
+python-versions = "<4.0.0,>=3.10.0"
 groups = ["dev"]
-files = []
-develop = true
+files = [
+    {file = "runestone-7.13.5-py3-none-any.whl", hash = "sha256:d08937ad1035fcadf93769295ff43cd1573649e85cbb808d155968bcdca4fc1d"},
+    {file = "runestone-7.13.5.tar.gz", hash = "sha256:92e9e9521f51704a3501aa36fa44f58673809adfa603302573cba1c010968683"},
+]
 
 [package.dependencies]
 aiosqlite = ">=0.18.0"
-asyncpg = "^0.30.0"
-click = "~8"
+asyncpg = ">=0.30.0,<0.31.0"
+click = ">=8,<9"
 CodeChat = "1.9.3"
 cogapp = ">=2.5"
-cryptography = "^46.0.0"
-dateutils = "^0.6.12"
-fastapi = "^0.115.0"
-greenlet = "^3.0.0"
-ipyleaflet = "^0.19.2"
-jinja2 = "^3.1.0"
-json2xml = "^3.21.0"
+cryptography = ">=46.0.0,<47.0.0"
+dateutils = ">=0.6.12,<0.7.0"
+fastapi = ">=0.115.0,<0.116.0"
+greenlet = ">=3.0.0,<4.0.0"
+ipyleaflet = ">=0.19.2,<0.20.0"
+jinja2 = ">=3.1.0,<4.0.0"
+json2xml = ">=3.21.0,<4.0.0"
 jupyter-sphinx = "<0.5"
-jupyterlab = "^4.2.4"
-jupyterlite-sphinx = "^0.9.3"
-lxml = "^6.0"
-myst-parser = "^1.0.0"
+jupyterlab = ">=4.2.4,<5.0.0"
+jupyterlite-sphinx = ">=0.9.3,<0.10.0"
+lxml = ">=6.0,<7.0"
+myst-parser = ">=1.0.0,<2.0.0"
 Paver = ">=1.2.4"
-pretext = "^2.35.0"
-psycopg2-binary = "^2.9.6"
+pretext = ">=2.35.0,<3.0.0"
+psycopg2-binary = ">=2.9.6,<3.0.0"
 pydal = ">=20230521.1"
-pydantic = "^2.0.0"
-pydantic-settings = "^2.0.3"
-pyhumps = "^3.8.0"
-python-dotenv = "^1.0.0"
-scikit-learn = "^1.5.1"
+pydantic = ">=2.0.0,<3.0.0"
+pydantic-settings = ">=2.0.3,<3.0.0"
+pyhumps = ">=3.8.0,<4.0.0"
+python-dotenv = ">=1.0.0,<2.0.0"
+scikit-learn = ">=1.5.1,<2.0.0"
 setuptools = "<81.0.0"
 six = ">1.12"
-Sphinx = "^5.0.0"
-sphinx-reredirects = "^0.1.2"
+Sphinx = ">=5.0.0,<6.0.0"
+sphinx-reredirects = ">=0.1.2,<0.2.0"
 sphinxcontrib-paverutils = ">=1.18.1"
-SQLAlchemy = "^2.0.0"
-standard-asyncore = "^3.13.0"
-standard-cgi = "^3.13.0"
-standard-imghdr = "^3.13.0"
-toml = "^0.10.2"
-
-[package.source]
-type = "directory"
-url = "projects/interactives"
+SQLAlchemy = ">=2.0.0,<3.0.0"
+standard-asyncore = ">=3.13.0,<4.0.0"
+standard-cgi = ">=3.13.0,<4.0.0"
+standard-imghdr = ">=3.13.0,<4.0.0"
+toml = ">=0.10.2,<0.11.0"
 
 [[package]]
 name = "s3transfer"
@@ -8077,4 +8075,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "ec41ba8b70f1ddb1f73a44626038d22f7ab30b9cf5505d5bae9469130ffeafaa"
+content-hash = "c831c29f3eb49253e915eedbcc8ada4954fd882320147921b3d7549cc8e5adfb"
