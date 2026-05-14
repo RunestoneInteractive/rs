@@ -1050,7 +1050,7 @@ async def get_percent_correct(
             return JSONResponse(content={"pct_correct": 0})
 
         total = len(rows)
-        correct = sum(1 for sid, answer, is_correct in rows if is_correct == "T")
+        correct = sum(1 for sid, answer, is_correct in rows if is_correct is True)
 
         pct_correct = round((correct / total * 100), 1) if total > 0 else 0
 
