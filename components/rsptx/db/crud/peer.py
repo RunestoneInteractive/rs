@@ -80,24 +80,36 @@ async def fetch_last_useinfo_peergroup(course_name: str) -> List[Useinfo]:
 
 async def did_send_messages(sid: str, div_id: str, course_name: str) -> bool:
     """
-    Fetch all messages sent to a given student.
-
-    :param sid: str, the student id
-    :return: List[SentMessageValidator], a list of SentMessageValidator objects
+    Return True if the student sent at least one peer chat message for this question.
     """
     query = select(Useinfo).where(
         and_(
-            (Useinfo.sid == sid),
-            (Useinfo.div_id == div_id),
-            (Useinfo.course_id == course_name),
+            Useinfo.sid == sid,
+            Useinfo.div_id == div_id,
+            Useinfo.course_id == course_name,
+            Useinfo.event == "sendmessage",
         )
     )
     async with async_session() as session:
         res = await session.execute(query)
-        if len(res.all()) > 0:
-            return True
-        else:
-            return False
+        return len(res.all()) > 0
+
+
+async def fetch_peer_useinfo(sid: str, div_id: str, course_name: str) -> list:
+    """
+    Fetch all useinfo rows for a student on a peer question.
+    Used to compute peer instruction scores (vote1, vote2, sendmessage).
+    """
+    query = select(Useinfo).where(
+        and_(
+            Useinfo.sid == sid,
+            Useinfo.div_id == div_id,
+            Useinfo.course_id == course_name,
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return res.scalars().all()
 
 
 async def fetch_recent_student_answers(
