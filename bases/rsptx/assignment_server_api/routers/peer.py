@@ -794,18 +794,28 @@ async def make_pairs(
 
         r.hset(f"{course.course_name}_state", "mess_count", "0")
 
-        # Broadcast partner information for chat (enableChat)
-        for sid, answer in sid_ans.items():
-            partners = gdict.get(sid, [])
+        # Broadcast partner information for chat (enableChat).
+        # Format matches web2py: "answer" is a JSON dict of {partner_sid: letter_answer}.
+        def _to_letter(ans):
+            if ans is None:
+                return None
+            ans = str(ans)
+            if ans.isnumeric():
+                return chr(65 + int(ans))
+            if "," in ans:
+                return ",".join([chr(65 + int(x)) for x in ans.split(",")])
+            return ans
+
+        for sid in gdict:
+            partners = gdict[sid]
+            pdict = {p: _to_letter(sid_ans.get(p)) for p in partners}
             mess = {
-                "sender": user.username,
                 "type": "control",
-                "message": "enableChat",
-                "broadcast": False,
-                "partner_answer": answer,
-                "yourPartner": partners,
                 "from": sid,
                 "to": sid,
+                "message": "enableChat",
+                "broadcast": False,
+                "answer": json.dumps(pdict),
                 "course_name": course.course_name,
             }
             r.publish("peermessages", json.dumps(mess))
@@ -1176,8 +1186,8 @@ async def log_peer_rating(
                 sid=user.username,
                 course_id=course.course_name,
                 div_id=div_id,
-                event="peer_rating",
-                act=f"peer:{peer_id}:rating:{rating}",
+                event="ratepeer",
+                act=f"{peer_id}:{rating}",
                 timestamp=datetime.datetime.utcnow(),
             )
             await create_useinfo_entry(log_entry)
