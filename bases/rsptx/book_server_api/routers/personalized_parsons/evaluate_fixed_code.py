@@ -415,7 +415,7 @@ def java_unittest_evaluation(
         fixed_code = remove_empty_lines(fixed_code)
         fixed_code = remove_java_comments(fixed_code)
     except Exception as e:
-        return f"No enough code-{e}", fixed_code
+        return False, fixed_code
 
     try:
         print("fixed_code_test", fixed_code)
@@ -423,7 +423,7 @@ def java_unittest_evaluation(
         print("java_results\n", java_test_result)
         return java_test_result, fixed_code
     except Exception as e:
-        return f"We got errors, {e}", fixed_code
+        return False, fixed_code
 
 
 def python_unittest_evaluation(
@@ -448,7 +448,7 @@ def python_unittest_evaluation(
         fixed_code = remove_python_comments(fixed_code)
         # print("cleaned_fixed_code\n", fixed_code)
     except Exception as e:
-        return f"No enough code-{e}", fixed_code
+        return False, fixed_code
     try:
         ##print("fixed_code_first attempt", fixed_code)
         results = load_and_run_tests(unittest_case, fixed_code)
@@ -464,9 +464,9 @@ def python_unittest_evaluation(
                 # print("results.wasSuccessful()\n", results.wasSuccessful())
                 return results.wasSuccessful(), fixed_code
             else:
-                return "No starting code", fixed_code
+                return False, fixed_code
         except Exception as e:
-            return f"We got errors, {e}", fixed_code
+            return False, fixed_code
 
 
 def code_distractor_unittest_evaluation(
@@ -491,14 +491,14 @@ def code_distractor_unittest_evaluation(
             )
             return java_test_result, code_with_distrator
         except Exception as e:
-            return f"We got errors, {e}", code_with_distrator
+            return False, code_with_distrator
     else:
         try:
             results = load_and_run_tests(unittest_case, code_with_distrator)
             if contain_default_starting_code(starting_code, code_with_distrator):
                 return results.wasSuccessful(), code_with_distrator
             else:
-                return "No starting code", code_with_distrator
+                return False, code_with_distrator
         except Exception:
             try:
                 code_with_distrator = fix_indentation(code_with_distrator)
@@ -506,9 +506,9 @@ def code_distractor_unittest_evaluation(
                 if contain_default_starting_code(starting_code, code_with_distrator):
                     return results.wasSuccessful(), code_with_distrator
                 else:
-                    return "No starting code", code_with_distrator
+                    return False, code_with_distrator
             except Exception as e:
-                return f"We got errors, {e}", code_with_distrator
+                return False, code_with_distrator
 
 
 def clean_student_code(student_code, default_test_code):
