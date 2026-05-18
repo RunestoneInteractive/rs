@@ -1,15 +1,41 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
 
+interface SpliceMessageData {
+    subject: string;
+    activity_id?: string;
+    score?: number;
+    state?: unknown;
+    name?: string;
+    message_id?: string;
+    frame_id?: string;
+    jwt?: string;
+}
+
+interface SavedStateResponse {
+    detail: {
+        answer: unknown;
+    };
+}
+
+interface JwtPayload {
+    score: number;
+    [key: string]: unknown;
+}
+
+declare const eBookConfig: {
+    course: string;
+    [key: string]: unknown;
+};
+
 export class SpliceWrapper extends RunestoneBase {
     constructor() {
         super();
         this.initSplice();
     }
 
-    initSplice() {
+    initSplice(): void {
         // SPLICE Events
-        window.addEventListener("message", async (event) => {
-            
+        window.addEventListener("message", async (event: MessageEvent<SpliceMessageData>) => {
             var sourceIframe = this.sendingIframe(event);
             console.log(`SpliceWrapper: received message subject: ${event.data.subject} from iframe: ${sourceIframe ? sourceIframe.id : "unknown"}`);
             if (event.data.subject == "SPLICE.reportScoreAndState") {
@@ -21,10 +47,10 @@ export class SpliceWrapper extends RunestoneBase {
             } else if (
                 event.origin === "https://www.myopenmath.com" &&
                 typeof event.data === "string" &&
-                event.data.indexOf("lti.ext.imathas.result") != -1
+                (event.data as unknown as string).indexOf("lti.ext.imathas.result") != -1
             ) {
                 // proof of concept for My Open Math
-                let msgdata = JSON.parse(event.data);
+                let msgdata = JSON.parse(event.data as unknown as string);
                 let jwt = basicParseJwt(msgdata.jwt);
                 console.log(
                     "Result received from frame " +
@@ -39,7 +65,7 @@ export class SpliceWrapper extends RunestoneBase {
         });
     }
 
-    getUniqueID(event, frame) {
+    getUniqueID(event: MessageEvent<SpliceMessageData>, frame: HTMLIFrameElement | undefined): string {
         // Determine the unique identifier for this activity
         // The SPLICE protocol allows for two possibilities
         // 1. activity_id is the unique id as assigned by the provider
@@ -69,7 +95,7 @@ export class SpliceWrapper extends RunestoneBase {
         return location;
     }
 
-    handleScoreAndState(event, frame) {
+    handleScoreAndState(event: MessageEvent<SpliceMessageData>, frame: HTMLIFrameElement | undefined): void {
         console.log("Got SPLICE.reportScoreAndState");
         console.log(event.data.activity_id);
         console.log(event.data.score);
@@ -86,7 +112,7 @@ export class SpliceWrapper extends RunestoneBase {
         });
     }
 
-    sendingIframe(event) {
+    sendingIframe(event: MessageEvent): HTMLIFrameElement | undefined {
         // determine the iframe that sent the event
         // you would think that event.source would be the iframe
         // but it is not and getting the location out of event.source
@@ -97,7 +123,7 @@ export class SpliceWrapper extends RunestoneBase {
         return undefined;
     }
 
-    async getSavedState(location) {
+    async getSavedState(location: string): Promise<SavedStateResponse | null> {
         // fetch the state from the server
         try {
             const response = await fetch("/ns/assessment/results", {
@@ -114,7 +140,7 @@ export class SpliceWrapper extends RunestoneBase {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const data = await response.json();
+            const data: SavedStateResponse = await response.json();
             return data;
         } catch (error) {
             console.error("Error fetching SPLICE state:", error);
@@ -122,15 +148,15 @@ export class SpliceWrapper extends RunestoneBase {
         }
     }
 
-    async handleGetState(event, frame) {
+    async handleGetState(event: MessageEvent<SpliceMessageData>, frame: HTMLIFrameElement | undefined): Promise<void> {
         console.log("Got SPLICE.getState");
         console.log(event.data.activity_id);
         console.log(event.data.state);
         // subject is SPLICE.getState.response
         let location = this.getUniqueID(event, frame);
         let res = await this.getSavedState(location);
-        let state = res.detail.answer;
-        event.source.postMessage(
+        let state = res?.detail.answer;
+        (event.source as Window).postMessage(
             {
                 message_id: event.data.message_id,
                 subject: "SPLICE.getState.response",
@@ -140,7 +166,7 @@ export class SpliceWrapper extends RunestoneBase {
         );
     }
 
-    handleSpliceEvent(event, frame) {
+    handleSpliceEvent(event: MessageEvent<SpliceMessageData>, frame: HTMLIFrameElement | undefined): void {
         // handle generic SPLICE events, such as logged clicks
         // or other events.  SPLICE does not require that we do
         // anything with them, but in keeping with our tradition
@@ -149,7 +175,6 @@ export class SpliceWrapper extends RunestoneBase {
         console.log("Got SPLICE.sendEvent");
         console.log(event.data.activity_id);
         console.log(event.data.name);
-        //console.log(event.data.data);
         let location = this.getUniqueID(event, frame);
         this.logBookEvent({
             event: event.data.subject,
@@ -157,24 +182,25 @@ export class SpliceWrapper extends RunestoneBase {
             act: event.data.name || "unknown",
         });
     }
+
     // these stubs are not implemented, but are required by the RunestoneBase class
-    checkLocalStorage() {}
-    setLocalStorage() {}
-    restoreAnswers() {}
-    disableInteraction() {}
+    checkLocalStorage(): void {}
+    setLocalStorage(): void {}
+    restoreAnswers(): void {}
+    disableInteraction(): void {}
 }
 
-function basicParseJwt(token) {
+function basicParseJwt(token: string): JwtPayload {
     var base64Url = token.split(".")[1];
     var base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     var jsonPayload = decodeURIComponent(
         window
             .atob(base64)
             .split("")
-            .map(function (c) {
+            .map(function (c: string): string {
                 return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
             })
             .join("")
     );
-    return JSON.parse(jsonPayload);
+    return JSON.parse(jsonPayload) as JwtPayload;
 }

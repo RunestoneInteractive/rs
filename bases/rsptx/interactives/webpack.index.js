@@ -47,7 +47,7 @@ import "./runestone/common/js/presenter_mode.js";
 import "./runestone/common/css/presenter_mode.less";
 import { renderOneComponent } from "./runestone/common/js/renderComponent.js";
 import RunestoneBase from "./runestone/common/js/runestonebase.js";
-import { SpliceWrapper } from "./runestone/splice/js/spliceWrapper.js";
+import { SpliceWrapper } from "./runestone/splice/js/spliceWrapper.ts";
 
 // Dynamically loaded components
 // =============================

@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "target": "ES2017",
+        "module": "ES2015",
+        "moduleResolution": "bundler",
+        "strict": false,
+        "allowJs": true,
+        "esModuleInterop": true,
+        "sourceMap": true,
+        "rootDir": "./runestone",
+        "outDir": "./dist"
+    },
+    "include": ["runestone/**/*.ts"],
+    "exclude": ["node_modules"]
+}
