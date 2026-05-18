@@ -223,7 +223,7 @@ def generate_partial_Parsons(
                 + distractor_tuple_dict[fixed_line_key][2].strip()
                 + " #paired",
             )
-        elif type(distractor_tuple_dict[fixed_line_key]) is str:
+        elif isinstance(distractor_tuple_dict[fixed_line_key], str):
             distractor_tuple_dict[fixed_line_key] = (
                 fixed_line_key[0] + 0.5,
                 fixed_line_key[0],

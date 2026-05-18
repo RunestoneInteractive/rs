@@ -63,10 +63,10 @@ function OldAssignmentBuilder() {
   );
 }
 
-function AssignmentGrader() {
+function AssignmentGraderOld() {
   return (
     <div className="App">
-      <h1>Assignment Grader</h1>
+      <h1>Assignment Grader (legacy)</h1>
       <AssignmentPicker />
       <AssignmentSummary />
     </div>
@@ -89,6 +89,7 @@ function AppContent() {
     >
       <Menubar style={{ flexShrink: 0, flexWrap: "nowrap" }} model={items} start={start} />
       <div
+        className="appGradientBg"
         style={{
           flex: "1 1 auto",
           overflow: "auto",
@@ -268,7 +269,61 @@ function App() {
             },
             {
               path: "grader",
-              element: <AssignmentGrader />
+              async lazy() {
+                const { Grader } = await import("@components/routes/Grader");
+                return { Component: Grader };
+              },
+              children: [
+                {
+                  index: true,
+                  async lazy() {
+                    const { GraderAssignmentsPage } = await import(
+                      "@components/routes/Grader"
+                    );
+                    return { Component: GraderAssignmentsPage };
+                  }
+                },
+                {
+                  path: ":assignmentId",
+                  async lazy() {
+                    const { GraderQuestionsPage } = await import(
+                      "@components/routes/Grader"
+                    );
+                    return { Component: GraderQuestionsPage };
+                  }
+                },
+                {
+                  path: ":assignmentId/questions/:questionId",
+                  async lazy() {
+                    const { GraderQuestionPage } = await import(
+                      "@components/routes/Grader"
+                    );
+                    return { Component: GraderQuestionPage };
+                  }
+                },
+                {
+                  path: ":assignmentId/questions/:questionId/students/:sid",
+                  async lazy() {
+                    const { GraderQuestionPage } = await import(
+                      "@components/routes/Grader"
+                    );
+                    return { Component: GraderQuestionPage };
+                  }
+                },
+                {
+                  path: ":assignmentId/questions/:questionId/:sid",
+                  async lazy() {
+                    const { GraderQuestionPage } = await import(
+                      "@components/routes/Grader"
+                    );
+                    return { Component: GraderQuestionPage };
+                  }
+                }
+              ]
+            },
+            {
+              path: "graderOld",
+              element: <AssignmentGraderOld />
             },
             {
               path: "admin",

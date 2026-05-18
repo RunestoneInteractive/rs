@@ -22,6 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from .routers import student
 from .routers import instructor
 from .routers import peer
+from .routers import grader
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.logging import rslogger
 from rsptx.templates import template_folder
@@ -57,6 +58,7 @@ rslogger.info(f"React dir: {reactdir}")
 auth_manager.attach_middleware(app)
 
 app.include_router(student.router)
+app.include_router(grader.router)
 app.include_router(instructor.router)
 app.include_router(peer.router)
 
