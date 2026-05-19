@@ -970,6 +970,16 @@ async def get_grader(
     return await get_builder(request, "/grader", user, response_class)
 
 
+@router.get("/grader/{subpath:path}")
+async def get_grader_subpath(
+    request: Request,
+    subpath: str,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+):
+    return await get_builder(request, "/grader", user, response_class)
+
+
 @router.get("/except")
 async def get_except(
     request: Request, user=Depends(auth_manager), response_class=HTMLResponse

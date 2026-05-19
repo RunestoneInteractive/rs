@@ -143,7 +143,7 @@ def create_assignment_summary(assignment_id, course, dburl):
         merged.iloc[0, 3:] = merged.iloc[0, 3:].apply(
             lambda x: (
                 "{:.2f}".format(float(x.split("(")[0]))
-                if type(x) is str and "(" in x
+                if isinstance(x, str) and "(" in x
                 else "{:.2f}".format(float(x))
             )
         )
