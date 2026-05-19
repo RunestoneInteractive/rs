@@ -58,8 +58,6 @@ jobs:
         with:
           path: .venv
           key: venv-${{ runner.os }}-py3.10-${{ hashFiles('pyproject.toml', 'poetry.lock') }}
-          restore-keys: |
-            venv-${{ runner.os }}-py3.10-
 
       - name: Install dependencies
         run: poetry install --with dev --no-interaction
