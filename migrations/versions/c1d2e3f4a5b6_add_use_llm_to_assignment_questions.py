@@ -1,4 +1,4 @@
-"""add use_llm to assignment_questions
+"""add async_mode to assignment_questions
 
 Revision ID: c1d2e3f4a5b6
 Revises: a1b2c3d4e5f6
@@ -18,20 +18,18 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add use_llm column to assignment_questions table.
-    # Controls whether a peer instruction question uses an LLM peer for async mode.
     op.add_column(
         'assignment_questions',
         sa.Column(
-            'use_llm',
-            sa.String(length=1),
+            'async_mode',
+            sa.String(length=20),
             nullable=True,
-            server_default=sa.text("'F'"),
+            server_default=sa.text("'standard'"),
         ),
     )
-    op.execute("UPDATE assignment_questions SET use_llm = 'F' WHERE use_llm IS NULL")
-    op.alter_column('assignment_questions', 'use_llm', nullable=False)
+    op.execute("UPDATE assignment_questions SET async_mode = 'standard' WHERE async_mode IS NULL")
+    op.alter_column('assignment_questions', 'async_mode', nullable=False)
 
 
 def downgrade() -> None:
-    op.drop_column('assignment_questions', 'use_llm')
+    op.drop_column('assignment_questions', 'async_mode')

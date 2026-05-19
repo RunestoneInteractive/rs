@@ -743,6 +743,7 @@ function collapseJustification(text) {
     const themeTrigEl = document.getElementById("themeTrigger");
     if (themeTrigEl) { themeTrigEl.disabled = true; themeTrigEl.style.pointerEvents = "none"; themeTrigEl.style.opacity = "0.6"; }
     collapseJustification(reflection);
+    appendMsg("user", reflection);
 
     const disclaimer = document.getElementById("llmDisclaimer");
     if (disclaimer) disclaimer.style.display = "block";
@@ -767,7 +768,6 @@ function collapseJustification(text) {
       }
 
       const spec = await resp.json();
-      chat.innerHTML = "";
       if (showInstructorNote) {
         chat.innerHTML += `<div style="background:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:8px 10px; margin-bottom:8px; font-size:14px;">
           <strong>Note:</strong> The AI peer is currently unavailable. Please contact your instructor.
