@@ -1,0 +1,146 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  flex: 0 0 280px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  overflow: hidden;
+  max-height: calc(100vh - 220px);
+  min-height: 420px;
+  box-shadow: 0 6px 22px rgba(15, 23, 42, 0.06);
+}
+
+.header {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #eef2ff, #f8fafc);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #3730a3;
+}
+.counter {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.legendRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  font-size: 11px;
+  color: #475569;
+}
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+.controls > * {
+  width: 100%;
+}
+.controls :global(.p-inputtext) {
+  padding: 0.35rem 0.5rem;
+  width: 100%;
+}
+.controls :global(.p-togglebutton) {
+  width: 100%;
+  justify-content: center;
+  min-height: 0;
+  padding: 0.2rem 0;
+  font-size: 12px;
+  line-height: 1.1;
+}
+.controls :global(.p-togglebutton .p-button-label) {
+  font-size: 12px;
+  line-height: 1.1;
+  padding: 0;
+}
+.controls :global(.p-togglebutton .p-button-icon) {
+  font-size: 12px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  border: 1px solid transparent;
+}
+.item:hover {
+  background: rgba(99, 102, 241, 0.08);
+}
+.item.active {
+  background: #eef2ff;
+  border-color: #818cf8;
+}
+
+.itemBody {
+  flex: 1;
+  min-width: 0;
+}
+.itemName {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itemMeta {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.itemSid {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.dot {
+  font-size: 14px;
+  width: 16px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.empty {
+  padding: 1.2rem 0.75rem;
+  color: #94a3b8;
+  font-size: 12px;
+  text-align: center;
+}
+
