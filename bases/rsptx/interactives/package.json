@@ -46,7 +46,7 @@
         "jexcel": "^3.9.1",
         "jquery-ui": "1.10.4",
         "marked": "^18.0.2",
-        "micro-parsons": "file:../../../../src/micro-parsons-element/micro-parsons-0.2.1.tgz",
+        "micro-parsons": "https://github.com/RunestoneInteractive/micro-parsons-element/releases/download/v0.2.1/micro-parsons-0.2.1.tgz",
         "select2": "^4.1.0-rc.0",
         "sql.js": "1.5.0",
         "vega-embed": "3.14.0",
