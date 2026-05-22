@@ -203,5 +203,9 @@ class Settings(BaseSettings):
     jobe_key: str = ""
     jobe_server: str = "http://jobe"
 
+    mailgun_api_key: str = ""
+    mailgun_domain: str = ""
+    email_from: str = "support@runestone.academy"
+
 
 settings = Settings(book_server_config=os.environ.get("SERVER_CONFIG", "development"))
