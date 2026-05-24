@@ -3,6 +3,7 @@ from enum import Enum
 
 class LanguageOptions(Enum):
     PYTHON = ("python", "Python (in browser)")
+    PYTHON3 = ("python3", "Python (server)")
     JAVA = ("java", "Java")
     CPP = ("cpp", "C++")
     C = ("c", "C")

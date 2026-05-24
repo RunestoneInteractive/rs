@@ -176,7 +176,7 @@ class Settings(BaseSettings):
                 rslogger.warning(
                     "No Key file OR WEB2PY_PRIVATE_KEY -  will default to settings.jwt_secret"
                 )
-                if type(self.jwt_secret) is bytes:
+                if isinstance(self.jwt_secret, bytes):
                     return self.jwt_secret.decode("utf-8")
                 return self.jwt_secret
 
@@ -202,6 +202,10 @@ class Settings(BaseSettings):
 
     jobe_key: str = ""
     jobe_server: str = "http://jobe"
+
+    mailgun_api_key: str = ""
+    mailgun_domain: str = ""
+    email_from: str = "support@runestone.academy"
 
 
 settings = Settings(book_server_config=os.environ.get("SERVER_CONFIG", "development"))

@@ -77,9 +77,18 @@ module.exports = (env, argv) => {
                         // For more information, see `Asset Modules <https://webpack.js.org/guides/asset-modules/>`_.
                         type: "asset",
                     },
+                    {
+                        test: /\.tsx?$/,
+                        use: {
+                            loader: "ts-loader",
+                            options: { transpileOnly: true },
+                        },
+                        exclude: /node_modules/,
+                    },
                 ],
             },
             resolve: {
+                extensions: [".ts", ".tsx", ".js"],
                 fallback: {
                     // ``sql.js`` wants these in case it's running under node.js. They're not needed by JS in the browser.
                     crypto: false,

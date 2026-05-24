@@ -1,3 +1,5 @@
+import time
+import uuid
 from typing import Optional
 from pydal.validators import CRYPT
 from sqlalchemy import select, update, delete
@@ -112,3 +114,42 @@ async def delete_user(username):
         await session.execute(deluser)
         # This will delete many other things as well based on the CASECADING
         # foreign keys
+
+
+async def fetch_user_by_email(email: str) -> Optional[AuthUserValidator]:
+    query = select(AuthUser).where(AuthUser.email == email)
+    async with async_session() as session:
+        res = await session.execute(query)
+        user = res.scalars().first()
+    if user:
+        return AuthUserValidator.from_orm(user)
+    return None
+
+
+async def set_reset_token(user_id: int) -> str:
+    token = f"{int(time.time()):x}-{uuid.uuid4().hex}"
+    stmt = (
+        update(AuthUser).where(AuthUser.id == user_id).values(reset_password_key=token)
+    )
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+    return token
+
+
+async def consume_reset_token(token: str) -> Optional[AuthUserValidator]:
+    try:
+        ts = int(token.split("-")[0], 16)
+        if time.time() - ts > 3600:
+            return None
+    except (ValueError, IndexError):
+        return None
+    query = select(AuthUser).where(AuthUser.reset_password_key == token)
+    async with async_session() as session:
+        res = await session.execute(query)
+        user = res.scalars().one_or_none()
+    if not user:
+        return None
+    stmt = update(AuthUser).where(AuthUser.id == user.id).values(reset_password_key="")
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+    return AuthUserValidator.from_orm(user)

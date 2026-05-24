@@ -1,0 +1,32 @@
+{% extends "admin/auth/_auth_base.html" %}
+
+{% block title %}Forgot Username — Runestone Academy{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <h1>Forgot Username</h1>
+
+    {% if sent %}
+    <div class="alert alert-success">
+        If an account with that email exists, we've sent the username to it. Check your inbox.
+    </div>
+    <div class="auth-links"><a href="/admin/auth/login">Back to login</a></div>
+    {% else %}
+    <p class="text-muted">Enter your email address and we'll send you your username.</p>
+
+    <form method="post" action="/admin/auth/forgot-username">
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" class="form-control" id="email" name="email"
+                   autocomplete="email" autofocus required>
+        </div>
+        <button type="submit" class="btn btn-rs-primary">Send Username</button>
+    </form>
+
+    <div class="auth-links">
+        <a href="/admin/auth/login">Back to login</a> &middot;
+        <a href="/admin/auth/forgot-password">Forgot password?</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

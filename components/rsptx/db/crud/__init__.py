@@ -11,7 +11,15 @@ from .crud import (
     is_server_feedback,
     EVENT2TABLE,
 )
-from .user import fetch_user, create_user, update_user, delete_user
+from .user import (
+    fetch_user,
+    fetch_user_by_email,
+    create_user,
+    update_user,
+    delete_user,
+    set_reset_token,
+    consume_reset_token,
+)
 
 from .assignment import (
     create_assignment,
@@ -57,6 +65,7 @@ from .course import (
     fetch_current_instructors_for_course,
     fetch_instructor_courses,
     fetch_users_for_course,
+    fetch_courses_by_institution,
     update_course_settings,
     user_in_course,
 )
@@ -455,7 +464,11 @@ __all__ += [
 # from .user
 __all__ += [
     "fetch_user",
+    "fetch_user_by_email",
     "create_user",
     "update_user",
     "delete_user",
+    "set_reset_token",
+    "consume_reset_token",
+    "fetch_courses_by_institution",
 ]

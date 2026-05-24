@@ -189,6 +189,26 @@ export const AssignmentEdit = ({
             <i className={classNames("pi pi-list", styles.navigationIcon)} />
             <span className={classNames({ [styles.hidden]: isCollapsed })}>Exercises</span>
           </Button>
+          <Button
+            className={classNames(styles.navigationItem, {
+              [styles.collapsed]: isCollapsed
+            })}
+            onClick={() => {
+              if (!selectedAssignment?.id) return;
+              const protocol = window.location.protocol;
+              const hostname = window.location.hostname;
+              const baseUrl = `${protocol}//${hostname}`;
+              const previewUrl = `${baseUrl}/assignment/student/doAssignment?assignment_id=${selectedAssignment.id}`;
+              window.open(previewUrl, "_blank");
+            }}
+            disabled={!selectedAssignment?.id}
+            tooltip="Preview as student"
+            tooltipOptions={{ position: "right", showDelay: 150, hideDelay: 0 }}
+            text
+          >
+            <i className={classNames("pi pi-eye", styles.navigationIcon)} />
+            <span className={classNames({ [styles.hidden]: isCollapsed })}>Preview</span>
+          </Button>
         </div>
       </div>
       <div className={styles.mainContent}>

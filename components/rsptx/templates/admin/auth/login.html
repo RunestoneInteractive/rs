@@ -1,0 +1,34 @@
+{% extends "admin/auth/_auth_base.html" %}
+
+{% block title %}Log In — Runestone Academy{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <h1>Log In</h1>
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/admin/auth/login">
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" class="form-control" id="username" name="username"
+                   autocomplete="username" autofocus required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" class="form-control" id="password" name="password"
+                   autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn btn-rs-primary">Log In</button>
+    </form>
+
+    <div class="auth-links">
+        <a href="/admin/auth/forgot-password">Forgot password?</a> &middot;
+        <a href="/admin/auth/forgot-username">Forgot username?</a><br>
+        Don't have an account? <a href="/admin/auth/register">Register</a>
+    </div>
+</div>
+{% endblock %}

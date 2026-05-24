@@ -47,7 +47,7 @@ import "./runestone/common/js/presenter_mode.js";
 import "./runestone/common/css/presenter_mode.less";
 import { renderOneComponent } from "./runestone/common/js/renderComponent.js";
 import RunestoneBase from "./runestone/common/js/runestonebase.js";
-import { SpliceWrapper } from "./runestone/splice/js/spliceWrapper.js";
+import { SpliceWrapper } from "./runestone/splice/js/spliceWrapper.ts";
 
 // Dynamically loaded components
 // =============================
@@ -74,6 +74,7 @@ const module_map = {
     shortanswer: () =>
         import("./runestone/shortanswer/js/timed_shortanswer.js"),
     showeval: () => import("./runestone/showeval/js/showEval.js"),
+    tabbedStuff: () => import("./runestone/tabbedStuff/js/tabbedstuff.js"),
     timedAssessment: () => import("./runestone/timed/js/timed.js"),
     // TODO: since this isn't in a ``data-component``, need to trigger an import of this code manually.
     webwork: () => import("./runestone/webwork/js/webwork.js"),

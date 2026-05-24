@@ -718,7 +718,7 @@ function createStudyCluesWidget() {
         if (!query) {
             return;
         }
-        var sectionInfo = "this page";
+        var sectionInfo = "";
         // find the section title on the page to include in the initial query
         if (document.querySelector("body.pretext")) {
             let section = document.querySelector('section.section');
@@ -732,7 +732,9 @@ function createStudyCluesWidget() {
             }
         }
         if (studyCluesConversationId === -1) {
-            query = `Regarding section "${sectionInfo}": ${query}`;
+            if (sectionInfo) {
+                query = `Regarding section "${sectionInfo}": ${query}`;
+            } 
         }
         rb.logBookEvent({ event: "studyclues_query", act: `query: ${query}`, div_id: `${sectionInfo}` });
         appendStudyCluesMessage(messagesEl, "user", query); // todo: make this conditional on being a book page and on the book being one of the supported books
@@ -819,9 +821,10 @@ function createStudyCluesWidget() {
 }
 
 function shouldShowStudyCluesWidget() {
-    if (!location.pathname.includes("/ns/books/")) {
+    if (!(location.pathname.includes("/ns/books/") || location.pathname.includes("doAssignment"))) {
         return false;
     }
+
 
     const enabledBasecourses = ["csawesome2", "py4e-int", "thinkcspy", "httlacs", "PTXSB", "cppds2"];
     const enabledCourses = ["SI201-W26-MW", "SI201-W26-TTh", "DukeCS101SP26", "mcd-csa-schoology", "mcd-csa-canvas", "csawesome2-MOOC", "test_py4e-int_api", "bc_cppds_s26", "Test-py4e-int", "virginiatech_py4e-int_spring26"];

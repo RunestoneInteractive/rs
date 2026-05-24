@@ -52,8 +52,8 @@ class RedisCache:
     def set(self, key, value, expiration=600):
         # pylti1p3 library tries to store dicts and bools
         # make sure we don't give redis those
-        if type(value) is bool:
+        if isinstance(value, bool):
             value = str(value)
-        elif type(value) is dict:
+        elif isinstance(value, dict):
             value = json.dumps(value)
         self.redis.set(key, value, ex=expiration)

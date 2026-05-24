@@ -148,6 +148,15 @@ include /etc/nginx/default.d/\*.conf;
        proxy_pass http://admin:8115/analytics/;
     }
 
+    # New auth system — registration, login, profile, course enrollment
+    location /admin/auth/ {
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto https;
+       proxy_set_header Host $http_host;
+       proxy_redirect off;
+       proxy_pass http://admin:8115/auth/;
+    }
+
     # route author requests
     # This one looks a bit different due to the author server being optional in the compose setup
     # We have to define the proxy endpoint inside the location
