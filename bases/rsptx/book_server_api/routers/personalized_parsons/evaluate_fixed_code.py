@@ -414,7 +414,7 @@ def java_unittest_evaluation(
         fixed_code = extract_code_line(fixed_code)
         fixed_code = remove_empty_lines(fixed_code)
         fixed_code = remove_java_comments(fixed_code)
-    except Exception as e:
+    except Exception:
         return False, fixed_code
 
     try:
@@ -422,7 +422,7 @@ def java_unittest_evaluation(
         java_test_result = load_and_run_java_tests(fixed_code, unittest_case)
         print("java_results\n", java_test_result)
         return java_test_result, fixed_code
-    except Exception as e:
+    except Exception:
         return False, fixed_code
 
 
@@ -447,15 +447,14 @@ def python_unittest_evaluation(
         fixed_code = remove_empty_lines(fixed_code)
         fixed_code = remove_python_comments(fixed_code)
         # print("cleaned_fixed_code\n", fixed_code)
-    except Exception as e:
+    except Exception:
         return False, fixed_code
     try:
         ##print("fixed_code_first attempt", fixed_code)
         results = load_and_run_tests(unittest_case, fixed_code)
         print("results.wasSuccessful()\n", results.wasSuccessful())
         return results.wasSuccessful(), fixed_code
-    except Exception as e:
-        print("Exception", e)
+    except Exception:
         try:
             fixed_code = fix_indentation(fixed_code)
             results = load_and_run_tests(unittest_case, fixed_code)
@@ -465,7 +464,7 @@ def python_unittest_evaluation(
                 return results.wasSuccessful(), fixed_code
             else:
                 return False, fixed_code
-        except Exception as e:
+        except Exception:
             return False, fixed_code
 
 
@@ -490,7 +489,7 @@ def code_distractor_unittest_evaluation(
                 code_with_distrator, unittest_case
             )
             return java_test_result, code_with_distrator
-        except Exception as e:
+        except Exception:
             return False, code_with_distrator
     else:
         try:
@@ -507,7 +506,7 @@ def code_distractor_unittest_evaluation(
                     return results.wasSuccessful(), code_with_distrator
                 else:
                     return False, code_with_distrator
-            except Exception as e:
+            except Exception:
                 return False, code_with_distrator
 
 
