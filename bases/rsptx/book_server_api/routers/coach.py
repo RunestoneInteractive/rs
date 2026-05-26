@@ -228,6 +228,7 @@ async def parsons_scaffolding(request: Request, course: Optional[str]):
     internal_test_case = data.get(
         "internal_test_case"
     )  # Capture the internal test case from the front end
+    parsons_personalized = data.get("parsons_personalized", True)
     print("start_to: get_parsons_help", api_token, language, personalization_level)
 
     adaptive_attr = 'data-adaptive="true"'
@@ -269,6 +270,68 @@ async def parsons_scaffolding(request: Request, course: Optional[str]):
             "CF (Code)": student_code,
         }
         return get_parsons_help(api_token, language, input_dict, personalization_level)
+
+    if not parsons_personalized:
+        # Return example without CodeTailor personalization
+        if parsonsexample != "LLM-example" and parsonsexample_html:
+            parsons_html = f"""
+            <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
+            {parsonsexample_code}
+            </pre>
+            """
+            return (
+                parsonsexample_code
+                + "||split||"
+                + parsons_html
+                + "||split||"
+                + personalization_level
+                + "||split||"
+                + "example_solution"
+            )
+        else:
+            from .personalized_parsons.get_personalized_solution import (
+                get_example_solution,
+            )
+            from .personalized_parsons.generate_parsons_blocks import (
+                generate_Parsons_block,
+            )
+
+            example_code = get_example_solution(
+                api_token, language, problem_description, internal_test_case
+            )
+            if not example_code:
+                return (
+                    "emptyHelpCode"
+                    + "||split||emptyHelpParsons"
+                    + "||split||"
+                    + personalization_level
+                    + "||split||example_solution"
+                )
+            example_block = generate_Parsons_block(
+                "Solution",
+                language,
+                "Full",
+                problem_description,
+                example_code,
+                [],
+                [],
+                {},
+            )
+            example_block = re.sub(r"<(?=\S)", "< ", example_block)
+            parsons_html = f"""
+            <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
+            {example_block}
+            </pre>
+            """
+            return (
+                example_code
+                + "||split||"
+                + parsons_html
+                + "||split||"
+                + personalization_level
+                + "||split||"
+                + "example_solution"
+            )
 
     if personalization_level in ["Solution", "Multiple"]:
         (
