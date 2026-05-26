@@ -4965,6 +4965,9 @@ files = [
     {file = "psycopg-3.3.4.tar.gz", hash = "sha256:e21207764952cff81b6b8bdacad9a3939f2793367fdac2987b3aac36a651b5bc"},
 ]
 
+[package.dependencies]
+tzdata = {version = "*", markers = "sys_platform == \"win32\""}
+
 [package.extras]
 binary = ["psycopg-binary (==3.3.4) ; implementation_name != \"pypy\""]
 c = ["psycopg-c (==3.3.4) ; implementation_name != \"pypy\""]
