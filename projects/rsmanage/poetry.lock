@@ -2804,14 +2804,14 @@ pyee = ">=13,<14"
 
 [[package]]
 name = "pretext"
-version = "2.38.3"
+version = "2.39.0"
 description = "A package to author, build, and deploy PreTeXt projects."
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "pretext-2.38.3-py3-none-any.whl", hash = "sha256:5dbb9dde9ac7339a66504d3a344167783a04197e36bcb7f545d34ae5128587c7"},
-    {file = "pretext-2.38.3.tar.gz", hash = "sha256:5a715b459a92ca051bf594dfd682c662db136a2822f610ab6a086819888b6204"},
+    {file = "pretext-2.39.0-py3-none-any.whl", hash = "sha256:03e2c4c9d20c9a131206ba6599e5836408d52e521c7d0336bbfd23ae64d6ef08"},
+    {file = "pretext-2.39.0.tar.gz", hash = "sha256:51d699844508fb6f812b5997ba82a5daf750df8420a2d29049360036d3a7a1c2"},
 ]
 
 [package.dependencies]
@@ -3881,52 +3881,50 @@ name = "runestone"
 version = "7.13.5"
 description = "Sphinx extensions for writing interactive documents."
 optional = false
-python-versions = "^3.10.0"
+python-versions = "<4.0.0,>=3.10.0"
 groups = ["main"]
-files = []
-develop = true
+files = [
+    {file = "runestone-7.13.5-py3-none-any.whl", hash = "sha256:d08937ad1035fcadf93769295ff43cd1573649e85cbb808d155968bcdca4fc1d"},
+    {file = "runestone-7.13.5.tar.gz", hash = "sha256:92e9e9521f51704a3501aa36fa44f58673809adfa603302573cba1c010968683"},
+]
 
 [package.dependencies]
 aiosqlite = ">=0.18.0"
-asyncpg = "^0.30.0"
-click = "~8"
+asyncpg = ">=0.30.0,<0.31.0"
+click = ">=8,<9"
 CodeChat = "1.9.3"
 cogapp = ">=2.5"
-cryptography = "^46.0.0"
-dateutils = "^0.6.12"
-fastapi = "^0.115.0"
-greenlet = "^3.0.0"
-ipyleaflet = "^0.19.2"
-jinja2 = "^3.1.0"
-json2xml = "^3.21.0"
+cryptography = ">=46.0.0,<47.0.0"
+dateutils = ">=0.6.12,<0.7.0"
+fastapi = ">=0.115.0,<0.116.0"
+greenlet = ">=3.0.0,<4.0.0"
+ipyleaflet = ">=0.19.2,<0.20.0"
+jinja2 = ">=3.1.0,<4.0.0"
+json2xml = ">=3.21.0,<4.0.0"
 jupyter-sphinx = "<0.5"
-jupyterlab = "^4.2.4"
-jupyterlite-sphinx = "^0.9.3"
-lxml = "^6.0"
-myst-parser = "^1.0.0"
+jupyterlab = ">=4.2.4,<5.0.0"
+jupyterlite-sphinx = ">=0.9.3,<0.10.0"
+lxml = ">=6.0,<7.0"
+myst-parser = ">=1.0.0,<2.0.0"
 Paver = ">=1.2.4"
-pretext = "^2.35.0"
-psycopg2-binary = "^2.9.6"
+pretext = ">=2.35.0,<3.0.0"
+psycopg2-binary = ">=2.9.6,<3.0.0"
 pydal = ">=20230521.1"
-pydantic = "^2.0.0"
-pydantic-settings = "^2.0.3"
-pyhumps = "^3.8.0"
-python-dotenv = "^1.0.0"
-scikit-learn = "^1.5.1"
+pydantic = ">=2.0.0,<3.0.0"
+pydantic-settings = ">=2.0.3,<3.0.0"
+pyhumps = ">=3.8.0,<4.0.0"
+python-dotenv = ">=1.0.0,<2.0.0"
+scikit-learn = ">=1.5.1,<2.0.0"
 setuptools = "<81.0.0"
 six = ">1.12"
-Sphinx = "^5.0.0"
-sphinx-reredirects = "^0.1.2"
+Sphinx = ">=5.0.0,<6.0.0"
+sphinx-reredirects = ">=0.1.2,<0.2.0"
 sphinxcontrib-paverutils = ">=1.18.1"
-SQLAlchemy = "^2.0.0"
-standard-asyncore = "^3.13.0"
-standard-cgi = "^3.13.0"
-standard-imghdr = "^3.13.0"
-toml = "^0.10.2"
-
-[package.source]
-type = "directory"
-url = "../interactives"
+SQLAlchemy = ">=2.0.0,<3.0.0"
+standard-asyncore = ">=3.13.0,<4.0.0"
+standard-cgi = ">=3.13.0,<4.0.0"
+standard-imghdr = ">=3.13.0,<4.0.0"
+toml = ">=0.10.2,<0.11.0"
 
 [[package]]
 name = "scikit-learn"

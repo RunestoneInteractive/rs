@@ -131,7 +131,6 @@ pre-commit = "^4.5.1"
 ruff = "^0.15.2"
 
 
-
 [tool.poetry.group.docs.dependencies]
 sphinx-click = "^6.0.0"
 Sphinx = "^5.0.0"
