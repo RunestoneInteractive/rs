@@ -136,6 +136,10 @@ populated when the JSON is built.
      - string
      - activecode
      - Example question ID used by CodeTailor
+   * - parsonsPersonalized
+     - boolean
+     - activecode
+     - When false, CodeTailor skips personalization and returns the predefined example Parsons puzzle instead of inspecting the student's code (default: true)
    * - enableCodelens
      - boolean
      - activecode
@@ -481,6 +485,9 @@ activecode
    * - parsonsexample
      - string
      - ""
+   * - parsonsPersonalized
+     - boolean
+     - true
    * - enableCodelens
      - boolean
      - true
@@ -703,6 +710,7 @@ Active Code
      "enableCodeTailor": false,
      "parsonspersonalize": "",
      "parsonsexample": "",
+     "parsonsPersonalized": true,
      "enableCodelens": true
    }
 
@@ -916,6 +924,8 @@ When a new question is created, ``getDefaultQuestionJson()`` in
      - ""
    * - parsonsexample
      - ""
+   * - parsonsPersonalized
+     - true
    * - enableCodelens
      - true
 
