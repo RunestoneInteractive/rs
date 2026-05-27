@@ -1,0 +1,39 @@
+{% extends "_base.html" %}
+
+{% block title %}Peer Instruction - Extra Info{% endblock %}
+
+{% block content %}
+<div style="padding: 20px;">
+    <h2>Percent Correct for {{ current_question.name }}</h2>
+    <p><span id="pct_corr" style="font-size: 2em; font-weight: bold;"></span>%</p>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    var startTime = new Date().toUTCString();
+    var startTime2 = null;
+
+    async function updatePctCorrect() {
+        let data = {
+            div_id: "{{ current_question.name }}",
+            course_name: "{{ course.course_name }}",
+            start_time: startTime,
+        };
+        if (startTime2 !== null) {
+            data.start_time = startTime2;
+        }
+        let resp = await fetch("/assignment/peer/api/percent_correct", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify(data),
+        });
+        let spec = await resp.json();
+        document.getElementById("pct_corr").innerHTML = spec.pct_correct ?? "--";
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        setInterval(updatePctCorrect, 2000);
+    });
+</script>
+{% endblock %}

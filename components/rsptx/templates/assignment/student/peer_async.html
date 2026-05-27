@@ -1,0 +1,1224 @@
+{% extends "_base.html" %}
+
+{% block title %}Peer Instruction (After Class){% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="/runestone/static/css/peer.css?v={{ peer_mtime }}">
+<style>
+    .hidden-content { display: none; }
+    body.pi-hide-feedback .oneq .alert-danger { display: none !important; }
+    .oneq .ptx-runestone-container > div > .alert { display: none !important; }
+    .oneq [id$="_feedback"] { display: none !important; }
+    .oneq .runestone.isCorrect::before,
+    .oneq .runestone.isCorrect::after,
+    .oneq .runestone.isInCorrect::before,
+    .oneq .runestone.isInCorrect::after { display: none !important; }
+    .oneq .runestone.isCorrect,
+    .oneq .runestone.isInCorrect { outline: none !important; border-style: solid !important; }
+    .oneq ul.form-group li { outline: none !important; border: none !important; }
+    .oneq li label, .oneq li { outline: none !important; }
+    .oneq * { outline: none !important; }
+    body.pi-async-loading .oneq { opacity: 0; }
+    .navbar { position: fixed !important; top: 0 !important; width: 100% !important; z-index: 1030 !important; margin-left: 0 !important; margin-right: 0 !important; }
+    h2 { font-size: 1.8em !important; margin-top: 4px !important; margin-bottom: 4px !important; }
+    #stepBanner { padding: 4px 12px !important; margin-bottom: 4px !important; font-size: 15px !important; }
+    #imessage { margin-bottom: 2px !important; }
+    #imessage p { margin-bottom: 0 !important; }
+    #imessage ol { margin-bottom: 0 !important; padding-top: 0 !important; }
+    #imessage li { margin-bottom: 0 !important; line-height: 1.4 !important; }
+    .row { margin-top: 0 !important; margin-bottom: 0 !important; }
+    .oneq .ptx-runestone-container { padding: 16px !important; }
+    .container-fluid { padding-bottom: 0 !important; padding-top: 0 !important; }
+    #peer_async_root { margin-bottom: 0 !important; }
+    body > .container-fluid { margin-bottom: 0 !important; }
+    body { font-size: 16px; margin-bottom: 0 !important; padding-bottom: 0 !important; }
+
+    :root {
+      --pi-blue:      #2f7fd1;
+      --pi-blue2:     #1f6fc1;
+      --pi-blue-deep: #1d4ed8;
+      --pi-blue-soft: #eaf2fb;
+      --pi-ink:       #1f2937;
+      --pi-ink2:      #374151;
+      --pi-ink3:      #6b7280;
+      --pi-line:      #e5e7eb;
+      --pi-line2:     #d1d5db;
+    }
+
+    .typing-indicator { display:flex; gap:5px; align-items:center; padding:7px 11px; background:#f3f4f6; border:1px solid var(--pi-line); border-radius:3px 10px 10px 10px; width:fit-content; }
+    .typing-indicator span { width:7px; height:7px; background:#9ca3af; border-radius:50%; animation:pi-bounce 1.2s infinite; display:inline-block; }
+    .typing-indicator span:nth-child(2) { animation-delay:.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay:.4s; }
+    @keyframes pi-bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+    .pi-msg-wrap { display:flex; flex-direction:column; gap:2px; margin-bottom:10px; }
+    .pi-msg-wrap.user { align-items:flex-end; }
+    .pi-msg-wrap.assistant { align-items:flex-start; }
+    .pi-msg-label { font-size:11.5px; font-weight:500; color:var(--pi-ink3); }
+    .pi-msg-bubble { max-width:88%; padding:7px 11px; font-size:14.5px; line-height:1.55; white-space:pre-wrap; word-break:break-word; }
+    .pi-msg-wrap.user .pi-msg-bubble { background:var(--pi-blue-soft); border:1px solid #d4e4f3; border-radius:10px 3px 10px 10px; }
+    .pi-msg-wrap.assistant .pi-msg-bubble { background:#f3f4f6; border:1px solid var(--pi-line); border-radius:3px 10px 10px 10px; }
+
+    #nextQuestionWrapper { display:inline-block; margin-left:8px; position:relative; }
+    #nextQuestionSubmit { color: #fff !important; }
+    #nextQuestionWrapper[data-tooltip]:hover::after {
+      content:attr(data-tooltip); position:absolute; bottom:calc(100% + 6px); left:50%;
+      transform:translateX(-50%); background:#333; color:#fff; padding:4px 8px;
+      border-radius:4px; font-size:13px; white-space:nowrap; pointer-events:none; z-index:999;
+    }
+    #nextQuestionWrapper[data-tooltip]:hover::before {
+      content:""; position:absolute; bottom:calc(100% + 1px); left:50%;
+      transform:translateX(-50%); border:5px solid transparent;
+      border-top-color:#333; pointer-events:none; z-index:999;
+    }
+
+    .pi-panel { border:1px solid var(--pi-line); border-radius:6px; background:#fff; overflow:visible; }
+    .pi-panel > :first-child { border-radius:6px 6px 0 0; }
+    .pi-panel > :last-child { border-radius:0 0 6px 6px; }
+
+    .pi-panel-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 16px; border-bottom:1px solid var(--pi-line);
+    }
+    .pi-panel-title { font-size:15px; font-weight:600; color:var(--pi-ink); }
+    .pi-pick-chip {
+      background:var(--pi-blue-soft); border:1px solid #c3d9f0;
+      border-radius:4px; padding:2px 10px;
+      font-size:13px; font-weight:500; color:var(--pi-blue-deep);
+    }
+
+    .pi-tab-bar { display:flex; border-bottom:1px solid var(--pi-line); }
+    .pi-tab {
+      flex:1; padding:9px 12px; background:none; border:none;
+      border-bottom:2px solid transparent; font-size:14px; color:var(--pi-ink3);
+      cursor:pointer; display:flex; align-items:center; gap:6px;
+      margin-bottom:-1px; transition:color .15s;
+    }
+    .pi-tab:hover { color:var(--pi-ink); }
+    .pi-tab.active { color:var(--pi-blue-deep); border-bottom-color:var(--pi-blue); font-weight:500; }
+    .pi-tab-num {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:20px; height:20px; border-radius:50%;
+      background:var(--pi-line); color:var(--pi-ink3);
+      font-size:12px; font-weight:600; flex-shrink:0;
+    }
+    .pi-tab.active .pi-tab-num { background:var(--pi-blue-soft); color:var(--pi-blue-deep); }
+    .pi-tab-num.done { background:var(--pi-blue-soft) !important; color:var(--pi-blue-deep) !important; }
+
+    .pi-pane { padding:16px; position:relative; }
+
+    .pi-pane-lock {
+      position:absolute; inset:0;
+      background:rgba(255,255,255,0.90);
+      backdrop-filter:blur(2px);
+      z-index:10;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:6px;
+      text-align:center; padding:20px;
+    }
+    .pi-pane-lock-title { font-size:15px; font-weight:600; color:var(--pi-ink); }
+    .pi-pane-lock-sub { font-size:13px; color:var(--pi-ink3); }
+
+    .pi-reasoning-prompt { font-size:14.5px; color:var(--pi-ink2); margin-bottom:10px; }
+    #messageText {
+      width:100%; height:140px; resize:none;
+      font-size:14.5px; background:#fafbfc;
+      border:1px solid var(--pi-line2); border-radius:4px;
+      padding:8px 10px; margin-bottom:10px;
+      box-sizing:border-box; display:block;
+    }
+    #messageText:focus { outline:none; box-shadow:0 0 0 3px rgba(47,127,209,.12); border-color:var(--pi-blue); }
+    .pi-reasoning-footer { display:flex; justify-content:flex-end; }
+    #submitReflection:disabled { opacity:0.5; }
+
+    #piTabBody2 { padding:0; position:relative; }
+
+    .pi-reasoning-bar {
+      display:none; align-items:baseline; gap:8px;
+      padding:7px 12px; background:#f9fafb;
+      border-bottom:1px solid var(--pi-line);
+    }
+    .pi-reasoning-bar.visible { display:flex; cursor:pointer; }
+    .pi-reasoning-bar.visible:hover { background:#f0f1f3; }
+    .pi-reasoning-bar-label {
+      font-size:10px; font-weight:700; letter-spacing:.06em;
+      color:var(--pi-ink3); text-transform:uppercase;
+      white-space:nowrap; flex-shrink:0;
+    }
+    .pi-reasoning-bar-text {
+      font-size:13px; font-style:italic; color:var(--pi-ink2);
+      overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    }
+
+    #llmChat {
+      height:370px; overflow-y:auto;
+      display:flex; flex-direction:column;
+      padding:10px 14px;
+    }
+
+    .pi-composer {
+      display:flex; gap:6px; align-items:center;
+      padding:8px 12px; border-top:1px solid var(--pi-line);
+    }
+    #llmReplyInput { flex:1; font-size:14px; }
+
+    .pi-vote-bar {
+      border-top:1px solid var(--pi-line);
+      padding:10px 14px;
+      display:flex; align-items:center; gap:12px;
+      background:#f9fafb;
+      transition:background .3s;
+    }
+    .pi-vote-bar.active {
+      background:linear-gradient(135deg, var(--pi-blue-soft) 0%, #dbeeff 100%);
+    }
+    .pi-vote-bar-inner { flex:1; display:flex; flex-direction:column; gap:5px; }
+    .pi-vote-disclaimer { font-size:12px; color:var(--pi-ink3); display:none; }
+
+    .pi-responses-count-row {
+      font-size:13px; font-weight:600; color:var(--pi-ink);
+      padding-bottom:10px; margin-bottom:4px;
+      border-bottom:1px solid var(--pi-line);
+    }
+    .pi-response-card {
+      border:1px solid var(--pi-line); border-radius:6px;
+      padding:12px 14px; margin-bottom:8px; background:#fff;
+    }
+    .pi-response-card-meta {
+      font-size:12px; font-weight:600; color:var(--pi-ink3); margin-bottom:6px;
+    }
+    .pi-response-card-text { font-size:14px; color:var(--pi-ink); line-height:1.5; }
+    .pi-no-responses { font-size:14px; color:var(--pi-ink3); font-style:italic; }
+
+    .theme-picker{ padding:0 0 10px 0; }
+    .theme-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; gap:10px; }
+    .theme-label-text{ font-size:13px; font-weight:600; color:var(--pi-ink2); }
+    .theme-hint{ font-size:12px; color:var(--pi-ink3); }
+    .theme-select-wrap{ position:relative; }
+    .theme-trigger{ width:100%; font:inherit; font-size:14px; background:#fff; border:1px solid var(--pi-line2); border-radius:5px; padding:9px 12px; cursor:pointer; display:flex; align-items:center; gap:10px; text-align:left; color:var(--pi-ink); transition:border-color .12s, box-shadow .12s; outline:none; }
+    .theme-trigger:hover{ border-color:var(--pi-blue); }
+    .theme-trigger[aria-expanded="true"]{ border-color:var(--pi-blue); box-shadow:0 0 0 3px rgba(47,127,209,.12); }
+    .theme-trigger.placeholder .tt-label{ color:var(--pi-ink3); }
+    .tt-label{ flex:1; font-size:14px; }
+    .tt-caret{ color:var(--pi-ink3); font-size:12px; }
+    .theme-menu{ position:absolute; left:0; right:0; top:calc(100% + 4px); background:#fff; border:1px solid var(--pi-line); border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.12), 0 2px 6px rgba(15,23,42,.05); max-height:280px; overflow-y:auto; padding:4px; z-index:20; }
+    .theme-menu::-webkit-scrollbar{ width:6px; }
+    .theme-menu::-webkit-scrollbar-thumb{ background:#d1d5db; border-radius:3px; }
+    .tm-opt{ width:100%; font:inherit; font-size:13.5px; background:transparent; border:0; color:var(--pi-ink); padding:7px 10px; cursor:pointer; display:flex; align-items:center; gap:10px; text-align:left; border-radius:4px; }
+    .tm-opt:hover{ background:var(--pi-blue-soft); color:var(--pi-blue-deep); }
+    .tm-opt.selected{ background:var(--pi-blue-soft); color:var(--pi-blue-deep); font-weight:500; }
+    .tm-opt.selected::after{ content:"\2713"; margin-left:auto; color:var(--pi-blue); font-weight:700; }
+    #readyVote2Btn {
+      background:var(--pi-blue); color:#fff;
+      border:none; border-radius:4px;
+      padding:6px 14px; font-size:14px; white-space:nowrap; cursor:pointer;
+    }
+    #readyVote2Btn:hover:not(:disabled) { background:var(--pi-blue2); }
+    #readyVote2Btn:disabled { background:var(--pi-line2); color:#9ca3af; cursor:not-allowed; }
+
+</style>
+{% endblock %}
+
+{% block navitems %}
+<li class="nav-item">
+    <a class="nav-link" href="/ns/books/published/{{ course.course_name }}/index.html">Back to {{ course.course_name }}</a>
+</li>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:1170px; margin:0 auto; padding:0 15px;">
+{% include 'common/static_assets.html' %}
+{% include 'common/ebook_config.html' %}
+
+<script>
+  document.body.classList.add('pi-async-loading');
+  window.ASYNC_LLM_ENABLED = {{ 'true' if llm_enabled else 'false' }};
+  window.DISABLE_LLMTEST = true;
+  window.PI_LLM_MODE = {{ 'true' if llm_enabled else 'false' }};
+  window.PI_ASYNC_MODE = "{{ async_mode }}";
+  window.PI_THEMES = {{ pi_themes_json|safe }};
+  window._selectedTheme = null;
+  window._analogyMapping = "";
+
+  window.eBookConfig = window.eBookConfig || {};
+  eBookConfig.course = "{{ course_id }}";
+  eBookConfig.basecourse = "{{ course.base_course }}";
+  eBookConfig.host = window.location.origin;
+  eBookConfig.isLoggedIn = true;
+</script>
+
+<div id="peer_async_root" data-div_id="{{ current_question.name if current_question else '' }}">
+</div>
+
+<div class="hidden-content" style="display: none">
+    \( {{ latex_macros|safe }} \)
+</div>
+
+<h2>Peer Instruction Question (After Class)</h2>
+
+{% if not all_done %}
+<div id="stepBanner" style="
+  background: #4A9FDE;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: bold;
+">
+  <span style="opacity:1">●</span> <span style="opacity:0.4">●</span> <span style="opacity:0.4">●</span> &nbsp;&nbsp;Step 1 of 3: Answer the question
+</div>
+{% endif %}
+
+<div id="imessage">
+    <p>This page is meant for you to use <i>after</i> the inclass peer instruction is over.
+        <ol>
+            <li>Answer the question as best you can.</li>
+            <li>Then, in the space provided write a justification for your answer.</li>
+            {% if llm_enabled %}
+            <li>Discuss the question with an LLM peer — explain your reasoning and respond to their questions.</li>
+            {% else %}
+            <li>Read the justification or discussion.</li>
+            {% endif %}
+            <li>Answer the question <strong>again.</strong>  Even if you are not changing your answer from the first time.</li>
+        </ol>
+    </p>
+</div>
+
+<div class="row">
+    {% if not all_done %}
+    <div class="oneq col-md-6 runestone-sphinx">
+        {{ current_question.htmlsrc|safe }}
+    </div>
+    {% else %}
+    <div class="oneq col-md-6">
+        <h3>Congratulations, you have completed this assignment!</h3>
+    </div>
+    {% endif %}
+
+    {% if not all_done %}
+    <div class="col-md-6" id="reflectionPanel" style="padding-left:15px; padding-top:20px;">
+
+      <div class="pi-panel">
+
+        <div class="pi-panel-head">
+          <span class="pi-panel-title">{% if llm_enabled %}Justify &amp; discuss your answer{% else %}Justify your answer{% endif %}</span>
+          <span class="pi-pick-chip">Your pick:&nbsp;<span id="current_answer">—</span></span>
+        </div>
+
+        <div class="pi-tab-bar">
+          <button class="pi-tab active" id="piTab1Btn" onclick="showPiTab(1)">
+            <span class="pi-tab-num" id="piTabNum1">1</span>Your reasoning
+          </button>
+          <button class="pi-tab" id="piTab2Btn" onclick="showPiTab(2)">
+            <span class="pi-tab-num" id="piTabNum2">2</span>{% if llm_enabled %}Discuss with peer{% else %}Class responses{% endif %}
+          </button>
+        </div>
+
+        <div class="pi-pane" id="piTabBody1">
+          <div class="pi-pane-lock" id="justificationOverlay">
+            <div class="pi-pane-lock-title">Answer the question first</div>
+            <div class="pi-pane-lock-sub">Submit your first vote to write your justification.</div>
+          </div>
+          <div id="themePickerRow" style="display:none;">
+            <div class="theme-picker">
+              <div class="theme-head">
+                <span class="theme-label-text">Theme</span>
+                <span class="theme-hint">The LLM will frame examples around this.</span>
+              </div>
+              <div class="theme-select-wrap" id="themeSelectWrap">
+                <button class="theme-trigger placeholder" id="themeTrigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="tt-label" id="ttLabel">Choose a theme…</span>
+                  <span class="tt-caret">▾</span>
+                </button>
+                <div class="theme-menu" id="themeMenuList" role="listbox" hidden></div>
+              </div>
+            </div>
+          </div>
+          <p class="pi-reasoning-prompt">
+            Please explain why you chose <strong><span id="current_answer_prompt">—</span></strong>.
+          </p>
+          <textarea id="messageText" placeholder="Write your reasoning here…" disabled></textarea>
+          <div class="pi-reasoning-footer">
+            <button id="submitReflection" type="button" class="btn btn-primary" disabled>
+              {% if llm_enabled %}Continue to discussion →{% else %}Submit and see responses →{% endif %}
+            </button>
+          </div>
+        </div>
+
+        <div id="piTabBody2" style="display:none;">
+          <div class="pi-pane-lock" id="piTab2Lock">
+            <div class="pi-pane-lock-title">Write your reasoning first</div>
+            <div class="pi-pane-lock-sub">{% if llm_enabled %}Once you submit, your LLM peer will respond.{% else %}Submit your reasoning to see how the class responded.{% endif %}</div>
+          </div>
+          <div class="pi-reasoning-bar" id="piReasoningBar" onclick="showPiTab(1)" title="Click to view your reasoning">
+            <span class="pi-reasoning-bar-label">Your reasoning</span>
+            <span class="pi-reasoning-bar-text" id="piReasoningBarText" title=""></span>
+          </div>
+          <div id="llmChat"></div>
+          <div class="pi-composer">
+            <input id="llmReplyInput" class="form-control form-control-sm" type="text" placeholder="Reply…" />
+            <button id="llmReplyBtn" class="btn btn-secondary btn-sm">Send</button>
+          </div>
+        </div>
+
+        <div class="pi-vote-bar" id="piVoteBar">
+          <div class="pi-vote-bar-inner">
+            {% if llm_enabled %}
+            <span class="pi-vote-disclaimer" id="llmDisclaimer">You are chatting with an LLM, not a real peer.</span>
+            {% endif %}
+          </div>
+          <button id="readyVote2Btn" disabled onclick="enableSecondVoteAsync()">Vote again →</button>
+        </div>
+
+      </div>
+
+    </div>
+    {% endif %}
+</div>
+
+{% if has_vote1 and has_reflection and llm_reply %}
+<hr>
+<div style="background:#f0f0f0; padding:10px; border-radius:4px;">
+  <strong>An LLM peer said:</strong>
+  <p>{{ llm_reply }}</p>
+</div>
+{% endif %}
+
+</div>{# end max-width wrapper #}
+{% endblock %}
+
+{% block js %}
+<script>
+  window.DISABLE_ASYNC_EXPLAINER = true;
+  window.PI_LLM_MODE = {{ 'true' if llm_enabled else 'false' }};
+</script>
+<script src="/staticAssets/js/peer.js?v={{ peer_mtime }}"></script>
+<script>
+  window._vote2Enabled = false;
+  window._vote1Locked = false;
+
+  function showPiTab(n) {
+    if (n === 2) {
+      const lock = document.getElementById('piTab2Lock');
+      if (lock && lock.style.display !== 'none') return;
+    }
+    const t1 = document.getElementById('piTabBody1');
+    const t2 = document.getElementById('piTabBody2');
+    const b1 = document.getElementById('piTab1Btn');
+    const b2 = document.getElementById('piTab2Btn');
+    if (n === 1) {
+      if (t1) t1.style.display = 'block';
+      if (t2) t2.style.display = 'none';
+      if (b1) b1.classList.add('active');
+      if (b2) b2.classList.remove('active');
+    } else {
+      if (t1) t1.style.display = 'none';
+      if (t2) t2.style.display = 'block';
+      if (b1) b1.classList.remove('active');
+      if (b2) b2.classList.add('active');
+      const chat = document.getElementById('llmChat');
+      if (chat) setTimeout(() => { chat.scrollTop = chat.scrollHeight; }, 30);
+    }
+  }
+
+  function updateVoteBar(exchanges) {
+    if (window._voteAgainClicked) return;
+    const bar = document.getElementById('piVoteBar');
+    const btn = document.getElementById('readyVote2Btn');
+    if (exchanges >= 1) {
+      if (bar) bar.classList.add('active');
+      if (btn) btn.disabled = false;
+    } else {
+      if (bar) bar.classList.remove('active');
+      if (btn) btn.disabled = true;
+    }
+  }
+
+  function setVoteInputsLocked(locked) {
+    try {
+      const comp = window.componentMap[currentQuestion];
+      if (comp && comp.submitButton) {
+        comp.submitButton.disabled = locked;
+      }
+      if (comp && typeof comp.disableInteraction === "function" && locked) {
+        comp.disableInteraction();
+      }
+      if (comp && typeof comp.enableInteraction === "function" && !locked) {
+        comp.enableInteraction();
+      }
+    } catch (e) {
+      console.warn("vote lock toggle failed", e);
+    }
+  }
+
+  function lockVote1AndReflection() {
+    window._vote1Locked = true;
+    setVoteInputsLocked(true);
+    const ta = document.getElementById("messageText");
+    const btn = document.getElementById("submitReflection");
+    if (ta) ta.disabled = true;
+    if (btn) btn.disabled = true;
+  }
+
+  function updateStepBanner(step) {
+    const banner = document.getElementById("stepBanner");
+    if (!banner) return;
+    banner.style.color = "#fff";
+    var dots = function(filled) {
+      var html = "";
+      for (var i = 0; i < 3; i++) {
+        var style = i < filled ? "opacity:1" : "opacity:0.4";
+        html += '<span style="' + style + '">●</span> ';
+      }
+      return html;
+    };
+    var label, bg;
+    if (step === 1) {
+      label = "Step 1 of 3: Answer the question";
+      bg = "#4A9FDE";
+    } else if (step === 2) {
+      label = window.PI_LLM_MODE
+        ? "Step 2 of 3: Explain your answer and discuss with the LLM peer"
+        : "Step 2 of 3: Explain your answer and read the justification or discussion";
+      bg = "#2878B5";
+    } else if (step === 3) {
+      label = "Step 3 of 3: Vote again — you may keep or change your answer";
+      bg = "#1A5276";
+    } else if (step === 4) {
+      var hasNextQ = document.querySelector('form[action="/assignment/peer/student/async"]');
+      label = hasNextQ ? "Done! Move to the next question." : "Done! You have completed this assignment.";
+      bg = "#0E3D56";
+    }
+    banner.innerHTML = dots(step > 3 ? 3 : step) + "&nbsp;&nbsp;" + label;
+    banner.style.background = bg;
+  }
+
+  function setReflectionPanelEnabled(enabled) {
+    const overlay = document.getElementById("justificationOverlay");
+    const ta = document.getElementById("messageText");
+    const btn = document.getElementById("submitReflection");
+    if (overlay) overlay.style.display = enabled ? "none" : "flex";
+    if (ta) ta.disabled = !enabled;
+    if (enabled) {
+      if (window.PI_ASYNC_MODE === "analogies") {
+        const row = document.getElementById("themePickerRow");
+        if (row) row.style.display = "block";
+        if (btn) btn.disabled = !window._selectedTheme || (ta ? ta.value.trim().length === 0 : false);
+      } else {
+        if (btn) btn.disabled = ta ? ta.value.trim().length === 0 : true;
+      }
+    } else {
+      if (btn) btn.disabled = true;
+    }
+  }
+
+  function startFeedbackGuard() {
+    const feedbackEl = document.getElementById(currentQuestion + "_feedback");
+    if (!feedbackEl) return;
+    const neutralise = () => {
+      if (feedbackEl.innerHTML.includes("✔") || feedbackEl.innerHTML.includes("✖") ||
+          feedbackEl.classList.contains("alert-danger")) {
+        feedbackEl.innerHTML = "<p>Your answer has been recorded</p>";
+        feedbackEl.className = "alert alert-info";
+      }
+    };
+    neutralise();
+    window._piFeedbackObserver = new MutationObserver(neutralise);
+    window._piFeedbackObserver.observe(feedbackEl, { childList: true, subtree: true, characterData: true });
+    document.body.classList.add("pi-hide-feedback");
+  }
+
+  function stopFeedbackGuard() {
+    if (window._piFeedbackObserver) {
+      window._piFeedbackObserver.disconnect();
+      window._piFeedbackObserver = null;
+    }
+    document.body.classList.remove("pi-hide-feedback");
+  }
+
+  function enableSecondVoteAsync() {
+    console.log("PI async: enabling vote 2");
+    if (!hasVote1) {
+      alert("Please submit your first vote before voting again.");
+      return;
+    }
+    updateStepBanner(3);
+    stopFeedbackGuard();
+    window._voteAgainClicked = true;
+    window._vote2Enabled = true;
+    window._vote1Locked = false;
+    studentSubmittedVote2 = false;
+    if (typeof studentVoteCount !== "undefined" && studentVoteCount < 2) {
+      studentVoteCount = 2;
+    }
+    setVoteInputsLocked(false);
+    const b = document.getElementById("readyVote2Btn");
+    if (b) b.disabled = true;
+    const bar = document.getElementById("piVoteBar");
+    if (bar) bar.classList.remove("active");
+  }
+</script>
+<script>
+  (function () {
+    const origShowPeerEnableVote2 = window.showPeerEnableVote2;
+    window.showPeerEnableVote2 = function () {
+      if (window._piReflectionSubmitted) {
+        console.log("PI async: suppressing peer.js UI reset after reflection");
+        return;
+      }
+      if (origShowPeerEnableVote2) {
+        origShowPeerEnableVote2();
+      }
+    };
+  })();
+</script>
+
+<script>
+async function fetchWithRetry(url, options, retries = 1, delayMs = 400) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await fetch(url, options);
+      if (resp.ok) return resp;
+      lastError = new Error(`HTTP ${resp.status}`);
+    } catch (err) {
+      lastError = err;
+    }
+    if (attempt < retries) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
+
+function appendMsg(role, text) {
+  const chat = document.getElementById("llmChat");
+  const wrap = document.createElement("div");
+  wrap.className = "pi-msg-wrap " + role;
+
+  const label = document.createElement("span");
+  label.className = "pi-msg-label";
+  label.textContent = role === "user" ? "You" : "LLM Peer";
+
+  const bubble = document.createElement("div");
+  bubble.className = "pi-msg-bubble";
+  bubble.textContent = text;
+
+  wrap.appendChild(label);
+  wrap.appendChild(bubble);
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function showTypingIndicator() {
+  const chat = document.getElementById("llmChat");
+  const wrap = document.createElement("div");
+  wrap.className = "pi-msg-wrap assistant";
+  wrap.id = "piTypingIndicator";
+
+  const label = document.createElement("span");
+  label.className = "pi-msg-label";
+  label.textContent = "LLM Peer";
+
+  const ind = document.createElement("div");
+  ind.className = "typing-indicator";
+  ind.innerHTML = "<span></span><span></span><span></span>";
+
+  wrap.appendChild(label);
+  wrap.appendChild(ind);
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function hideTypingIndicator() {
+  const el = document.getElementById("piTypingIndicator");
+  if (el) el.remove();
+}
+
+function collapseJustification(text) {
+  const ta = document.getElementById('messageText');
+  const btn = document.getElementById('submitReflection');
+  const num1 = document.getElementById('piTabNum1');
+  if (ta) ta.disabled = true;
+  if (btn) { btn.disabled = true; btn.textContent = '✓ Submitted'; }
+  if (num1) num1.classList.add('done');
+
+  const bar = document.getElementById('piReasoningBar');
+  const barText = document.getElementById('piReasoningBarText');
+  if (bar) bar.classList.add('visible');
+  if (barText) {
+    const preview = text.length > 120 ? text.slice(0, 120) + '…' : text;
+    barText.textContent = preview;
+    barText.title = text;
+  }
+
+  const lock2 = document.getElementById('piTab2Lock');
+  if (lock2) lock2.style.display = 'none';
+
+  const num2 = document.getElementById('piTabNum2');
+  if (num2) {
+    num2.style.background = 'var(--pi-blue-soft)';
+    num2.style.color = 'var(--pi-blue-deep)';
+  }
+
+  showPiTab(2);
+  updateVoteBar(0);
+}
+
+(function () {
+  const btn = document.getElementById("submitReflection");
+  const ta  = document.getElementById("messageText");
+  if (!btn || !ta) return;
+
+  ta.addEventListener("input", function () {
+    const hasText = ta.value.trim().length > 0;
+    if (window.PI_ASYNC_MODE === "analogies") {
+      btn.disabled = !hasText || !window._selectedTheme;
+    } else {
+      btn.disabled = !hasText;
+    }
+  });
+
+  btn.addEventListener("click", async function () {
+    if (!hasVote1) {
+      alert("Please submit your first vote before starting the discussion.");
+      return;
+    }
+    if (window._vote1Locked) return;
+
+    const reflection = (ta.value || "").trim();
+    if (!reflection) {
+      alert("Please write a short justification first.");
+      return;
+    }
+
+    if (window.PI_ASYNC_MODE === "analogies" && !window._selectedTheme) {
+      const trigger = document.getElementById("themeTrigger");
+      if (trigger) trigger.classList.add("invalid");
+      return;
+    }
+
+    let selected = "";
+    try {
+      selected = answerToString(window.componentMap[currentQuestion].answer);
+    } catch {}
+
+    if (typeof logPeerEvent === "function") {
+      logPeerEvent({
+        sid: eBookConfig.username,
+        div_id: currentQuestion,
+        event: "reflection",
+        act: reflection,
+        course_name: eBookConfig.course,
+      });
+      logPeerEvent({
+        sid: eBookConfig.username,
+        div_id: currentQuestion,
+        event: "pi_reflection",
+        act: JSON.stringify({
+          pi_attempt_id: getPiAttemptId(),
+          role: "student",
+          content: reflection,
+        }),
+        course_name: eBookConfig.course,
+      });
+      window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+      logPeerEvent({
+        sid: eBookConfig.username,
+        div_id: currentQuestion,
+        event: "pi_llm_turn",
+        act: JSON.stringify({
+          pi_attempt_id: getPiAttemptId(),
+          turn_index: window._llmTurnIndex,
+          role: "user",
+          content: reflection,
+        }),
+        course_name: eBookConfig.course,
+      });
+    }
+
+    const chat = document.getElementById("llmChat");
+    lockVote1AndReflection();
+    const themeTrigEl = document.getElementById("themeTrigger");
+    if (themeTrigEl) { themeTrigEl.disabled = true; themeTrigEl.style.pointerEvents = "none"; themeTrigEl.style.opacity = "0.6"; }
+    collapseJustification(reflection);
+    appendMsg("user", reflection);
+
+    const disclaimer = document.getElementById("llmDisclaimer");
+    if (disclaimer) disclaimer.style.display = "block";
+
+    showTypingIndicator();
+
+    async function showStandardDiscussion(chat, showInstructorNote) {
+      const resp = await fetch("/assignment/peer/api/get_async_explainer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          div_id: currentQuestion,
+          course: eBookConfig.course
+        })
+      });
+
+      hideTypingIndicator();
+
+      if (!resp.ok) {
+        chat.innerHTML = "<p style='color:#888; font-size:14px; padding:4px 0;'><em>Error retrieving discussion.</em></p>";
+        return;
+      }
+
+      const spec = await resp.json();
+      if (showInstructorNote) {
+        chat.innerHTML += `<div style="background:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:8px 10px; margin-bottom:8px; font-size:14px;">
+          <strong>Note:</strong> The AI peer is currently unavailable. Please contact your instructor.
+        </div>`;
+      }
+      if (spec.mess) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = spec.mess;
+        const items = tmp.querySelectorAll('li');
+        if (items.length > 0) {
+          chat.innerHTML += `<div class="pi-responses-count-row">${items.length} classmate response${items.length === 1 ? '' : 's'}</div>`;
+          items.forEach((li, i) => {
+            const text = li.textContent.replace(/^[^:]+said:\s*/i, '').trim();
+            chat.innerHTML += `<div class="pi-response-card">
+              <div class="pi-response-card-meta">Classmate ${i + 1}</div>
+              <div class="pi-response-card-text">${text}</div>
+            </div>`;
+          });
+        } else {
+          chat.innerHTML += `<p class="pi-no-responses">${spec.mess}</p>`;
+        }
+      }
+      const replyInput = document.getElementById("llmReplyInput");
+      const replyBtn = document.getElementById("llmReplyBtn");
+      if (replyInput) replyInput.style.display = "none";
+      if (replyBtn) replyBtn.style.display = "none";
+
+      const bar = document.getElementById("piVoteBar");
+      if (bar) bar.classList.add("active");
+      const voteBtn = document.getElementById("readyVote2Btn");
+      if (voteBtn) { voteBtn.disabled = false; }
+      studentSubmittedVote2 = false;
+    }
+
+    if (window.PI_LLM_MODE !== true) {
+      await showStandardDiscussion(chat, false);
+      return;
+    } else {
+      window._llmMessages = [
+        {
+          role: "user",
+          content: `i chose answer ${selected}. my explanation was:\n\n${reflection}`
+        }
+      ];
+
+      let resp;
+      try {
+        resp = await fetchWithRetry("/assignment/peer/api/get_async_llm_reflection", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            div_id: currentQuestion,
+            selected_answer: selected,
+            messages: window._llmMessages,
+            theme_id: window._selectedTheme || "",
+            analogy_mapping: window._analogyMapping || ""
+          })
+        });
+      } catch (e) {
+        hideTypingIndicator();
+        await showStandardDiscussion(chat, true);
+        return;
+      }
+
+      const data = await resp.json();
+      hideTypingIndicator();
+
+      if (!data.ok) {
+        await showStandardDiscussion(chat, true);
+        return;
+      }
+
+      if (data.analogy_mapping) {
+        window._analogyMapping = data.analogy_mapping;
+      }
+
+      appendMsg("assistant", data.reply);
+      if (typeof logPeerEvent === "function") {
+        window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+        logPeerEvent({
+          sid: eBookConfig.username,
+          div_id: currentQuestion,
+          event: "pi_llm_turn",
+          act: JSON.stringify({
+            pi_attempt_id: getPiAttemptId(),
+            turn_index: window._llmTurnIndex,
+            role: "assistant",
+            content: data.reply,
+          }),
+          course_name: eBookConfig.course,
+        });
+      }
+
+      window._llmMessages.push({ role: "assistant", content: data.reply });
+      studentSubmittedVote2 = false;
+      enableChat(reflection, selected);
+    }
+  });
+})();
+</script>
+
+<script>
+function enableChat(reflection, selected) {
+  const input = document.getElementById("llmReplyInput");
+  const btn = document.getElementById("llmReplyBtn");
+
+  btn.onclick = async () => {
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    appendMsg("user", msg);
+    if (typeof logPeerEvent === "function") {
+      window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+      logPeerEvent({
+        sid: eBookConfig.username,
+        div_id: currentQuestion,
+        event: "pi_llm_turn",
+        act: JSON.stringify({
+          pi_attempt_id: getPiAttemptId(),
+          turn_index: window._llmTurnIndex,
+          role: "user",
+          content: msg,
+        }),
+        course_name: eBookConfig.course,
+      });
+    }
+    llmUserMessageCount += 1;
+    input.value = "";
+    window._llmMessages.push({ role: "user", content: msg });
+    btn.disabled = true;
+    input.disabled = true;
+
+    showTypingIndicator();
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    let resp;
+    try {
+      resp = await fetchWithRetry("/assignment/peer/api/get_async_llm_reflection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          div_id: currentQuestion,
+          selected_answer: selected,
+          messages: window._llmMessages,
+          theme_id: window._selectedTheme || "",
+          analogy_mapping: window._analogyMapping || ""
+        })
+      });
+    } catch (e) {
+      hideTypingIndicator();
+      appendMsg("assistant", "The AI peer is currently unavailable. Please contact your instructor.");
+      btn.disabled = false;
+      input.disabled = false;
+      return;
+    }
+
+    const data = await resp.json();
+    hideTypingIndicator();
+
+    if (!data.ok) {
+      appendMsg("assistant", "The AI peer is currently unavailable. Please contact your instructor.");
+      btn.disabled = false;
+      input.disabled = false;
+      return;
+    }
+
+    appendMsg("assistant", data.reply);
+    btn.disabled = false;
+    input.disabled = false;
+    if (typeof logPeerEvent === "function") {
+      window._llmTurnIndex = (window._llmTurnIndex || 0) + 1;
+      logPeerEvent({
+        sid: eBookConfig.username,
+        div_id: currentQuestion,
+        event: "pi_llm_turn",
+        act: JSON.stringify({
+          pi_attempt_id: getPiAttemptId(),
+          turn_index: window._llmTurnIndex,
+          role: "assistant",
+          content: data.reply,
+        }),
+        course_name: eBookConfig.course,
+      });
+    }
+    window._llmMessages.push({ role: "assistant", content: data.reply });
+
+    if (!window._voteAgainClicked) {
+      updateVoteBar(llmUserMessageCount);
+    }
+  };
+
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") btn.click();
+  });
+}
+</script>
+
+<script>
+    var user = "{{ user.username }}";
+    var currentQuestion = "{{ current_question.name if current_question else '' }}";
+    document.addEventListener("DOMContentLoaded", function (event) {
+        setTimeout(connect, 1000);
+        const ta = document.getElementById("messageText");
+        if (ta) ta.value = "";
+    });
+    var studentVoteCount = 1;
+    var hasVote1 = {{ 'true' if has_vote1 else 'false' }};
+    var hasReflection = {{ 'true' if has_reflection else 'false' }};
+    var studentSubmittedVote2 = false;
+    var vote2done = false;
+    var llmUserMessageCount = 0;
+    var nextQuestionNumber = {{ nextQnum }};
+    var assignId = '{{ assignment_id }}';
+    window.PI_IS_LAST_QUESTION = {{ 'true' if is_last_question else 'false' }};
+    window.PI_NEXT_QNUM = {{ nextQnum }};
+    window.PI_ASSIGNMENT_ID = '{{ assignment_id }}';
+    eBookConfig.is_peer_async = true;
+    window._llmTurnIndex = 0;
+    window._piAttemptId = null;
+
+    function getPiAttemptId() {
+        if (!window._piAttemptId) {
+            const key = `pi_attempt_id:${eBookConfig.username}:${currentQuestion}`;
+            const existing = sessionStorage.getItem(key);
+            if (existing) {
+                window._piAttemptId = existing;
+            } else {
+                window._piAttemptId = `${eBookConfig.username}:${currentQuestion}:${Date.now()}`;
+                sessionStorage.setItem(key, window._piAttemptId);
+            }
+        }
+        return window._piAttemptId;
+    }
+
+    function checkVoteCount() {
+        if (studentVoteCount < 2 || studentSubmittedVote2 == false) {
+            alert("You must vote twice before moving on");
+            return false;
+        }
+        return true;
+    }
+
+    function injectNextQuestionBtn(submitBtn) {
+        if (document.getElementById("nextQuestionWrapper")) return;
+        const wrapper = document.createElement("span");
+        wrapper.id = "nextQuestionWrapper";
+        wrapper.style.cursor = "not-allowed";
+        wrapper.setAttribute("data-tooltip", "Complete both votes to continue");
+
+        const btn = document.createElement("button");
+        btn.id = "nextQuestionSubmit";
+        btn.type = "button";
+        btn.className = "btn btn-secondary";
+        btn.textContent = window.PI_IS_LAST_QUESTION ? "Done" : "Next Question";
+        btn.disabled = true;
+
+        wrapper.appendChild(btn);
+        submitBtn.parentNode.insertBefore(wrapper, submitBtn.nextSibling);
+    }
+
+    function enableNextQuestionBtn() {
+        const wrapper = document.getElementById("nextQuestionWrapper");
+        const btn = document.getElementById("nextQuestionSubmit");
+        if (!wrapper || !btn) return;
+        wrapper.style.cursor = "auto";
+        wrapper.removeAttribute("data-tooltip");
+        btn.disabled = false;
+        btn.onclick = function() {
+            const form = document.createElement("form");
+            form.method = "get";
+            form.action = "/assignment/peer/student/async";
+            const aid = document.createElement("input");
+            aid.type = "hidden"; aid.name = "assignment_id"; aid.value = window.PI_ASSIGNMENT_ID;
+            const qnum = document.createElement("input");
+            qnum.type = "hidden"; qnum.name = "question_num"; qnum.value = window.PI_NEXT_QNUM;
+            form.appendChild(aid); form.appendChild(qnum);
+            document.body.appendChild(form); form.submit();
+        };
+    }
+
+    $(document).on("runestone:login-complete", function () {
+        llmUserMessageCount = 0;
+        const clearComp = function(comp) {
+            comp.restoreAnswers = function() {};
+            try { localStorage.removeItem(comp.localStorageKey()); } catch(e) {}
+            const container = comp.containerDiv || document.getElementById(currentQuestion);
+            if (container) {
+                container.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(inp => {
+                    inp.checked = false;
+                });
+            }
+            if (comp.feedBackDiv) {
+                comp.feedBackDiv.innerHTML = "";
+                comp.feedBackDiv.className = "";
+            }
+            comp.answer = null;
+            if (comp.correct !== undefined) comp.correct = null;
+            document.body.classList.remove('pi-async-loading');
+        };
+
+        const resetQuestion = function(attempts) {
+            const comp = window.componentMap && window.componentMap[currentQuestion];
+            if (!comp) {
+                if (attempts < 40) {
+                    setTimeout(() => resetQuestion(attempts + 1), 100);
+                } else {
+                    document.body.classList.remove('pi-async-loading');
+                }
+                return;
+            }
+            clearComp(comp);
+        };
+        resetQuestion(0);
+
+        setReflectionPanelEnabled(false);
+
+        logPeerEvent({
+            sid: eBookConfig.username,
+            div_id: `${assignId}`,
+            event: "peer",
+            act: "start_async",
+            course_name: eBookConfig.course,
+        });
+        let bindAttempts = 0;
+        const bindVoteHandler = function () {
+          const btn = window.componentMap[currentQuestion]?.submitButton;
+          if (!btn) {
+            bindAttempts += 1;
+            if (bindAttempts < 40) {
+              setTimeout(bindVoteHandler, 100);
+            }
+            return;
+          }
+
+          injectNextQuestionBtn(btn);
+
+          $(btn).off("click.pi_async").on("click.pi_async", function () {
+            if (window._vote1Locked && !window._vote2Enabled) {
+              return;
+            }
+            const currAnswer = window.componentMap[currentQuestion].answer;
+            const sAnswer = answerToString(currAnswer);
+            $("#current_answer").html(sAnswer);
+            $("#current_answer_prompt").html(sAnswer);
+
+            if (typeof logPeerEvent === "function") {
+              const voteNum = studentVoteCount;
+              const answerSnapshot = sAnswer;
+              setTimeout(() => {
+                const comp = window.componentMap[currentQuestion];
+                const correct =
+                  comp && typeof comp.correct !== "undefined"
+                    ? comp.correct
+                    : null;
+                logPeerEvent({
+                  sid: eBookConfig.username,
+                  div_id: currentQuestion,
+                  event: "pi_vote",
+                  act: JSON.stringify({
+                    pi_attempt_id: getPiAttemptId(),
+                    vote_num: voteNum,
+                    answer: answerSnapshot,
+                    correct: correct,
+                  }),
+                  course_name: eBookConfig.course,
+                });
+              }, 0);
+            }
+
+            if (studentVoteCount === 1 && !window._vote2Enabled) {
+              hasVote1 = true;
+              console.log("vote 1 submitted");
+              updateStepBanner(2);
+              startFeedbackGuard();
+              window._hasVote1 = true;
+              setReflectionPanelEnabled(true);
+              return;
+            }
+
+            if (window._vote2Enabled && !studentSubmittedVote2) {
+              console.log("vote 2 submitted");
+              studentVoteCount = 2;
+              studentSubmittedVote2 = true;
+              window._vote2Enabled = false;
+              updateStepBanner(4);
+              enableNextQuestionBtn();
+            }
+            if (studentSubmittedVote2) {
+              try {
+                const comp = window.componentMap[currentQuestion];
+                if (comp && typeof comp.showFeedback === "function") {
+                  comp.showFeedback();
+                }
+              } catch (e) {
+                console.warn("Could not show correctness feedback", e);
+              }
+            }
+          });
+        };
+        bindVoteHandler();
+    });
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('.pi-ask-btn').forEach(btn => btn.remove());
+
+    const themeMenuList = document.getElementById("themeMenuList");
+    const themeTriggerBtn = document.getElementById("themeTrigger");
+    const ttLabelEl = document.getElementById("ttLabel");
+
+    if (themeMenuList && themeTriggerBtn && window.PI_THEMES) {
+      function openThemeMenu() {
+        themeMenuList.hidden = false;
+        themeTriggerBtn.setAttribute("aria-expanded", "true");
+      }
+      function closeThemeMenu() {
+        themeMenuList.hidden = true;
+        themeTriggerBtn.setAttribute("aria-expanded", "false");
+      }
+
+      window.PI_THEMES.forEach(function(t) {
+        const btn = document.createElement("button");
+        btn.className = "tm-opt";
+        btn.type = "button";
+        btn.setAttribute("role", "option");
+        btn.setAttribute("data-theme-id", t.id);
+        btn.textContent = t.label;
+        btn.addEventListener("click", function() {
+          document.querySelectorAll(".tm-opt").forEach(o => o.classList.remove("selected"));
+          btn.classList.add("selected");
+          window._selectedTheme = t.id;
+          ttLabelEl.textContent = t.label;
+          themeTriggerBtn.classList.remove("placeholder", "invalid");
+          closeThemeMenu();
+          const submitBtn = document.getElementById("submitReflection");
+          if (submitBtn && window.PI_ASYNC_MODE === "analogies") {
+            const ta = document.getElementById("messageText");
+            submitBtn.disabled = ta ? ta.value.trim().length === 0 : false;
+          }
+        });
+        themeMenuList.appendChild(btn);
+      });
+
+      themeTriggerBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        if (themeMenuList.hidden) openThemeMenu(); else closeThemeMenu();
+      });
+      document.addEventListener("click", function(e) {
+        if (!themeMenuList.contains(e.target) && e.target !== themeTriggerBtn) closeThemeMenu();
+      });
+    }
+  });
+</script>
+{% endblock %}

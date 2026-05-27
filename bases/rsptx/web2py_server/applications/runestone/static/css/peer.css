@@ -166,6 +166,25 @@
     display: none;
 }
 
+.oneq label.mchoice-option,
+#pi-student-interface label.mchoice-option {
+    display: block !important;
+    margin-bottom: 4px;
+}
+
+.oneq button[name="compare"],
+#pi-student-interface button[name="compare"] {
+    display: none !important;
+}
+
+.oneq button[aria-label="Close"],
+.oneq .close,
+.oneq .knowl-close,
+#pi-student-interface button[aria-label="Close"],
+#pi-student-interface .close {
+    display: none !important;
+}
+
 /* ------------------- */
 /* Student's interface */
 /* ------------------- */

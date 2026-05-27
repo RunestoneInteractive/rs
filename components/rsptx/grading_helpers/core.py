@@ -11,7 +11,7 @@ from rsptx.db.crud import (
     upsert_grade,
     fetch_assignment_scores,
     fetch_deadline_exception,
-    did_send_messages,
+    fetch_peer_useinfo,
 )
 from rsptx.validation.schemas import (
     LogItemIncoming,
@@ -210,16 +210,20 @@ async def score_one_answer(
         scoreSpec.how_to_score == "interact" or scoreSpec.how_to_score == "interaction"
     ):
         return scoreSpec.max_score
-    elif scoreSpec.how_to_score == "peer":
-        return scoreSpec.max_score
-    elif scoreSpec.how_to_score == "peer_chat":
-        did_chat = await did_send_messages(
+    elif scoreSpec.how_to_score in ("peer", "peer_chat"):
+        # Match web2py's _score_peer_instruction:
+        # award points for vote1, vote2, and (for peer_chat) sending a message.
+        rows = await fetch_peer_useinfo(
             scoreSpec.username, submission.div_id, submission.course_name
         )
-        if did_chat:
-            return scoreSpec.max_score
+        has_vote1 = any("vote1" in (r.act or "") for r in rows)
+        has_vote2 = any("vote2" in (r.act or "") for r in rows)
+        sent_message = any(r.event == "sendmessage" for r in rows)
+        tot = int(has_vote1) + int(has_vote2) + int(sent_message)
+        if scoreSpec.how_to_score == "peer_chat":
+            return (tot / 3) * scoreSpec.max_score
         else:
-            return 0.5 * scoreSpec.max_score
+            return min(1.0, tot / 2) * scoreSpec.max_score
     else:
         rslogger.debug(f"Unknown how_to_score {scoreSpec.how_to_score}")
         return 0

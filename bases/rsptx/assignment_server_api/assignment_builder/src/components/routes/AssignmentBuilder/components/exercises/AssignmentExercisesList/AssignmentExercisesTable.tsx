@@ -41,7 +41,7 @@ const AsyncModeHeader = ({ hasApiKey }: { hasApiKey: boolean }) => {
     const exercises = assignmentExercises.map((ex) => ({
       ...ex,
       question_json: JSON.stringify(ex.question_json),
-      use_llm: value === "LLM"
+      async_mode: value === "Generic LLM" ? "llm" : value === "Personalized LLM" ? "analogies" : "standard"
     }));
     const { error } = await updateExercises(exercises);
     if (!error) {
@@ -75,7 +75,8 @@ const AsyncModeHeader = ({ hasApiKey }: { hasApiKey: boolean }) => {
               onChange={(e) => setValue(e.value)}
               options={[
                 { label: "Standard", value: "Standard" },
-                { label: "LLM", value: "LLM", disabled: !hasApiKey }
+                { label: "Generic LLM", value: "Generic LLM", disabled: !hasApiKey },
+                { label: "Personalized LLM", value: "Personalized LLM", disabled: !hasApiKey }
               ]}
               optionLabel="label"
               optionDisabled="disabled"
@@ -364,11 +365,12 @@ export const AssignmentExercisesTable = ({
               <div className="editable-table-cell" style={{ position: "relative" }}>
                 <Dropdown
                   className="editable-table-dropdown"
-                  value={data.use_llm && hasApiKey ? "LLM" : "Standard"}
-                  onChange={(e) => updateAssignmentQuestions([{ ...data, question_json: JSON.stringify(data.question_json), use_llm: e.value === "LLM" }])}
+                  value={!hasApiKey || !data.async_mode || data.async_mode === "standard" ? "Standard" : data.async_mode === "analogies" ? "Personalized LLM" : "Generic LLM"}
+                  onChange={(e) => updateAssignmentQuestions([{ ...data, question_json: JSON.stringify(data.question_json), async_mode: e.value === "Generic LLM" ? "llm" : e.value === "Personalized LLM" ? "analogies" : "standard" }])}
                   options={[
                     { label: "Standard", value: "Standard" },
-                    { label: "LLM", value: "LLM", disabled: !hasApiKey }
+                    { label: "Generic LLM", value: "Generic LLM", disabled: !hasApiKey },
+                    { label: "Personalized LLM", value: "Personalized LLM", disabled: !hasApiKey }
                   ]}
                   optionLabel="label"
                   optionDisabled="disabled"
