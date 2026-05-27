@@ -150,7 +150,7 @@ def request_fixed_code_from_openai(
     )
 
     print("this-round-result:", unittest_result, cleaned_fixed_code)
-    if not unittest_result:
+    if unittest_result is not True:
         return example_solution.lstrip(), "example_solution"
 
     if unittest_result:
@@ -252,7 +252,7 @@ def generate_personalized_fixed_code(
             default_test_code,
             unittest_case=unittest_code,
         )
-        if not unittest_result:
+        if unittest_result is not True:
             # If the code is not correct, we will TRY to get an example solution first
             example_solution = generate_example_solution(
                 api_token,
