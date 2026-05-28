@@ -325,7 +325,8 @@ services:
   # docker compose run rsmanage rsmanage --help
   rsmanage:
     build:
-      context: ./projects/rsmanage
+      context: ./
+      dockerfile: projects/rsmanage/Dockerfile
     image: ghcr.io/runestoneinteractive/rs-rsmanage
     extra_hosts:
       - host.docker.internal:host-gateway

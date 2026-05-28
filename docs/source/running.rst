@@ -79,6 +79,24 @@ To view logs from all services: ``docker compose logs -f``
 - Create a course: ``docker compose run --rm rsmanage rsmanage addcourse``
 - Add an instructor to a course: ``docker compose run --rm rsmanage rsmanage addinstructor``
 
+Updating Runestone
+-------------------
+
+We regularly push out updates to all of the Runestone services. To update your server to the latest version:
+
+.. code-block:: bash
+
+   docker compose pull
+   docker compose run --rm rsmanage check-db-migrations.sh
+   docker compose up -d
+
+If database migrations are required, the ``check-db-migrations.sh`` script will prompt you to run them. 
+The command to update the database is:
+
+.. code-block:: bash
+
+   docker compose run --rm rsmanage alembic upgrade head
+
 **Troubleshooting:**
 
 If you used the automated setup script (``init_runestone.sh``), check the ``init_runestone.log`` file in the rs directory for detailed information about the setup process. This log can help diagnose any issues that occurred during initialization.

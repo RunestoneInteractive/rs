@@ -82,7 +82,8 @@ target "rs-nginx-dstart-dev" {
 }
 
 target "rs-rsmanage" {
-    context    = "./projects/rsmanage"
+    context    = "./"
+    dockerfile = "projects/rsmanage/Dockerfile"
     platforms  = ["linux/amd64", "linux/arm64"]
     tags       = ["ghcr.io/runestoneinteractive/rs-rsmanage:latest", "ghcr.io/runestoneinteractive/rs-rsmanage:${VERSION}"]
     push       = true
