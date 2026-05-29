@@ -7,8 +7,8 @@
 <style>
     .hidden-content { display: none; }
     body.pi-hide-feedback .oneq .alert-danger { display: none !important; }
-    .oneq .ptx-runestone-container > div > .alert { display: none !important; }
-    .oneq [id$="_feedback"] { display: none !important; }
+    body.pi-hide-feedback .oneq .ptx-runestone-container > div > .alert { display: none !important; }
+    body.pi-hide-feedback .oneq [id$="_feedback"] { display: none !important; }
     .oneq .runestone.isCorrect::before,
     .oneq .runestone.isCorrect::after,
     .oneq .runestone.isInCorrect::before,
@@ -56,8 +56,8 @@
     .pi-msg-wrap.assistant { align-items:flex-start; }
     .pi-msg-label { font-size:11.5px; font-weight:500; color:var(--pi-ink3); }
     .pi-msg-bubble { max-width:88%; padding:7px 11px; font-size:14.5px; line-height:1.55; white-space:pre-wrap; word-break:break-word; }
-    .pi-msg-wrap.user .pi-msg-bubble { background:var(--pi-blue-soft); border:1px solid #d4e4f3; border-radius:10px 3px 10px 10px; }
-    .pi-msg-wrap.assistant .pi-msg-bubble { background:#f3f4f6; border:1px solid var(--pi-line); border-radius:3px 10px 10px 10px; }
+    .pi-msg-wrap.user .pi-msg-bubble { background:#c8dff5; border:1px solid #93c5fd; border-radius:10px 3px 10px 10px; color:var(--pi-ink); }
+    .pi-msg-wrap.assistant .pi-msg-bubble { background:var(--pi-blue-soft); border:1px solid #c3d9f0; border-radius:3px 10px 10px 10px; color:var(--pi-ink); }
 
     #nextQuestionWrapper { display:inline-block; margin-left:8px; position:relative; }
     #nextQuestionSubmit { color: #fff !important; }
@@ -299,7 +299,12 @@
     {% if not all_done %}
     <div class="col-md-6" id="reflectionPanel" style="padding-left:15px; padding-top:20px;">
 
-      <div class="pi-panel">
+      <div class="pi-panel" style="position:relative;">
+
+        <div id="panelVote1Lock" style="position:absolute; inset:0; background:rgba(255,255,255,0.80); backdrop-filter:blur(1px); z-index:20; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; padding:20px;">
+          <div style="font-size:15px; font-weight:600; color:var(--pi-ink);">Answer the question first</div>
+          <div style="font-size:13px; color:var(--pi-ink3);">Submit your vote to unlock this panel.</div>
+        </div>
 
         <div class="pi-panel-head">
           <span class="pi-panel-title">{% if llm_enabled %}Justify &amp; discuss your answer{% else %}Justify your answer{% endif %}</span>
@@ -308,10 +313,10 @@
 
         <div class="pi-tab-bar">
           <button class="pi-tab active" id="piTab1Btn" onclick="showPiTab(1)">
-            <span class="pi-tab-num" id="piTabNum1">1</span>Your reasoning
+            <span class="pi-tab-num" id="piTabNum1">2</span>Your reasoning
           </button>
           <button class="pi-tab" id="piTab2Btn" onclick="showPiTab(2)">
-            <span class="pi-tab-num" id="piTabNum2">2</span>{% if llm_enabled %}Discuss with peer{% else %}Class responses{% endif %}
+            <span class="pi-tab-num" id="piTabNum2">3</span>{% if llm_enabled %}Discuss with peer{% else %}Class responses{% endif %}
           </button>
         </div>
 
@@ -367,6 +372,7 @@
             {% if llm_enabled %}
             <span class="pi-vote-disclaimer" id="llmDisclaimer">You are chatting with an LLM, not a real peer.</span>
             {% endif %}
+            <span id="vote2Prompt" style="display:none; font-size:13px; color:var(--pi-ink3);">Submit your vote above to finish.</span>
           </div>
           <button id="readyVote2Btn" disabled onclick="enableSecondVoteAsync()">Vote again →</button>
         </div>
@@ -557,6 +563,8 @@
     if (b) b.disabled = true;
     const bar = document.getElementById("piVoteBar");
     if (bar) bar.classList.remove("active");
+    const prompt = document.getElementById("vote2Prompt");
+    if (prompt) prompt.style.display = "block";
   }
 </script>
 <script>
@@ -1143,6 +1151,8 @@ function enableChat(reflection, selected) {
               updateStepBanner(2);
               startFeedbackGuard();
               window._hasVote1 = true;
+              const panelLock = document.getElementById("panelVote1Lock");
+              if (panelLock) panelLock.style.display = "none";
               setReflectionPanelEnabled(true);
               return;
             }
