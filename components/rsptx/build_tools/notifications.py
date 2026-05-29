@@ -1,4 +1,13 @@
 # notifications.py
+# Pushover is a service that allows you to send notifications to your devices.
+# This module provides a simple interface to send notifications using the Pushover API.
+# We use environment variables to store the Pushover user key and app token for security reasons.
+# Pushover is used for building notifications in the buildptx.py script. If the build fails or
+# finishes with errors, a notification will be sent to the user.
+# It is also used for deployment notifications in the deploy_all.sh script. If the deployment fails
+# or finishes with errors, a notification will be sent to the user.
+# I also use it in my monitoring scripts to notify me of an excessive number of errorrs in the logs.
+# It is useful for iOS and Android users.
 
 import requests
 import os
