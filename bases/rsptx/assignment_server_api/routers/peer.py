@@ -38,6 +38,7 @@ from rsptx.db.crud import (
     fetch_course_students,
     fetch_api_token,
     fetch_question,
+    create_user_experiment_entry,
 )
 from rsptx.db.models import UseinfoValidation, Useinfo
 from rsptx.db.async_session import async_session
@@ -749,6 +750,12 @@ async def make_pairs(
             peeps = [p for p in peeps_in_chat if p in sid_ans]
             rslogger.debug(f"FINAL PEEPS IN CHAT = {peeps}")
             rslogger.debug(f"FINAL PEEPS IN PERSON = {peeps_in_person}")
+
+            experiment_id = f"{div_id}_ab"
+            for sid in peeps_in_person:
+                await create_user_experiment_entry(sid=sid, ab=experiment_id, group=0)
+            for sid in peeps_in_chat:
+                await create_user_experiment_entry(sid=sid, ab=experiment_id, group=1)
 
         # Chat pairing for the remaining students in `peeps`
         done = len(peeps) == 0
