@@ -1,7 +1,7 @@
 // Configuration for the PI steps and helper functions to handle step progression in the instructor's interface
 const STEP_CONFIG = {
     vote1: {
-        next: ['makep', 'facechat', 'makeabgroups'],
+        next: ['makep', 'facechat'],
         status: 'Vote 1 Stopped'
     },
     makep: {
@@ -9,7 +9,7 @@ const STEP_CONFIG = {
         status: 'Text Chat in Progress…'
     },
     facechat: {
-        next: ['vote2'],
+        next: ['vote2', 'makeabgroups'],
         status: 'In-person Chat in Progress…'
     },
     makeabgroups: {
