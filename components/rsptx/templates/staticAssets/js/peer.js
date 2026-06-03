@@ -5,7 +5,7 @@ const STEP_CONFIG = {
         status: 'Vote 1 Stopped'
     },
     makep: {
-        next: ['vote2'],
+        next: ['vote2', 'makeabgroups'],
         status: 'Text Chat in Progress…'
     },
     facechat: {
