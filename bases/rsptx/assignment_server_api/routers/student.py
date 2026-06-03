@@ -57,7 +57,6 @@ from rsptx.response_helpers.core import (
 )
 from rsptx.configuration import settings
 
-
 # Routing
 # =======
 # See `APIRouter config` for an explanation of this approach.
@@ -223,8 +222,11 @@ async def studyclues_query(
     query_studyclues_post_url = f"{api_base_domain.rstrip('/')}/studyclues/query"
 
     # Maybe cache the user_id for StudyClues in the future in Redis
-    runestone_login_url = f"{api_base_domain}/auth/runestone_login"
+    runestone_login_url = f"{api_base_domain.rstrip('/')}/auth/runestone_login"
     params = {"runestone_username": user.username}
+    rslogger.debug(
+        f"Logging in to StudyClues with params: {params} and url: {runestone_login_url}"
+    )
     response = requests.get(runestone_login_url, params=params)
     if response.status_code != 200:
         rslogger.error(
