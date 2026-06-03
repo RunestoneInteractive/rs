@@ -88,6 +88,7 @@ We regularly push out updates to all of the Runestone services. To update your s
 
    docker compose pull
    docker compose run --rm rsmanage check-db-migrations.sh
+   docker compose stop. # or use down IF you run you DB outside of Docker
    docker compose up -d
 
 If database migrations are required, the ``check-db-migrations.sh`` script will prompt you to run them. 
