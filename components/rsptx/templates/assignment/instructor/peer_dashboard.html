@@ -240,6 +240,17 @@ Peer Instruction Dashboard - {{ assignment_name }}
     #vote1details[open] summary::before { transform: rotate(90deg); }
     #vote1details summary:hover { color: var(--pi-teal-dark); }
     #vote1details > div { padding: 4px 16px 12px; font-size: 13px; color: var(--af-ink-2); }
+
+    .pi-lineno {
+        display: inline-block;
+        min-width: 2em;
+        color: #999;
+        text-align: right;
+        border-right: 1px solid #ddd;
+        padding-right: 0.5em;
+        margin-right: 0.8em;
+        user-select: none;
+    }
 </style>
 {% endblock %}
 
@@ -271,7 +282,6 @@ Peer Instruction Dashboard - {{ assignment_name }}
                     </select>
                 </div>
             </div>
-            <div id="pi-session-status">Vote 1 in Progress</div>
             <div id="pi-assignment-navigation">
                 {% if not is_last %}
                 <button type="submit" id="nextq" class="btn btn-info" name="next" value="Next">Next Question</button>
@@ -578,5 +588,16 @@ Peer Instruction Dashboard - {{ assignment_name }}
         });
         syncActivityFlow();
     }
+
+    setTimeout(function addLineNumbers() {
+        document.querySelectorAll(".oneq pre").forEach(function (pre) {
+            var lines = pre.innerHTML.split("\n");
+            if (lines.length <= 1) return;
+            if (lines[lines.length - 1].trim() === "") lines.pop();
+            pre.innerHTML = lines.map(function (line, i) {
+                return '<span class="pi-lineno">' + (i + 1) + "</span>" + line;
+            }).join("\n");
+        });
+    }, 1000);
 </script>
 {% endblock %}

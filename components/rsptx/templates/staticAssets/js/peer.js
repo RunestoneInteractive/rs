@@ -236,7 +236,7 @@ function connect(event) {
                                 }
                             } else {
                                 if (getVoteNum() < 2) {
-                                    messarea.innerHTML = `<h3>Please give an explanation for your answer.</h3><p>Then, discuss your answer with your group members.</p>`;
+                                    messarea.innerHTML = `<h3>Wait for your instructor to start the discussion.</h3>`;
                                 } else {
                                     messarea.innerHTML = `<h3>Voting for this question is complete.</h3>`;
                                     let feedbackDiv = document.getElementById(`${currentQuestion}_feedback`);
@@ -354,20 +354,7 @@ function connect(event) {
                         }
                     }
 
-                    if (displayPeers.length > 0) {
-                        messarea.innerHTML = `<h3>Current Verbal Discussion Group</h3><p>Please have a verbal discussion with your selected partners:</p><ul>`;
-                        for (const p of displayPeers) {
-                            messarea.innerHTML += `<li>${p}</li>`;
-                        }
-                        messarea.innerHTML += `</ul>`;
-                    } else {
-                        // fallback to server-provided group list
-                        messarea.innerHTML = `<h3>Current Verbal Discussion Group</h3><p>Please have a verbal discussion with the following group:</p><ul>`;
-                        for (const peer of groupList) {
-                            messarea.innerHTML += `<li>${peer}</li>`;
-                        }
-                        messarea.innerHTML += `</ul>`;
-                    }
+                    messarea.innerHTML = `<h3>Current Verbal Discussion Group</h3><p>Please have a verbal discussion with your group, then select who you talked to below.</p>`;
 
                     let facechat = document.getElementById("group_select_panel");
                     if (facechat) {
@@ -805,7 +792,7 @@ async function setupPeerGroup() {
     }
     // Make the select element searchable with multiple selections
     $('.assignment_partner_select').select2({
-        placeholder: "Select up to 4 team members",
+        placeholder: "Click to search or select by name",
         allowClear: true,
         maximumSelectionLength: 4,
     });
