@@ -1,7 +1,12 @@
 import { MathExtension } from "@aarkue/tiptap-math-extension";
 import { TipTapImage } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Plugins/Image";
+import {
+  InsertFormPopover,
+  useInsertForm
+} from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/components/InsertFormPopover";
+import { InsertFormBridge } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/extensions/InsertFormBridge";
+import { TabIndent } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/extensions/TabIndent";
 import { katexMacros } from "@components/routes/AssignmentBuilder/mathMacros";
-import { Extension } from "@tiptap/core";
 import FontFamily from "@tiptap/extension-font-family";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
@@ -13,17 +18,21 @@ import TableRow from "@tiptap/extension-table-row";
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import Youtube from "@tiptap/extension-youtube";
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
+import { Mark, Node } from "@tiptap/pm/model";
+import { Editor, useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Button } from "primereact/button";
-import { InputTextarea } from "primereact/inputtextarea";
+import { ActionIcon, Textarea, Tooltip } from "@mantine/core";
 import { FC, useEffect, useState } from "react";
+
+import { Icon } from "@/components/ui/Icon";
 
 import "prismjs/plugins/line-numbers/prism-line-numbers.css";
 import "tippy.js/dist/tippy.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
 import "katex/dist/katex.min.css";
 
 import styles from "./ClickableAreaEditor.module.css";
+import tipTapStyles from "../../../TipTap/Editor.module.css";
 import { Command, items } from "../../../TipTap/SlashCommands";
 import { ClickableAreaMark } from "./extensions/ClickableAreaMark";
 import { CustomCodeBlockPrism } from "./extensions/CustomCodeBlockPrism";
@@ -49,17 +58,6 @@ const customStyles = `
   .katex { font-size: 1.1em; }
 `;
 
-const TabExtension = Extension.create({
-  name: "tab",
-  addKeyboardShortcuts() {
-    return {
-      Tab: () => {
-        return this.editor.commands.insertContent("\t");
-      }
-    };
-  }
-});
-
 interface ClickableAreaEditorProps {
   content: string;
   statement: string;
@@ -77,6 +75,7 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
   onStatementChange,
   onFeedbackChange
 }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [clickableAreas, setClickableAreas] = useState<ClickableArea[]>([]);
 
   useEffect(() => {
@@ -193,7 +192,8 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
           macros: katexMacros
         }
       }),
-      TabExtension,
+      TabIndent,
+      InsertFormBridge,
       ClickableAreaMark
     ],
     content,
@@ -221,21 +221,23 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
     isLastRow
   } = useTableRowMenu(editor);
 
+  const { insertFormRequest, closeInsertForm } = useInsertForm(editor);
+
   // Extract clickable areas from the document
-  const extractClickableAreas = (ed: any) => {
+  const extractClickableAreas = (ed: Editor) => {
     const areas: ClickableArea[] = [];
     const doc = ed.state.doc;
     const seenIds = new Set<string>();
 
-    doc.descendants((node: any, pos: number) => {
+    doc.descendants((node: Node, pos: number) => {
       // Check if node has marks (text nodes)
       if (node.marks && node.marks.length > 0) {
-        node.marks.forEach((mark: any) => {
+        node.marks.forEach((mark: Mark) => {
           if (mark.type.name === "clickableAreaMark" && !seenIds.has(mark.attrs.id)) {
             seenIds.add(mark.attrs.id);
 
             // Extract text content, handling all node types
-            let text = node.text || node.textContent || "";
+            const text = node.text || node.textContent || "";
 
             areas.push({
               id: mark.attrs.id,
@@ -297,20 +299,16 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
 
   return (
     <div>
-      <div className={styles.contentSeparator}>
-        <span>Statement</span>
-      </div>
-
-      {/* Statement field */}
       <div className={styles.fieldGroup}>
-        <InputTextarea
+        <Textarea
           id="statement"
+          label="Statement"
           value={statement}
           onChange={(e) => onStatementChange?.(e.target.value)}
           placeholder="Enter the question prompt"
-          rows={2}
+          autosize
+          minRows={2}
           className={styles.metaInput}
-          autoResize
         />
       </div>
 
@@ -320,14 +318,17 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
 
       <div className={styles.editorContainer}>
         <div className={styles.editorHeader}>
-          <Button
-            icon="pi pi-info-circle"
-            text
-            size="small"
-            className={styles.helpButton}
-            tooltip="Select text and use the bubble menu to mark as correct or incorrect"
-            tooltipOptions={{ position: "left" }}
-          />
+          <Tooltip
+            label="Select text and use the bubble menu to mark as correct or incorrect"
+            position="left"
+            events={{ hover: true, focus: true, touch: true }}
+            multiline
+            w={240}
+          >
+            <ActionIcon variant="subtle" className={styles.helpButton} aria-label="Help">
+              <Icon name="info-circle" size={16} />
+            </ActionIcon>
+          </Tooltip>
         </div>
 
         <BubbleMenu
@@ -359,8 +360,8 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
             if (isInClickableArea) {
               return (
                 <button onClick={handleRemoveMark} className="remove">
-                  <i className="fa-solid fa-trash" />
-                  <span>Remove Mark</span>
+                  <i className="fa-solid fa-trash" aria-hidden="true" />
+                  <span>Remove mark</span>
                 </button>
               );
             }
@@ -370,11 +371,11 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
               return (
                 <>
                   <button onClick={handleMarkAsCorrect} className="correct">
-                    <i className="fa-solid fa-check" />
+                    <i className="fa-solid fa-check" aria-hidden="true" />
                     <span>Correct</span>
                   </button>
                   <button onClick={handleMarkAsIncorrect} className="incorrect">
-                    <i className="fa-solid fa-xmark" />
+                    <i className="fa-solid fa-xmark" aria-hidden="true" />
                     <span>Incorrect</span>
                   </button>
                 </>
@@ -387,6 +388,8 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
 
         <EditorContent editor={editor} className={styles.editor} />
 
+        <InsertFormPopover editor={editor} request={insertFormRequest} onClose={closeInsertForm} />
+
         <TableColumnMenu
           editor={editor}
           visible={columnMenuVisible}
@@ -395,8 +398,8 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
           isLastColumn={isLastColumn()}
           onClose={() => setColumnMenuVisible(false)}
           styles={{
-            columnMenu: styles.columnMenu,
-            columnMenuButton: styles.columnMenuButton
+            columnMenu: tipTapStyles.columnMenu,
+            columnMenuButton: tipTapStyles.columnMenuButton
           }}
         />
 
@@ -409,27 +412,23 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
           isLastRow={isLastRow()}
           onClose={() => setRowMenuVisible(false)}
           styles={{
-            rowMenu: styles.rowMenu,
-            rowMenuButton: styles.rowMenuButton,
-            rowMenuTooltip: styles.rowMenuTooltip
+            rowMenu: tipTapStyles.rowMenu,
+            rowMenuButton: tipTapStyles.rowMenuButton,
+            rowMenuTooltip: tipTapStyles.rowMenuTooltip
           }}
         />
       </div>
 
-      <div className={styles.contentSeparator}>
-        <span>Feedback</span>
-      </div>
-
-      {/* Feedback field */}
       <div className={styles.fieldGroup}>
-        <InputTextarea
+        <Textarea
           id="feedback"
+          label="Feedback"
           value={feedback}
           onChange={(e) => onFeedbackChange?.(e.target.value)}
           placeholder="Enter feedback for incorrect answers"
-          rows={2}
+          autosize
+          minRows={2}
           className={styles.metaInput}
-          autoResize
         />
       </div>
     </div>

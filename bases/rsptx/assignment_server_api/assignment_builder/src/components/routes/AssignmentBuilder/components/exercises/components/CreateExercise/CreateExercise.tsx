@@ -1,8 +1,8 @@
 import { useAssignmentRouting } from "@components/routes/AssignmentBuilder/hooks/useAssignmentRouting";
-import { Button } from "primereact/button";
-import { Card } from "primereact/card";
+import { Button, Card, Group, Title } from "@mantine/core";
 import { useState, useEffect } from "react";
 
+import { Icon } from "@/components/ui/Icon";
 import { CreateExerciseFormType, ExerciseType } from "@/types/exercises";
 
 import { ExerciseFactory } from "./components/ExerciseFactory";
@@ -72,11 +72,16 @@ export const CreateExercise = ({
 
   if (!selectedType) {
     return (
-      <Card title={isEdit ? "Edit Exercise Type" : "Select Exercise Type"}>
+      <Card withBorder radius="md" padding="lg">
+        <Title order={4} mb="md">
+          {isEdit ? "Edit exercise type" : "Select exercise type"}
+        </Title>
         <ExerciseTypeSelect selectedType={selectedType} onSelect={handleTypeSelect} />
-        <div className="flex justify-content-end gap-2 mt-3">
-          <Button label="Cancel" icon="pi pi-times" onClick={onCancel} className="p-button-text" />
-        </div>
+        <Group justify="flex-end" gap="sm" mt="md">
+          <Button variant="subtle" leftSection={<Icon name="times" size={16} />} onClick={onCancel}>
+            Cancel
+          </Button>
+        </Group>
       </Card>
     );
   }

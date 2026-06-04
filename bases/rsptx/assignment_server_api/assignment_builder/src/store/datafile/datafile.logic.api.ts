@@ -1,6 +1,6 @@
 import { createApi, FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@store/baseQuery";
-import toast from "react-hot-toast";
+import { notify } from "@components/ui/notify";
 
 import { DetailResponse } from "@/types/api";
 import {
@@ -14,23 +14,35 @@ import {
   UpdateDataFileResponse
 } from "@/types/datafile";
 
-const getErrorMessage = (error: FetchBaseQueryError): string => {
+export const DATAFILE_TOAST_COPY = {
+  created: "Data file created",
+  updated: "Data file updated",
+  deleted: "Data file deleted",
+  loadAllError: "Couldn't load data files. Try again.",
+  loadOneError: "Couldn't load the data file. Try again.",
+  duplicateNameError: "A data file with this filename already exists",
+  notOwnerError: "You don't own this data file",
+  notFoundError: "Data file not found",
+  requestError: "Couldn't process the data file request. Try again."
+} as const;
+
+export const getErrorMessage = (error: FetchBaseQueryError): string => {
   if (error.status === 409) {
     const data = error.data as { detail?: string };
-    return data?.detail || "A datafile with this filename already exists";
+    return data?.detail || DATAFILE_TOAST_COPY.duplicateNameError;
   }
   if (error.status === 403) {
     const data = error.data as { detail?: string };
-    return data?.detail || "You are not the owner of this datafile";
+    return data?.detail || DATAFILE_TOAST_COPY.notOwnerError;
   }
   if (error.status === 404) {
     const data = error.data as { detail?: string };
-    return data?.detail || "Datafile not found";
+    return data?.detail || DATAFILE_TOAST_COPY.notFoundError;
   }
   if (error.data && typeof error.data === "object" && "detail" in error.data) {
     return (error.data as { detail: string }).detail;
   }
-  return "Error processing datafile request";
+  return DATAFILE_TOAST_COPY.requestError;
 };
 
 export const datafileApi = createApi({
@@ -50,7 +62,7 @@ export const datafileApi = createApi({
       providesTags: ["Datafiles"],
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
-          toast.error("Error fetching datafiles", { duration: 5000 });
+          notify.error(DATAFILE_TOAST_COPY.loadAllError);
         });
       }
     }),
@@ -65,7 +77,7 @@ export const datafileApi = createApi({
       providesTags: (result, error, acid) => [{ type: "Datafile", id: acid }],
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
-          toast.error("Error fetching datafile", { duration: 5000 });
+          notify.error(DATAFILE_TOAST_COPY.loadOneError);
         });
       }
     }),
@@ -82,11 +94,11 @@ export const datafileApi = createApi({
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled
           .then(() => {
-            toast.success("Datafile created successfully", { duration: 3000 });
+            notify.success(DATAFILE_TOAST_COPY.created);
           })
           .catch((error) => {
             const message = getErrorMessage(error.error as FetchBaseQueryError);
-            toast.error(message, { duration: 5000 });
+            notify.error(message);
           });
       }
     }),
@@ -103,11 +115,11 @@ export const datafileApi = createApi({
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled
           .then(() => {
-            toast.success("Datafile updated successfully", { duration: 3000 });
+            notify.success(DATAFILE_TOAST_COPY.updated);
           })
           .catch((error) => {
             const message = getErrorMessage(error.error as FetchBaseQueryError);
-            toast.error(message, { duration: 5000 });
+            notify.error(message);
           });
       }
     }),
@@ -123,11 +135,11 @@ export const datafileApi = createApi({
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled
           .then(() => {
-            toast.success("Datafile deleted successfully", { duration: 3000 });
+            notify.success(DATAFILE_TOAST_COPY.deleted);
           })
           .catch((error) => {
             const message = getErrorMessage(error.error as FetchBaseQueryError);
-            toast.error(message, { duration: 5000 });
+            notify.error(message);
           });
       }
     })

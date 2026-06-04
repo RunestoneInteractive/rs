@@ -1,4 +1,5 @@
 import { Loader } from "@components/ui/Loader";
+import { Center } from "@mantine/core";
 import { assignmentActions } from "@store/assignment/assignment.logic";
 import {
   useCreateAssignmentMutation,
@@ -15,14 +16,14 @@ import {
 } from "@store/dataset/dataset.logic.api";
 import { useGetAvailableReadingsQuery } from "@store/readings/readings.logic.api";
 import sortBy from "lodash/sortBy";
-import { useEffect } from "react";
-import { toast } from "react-hot-toast";
+import { useCallback, useEffect } from "react";
 import { useDispatch } from "react-redux";
 
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { Assignment, CreateAssignmentPayload } from "@/types/assignment";
 
-import { RoutingDebug } from "./components/RoutingDebug";
+import { saveEnforceDue, saveVisibility } from "./assignmentMutationHandlers";
+import { ErrorState } from "./components/ErrorState/ErrorState";
 import { AssignmentEdit } from "./components/edit/AssignmentEdit";
 import { AssignmentList } from "./components/list/AssignmentList";
 import { AssignmentWizard } from "./components/wizard/AssignmentWizard";
@@ -32,10 +33,12 @@ import { useAssignmentRouting } from "./hooks/useAssignmentRouting";
 import { useAssignmentState } from "./hooks/useAssignmentState";
 import { useNameValidation } from "./hooks/useNameValidation";
 
+import styles from "./AssignmentBuilder.module.css";
+
 export const AssignmentBuilder = () => {
   const dispatch = useDispatch();
   const { isLoading, isError, data: assignments = [] } = useGetAssignmentsQuery();
-  const [createAssignment] = useCreateAssignmentMutation();
+  const [createAssignment, { isLoading: isCreating }] = useCreateAssignmentMutation();
   const [updateAssignment] = useUpdateAssignmentMutation();
   const [removeAssignment] = useRemoveAssignmentMutation();
   const [duplicateAssignment] = useDuplicateAssignmentMutation();
@@ -99,42 +102,37 @@ export const AssignmentBuilder = () => {
     reset(defaultAssignment as unknown as Assignment);
   };
 
-  const handleEdit = (assignment: Assignment) => {
-    dispatch(assignmentActions.setSelectedAssignmentId(assignment.id));
-    navigateToEdit(assignment.id.toString(), "basic");
-  };
+  const handleEdit = useCallback(
+    (assignment: Assignment) => {
+      dispatch(assignmentActions.setSelectedAssignmentId(assignment.id));
+      navigateToEdit(assignment.id.toString(), "basic");
+    },
+    [dispatch, navigateToEdit]
+  );
 
-  const handleDuplicate = async (assignment: Assignment) => {
-    await duplicateAssignment(assignment.id);
-  };
+  const handleDuplicate = useCallback(
+    async (assignment: Assignment) => {
+      await duplicateAssignment(assignment.id);
+    },
+    [duplicateAssignment]
+  );
 
+  const handleEnforceDueChange = useCallback(
+    async (assignment: Assignment, enforce_due: boolean) => {
+      await saveEnforceDue(updateAssignment, assignment, enforce_due);
+    },
+    [updateAssignment]
+  );
 
-  const handleEnforceDueChange = async (assignment: Assignment, enforce_due: boolean) => {
-    try {
-      await updateAssignment({
-        ...assignment,
-        enforce_due
-      });
-      toast.success(`Late submissions ${enforce_due ? "not allowed" : "allowed"}`);
-    } catch (error) {
-      toast.error("Failed to update late submission settings");
-    }
-  };
-
-  const handleVisibilityChange = async (
-    assignment: Assignment,
-    data: { visible: boolean; visible_on: string | null; hidden_on: string | null }
-  ) => {
-    try {
-      await updateAssignment({
-        ...assignment,
-        ...data
-      });
-      toast.success("Visibility updated");
-    } catch (error) {
-      toast.error("Failed to update visibility");
-    }
-  };
+  const handleVisibilityChange = useCallback(
+    async (
+      assignment: Assignment,
+      data: { visible: boolean; visible_on: string | null; hidden_on: string | null }
+    ) => {
+      await saveVisibility(updateAssignment, assignment, data);
+    },
+    [updateAssignment]
+  );
 
   const handleWizardComplete = async () => {
     const formValues = getValues();
@@ -154,33 +152,41 @@ export const AssignmentBuilder = () => {
       released: true,
       enforce_due: formValues.enforce_due || false
     };
-    const response = await createAssignment(payload).unwrap();
-    const createdAssignmentId = response.detail.id;
+    const response = await createAssignment(payload)
+      .unwrap()
+      .catch(() => null);
 
-    navigateToEdit(createdAssignmentId.toString());
-  };
-  const onRemove = async (assignment: Assignment) => {
-    removeAssignment(assignment);
-  };
+    if (!response) {
+      return;
+    }
 
-  if (isLoading) {
+    navigateToEdit(response.detail.id.toString());
+  };
+  const onRemove = useCallback(
+    async (assignment: Assignment) => {
+      removeAssignment(assignment);
+    },
+    [removeAssignment]
+  );
+
+  if (isLoading && mode !== "list") {
     return (
-      <div className="flex center">
+      <Center h="100%">
         <Loader />
-      </div>
+      </Center>
     );
   }
 
   if (isError) {
-    return <div>Error loading assignments!</div>;
+    return <ErrorState title="Couldn't load assignments" message="Refresh the page." />;
   }
 
   return (
-    <div className="root">
-      <RoutingDebug />
+    <div className={styles.root}>
       {mode === "list" && (
         <AssignmentList
           assignments={sortBy(assignments, (x) => x.id)}
+          loading={isLoading}
           globalFilter={globalFilter}
           setGlobalFilter={setGlobalFilter}
           onCreateNew={handleCreateNew}
@@ -197,6 +203,7 @@ export const AssignmentBuilder = () => {
           wizardStep={wizardStep}
           nameError={nameError}
           canProceed={canProceed}
+          isCreating={isCreating}
           onBack={() => {
             if (wizardStep === "visibility") {
               updateWizardStep("type");

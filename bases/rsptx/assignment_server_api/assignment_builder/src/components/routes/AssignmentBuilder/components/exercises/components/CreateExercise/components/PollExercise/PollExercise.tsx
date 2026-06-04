@@ -22,7 +22,7 @@ import { PollQuestionEditor } from "./components";
 
 const POLL_STEPS = [
   { label: "Question" },
-  { label: "Poll Type" },
+  { label: "Poll type" },
   { label: "Options" },
   { label: "Settings" },
   { label: "Preview" }
@@ -96,6 +96,7 @@ export const PollExercise: FC<BaseExerciseProps> = ({
     formData,
     activeStep,
     isSaving,
+    isDirty,
     updateFormData,
     handleSettingsChange,
     handleQuestionChange,
@@ -244,13 +245,14 @@ export const PollExercise: FC<BaseExerciseProps> = ({
 
   return (
     <ExerciseLayout
-      title="Poll Exercise"
+      title="poll exercise"
       exerciseType="poll"
       isEdit={isEdit}
       steps={POLL_STEPS}
       activeStep={activeStep}
       isCurrentStepValid={isCurrentStepValid}
       isSaving={isSaving}
+      isDirty={isDirty}
       stepsValidity={stepsValidity}
       onCancel={onCancel}
       onBack={goToPrevStep}

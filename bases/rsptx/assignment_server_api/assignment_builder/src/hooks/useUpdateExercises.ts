@@ -1,4 +1,4 @@
-import { useToastContext } from "@components/ui/ToastContext";
+import { notify } from "@components/ui/notify";
 import { assignmentExerciseSelectors } from "@store/assignmentExercise/assignmentExercise.logic";
 import { useUpdateAssignmentQuestionsMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { useCallback } from "react";
@@ -8,7 +8,6 @@ import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
 export const useUpdateExercises = () => {
-  const { showToast } = useToastContext();
   const [updateExercises] = useUpdateAssignmentQuestionsMutation();
   const assignmentExercises = useSelector(assignmentExerciseSelectors.getAssignmentExercises);
 
@@ -17,11 +16,7 @@ export const useUpdateExercises = () => {
       const exerciseToUpdate = assignmentExercises.find((ex) => ex.id === exerciseId);
 
       if (!exerciseToUpdate) {
-        showToast({
-          severity: "error",
-          summary: "Error",
-          detail: "Exercise not found"
-        });
+        notify.error("This exercise is no longer in the assignment");
         return;
       }
 
@@ -38,20 +33,12 @@ export const useUpdateExercises = () => {
       const { error } = await updateExercises([updatedExercise]);
 
       if (!error) {
-        showToast({
-          severity: "success",
-          summary: "Success",
-          detail: "Exercise updated successfully"
-        });
+        notify.success("Exercise updated");
       } else {
-        showToast({
-          severity: "error",
-          summary: "Error",
-          detail: "Failed to update exercise"
-        });
+        notify.error("Couldn't update exercise. Try again.");
       }
     },
-    [assignmentExercises, showToast, updateExercises]
+    [assignmentExercises, updateExercises]
   );
 
   return { handleChange };

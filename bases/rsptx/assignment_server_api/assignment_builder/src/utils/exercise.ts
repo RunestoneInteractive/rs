@@ -1,8 +1,7 @@
 import sortBy from "lodash/sortBy";
-import { TreeNode } from "primereact/treenode";
 
 import { Exercise } from "@/types/exercises";
-import { SelectedKey } from "@/types/treeNode";
+import { SelectedKey, TreeNode } from "@/types/treeNode";
 
 export const createExerciseId = (): string => {
   const today = new Date();
@@ -46,9 +45,8 @@ export const getSelectedKeys = (
 
   const traverse = (node: TreeNode): SelectedKey => {
     const key = node.key as string;
-    let isLeaf = !node.children || node.children.length === 0;
-    let isChecked = checkedByDefault || exercisesNames.includes(key);
-    let childCheckedCount = 0;
+    const isLeaf = !node.children || node.children.length === 0;
+    const isChecked = checkedByDefault || exercisesNames.includes(key);
 
     if (isLeaf) {
       result[key] = { checked: isChecked, partialChecked: false };
@@ -66,9 +64,6 @@ export const getSelectedKeys = (
       }
       if (!childStatus.checked) {
         allChildrenChecked = false;
-      }
-      if (childStatus.checked) {
-        childCheckedCount++;
       }
     }
 

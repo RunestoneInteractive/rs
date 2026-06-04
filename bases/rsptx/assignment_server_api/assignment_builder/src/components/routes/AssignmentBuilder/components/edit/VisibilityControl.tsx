@@ -1,4 +1,4 @@
-import { RadioButton } from "primereact/radiobutton";
+import { Radio } from "@mantine/core";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
 import { Assignment } from "@/types/assignment";
@@ -6,46 +6,43 @@ import { convertDateToISO, formatUTCDateLocaleString, parseUTCDate } from "@/uti
 
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
 
-// eslint-disable-next-line no-restricted-imports
-import styles from "../../AssignmentBuilder.module.css";
+import { getVisibilityMode, VisibilityMode } from "./visibilityMode";
+
+import styles from "./VisibilityControl.module.css";
 
 interface VisibilityControlProps {
   control: Control<Assignment>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   watch: (name: keyof Assignment) => any;
   setValue: UseFormSetValue<Assignment>;
 }
 
-type VisibilityMode =
-  | "hidden"
-  | "visible"
-  | "scheduled_visible"
-  | "scheduled_hidden"
-  | "scheduled_period";
+const VISIBILITY_OPTIONS: { value: VisibilityMode; title: string; description: string }[] = [
+  { value: "visible", title: "Visible", description: "Students can see this assignment now" },
+  { value: "hidden", title: "Hidden", description: "Hidden from students" },
+  {
+    value: "scheduled_visible",
+    title: "Make visible on a date",
+    description: "Hidden until the date you choose"
+  },
+  {
+    value: "scheduled_hidden",
+    title: "Hide on a date",
+    description: "Visible until the date you choose"
+  },
+  {
+    value: "scheduled_period",
+    title: "Visible during a period",
+    description: "Visible only between two dates"
+  }
+];
 
 export const VisibilityControl = ({ control, watch, setValue }: VisibilityControlProps) => {
   const visible = watch("visible");
   const visibleOn = watch("visible_on");
   const hiddenOn = watch("hidden_on");
 
-  // Determine current visibility mode
-  const getVisibilityMode = (): VisibilityMode => {
-    if (!visible) {
-      if (visibleOn && hiddenOn) {
-        return "scheduled_period";
-      }
-      if (visibleOn) {
-        return "scheduled_visible";
-      }
-      return "hidden";
-    } else {
-      if (hiddenOn) {
-        return "scheduled_hidden";
-      }
-      return "visible";
-    }
-  };
-
-  const visibilityMode = getVisibilityMode();
+  const visibilityMode = getVisibilityMode(visible, visibleOn, hiddenOn);
 
   const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -54,8 +51,10 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
     if (hiddenOn) {
       const newVisibleDate = parseUTCDate(val);
       const currentHiddenDate = parseUTCDate(hiddenOn);
+
       if (newVisibleDate >= currentHiddenDate) {
         const adjusted = new Date(newVisibleDate.getTime() + DAY_MS);
+
         setValue("hidden_on", convertDateToISO(adjusted));
       }
     }
@@ -66,8 +65,10 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
     if (visibleOn) {
       const newHiddenDate = parseUTCDate(val);
       const currentVisibleDate = parseUTCDate(visibleOn);
+
       if (newHiddenDate <= currentVisibleDate) {
         const adjusted = new Date(newHiddenDate.getTime() - DAY_MS);
+
         setValue("visible_on", convertDateToISO(adjusted));
       }
     }
@@ -90,6 +91,7 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
         setValue("hidden_on", null);
         if (!visibleOn) {
           const startOfDay = new Date();
+
           startOfDay.setHours(0, 0, 0, 0);
           setValue("visible_on", convertDateToISO(startOfDay));
         }
@@ -99,20 +101,22 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
         setValue("visible_on", null);
         if (!hiddenOn) {
           const endOfDay = new Date();
+
           endOfDay.setHours(23, 59, 0, 0);
           setValue("hidden_on", convertDateToISO(endOfDay));
         }
         break;
       case "scheduled_period":
         setValue("visible", false);
-        // Set both dates if not already set
         if (!visibleOn) {
           const startOfDay = new Date();
+
           startOfDay.setHours(0, 0, 0, 0);
           setValue("visible_on", convertDateToISO(startOfDay));
         }
         if (!hiddenOn) {
           const endOfDay = new Date();
+
           endOfDay.setHours(23, 59, 0, 0);
           setValue("hidden_on", convertDateToISO(endOfDay));
         }
@@ -120,133 +124,118 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
     }
   };
 
-  return (
-    <div className={styles.formField}>
-      <label>Visibility</label>
-      <div className="flex flex-column gap-3">
-        <div className="flex flex-column gap-2">
-          <div className="flex align-items-center">
-            <RadioButton
-              inputId="visibility-hidden"
-              value="hidden"
-              checked={visibilityMode === "hidden"}
-              onChange={() => handleModeChange("hidden")}
-            />
-            <label htmlFor="visibility-hidden" className="ml-2 cursor-pointer">
-              Hidden
+  const renderScheduleInputs = (mode: VisibilityMode) => {
+    if (mode !== visibilityMode) {
+      return null;
+    }
+
+    if (mode === "scheduled_visible") {
+      return (
+        <div className={styles.cardInputs}>
+          <Controller
+            name="visible_on"
+            control={control}
+            render={({ field: dateField }) => (
+              <DateTimePicker
+                value={dateField.value}
+                onChange={(val) => dateField.onChange(val)}
+                utc
+                ariaLabel="Visible on date"
+              />
+            )}
+          />
+        </div>
+      );
+    }
+
+    if (mode === "scheduled_hidden") {
+      return (
+        <div className={styles.cardInputs}>
+          <Controller
+            name="hidden_on"
+            control={control}
+            render={({ field: dateField }) => (
+              <DateTimePicker
+                value={dateField.value}
+                onChange={(val) => dateField.onChange(val)}
+                utc
+                ariaLabel="Hidden on date"
+              />
+            )}
+          />
+        </div>
+      );
+    }
+
+    if (mode === "scheduled_period") {
+      return (
+        <div className={styles.cardInputs}>
+          <div>
+            <label className={styles.inputLabel} htmlFor="visibility-visible-from">
+              Visible from
             </label>
-          </div>
-
-          <div className="flex align-items-center">
-            <RadioButton
-              inputId="visibility-visible"
-              value="visible"
-              checked={visibilityMode === "visible"}
-              onChange={() => handleModeChange("visible")}
+            <Controller
+              name="visible_on"
+              control={control}
+              render={({ field: dateField }) => (
+                <DateTimePicker
+                  id="visibility-visible-from"
+                  value={dateField.value}
+                  onChange={(val) => handleVisibleOnChange(val)}
+                  utc
+                />
+              )}
             />
-            <label htmlFor="visibility-visible" className="ml-2 cursor-pointer">
-              Visible
-            </label>
           </div>
-
-          <div className="flex flex-column gap-2">
-            <div className="flex align-items-center">
-              <RadioButton
-                inputId="visibility-scheduled-visible"
-                value="scheduled_visible"
-                checked={visibilityMode === "scheduled_visible"}
-                onChange={() => handleModeChange("scheduled_visible")}
-              />
-              <label htmlFor="visibility-scheduled-visible" className="ml-2 cursor-pointer">
-                Scheduled: Make visible on
-              </label>
-            </div>
-            {visibilityMode === "scheduled_visible" && (
-              <Controller
-                name="visible_on"
-                control={control}
-                render={({ field: dateField }) => (
-                  <DateTimePicker
-                    value={dateField.value}
-                    onChange={(val) => dateField.onChange(val)}
-                    utc
-                  />
-                )}
-              />
-            )}
-
-            <div className="flex align-items-center">
-              <RadioButton
-                inputId="visibility-scheduled-hidden"
-                value="scheduled_hidden"
-                checked={visibilityMode === "scheduled_hidden"}
-                onChange={() => handleModeChange("scheduled_hidden")}
-              />
-              <label htmlFor="visibility-scheduled-hidden" className="ml-2 cursor-pointer">
-                Scheduled: Hide on
-              </label>
-            </div>
-            {visibilityMode === "scheduled_hidden" && (
-              <Controller
-                name="hidden_on"
-                control={control}
-                render={({ field: dateField }) => (
-                  <DateTimePicker
-                    value={dateField.value}
-                    onChange={(val) => dateField.onChange(val)}
-                    utc
-                  />
-                )}
-              />
-            )}
-
-            <div className="flex align-items-center">
-              <RadioButton
-                inputId="visibility-scheduled-period"
-                value="scheduled_period"
-                checked={visibilityMode === "scheduled_period"}
-                onChange={() => handleModeChange("scheduled_period")}
-              />
-              <label htmlFor="visibility-scheduled-period" className="ml-2 cursor-pointer">
-                Scheduled: Visible during period
-              </label>
-            </div>
-            {visibilityMode === "scheduled_period" && (
-              <div className="flex flex-column gap-2 ml-4">
-                <div>
-                  <label className="block mb-1 text-sm">Visible from:</label>
-                  <Controller
-                    name="visible_on"
-                    control={control}
-                    render={({ field: dateField }) => (
-                      <DateTimePicker
-                        value={dateField.value}
-                        onChange={(val) => handleVisibleOnChange(val)}
-                        utc
-                      />
-                    )}
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 text-sm">Hidden after:</label>
-                  <Controller
-                    name="hidden_on"
-                    control={control}
-                    render={({ field: dateField }) => (
-                      <DateTimePicker
-                        value={dateField.value}
-                        onChange={(val) => handleHiddenOnChange(val)}
-                        utc
-                      />
-                    )}
-                  />
-                </div>
-              </div>
-            )}
+          <div>
+            <label className={styles.inputLabel} htmlFor="visibility-hidden-after">
+              Hidden after
+            </label>
+            <Controller
+              name="hidden_on"
+              control={control}
+              render={({ field: dateField }) => (
+                <DateTimePicker
+                  id="visibility-hidden-after"
+                  value={dateField.value}
+                  onChange={(val) => handleHiddenOnChange(val)}
+                  utc
+                />
+              )}
+            />
           </div>
         </div>
-      </div>
-      <small className="text-gray-600 mt-2 block">
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <div>
+      <Radio.Group
+        value={visibilityMode}
+        onChange={(mode) => handleModeChange(mode as VisibilityMode)}
+        aria-label="Visibility"
+      >
+        <div className={styles.cards}>
+          {VISIBILITY_OPTIONS.map((option) => (
+            <div key={option.value}>
+              <Radio.Card value={option.value} className={styles.radioCard}>
+                <div className={styles.cardRow}>
+                  <Radio.Indicator size="sm" />
+                  <div className={styles.cardBody}>
+                    <span className={styles.cardTitle}>{option.title}</span>
+                    <span className={styles.cardDesc}>{option.description}</span>
+                  </div>
+                </div>
+              </Radio.Card>
+              {renderScheduleInputs(option.value)}
+            </div>
+          ))}
+        </div>
+      </Radio.Group>
+      <p className={styles.summary}>
         {visibilityMode === "hidden" && "Assignment is hidden from students"}
         {visibilityMode === "visible" && "Assignment is currently visible to students"}
         {visibilityMode === "scheduled_visible" &&
@@ -259,7 +248,7 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
           visibleOn &&
           hiddenOn &&
           `Assignment will be visible from ${formatUTCDateLocaleString(visibleOn)} until ${formatUTCDateLocaleString(hiddenOn)}`}
-      </small>
+      </p>
     </div>
   );
 };

@@ -21,6 +21,8 @@ from ..models import (
     AssignmentValidator,
     AssignmentQuestion,
     AssignmentQuestionValidator,
+    AuthUser,
+    CourseInstructor,
     Courses,
     DeadlineException,
     DeadlineExceptionValidator,
@@ -29,6 +31,7 @@ from ..models import (
     Library,
     Question,
     Useinfo,
+    UserCourse,
 )
 
 from ..async_session import async_session
@@ -219,6 +222,98 @@ async def delete_deadline_exception(entry_id: int) -> None:
         await session.execute(stmt)
 
 
+async def upsert_deadline_exception(
+    course_id: int,
+    username: str,
+    time_limit: Optional[float] = None,
+    deadline: Optional[int] = None,
+    visible: Optional[bool] = None,
+    assignment_id: Optional[int] = None,
+    allowLink: Optional[bool] = None,
+) -> DeadlineExceptionValidator:
+    """
+    Create or update a deadline exception for a (course, student, assignment) triple.
+
+    Uniqueness is enforced on (course_id, sid, assignment_id); a NULL assignment_id
+    represents an exception that applies to every assignment for the student.
+
+    :param course_id: int, the id of the course
+    :param username: str, the username of the student
+    :param time_limit: Optional[float], multiplier for a timed-exam time limit
+    :param deadline: Optional[int], number of days to extend the deadline
+    :param visible: Optional[bool], override the assignment visibility
+    :param assignment_id: Optional[int], the assignment the exception applies to
+    :param allowLink: Optional[bool], allow link access even when not visible
+    :return: DeadlineExceptionValidator, the persisted exception
+    """
+    clauses = [
+        DeadlineException.course_id == course_id,
+        DeadlineException.sid == username,
+    ]
+    if assignment_id is None:
+        clauses.append(DeadlineException.assignment_id.is_(None))
+    else:
+        clauses.append(DeadlineException.assignment_id == assignment_id)
+
+    async with async_session.begin() as session:
+        res = await session.execute(select(DeadlineException).where(and_(*clauses)))
+        existing = res.scalars().first()
+        if existing is None:
+            existing = DeadlineException(
+                course_id=course_id,
+                sid=username,
+                assignment_id=assignment_id,
+                time_limit=time_limit,
+                duedate=deadline,
+                visible=visible,
+                allowLink=allowLink,
+            )
+            session.add(existing)
+        else:
+            if time_limit is not None:
+                existing.time_limit = time_limit
+            if deadline is not None:
+                existing.duedate = deadline
+            if visible is not None:
+                existing.visible = visible
+            if allowLink is not None:
+                existing.allowLink = allowLink
+        await session.flush()
+        return DeadlineExceptionValidator.from_orm(existing)
+
+
+async def update_deadline_exception(
+    entry_id: int,
+    time_limit: Optional[float] = None,
+    deadline: Optional[int] = None,
+    visible: Optional[bool] = None,
+    allowLink: Optional[bool] = None,
+) -> Optional[DeadlineExceptionValidator]:
+    """
+    Update an existing deadline exception identified by its primary key.
+
+    :param entry_id: int, the id of the deadline exception row
+    :return: the updated DeadlineExceptionValidator or None when not found
+    """
+    async with async_session.begin() as session:
+        res = await session.execute(
+            select(DeadlineException).where(DeadlineException.id == entry_id)
+        )
+        existing = res.scalars().first()
+        if existing is None:
+            return None
+        if time_limit is not None:
+            existing.time_limit = time_limit
+        if deadline is not None:
+            existing.duedate = deadline
+        if visible is not None:
+            existing.visible = visible
+        if allowLink is not None:
+            existing.allowLink = allowLink
+        await session.flush()
+        return DeadlineExceptionValidator.from_orm(existing)
+
+
 async def get_repo_path(book: str) -> Optional[str]:
     """
     Get the repo_path for a book from the library table
@@ -386,6 +481,40 @@ async def update_assignment(assignment: AssignmentValidator, pi_update=False) ->
         update(Assignment)
         .where(Assignment.id == assignment.id)
         .values(assignment_updates)
+    )
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+
+
+async def update_assignment_released(assignment_id: int, released: bool) -> None:
+    """
+    Set only the ``released`` flag on an Assignment, controlling whether students
+    can see their grades. Additive, focused update: it touches ``released`` and
+    ``updated_date`` only and never alters ``current_index`` or other fields.
+    """
+    stmt = (
+        update(Assignment)
+        .where(Assignment.id == assignment_id)
+        .values(released=released, updated_date=canonical_utcnow())
+    )
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+
+
+async def update_assignment_threshold(
+    assignment_id: int, threshold_pct: Optional[float]
+) -> None:
+    """
+    Set only the ``threshold_pct`` field on an Assignment, controlling threshold
+    scoring during the recompute roll-up. Additive, focused update: it touches
+    ``threshold_pct`` and ``updated_date`` only and never alters
+    ``current_index`` or other fields. A null or zero threshold disables
+    threshold scoring (recompute then uses the raw per-question sum).
+    """
+    stmt = (
+        update(Assignment)
+        .where(Assignment.id == assignment_id)
+        .values(threshold_pct=threshold_pct, updated_date=canonical_utcnow())
     )
     async with async_session.begin() as session:
         await session.execute(stmt)
@@ -824,6 +953,147 @@ async def fetch_all_grades_for_assignment(
         return [GradeValidator.from_orm(a) for a in res.scalars()]
 
 
+async def fetch_gradebook(course_name: str) -> dict:
+    """
+    Build the gradebook matrix for a course: every assignment, every enrolled
+    student (instructors excluded), and the per-(student, assignment) total score
+    from the ``grades`` table, plus the class average per assignment.
+
+    Additive read-only aggregation used only by the Assignment Builder grader. It
+    does not modify any shared fetch_* function.
+
+    :param course_name: str, the course name
+    :return: dict with ``assignments``, ``students``, ``cells`` and ``averages``
+    """
+    from .course import fetch_course
+
+    course = await fetch_course(course_name)
+
+    async with async_session() as session:
+        assignment_rows = (
+            (
+                await session.execute(
+                    select(Assignment)
+                    .where(Assignment.course == course.id)
+                    .order_by(Assignment.duedate, Assignment.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assignment_ids = [a.id for a in assignment_rows]
+
+        points_map: dict = {}
+        if assignment_ids:
+            points_result = await session.execute(
+                select(
+                    AssignmentQuestion.assignment_id,
+                    func.sum(AssignmentQuestion.points),
+                )
+                .where(AssignmentQuestion.assignment_id.in_(assignment_ids))
+                .group_by(AssignmentQuestion.assignment_id)
+            )
+            for aid, total in points_result.all():
+                points_map[aid] = int(total or 0)
+
+        instructor_ids = set(
+            (
+                await session.execute(
+                    select(CourseInstructor.instructor).where(
+                        CourseInstructor.course == course.id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        student_rows = (
+            (
+                await session.execute(
+                    select(AuthUser)
+                    .join(UserCourse, UserCourse.user_id == AuthUser.id)
+                    .where(UserCourse.course_id == course.id)
+                    .order_by(
+                        AuthUser.last_name, AuthUser.first_name, AuthUser.username
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        students = [s for s in student_rows if s.id not in instructor_ids]
+        id_to_sid = {s.id: s.username for s in students}
+
+        grade_rows = []
+        if assignment_ids:
+            grade_rows = (
+                await session.execute(
+                    select(
+                        Grade.auth_user,
+                        Grade.assignment,
+                        Grade.score,
+                        Grade.manual_total,
+                    ).where(Grade.assignment.in_(assignment_ids))
+                )
+            ).all()
+
+    released_map = {a.id: bool(a.released) for a in assignment_rows}
+    assignments = [
+        {
+            "id": a.id,
+            "name": a.name,
+            "points": points_map.get(a.id, 0),
+            "duedate": a.duedate.isoformat() if a.duedate else None,
+            "released": bool(a.released),
+        }
+        for a in assignment_rows
+    ]
+    student_list = [
+        {
+            "sid": s.username,
+            "name": f"{s.first_name} {s.last_name}".strip() or s.username,
+        }
+        for s in students
+    ]
+
+    cells = []
+    sums: dict = {}
+    for auth_user, assignment_id, score, manual_total in grade_rows:
+        sid = id_to_sid.get(auth_user)
+        if sid is None:
+            continue
+        cells.append(
+            {
+                "sid": sid,
+                "assignment_id": assignment_id,
+                "score": score,
+                "released": released_map.get(assignment_id, False),
+                "manual_total": bool(manual_total),
+            }
+        )
+        if score is not None:
+            bucket = sums.setdefault(assignment_id, [0.0, 0])
+            bucket[0] += score
+            bucket[1] += 1
+
+    averages = {
+        str(a.id): (
+            round(sums[a.id][0] / sums[a.id][1], 2)
+            if a.id in sums and sums[a.id][1]
+            else None
+        )
+        for a in assignment_rows
+    }
+
+    return {
+        "assignments": assignments,
+        "students": student_list,
+        "cells": cells,
+        "averages": averages,
+    }
+
+
 async def fetch_grade(userid: int, assignmentid: int) -> Optional[GradeValidator]:
     """
     Fetch the Grade object for the given user and assignment.
@@ -869,6 +1139,40 @@ async def upsert_grade(grade: GradeValidator) -> GradeValidator:
         return GradeValidator.from_orm(new_grade)
     else:
         return await fetch_grade(grade.auth_user, grade.assignment)
+
+
+async def set_manual_total(
+    userid: int,
+    assignmentid: int,
+    course_name: str,
+    score: float,
+    manual: bool = True,
+) -> GradeValidator:
+    """Set the grades row total for a student and flag whether it was set
+    manually. When manual is True, recompute_totals_for preserves this score
+    instead of overwriting it from the per-question grades; when False the row
+    becomes eligible for recomputation again.
+
+    :param userid: int, the auth_user id
+    :param assignmentid: int, the assignment id
+    :param course_name: str, the course name (used only when inserting a new row)
+    :param score: float, the total score to store
+    :param manual: bool, the value for the manual_total flag
+    :return: GradeValidator, the upserted grade
+    """
+    grade = await fetch_grade(userid, assignmentid)
+    if grade:
+        grade.score = score
+        grade.manual_total = manual
+        return await upsert_grade(grade)
+    new_grade = GradeValidator(
+        auth_user=userid,
+        course_name=course_name,
+        assignment=assignmentid,
+        score=score,
+        manual_total=manual,
+    )
+    return await upsert_grade(new_grade)
 
 
 async def delete_assignment(assignment_id: int) -> None:

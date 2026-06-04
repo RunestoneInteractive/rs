@@ -24,6 +24,7 @@ from rsptx.db.models import (
 )
 from rsptx.logging import rslogger
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
+from rsptx.grading_helpers.scoring import score_answer_values, PEER_CHAT_SENTINEL
 
 
 async def grade_submission(
@@ -190,29 +191,14 @@ async def score_one_answer(
     rslogger.debug(
         f"scoreSpec.how_to_score = {scoreSpec.how_to_score} {scoreSpec.max_score}"
     )
-    if scoreSpec.how_to_score == "pct_correct":
-        if submission.correct:
-            return scoreSpec.max_score
-        else:
-            if submission.percent:
-                # for some reason, lost to the sands of time, the percent is an int for unittests
-                if submission.event == "unittest":
-                    return (submission.percent / 100.0) * scoreSpec.max_score
-                else:
-                    return submission.percent * scoreSpec.max_score
-            return 0
-    elif scoreSpec.how_to_score == "all_or_nothing":
-        if submission.correct:
-            return scoreSpec.max_score
-        else:
-            return 0
-    elif (
-        scoreSpec.how_to_score == "interact" or scoreSpec.how_to_score == "interaction"
-    ):
-        return scoreSpec.max_score
-    elif scoreSpec.how_to_score == "peer":
-        return scoreSpec.max_score
-    elif scoreSpec.how_to_score == "peer_chat":
+    score = score_answer_values(
+        how_to_score=scoreSpec.how_to_score,
+        max_score=scoreSpec.max_score,
+        correct=submission.correct,
+        percent=submission.percent,
+        event=submission.event,
+    )
+    if score == PEER_CHAT_SENTINEL:
         did_chat = await did_send_messages(
             scoreSpec.username, submission.div_id, submission.course_name
         )
@@ -220,9 +206,7 @@ async def score_one_answer(
             return scoreSpec.max_score
         else:
             return 0.5 * scoreSpec.max_score
-    else:
-        rslogger.debug(f"Unknown how_to_score {scoreSpec.how_to_score}")
-        return 0
+    return score
 
 
 async def compute_total_score(

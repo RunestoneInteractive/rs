@@ -1,7 +1,9 @@
 import { MathJaxWrapper } from "@components/routes/AssignmentBuilder/MathJaxWrapper";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import { MathJax } from "better-react-mathjax";
-import { Button } from "primereact/button";
 import { useState } from "react";
+
+import { Icon } from "@/components/ui/Icon";
 
 import styles from "./MultiChoiceOptionsWrapper.module.css";
 
@@ -19,16 +21,16 @@ export const StatementPreview = ({ statement }: StatementPreviewProps) => {
   return (
     <div className={styles.statementPreview}>
       <div className={styles.statementHeader}>
-        <h4>Question Statement</h4>
-        <Button
-          icon={isVisible ? "pi pi-eye-slash" : "pi pi-eye"}
-          size="small"
-          outlined
-          onClick={toggleVisibility}
-          tooltip={isVisible ? "Hide preview" : "Show preview"}
-          tooltipOptions={{ position: "left" }}
-          aria-label={isVisible ? "Hide preview" : "Show preview"}
-        />
+        <h4>Question statement</h4>
+        <Tooltip label={isVisible ? "Hide preview" : "Show preview"} position="left">
+          <ActionIcon
+            variant="outline"
+            onClick={toggleVisibility}
+            aria-label={isVisible ? "Hide preview" : "Show preview"}
+          >
+            <Icon name={isVisible ? "eye-slash" : "eye"} size={16} />
+          </ActionIcon>
+        </Tooltip>
       </div>
       {isVisible && (
         <div className={styles.statementContent}>

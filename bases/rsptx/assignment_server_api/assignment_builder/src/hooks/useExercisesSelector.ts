@@ -1,4 +1,4 @@
-import { useToastContext } from "@components/ui/ToastContext";
+import { notify } from "@components/ui/notify";
 import { assignmentSelectors } from "@store/assignment/assignment.logic";
 import { assignmentExerciseSelectors } from "@store/assignmentExercise/assignmentExercise.logic";
 import {
@@ -17,18 +17,24 @@ export const useExercisesSelector = () => {
   const selectedAssignmentId = useSelector(assignmentSelectors.getSelectedAssignmentId);
   const selectedExercises = useSelector(exercisesSelectors.getSelectedExercises);
   const [removeExercisesPost] = useRemoveAssignmentExercisesMutation();
-  const { showToast } = useToastContext();
   const availableExercises = useSelector(readingsSelectors.getAvailableReadings);
   const exercises = useSelector(assignmentExerciseSelectors.getAssignmentExercises);
 
+  const exercisesForAssignmentId = useSelector(
+    assignmentExerciseSelectors.getExercisesForAssignmentId
+  );
+
   const {
     isLoading: isExercisesLoading,
+    isFetching: isExercisesFetching,
     isError: isExercisesError,
     refetch: refetchExercises
   } = useGetExercisesQuery(selectedAssignmentId ?? 0, {
-    // Skip the query if we don't have an assignment ID
-    skip: !selectedAssignmentId
+    skip: !selectedAssignmentId,
+    refetchOnMountOrArgChange: true
   });
+
+  const isStaleForAssignment = exercisesForAssignmentId !== (selectedAssignmentId ?? null);
 
   const assignmentExercises = getExercisesWithoutReadings(exercises);
 
@@ -46,11 +52,9 @@ export const useExercisesSelector = () => {
     const { error } = await removeExercisesPost(idsToRemove);
 
     if (!error) {
-      showToast({
-        severity: "success",
-        summary: "Success",
-        detail: `${idsToRemove.length} exercises successfully removed`
-      });
+      notify.success(
+        `Removed ${idsToRemove.length} ${idsToRemove.length === 1 ? "exercise" : "exercises"}`
+      );
       dispatch(
         exercisesActions.setSelectedExercises(
           selectedExercises.filter((r) => !idsToRemove.includes(r.id))
@@ -59,7 +63,7 @@ export const useExercisesSelector = () => {
     }
   };
 
-  if (isExercisesLoading) {
+  if (isExercisesLoading || (isExercisesFetching && isStaleForAssignment)) {
     return { loading: true, removeExercises };
   }
 

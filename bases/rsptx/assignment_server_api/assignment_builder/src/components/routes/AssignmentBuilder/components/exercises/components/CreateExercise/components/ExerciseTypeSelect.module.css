@@ -1,0 +1,92 @@
+.familyGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-2);
+}
+
+.familyLabel {
+  font-size: var(--rs-font-size-xs);
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--rs-space-3);
+}
+
+.typeCard {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--rs-space-3);
+  padding: var(--rs-space-3);
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-md);
+  transition:
+    border-color var(--rs-transition-fast),
+    box-shadow var(--rs-transition-fast),
+    transform var(--rs-transition-fast);
+}
+
+.typeCard:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--extype-hue) 45%, var(--rs-border-solid));
+  box-shadow: var(--rs-shadow-sm);
+}
+
+.typeCard[data-selected] {
+  border-color: var(--extype-hue);
+  transform: none;
+  box-shadow: none;
+}
+
+.iconTile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--rs-radius-sm);
+  background: color-mix(in srgb, var(--extype-hue) 10%, var(--rs-neutral-0));
+  color: var(--extype-text);
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-right: var(--rs-space-5);
+}
+
+.cardName {
+  font-size: var(--rs-font-size-md);
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-strong);
+}
+
+.cardDescription {
+  font-size: var(--rs-font-size-xs);
+  line-height: var(--rs-line-height);
+  color: var(--rs-text-muted);
+}
+
+.checkBadge {
+  position: absolute;
+  top: var(--rs-space-2);
+  right: var(--rs-space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--rs-radius-pill);
+  background: var(--extype-hue);
+  color: var(--rs-text-on-brand);
+}

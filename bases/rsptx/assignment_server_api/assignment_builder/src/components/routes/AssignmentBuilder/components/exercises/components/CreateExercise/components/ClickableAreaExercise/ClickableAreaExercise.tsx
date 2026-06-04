@@ -55,6 +55,7 @@ export const ClickableAreaExercise: FC<ExerciseComponentProps> = ({
     formData,
     activeStep,
     isSaving,
+    isDirty,
     updateFormData,
     handleSettingsChange,
     isCurrentStepValid,
@@ -133,13 +134,14 @@ export const ClickableAreaExercise: FC<ExerciseComponentProps> = ({
 
   return (
     <ExerciseLayout
-      title="Clickable Area Exercise"
+      title="clickable area exercise"
       exerciseType="clickablearea"
       isEdit={isEdit}
       steps={CLICKABLE_AREA_STEPS}
       activeStep={activeStep}
       isCurrentStepValid={isCurrentStepValid}
       isSaving={isSaving}
+      isDirty={isDirty}
       stepsValidity={stepsValidity}
       onCancel={onCancel}
       onBack={goToPrevStep}

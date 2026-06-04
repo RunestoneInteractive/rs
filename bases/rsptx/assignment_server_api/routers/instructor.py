@@ -43,6 +43,8 @@ from rsptx.db.crud import (
     create_assignment_question,
     create_deadline_exception,
     delete_deadline_exception,
+    update_deadline_exception,
+    upsert_deadline_exception,
     create_question,
     fetch_course,
     fetch_users_for_course,
@@ -1080,6 +1082,7 @@ async def process_invoice_request(
 
 
 @router.get("/course_roster")
+@instructor_role_required()
 async def get_course_roster(
     request: Request, user=Depends(auth_manager), response_class=JSONResponse
 ):
@@ -1619,6 +1622,93 @@ async def delete_accommodations(request: Request, accommodation_id: int, course=
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error deleting accommodation: {str(e)}",
+        )
+
+
+class AccommodationPayload(BaseModel):
+    sids: List[str]
+    assignment_id: Optional[int] = None
+    duedate: Optional[int] = None
+    time_limit: Optional[float] = None
+    visible: Optional[bool] = None
+    allowLink: Optional[bool] = None
+
+
+class AccommodationUpdatePayload(BaseModel):
+    duedate: Optional[int] = None
+    time_limit: Optional[float] = None
+    visible: Optional[bool] = None
+    allowLink: Optional[bool] = None
+
+
+@router.post("/accommodation")
+@instructor_role_required()
+@with_course()
+async def create_or_update_accommodation(
+    request: Request, payload: AccommodationPayload, course=None
+):
+    """
+    Create or update a deadline exception (extra time / extension) for one or
+    more students. A NULL assignment_id applies the exception to every
+    assignment for the student.
+    """
+    try:
+        results = []
+        for sid in payload.sids:
+            entry = await upsert_deadline_exception(
+                course_id=course.id,
+                username=sid,
+                time_limit=payload.time_limit,
+                deadline=payload.duedate,
+                visible=payload.visible,
+                assignment_id=payload.assignment_id,
+                allowLink=payload.allowLink,
+            )
+            results.append(entry.dict() if entry else None)
+        return make_json_response(
+            status=status.HTTP_200_OK, detail={"accommodations": results}
+        )
+    except Exception as e:
+        rslogger.error(f"Error creating accommodation: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error creating accommodation: {str(e)}",
+        )
+
+
+@router.put("/accommodation/{accommodation_id}")
+@instructor_role_required()
+@with_course()
+async def update_accommodation(
+    request: Request,
+    accommodation_id: int,
+    payload: AccommodationUpdatePayload,
+    course=None,
+):
+    """
+    Update an existing deadline exception by its id.
+    """
+    try:
+        entry = await update_deadline_exception(
+            entry_id=accommodation_id,
+            time_limit=payload.time_limit,
+            deadline=payload.duedate,
+            visible=payload.visible,
+            allowLink=payload.allowLink,
+        )
+        if entry is None:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail=f"Accommodation {accommodation_id} not found",
+            )
+        return make_json_response(
+            status=status.HTTP_200_OK, detail={"accommodation": entry.dict()}
+        )
+    except Exception as e:
+        rslogger.error(f"Error updating accommodation {accommodation_id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error updating accommodation: {str(e)}",
         )
 
 

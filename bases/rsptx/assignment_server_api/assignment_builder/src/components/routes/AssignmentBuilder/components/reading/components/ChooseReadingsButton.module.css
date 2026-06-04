@@ -1,0 +1,27 @@
+.dropdown {
+  max-width: calc(100vw - 2 * var(--rs-space-4));
+}
+
+.treeWrap {
+  display: flex;
+  flex-direction: column;
+  max-height: 50vh;
+  width: 100%;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rs-space-3);
+  padding: var(--rs-space-2) var(--rs-space-3);
+  border-top: 1px solid var(--rs-border-solid);
+  background: var(--rs-neutral-50);
+}
+
+.footerCount {
+  font-size: var(--rs-font-size-sm);
+  font-weight: var(--rs-font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--rs-text-muted);
+}

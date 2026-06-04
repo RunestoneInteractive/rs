@@ -1,0 +1,144 @@
+.optionsContainer {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--rs-surface);
+  overflow: visible;
+}
+
+.optionsHeader {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--rs-space-3) var(--rs-space-4);
+  background: var(--rs-neutral-50);
+  border-bottom: 1px solid var(--rs-border-solid);
+}
+
+.optionsHeader h3 {
+  margin: 0;
+  font-size: var(--rs-font-size-md);
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-strong);
+}
+
+.optionsContent {
+  flex: 1;
+  padding: var(--rs-space-4);
+  background: var(--rs-surface);
+  overflow: visible;
+}
+
+.optionsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-3);
+}
+
+.optionContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-3);
+  padding: var(--rs-space-3);
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-md);
+  transition:
+    border-color var(--rs-transition-fast),
+    box-shadow var(--rs-transition-fast);
+  position: relative;
+}
+
+.optionContainer:hover {
+  border-color: var(--rs-border-strong);
+}
+
+.optionContainer:focus-within {
+  border-color: var(--rs-brand-500);
+}
+
+.optionContainer[data-dragging] {
+  border-color: var(--rs-brand-300);
+  box-shadow: var(--rs-shadow-md);
+}
+
+.dragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  color: var(--rs-text-subtle);
+  opacity: 0.4;
+  cursor: grab;
+  transition: opacity var(--rs-transition-fast);
+  padding: var(--rs-space-2) var(--rs-space-1);
+  border-radius: var(--rs-radius-sm);
+}
+
+.optionContainer:hover .dragHandle,
+.dragHandle:focus-visible,
+.optionContainer[data-dragging] .dragHandle {
+  opacity: 1;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.optionContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.optionActions {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+  flex-shrink: 0;
+}
+
+.addRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--rs-space-2);
+  width: 100%;
+  margin-top: var(--rs-space-3);
+  padding: var(--rs-space-3);
+  background: transparent;
+  border: 1px dashed var(--rs-border-strong);
+  border-radius: var(--rs-radius-md);
+  color: var(--rs-text-muted);
+  font-size: var(--rs-font-size-md);
+  font-weight: var(--rs-font-weight-medium);
+  cursor: pointer;
+  transition:
+    border-color var(--rs-transition-fast),
+    color var(--rs-transition-fast),
+    background-color var(--rs-transition-fast);
+}
+
+.addRow:hover {
+  border-color: var(--rs-brand-500);
+  color: var(--rs-brand-700);
+  background: var(--rs-brand-50);
+}
+
+@media (max-width: 768px) {
+  .optionsHeader {
+    padding: var(--rs-space-3);
+  }
+
+  .optionsContent {
+    padding: var(--rs-space-3);
+  }
+
+  .optionsList {
+    gap: var(--rs-space-2);
+  }
+
+  .optionContainer {
+    padding: var(--rs-space-2);
+  }
+}

@@ -1,5 +1,6 @@
 import React from "react";
 
+import styles from "./AnswerViews.module.css";
 import { QuestionPreviewHeader } from "./RunestonePreview";
 import { AnswerRendererProps } from "./types";
 
@@ -16,25 +17,15 @@ export const FitbAnswerView: React.FC<AnswerRendererProps> = (props) => {
   return (
     <div>
       <QuestionPreviewHeader {...props} />
-      <h4 style={{ margin: "0.75rem 0 0.5rem 0" }}>Blanks</h4>
-      <ol style={{ paddingLeft: "1.25rem", margin: 0 }}>
-        {values.length === 0 && <li style={{ color: "#64748b" }}>(empty)</li>}
+      <h4 className={styles.sectionTitle}>Blanks</h4>
+      <ol className={styles.blankList}>
+        {values.length === 0 && <li className={styles.mutedNote}>(empty)</li>}
         {values.map((v, i) => (
-          <li key={i} style={{ marginBottom: 4 }}>
-            <code
-              style={{
-                background: "#eef2ff",
-                padding: "0.15rem 0.45rem",
-                borderRadius: 6,
-                color: "#3730a3"
-              }}
-            >
-              {v || "(empty)"}
-            </code>
+          <li key={i} className={styles.blankItem}>
+            <code className={styles.blankCode}>{v || "(empty)"}</code>
           </li>
         ))}
       </ol>
     </div>
   );
 };
-

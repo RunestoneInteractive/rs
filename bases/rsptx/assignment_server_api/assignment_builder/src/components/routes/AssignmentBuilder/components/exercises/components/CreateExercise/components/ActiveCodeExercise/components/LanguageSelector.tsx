@@ -1,4 +1,4 @@
-import { Dropdown } from "primereact/dropdown";
+import { Select } from "@mantine/core";
 import { FC } from "react";
 import { useSelector } from "react-redux";
 
@@ -13,14 +13,13 @@ export const LanguageSelector: FC<LanguageSelectorProps> = ({ language, onChange
   const languageOptions = useSelector(datasetSelectors.getLanguageOptions);
 
   return (
-    <div className="mb-4">
-      <Dropdown
-        value={language}
-        options={languageOptions}
-        onChange={(e) => onChange(e.value)}
-        placeholder="Select programming language"
-        className={`w-full ${!language ? "p-invalid" : ""}`}
-      />
-    </div>
+    <Select
+      value={language || null}
+      data={languageOptions}
+      onChange={(value) => onChange(value ?? "")}
+      placeholder="Select programming language"
+      allowDeselect={false}
+      error={!language}
+    />
   );
 };

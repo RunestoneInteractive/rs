@@ -1,9 +1,12 @@
 import { withEditAllExercises } from "@components/routes/AssignmentBuilder/components/exercises/components/EditAllExercises/withEditAllExercises";
-import { Dropdown } from "primereact/dropdown";
+import { Select } from "@mantine/core";
 import { useEffect } from "react";
 
 import { useTableDropdownOptions } from "@/hooks/useTableDropdownOptions";
-import { DraggingExerciseDropdownColumns } from "@/types/components/editableTableCell";
+import {
+  DraggingExerciseDropdownColumns,
+  EDITABLE_FIELD_LABELS
+} from "@/types/components/editableTableCell";
 
 export interface EditDropdownValueHeaderComponentProps {
   value: string;
@@ -17,6 +20,7 @@ const EditDropdownValueHeaderComponent = ({
   field
 }: EditDropdownValueHeaderComponentProps) => {
   const { [field]: options } = useTableDropdownOptions();
+  const data = options.map((option) => ({ value: option.value, label: option.label }));
 
   useEffect(() => {
     if (options.length && !value.length) {
@@ -25,19 +29,22 @@ const EditDropdownValueHeaderComponent = ({
   }, [onChange, options, value.length]);
 
   return (
-    <Dropdown
-      style={{ width: "100%" }}
+    <Select
+      w="100%"
       id={field}
       name={field}
+      aria-label={`${EDITABLE_FIELD_LABELS[field]} for all exercises`}
       value={value}
-      onChange={(e) => onChange(e.value)}
-      options={options}
-      optionLabel="label"
-      scrollHeight="auto"
+      onChange={(next) => onChange(next ?? "")}
+      data={data}
+      allowDeselect={false}
+      comboboxProps={{ withinPortal: false }}
     />
   );
 };
 
-export const EditDropdownValueHeader = withEditAllExercises<string, any>(
-  EditDropdownValueHeaderComponent
-);
+export const EditDropdownValueHeader = withEditAllExercises<
+  string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  any
+>(EditDropdownValueHeaderComponent);

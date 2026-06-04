@@ -5,7 +5,7 @@
  * @description This file contains the slice for the active code editor. The slice manages the state of the active code editor.
  */
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import toast from "react-hot-toast";
+import { notify } from "@components/ui/notify";
 
 import { createMCQTemplate } from "../../componentFuncs";
 import { addExercise, selectPoints, setId, setPoints } from "../assignment/assignSlice.js";
@@ -94,7 +94,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
       let result = await resp.json();
 
       console.log("Failed to create question", result.detail);
-      toast("Failed to create question - Most likely a name conflict", { icon: "🚫" });
+      notify.error("Couldn't create the question. The name may already be taken.");
       return;
     }
     let result = await resp.json();
@@ -105,7 +105,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
       dispatch(setDBId(questionId));
     }
     if (editonly) {
-      toast("Question saved", { icon: "👍" });
+      notify.success("Question saved");
       return;
     }
     let aqBody = {
@@ -137,7 +137,7 @@ export const saveAssignmentQuestion = createAsyncThunk(
     result = await resp.json();
     if (result.detail.status === "success") {
       console.log("Question added to assignment");
-      toast("Question added to assignment", { icon: "👍" });
+      notify.success("Question added to assignment");
     }
   }
 );

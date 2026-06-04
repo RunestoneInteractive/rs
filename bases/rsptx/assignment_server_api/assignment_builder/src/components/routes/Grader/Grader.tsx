@@ -1,6 +1,8 @@
-import { Button } from "primereact/button";
+import { Button, Tooltip } from "@mantine/core";
 import React, { useState } from "react";
 import { Link, Outlet, useLocation, useParams } from "react-router-dom";
+
+import { Icon } from "@/components/ui/Icon";
 
 import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
 import {
@@ -14,15 +16,8 @@ import { useEnsureEbookConfigForGrader } from "./hooks/useEnsureEbookConfigForGr
 import { useGraderTour } from "./hooks/useGraderTour";
 import { usePlatform } from "./hooks/usePlatform";
 import { getQuestionProgress } from "./state/graderSelectors";
-import {
-  DEMO_ASSIGNMENTS,
-  getDemoAnswersFor,
-  getDemoQuestionsFor
-} from "./tour/graderDemoData";
-import {
-  GraderTourProvider,
-  useGraderTourContext
-} from "./tour/GraderTourContext";
+import { DEMO_ASSIGNMENTS, getDemoAnswersFor, getDemoQuestionsFor } from "./tour/graderDemoData";
+import { GraderTourProvider, useGraderTourContext } from "./tour/GraderTourContext";
 
 export const Grader: React.FC = () => {
   return (
@@ -55,70 +50,62 @@ const GraderShell: React.FC = () => {
   );
   const qData = isDemo && assignmentId ? getDemoQuestionsFor(assignmentId) : qRealData;
   const aData =
-    isDemo && assignmentId && questionId
-      ? getDemoAnswersFor(assignmentId, questionId)
-      : aRealData;
+    isDemo && assignmentId && questionId ? getDemoAnswersFor(assignmentId, questionId) : aRealData;
   const questionMeta = qData?.questions.find((q) => q.id === questionId);
   const progress = aData ? getQuestionProgress(aData.answers, questionMeta) : null;
 
   const [helpOpen, setHelpOpen] = useState(false);
 
+  const shellClassName = questionId
+    ? `${styles.graderShell} ${styles.graderShellFill}`
+    : styles.graderShell;
+
   return (
-    <div className={styles.graderShell}>
+    <div className={shellClassName}>
       <div className={styles.header}>
         <div className={styles.title} data-tour="grader-title">
-          <span>Assignment Grader</span>
+          <span className={styles.titleText}>Assignment grader</span>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button
-            data-tour="grader-shortcuts-btn"
-            icon="pi pi-bolt"
-            label="Shortcuts"
-            outlined
-            severity="secondary"
-            onClick={() => setHelpOpen(true)}
-            tooltip="Press ? for shortcuts"
-            tooltipOptions={{ position: "bottom" }}
-          />
+        <div className={styles.headerActions}>
+          <Tooltip label="Press ? for shortcuts" position="bottom">
+            <Button
+              data-tour="grader-shortcuts-btn"
+              leftSection={<Icon name="bolt" size={14} />}
+              variant="default"
+              size="xs"
+              onClick={() => setHelpOpen(true)}
+            >
+              Shortcuts
+            </Button>
+          </Tooltip>
           <Button
             data-tour="grader-take-tour-btn"
-            icon="pi pi-question-circle"
-            label="Take tour"
-            outlined
-            severity="info"
+            leftSection={<Icon name="question-circle" size={14} />}
+            variant="light"
+            size="xs"
             onClick={startTour}
-          />
+          >
+            Take tour
+          </Button>
         </div>
       </div>
 
-      <nav
-        className={styles.breadcrumb}
-        aria-label="breadcrumb"
-        data-tour="grader-breadcrumb"
-      >
+      <nav className={styles.breadcrumb} aria-label="breadcrumb" data-tour="grader-breadcrumb">
         <Link to="/grader">Assignments</Link>
         {assignment && (
           <>
-            <i className="pi pi-angle-right" style={{ fontSize: 10 }} />
+            <Icon name="angle-right" size={10} className={styles.breadcrumbSep} />
             <Link to={`/grader/${assignment.id}`}>{assignment.name}</Link>
           </>
         )}
         {assignment && questionId && (
           <>
-            <i className="pi pi-angle-right" style={{ fontSize: 10 }} />
-            <span style={{ color: "#0f172a", fontWeight: 600 }}>
+            <Icon name="angle-right" size={10} className={styles.breadcrumbSep} />
+            <span className={styles.breadcrumbCurrent}>
               Question #{questionId}
               {progress && (
                 <span
-                  style={{
-                    marginLeft: 8,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#4f46e5",
-                    background: "#eef2ff",
-                    padding: "0.1rem 0.5rem",
-                    borderRadius: 999
-                  }}
+                  className={styles.breadcrumbProgress}
                   aria-label={`${progress.graded + progress.autograded} of ${progress.total} students graded`}
                 >
                   {progress.graded + progress.autograded}/{progress.total} graded
@@ -127,12 +114,12 @@ const GraderShell: React.FC = () => {
             </span>
           </>
         )}
-        <span style={{ marginLeft: "auto", fontSize: 11, color: "#94a3b8" }}>
-          {location.pathname}
-        </span>
+        <span className={styles.breadcrumbPath}>{location.pathname}</span>
       </nav>
 
-      <Outlet />
+      <div className={styles.body}>
+        <Outlet />
+      </div>
 
       <ShortcutsHelpDialog
         visible={helpOpen}

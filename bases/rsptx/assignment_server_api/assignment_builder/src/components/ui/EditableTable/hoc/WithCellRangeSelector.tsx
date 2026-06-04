@@ -2,6 +2,8 @@ import { useState, MouseEvent, ComponentType } from "react";
 
 import { EditableCellFactoryProps, EditableCellProps } from "@/types/components/editableTableCell";
 
+import styles from "./WithCellRangeSelector.module.css";
+
 export const withCellRangeSelector = <P extends EditableCellFactoryProps>(
   WrappedComponent: ComponentType<EditableCellProps>
 ) => {
@@ -30,12 +32,7 @@ export const withCellRangeSelector = <P extends EditableCellFactoryProps>(
     };
 
     return (
-      <div
-        className="editable-table-cell"
-        style={{ position: "relative" }}
-        onMouseEnter={showDragIcon}
-        onMouseLeave={hideDragIcon}
-      >
+      <div className={styles.cell} onMouseEnter={showDragIcon} onMouseLeave={hideDragIcon}>
         <WrappedComponent
           {...(props as P)}
           handleChange={handleChange}
@@ -44,9 +41,11 @@ export const withCellRangeSelector = <P extends EditableCellFactoryProps>(
           value={value}
         />
         {isDragIconVisible && !isDragging && (
-          <i
-            className="pi pi-plus absolute editable-table-cell__drag-icon"
+          <span
+            className={styles.dragIcon}
             onMouseDown={handleDragIconPress}
+            aria-hidden="true"
+            data-drag-fill-handle=""
           />
         )}
       </div>

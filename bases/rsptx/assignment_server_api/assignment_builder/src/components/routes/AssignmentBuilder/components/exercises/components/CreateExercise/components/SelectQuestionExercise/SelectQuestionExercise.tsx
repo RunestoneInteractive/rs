@@ -18,7 +18,7 @@ import { ABExperimentSettings, QuestionListEditor, ToggleOptionsSettings } from 
 
 const SELECT_QUESTION_STEPS = [
   { label: "Questions" },
-  { label: "Interaction Mode" },
+  { label: "Interaction mode" },
   { label: "Settings" },
   { label: "Preview" }
 ];
@@ -74,6 +74,7 @@ export const SelectQuestionExercise: FC<ExerciseComponentProps> = ({
     formData,
     activeStep,
     isSaving,
+    isDirty,
     updateFormData,
     handleSettingsChange,
     isCurrentStepValid,
@@ -200,13 +201,14 @@ export const SelectQuestionExercise: FC<ExerciseComponentProps> = ({
 
   return (
     <ExerciseLayout
-      title="Select Question Exercise"
+      title="select question exercise"
       exerciseType="selectquestion"
       isEdit={isEdit}
       steps={SELECT_QUESTION_STEPS}
       activeStep={activeStep}
       isCurrentStepValid={isCurrentStepValid}
       isSaving={isSaving}
+      isDirty={isDirty}
       stepsValidity={stepsValidity}
       onCancel={onCancel}
       onBack={goToPrevStep}

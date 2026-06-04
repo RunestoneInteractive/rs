@@ -1,4 +1,5 @@
 import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
+import { Icon } from "@components/ui/Icon";
 import { FC } from "react";
 
 import { useValidation } from "../../../shared/ExerciseLayout";
@@ -25,7 +26,7 @@ export const DragAndDropInstructions: FC<DragAndDropInstructionsProps> = ({
       </div>
 
       <div className={styles.questionTips}>
-        <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
+        <Icon name="lightbulb" style={{ marginRight: "4px" }} />
         <span>
           Tip: Clear instructions help students understand how to properly complete the drag and
           drop exercise

@@ -1,5 +1,6 @@
 import { isTipTapContentEmpty } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/utils/validation";
 import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
+import { Icon } from "@components/ui/Icon";
 import parse from "html-react-parser";
 import React, { FC, useState } from "react";
 
@@ -41,7 +42,7 @@ export const QuestionEditor: FC<QuestionEditorProps> = ({ questionText, onChange
       </div>
 
       <div className={styles.questionTips}>
-        <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
+        <Icon name="lightbulb" style={{ marginRight: "4px" }} />
         <span>
           Use {"{blank}"} in your text to indicate where blanks should appear. Each blank will be
           replaced with an input field.

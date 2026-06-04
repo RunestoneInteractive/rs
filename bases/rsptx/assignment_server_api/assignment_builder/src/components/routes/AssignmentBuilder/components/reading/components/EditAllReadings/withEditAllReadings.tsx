@@ -1,8 +1,9 @@
-import { useToastContext } from "@components/ui/ToastContext";
+import { getRangeUpdateToastCopy } from "@components/ui/EditableTable/TableOverlay";
+import { Icon } from "@components/ui/Icon";
+import { notify } from "@components/ui/notify";
+import { ActionIcon, Button, Group, Popover, Stack, Text } from "@mantine/core";
 import { useUpdateAssignmentQuestionsMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
-import { Button } from "primereact/button";
-import { OverlayPanel } from "primereact/overlaypanel";
-import { ComponentType, useRef, useState } from "react";
+import { ComponentType, useState } from "react";
 
 import { useReadingsSelector } from "@/hooks/useReadingsSelector";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
@@ -17,15 +18,12 @@ export function withEditAllReadings<T, P extends WithEditAllReadingsProps<T>>(
   Component: ComponentType<P>
 ) {
   return function WrappedComponent(props: P) {
-    const { showToast } = useToastContext();
-    const [updateExercises] = useUpdateAssignmentQuestionsMutation();
+    const [updateExercises, { isLoading }] = useUpdateAssignmentQuestionsMutation();
     const { readingExercises = [] } = useReadingsSelector();
-    const overlayRef = useRef<OverlayPanel>(null);
+    const [opened, setOpened] = useState(false);
     const [value, setValue] = useState<T>(props.defaultValue);
 
-    const toggleOverlay = (event: any) => {
-      overlayRef.current?.toggle(event);
-    };
+    const rowCount = readingExercises.length;
 
     const handleSubmit = async () => {
       const exercises = readingExercises.map((ex) => ({
@@ -34,65 +32,59 @@ export function withEditAllReadings<T, P extends WithEditAllReadingsProps<T>>(
         [props.field]: value
       }));
       const { error } = await updateExercises(exercises);
+      const copy = getRangeUpdateToastCopy("readings", rowCount);
 
       if (!error) {
-        overlayRef.current?.hide();
-        showToast({
-          severity: "success",
-          summary: "Success",
-          detail: "Readings updated successfully"
-        });
+        setOpened(false);
+        notify.success(copy.success);
       } else {
-        showToast({
-          severity: "error",
-          summary: "Error",
-          detail: "Failed to update readings"
-        });
+        notify.error(copy.error);
       }
     };
 
     return (
-      <div className="flex align-items-center gap-2">
+      <Group gap="xs" align="center" justify="flex-end" wrap="nowrap">
         <span>{props.label}</span>
-        <Button
-          className="icon-button-sm"
-          tooltip={`Edit "${props.label}" for all readings`}
-          rounded
-          text
-          severity="secondary"
-          size="small"
-          icon="pi pi-pencil"
-          onClick={toggleOverlay}
-        />
-        <OverlayPanel
-          closeIcon
-          ref={overlayRef}
-          id="overlay_panel_input"
-          style={{ width: "17rem" }}
+        <Popover
+          width={272}
+          position="bottom"
+          opened={opened}
+          onChange={setOpened}
+          trapFocus
+          returnFocus
         >
-          <div className="p-1 flex gap-2 flex-column align-items-center justify-content-around">
-            <div>
-              <span>Edit "{props.label}" for all readings</span>
-            </div>
-            <div style={{ width: "100%" }}>
-              <Component
-                {...(props as P)}
-                handleSubmit={handleSubmit}
-                onChange={setValue}
-                value={value}
-              />
-            </div>
-            <div className="flex flex-row justify-content-around align-items-center w-full">
-              <Button size="small" severity="danger" onClick={toggleOverlay}>
-                Cancel
-              </Button>
-              <Button size="small" onClick={handleSubmit}>
-                Submit
-              </Button>
-            </div>
-          </div>
-        </OverlayPanel>
-      </div>
+          <Popover.Target>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              onClick={() => setOpened((current) => !current)}
+              aria-label={`Edit ${props.label} for all readings`}
+            >
+              <Icon name="pencil" />
+            </ActionIcon>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <Stack gap="sm">
+              <Text size="sm" fw={600}>
+                Edit &quot;{props.label}&quot; for all readings
+              </Text>
+              <Component {...props} handleSubmit={handleSubmit} onChange={setValue} value={value} />
+              <Text size="xs" c="dimmed">
+                {rowCount === 1 ? "Applies to 1 reading" : `Applies to ${rowCount} readings`}
+              </Text>
+              <Group justify="space-between">
+                <Button size="xs" variant="default" onClick={() => setOpened(false)}>
+                  Cancel
+                </Button>
+                <Button size="xs" loading={isLoading} onClick={handleSubmit}>
+                  Apply
+                </Button>
+              </Group>
+            </Stack>
+          </Popover.Dropdown>
+        </Popover>
+      </Group>
     );
   };
 }

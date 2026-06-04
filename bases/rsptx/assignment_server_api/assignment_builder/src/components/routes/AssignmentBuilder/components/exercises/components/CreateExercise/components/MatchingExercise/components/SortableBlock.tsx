@@ -1,9 +1,14 @@
 import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Button } from "primereact/button";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import { FC, useCallback, useMemo } from "react";
 
+import { Icon } from "@/components/ui/Icon";
+
+import { ConnectHandle, ConnectTargetButton } from "../../../shared/connections";
+import { REMOVE_BLOCK_CONFIRM, confirmRemoval } from "../../../utils/removeConfirm";
+import { isTipTapContentEmpty } from "../../../utils/validation";
 import styles from "../MatchingExercise.module.css";
 import { DragBlock } from "../types";
 
@@ -14,7 +19,8 @@ export interface SortableBlockProps {
   canRemove: boolean;
   isLeft: boolean;
   onStartConnection?: (sourceId: string) => void;
-  isRightTarget?: boolean;
+  onCancelConnection?: () => void;
+  isConnectTarget?: boolean;
   onCompleteConnection?: (targetId: string) => void;
   activeSource: string | null;
   connections?: string[][];
@@ -28,20 +34,23 @@ export const SortableBlock: FC<SortableBlockProps> = ({
   canRemove,
   isLeft,
   onStartConnection,
-  isRightTarget,
+  onCancelConnection,
+  isConnectTarget = false,
   onCompleteConnection,
   activeSource,
   connections,
   index
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: block.id
+    id: block.id,
+    transition: { duration: 250, easing: "var(--rs-spring-snappy)" }
   });
 
+  const baseTransform = CSS.Transform.toString(transform);
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: isDragging && baseTransform ? `${baseTransform} scale(0.98)` : baseTransform,
     transition,
-    opacity: isDragging ? 0.5 : 1
+    zIndex: isDragging ? 1 : undefined
   };
 
   const isConnected = useMemo(() => {
@@ -71,16 +80,6 @@ export const SortableBlock: FC<SortableBlockProps> = ({
     return 0;
   }, [connections, block.id, isLeft]);
 
-  const isValidTarget = useMemo(() => {
-    if (!isRightTarget || activeSource === null) return false;
-
-    const connectionExists = connections?.some(
-      (conn) => conn[0] === activeSource && conn[1] === block.id
-    );
-
-    return !connectionExists;
-  }, [isRightTarget, connections, block.id, activeSource]);
-
   const handleContentChange = useCallback(
     (content: string) => {
       onUpdate(block.id, content);
@@ -93,30 +92,38 @@ export const SortableBlock: FC<SortableBlockProps> = ({
       ref={setNodeRef}
       style={style}
       className={`${styles.blockContainer} 
-        ${isValidTarget ? styles.rightTarget : ""} 
+        ${isConnectTarget ? styles.rightTarget : ""} 
         ${isConnected ? styles.connectedBlock : ""}`}
       data-block-id={block.id}
+      data-dragging={isDragging || undefined}
       data-connected={isConnected ? "true" : "false"}
       data-index={index}
       onClick={
-        isValidTarget && onCompleteConnection ? () => onCompleteConnection(block.id) : undefined
+        isConnectTarget && onCompleteConnection ? () => onCompleteConnection(block.id) : undefined
       }
     >
       <div className={styles.blockIndex}>{index + 1}</div>
+      {isConnectTarget && onCompleteConnection && (
+        <ConnectTargetButton
+          blockId={block.id}
+          ariaLabel={`Connect to ${isLeft ? "source item" : "target match"} ${index + 1}`}
+          className={styles.connectTargetButton}
+          onComplete={onCompleteConnection}
+        />
+      )}
       {!isLeft && onStartConnection && (
-        <div
-          className={`${styles.connectionHandleLeft} 
-            ${activeSource === block.id ? styles.activeConnectionHandle : ""} 
+        <ConnectHandle
+          blockId={block.id}
+          ariaLabel={`Connect target match ${index + 1} to a source item`}
+          isActive={activeSource === block.id}
+          isConnected={!!isConnected}
+          direction="left"
+          className={`${styles.connectionHandleLeft}
+            ${activeSource === block.id ? styles.activeConnectionHandle : ""}
             ${isConnected ? styles.connectedHandle : ""}`}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onStartConnection(block.id);
-          }}
-          title={isConnected ? "Connected - click to modify" : "Drag to connect with left block"}
-        >
-          <i className={`fa-solid ${isConnected ? "fa-link" : "fa-circle-arrow-left"}`} />
-        </div>
+          onStart={onStartConnection}
+          onCancel={onCancelConnection || (() => undefined)}
+        />
       )}
       <div
         className={styles.dragHandle}
@@ -124,7 +131,7 @@ export const SortableBlock: FC<SortableBlockProps> = ({
         {...listeners}
         aria-label="Drag to reorder"
       >
-        <i className="fa-solid fa-grip-vertical" />
+        <Icon name="bars" size={14} />
       </div>
       <div className={styles.blockContent}>
         <Editor content={block.content} onChange={handleContentChange} />
@@ -137,38 +144,42 @@ export const SortableBlock: FC<SortableBlockProps> = ({
                 : `Connected to ${connectionCount} ${isLeft ? "target" : "source"}${connectionCount > 1 ? "s" : ""}`
             }
           >
-            <i className="fa-solid fa-link mr-1" />
+            <Icon name="link" size={12} color="currentColor" />
             {connectionCount > 1 && <span>{connectionCount}</span>}
           </div>
         )}
       </div>
       <div className={styles.blockActions}>
-        <Button
-          icon="fa-solid fa-trash"
-          severity="danger"
-          text
-          onClick={() => onRemove(block.id)}
-          disabled={!canRemove}
-          tooltip="Remove block"
-          tooltipOptions={{ position: "left" }}
-          aria-label="Remove block"
-          className={styles.iconButton}
-          style={{ color: "#ef4444" }}
-        />
-        {isLeft && onStartConnection && (
-          <div
-            className={`${styles.connectionHandle} 
-              ${activeSource === block.id ? styles.activeConnectionHandle : ""} 
-              ${isConnected ? styles.connectedHandle : ""}`}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onStartConnection(block.id);
-            }}
-            title={isConnected ? "Connected - click to modify" : "Drag to connect with right block"}
+        <Tooltip label="Remove block" position="left">
+          <ActionIcon
+            variant="subtle"
+            color="red"
+            onClick={() =>
+              confirmRemoval({
+                hasContent: !isTipTapContentEmpty(block.content || ""),
+                ...REMOVE_BLOCK_CONFIRM,
+                onConfirm: () => onRemove(block.id)
+              })
+            }
+            disabled={!canRemove}
+            aria-label="Remove block"
           >
-            <i className={`fa-solid ${isConnected ? "fa-link" : "fa-circle-arrow-right"}`} />
-          </div>
+            <Icon name="trash" size={14} color="currentColor" />
+          </ActionIcon>
+        </Tooltip>
+        {isLeft && onStartConnection && (
+          <ConnectHandle
+            blockId={block.id}
+            ariaLabel={`Connect source item ${index + 1} to a target match`}
+            isActive={activeSource === block.id}
+            isConnected={!!isConnected}
+            direction="right"
+            className={`${styles.connectionHandle}
+              ${activeSource === block.id ? styles.activeConnectionHandle : ""}
+              ${isConnected ? styles.connectedHandle : ""}`}
+            onStart={onStartConnection}
+            onCancel={onCancelConnection || (() => undefined)}
+          />
         )}
       </div>
     </div>

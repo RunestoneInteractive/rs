@@ -5,8 +5,8 @@
 // The assignment picker also works with the AssignmentQuestion component to populate the table
 // with the questions in the selected assignment.
 
+import { Select } from "@mantine/core";
 import { DateTime } from "luxon";
-import { Dropdown } from "primereact/dropdown";
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
@@ -59,12 +59,14 @@ export function AssignmentPicker() {
     textAlign: "end",
   };
 
-  const optionTemplate = (option) => {
+  const renderAssignmentOption = ({ option }) => {
+    const current = sorted_assignments.find((a) => String(a.id) === option.value);
+
     return (
       <div>
-        <span style={optionStyle}>{option.name}</span>
+        <span style={optionStyle}>{current.name}</span>
         <span style={optionStyle2}>
-          {DateTime.fromISO(option.duedate).toLocaleString(DateTime.DATETIME_MED)}
+          {DateTime.fromISO(current.duedate).toLocaleString(DateTime.DATETIME_MED)}
         </span>
       </div>
     );
@@ -72,17 +74,19 @@ export function AssignmentPicker() {
 
   return (
     <div className="App card flex justify-content-center" style={menuStyle}>
-      <Dropdown
-        value={selectedAssignment}
-        className="w-full md:w-14rem p-button-secondary"
-        options={sorted_assignments}
-        optionLabel="name"
+      <Select
+        value={selectedAssignment ? String(selectedAssignment.id) : null}
+        className="w-full"
+        data={sorted_assignments.map((a) => ({ value: String(a.id), label: a.name }))}
         placeholder="Choose Assignment"
-        itemTemplate={optionTemplate}
-        filter
-        onChange={(e) => {
-          let current = e.value;
+        renderOption={renderAssignmentOption}
+        searchable
+        onChange={(value) => {
+          const current = sorted_assignments.find((a) => String(a.id) === value);
 
+          if (!current) {
+            return;
+          }
           dispatch(setName(current.name));
           dispatch(setDesc(current.description));
           dispatch(setDue(current.duedate));
@@ -94,7 +98,7 @@ export function AssignmentPicker() {
           dispatch(fetchAssignmentQuestions(current.id));
           setAssignment(current);
         }}
-      ></Dropdown>
+      ></Select>
     </div>
   );
 }

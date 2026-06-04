@@ -1,0 +1,211 @@
+.layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-1);
+  width: 220px;
+  flex-shrink: 0;
+  padding: var(--rs-space-3) var(--rs-space-2);
+  background-color: var(--rs-surface);
+  border-right: 1px solid var(--rs-border-solid);
+}
+
+.railCollapsed {
+  width: 48px;
+  padding-inline: var(--rs-space-1);
+  align-items: center;
+}
+
+.railHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rs-space-2);
+  padding: var(--rs-space-1) var(--rs-space-2) var(--rs-space-3);
+}
+
+.railCollapsed .railHeader {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.railTitle {
+  font-size: var(--rs-font-size-sm);
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: railLabelFadeIn var(--rs-duration) var(--rs-ease-out);
+}
+
+@keyframes railLabelFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-3);
+  width: 100%;
+  min-height: 40px;
+  padding: var(--rs-space-2) var(--rs-space-3);
+  border-radius: var(--rs-radius-md);
+  color: var(--rs-text);
+  transition:
+    background-color var(--rs-transition-fast),
+    color var(--rs-transition-fast);
+}
+
+.navItem:hover {
+  background-color: var(--rs-neutral-100);
+}
+
+.navItemActive,
+.navItemActive:hover {
+  background-color: var(--rs-brand-50);
+  color: var(--rs-brand-700);
+}
+
+.navItemCollapsed {
+  width: 40px;
+  justify-content: center;
+  padding: var(--rs-space-2);
+}
+
+.navIcon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.navLabel {
+  font-size: var(--rs-font-size-sm);
+  font-weight: var(--rs-font-weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: railLabelFadeIn var(--rs-duration) var(--rs-ease-out);
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.mainHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+  padding: var(--rs-space-3) var(--rs-page-gutter);
+  border-bottom: 1px solid var(--rs-border-solid);
+  background-color: var(--rs-surface);
+}
+
+.assignmentName {
+  margin: 0;
+  font-size: var(--rs-font-size-xl);
+  font-weight: var(--rs-font-weight-heading);
+  letter-spacing: var(--rs-tracking-heading);
+  color: var(--rs-text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mainScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--rs-space-5) var(--rs-page-gutter) var(--rs-space-8);
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-5);
+}
+
+.section {
+  background-color: var(--rs-surface);
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-lg);
+  padding: var(--rs-space-5);
+}
+
+.sectionTitle {
+  margin: 0 0 var(--rs-space-4);
+  font-size: var(--rs-font-size-lg);
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-strong);
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-2);
+}
+
+.field > label {
+  font-size: var(--rs-font-size-sm);
+  font-weight: var(--rs-font-weight-medium);
+  color: var(--rs-text);
+  margin: 0;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rs-space-4);
+}
+
+.settingRow > label {
+  font-size: var(--rs-font-size-sm);
+  font-weight: var(--rs-font-weight-medium);
+  color: var(--rs-text);
+  margin: 0;
+}
+
+@media (max-width: 1024px) {
+  .rail {
+    width: 48px;
+    padding-inline: var(--rs-space-1);
+    align-items: center;
+  }
+
+  .railHeader {
+    display: none;
+  }
+
+  .navItem {
+    width: 40px;
+    justify-content: center;
+    padding: var(--rs-space-2);
+  }
+
+  .navLabel {
+    display: none;
+  }
+}
+

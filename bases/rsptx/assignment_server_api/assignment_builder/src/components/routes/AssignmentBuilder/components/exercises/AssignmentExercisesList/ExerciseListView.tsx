@@ -1,9 +1,13 @@
+import { useScrollShadow } from "@components/shell/useScrollShadow";
+
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
 import { AssignmentExercisesTable } from "./AssignmentExercisesTable";
 import { ExercisesToolbar } from "./ExercisesToolbar";
 import { SetCurrentEditExercise, ViewModeSetter, MouseUpHandler } from "./types";
+
+import styles from "./ExerciseListView.module.css";
 
 interface ExerciseListViewProps {
   globalFilter: string;
@@ -19,7 +23,11 @@ interface ExerciseListViewProps {
   draggingFieldName: DraggingExerciseColumns | null;
   handleMouseDown: (itemId: number, fieldName: DraggingExerciseColumns) => void;
   handleMouseUp: MouseUpHandler;
-  handleChange: (itemId: number, fieldName: DraggingExerciseColumns, value: any) => void;
+  handleChange: (
+    itemId: number,
+    fieldName: DraggingExerciseColumns,
+    value: string | number
+  ) => void;
 }
 
 export const ExerciseListView = ({
@@ -38,15 +46,19 @@ export const ExerciseListView = ({
   handleMouseUp,
   handleChange
 }: ExerciseListViewProps) => {
+  const { sentinelRef, scrolled } = useScrollShadow();
+
   return (
-    <div className="surface-card p-3 border-round">
+    <section className={styles.card} aria-label="Exercises">
       <ExercisesToolbar
         globalFilter={globalFilter}
         setGlobalFilter={setGlobalFilter}
+        totalCount={assignmentExercises.length}
         selectedExercises={selectedExercises}
         handleRemoveSelected={handleRemoveSelected}
         setViewMode={setViewMode}
         setResetExerciseForm={setResetExerciseForm}
+        scrolled={scrolled}
       />
       <AssignmentExercisesTable
         assignmentExercises={assignmentExercises}
@@ -60,7 +72,8 @@ export const ExerciseListView = ({
         handleMouseDown={handleMouseDown}
         handleMouseUp={handleMouseUp}
         handleChange={handleChange}
+        scrollSentinelRef={sentinelRef}
       />
-    </div>
+    </section>
   );
 };

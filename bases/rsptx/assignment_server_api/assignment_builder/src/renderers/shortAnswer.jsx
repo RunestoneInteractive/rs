@@ -1,5 +1,4 @@
-import { InputSwitch } from "primereact/inputswitch";
-import { InputTextarea } from "primereact/inputtextarea";
+import { Switch, Textarea } from "@mantine/core";
 import { useSelector, useDispatch } from "react-redux";
 
 import { createShortAnswerTemplate } from "../componentFuncs";
@@ -36,7 +35,7 @@ export function ShortAnswerCreator() {
       <h1>Short Answer</h1>
       <div className="p-fluid p-field">
         <label htmlFor="saStatement">Question Prompt</label>
-        <InputTextarea
+        <Textarea
           id="saStatement"
           placeholder="Question"
           value={statement}
@@ -45,11 +44,11 @@ export function ShortAnswerCreator() {
         />
       </div>
       <div className="field grid">
-        <InputSwitch
+        <Switch
           id="allowAttch"
           className="field"
           checked={attachment}
-          onChange={(e) => dispatch(setAttachment(e.value))}
+          onChange={(e) => dispatch(setAttachment(e.currentTarget.checked))}
         />
         <label htmlFor="allowAttch" className="col-fixed">
           Allow Attachments

@@ -1,17 +1,21 @@
-import styles from "@components/routes/AssignmentBuilder/AssignmentBuilder.module.css";
 import { ErrorState } from "@components/routes/AssignmentBuilder/components/ErrorState/ErrorState";
 import { AssignmentExercises } from "@components/routes/AssignmentBuilder/components/exercises/AssignmentExercisesList";
-import { useDialogContext } from "@components/ui/DialogContext";
+import { Icon } from "@components/ui/Icon";
+import {
+  ActionIcon,
+  Center,
+  Checkbox,
+  Group,
+  Loader,
+  NumberInput,
+  Paper,
+  SegmentedControl,
+  Textarea,
+  TextInput,
+  Tooltip,
+  UnstyledButton
+} from "@mantine/core";
 import classNames from "classnames";
-import { BreadCrumb } from "primereact/breadcrumb";
-import { Button } from "primereact/button";
-import { Checkbox } from "primereact/checkbox";
-import { InputNumber } from "primereact/inputnumber";
-import { InputText } from "primereact/inputtext";
-import { InputTextarea } from "primereact/inputtextarea";
-import { ProgressSpinner } from "primereact/progressspinner";
-import { SelectButton } from "primereact/selectbutton";
-import { Tooltip } from "primereact/tooltip";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
@@ -22,6 +26,20 @@ import { DateTimePicker } from "../../../../ui/DateTimePicker";
 import { AssignmentReadings } from "../reading/AssignmentReadings";
 import { VisibilityControl } from "./VisibilityControl";
 
+import styles from "./AssignmentEdit.module.css";
+
+const YES_NO_OPTIONS = [
+  { label: "Yes", value: "true" },
+  { label: "No", value: "false" }
+];
+
+const YES_NO_INVERTED_OPTIONS = [
+  { label: "Yes", value: "false" },
+  { label: "No", value: "true" }
+];
+
+const DEFAULT_TIME_LIMIT_MINUTES = 60;
+
 interface AssignmentEditProps {
   control: Control<Assignment>;
   selectedAssignment: Assignment | null;
@@ -31,27 +49,11 @@ interface AssignmentEditProps {
   onBack: () => void;
   onTabChange: (tab: "basic" | "readings" | "exercises") => void;
   onTypeSelect: (type: KindOfAssignment) => void;
-  watch: (name: string) => any;
+  watch: (name: string) => unknown;
   setValue: UseFormSetValue<Assignment>;
 }
 
-const assignmentTypeCards = [
-  {
-    type: "Regular" as KindOfAssignment,
-    icon: "pi pi-file",
-    description: "Standard assignment with exercises and readings"
-  },
-  {
-    type: "Timed" as KindOfAssignment,
-    icon: "pi pi-clock",
-    description: "Timed quiz or exam with optional pause/feedback settings"
-  },
-  {
-    type: "Peer" as KindOfAssignment,
-    icon: "pi pi-users",
-    description: "Peer instruction assignment with async options"
-  }
-];
+const ASSIGNMENT_TYPES: KindOfAssignment[] = ["Regular", "Timed", "Peer"];
 
 export const AssignmentEdit = ({
   control,
@@ -66,326 +68,307 @@ export const AssignmentEdit = ({
   setValue
 }: AssignmentEditProps) => {
   const { isExercisesError, isExercisesLoading } = useExercisesSelector();
-  const { showDialog } = useDialogContext();
-
-  const onReadingsInfoClick = () => {
-    showDialog({
-      style: { width: "50vw" },
-      header: "Sections to Read",
-      children: (
-        <p className="m-0">
-          Reading assignments are meant to encourage students to do the reading, by giving them
-          points for interacting with various interactive elements that are a part of the page. The
-          number of activities required is set to 80% of the number of questions in the reading.
-          Readings assignments are meant to be <strong>formative</strong> and therefore the
-          questions are not graded for correctness, rather the students are given points for
-          interacting with them.
-        </p>
-      )
-    });
-  };
 
   if (isExercisesError) {
-    return (
-      <div className="flex flex-column">
-        <ErrorState
-          title="Unable to Load Assignment"
-          //eslint-disable-next-line max-len
-          message="We couldn't load your assignment data. This might be due to a temporary issue or network problem. Please try refreshing the page."
-        />
-      </div>
-    );
+    return <ErrorState title="Couldn't load this assignment" message="Refresh the page." />;
   }
 
   if (isExercisesLoading) {
     return (
-      <div className="flex flex-columnw h-screen align-items-center justify-center">
-        <ProgressSpinner />
-      </div>
+      <Center h="100%">
+        <Loader />
+      </Center>
     );
   }
 
-  const getBreadcrumbModel = () => {
-    if (activeTab === "basic") return [];
-    if (activeTab === "readings") {
-      return [
-        {
-          label: "Readings",
-          template: (item: any) => (
-            <div className="flex align-items-center gap-1">
-              <span>{item.label}</span>
-              <i
-                className="pi pi-info-circle"
-                onClick={onReadingsInfoClick}
-                data-pr-tooltip="Information about readings"
-                data-pr-position="top"
-                style={{
-                  cursor: "pointer",
-                  color: "var(--text-color-secondary)",
-                  fontSize: "0.875rem"
-                }}
-              />
-            </div>
-          )
-        }
-      ];
-    }
-    return [{ label: "Assignment Exercises" }];
-  };
+  const navItems: {
+    tab: "basic" | "readings" | "exercises";
+    label: string;
+    icon: "file" | "book" | "list";
+  }[] = [
+    { tab: "basic", label: "Basic info", icon: "file" },
+    { tab: "readings", label: "Readings", icon: "book" },
+    { tab: "exercises", label: "Exercises", icon: "list" }
+  ];
 
-  return (
-    <div className={classNames(styles.layout, { [styles.collapsed]: isCollapsed })}>
-      <div className={classNames(styles.sidebar, { [styles.collapsed]: isCollapsed })}>
-        <div className={styles.header}>
-          <h2 className={styles.title}>Assignment Editor</h2>
-          <Button
-            icon={isCollapsed ? "pi pi-angle-right" : "pi pi-angle-left"}
-            rounded
-            text
-            severity="secondary"
-            onClick={onCollapse}
-            tooltip={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            tooltipOptions={{ position: "right" }}
-            className={classNames("p-button-sm", styles.collapseButton)}
+  const kind = watch("kind") as KindOfAssignment | undefined;
+
+  const renderDetailsSection = () => (
+    <Paper className={styles.section}>
+      <h3 className={styles.sectionTitle}>Details</h3>
+      <div className={styles.fields}>
+        <div className={styles.field}>
+          <label htmlFor="edit-assignment-name">Assignment name</label>
+          <Controller
+            name="name"
+            control={control}
+            render={({ field }) => (
+              <TextInput
+                {...field}
+                id="edit-assignment-name"
+                value={field.value || ""}
+                placeholder="Assignment name"
+              />
+            )}
           />
         </div>
-        <div className={styles.navigationTree}>
-          <Button
-            className={classNames(styles.navigationItem, {
-              [styles.active]: activeTab === "basic",
-              [styles.collapsed]: isCollapsed
-            })}
-            onClick={() => onTabChange("basic")}
-            tooltip="Basic Info"
-            tooltipOptions={{ position: "right", showDelay: 150, hideDelay: 0 }}
-            text
-          >
-            <i className={classNames("pi pi-file", styles.navigationIcon)} />
-            <span className={classNames({ [styles.hidden]: isCollapsed })}>Basic Info</span>
-          </Button>
-          <Button
-            className={classNames(styles.navigationItem, {
-              [styles.active]: activeTab === "readings",
-              [styles.collapsed]: isCollapsed
-            })}
-            onClick={() => onTabChange("readings")}
-            tooltip="Readings"
-            tooltipOptions={{ position: "right", showDelay: 150, hideDelay: 0 }}
-            text
-          >
-            <i className={classNames("pi pi-book", styles.navigationIcon)} />
-            <span className={classNames({ [styles.hidden]: isCollapsed })}>Readings</span>
-          </Button>
-          <Button
-            className={classNames(styles.navigationItem, {
-              [styles.active]: activeTab === "exercises",
-              [styles.collapsed]: isCollapsed
-            })}
-            onClick={() => onTabChange("exercises")}
-            tooltip="Exercises"
-            tooltipOptions={{ position: "right", showDelay: 150, hideDelay: 0 }}
-            text
-          >
-            <i className={classNames("pi pi-list", styles.navigationIcon)} />
-            <span className={classNames({ [styles.hidden]: isCollapsed })}>Exercises</span>
-          </Button>
+        <div className={styles.field}>
+          <label htmlFor="edit-assignment-description">Description</label>
+          <Controller
+            name="description"
+            control={control}
+            defaultValue=""
+            render={({ field }) => (
+              <Textarea
+                {...field}
+                id="edit-assignment-description"
+                value={field.value || ""}
+                autosize
+                minRows={4}
+                placeholder="What is this assignment about?"
+              />
+            )}
+          />
+        </div>
+        <div className={styles.field}>
+          <label>Assignment type</label>
+          <Controller
+            name="kind"
+            control={control}
+            render={({ field }) => (
+              <SegmentedControl
+                value={field.value}
+                onChange={(value) => {
+                  field.onChange(value);
+                  onTypeSelect(value as KindOfAssignment);
+                }}
+                data={ASSIGNMENT_TYPES.map((type) => ({ label: type, value: type }))}
+                aria-label="Assignment type"
+              />
+            )}
+          />
         </div>
       </div>
-      <div className={styles.mainContent}>
-        <div className={styles.header}>
-          <div className="flex align-items-center gap-2">
-            <Button icon="pi pi-arrow-left" onClick={onBack} className="p-button-text" />
-            <h2>{selectedAssignment?.name}</h2>
-          </div>
+    </Paper>
+  );
+
+  const renderScheduleSection = () => (
+    <Paper className={styles.section}>
+      <h3 className={styles.sectionTitle}>Schedule</h3>
+      <div className={styles.fields}>
+        <div className={styles.field}>
+          <label htmlFor="edit-due-date">Due date</label>
+          <Controller
+            name="duedate"
+            control={control}
+            defaultValue=""
+            render={({ field }) => (
+              <DateTimePicker
+                id="edit-due-date"
+                value={field.value}
+                onChange={(val) => field.onChange(val)}
+              />
+            )}
+          />
         </div>
-        <div className={styles.mainContentInner}>
-          <Tooltip target="[data-pr-tooltip]" />
+        {kind === "Timed" && (
+          <div className={styles.settingRow}>
+            <Checkbox
+              label="Time limit"
+              checked={watch("time_limit") !== null}
+              onChange={(e) => {
+                if (e.currentTarget.checked) {
+                  setValue("time_limit", DEFAULT_TIME_LIMIT_MINUTES);
+                } else {
+                  setValue("time_limit", null);
+                }
+              }}
+            />
+            <Controller
+              name="time_limit"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  value={field.value ?? ""}
+                  onChange={(val) => field.onChange(val === "" ? null : Number(val))}
+                  min={5}
+                  max={180}
+                  suffix=" min"
+                  disabled={field.value === null}
+                  w={140}
+                  aria-label="Time limit in minutes"
+                />
+              )}
+            />
+          </div>
+        )}
+      </div>
+    </Paper>
+  );
+
+  const renderScoringSection = () => (
+    <Paper className={styles.section}>
+      <h3 className={styles.sectionTitle}>Scoring</h3>
+      <div className={styles.fields}>
+        <div className={styles.field}>
+          <label htmlFor="edit-points">Points</label>
+          <Controller
+            name="points"
+            control={control}
+            defaultValue={0}
+            render={({ field }) => (
+              <NumberInput
+                id="edit-points"
+                value={field.value ?? 0}
+                onChange={(val) => field.onChange(val)}
+                min={0}
+                disabled
+                hideControls
+              />
+            )}
+          />
+        </div>
+      </div>
+    </Paper>
+  );
+
+  const renderBehaviorSection = () => (
+    <Paper className={styles.section}>
+      <h3 className={styles.sectionTitle}>Behavior</h3>
+      <div className={styles.fields}>
+        <div className={styles.settingRow}>
+          <label>Allow pause</label>
+          <Controller
+            name="nopause"
+            control={control}
+            render={({ field }) => (
+              <SegmentedControl
+                value={String(field.value)}
+                onChange={(value) => field.onChange(value === "true")}
+                data={YES_NO_INVERTED_OPTIONS}
+                size="sm"
+                aria-label="Allow pause"
+              />
+            )}
+          />
+        </div>
+        <div className={styles.settingRow}>
+          <label>Allow feedback</label>
+          <Controller
+            name="nofeedback"
+            control={control}
+            render={({ field }) => (
+              <SegmentedControl
+                value={String(field.value)}
+                onChange={(value) => field.onChange(value === "true")}
+                data={YES_NO_INVERTED_OPTIONS}
+                size="sm"
+                aria-label="Allow feedback"
+              />
+            )}
+          />
+        </div>
+      </div>
+    </Paper>
+  );
+
+  const renderPeerSection = () => (
+    <Paper className={styles.section}>
+      <h3 className={styles.sectionTitle}>Peer settings</h3>
+      <div className={styles.fields}>
+        <div className={styles.settingRow}>
+          <label>Show async peer</label>
+          <Controller
+            name="peer_async_visible"
+            control={control}
+            render={({ field }) => (
+              <SegmentedControl
+                value={String(field.value)}
+                onChange={(value) => field.onChange(value === "true")}
+                data={YES_NO_OPTIONS}
+                size="sm"
+                aria-label="Show async peer"
+              />
+            )}
+          />
+        </div>
+      </div>
+    </Paper>
+  );
+
+  const renderVisibilitySection = () => (
+    <Paper className={styles.section}>
+      <h3 className={styles.sectionTitle}>Visibility</h3>
+      <VisibilityControl control={control} watch={watch} setValue={setValue} />
+    </Paper>
+  );
+
+  return (
+    <div className={styles.layout}>
+      <nav
+        className={classNames(styles.rail, { [styles.railCollapsed]: isCollapsed })}
+        aria-label="Assignment editor sections"
+      >
+        <div className={styles.railHeader}>
+          {!isCollapsed && <span className={styles.railTitle}>Assignment editor</span>}
+          <Tooltip label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"} position="right">
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              radius="xl"
+              size={40}
+              onClick={onCollapse}
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <Icon name={isCollapsed ? "angle-right" : "angle-left"} />
+            </ActionIcon>
+          </Tooltip>
+        </div>
+        {navItems.map((item) => (
+          <Tooltip
+            key={item.tab}
+            label={item.label}
+            position="right"
+            openDelay={150}
+            disabled={!isCollapsed}
+          >
+            <UnstyledButton
+              className={classNames(styles.navItem, {
+                [styles.navItemActive]: activeTab === item.tab,
+                [styles.navItemCollapsed]: isCollapsed
+              })}
+              aria-label={item.label}
+              aria-current={activeTab === item.tab ? "true" : undefined}
+              onClick={() => onTabChange(item.tab)}
+            >
+              <span className={styles.navIcon}>
+                <Icon name={item.icon} size={18} />
+              </span>
+              {!isCollapsed && <span className={styles.navLabel}>{item.label}</span>}
+            </UnstyledButton>
+          </Tooltip>
+        ))}
+      </nav>
+      <div className={styles.main}>
+        <div className={styles.mainHeader}>
+          <Group align="center" gap="xs">
+            <ActionIcon variant="subtle" color="gray" size={40} onClick={onBack} aria-label="Back">
+              <Icon name="arrow-left" />
+            </ActionIcon>
+            <h1 className={styles.assignmentName} title={selectedAssignment?.name}>
+              {selectedAssignment?.name}
+            </h1>
+          </Group>
+        </div>
+        <div className={styles.mainScroll}>
           {activeTab === "basic" && (
-            <div className={styles.formContainer}>
-              <div className={styles.card}>
-                <div className={styles.formField}>
-                  <label>Assignment Name</label>
-                  <Controller
-                    name="name"
-                    control={control}
-                    render={({ field }) => (
-                      <InputText
-                        {...field}
-                        value={field.value || ""}
-                        placeholder="Enter assignment name"
-                      />
-                    )}
-                  />
-                </div>
-                <div className={styles.formField}>
-                  <label>Description</label>
-                  <Controller
-                    name="description"
-                    control={control}
-                    defaultValue=""
-                    render={({ field }) => (
-                      <InputTextarea
-                        {...field}
-                        rows={4}
-                        placeholder="Enter assignment description"
-                      />
-                    )}
-                  />
-                </div>
-                <div className={styles.formFieldRow}>
-                  <div className={styles.formField}>
-                    <label>Due Date</label>
-                    <Controller
-                      name="duedate"
-                      control={control}
-                      defaultValue=""
-                      render={({ field }) => (
-                        <DateTimePicker
-                          value={field.value}
-                          onChange={(val) => field.onChange(val)}
-                        />
-                      )}
-                    />
-                  </div>
-                  <div className={styles.formField}>
-                    <label>Points</label>
-                    <Controller
-                      name="points"
-                      control={control}
-                      defaultValue={0}
-                      render={({ field }) => (
-                        <InputNumber
-                          {...field}
-                          value={field.value}
-                          onValueChange={(e) => field.onChange(e.value)}
-                          min={0}
-                          disabled
-                          mode="decimal"
-                          showButtons={false}
-                        />
-                      )}
-                    />
-                  </div>
-                </div>
-                <VisibilityControl control={control} watch={watch} setValue={setValue} />
-                <div className={styles.typeSettings}>
-                  <div className={styles.formFields}>
-                    <div className={styles.formField}>
-                      <label>Assignment Type</label>
-                      <Controller
-                        name="kind"
-                        control={control}
-                        render={({ field }) => (
-                          <SelectButton
-                            value={field.value}
-                            onChange={(e) => {
-                              field.onChange(e.value);
-                              onTypeSelect(e.value);
-                            }}
-                            options={assignmentTypeCards.map((card) => ({
-                              label: card.type,
-                              value: card.type
-                            }))}
-                          />
-                        )}
-                      />
-                    </div>
-                    {watch("kind") === "Timed" && (
-                      <div className={styles.formField}>
-                        <div className={styles.formField}>
-                          <label>Timed</label>
-                          <Checkbox
-                            checked={watch("time_limit") !== null}
-                            onChange={(e) => {
-                              if (e.checked) {
-                                setValue("time_limit", 60);
-                              } else {
-                                setValue("time_limit", null);
-                              }
-                            }}
-                          />
-                          <label>Time Limit (minutes)</label>
-                          <Controller
-                            name="time_limit"
-                            control={control}
-                            render={({ field }) => (
-                              <InputNumber
-                                value={field.value}
-                                onValueChange={(e) => field.onChange(e.value)}
-                                min={5}
-                                max={180}
-                                showButtons
-                                size={5}
-                                suffix=" min"
-                                disabled={field.value === null}
-                              />
-                            )}
-                          />
-                        </div>
-                        <div className={styles.formField}>
-                          <label>Allow Pause</label>
-                          <Controller
-                            name="nopause"
-                            control={control}
-                            render={({ field }) => (
-                              <SelectButton
-                                allowEmpty={false}
-                                value={field.value}
-                                onChange={(e) => field.onChange(e.value)}
-                                options={[
-                                  { label: "Yes", value: false },
-                                  { label: "No", value: true }
-                                ]}
-                                className="p-buttonset-sm"
-                              />
-                            )}
-                          />
-                        </div>
-                        <div className={styles.formField}>
-                          <label>Allow Feedback</label>
-                          <Controller
-                            name="nofeedback"
-                            control={control}
-                            render={({ field }) => (
-                              <SelectButton
-                                allowEmpty={false}
-                                value={field.value}
-                                onChange={(e) => field.onChange(e.value)}
-                                options={[
-                                  { label: "Yes", value: false },
-                                  { label: "No", value: true }
-                                ]}
-                                className="p-buttonset-sm"
-                              />
-                            )}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {watch("kind") === "Peer" && (
-                      <div className={styles.formField}>
-                        <label>Show Async Peer</label>
-                        <Controller
-                          name="peer_async_visible"
-                          control={control}
-                          render={({ field }) => (
-                            <SelectButton
-                              allowEmpty={false}
-                              value={field.value}
-                              onChange={(e) => field.onChange(e.value)}
-                              options={[
-                                { label: "Yes", value: true },
-                                { label: "No", value: false }
-                              ]}
-                              className="p-buttonset-sm"
-                            />
-                          )}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+            <div className={styles.sections}>
+              {renderDetailsSection()}
+              {renderScheduleSection()}
+              {renderScoringSection()}
+              {kind === "Timed" && renderBehaviorSection()}
+              {kind === "Peer" && renderPeerSection()}
+              {renderVisibilitySection()}
             </div>
           )}
           {activeTab === "readings" && <AssignmentReadings />}

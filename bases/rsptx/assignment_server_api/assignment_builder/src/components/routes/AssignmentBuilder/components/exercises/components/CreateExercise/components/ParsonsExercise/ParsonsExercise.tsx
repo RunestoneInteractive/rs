@@ -1,7 +1,6 @@
-import React, { FC, useCallback, useState } from "react";
-
-import { SelectButton } from "primereact/selectbutton";
-import { confirmDialog, ConfirmDialog } from "primereact/confirmdialog";
+import { SegmentedControl, Stack, Text } from "@mantine/core";
+import { modals } from "@mantine/modals";
+import { FC, useCallback, useState } from "react";
 
 import { CreateExerciseFormType } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
@@ -36,7 +35,7 @@ const MODE_OPTIONS = [
 const PARSONS_STEPS = [
   { label: "Language" },
   { label: "Instructions" },
-  { label: "Code Blocks" },
+  { label: "Code blocks" },
   { label: "Settings" },
   { label: "Preview" }
 ];
@@ -115,16 +114,13 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
     formData,
     activeStep,
     isSaving,
-    stepsVisited,
-    questionInteracted,
-    settingsInteracted,
+    isDirty,
     updateFormData,
     handleSettingsChange,
     isCurrentStepValid,
     goToNextStep,
     goToPrevStep,
     handleSave: baseHandleSave,
-    setStepsVisited,
     setActiveStep
   } = useBaseExercise<ParsonsData>({
     initialData: initialData as ParsonsData,
@@ -155,7 +151,7 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
       updateFormData
     });
 
-  const handleBlocksUpdate = useCallback(
+  useCallback(
     (blocks: ParsonsBlock[]) => {
       updateFormData("blocks", blocks);
     },
@@ -172,15 +168,6 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
     },
     [updateFormData, formData.language, formData.tags]
   );
-
-  const handleAddBlock = useCallback(() => {
-    const newBlock: ParsonsBlock = {
-      id: `block-${Date.now()}`,
-      content: "",
-      indent: 0
-    };
-    updateFormData("blocks", [...(formData.blocks || []), newBlock]);
-  }, [updateFormData, formData.blocks]);
 
   // --- Mode switcher ---
   const isEnhancedExercise =
@@ -202,7 +189,9 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
       mode={mode}
       formData={formData}
       onModeChange={directSetMode}
-      updateFormData={updateFormData as (key: string, value: any) => void}
+      updateFormData={
+        updateFormData as (key: string, value: ParsonsData[keyof ParsonsData]) => void
+      }
     />
   );
 
@@ -211,22 +200,24 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
       if (newMode === mode || !newMode) return;
 
       if (newMode === "simple") {
-        // Enhanced → Simple: confirm and reset
-        confirmDialog({
-          message:
-            "Switching to Simple Mode will reset Grader, Order, Line Numbers, and No Indent to their default values. Block dropdown settings (DAG tags, dependencies, custom order) will be cleared. Continue?",
-          header: "Switch to Simple Mode",
-          icon: "pi pi-exclamation-triangle",
-          acceptClassName: "p-button-warning",
-          accept: () => {
-            // Reset locked fields
+        modals.openConfirmModal({
+          title: "Switch to simple mode",
+          children: (
+            <Text size="sm">
+              Switching to simple mode resets grader, order, line numbers, and no indent to their
+              defaults. Block dropdown settings (DAG tags, dependencies, custom order) are cleared.
+              Continue?
+            </Text>
+          ),
+          labels: { confirm: "Continue", cancel: "Cancel" },
+          confirmProps: { color: "yellow" },
+          onConfirm: () => {
             updateFormData("grader", "line");
             updateFormData("orderMode", "random");
             updateFormData("numbered", "left");
             updateFormData("noindent", false);
             updateFormData("adaptive", true);
             updateFormData("customOrder", []);
-            // Clear DAG / order block fields
             const clearedBlocks = (formData.blocks || []).map((block) => ({
               ...block,
               tag: undefined,
@@ -248,12 +239,11 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
   const modeSwitcher = (
     <div className={parsonsStyles.modeSwitcher} data-tour="mode-switcher">
       <span className={parsonsStyles.modeSwitcherLabel}>Mode</span>
-      <SelectButton
+      <SegmentedControl
         value={mode}
-        options={MODE_OPTIONS}
-        onChange={(e) => handleModeChange(e.value)}
-        className={parsonsStyles.modeSwitcherButton}
-        allowEmpty={false}
+        data={MODE_OPTIONS}
+        onChange={(value) => handleModeChange(value as ParsonsMode)}
+        size="xs"
       />
     </div>
   );
@@ -278,7 +268,7 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
 
       case 2:
         return (
-          <div className="flex flex-column gap-4">
+          <Stack gap="md">
             <ParsonsOptions
               adaptive={formData.adaptive ?? true}
               numbered={formData.numbered ?? "left"}
@@ -306,7 +296,6 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
                 }
               }}
               onOrderModeChange={(value: "random" | "custom") => updateFormData("orderMode", value)}
-              onAddBlock={handleAddBlock}
               tourButton={tourButton}
             />
             <ParsonsBlocksManager
@@ -317,7 +306,7 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
               orderMode={formData.orderMode ?? "random"}
               mode={mode}
             />
-          </div>
+          </Stack>
         );
 
       case 3:
@@ -346,27 +335,25 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
   };
 
   return (
-    <>
-      <ConfirmDialog />
-      <ExerciseLayout
-        title="Parsons Exercise"
-        exerciseType="parsonsprob"
-        isEdit={isEdit}
-        steps={PARSONS_STEPS}
-        activeStep={activeStep}
-        isCurrentStepValid={isCurrentStepValid}
-        isSaving={isSaving}
-        stepsValidity={stepsValidity}
-        onCancel={onCancel}
-        onBack={goToPrevStep}
-        onNext={handleNext}
-        onSave={handleSave}
-        onStepSelect={handleStepSelect}
-        validation={validation}
-        headerExtra={modeSwitcher}
-      >
-        {renderStepContent()}
-      </ExerciseLayout>
-    </>
+    <ExerciseLayout
+      title="Parsons exercise"
+      exerciseType="parsonsprob"
+      isEdit={isEdit}
+      steps={PARSONS_STEPS}
+      activeStep={activeStep}
+      isCurrentStepValid={isCurrentStepValid}
+      isSaving={isSaving}
+      isDirty={isDirty}
+      stepsValidity={stepsValidity}
+      onCancel={onCancel}
+      onBack={goToPrevStep}
+      onNext={handleNext}
+      onSave={handleSave}
+      onStepSelect={handleStepSelect}
+      validation={validation}
+      headerExtra={modeSwitcher}
+    >
+      {renderStepContent()}
+    </ExerciseLayout>
   );
 };

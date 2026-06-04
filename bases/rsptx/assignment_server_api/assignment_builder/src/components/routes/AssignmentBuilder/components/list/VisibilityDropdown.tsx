@@ -1,25 +1,18 @@
-import { OverlayPanel } from "primereact/overlaypanel";
-import { RadioButton } from "primereact/radiobutton";
-import { useRef, useState } from "react";
+import { Group, Popover, Radio, Stack, Text, UnstyledButton } from "@mantine/core";
+import { useState } from "react";
+
+import { Icon, PrimeIconName } from "@components/ui/Icon";
 
 import { Assignment } from "@/types/assignment";
 import { convertDateToISO, parseUTCDate } from "@/utils/date";
 
+import { getVisibilityMode, getVisibilityValues, VisibilityMode } from "../edit/visibilityMode";
+
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
 
-type VisibilityMode =
-  | "hidden"
-  | "visible"
-  | "scheduled_visible"
-  | "scheduled_hidden"
-  | "scheduled_period";
+import { getVisibilityStatus, VisibilityChip } from "./VisibilityStatusBadge";
 
-interface VisibilityStatus {
-  text: string;
-  secondLine?: string;
-  color: string;
-  icon: string;
-}
+import styles from "./VisibilityStatusBadge.module.css";
 
 interface VisibilityDropdownProps {
   assignment: Assignment;
@@ -29,399 +22,208 @@ interface VisibilityDropdownProps {
   ) => void;
 }
 
-const getVisibilityMode = (assignment: Assignment): VisibilityMode => {
-  const { visible, visible_on, hidden_on } = assignment;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-  if (!visible) {
-    if (visible_on && hidden_on) return "scheduled_period";
-    if (visible_on) return "scheduled_visible";
-    return "hidden";
-  } else {
-    if (hidden_on) return "scheduled_hidden";
-    return "visible";
+const modeOf = (assignment: Assignment): VisibilityMode =>
+  getVisibilityMode(assignment.visible, assignment.visible_on, assignment.hidden_on);
+
+interface RadioOption {
+  value: VisibilityMode;
+  label: string;
+  icon: PrimeIconName;
+  color: string;
+}
+
+const RADIO_OPTIONS: RadioOption[] = [
+  { value: "hidden", label: "Hidden", icon: "eye-slash", color: "var(--rs-text-muted)" },
+  { value: "visible", label: "Visible", icon: "eye", color: "var(--rs-success-text)" },
+  {
+    value: "scheduled_visible",
+    label: "Visible on…",
+    icon: "clock",
+    color: "var(--rs-info-text)"
+  },
+  {
+    value: "scheduled_hidden",
+    label: "Hidden on…",
+    icon: "calendar-times",
+    color: "var(--rs-info-text)"
+  },
+  {
+    value: "scheduled_period",
+    label: "Visible during period",
+    icon: "calendar",
+    color: "var(--rs-info-text)"
   }
-};
+];
 
-const getVisibilityStatus = (assignment: Assignment): VisibilityStatus => {
-  const now = new Date();
-  const { visible, visible_on, hidden_on } = assignment;
-
-  if (visible_on && hidden_on && !visible) {
-    const visibleDate = parseUTCDate(visible_on);
-    const hiddenDate = parseUTCDate(hidden_on);
-
-    const fmt = (d: Date) =>
-      d.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-
-    if (now < visibleDate) {
-      return {
-        text: fmt(visibleDate),
-        secondLine: fmt(hiddenDate),
-        color: "#FFA500",
-        icon: "pi pi-clock"
-      };
-    } else if (now >= visibleDate && now < hiddenDate) {
-      return {
-        text: fmt(visibleDate),
-        secondLine: fmt(hiddenDate),
-        color: "#28A745",
-        icon: "pi pi-calendar"
-      };
-    } else {
-      return {
-        text: fmt(visibleDate),
-        secondLine: fmt(hiddenDate),
-        color: "#DC3545",
-        icon: "pi pi-calendar-times"
-      };
-    }
-  }
-
-  if (!visible) {
-    if (visible_on) {
-      const visibleDate = parseUTCDate(visible_on);
-      if (now >= visibleDate) {
-        // visible_on has passed, assignment is now visible
-        return { text: "Visible", color: "#28A745", icon: "pi pi-eye" };
-      }
-      return {
-        text: visibleDate.toLocaleDateString(undefined, {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit"
-        }),
-        color: "#FFA500",
-        icon: "pi pi-clock"
-      };
-    }
-    return { text: "Hidden", color: "#DC3545", icon: "pi pi-eye-slash" };
-  }
-
-  if (hidden_on) {
-    const hiddenDate = parseUTCDate(hidden_on);
-    if (now >= hiddenDate) {
-      return { text: "Hidden", color: "#DC3545", icon: "pi pi-eye-slash" };
-    }
-    return {
-      text: hiddenDate.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      }),
-      color: "#17A2B8",
-      icon: "pi pi-calendar-times"
-    };
-  }
-
-  if (visible_on) {
-    const visibleDate = parseUTCDate(visible_on);
-    if (now >= visibleDate) {
-      return { text: "Visible", color: "#28A745", icon: "pi pi-eye" };
-    }
-    return {
-      text: visibleDate.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      }),
-      color: "#FFA500",
-      icon: "pi pi-clock"
-    };
-  }
-
-  return { text: "Visible", color: "#28A745", icon: "pi pi-eye" };
-};
+const radioLabel = (option: RadioOption) => (
+  <Group gap={4} align="center" wrap="nowrap">
+    <Icon name={option.icon} size={14} color={option.color} />
+    <Text size="sm">{option.label}</Text>
+  </Group>
+);
 
 export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownProps) => {
-  const overlayRef = useRef<OverlayPanel>(null);
-  const [mode, setMode] = useState<VisibilityMode>(() => getVisibilityMode(assignment));
+  const [opened, setOpened] = useState(false);
+  const [mode, setMode] = useState<VisibilityMode>(() => modeOf(assignment));
   const [visibleOn, setVisibleOn] = useState<string | null>(assignment.visible_on);
   const [hiddenOn, setHiddenOn] = useState<string | null>(assignment.hidden_on);
 
   const status = getVisibilityStatus(assignment);
 
-  const handleOpen = (e: React.MouseEvent) => {
-    // Reset local state to current assignment values when opening
-    setMode(getVisibilityMode(assignment));
-    setVisibleOn(assignment.visible_on);
-    setHiddenOn(assignment.hidden_on);
-    overlayRef.current?.toggle(e);
-  };
-
-  const computeValues = (
-    newMode: VisibilityMode,
-    newVisibleOn: string | null,
-    newHiddenOn: string | null
-  ) => {
-    switch (newMode) {
-      case "hidden":
-        return { visible: false, visible_on: null, hidden_on: null };
-      case "visible":
-        return { visible: true, visible_on: null, hidden_on: null };
-      case "scheduled_visible":
-        return { visible: false, visible_on: newVisibleOn, hidden_on: null };
-      case "scheduled_hidden":
-        return { visible: true, visible_on: null, hidden_on: newHiddenOn };
-      case "scheduled_period":
-        return { visible: false, visible_on: newVisibleOn, hidden_on: newHiddenOn };
+  const handleOpenChange = (next: boolean) => {
+    if (next) {
+      setMode(modeOf(assignment));
+      setVisibleOn(assignment.visible_on);
+      setHiddenOn(assignment.hidden_on);
     }
+    setOpened(next);
   };
 
   const handleModeChange = (newMode: VisibilityMode) => {
     let newVisibleOn = visibleOn;
     let newHiddenOn = hiddenOn;
 
-    if (newMode === "scheduled_visible" && !newVisibleOn) {
+    if ((newMode === "scheduled_visible" || newMode === "scheduled_period") && !newVisibleOn) {
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
       newVisibleOn = convertDateToISO(startOfDay);
     }
-    if (newMode === "scheduled_hidden" && !newHiddenOn) {
+    if ((newMode === "scheduled_hidden" || newMode === "scheduled_period") && !newHiddenOn) {
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 0, 0);
       newHiddenOn = convertDateToISO(endOfDay);
-    }
-    if (newMode === "scheduled_period") {
-      if (!newVisibleOn) {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-        newVisibleOn = convertDateToISO(startOfDay);
-      }
-      if (!newHiddenOn) {
-        const endOfDay = new Date();
-        endOfDay.setHours(23, 59, 0, 0);
-        newHiddenOn = convertDateToISO(endOfDay);
-      }
     }
 
     setMode(newMode);
     setVisibleOn(newVisibleOn);
     setHiddenOn(newHiddenOn);
-
-    const values = computeValues(newMode, newVisibleOn, newHiddenOn);
-    onChange(assignment, values);
+    onChange(assignment, getVisibilityValues(newMode, newVisibleOn, newHiddenOn));
   };
-
-  const DAY_MS = 24 * 60 * 60 * 1000;
 
   const handleVisibleOnChange = (val: string) => {
     let newHiddenOn = hiddenOn;
+
     if (mode === "scheduled_period" && newHiddenOn) {
       const newVisibleDate = parseUTCDate(val);
       const currentHiddenDate = parseUTCDate(newHiddenOn);
       if (newVisibleDate >= currentHiddenDate) {
-        const adjusted = new Date(newVisibleDate.getTime() + DAY_MS);
-        newHiddenOn = convertDateToISO(adjusted);
+        newHiddenOn = convertDateToISO(new Date(newVisibleDate.getTime() + DAY_MS));
         setHiddenOn(newHiddenOn);
       }
     }
     setVisibleOn(val);
-    const values = computeValues(mode, val, newHiddenOn);
-    onChange(assignment, values);
+    onChange(assignment, getVisibilityValues(mode, val, newHiddenOn));
   };
 
   const handleHiddenOnChange = (val: string) => {
     let newVisibleOn = visibleOn;
+
     if (mode === "scheduled_period" && newVisibleOn) {
       const newHiddenDate = parseUTCDate(val);
       const currentVisibleDate = parseUTCDate(newVisibleOn);
       if (newHiddenDate <= currentVisibleDate) {
-        const adjusted = new Date(newHiddenDate.getTime() - DAY_MS);
-        newVisibleOn = convertDateToISO(adjusted);
+        newVisibleOn = convertDateToISO(new Date(newHiddenDate.getTime() - DAY_MS));
         setVisibleOn(newVisibleOn);
       }
     }
     setHiddenOn(val);
-    const values = computeValues(mode, newVisibleOn, val);
-    onChange(assignment, values);
+    onChange(assignment, getVisibilityValues(mode, newVisibleOn, val));
   };
 
   return (
-    <>
-      <div
-        onClick={handleOpen}
-        style={{
-          fontSize: "0.85rem",
-          color: status.color,
-          fontWeight: 500,
-          cursor: "pointer",
-          display: "flex",
-          flexDirection: status.secondLine ? "column" : "row",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: status.secondLine ? "0px" : "4px"
-        }}
-        title="Click to change visibility"
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-          <i className={status.icon} style={{ fontSize: "0.9rem" }} />
-          <span>{status.text}</span>
-          {!status.secondLine && (
-            <i
-              className="pi pi-chevron-down"
-              style={{ fontSize: "0.7rem", marginLeft: "2px", opacity: 0.6 }}
-            />
-          )}
-        </div>
-        {status.secondLine && (
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span>{status.secondLine}</span>
-            <i
-              className="pi pi-chevron-down"
-              style={{ fontSize: "0.7rem", marginLeft: "2px", opacity: 0.6 }}
-            />
-          </div>
-        )}
-      </div>
-      <OverlayPanel
-        ref={overlayRef}
-        dismissable
-        style={{ width: "300px" }}
-        pt={{
-          content: { style: { padding: "0.75rem" } }
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-          <div style={{ fontWeight: 600, fontSize: "0.9rem", marginBottom: "0.25rem" }}>
-            Visibility Status
-          </div>
+    <Popover
+      width={300}
+      position="bottom"
+      withArrow
+      trapFocus
+      returnFocus
+      opened={opened}
+      onChange={handleOpenChange}
+    >
+      <Popover.Target>
+        <UnstyledButton
+          className={styles.trigger}
+          data-expanded={opened || undefined}
+          onClick={() => handleOpenChange(!opened)}
+          aria-label={`${status.label}. Change visibility`}
+          title={status.tooltip || "Click to change visibility"}
+        >
+          <VisibilityChip status={status} />
+          <span className={styles.chevron}>
+            <Icon name="chevron-down" size={13} color="currentColor" />
+          </span>
+        </UnstyledButton>
+      </Popover.Target>
+      <Popover.Dropdown>
+        <Radio.Group value={mode} onChange={(value) => handleModeChange(value as VisibilityMode)}>
+          <Stack gap="sm">
+            <Text fw={600} size="sm">
+              Visibility status
+            </Text>
 
-          <div className="flex align-items-center">
-            <RadioButton
-              inputId={`vis-hidden-${assignment.id}`}
-              value="hidden"
-              checked={mode === "hidden"}
-              onChange={() => handleModeChange("hidden")}
-            />
-            <label
-              htmlFor={`vis-hidden-${assignment.id}`}
-              className="ml-2 cursor-pointer"
-              style={{ fontSize: "0.85rem" }}
-            >
-              <i className="pi pi-eye-slash" style={{ color: "#DC3545", marginRight: "4px" }} />
-              Hidden
-            </label>
-          </div>
+            <Radio value="hidden" label={radioLabel(RADIO_OPTIONS[0])} />
+            <Radio value="visible" label={radioLabel(RADIO_OPTIONS[1])} />
 
-          <div className="flex align-items-center">
-            <RadioButton
-              inputId={`vis-visible-${assignment.id}`}
-              value="visible"
-              checked={mode === "visible"}
-              onChange={() => handleModeChange("visible")}
-            />
-            <label
-              htmlFor={`vis-visible-${assignment.id}`}
-              className="ml-2 cursor-pointer"
-              style={{ fontSize: "0.85rem" }}
-            >
-              <i className="pi pi-eye" style={{ color: "#28A745", marginRight: "4px" }} />
-              Visible
-            </label>
-          </div>
-
-          <div className="flex flex-column gap-2">
-            <div className="flex align-items-center">
-              <RadioButton
-                inputId={`vis-scheduled-visible-${assignment.id}`}
-                value="scheduled_visible"
-                checked={mode === "scheduled_visible"}
-                onChange={() => handleModeChange("scheduled_visible")}
-              />
-              <label
-                htmlFor={`vis-scheduled-visible-${assignment.id}`}
-                className="ml-2 cursor-pointer"
-                style={{ fontSize: "0.85rem" }}
-              >
-                <i className="pi pi-clock" style={{ color: "#FFA500", marginRight: "4px" }} />
-                Visible on...
-              </label>
-            </div>
+            <Radio value="scheduled_visible" label={radioLabel(RADIO_OPTIONS[2])} />
             {mode === "scheduled_visible" && (
-              <div style={{ marginLeft: "1.75rem" }}>
-                <DateTimePicker value={visibleOn} onChange={handleVisibleOnChange} utc />
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-column gap-2">
-            <div className="flex align-items-center">
-              <RadioButton
-                inputId={`vis-scheduled-hidden-${assignment.id}`}
-                value="scheduled_hidden"
-                checked={mode === "scheduled_hidden"}
-                onChange={() => handleModeChange("scheduled_hidden")}
-              />
-              <label
-                htmlFor={`vis-scheduled-hidden-${assignment.id}`}
-                className="ml-2 cursor-pointer"
-                style={{ fontSize: "0.85rem" }}
-              >
-                <i
-                  className="pi pi-calendar-times"
-                  style={{ color: "#17A2B8", marginRight: "4px" }}
+              <Stack pl="xl">
+                <DateTimePicker
+                  value={visibleOn}
+                  onChange={handleVisibleOnChange}
+                  utc
+                  withinPortal={false}
+                  ariaLabel="Visible on date"
                 />
-                Hidden on...
-              </label>
-            </div>
-            {mode === "scheduled_hidden" && (
-              <div style={{ marginLeft: "1.75rem" }}>
-                <DateTimePicker value={hiddenOn} onChange={handleHiddenOnChange} utc />
-              </div>
+              </Stack>
             )}
-          </div>
 
-          <div className="flex flex-column gap-2">
-            <div className="flex align-items-center">
-              <RadioButton
-                inputId={`vis-scheduled-period-${assignment.id}`}
-                value="scheduled_period"
-                checked={mode === "scheduled_period"}
-                onChange={() => handleModeChange("scheduled_period")}
-              />
-              <label
-                htmlFor={`vis-scheduled-period-${assignment.id}`}
-                className="ml-2 cursor-pointer"
-                style={{ fontSize: "0.85rem" }}
-              >
-                <i className="pi pi-calendar" style={{ color: "#6366F1", marginRight: "4px" }} />
-                Visible during period
-              </label>
-            </div>
-            {mode === "scheduled_period" && (
-              <div
-                style={{
-                  marginLeft: "1.75rem",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.5rem"
-                }}
-              >
-                <div>
-                  <label style={{ display: "block", fontSize: "0.8rem", marginBottom: "0.25rem" }}>
-                    From:
-                  </label>
-                  <DateTimePicker value={visibleOn} onChange={handleVisibleOnChange} utc />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.8rem", marginBottom: "0.25rem" }}>
-                    Until:
-                  </label>
-                  <DateTimePicker value={hiddenOn} onChange={handleHiddenOnChange} utc />
-                </div>
-              </div>
+            <Radio value="scheduled_hidden" label={radioLabel(RADIO_OPTIONS[3])} />
+            {mode === "scheduled_hidden" && (
+              <Stack pl="xl">
+                <DateTimePicker
+                  value={hiddenOn}
+                  onChange={handleHiddenOnChange}
+                  utc
+                  withinPortal={false}
+                  ariaLabel="Hidden on date"
+                />
+              </Stack>
             )}
-          </div>
-        </div>
-      </OverlayPanel>
-    </>
+
+            <Radio value="scheduled_period" label={radioLabel(RADIO_OPTIONS[4])} />
+            {mode === "scheduled_period" && (
+              <Stack pl="xl" gap="xs">
+                <div>
+                  <Text size="xs" mb={4}>
+                    From:
+                  </Text>
+                  <DateTimePicker
+                    value={visibleOn}
+                    onChange={handleVisibleOnChange}
+                    utc
+                    withinPortal={false}
+                    ariaLabel="Visible from date"
+                  />
+                </div>
+                <div>
+                  <Text size="xs" mb={4}>
+                    Until:
+                  </Text>
+                  <DateTimePicker
+                    value={hiddenOn}
+                    onChange={handleHiddenOnChange}
+                    utc
+                    withinPortal={false}
+                    ariaLabel="Hidden after date"
+                  />
+                </div>
+              </Stack>
+            )}
+          </Stack>
+        </Radio.Group>
+      </Popover.Dropdown>
+    </Popover>
   );
 };

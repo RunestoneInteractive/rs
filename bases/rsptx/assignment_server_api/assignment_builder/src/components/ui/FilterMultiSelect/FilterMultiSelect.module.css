@@ -1,0 +1,115 @@
+.target {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+  height: 36px;
+  padding: 0 var(--rs-space-3);
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-sm);
+  font-size: var(--rs-font-size-sm);
+  color: var(--rs-text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color var(--rs-transition-fast),
+    background-color var(--rs-transition-fast);
+}
+
+.target:hover {
+  border-color: var(--rs-neutral-300);
+  background: var(--rs-neutral-50);
+}
+
+.target[data-active] {
+  background: var(--rs-brand-50);
+  border-color: var(--rs-brand-300);
+  color: var(--rs-brand-700);
+}
+
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--rs-brand-600);
+  color: var(--rs-text-on-brand);
+  border-radius: var(--rs-radius-pill);
+  font-size: var(--rs-font-size-xs);
+  font-weight: var(--rs-font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.chevron {
+  display: inline-flex;
+  color: var(--rs-text-muted);
+  transition: transform var(--rs-transition-fast);
+}
+
+.target[data-expanded] .chevron {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.search {
+  padding: var(--rs-space-2) var(--rs-space-2) 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  overflow: auto;
+  padding: var(--rs-space-2);
+  gap: 2px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+  padding: var(--rs-space-1) var(--rs-space-2);
+  border-radius: var(--rs-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--rs-transition-fast);
+}
+
+.option:hover {
+  background: var(--rs-neutral-50);
+}
+
+.optionLabel {
+  font-size: var(--rs-font-size-sm);
+  color: var(--rs-text);
+}
+
+.empty {
+  padding: var(--rs-space-3);
+  font-size: var(--rs-font-size-sm);
+  color: var(--rs-text-muted);
+  text-align: center;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rs-space-3);
+  padding: var(--rs-space-1) var(--rs-space-2) var(--rs-space-1) var(--rs-space-3);
+  border-top: 1px solid var(--rs-border-solid);
+  background: var(--rs-neutral-50);
+}
+
+.footerCount {
+  font-size: var(--rs-font-size-xs);
+  font-weight: var(--rs-font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--rs-text-muted);
+}

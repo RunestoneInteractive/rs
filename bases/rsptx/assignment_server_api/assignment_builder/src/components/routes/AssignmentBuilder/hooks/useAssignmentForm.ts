@@ -21,9 +21,16 @@ export const useAssignmentForm = ({
   });
 
   const isResetRef = useRef(false);
+  const lastResetAssignmentIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (selectedAssignment && mode === "edit") {
+    if (mode !== "edit") {
+      lastResetAssignmentIdRef.current = null;
+      return;
+    }
+
+    if (selectedAssignment && selectedAssignment.id !== lastResetAssignmentIdRef.current) {
+      lastResetAssignmentIdRef.current = selectedAssignment.id;
       isResetRef.current = true;
       reset(selectedAssignment);
       isResetRef.current = false;

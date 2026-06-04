@@ -3,6 +3,7 @@ import {
   GraderType
 } from "@/components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/FillInTheBlankExercise/types";
 import { sanitizeId } from "../sanitize";
+import { DEFAULT_INCORRECT_FEEDBACK } from "@/utils/questionJson";
 
 const escapeJsonString = (str: string): string => {
   return str.replace(/"/g, '\\"');
@@ -38,7 +39,7 @@ export const generateFillInTheBlankPreview = ({
       if (blank.numberMin !== undefined && blank.numberMax !== undefined) {
         feedbackItems.push({
           number: [parseFloat(blank.numberMin), parseFloat(blank.numberMax)],
-          feedback: `<p>${escapeJsonString(blank.correctFeedback || "Correct!")}</p>\n`
+          feedback: `<p>${escapeJsonString(blank.correctFeedback || "Correct")}</p>\n`
         });
       }
     } else if (blank.graderType === GraderType.REGEX) {
@@ -46,7 +47,7 @@ export const generateFillInTheBlankPreview = ({
         feedbackItems.push({
           regex: `^\\s*${blank.regexPattern}\\s*$`,
           regexFlags: blank.regexFlags || "",
-          feedback: `<p>${escapeJsonString(blank.correctFeedback || "Correct!")}</p>\n`
+          feedback: `<p>${escapeJsonString(blank.correctFeedback || "Correct")}</p>\n`
         });
       }
     } else {
@@ -54,7 +55,7 @@ export const generateFillInTheBlankPreview = ({
         feedbackItems.push({
           regex: `^\\s*${escapeJsonString(blank.exactMatch)}\\s*$`,
           regexFlags: "",
-          feedback: `<p>${escapeJsonString(blank.correctFeedback || "Correct!")}</p>\n`
+          feedback: `<p>${escapeJsonString(blank.correctFeedback || "Correct")}</p>\n`
         });
       }
     }
@@ -62,7 +63,7 @@ export const generateFillInTheBlankPreview = ({
     feedbackItems.push({
       regex: "^\\s*.*\\s*$",
       regexFlags: "",
-      feedback: `<p>${escapeJsonString(blank.incorrectFeedback || "Incorrect, please try again.")}</p>\n`
+      feedback: `<p>${escapeJsonString(blank.incorrectFeedback || DEFAULT_INCORRECT_FEEDBACK)}</p>\n`
     });
 
     return feedbackItems;

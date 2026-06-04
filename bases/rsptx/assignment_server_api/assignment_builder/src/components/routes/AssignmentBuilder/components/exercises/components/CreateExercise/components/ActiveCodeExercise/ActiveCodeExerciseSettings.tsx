@@ -1,9 +1,7 @@
-import { Dropdown } from "primereact/dropdown";
-import { InputSwitch } from "primereact/inputswitch";
-import { InputText } from "primereact/inputtext";
-import { Tooltip } from "primereact/tooltip";
+import { Group, Select, Switch, TextInput, Tooltip } from "@mantine/core";
 import { FC } from "react";
 
+import { Icon } from "@/components/ui/Icon";
 import { CreateExerciseFormType } from "@/types/exercises";
 
 import {
@@ -22,6 +20,14 @@ const PERSONALIZATION_LEVELS = [
   { label: "Correct blocks locked; arrange incorrect blocks", value: "partial" }
 ];
 
+const InfoTooltip: FC<{ label: string }> = ({ label }) => (
+  <Tooltip label={label} position="right" multiline w={260}>
+    <span className={styles.infoIcon}>
+      <Icon name="info-circle" />
+    </span>
+  </Tooltip>
+);
+
 export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = ({
   formData,
   onChange
@@ -29,9 +35,7 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
   const handleCodeTailorToggle = (enabled: boolean) => {
     onChange({
       enableCodeTailor: enabled,
-      // Reset personalization level when disabling
       parsonspersonalize: enabled ? "movable" : "",
-      // Reset parsons example when disabling
       parsonsexample: enabled ? formData.parsonsexample : ""
     });
   };
@@ -47,70 +51,52 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
   const codeTailorFields = (
     <div className={styles.codeTailorSection}>
       <div className={styles.formField}>
-        <div className="flex align-items-center gap-4">
-          <div className="flex align-items-center gap-2">
-            <InputSwitch
+        <Group align="center" gap="xl">
+          <Group align="center" gap="xs">
+            <Switch
               id="enableCodeTailor"
+              label="Personalized Parsons support (CodeTailor)"
               checked={formData.enableCodeTailor ?? false}
-              onChange={(e) => handleCodeTailorToggle(e.value)}
+              onChange={(e) => handleCodeTailorToggle(e.currentTarget.checked)}
             />
-            <label htmlFor="enableCodeTailor" className="font-medium">
-              Personalized Parsons Support (CodeTailor)
-            </label>
-            <i
-              className="pi pi-info-circle codetailor-info-icon"
-              data-pr-tooltip="CodeTailor provides personalized Parsons puzzles as adaptive support for students struggling with coding exercises."
-              data-pr-position="right"
-            />
-            <Tooltip target=".codetailor-info-icon" />
-          </div>
+            <InfoTooltip label="CodeTailor provides personalized Parsons puzzles as adaptive support for students struggling with coding exercises." />
+          </Group>
 
-          <div className="flex align-items-center gap-2">
-            <InputSwitch
+          <Group align="center" gap="xs">
+            <Switch
               id="enableCodelens"
+              label="Show CodeLens button"
               checked={formData.enableCodelens ?? true}
-              onChange={(e) => onChange({ enableCodelens: e.value })}
+              onChange={(e) => onChange({ enableCodelens: e.currentTarget.checked })}
             />
-            <label htmlFor="enableCodelens" className="font-medium">
-              Show CodeLens Button
-            </label>
-            <i
-              className="pi pi-info-circle codelens-info-icon"
-              data-pr-tooltip="CodeLens button provides step-by-step visualization of code execution."
-              data-pr-position="right"
-            />
-            <Tooltip target=".codelens-info-icon" />
-          </div>
-        </div>
+            <InfoTooltip label="CodeLens button provides step-by-step visualization of code execution." />
+          </Group>
+        </Group>
       </div>
 
       {formData.enableCodeTailor && (
         <div className={styles.codeTailorOptions}>
           <div className={styles.formField}>
-            <span className="p-float-label">
-              <Dropdown
-                id="parsonspersonalize"
-                value={formData.parsonspersonalize || "movable"}
-                options={PERSONALIZATION_LEVELS}
-                optionLabel="label"
-                className="w-full"
-                onChange={(e) => handlePersonalizationChange(e.value)}
-              />
-              <label htmlFor="parsonspersonalize">Personalized blocks to arrange</label>
-            </span>
+            <Select
+              id="parsonspersonalize"
+              label="Personalized blocks to arrange"
+              value={formData.parsonspersonalize || "movable"}
+              data={PERSONALIZATION_LEVELS}
+              allowDeselect={false}
+              onChange={(value) =>
+                handlePersonalizationChange((value as "movable" | "partial") || "movable")
+              }
+            />
           </div>
 
           <div className={styles.formField}>
-            <span className="p-float-label">
-              <InputText
-                id="parsonsexample"
-                value={formData.parsonsexample || ""}
-                className="w-full"
-                onChange={(e) => handleParsonsExampleChange(e.target.value)}
-                placeholder="Enter a ParsonProb Question id(optional)"
-              />
-              <label htmlFor="parsonsexample">Backup Example Solution</label>
-            </span>
+            <TextInput
+              id="parsonsexample"
+              label="Backup example solution"
+              value={formData.parsonsexample || ""}
+              onChange={(e) => handleParsonsExampleChange(e.target.value)}
+              placeholder="Parsons problem ID (optional)"
+            />
           </div>
         </div>
       )}

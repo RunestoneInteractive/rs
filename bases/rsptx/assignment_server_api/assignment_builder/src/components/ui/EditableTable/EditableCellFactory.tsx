@@ -12,7 +12,16 @@ import {
 } from "@/types/components/editableTableCell";
 
 export const EditableCellFactory: FC<EditableCellFactoryProps> = memo(
-  ({ fieldName, itemId, handleMouseDown, handleChange, value, questionType, isDragging }) => {
+  ({
+    fieldName,
+    itemId,
+    handleMouseDown,
+    handleChange,
+    value,
+    questionType,
+    isDragging,
+    rowLabel
+  }) => {
     const WrappedCell = withCellRangeSelector((props) => {
       if (isDropdownField(fieldName)) {
         return (
@@ -46,6 +55,7 @@ export const EditableCellFactory: FC<EditableCellFactoryProps> = memo(
         value={value}
         questionType={questionType}
         isDragging={isDragging}
+        rowLabel={rowLabel}
       />
     );
   },

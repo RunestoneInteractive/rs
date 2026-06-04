@@ -1,7 +1,9 @@
 import { SCALE_CONFIG } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/constants";
-import { InputNumber } from "primereact/inputnumber";
-import { classNames } from "primereact/utils";
+import { NumberInput } from "@mantine/core";
+import classNames from "classnames";
 import { useCallback } from "react";
+
+import { Icon } from "@/components/ui/Icon";
 
 import styles from "./ScaleSettings.module.css";
 
@@ -41,34 +43,24 @@ export const ScaleSettings = ({ value, onChange }: ScaleSettingsProps) => {
         <div className={styles.inputContainer}>
           <label className={styles.label}>Maximum Scale Value:</label>
           <div className={styles.inputWrapper}>
-            <InputNumber
+            <NumberInput
               id="scaleValue"
               value={value}
-              onValueChange={(e) => onChange(e.value || SCALE_CONFIG.DEFAULT)}
+              onChange={(val) => onChange(typeof val === "number" ? val : SCALE_CONFIG.DEFAULT)}
               min={SCALE_CONFIG.MIN}
               max={SCALE_CONFIG.MAX}
-              showButtons
-              inputClassName="text-center font-semibold"
-              size={3}
-              useGrouping={false}
-              buttonLayout="horizontal"
-              decrementButtonClassName="p-button-secondary p-button-text"
-              incrementButtonClassName="p-button-secondary p-button-text"
-              incrementButtonIcon="pi pi-plus"
-              decrementButtonIcon="pi pi-minus"
+              clampBehavior="strict"
+              allowNegative={false}
+              allowDecimal={false}
               step={1}
+              classNames={{ input: styles.scaleInput }}
               aria-label="Maximum scale value"
             />
           </div>
         </div>
 
         <div className={styles.presets}>
-          <p
-            className={styles.description}
-            style={{ marginBottom: "0.75rem", width: "100%", textAlign: "center" }}
-          >
-            Quick select:
-          </p>
+          <p className={classNames(styles.description, styles.quickSelectLabel)}>Quick select:</p>
           {SCALE_PRESETS.map((preset) => (
             <button
               key={preset.value}
@@ -86,7 +78,7 @@ export const ScaleSettings = ({ value, onChange }: ScaleSettingsProps) => {
       </div>
 
       <div className={styles.helpText}>
-        <i className="pi pi-info-circle" style={{ marginRight: "8px" }}></i>
+        <Icon name="info-circle" size={14} color="currentColor" />
         Students will see options labeled 1 through {value}
       </div>
     </div>

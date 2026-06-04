@@ -1,31 +1,51 @@
-import { PrimeReactProvider } from "primereact/api";
-import "primereact/resources/primereact.css";
-import "primeflex/primeflex.css";
-import "primeicons/primeicons.css";
-import "./styles/layout.scss";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
+import interWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
+import { MantineProvider } from "@mantine/core";
+import "@mantine/core/styles.layer.css";
+import "@mantine/dates/styles.layer.css";
+import "@mantine/dropzone/styles.layer.css";
+import "@mantine/notifications/styles.layer.css";
+import "@mantine/tiptap/styles.layer.css";
+import { ModalsProvider } from "@mantine/modals";
+import { Notifications } from "@mantine/notifications";
+import "./styles/utilities.css";
+import "./styles/tokens.css";
+import "./styles/typography.css";
 import "./styles/global.css";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { Provider } from "react-redux";
 
-import { fetchAssignments } from "@/state/assignment/assignSlice";
-import { fetchChooserData } from "@/state/epicker/ePickerSlice";
 import { store } from "@/state/store";
 
 import App from "./App.js";
 import reportWebVitals from "./reportWebVitals";
+import { mantineTheme } from "./theme/mantineTheme";
 
 /**
  * @description This is the main function that is called when the page is loaded.
  */
 const main = () => {
+  const fontPreload = document.createElement("link");
+
+  fontPreload.rel = "preload";
+  fontPreload.as = "font";
+  fontPreload.type = "font/woff2";
+  fontPreload.href = interWoff2;
+  fontPreload.crossOrigin = "anonymous";
+  document.head.prepend(fontPreload);
+
   const root = createRoot(document.getElementById("root")!);
 
   root.render(
     <Provider store={store}>
-      <PrimeReactProvider>
-        <App />
-      </PrimeReactProvider>
+      <MantineProvider theme={mantineTheme} defaultColorScheme="light">
+        <ModalsProvider>
+          <Notifications position="bottom-right" autoClose={4000} transitionDuration={320} />
+          <App />
+        </ModalsProvider>
+      </MantineProvider>
     </Provider>
   );
 };

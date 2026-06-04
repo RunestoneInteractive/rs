@@ -1,21 +1,25 @@
-import { Toast } from "primereact/toast";
 import { RefObject, useCallback, useEffect, useState } from "react";
+
+import { notify } from "@/components/ui/notify";
+
+import { CONNECTION_TOAST_COPY } from "../../../shared/connections";
 
 import styles from "../DragAndDropExercise.module.css";
 import { DragAndDropData } from "../types";
 
 interface UseDragAndDropConnectionsProps {
   formData: DragAndDropData;
-  updateFormData: (field: keyof DragAndDropData, value: any) => void;
+  updateFormData: (
+    field: keyof DragAndDropData,
+    value: DragAndDropData[keyof DragAndDropData]
+  ) => void;
   containerRef: RefObject<HTMLDivElement>;
-  toastRef: RefObject<Toast>;
 }
 
 export const useDragAndDropConnections = ({
   formData,
   updateFormData,
-  containerRef,
-  toastRef
+  containerRef
 }: UseDragAndDropConnectionsProps) => {
   const [activeSource, setActiveSource] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -85,11 +89,11 @@ export const useDragAndDropConnections = ({
       );
 
       if (connectionExists) {
-        toastRef.current?.show({
-          severity: "warn",
-          summary: "Connection Exists",
-          detail: "This specific connection already exists",
-          life: 3000
+        notify.show({
+          title: CONNECTION_TOAST_COPY.duplicateTitle,
+          message: CONNECTION_TOAST_COPY.duplicateMessage,
+          color: "yellow",
+          autoClose: 3000
         });
         setActiveSource(null);
         return;
@@ -100,8 +104,12 @@ export const useDragAndDropConnections = ({
       updateFormData("correctAnswers", [...(formData.correctAnswers || []), newConnection]);
       setActiveSource(null);
     },
-    [activeSource, formData.correctAnswers, updateFormData, toastRef]
+    [activeSource, formData.correctAnswers, updateFormData]
   );
+
+  const cancelConnection = useCallback(() => {
+    setActiveSource(null);
+  }, []);
 
   const handleDeleteConnection = useCallback(
     (sourceId: string, targetId: string) => {
@@ -230,6 +238,7 @@ export const useDragAndDropConnections = ({
     generatePath,
     handleStartConnection,
     handleCompleteConnection,
+    cancelConnection,
     handleDeleteConnection
   };
 };
