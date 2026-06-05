@@ -245,7 +245,7 @@ async def serve_page(
     # check for some error conditions
     if not course_row:
         return RedirectResponse(
-            url=f"/runestone/default/courses?bad_course={course_name}", status_code=307
+            url=f"/admin/auth/my_courses?bad_course={course_name}", status_code=307
         )
     else:
         # The course requires a login but the user is not logged in
@@ -265,7 +265,7 @@ async def serve_page(
                     url=f"/ns/books/published/{user.course_name}/{pagepath}"
                 )
             return RedirectResponse(
-                url=f"/runestone/default/courses?requested_course={course_name}&current_course={user.course_name}&requested_path={pagepath}"
+                url=f"/admin/auth/my_courses?requested_course={course_name}&current_course={user.course_name}&requested_path={pagepath}"
             )
     # proceed with the knowledge that course_row is defined after this point.
 
@@ -438,7 +438,7 @@ async def serve_page(
         return templates.TemplateResponse(pagepath, context, headers=headers)
     except TemplateNotFound:
         return RedirectResponse(
-            url=f"/runestone/default/courses?bad_course={pagepath}", status_code=307
+            url=f"/admin/auth/my_courses?bad_course={pagepath}", status_code=307
         )
 
 
