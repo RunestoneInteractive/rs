@@ -31,16 +31,7 @@ Peer Instruction - {{ assignment_name }}
         display: none;
     }
 
-    .pi-lineno {
-        display: inline-block;
-        min-width: 2em;
-        color: #999;
-        text-align: right;
-        border-right: 1px solid #ddd;
-        padding-right: 0.5em;
-        margin-right: 0.8em;
-        user-select: none;
-    }
+
 </style>
 {% endblock %}
 
@@ -215,15 +206,6 @@ Peer Instruction - {{ assignment_name }}
     }
     doIt();
 
-    setTimeout(function addLineNumbers() {
-        document.querySelectorAll(".oneq pre").forEach(function (pre) {
-            var lines = pre.innerHTML.split("\n");
-            if (lines.length <= 1) return;
-            if (lines[lines.length - 1].trim() === "") lines.pop();
-            pre.innerHTML = lines.map(function (line, i) {
-                return '<span class="pi-lineno">' + (i + 1) + "</span>" + line;
-            }).join("\n");
-        });
-    }, 1000);
+
 </script>
 {% endblock %}
