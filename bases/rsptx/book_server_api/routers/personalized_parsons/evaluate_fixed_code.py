@@ -230,7 +230,8 @@ def load_and_run_tests(unittest_case, code_to_test, time_limit=6):
     Output: _JobeTestResult with wasSuccessful() method
     """
     combined = (
-        code_to_test
+        '__name__ = "__runestone__"\n'
+        + code_to_test
         + "\n\n"
         + unittest_case
         + "\n\nimport unittest as _ut\n"
