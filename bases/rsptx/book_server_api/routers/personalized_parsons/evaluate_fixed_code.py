@@ -1,30 +1,10 @@
-import unittest
 import re
 import difflib
-from types import ModuleType
-import threading
-import signal
 import requests as rq
 import hashlib
 import base64
 import json
 from ..rsproxy import settings
-
-
-class NullOutput:
-    def write(self, _):
-        pass
-
-    def flush(self):
-        pass
-
-
-class TimeoutError(Exception):
-    pass
-
-
-def handler(signum, frame):
-    raise TimeoutError("Test execution exceeded time limit")
 
 
 def _runestone_file_id(filename: str, content: str) -> str:
@@ -229,45 +209,71 @@ def load_and_run_java_tests(java_code, test_code):
         return False
 
 
+class _JobeTestResult:
+    """Minimal stand-in for unittest.TestResult returned by load_and_run_tests."""
+
+    def __init__(self, passed: bool):
+        self._passed = passed
+
+    def wasSuccessful(self) -> bool:
+        return self._passed
+
+
 def load_and_run_tests(unittest_case, code_to_test, time_limit=6):
     """
-    Load and run Python test cases against the provided code.
+    Run Python test cases against the provided code via JOBE.
+
     Inputs:
-        unittest_case (str): The Python test cases. The test code is automatically reformatted based on the unittest_code provided by instructors in the RST file.
-        code_to_test (str): The Python code to be tested.
-        time_limit (int): The time limit for running the tests in seconds.
-    Output: unittest.TestResult: The result of the test run.
+        unittest_case (str): unittest source (class myTests(unittest.TestCase): ...)
+        code_to_test (str): the Python solution code to validate
+        time_limit (int): JOBE wall-clock time limit in seconds
+    Output: _JobeTestResult with wasSuccessful() method
     """
-    # Set the alarm signal for timeout
-    if threading.current_thread() is threading.main_thread():
-        signal.signal(signal.SIGALRM, handler)
-        signal.alarm(time_limit)
+    combined = (
+        code_to_test
+        + "\n\n"
+        + unittest_case
+        + "\n\nimport unittest as _ut\n"
+        + "_result = _ut.main(verbosity=0, exit=False)\n"
+        + 'print("PASS" if _result.result.wasSuccessful() else "FAIL")\n'
+    )
+
+    filename = "solution.py"
+    file_id = _runestone_file_id(filename, combined)
+    b64 = _b64_text_utf8(combined)
+
+    sess = _jobe_session()
+    file_url = settings.jobe_server + "/jobe/index.php/restapi/files/" + file_id
+    runs_url = settings.jobe_server + "/jobe/index.php/restapi/runs/"
 
     try:
-        # Create a dummy module to hold the test cases
-        test_module = ModuleType("test_module")
-        test_module.unittest = unittest
+        r = sess.head(file_url, timeout=10)
+        if r.status_code != 204:
+            put = sess.put(file_url, json={"file_contents": b64}, timeout=10)
+            if put.status_code != 204:
+                return _JobeTestResult(False)
 
-        # Execute the test cases string within the dummy module's namespace
-        exec(unittest_case, test_module.__dict__)
-        # Execute the code to test within the desired scope
-        exec(code_to_test, test_module.__dict__)
-        # Retrieve the loaded test cases
-        test_suite = unittest.TestLoader().loadTestsFromModule(test_module)
-        print("test_suite", test_suite)
-        # Run the test suite
-        test_results = unittest.TextTestRunner(
-            verbosity=0, failfast=True, stream=NullOutput()
-        ).run(test_suite)
-        print("test_results", test_results)
+        runspec = {
+            "language_id": "python3",
+            "sourcecode": combined,
+            "sourcefilename": filename,
+            "parameters": {"timelimitsecs": time_limit},
+        }
+        resp = sess.post(runs_url, json={"run_spec": runspec}, timeout=time_limit + 10)
+        try:
+            result = resp.json()
+        except Exception:
+            return _JobeTestResult(False)
 
-    except TimeoutError:
-        print("test_results", test_results)
-        return False
-    finally:
-        signal.alarm(0)
+        out = (result.get("stdout") or "").strip()
+        # Outcome 15 = success; outcome 12 = runtime error but some JOBE/Python3
+        # sandbox configurations exit non-zero even when tests pass and "PASS" is
+        # printed. Trust stdout over the outcome code.
+        passed = out == "PASS"
+        return _JobeTestResult(passed)
 
-    return test_results
+    except Exception:
+        return _JobeTestResult(False)
 
 
 def fix_indentation(text):
