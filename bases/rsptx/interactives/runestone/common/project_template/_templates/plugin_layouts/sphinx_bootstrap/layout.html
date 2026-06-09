@@ -126,7 +126,7 @@ window.MathJax = {
       <div>
         {% set logo = '_static/' + (logo if logo else 'img/RAIcon.png') %}
         {% if minimal_outside_links != 'True' %}
-          <a class="brand-logo" href="/{{appname}}/default/user/login" aria-label="Login"><img src="{{pathto(logo, 1)}}" alt=""></a>
+          <a class="brand-logo" href="/admin/auth/login" aria-label="Login"><img src="{{pathto(logo, 1)}}" alt=""></a>
         {% else %}
           <div class="brand-logo"><img src="{{pathto(logo, 1)}}" alt=""></div>
         {% endif %}
@@ -197,20 +197,19 @@ window.MathJax = {
             <li><a href='/ns/course/index'>Course Home</a></li>
             <li><a href='/assignment/student/chooseAssignment'>Assignments</a></li>
             <li><a href='/{{appname}}/assignments/practice'>Practice</a></li>
-            <li id="inst_peer_link"><a href='/{{appname}}/peer/instructor.html'>Peer Instruction (Instructor)</a></li>
-            <li><a href='/{{appname}}/peer/student.html'>Peer Instruction (Student)</a></li>
+            <li id="inst_peer_link"><a href='/assignment/peer/instructor'>Peer Instruction (Instructor)</a></li>
+            <li><a href='/assignment/peer/student.html'>Peer Instruction (Student)</a></li>
             <li class="divider"></li>
             {% if minimal_outside_links != 'True' %}
-            <li><a href='/{{appname}}/default/courses'>Change Course</a></li>
+            <li><a href='/admin/auth/my_courses'>Change Course</a></li>
 			      <li class="divider"></li>
             <li id="ip_dropdown_link"><a href='/admin/instructor/menu'>Instructor Dashboard</a></li>
             {% endif %}
             <li><a href='/{{appname}}/dashboard/studentreport'>Progress Page</a></li>
             <li class="divider"></li>
             {% if minimal_outside_links != 'True' %}
-            <li><a href="/{{appname}}/default/user/profile" id="profilelink">Edit Profile</a></li>
-            <li><a href="/{{appname}}/default/user/change_password" id="passwordlink">Change Password</a></li>
-            <li><a href="/{{appname}}/default/user/register" id="registerlink">Register</a></li>
+            <li><a href="/admin/auth/profile" id="profilelink">Edit Profile</a></li>
+            <li><a href="/admin/auth/register" id="registerlink">Register</a></li>
             {% endif %}
             <li class='loginout'><a href='#'>Login</a></li> <!-- correct link populated by addNavbarLoginLink() -->
             <!-- dark mode toggle -->
