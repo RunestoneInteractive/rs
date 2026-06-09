@@ -249,7 +249,8 @@ async def parsons_scaffolding(
 
     # Fetch the test code from the database using the problem_id.
     try:
-        question = await fetch_question(problem_id)
+        basecourse = getattr(course, "base_course", None)
+        question = await fetch_question(problem_id, basecourse=basecourse)
         if question and question.question_json:
             internal_test_case = question.question_json.get("suffix_code", "") or ""
         else:

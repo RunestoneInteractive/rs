@@ -229,6 +229,7 @@ def load_and_run_tests(unittest_case, code_to_test, time_limit=6):
         time_limit (int): JOBE wall-clock time limit in seconds
     Output: _JobeTestResult with wasSuccessful() method
     """
+    # Suppress __main__ guards in student code — JOBE runs as top-level script
     combined = (
         '__name__ = "__runestone__"\n'
         + code_to_test
@@ -239,25 +240,14 @@ def load_and_run_tests(unittest_case, code_to_test, time_limit=6):
         + 'print("PASS" if _result.result.wasSuccessful() else "FAIL")\n'
     )
 
-    filename = "solution.py"
-    file_id = _runestone_file_id(filename, combined)
-    b64 = _b64_text_utf8(combined)
-
     sess = _jobe_session()
-    file_url = settings.jobe_server + "/jobe/index.php/restapi/files/" + file_id
     runs_url = settings.jobe_server + "/jobe/index.php/restapi/runs/"
 
     try:
-        r = sess.head(file_url, timeout=10)
-        if r.status_code != 204:
-            put = sess.put(file_url, json={"file_contents": b64}, timeout=10)
-            if put.status_code != 204:
-                return _JobeTestResult(False)
-
         runspec = {
             "language_id": "python3",
             "sourcecode": combined,
-            "sourcefilename": filename,
+            "sourcefilename": "solution.py",
             "parameters": {"timelimitsecs": time_limit},
         }
         resp = sess.post(runs_url, json={"run_spec": runspec}, timeout=time_limit + 10)
@@ -267,10 +257,11 @@ def load_and_run_tests(unittest_case, code_to_test, time_limit=6):
             return _JobeTestResult(False)
 
         out = (result.get("stdout") or "").strip()
-        # Outcome 15 = success; outcome 12 = runtime error but some JOBE/Python3
-        # sandbox configurations exit non-zero even when tests pass and "PASS" is
-        # printed. Trust stdout over the outcome code.
-        passed = out == "PASS"
+        # Check the last line so student debug prints don't cause false failures.
+        # Trust stdout over outcome code: JOBE/Python3 may return outcome 12
+        # even when tests pass.
+        last_line = out.splitlines()[-1].strip() if out else ""
+        passed = last_line == "PASS"
         return _JobeTestResult(passed)
 
     except Exception:
