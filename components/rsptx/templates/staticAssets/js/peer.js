@@ -592,6 +592,12 @@ async function enableFaceChat(event) {
 function startVote2(event) {
     handleButtonClick(event);
 
+    const vote1CountEl = document.getElementById('vote1CountDisplay');
+    const currentCount = document.getElementById('answerCountDisplay');
+    if (vote1CountEl && currentCount) {
+        vote1CountEl.textContent = currentCount.textContent;
+    }
+
     let butt = document.querySelector("#vote2");
     butt.classList.replace("btn-info", "btn-secondary");
     event.srcElement.disabled = true;

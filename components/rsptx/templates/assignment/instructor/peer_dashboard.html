@@ -387,7 +387,10 @@ Peer Instruction Dashboard - {{ assignment_name }}
                 <div class="vote-count-strip">
                     <span class="vote-count-big" id="answerCountDisplay">—</span>
                     <div>
-                        <div class="vote-count-main">answers received</div>
+                        <div class="vote-count-main" id="answerCountLabel">answers received</div>
+                        <div class="vote-count-sub" id="vote1CountLabel" style="display:none">
+                            Vote 1 count: <span id="vote1CountDisplay">—</span>
+                        </div>
                         <div class="vote-count-sub" id="messDisplay" style="display:none">
                             <span id="messNum">0</span> messages sent
                         </div>
@@ -475,6 +478,8 @@ Peer Instruction Dashboard - {{ assignment_name }}
             }
         } else {
             counterel.innerHTML = `<p>Vote ${v} Answers: ${spec.count}</p>`;
+            const vote1Label = document.getElementById('vote1CountLabel');
+            if (vote1Label) vote1Label.style.display = '';
         }
 
         if (spec.mess_count > 0) {
