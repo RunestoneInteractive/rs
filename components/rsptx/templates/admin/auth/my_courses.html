@@ -121,6 +121,7 @@
     {% for course in class_courses %}
     <div class="course-row">
         <span class="course-name">
+            {% if course.recently_used %}<span title="Active in the last 30 days">⏱️</span>{% endif %}
             {{ course.course_name }}
             {% if course.is_active %}<span class="badge-active">active</span>{% endif %}
             {% if course.is_instructor %}<span class="badge-instructor">instructor</span>{% endif %}
@@ -149,6 +150,7 @@
     {% for course in open_books %}
     <div class="course-row">
         <span class="course-name">
+            {% if course.recently_used %}<span title="Active in the last 30 days">⏱️</span>{% endif %}
             {{ course.course_name }}
             {% if course.is_active %}<span class="badge-active">active</span>{% endif %}
             {% if course.is_instructor %}<span class="badge-instructor">instructor</span>{% endif %}
