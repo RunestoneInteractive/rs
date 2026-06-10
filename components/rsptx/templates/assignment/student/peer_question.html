@@ -30,6 +30,8 @@ Peer Instruction - {{ assignment_name }}
     .hidden-content {
         display: none;
     }
+
+
 </style>
 {% endblock %}
 
@@ -104,9 +106,11 @@ Peer Instruction - {{ assignment_name }}
             </div>
 
             <div id="group_select_panel" class="col-md-6" style="display: none;">
-                <p><strong>In person discussion:</strong> select the people in your discussion group.</p>
+                <p><strong>Who did you talk to?</strong> Click to open the dropdown, type a name to search or scroll to select.</p>
                 <select id="assignment_group" multiple class="assignment_partner_select" style="width: 95%">
+                    <option value="" disabled hidden></option>
                 </select>
+                <p style="font-size:12px; color:#6b7280; margin-top:4px;">You can select multiple people.</p>
             </div>
         </div>
     </div>
@@ -201,5 +205,7 @@ Peer Instruction - {{ assignment_name }}
         await setupPeerGroup();
     }
     doIt();
+
+
 </script>
 {% endblock %}
