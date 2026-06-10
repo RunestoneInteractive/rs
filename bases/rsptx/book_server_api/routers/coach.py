@@ -14,7 +14,7 @@ import ast
 
 # Third-party imports
 # -------------------
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from pyflakes import checker as pyflakes_checker
 
 # Local application imports
@@ -32,8 +32,10 @@ from fastapi import status
 from .assessment import get_question_source, SelectQRequest
 
 # Import function for fetching api - comment out for DEV purposes
+from rsptx.auth.session import auth_manager
 from rsptx.db.crud.crud import fetch_api_token
 from rsptx.db.crud.course import fetch_course
+from rsptx.db.crud.question import fetch_question
 
 # .. _APIRouter config:
 #
@@ -83,6 +85,24 @@ async def python_check(request: Request):
 # Starting here -- Added code for CodeTailor ---
 DEV_API_KEY = ""
 # for dev/test -- replace with your own key for local testing
+
+
+def clean_python_testcase(raw_test_code: str) -> str:
+    """
+    Transform Runestone browser-style test code to standard unittest format.
+    Mirrors the cleanTestcase() transformation in activecode.js so that
+    suffix_code from the DB can be run by JOBE (which has no unittest.gui).
+    """
+    result = re.sub(
+        r"from unittest\.gui import TestCaseGui\s*\n",
+        "import unittest\n",
+        raw_test_code,
+    )
+    result = result.replace(
+        "class myTests(TestCaseGui):", "class myTests(unittest.TestCase):"
+    )
+    result = re.sub(r"^\s*myTests\(\)\.main\(\)\s*$", "", result, flags=re.MULTILINE)
+    return result
 
 
 def extract_parsons_code(html_block):
@@ -165,7 +185,10 @@ async def get_question_html(request: Request, div_id: str):
 
 # @router.post("/ns/coach/parsons_scaffolding")
 @router.post("/parsons_scaffolding")
-async def parsons_scaffolding(request: Request, course: Optional[str]):
+async def parsons_scaffolding(
+    request: Request, course: Optional[str], user=Depends(auth_manager)
+):
+    # Get `course` directly from the query string
     rslogger.warning(f"URL seen: {request.url}")
     rslogger.warning(f"Query parameters: {request.query_params}")
     course_name = request.query_params.get("course")
@@ -263,6 +286,82 @@ async def parsons_scaffolding(request: Request, course: Optional[str]):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
     rslogger.warning("CodeTailor: api_token obtained successfully")
+    # Start to process the request from activecode.js
+    req_bytes = await request.body()
+    _ = req_bytes.decode("utf-8")
+    data = await request.json()
+
+    language = data.get("language")
+    student_code = data.get("student_code")
+    problem_id = data.get("problem_id")
+    personalization_level = data.get("personalization_level")
+    parsonsexample = data.get("parsonsexample")
+    problem_description = data.get("problem_description")
+    parsons_personalized = data.get("parsons_personalized", True)
+
+    if not problem_id:
+        return JSONResponse(
+            content={"error": "CodeTailor: problem_id is required"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Fetch the test code from the database using the problem_id.
+    try:
+        basecourse = getattr(course, "base_course", None)
+        question = await fetch_question(problem_id, basecourse=basecourse)
+        if question and question.question_json:
+            internal_test_case = question.question_json.get("suffix_code", "") or ""
+        else:
+            rslogger.error(
+                f"CodeTailor: no question found for problem_id '{problem_id}'"
+            )
+            return JSONResponse(
+                content={"error": f"CodeTailor: question '{problem_id}' not found"},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+    except Exception as e:
+        rslogger.error(f"CodeTailor: could not fetch test code for '{problem_id}': {e}")
+        return JSONResponse(
+            content={
+                "error": f"CodeTailor: could not fetch test code for '{problem_id}'"
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not internal_test_case:
+        rslogger.error(
+            f"CodeTailor: question '{problem_id}' has no suffix_code in question_json — cannot validate generated code"
+        )
+        return JSONResponse(
+            content={
+                "error": f"CodeTailor: question '{problem_id}' has no test code in the database"
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if language and language.lower() == "python":
+        internal_test_case = clean_python_testcase(internal_test_case)
+
+    print("start_to: get_parsons_help", api_token, language, personalization_level)
+
+    adaptive_attr = 'data-adaptive="true"'
+    no_indent_attr = 'data-noindent="false"'
+    language_attr = f'data-language="{language}"'
+    # this scaffolding_attr is used in the parsons.js to determine whether the Parsons puzzle is created as automatic scaffolding puzzle or not
+    scaffolding_attr = 'data-scaffolding="true"'
+    parsons_attrs = (
+        f"{language_attr} {adaptive_attr} {no_indent_attr} {scaffolding_attr}".strip()
+    )
+
+    # extract the HTML of the example Parsons problem, otherwise it is "LLM-example"
+    parsonsexample_html = None
+    if parsonsexample != "LLM-example":
+        result = await get_question_html(request, div_id=parsonsexample)
+        parsonsexample_html = result["html"]
+        # Unable to test locally as it requires DB access
+        parsonsexample_code = extract_parsons_code(parsonsexample_html)
+    else:
+        parsonsexample_code = "LLM-example"
 
     def parsons_help(
         language,
