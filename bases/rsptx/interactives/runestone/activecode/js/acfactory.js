@@ -3,6 +3,9 @@ import JSActiveCode from "./activecode_js.js";
 import HTMLActiveCode from "./activecode_html.js";
 import SQLActiveCode from "./activecode_sql.js";
 import LiveCode from "./livecode.js";
+import GodotActiveCode from "./activecode_gdscript";
+
+
 import {
     TimedActiveCode,
     TimedLiveCode,
@@ -47,6 +50,8 @@ export default class ACFactory {
                 return new TimedHTMLActiveCode(opts);
             } else if (lang === "sql") {
                 return new TimedSQLActiveCode(opts);
+            } else if (lang === "gdscript") {
+                return new TimedGodotActiveCode(opts);
             } else {
                 return new TimedActiveCode(opts);
             }
@@ -57,6 +62,8 @@ export default class ACFactory {
                 return new HTMLActiveCode(opts);
             } else if (lang === "sql") {
                 return new SQLActiveCode(opts);
+            } else if (lang === "gdscript") {
+                return new GodotActiveCode(opts);
             } else if (
                 ["java", "cpp", "c", "python3", "python2", "octave", "kotlin"].indexOf(
                     lang
