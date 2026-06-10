@@ -236,7 +236,7 @@ function connect(event) {
                                 }
                             } else {
                                 if (getVoteNum() < 2) {
-                                    messarea.innerHTML = `<h3>Please give an explanation for your answer.</h3><p>Then, discuss your answer with your group members.</p>`;
+                                    messarea.innerHTML = `<h3>Wait for your instructor to start the discussion.</h3>`;
                                 } else {
                                     messarea.innerHTML = `<h3>Voting for this question is complete.</h3>`;
                                     let feedbackDiv = document.getElementById(`${currentQuestion}_feedback`);
@@ -333,41 +333,8 @@ function connect(event) {
                 case "enableFaceChat":
                     console.log("got enableFaceChat message");
                     console.log(`group = ${mess.group}`);
-                    let groupList = [];
-                    if (mess.group) {
-                        groupList = mess.group;
-                    }
                     messarea = document.getElementById("imessage");
-                    // Prefer previously-selected partners saved in localStorage.peerList
-                    let peerListCsv = localStorage.getItem("peerList");
-                    let displayPeers = [];
-                    if (peerListCsv) {
-                        let sids = peerListCsv.split(",").map(s => s.trim()).filter(Boolean);
-                        let sel = document.getElementById("assignment_group");
-                        for (let sid of sids) {
-                            let name = sid;
-                            if (sel) {
-                                let opt = sel.querySelector(`option[value="${sid}"]`);
-                                if (opt) name = opt.textContent || opt.innerText || sid;
-                            }
-                            displayPeers.push(name);
-                        }
-                    }
-
-                    if (displayPeers.length > 0) {
-                        messarea.innerHTML = `<h3>Current Verbal Discussion Group</h3><p>Please have a verbal discussion with your selected partners:</p><ul>`;
-                        for (const p of displayPeers) {
-                            messarea.innerHTML += `<li>${p}</li>`;
-                        }
-                        messarea.innerHTML += `</ul>`;
-                    } else {
-                        // fallback to server-provided group list
-                        messarea.innerHTML = `<h3>Current Verbal Discussion Group</h3><p>Please have a verbal discussion with the following group:</p><ul>`;
-                        for (const peer of groupList) {
-                            messarea.innerHTML += `<li>${peer}</li>`;
-                        }
-                        messarea.innerHTML += `</ul>`;
-                    }
+                    messarea.innerHTML = `<h3>Current Verbal Discussion Group</h3><p>Please have a verbal discussion with your group, then select who you talked to below.</p>`;
 
                     let facechat = document.getElementById("group_select_panel");
                     if (facechat) {
@@ -605,6 +572,12 @@ async function enableFaceChat(event) {
 function startVote2(event) {
     handleButtonClick(event);
 
+    const vote1CountEl = document.getElementById('vote1CountDisplay');
+    const currentCount = document.getElementById('answerCountDisplay');
+    if (vote1CountEl && currentCount) {
+        vote1CountEl.textContent = currentCount.textContent;
+    }
+
     let butt = document.querySelector("#vote2");
     butt.classList.replace("btn-info", "btn-secondary");
     event.srcElement.disabled = true;
@@ -805,7 +778,7 @@ async function setupPeerGroup() {
     }
     // Make the select element searchable with multiple selections
     $('.assignment_partner_select').select2({
-        placeholder: "Select up to 4 team members",
+        placeholder: "Click to search or select by name",
         allowClear: true,
         maximumSelectionLength: 4,
     });

@@ -1222,7 +1222,6 @@ async def clear_pairs(
 
 
 @router.get("/course_students")
-@instructor_role_required()
 @with_course()
 async def get_course_students(
     request: Request,

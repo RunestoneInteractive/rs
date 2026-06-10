@@ -240,6 +240,7 @@ Peer Instruction Dashboard - {{ assignment_name }}
     #vote1details[open] summary::before { transform: rotate(90deg); }
     #vote1details summary:hover { color: var(--pi-teal-dark); }
     #vote1details > div { padding: 4px 16px 12px; font-size: 13px; color: var(--af-ink-2); }
+
 </style>
 {% endblock %}
 
@@ -271,7 +272,6 @@ Peer Instruction Dashboard - {{ assignment_name }}
                     </select>
                 </div>
             </div>
-            <div id="pi-session-status">Vote 1 in Progress</div>
             <div id="pi-assignment-navigation">
                 {% if not is_last %}
                 <button type="submit" id="nextq" class="btn btn-info" name="next" value="Next">Next Question</button>
@@ -387,7 +387,10 @@ Peer Instruction Dashboard - {{ assignment_name }}
                 <div class="vote-count-strip">
                     <span class="vote-count-big" id="answerCountDisplay">—</span>
                     <div>
-                        <div class="vote-count-main">answers received</div>
+                        <div class="vote-count-main" id="answerCountLabel">answers received</div>
+                        <div class="vote-count-sub" id="vote1CountLabel" style="display:none">
+                            Vote 1 count: <span id="vote1CountDisplay">—</span>
+                        </div>
                         <div class="vote-count-sub" id="messDisplay" style="display:none">
                             <span id="messNum">0</span> messages sent
                         </div>
@@ -475,6 +478,8 @@ Peer Instruction Dashboard - {{ assignment_name }}
             }
         } else {
             counterel.innerHTML = `<p>Vote ${v} Answers: ${spec.count}</p>`;
+            const vote1Label = document.getElementById('vote1CountLabel');
+            if (vote1Label) vote1Label.style.display = '';
         }
 
         if (spec.mess_count > 0) {
@@ -577,5 +582,6 @@ Peer Instruction Dashboard - {{ assignment_name }}
         });
         syncActivityFlow();
     }
+
 </script>
 {% endblock %}

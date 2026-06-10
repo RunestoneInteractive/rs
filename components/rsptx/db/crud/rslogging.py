@@ -70,6 +70,34 @@ async def count_useinfo_for(
         return res.all()
 
 
+async def fetch_last_course_access(sid: str, start_date: datetime.datetime) -> dict:
+    """Return the most recent access time for each course a user has visited.
+
+    Looks at the ``useinfo`` table for rows belonging to ``sid`` since
+    ``start_date`` and returns, for each course, the latest timestamp seen.
+    Used to sort a user's course list so recently-used courses appear first.
+
+    :param sid: The student id (username) whose activity to inspect.
+    :type sid: str
+    :param start_date: Only consider activity at or after this time.
+    :type start_date: datetime.datetime
+    :return: A mapping of ``course_id`` (the course name) to the most recent
+             access ``timestamp``.
+    :rtype: dict
+    """
+    query = (
+        select(
+            Useinfo.course_id,
+            func.max(Useinfo.timestamp).label("last_acc"),
+        )
+        .where((Useinfo.sid == sid) & (Useinfo.timestamp > start_date))
+        .group_by(Useinfo.course_id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return {row.course_id: row.last_acc for row in res}
+
+
 async def fetch_poll_summary(div_id: str, course_name: str) -> List[tuple]:
     """
     Find the last answer for each student and then aggregate those answers to provide a summary of poll

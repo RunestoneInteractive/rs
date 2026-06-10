@@ -18,6 +18,7 @@ from rsptx.db.crud import (
     fetch_courses_by_institution,
     fetch_courses_for_user,
     fetch_instructor_courses,
+    fetch_last_course_access,
     fetch_library_books,
     fetch_user,
     fetch_user_by_email,
@@ -334,6 +335,12 @@ async def _build_my_courses_context(user):
     for ic in await fetch_instructor_courses(user.id):
         instructor_course_ids.add(ic.course)
 
+    # Most-recent access time per course in the last 30 days. Used both to flag
+    # recently-used courses (with a ⏱️ in the template) and to sort the lists.
+    access_dict = await fetch_last_course_access(
+        user.username, datetime.datetime.now() - timedelta(days=30)
+    )
+
     open_books = []
     class_courses = []
     for course in enrolled:
@@ -343,6 +350,7 @@ async def _build_my_courses_context(user):
             "course_name": course.course_name,
             "is_instructor": is_instructor,
             "is_active": is_active,
+            "recently_used": course.course_name in access_dict,
             "id": course.id,
         }
         if course.base_course == course.course_name:
@@ -350,9 +358,17 @@ async def _build_my_courses_context(user):
         else:
             class_courses.append(entry)
 
-    # Sort: active first, then alphabetical
+    # Sort by most-recently-accessed first, then alphabetically. Courses used
+    # in the last 30 days are ordered by recency (newest at the top); courses
+    # not accessed in that window fall back to alphabetical order. This mirrors
+    # the legacy web2py `courses` controller behavior.
+    long_ago = datetime.datetime(1970, 1, 1)
+
     def _sort_key(c):
-        return (0 if c["is_active"] else 1, c["course_name"].lower())
+        last_acc = access_dict.get(c["course_name"], long_ago)
+        # Negate the timestamp so more-recent access sorts first while we keep
+        # the overall (ascending) sort and break ties alphabetically.
+        return (-last_acc.timestamp(), c["course_name"].lower())
 
     open_books.sort(key=_sort_key)
     class_courses.sort(key=_sort_key)
