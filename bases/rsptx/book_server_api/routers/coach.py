@@ -105,6 +105,26 @@ def extract_parsons_code(html_block):
     return "\n".join(clean_lines)
 
 
+def _build_static_parsons_response(
+    parsonsexample_code, parsons_attrs, personalization_level
+):
+    """Return the ||split|| response string for a pre-defined (non-LLM) backup Parsons problem."""
+    parsons_html = f"""
+            <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
+            {parsonsexample_code}
+            </pre>
+            """
+    return (
+        parsonsexample_code
+        + "||split||"
+        + parsons_html
+        + "||split||"
+        + personalization_level
+        + "||split||"
+        + "example_solution"
+    )
+
+
 @router.get("/get_question_html")
 async def get_question_html(request: Request, div_id: str):
     """
@@ -146,13 +166,43 @@ async def get_question_html(request: Request, div_id: str):
 # @router.post("/ns/coach/parsons_scaffolding")
 @router.post("/parsons_scaffolding")
 async def parsons_scaffolding(request: Request, course: Optional[str]):
-    # Get `course` directly from the query string
     rslogger.warning(f"URL seen: {request.url}")
     rslogger.warning(f"Query parameters: {request.query_params}")
     course_name = request.query_params.get("course")
-    # Import api key and handles errors
-    api_token = None
     rslogger.warning(f"CodeTailor: Received request for course '{course_name}'")
+
+    # Parse body early so the fallback logic can access it before the API key check
+    data = await request.json()
+    language = data.get("language")
+    student_code = data.get("student_code")
+    problem_id = data.get("problem_id")
+    personalization_level = data.get("personalization_level")
+    parsonsexample = data.get("parsonsexample")
+    problem_description = data.get("problem_description")
+    internal_test_case = data.get("internal_test_case")
+    parsons_personalized = data.get("parsons_personalized", True)
+
+    adaptive_attr = 'data-adaptive="true"'
+    no_indent_attr = 'data-noindent="false"'
+    language_attr = f'data-language="{language}"'
+    # this scaffolding_attr is used in the parsons.js to determine whether the Parsons puzzle is created as automatic scaffolding puzzle or not
+    scaffolding_attr = 'data-scaffolding="true"'
+    parsons_attrs = (
+        f"{language_attr} {adaptive_attr} {no_indent_attr} {scaffolding_attr}".strip()
+    )
+
+    # extract the HTML of the example Parsons problem, otherwise it is "LLM-example"
+    parsonsexample_html = None
+    if parsonsexample != "LLM-example":
+        result = await get_question_html(request, div_id=parsonsexample)
+        parsonsexample_html = result["html"]
+        # Unable to test locally as it requires DB access
+        parsonsexample_code = extract_parsons_code(parsonsexample_html)
+    else:
+        parsonsexample_code = "LLM-example"
+
+    # Fetch API token
+    api_token = None
     try:
         if (
             course_name is None or course_name == "personalized_parsons"
@@ -185,6 +235,13 @@ async def parsons_scaffolding(request: Request, course: Optional[str]):
                 rslogger.error(
                     f"CodeTailor: No API token found for course '{course_name}'."
                 )
+                if parsonsexample != "LLM-example" and parsonsexample_html:
+                    rslogger.warning(
+                        f"CodeTailor: No API token for '{course_name}' — serving static backup Parsons."
+                    )
+                    return _build_static_parsons_response(
+                        parsonsexample_code, parsons_attrs, personalization_level
+                    )
                 return JSONResponse(
                     content={"error": "CodeTailor: No API token found for this course"},
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -206,49 +263,6 @@ async def parsons_scaffolding(request: Request, course: Optional[str]):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
     rslogger.warning("CodeTailor: api_token obtained successfully")
-    # Start to process the request from activecode.js
-    req_bytes = await request.body()
-    _ = req_bytes.decode("utf-8")
-    data = await request.json()
-
-    language = data.get("language")  # Capture the question language from the front end
-    student_code = data.get(
-        "student_code"
-    )  # Capture the student code from the front end
-    problem_id = data.get("problem_id")  # Capture the problem name from the front end
-    personalization_level = data.get(
-        "personalization_level"
-    )  # Capture the personalization level set by the instructor from the front end
-    parsonsexample = data.get(
-        "parsonsexample"
-    )  # Capture whether the scaffolding puzzle is a pre-defined example or LLM-example
-    problem_description = data.get(
-        "problem_description"
-    )  # Capture the problem description from the front end
-    internal_test_case = data.get(
-        "internal_test_case"
-    )  # Capture the internal test case from the front end
-    parsons_personalized = data.get("parsons_personalized", True)
-    print("start_to: get_parsons_help", api_token, language, personalization_level)
-
-    adaptive_attr = 'data-adaptive="true"'
-    no_indent_attr = 'data-noindent="false"'
-    language_attr = f'data-language="{language}"'
-    # this scaffolding_attr is used in the parsons.js to determine whether the Parsons puzzle is created as automatic scaffolding puzzle or not
-    scaffolding_attr = 'data-scaffolding="true"'
-    parsons_attrs = (
-        f"{language_attr} {adaptive_attr} {no_indent_attr} {scaffolding_attr}".strip()
-    )
-
-    # extract the HTML of the example Parsons problem, otherwise it is "LLM-example"
-    parsonsexample_html = None
-    if parsonsexample != "LLM-example":
-        result = await get_question_html(request, div_id=parsonsexample)
-        parsonsexample_html = result["html"]
-        # Unable to test locally as it requires DB access
-        parsonsexample_code = extract_parsons_code(parsonsexample_html)
-    else:
-        parsonsexample_code = "LLM-example"
 
     def parsons_help(
         language,
@@ -274,19 +288,8 @@ async def parsons_scaffolding(request: Request, course: Optional[str]):
     if not parsons_personalized:
         # Return example without CodeTailor personalization
         if parsonsexample != "LLM-example" and parsonsexample_html:
-            parsons_html = f"""
-            <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
-            {parsonsexample_code}
-            </pre>
-            """
-            return (
-                parsonsexample_code
-                + "||split||"
-                + parsons_html
-                + "||split||"
-                + personalization_level
-                + "||split||"
-                + "example_solution"
+            return _build_static_parsons_response(
+                parsonsexample_code, parsons_attrs, personalization_level
             )
         else:
             from .personalized_parsons.get_personalized_solution import (
