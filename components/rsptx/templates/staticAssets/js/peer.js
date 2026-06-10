@@ -333,27 +333,7 @@ function connect(event) {
                 case "enableFaceChat":
                     console.log("got enableFaceChat message");
                     console.log(`group = ${mess.group}`);
-                    let groupList = [];
-                    if (mess.group) {
-                        groupList = mess.group;
-                    }
                     messarea = document.getElementById("imessage");
-                    // Prefer previously-selected partners saved in localStorage.peerList
-                    let peerListCsv = localStorage.getItem("peerList");
-                    let displayPeers = [];
-                    if (peerListCsv) {
-                        let sids = peerListCsv.split(",").map(s => s.trim()).filter(Boolean);
-                        let sel = document.getElementById("assignment_group");
-                        for (let sid of sids) {
-                            let name = sid;
-                            if (sel) {
-                                let opt = sel.querySelector(`option[value="${sid}"]`);
-                                if (opt) name = opt.textContent || opt.innerText || sid;
-                            }
-                            displayPeers.push(name);
-                        }
-                    }
-
                     messarea.innerHTML = `<h3>Current Verbal Discussion Group</h3><p>Please have a verbal discussion with your group, then select who you talked to below.</p>`;
 
                     let facechat = document.getElementById("group_select_panel");
