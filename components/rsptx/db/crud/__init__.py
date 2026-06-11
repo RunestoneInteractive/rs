@@ -116,6 +116,18 @@ from .library import (
     update_library_book,
 )
 
+from .telemetry import (
+    bucket_count,
+    build_checkin_payload,
+    count_courses,
+    count_enrolled_students,
+    gather_served_books,
+    get_last_sent,
+    get_or_create_instance_id,
+    set_last_sent,
+    upsert_installation,
+)
+
 # import all functions from .lti by name
 from .lti import (
     create_lti_course,
@@ -284,6 +296,20 @@ __all__ += [
     "get_courses_per_basecourse",
     "get_students_per_basecourse",
     "update_library_book",
+]
+
+# from .telemetry
+
+__all__ += [
+    "bucket_count",
+    "build_checkin_payload",
+    "count_courses",
+    "count_enrolled_students",
+    "gather_served_books",
+    "get_last_sent",
+    "get_or_create_instance_id",
+    "set_last_sent",
+    "upsert_installation",
 ]
 
 # from .lti

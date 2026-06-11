@@ -135,6 +135,11 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
       - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
+      # Anonymous, opt-out usage telemetry (see sample.env / README)
+      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+      - TELEMETRY_URL=${TELEMETRY_URL:-https://runestone.academy/admin/telemetry/checkin}
+      - TELEMETRY_REGION=${TELEMETRY_REGION:-}
+      - TELEMETRY_INSTITUTION=${TELEMETRY_INSTITUTION:-}
 
     depends_on:
       redis:
@@ -349,6 +354,11 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-runestone}
+      # Anonymous, opt-out usage telemetry (see sample.env / README)
+      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+      - TELEMETRY_URL=${TELEMETRY_URL:-https://runestone.academy/admin/telemetry/checkin}
+      - TELEMETRY_REGION=${TELEMETRY_REGION:-}
+      - TELEMETRY_INSTITUTION=${TELEMETRY_INSTITUTION:-}
 
   author:
     profiles: [ "author" ]
