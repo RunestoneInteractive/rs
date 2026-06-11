@@ -1,5 +1,122 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-04-02 → 2026-06-02)
+
+Coverage: changes merged/landed after the previous changelog update commit on **2026-04-02**, through **2026-06-02**.
+
+### Highlights
+
+- **Peer Instruction overhaul (major):** migrated all sync PI routes to FastAPI; added async PI student page, per-question toggle for async/LLM mode, analogies async mode, live percent-correct polling for instructors, and a `toggle_async` endpoint wired to the instructor dashboard. Multiple UI/UX polish passes landed, including async PI vote-2 feedback, step banner clarity, and a corrected async-mode DB migration (`async_mode` column replaces `use_llm`). Peer grading logic brought in line with the web2py version (PR #1209, PR #1226).
+- **Analytics & reporting (new):** added a Chapter Summary Report with student drilldown, an Assignment Summary Report, and a new Activity Report menu entry — all under the admin analytics server. Fixed inflated click/attempt counts in the student drilldown; fixed routing for `/admin/analytics`; fixed missing `course_list` and sample-size handling.
+- **Gradebook:** restored old gradebook functionality (84cc2edc); landed new interface for reviewing and grading student work (issue-998 / PR #1218).
+- **CodeTailor / AI features:** added per-exercise toggle to disable CodeTailor personalization (PR #1213); improved dropdown labels for clarity (PR #1208); added a "principles" section to the coach; rendered StudyClues LLM responses as Markdown via `marked`.
+- **Authentication migration:** added new FastAPI routes to begin moving authentication away from web2py (PR #1222).
+- **Assignment Builder:** added Python 3 option to `LanguageOptions` enum; added a preview button for student assignment view in `AssignmentEdit`; refactored ActiveCode line decorations to use CodeMirror decoration functions (PR #1190).
+- **Interactives cleanup + TypeScript:** restored `tabbedstuff` component (PR #1224); removed deprecated Runestone interactive components and Python Sphinx extensions; allowed interactive modules to be converted to TypeScript; added HTML ActiveCode unit tests.
+- **rsmanage:** restored `rsmanage` as a standalone command (no Docker required); added migrations to the rsmanage Docker image.
+- **Releases:** versions **8.6.0**, **8.7.0**, and **8.7.1** shipped during this period, along with runestone dependency bumps to 7.13.3, 7.13.4, 7.13.5, 8.1.0, and 8.1.1.
+- **CI / build:** updated test runner and CI to Python 3.13; fixed stale venv cache; fixed stale lock-file issues; updated cryptography/jwcrypto library across the board; removed remaining `pkg_resources` references.
+- **Docs:** documented `parsonsPersonalized` field in `question_json_schema.rst`; updated README; added Virginia Tech course.
+
+### Commit notes (for reference)
+
+- 23c95ad9 Update PreTeXt
+- 84cc2edc Restore old gradebook functionality
+- 516d61970 Merge pull request #1226 from sethbern/async-pi-feedback
+- 7ddf167a0 fix async PI vote 2 feedback and UI polish
+- 98601d7b Document the notify component
+- 26217a19 Add pushover notifications
+- a5c615f0 Fix wording on old courses
+- 1e613fe9 New: Add migrations to rsmanage image
+- a097f621 add migration for async_mode
+- 4e3862731 update version to 8.7.1
+- cda3266d Merge pull request #1217 from xinyinghou/rs-debug
+- c1468fc3 Merge pull request #1209 from sethbern/peer-fastapi
+- f6a12c6c update question_json_schema.rst
+- 74cc2dd7 Restore rsmanage as a command without needing docker
+- 1996fde4 Merge pull request #1213 from aspadiyath/feature/codetailor-example-toggle
+- f0d0141b Update to python3.13 for test runner
+- 4760d169 Document parsonsPersonalized field in question_json_schema.rst
+- 32b5197a update CI to Python 3.13 to match pyproject.toml
+- 778668182 fix stale venv cache
+- 3cfd8df1 fix migration to add async_mode column; show student justification for first message in async PI
+- 83d92767 fix peer grading to be in line with web2py version
+- aa84fee7 fix vote details in instructor interface
+- 26d14b92 update sync PI instructor view
+- db1e2a0b add analogies async mode for peer instruction LLM
+- ab21b878 improve asynchronous PI ui/ux
+- cf5f1625 Add async PI student page
+- 1aa623902 Migrate sync PI routes to FastAPI, fix nav links, and add missing endpoints
+- 2e606d5e Add peer instructor extra page with live percent-correct polling
+- 2244a88f Add toggle_async endpoint and wire it to the instructor dashboard
+- 5ad11eeb Remove assignment to unused variable
+- 3b91069f update runestone to version 8.1.1
+- 42e23f1b Merge pull request #1224 from ascholerChemeketa/restore-tabbed-stuff
+- cdd290d0 Restore tabbedstuff to interactives
+- 34ec43ac update version to 8.7.0
+- 0b075d98 update runestone to version 8.1.0
+- 5b7d316e Merge pull request #1222 from morozov-av/i-1188
+- e1299b20 Merge pull request #1223 from morozov-av/f-1215
+- 7e47abac Add new routes to move authentication to FastAPI
+- f4879572 Add preview button for student assignment in AssignmentEdit
+- 089256fc Add Python 3 option to LanguageOptions enum
+- 4b829bd5 Fix reference to micro-parsons code
+- 2a9e9880 Add unit tests to html activecode
+- 2477459d Merge pull request #1218 from morozov-av/f-998-final (grading interface)
+- d0c0da1f Don't say regarding section if there isn't one
+- 92971f36 Allow interactive modules to be converted to TypeScript
+- 7e11a445 feature-998 Design new interface for reviewing and grading student work
+- f44bd90a Fix truthy string returns masking failures in unittest evaluation
+- 2e05b489 Merge branch 'principles'
+- 7ed7b1ad Feature: add per-exercise toggle to disable CodeTailor personalization
+- 3c963bab Remove runestone as a dev dependency
+- 20e52fd2 Fix wording about dependence
+- aa518802 Fix test problem with lp_component
+- a84113ae Merge branch 'component_cleanup'
+- 77ee3b17 Merge pull request #1208 from aspadiyath/improve-codetailor-labels
+- d2100447 Improve CodeTailor dropdown labels for clarity
+- f6694cf2 Add principles section
+- 2bb10116 Log intermediate connections
+- 810a292e ignore justfile for this project
+- ed1e5d0c Update README
+- 6d8c7a1b remove deprecated runestone interactive components
+- c124431e Remove the python sphinx extensions
+- 442f5006 remove more python code
+- 35c0298e Runestone release update
+- 408f0523 render StudyClues LLM responses as markdown using marked
+- 2d11daef update runestone to version 7.13.5
+- c9cec5e4 debug string reprs for better query checks
+- aaa40e98 Avoid race condition with multiple calls to buildProg
+- 9d3007ce Do not include PI assignments in list
+- 1dea1290 Update cryptology library across the board
+- 024103000 update runestone to version 7.13.4
+- e1ede187 Fix dependency update for jwcrypto / cryptography
+- 689a9a04 New: pass assignment id to assignment overview
+- e1e3fcb6 update version to 8.6.0
+- c87df328 Add Assignment Summary Report
+- e7e81428 update runestone to version 7.13.3
+- fa035b7a Add Virginia Tech course
+- 83cda9a6 Merge branch 'claude/frosty-newton'
+- 2238c64f Add new activity report to the menu
+- 30f99ea2 Fix inflated click/attempt counts in student drilldown
+- cc6602b7 fix routing for admin/analytics
+- d2a55717 Add student drilldown to chapter summary report
+- 0f7c4957 Add chapter summary report (subchapoverview) to admin analytics server
+- 79f64a75 Fix: restore flag to prevent every keystroke from logging
+- 394c0f2f Fix: missing course_list, respect entered sample size
+- b78466f7 Remove references to pkg_resources
+- 3d57405f Activecode: Refactor line decorations to use CodeMirror decoration functions
+- 2d1f4f50 fix security check and question_json bug in async mode
+- 768a30f0 Fix: base course mismatch for studyclues
+- eb8fb7df Add course_attrs to eBookConfig
+- 5cdee00a update phrasing of step 2 of async llm
+- 02f340dd add course attribute for async LLM modes
+- 37deef11 update model to add migration for use_llm column in assignment_questions
+- b64345fa Merge pull request #1173 from sethbern/async-toggle
+- e3564f2f Merge pull request #1190 from ascholerChemeketa/activecode-lock-display-improvement
+
+---
+
 ## Updates since last changelog entry (2026-03-28 → 2026-04-02)
 
 Coverage: changes merged/landed after the previous changelog update commit on **2026-03-28**, through **2026-04-02**.
