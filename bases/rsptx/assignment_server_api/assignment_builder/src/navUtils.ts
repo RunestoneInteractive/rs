@@ -91,12 +91,12 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
         },
         {
           label: "Peer Instruction (Instructor)",
-          command: () => navigateToPath("/runestone/peer/instructor.html"),
+          command: () => navigateToPath("/assignment/peer/instructor"),
           visible: isInstructor
         },
         {
           label: "Peer Instruction (Student)",
-          command: () => navigateToPath("/runestone/peer/student.html")
+          command: () => navigateToPath("/assignment/peer/student")
         },
         {
           separator: true
