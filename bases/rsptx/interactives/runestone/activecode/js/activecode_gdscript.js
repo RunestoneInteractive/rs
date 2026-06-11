@@ -220,6 +220,7 @@ export default class GodotActiveCode extends ActiveCode {
             pck:   this.pckUrl,
             scene: this.sceneId,
             code:  studentCode,
+            origin: window.location.origin,
         };
 
         if (this.shellReady) {
