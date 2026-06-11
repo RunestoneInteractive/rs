@@ -451,6 +451,7 @@ services:
       - SERVER_CONFIG=${SERVER_CONFIG}
       - RUNESTONE_PATH=/usr/src/app
       - RUNESTONE_HOST=${RUNESTONE_HOST}
+      - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
       - JWT_SECRET=${JWT_SECRET}
       # - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
       - REDIS_URI=redis://${REDIS_HOST}:6379/0

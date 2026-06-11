@@ -43,7 +43,7 @@ textbook
     </div>
     {% endif %}
     <p><b>School:</b> {{institution}}</p>
-    <p><b>Student:</b> {{user.first_name}} {{user.last_name}} (<a href="/runestone/default/user/logout">Not you?</a>)</p>
+    <p><b>Student:</b> {{user.first_name}} {{user.last_name}} (<a href="/admin/auth/logout">Not you?</a>)</p>
     <h2>Instructors</h2>
     <ul>
       {% for instructor in instructor_list: %}

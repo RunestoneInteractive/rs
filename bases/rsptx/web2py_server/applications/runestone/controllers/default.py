@@ -218,7 +218,7 @@ def index():
                 redirect("https://author.runestone.academy/author")
             redirect("https://landing.runestone.academy")
         else:
-            redirect(URL("default", "user", args="login"))
+            redirect("/admin/auth/login")
 
     course = (
         db(db.courses.id == auth.user.course_id)
@@ -230,8 +230,7 @@ def index():
         # if login was handled by Janrain, user didn't have a chance to choose the course_id;
         # redirect them to the profile page to choose one
         redirect(
-            "/%s/default/user/profile?_next=/%s/default/index"
-            % (request.application, request.application)
+            "/admin/auth/profile"
         )
     else:
         # At this point the user has logged in
@@ -468,8 +467,7 @@ def coursechooser():
         redirect("/ns/course/index")
     else:
         redirect(
-            "/%s/default/user/profile?_next=/%s/default/index"
-            % (request.application, request.application)
+            "/admin/auth/profile"
         )
 
 

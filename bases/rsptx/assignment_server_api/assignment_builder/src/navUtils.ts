@@ -103,7 +103,7 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
         },
         {
           label: "Change Course",
-          command: () => navigateToPath("/runestone/default/courses")
+          command: () => navigateToPath("/admin/auth/my_courses")
         },
         {
           separator: true
@@ -126,7 +126,7 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
         },
         {
           label: "Edit Profile",
-          command: () => navigateToPath("/runestone/default/user/profile")
+          command: () => navigateToPath("/admin/auth/profile")
         },
         {
           label: "Change Password",
@@ -134,7 +134,7 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
         },
         {
           label: "Logout",
-          command: () => navigateToPath("/runestone/default/user/logout")
+          command: () => navigateToPath("/admin/auth/logout")
         }
       ]
     },

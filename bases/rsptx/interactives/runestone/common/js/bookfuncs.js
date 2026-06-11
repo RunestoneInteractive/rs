@@ -958,9 +958,7 @@ function setupNavbarLoggedIn() {
     if (registerLink) registerLink.style.display = "none";
     document.querySelectorAll("li.loginout").forEach((el) => {
         el.innerHTML =
-            '<a href="' +
-            eBookConfig.app +
-            '/default/user/logout">Log Out</a>';
+            '<a href="/admin/auth/logout">Log Out</a>';
     });
 }
 document.addEventListener("runestone:login", setupNavbarLoggedIn);

@@ -384,11 +384,11 @@ async def doAssignment(
         # if student redirects to peer assignment
         if not user_is_instructor:
             return RedirectResponse(
-                f"/runestone/peer/peer_question?assignment_id={assignment_id}"
+                f"/assignment/peer/student/question?assignment_id={assignment_id}"
             )
         else:
             return RedirectResponse(
-                f"/runestone/peer/dashboard?assignment_id={assignment_id}"
+                f"/assignment/peer/instructor/dashboard?assignment_id={assignment_id}"
             )
 
     deadline_exception = await check_for_exceptions(user, assignment_id)
