@@ -271,7 +271,7 @@ services:
         required: false
 
   nginx:
-
+    profiles: ['nginx']
     # Note we use context: ./ here so that the Dockerfile can copy from the components folder
     build:
       context: ./
@@ -290,6 +290,59 @@ services:
     #- 443:443
     volumes:
       - ${BOOK_PATH}:/usr/books
+    depends_on:
+      runestone:
+        condition: service_started
+        required: true
+      book:
+        condition: service_started
+        required: true
+      assignment:
+        condition: service_started
+        required: true
+      admin:
+        condition: service_started
+        required: false
+      author:
+        condition: service_started
+        required: false
+
+  # Caddy is a drop-in alternative to the nginx service above. It performs the
+  # exact same routing (see projects/caddy/Caddyfile) but gives you HTTPS with
+  # no hassle: automatic Let's Encrypt for a real domain, or a locally-trusted
+  # cert for dev. Because it also wants ports 80/443 it lives in its own
+  # "caddy" profile so it never competes with nginx - run ONE of them, e.g.
+  #   COMPOSE_PROFILES=basic,caddy docker compose up
+  # For local HTTPS set CADDY_SITE_ADDRESS=https://localhost in your .env;
+  # for a public site set CADDY_SITE_ADDRESS=https://your.domain.
+  caddy:
+  #  profiles: [ "caddy" ]
+    # Note we use context: ./ here so that the Dockerfile can copy from the components folder
+    build:
+      context: ./
+      dockerfile: projects/caddy/Dockerfile
+    image: ghcr.io/runestoneinteractive/rs-caddy
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: always
+    logging:
+      <<: *json-file-logging
+      options:
+        tag: runestone.caddy
+    environment:
+      # Unset -> listen on :80 only (parity with nginx).
+      # https://localhost -> local dev cert from Caddy's internal CA.
+      # https://your.domain -> automatic Let's Encrypt certificate.
+      - CADDY_SITE_ADDRESS=${CADDY_SITE_ADDRESS:-:80}
+    ports:
+      # ports are specified host:container
+      - 80:80
+      - 443:443
+    volumes:
+      - ${BOOK_PATH}:/usr/books
+      # Persist issued certificates and Caddy state across restarts.
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       runestone:
         condition: service_started
@@ -478,3 +531,9 @@ services:
       redis:
         condition: service_started
         required: true
+
+# Named volumes used by the optional caddy reverse-proxy service to persist
+# TLS certificates and Caddy's own state between restarts.
+volumes:
+  caddy_data:
+  caddy_config:
