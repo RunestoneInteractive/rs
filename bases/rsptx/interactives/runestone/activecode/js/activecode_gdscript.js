@@ -18,7 +18,7 @@ import { ActiveCode } from "./activecode.js";
 export default class GodotActiveCode extends ActiveCode {
     constructor(opts) {
         super(opts);
-        console.log("GodotActiveCode constructor called for", opts.orig.id);
+        //console.log("GodotActiveCode constructor called for", opts.orig.id);
     
         // Resolve the base URL for the Godot shell export.
         // data-wasm on the textarea holds the path to the shell directory,
@@ -55,7 +55,7 @@ export default class GodotActiveCode extends ActiveCode {
                 }
             } else {
                 const currentDir = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-                this.pckUrl = `${currentDir}/${this.pckUrl}`;
+                this.pckUrl = `${currentDir}${this.pckUrl}`;
             }
             
         }
@@ -69,7 +69,7 @@ export default class GodotActiveCode extends ActiveCode {
         this.unit_results = null;
 
         this._createIframe();
-        console.log("GodotActiveCode calling _listenForMessages");
+        //console.log("GodotActiveCode calling _listenForMessages");
         this._listenForMessages();
     }
 
@@ -101,8 +101,8 @@ export default class GodotActiveCode extends ActiveCode {
             var data = event.data;
             
             if (!data || data.source !== "godot-activecode") return;
-            console.log("activecode_gdscript received message:", data);
-            console.log("gdscript handler processing:", data.type);
+            //console.log("activecode_gdscript received message:", data);
+            //console.log("gdscript handler processing:", data.type);
         
             switch (data.type) {
                 case "ready":
@@ -215,11 +215,12 @@ export default class GodotActiveCode extends ActiveCode {
 
         // Get the student's code from the CodeMirror editor.
         var studentCode = this.editor.getValue();
-
+        //console.log("GodotActiveCode: this suffix is:", this.suffix);
         var payload = {
             pck:   this.pckUrl,
             scene: this.sceneId,
             code:  studentCode,
+            test:  this.suffix,
             origin: window.location.origin,
         };
 
