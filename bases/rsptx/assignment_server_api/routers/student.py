@@ -192,9 +192,12 @@ def get_studyclues_book_id(course: CoursesValidator) -> str:
         "csawesome2": 28,
         "httlacs": 29,
         "py4e-int": 30,
-        "PTXSB": 28,
         "cppds2": 35,
         "thinkcspy": 36,
+        "dmoi-4": 41,
+        "ac-single": 42,
+        "py4eint": 43,
+        "foppff": 44,
         # Add more mappings as needed
     }
     return course_to_book_id.get(course.base_course, 28)
