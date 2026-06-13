@@ -7,13 +7,12 @@ caller's IP address -- the only location kept is the self-declared ``region``
 in the payload.
 """
 
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from rsptx.db.crud import upsert_installation
-from rsptx.logging import rslogger
 
 router = APIRouter(
     prefix="/telemetry",
