@@ -1,7 +1,16 @@
+# Build a Caddy binary that includes the transform-encoder plugin, which lets us
+# emit access logs in the exact single-line format the old nginx config used
+# (see the `log` block in Caddyfile). Stock Caddy only ships json/console.
+FROM caddy:2-builder-alpine AS builder
+RUN xcaddy build --with github.com/caddyserver/transform-encoder
+
 FROM caddy:2-alpine
 
 # The context for this Dockerfile is the root of the runestone repo
 LABEL org.opencontainers.image.source=https://github.com/RunestoneInteractive/rs
+
+# Use the custom-built binary (with transform-encoder) instead of the stock one.
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 
 COPY projects/caddy/Caddyfile /etc/caddy/Caddyfile
 

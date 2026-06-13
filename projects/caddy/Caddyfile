@@ -22,10 +22,18 @@
 	# gzip_static on; -> serve precompressed files and compress on the fly.
 	encode gzip zstd
 
-	# Custom-ish access log to stdout so `docker logs` shows requests.
+	# Access log to stdout so `docker logs` shows requests. The transform
+	# encoder (built into the image via xcaddy, see Dockerfile) reproduces the
+	# exact single-line format the old nginx config used:
+	#   $remote_addr - [$time_local] Request: "$request" Status: $status
+	#   Bytes: $body_bytes_sent RequestTime: $request_time
+	#   Referrer: "$http_referer" Agent: "$http_user_agent"
 	log {
 		output stdout
-		format console
+		format transform `{request>remote_ip} - [{ts}] Request: "{request>method} {request>uri} {request>proto}" Status: {status} Bytes: {size} RequestTime: {duration} Referrer: "{request>headers>Referer>[0]}" Agent: "{request>headers>User-Agent>[0]}"` {
+			time_format "02/Jan/2006:15:04:05 -0700"
+			time_local
+		}
 	}
 
 	# A `route` block runs its directives top-to-bottom in the order written,
