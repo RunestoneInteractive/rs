@@ -1,89 +1,107 @@
-[tool.poetry]
+[project]
 name = "w2p_login_assign_grade"
 version = "7.0.0"
 description = ""
-authors = ['Brad Miller <bonelake@mac.com>']
-license = ""
-
-packages = [
-    { include = "rsptx/web2py_server", from = "../../bases" },
-    { include = "rsptx/cl_utils", from = "../../components" },
-    { include = "rsptx/logging", from = "../../components" },
-    { include = "rsptx/db", from = "../../components" },
-    { include = "rsptx/validation", from = "../../components" },
-    { include = "rsptx/configuration", from = "../../components" },
-    { include = "rsptx/response_helpers", from = "../../components" },
-    { include = "rsptx/exceptions", from = "../../components" },
-    { include = "rsptx/lti1p3", from = "../../components" },
-    { include = "rsptx/data_types", from = "../../components" }
+authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
+requires-python = ">=3.10,<4"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "aiohttp>=3.11.11,<4",
+    "altair>=4.0.0,<5",
+    "beautifulsoup4>=4.0.0,<5",
+    "bleach> 3.1.1",
+    "boto3>=1.26.30,<2",
+    "cryptography>=46.0.0,<47",
+    "cssselect>= 1.0",
+    "fastapi>=0.103.0,<0.104",
+    "fastapi_login>=1.10.3,<2",
+    "diff-match-patch>= 20110725.1",
+    "lxml>= 4.6.2",
+    "jwcrypto>=1.5.6,<2",
+    "numpy>=1.0.0,<2",
+    "oauth2>=1.9",
+    "pandas>=1.0.0,<2",
+    "pathlib2>=2.0.0,<3",
+    "Paver>= 1.2.4",
+    "pgcli>=3.0.0,<4",
+    "psycopg2-binary>=2.0.0,<3",
+    "pyjwt>=2.10.1,<3",
+    "pylint>= 1.2.1",
+    "python-dateutil>= 2.4.2",
+    "pytz>= 2016.6.1",
+    "requests>= 2.10.0",
+    "runestone>= 7.1.0",
+    "six>= 1.10.0",
+    "Sphinx> 4.1.0",
+    "sphinxcontrib-paverutils>= 1.17",
+    "SQLAlchemy>= 1.0.14",
+    "stripe>=2.0.0,<3",
+    "pycryptodome>=3.18.0,<4",
+    "jupyterlite-sphinx>=0.8.0,<0.9",
+    "urllib3-secure-extra>=0.1.0,<0.2",
+    "redis>=4.3.0,<5",
+    "gunicorn>=21.0.0,<22",
+    "aiosqlite>=0.21.0,<0.22",
 ]
 
-exclude = ["**/errors/*", "**/tests", "**/__pycache__", "**/docker", "**/jobeinabox"]
-
-[tool.poetry.dependencies]
-python = "^3.10"
-
-# This is actually an rsmanage dependency. It's here so that rsmanage can be installed without installing this, which requires Postgres (available only in the container).
-aiohttp = "^3.11.11"
-altair = "^4.0.0"
-beautifulsoup4 = "^4.0.0"
-bleach = "> 3.1.1"
-boto3 = "^1.26.30"
-cryptography = "^46.0.0"
-cssselect = ">= 1.0"
-fastapi = "^0.103.0"
-fastapi_login = "^1.10.3"
-diff-match-patch = ">= 20110725.1"
-lxml = ">= 4.6.2"
-jwcrypto = "^1.5.6"
-numpy = "^1.0.0"
-oauth2 = ">=1.9"
-pandas = "^1.0.0"
-pathlib2 = "^2.0.0"
-Paver = ">= 1.2.4"
-pgcli = "^3.0.0"
-psycopg2-binary = "^2.0.0"
-pyjwt = "^2.10.1"
-pylint = ">= 1.2.1"
-python-dateutil = ">= 2.4.2"
-pytz = ">= 2016.6.1"
-requests = ">= 2.10.0"
-#rsmanage = { path = "../../bases/rsptx/web2py_server/applications/runestone/rsmanage", develop = true }
-runestone = ">= 7.1.0"
-six = ">= 1.10.0"
-Sphinx = "> 4.1.0"
-sphinxcontrib-paverutils = ">= 1.17"
-SQLAlchemy = ">= 1.0.14"
-stripe = "^2.0.0"
-pycryptodome = "^3.18.0"
-jupyterlite-sphinx = "^0.8.0"
-urllib3-secure-extra = "^0.1.0"
-redis = "^4.3.0"
-gunicorn = "^21.0.0"
-aiosqlite = "^0.21.0"
-
-
-# These are for testing and development.
-[tool.poetry.group.dev.dependencies]
-black = "~= 22.0"
-CodeChat = "1.9.3"
-contextlib2 = "^0.6.0"
-coverage = "^6.0.0"
-coveralls = "^3.0.0"
-flake8 = "^4.0.0"
-html5validator = "^0.3.0"
-locust = "^1.0.0"
-mock = "^4.0.0"
-# For building the docs with Sphinx.
-myst-parser = "^1.0.0"
-# For the plugin.
-polling2 = "^0.5.0"
-pytest = "^7.0.0"
-pyvirtualdisplay = "^3.0.0"
-pywin32 = { version = ">= 301", markers = "sys.platform == 'win32'" }
-selenium = "^3.0.0"
+[dependency-groups]
+dev = [
+    "black~= 22.0",
+    "CodeChat==1.9.3",
+    "contextlib2>=0.6.0,<0.7",
+    "coverage>=6.0.0,<7",
+    "coveralls>=3.0.0,<4",
+    "flake8>=4.0.0,<5",
+    "html5validator>=0.3.0,<0.4",
+    "locust>=1.0.0,<2",
+    "mock>=4.0.0,<5",
+    "myst-parser>=1.0.0,<2",
+    "polling2>=0.5.0,<0.6",
+    "pytest>=7.0.0,<8",
+    "pyvirtualdisplay>=3.0.0,<4",
+    "pywin32>= 301 ; sys_platform == 'win32'",
+    "selenium>=3.0.0,<4",
+]
 
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling", "hatch-polylith-bricks"]
+build-backend = "hatchling.build"
+
+# Bricks are force-included at build time by the polylith-bricks hook, so
+# there is no package dir named after the project for hatchling's default
+# file selection -- hence bypass-selection.
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+# Mirrors the old poetry `exclude`. The polylith-bricks hook matches with
+# Python fnmatch against directory paths, so use the dir form ("**/x"),
+# not poetry's "**/x/*".
+exclude = [
+    "**/errors",
+    "**/tests",
+    "**/__pycache__",
+    "**/docker",
+    "**/jobeinabox",
+]
+
+[tool.hatch.build.targets.wheel.hooks.polylith-bricks]
+
+# Polylith bricks to bundle into the wheel (replaces poetry's `packages`).
+[tool.polylith.bricks]
+"../../bases/rsptx/web2py_server" = "rsptx/web2py_server"
+"../../components/rsptx/cl_utils" = "rsptx/cl_utils"
+"../../components/rsptx/logging" = "rsptx/logging"
+"../../components/rsptx/db" = "rsptx/db"
+"../../components/rsptx/validation" = "rsptx/validation"
+"../../components/rsptx/configuration" = "rsptx/configuration"
+"../../components/rsptx/response_helpers" = "rsptx/response_helpers"
+"../../components/rsptx/exceptions" = "rsptx/exceptions"
+"../../components/rsptx/lti1p3" = "rsptx/lti1p3"
+"../../components/rsptx/data_types" = "rsptx/data_types"
