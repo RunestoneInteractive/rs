@@ -208,7 +208,7 @@ class OIDCLogin(t.Generic[REQ, TCONF, SES, COOK, RED]):
         main_msg: t.Optional[str] = None,
         click_msg: t.Optional[str] = None,
         loading_msg: t.Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> "OIDCLogin":
         # pylint: disable=unused-argument
         self._cookies_check = True
