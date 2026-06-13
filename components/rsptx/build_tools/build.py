@@ -437,7 +437,12 @@ def wheel(config):
                                     f.write(res.stderr.decode(stdout_err_encoding))
                                     f.write(res.stdout.decode(stdout_err_encoding))
                             sys.exit(1)
-                    if os.path.isfile("pyproject.toml"):
+                    if proj == "interactives":
+                        # interactives ships a JS release only (built by its
+                        # pre-build step above); no Python wheel is produced.
+                        status[proj] = "[blue]JS only[/blue]"
+                        lt.update(generate_wheel_table(status))
+                    elif os.path.isfile("pyproject.toml"):
                         status[proj] = "[grey62]building...[/grey62]"
                         lt.update(generate_wheel_table(status))
                         with open("pyproject.toml") as f:

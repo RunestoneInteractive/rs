@@ -1,14 +1,17 @@
-# ********************************
-# |docname| - Poetry configuration
-# ********************************
-#
-# See https://python-poetry.org/docs/dependency-specification/ to get an understanding of
-# how poetry specifies dependencies.
-#
-# Project metadata
-# ================
-[tool.poetry]
-authors = ["Brad Miller <bonelake@mac.com>"]
+[project]
+name = "runestone"
+version = "8.1.2"
+description = "Sphinx extensions for writing interactive documents."
+authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
+requires-python = ">=3.10.0,<4"
+readme = "README.rst"
+keywords = [
+    "runestone",
+    "sphinx",
+    "ebook",
+    "oer",
+    "education",
+]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
@@ -26,151 +29,83 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Topic :: Education",
     "Topic :: Text Processing :: Markup",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
-description = "Sphinx extensions for writing interactive documents."
-documentation = "https://runestone-monorepo.readthedocs.io/en/latest/index.html"
-keywords = ["runestone", "sphinx", "ebook", "oer", "education"]
-license = "GPL"
-name = "runestone"
-readme = "README.rst"
-repository = "https://github.com/RunestoneInteractive/rs"
-version = "8.1.2"
-
-# See https://python-poetry.org/docs/pyproject/#include-and-exclude.
-include = [
-    { path = "README.md", format=["sdist", "wheel"]},
-    # Webpacked output
-    { path = "runestone/dist/*", format=["sdist", "wheel"]},
-    #../../bases/rsptx/interactives/ Some of the Runestone Components doesn't use webpack; they still need raw JS/CSS available. See ``runestone_static_dirs()``
-    { path = "runestone/animation/js/*", format=["sdist", "wheel"]},
-    { path = "runestone/codelens/js/*", format=["sdist", "wheel"]},
-    { path = "runestone/accessibility/css/*", format=["sdist", "wheel"]},
-    # We need to include the templates used by Sphinx
-    { path = "runestone/common/project_template/**/*", format=["sdist", "wheel"]},
-]
-
-# The includes above override these.
-exclude = [
-    # Images/media.
-    "**/*.cur",
-    "**/*.gif",
-    "**/*.jpg",
-    "**/*.mp3",
-    "**/*.ogg",
-    "**/*.png",
-    "**/*.svg",
-    "**/*.wav",
-    # Web files.
-    "**/*.css",
-    "**/*.html",
-    "**/*.js",
-    # Docs.
-    "**/*.md",
-    "**/*.rst",
-    # Skulpt files.
-    "runestone/activecode/js/skulpt.min.js.*",
-    # All test files.
-    "**/test/**/*",
-    "node_modules",
-    "./jsdist",
-    "./dist",
-    "**/.ruff_cache",
-    "**/.DS_Store",
+dependencies = [
+    "cogapp>=2.5",
+    "click>=8,<9",
+    "CodeChat==1.9.3",
+    "jinja2>=3.1.0,<4",
+    "Paver>=1.2.4",
+    "six>1.12",
+    "Sphinx>=5.0.0,<6",
+    "sphinxcontrib-paverutils>=1.18.1",
+    "SQLAlchemy>=2.0.0,<3",
+    "toml>=0.10.2,<0.11",
+    "json2xml>=3.21.0,<4",
+    "sphinx-reredirects>=0.1.2,<0.2",
+    "psycopg2-binary>=2.9.6,<3",
+    "lxml>=6.0,<7",
+    "myst-parser>=1.0.0,<2",
+    "pretext>=2.35.0,<3",
+    "jupyter-sphinx<0.5",
+    "jupyterlab>=4.2.4,<5",
+    "scikit-learn>=1.5.1,<2",
+    "ipyleaflet>=0.19.2,<0.20",
+    "aiosqlite>=0.18.0",
+    "cryptography>=46.0.0,<47",
+    "setuptools<81.0.0",
+    "standard-asyncore>=3.13.0,<4",
+    "standard-imghdr>=3.13.0,<4",
+    "standard-cgi>=3.13.0,<4",
+    "python-dotenv>=1.0.0,<2",
+    "pydantic>=2.0.0,<3",
+    "fastapi>=0.115.0,<0.116",
+    "asyncpg>=0.30.0,<0.31",
+    "greenlet>=3.0.0,<4",
+    "dateutils>=0.6.12,<0.7",
+    "pyhumps>=3.8.0,<4",
+    "pydal>=20230521.1",
+    "pydantic-settings>=2.0.3,<3",
+    "jupyterlite-sphinx>=0.9.3,<0.10",
 ]
 
-packages = [
-    { include = "rsptx/db", from = "../../components" },
-    { include = "rsptx/validation", from = "../../components" },
-    { include = "rsptx/configuration", from = "../../components" },
-    { include = "rsptx/logging", from = "../../components" },
-    { include = "rsptx/cl_utils", from = "../../components" },
-    { include = "rsptx/build_tools", from = "../../components" },
-    { include = "rsptx/response_helpers", from = "../../components" },
-    { include = "rsptx/data_types", from = "../../components" },
-    # runestone is different because we want to expose runestone as a namespace, not
-    # rsptx.interactives.runestone
-    { include = "runestone", from = "../../bases/rsptx/interactives" },
+[project.urls]
+Repository = "https://github.com/RunestoneInteractive/rs"
+Documentation = "https://runestone-monorepo.readthedocs.io/en/latest/index.html"
+
+[project.scripts]
+runestone = "runestone.__main__:cli"
+
+[dependency-groups]
+dev = [
+    "selenium>=2.53.6, <4.0.0",
+    "pyvirtualdisplay>=3,<4",
+    "pytest>=7,<8",
+    "pylint>=2,<3",
+    "readme-renderer>24",
+    "json2xml>=3,<4",
+    "standard-asyncore>=3.13.0,<4",
+    "standard-imghdr>=3.13.0,<4",
+    "standard-cgi>=3.13.0,<4",
 ]
 
-
-# Dependencies
-# ============
-[tool.poetry.dependencies]
-# TODO: loosen some of these? Explain why these versions were picked?
-python = "^3.10.0"
-cogapp = ">=2.5"
-click = "~8"
-CodeChat = "1.9.3"
-jinja2 = "^3.1.0"
-Paver = ">=1.2.4"
-six = ">1.12"
-Sphinx = "^5.0.0"
-sphinxcontrib-paverutils = ">=1.18.1"
-SQLAlchemy = "^2.0.0"
-toml = "^0.10.2"
-json2xml = "^3.21.0"
-sphinx-reredirects = "^0.1.2"
-psycopg2-binary = "^2.9.6"
-lxml = "^6.0"
-myst-parser = "^1.0.0"
-pretext = "^2.35.0"
-jupyter-sphinx = "<0.5"
-jupyterlab = "^4.2.4"
-scikit-learn = "^1.5.1"
-ipyleaflet = "^0.19.2"
-aiosqlite = ">=0.18.0"
-cryptography = "^46.0.0"
-setuptools = "<81.0.0"
-standard-asyncore = "^3.13.0"
-standard-imghdr = "^3.13.0"
-standard-cgi = "^3.13.0"
-
-# Development dependencies
-# ========================
-python-dotenv = "^1.0.0"
-pydantic = "^2.0.0"
-fastapi = "^0.115.0"
-asyncpg = "^0.30.0"
-greenlet = "^3.0.0"
-dateutils = "^0.6.12"
-pyhumps = "^3.8.0"
-pydal = ">=20230521.1"
-pydantic-settings = "^2.0.3"
-jupyterlite-sphinx = "^0.9.3"
-[tool.poetry.dev-dependencies]
-selenium = ">=2.53.6, <4.0.0"
-pyvirtualdisplay = "~3"
-pytest = "~7"
-pylint = "~2"
-readme-renderer = ">24"
-json2xml = "~3"
-standard-asyncore = "^3.13.0"
-standard-imghdr = "^3.13.0"
-standard-cgi = "^3.13.0"
-
-# Scripts
-# =======
-# See `scripts <https://python-poetry.org/docs/pyproject/#scripts>`_.
-[tool.poetry.scripts]
-runestone = 'runestone.__main__:cli'
-
-
-# Build Script
-# This script is run before the package is built, but after the files are copied to .prepare_runestone
-# So we actually need to build the webpack bundle before running poetry build-project
-# [tool.poetry.build]
-# script = "build_webpack.py"
-
-# Poetry backend
-# ==============
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-# .. _pytest configuration:
-#
-# pytest configuration
-# ====================
+# interactives ships a JS release only -- the build pipeline no longer builds a
+# Python wheel for it (build.py skips it; see the wheel() function). This file
+# is kept for the `runestone` console script, the version (read by the local
+# build.py webpack step), dev deps, and uv tooling. bypass-selection keeps a
+# stray `uv build` from erroring on file selection.
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 # Ignore source code produced by Sphinx. This happens because the source text for literate programming pages is a source file. Use `short tracebacks <https://docs.pytest.org/en/6.2.x/usage.html#modifying-python-traceback-printing>`_ since the default longer tracebacks produce too much noise.
