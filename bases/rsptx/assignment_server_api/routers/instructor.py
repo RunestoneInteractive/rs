@@ -135,7 +135,7 @@ async def review_peer_assignment(
 
     if assignment_id is None:
         rslogger.error("BAD ASSIGNMENT = %s assignment %s", course, assignment_id)
-        return RedirectResponse("/runestone/peer/instructor.html")
+        return RedirectResponse("/assignment/peer/instructor")
 
     # Check if the user is an instructor
     user_is_instructor = await is_instructor(request, user=user)
@@ -159,14 +159,14 @@ async def review_peer_assignment(
             course,
             user.username,
         )
-        return RedirectResponse("/runestone/peer/instructor.html")
+        return RedirectResponse("/assignment/peer/instructor")
 
     if not is_assignment_visible_to_students(assignment):
         if not user_is_instructor:
             rslogger.error(
                 f"Attempt to access invisible assignment {assignment_id} by {user.username}"
             )
-            return RedirectResponse("/runestone/peer/instructor.html")
+            return RedirectResponse("/assignment/peer/instructor")
 
     # Fetch questions within the assignment
     questions = await fetch_assignment_questions(assignment_id)

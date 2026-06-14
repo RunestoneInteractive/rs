@@ -391,14 +391,24 @@ def wheel(config):
     with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
         status = {}
         for proj in config.ym["services"].keys():
-            if (
-                "build" not in config.ym["services"][proj]
-                or config.ym["services"][proj]["build"]["context"] == "./"
-            ):
+            if "build" not in config.ym["services"][proj]:
                 status[proj] = "[blue]Skipped[/blue]"
                 lt.update(generate_wheel_table(status))
                 continue
-            projdir = config.ym["services"][proj]["build"]["context"]
+            # The wheel is built from the project directory (where its
+            # pyproject.toml lives), which is not always the Docker build
+            # context. When an explicit ``dockerfile`` is given the context may
+            # be the repo root (e.g. so the image can bundle migrations/), so
+            # derive the project directory from the Dockerfile's location.
+            # Services without a pyproject.toml (nginx, etc.) fall through and
+            # are skipped by the check farther down.
+            build = config.ym["services"][proj]["build"]
+            if "dockerfile" in build:
+                projdir = os.path.dirname(
+                    os.path.join(build.get("context", "."), build["dockerfile"])
+                )
+            else:
+                projdir = build["context"]
             if os.path.isdir(projdir):
                 with pushd(projdir):
                     if os.path.isfile("build.py") and config.skip_pre is False:
@@ -567,6 +577,9 @@ def image(config):
             status[service] = "[grey62]building...[/grey62]"
             lt.update(generate_table(status))
             # to use a different wheel without editing Dockerfile use --build-arg wheel="wheelname"
+            # Bake the release version into the images (Dockerfiles that declare
+            # the ``runestone_version`` ARG turn it into RUNESTONE_VERSION); it
+            # is ignored by the others.
             command_list = [
                 "docker",
                 "compose",
@@ -575,6 +588,8 @@ def image(config):
                 "--progress",
                 "plain",
                 "build",
+                "--build-arg",
+                f"runestone_version={config.version}",
                 "--builder",
                 "rn-builder",
                 service,

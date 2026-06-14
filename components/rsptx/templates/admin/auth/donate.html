@@ -1,0 +1,197 @@
+{% extends "admin/auth/_auth_base.html" %}
+
+{% block title %}Support Runestone Academy{% endblock %}
+
+{% block css %}
+<style>
+    .donate-card { max-width: 640px; }
+    .donate-card h1 { text-align: left; }
+    .donate-intro { font-size: 1.05em; }
+    .donate-intro img { vertical-align: middle; margin-right: 6px; }
+    .amount-panel {
+        border: 1px solid #c8dff5;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+    .amount-panel-heading {
+        background: #4a90e2;
+        color: #fff;
+        font-weight: 600;
+        padding: 10px 16px;
+        border-radius: 8px 8px 0 0;
+    }
+    .amount-panel-body { padding: 16px; }
+    .amount-option { margin-bottom: 8px; }
+    .amount-option label { font-weight: 500; margin-left: 6px; }
+    .donate-note {
+        margin-left: 16px;
+        padding: 6px 12px;
+        border: 1px solid #4a90e2;
+        border-radius: 10px;
+        font-size: 0.9em;
+        color: #357abd;
+    }
+    .other-amount input { width: 120px; display: inline-block; }
+    .btn-rs-secondary {
+        background: transparent;
+        color: #4a90e2;
+        border: 2px solid #4a90e2;
+        padding: 8px 18px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .btn-rs-secondary:hover { background: #f0f7ff; color: #357abd; }
+    #paypal-button-container { max-width: 640px; margin: 20px auto 0; }
+    .payment-note { color: #666; font-style: italic; margin-top: 18px; }
+    .venmo-qr { display: block; margin: 16px auto 0; max-width: 220px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-card donate-card">
+    <h1>Support Runestone Academy</h1>
+
+    <p class="donate-intro">
+        <img src="/staticAssets/RAIcon.png" height="40px" alt="Runestone Logo"/>
+        Your support of Runestone Academy LTD is vital to our future. Voluntary
+        support from students and schools is one of our primary sources of income.
+        Since the Fall of 2018 Runestone Academy has served over 316,000 registered
+        students! At $100 a book we have saved students $31 million in textbook
+        purchases!
+    </p>
+
+    <p>Thank You!<br/>
+        Brad Miller, Founder and Chief Developer &mdash; Runestone Academy Ltd</p>
+
+    <div class="amount-panel">
+        <div class="amount-panel-heading">Select an amount to donate</div>
+        <div class="amount-panel-body">
+            <div class="amount-option">
+                <input type="radio" name="donate" id="donate10" value="10.00">
+                <label for="donate10">$10</label>
+            </div>
+            <div class="amount-option">
+                <input type="radio" name="donate" id="donate20" value="20.00">
+                <label for="donate20">$20</label>
+                <span class="donate-note">Once you donate we won't ask again.</span>
+            </div>
+            <div class="amount-option">
+                <input type="radio" name="donate" id="donate50" value="50.00">
+                <label for="donate50">$50</label>
+            </div>
+            <div class="amount-option">
+                <input type="radio" name="donate" id="donate100" value="100.00">
+                <label for="donate100">$100</label>
+            </div>
+            <div class="amount-option other-amount">
+                Other: <input type="text" class="form-control" name="donate" id="donateother" value=""/>
+                Anything more than $1 is appreciated.
+            </div>
+            <div style="margin-top: 15px;">
+                <a class="btn btn-rs-secondary" href="/ns/course/index" role="button"
+                   style="width:auto; display:inline-block;">Sorry, not Today</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="paypal-button-container"></div>
+
+    <p class="payment-note">Note: Payment processing is handled by PayPal,
+        Runestone Academy LTD has no access to your payment information.</p>
+
+    <img class="venmo-qr" src="/staticAssets/RunestoneVenmoQR.png" alt="Runestone Venmo QR code"/>
+</div>
+
+<script src="https://www.paypal.com/sdk/js?client-id=ASkp77N-Kiw5GKOF_0I13P0GCW6lrnaukdVqeFykz7zBT9F-WXHRIisBsau5VEmC-vCKCzt--41kaOjb&currency=USD&intent=capture&enable-funding=venmo"></script>
+
+<script>
+    const fundingSources = [
+        paypal.FUNDING.PAYPAL,
+        paypal.FUNDING.VENMO,
+        paypal.FUNDING.CARD
+    ];
+
+    for (const fundingSource of fundingSources) {
+        const paypalButtonsComponent = paypal.Buttons({
+            fundingSource: fundingSource,
+
+            // optional styling for buttons
+            // https://developer.paypal.com/docs/checkout/standard/customize/buttons-style-guide/
+            style: {
+                shape: 'rect',
+                height: 40,
+            },
+
+            // set up the transaction
+            createOrder: (data, actions) => {
+                var amt_opts = document.getElementsByName("donate");
+                var amt = "";
+                for (let rb of amt_opts) {
+                    if (rb.type === "radio" && rb.checked) {
+                        amt = rb.value;
+                    }
+                }
+                if (amt === "") {
+                    amt = document.getElementById("donateother").value;
+                    let amtFloat = parseFloat(amt);
+                    // amounts under a dollar are not worth processing
+                    if (isNaN(amtFloat) || amtFloat < 1.0) {
+                        alert("Sorry we cannot accept donations under $1");
+                        return;
+                    }
+                }
+                const createOrderPayload = {
+                    purchase_units: [
+                        {
+                            amount: {
+                                value: amt,
+                            },
+                        },
+                    ],
+                };
+
+                return actions.order.create(createOrderPayload);
+            },
+
+            // finalize the transaction
+            onApprove: (data, actions) => {
+                const captureOrderHandler = (details) => {
+                    fetch("/admin/auth/donate/mark", { method: "POST" });
+                    alert('Payment successful - Thank you! ');
+                    window.location.href = "/ns/course/index";
+                    console.log('Transaction completed!');
+                };
+
+                return actions.order.capture().then(captureOrderHandler);
+            },
+
+            // handle unrecoverable errors
+            onError: (err) => {
+                console.error('An error prevented the buyer from checking out with PayPal');
+            },
+        });
+
+        if (paypalButtonsComponent.isEligible()) {
+            paypalButtonsComponent
+                .render('#paypal-button-container')
+                .catch((err) => {
+                    console.error('PayPal Buttons failed to render');
+                });
+        } else {
+            console.log('The funding source is ineligible');
+        }
+    }
+
+    // Pre-select an amount if provided as ?amt=NN
+    document.addEventListener("DOMContentLoaded", function () {
+        const params = new URLSearchParams(window.location.search);
+        const amt = params.get("amt");
+        if (amt) {
+            const btn = document.getElementById("donate" + amt);
+            if (btn) { btn.checked = true; }
+        }
+    });
+</script>
+{% endblock %}

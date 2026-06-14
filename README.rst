@@ -121,6 +121,20 @@ Community Over Institution
 --------------------------
 Runestone's long-term sustainability depends on a broad community of contributors, adopters, and advocates — not on any single maintainer, organization, or funder. We make decisions that strengthen collective ownership.
 
+Anonymous Usage Telemetry
+-------------------------
+To understand how widely Runestone is used, self-hosted book servers send a small, **anonymous** weekly "check-in" to ``runestone.academy``. We believe in being completely transparent about this.
+
+**What is sent:** a random per-install identifier (a UUID, so we can count installs without identifying them), the Runestone version, the books (base courses) served, bucketed (never exact) counts of courses and students, and the operator's **self-declared** region/institution if you choose to set them.
+
+**What is never sent:** any personally identifiable data — no usernames, emails, names, answers, or grades — and **no IP-based location**. Location is only ever what you explicitly put in ``TELEMETRY_REGION``; the receiving server does not look at or store your IP address.
+
+**Seeing it / turning it off:**
+
+* Preview the exact payload at any time with ``rsmanage telemetry`` (add ``--send`` to transmit immediately).
+* Opt out entirely by setting ``TELEMETRY_ENABLED=false`` in your ``.env``.
+* Optionally set ``TELEMETRY_REGION`` (e.g. a country or continent) and ``TELEMETRY_INSTITUTION`` to appear on the community install map.
+
 
 Runestone MonoRepo
 ==================

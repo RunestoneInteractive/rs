@@ -44,6 +44,7 @@ _REGISTER = "/admin/auth/register"
 _COURSES = "/admin/auth/courses"
 _MY_COURSES = "/admin/auth/my_courses"
 _PROFILE = "/admin/auth/profile"
+_DONATE = "/admin/auth/donate"
 
 
 def _verify_password(stored: str, plain: str) -> bool:
@@ -317,7 +318,43 @@ async def courses_post(
         user.id, {"course_name": course.course_name, "course_id": course.id}
     )
 
+    # When a student registers for a new course, invite them to support
+    # Runestone. We don't ask again once they've donated.
+    if not already_enrolled and not user.donated:
+        return RedirectResponse(_DONATE, status_code=status.HTTP_302_FOUND)
+
     return RedirectResponse("/ns/course/index", status_code=status.HTTP_302_FOUND)
+
+
+# ---------------------------------------------------------------------------
+# Donate (shown after a student registers for a new course)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/donate", response_class=HTMLResponse)
+async def donate_page(request: Request):
+    user = await _current_user(request)
+    if not _user_exists(user):
+        return RedirectResponse(
+            f"{_LOGIN}?next={_DONATE}", status_code=status.HTTP_302_FOUND
+        )
+    return templates.TemplateResponse(
+        "admin/auth/donate.html",
+        {"request": request, "user": user},
+    )
+
+
+@router.post("/donate/mark")
+async def donate_mark(request: Request):
+    """Record that the current user has donated so we stop asking.
+
+    Called from the donate page after a successful PayPal capture.
+    """
+    user = await _current_user(request)
+    if _user_exists(user):
+        await update_user(user.id, {"donated": True})
+        return {"ok": True}
+    return {"ok": False}
 
 
 # ---------------------------------------------------------------------------

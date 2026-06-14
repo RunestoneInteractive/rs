@@ -1,5 +1,49 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-06-03 → 2026-06-11)
+
+Coverage: changes merged/landed after the previous changelog update on **2026-06-04** (which covered through 2026-06-02), through **2026-06-11**.
+
+### Highlights
+
+- **Anonymous usage telemetry (new, major):** self-hosted book servers now send a small, anonymous, **opt-out** weekly check-in to runestone.academy so the project can count installs worldwide and the books they serve. The payload contains no personal data and no IP-based location — only a random per-install id, the version, a self-declared region/institution, the base courses served, and bucketed counts. Adds a `POST /telemetry/checkin` receiver on the admin server, a `rsmanage telemetry` preview/send command, settings + migration (`telemetry_state`, `installation` tables), and disclosure in the README and `sample.env`. Disable with `TELEMETRY_ENABLED=false` (fdf4a1f8).
+- **Auth/account pages on the admin server (continued migration):** ported the **donate** page to the FastAPI admin server, styled to match the other auth templates, and shown after a student registers for a new course (574be591); reworked **My Courses** to sort by most-recent access with a ⏱️ marker for courses used in the last 30 days (607259f0); re-themed the auth templates from the old red/magenta to the instructor/student blue scheme (PR #1234); updated auth-related links (PR/update-links, 320bba0b).
+- **CodeTailor security (fixes):** fixed CodeTailor security vulnerabilities and addressed review follow-ups (9656a057, 8b706064, 8bf3720d, fcd5a392); added a fallback to a static backup Parsons problem when a course has no API token (PR #1230, 4f549552).
+- **Peer Instruction polish (continued):** sync PI feedback fixes, round two (PR #1228, 8753c43e); retain the vote count from the first vote during the second vote (6943c8cd); updated peer paths (c6c2b3b3); removed unused `displayPeers`/`groupList` code (bbe62613).
+- **StudyClues:** fixed "login to StudyClues suddenly stopped working" (38aabe33); added a StudyClues course (e75e8e67).
+- **Dashboard:** added Prism CSS for line numbers and removed the custom line-number rendering on the dashboard (b91e918b, 8ef075ae).
+- **Build / tooling:** baked the release version into the book and rsmanage Docker images (`RUNESTONE_VERSION` build-arg → env) so telemetry reports the tagged version; fixed the build's wheel phase to derive a service's project directory from its Dockerfile location rather than the Docker build context, so services that use a repo-root context (e.g. rsmanage, to bundle `migrations/`) are no longer skipped (both in fdf4a1f8); fixed a migration (fa3b9022).
+- **Releases:** versions **8.7.2** and **8.7.3** shipped during this period.
+
+### Commit notes (for reference)
+
+- c6c2b3b3 update peer paths
+- 66c66305 update version
+- fdf4a1f8 Add anonymous opt-out usage telemetry (install check-in)
+- b80be7c3 Merge branch 'update-links'
+- 320bba0b Update auth related links
+- 574be591 Port donate page to admin server and show it after new enrollment
+- 1f3cfd0d update version to 8.7.3
+- 880c30b5 Merge pull request #1231 from aspadiyath/main
+- e14a21f6 Merge pull request #1230 from aspadiyath/codetailor-backup-parsons-fallback
+- 71860ebc Merge pull request #1228 from sethbern/sync-pi-feedback-v2
+- d70d834d Merge branch 'my-courses-sort': recent-access sort + ⏱️ for my_courses
+- 607259f0 Sort my_courses by recent access and flag recently-used courses
+- 43a1bdd4 Merge pull request #1234 from RunestoneInteractive/auth-blue-theme
+- d10d54ff Match auth template color scheme to instructor/student blue
+- bbe62613 remove unused displayPeers and groupList code
+- 8b706064 Address Copilot review comments on CodeTailor security PR
+- 9656a057 Fix CodeTailor security vulnerabilities
+- 6943c8cd retain the count on the first vote during the second vote
+- 8ef075ae remove custom line numbers from dashboard
+- b91e918b add prism css for line numbers
+- e75e8e67 Add course for studyclues
+- 4f549552 Fallback to static backup Parsons when course has no API token
+- 8753c43e sync pi fixes from feedback
+- fa3b9022 Fix migration
+- 38aabe33 Fix for "login to studyclues suddenly stopped working"
+- 598de66d update version to 8.7.2
+
 ## Updates since last changelog entry (2026-04-02 → 2026-06-02)
 
 Coverage: changes merged/landed after the previous changelog update commit on **2026-04-02**, through **2026-06-02**.
