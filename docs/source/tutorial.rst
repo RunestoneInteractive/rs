@@ -11,7 +11,7 @@ Prerequisites
 
 * Install postgresql on your machine and make a username for yourself
 * Clone the monorepo from github.com/RuneStoneInteractive/rs 
-* Install poetry
+* Install uv
 * Install docker
 
 
@@ -34,28 +34,30 @@ Creating a new project
 
 .. code-block:: bash
 
-   poetry poly create base --name library_server
-   poetry poly create project --name library_server
+   uv run poly create base --name library_server
+   uv run poly create project --name library_server
    cd projects/library_server
-   poetry add fastapi
-   poetry add uvicorn
-   poetry add sqlalchemy
-   poetry add psycopg2
-   poetry add jinja2
-   poetry add asyncpg
-   poetry add greenlet
-   poetry add python-dateutil
-   poetry add pyhumps
-   poetry add pydal
+   uv add fastapi
+   uv add uvicorn
+   uv add sqlalchemy
+   uv add psycopg2
+   uv add jinja2
+   uv add asyncpg
+   uv add greenlet
+   uv add python-dateutil
+   uv add pyhumps
+   uv add pydal
 
-Also add look for ``packages = []`` in  ``pyproject.toml`` file and modify it to look like this:
+Also add a ``[tool.polylith.bricks]`` section to the ``pyproject.toml`` file
+(this replaces poetry's ``packages = []`` list -- each entry maps a brick source
+directory to its package path in the wheel, and the ``hatch-polylith-bricks``
+build hook bundles them):
 
-.. code-block:: python
+.. code-block:: toml
 
-   packages = [
-      {include = "rsptx/db", from = "../../components"},
-      {include = "rsptx/library", from = "../../bases"},
-   ]
+   [tool.polylith.bricks]
+   "../../components/rsptx/db" = "rsptx/db"
+   "../../bases/rsptx/library" = "rsptx/library"
 
 Now we can edit bases/rsptx/library_server/core.py
 
@@ -74,7 +76,7 @@ Now we can run the server from the project folder:
 
 .. code-block:: bash
 
-   poetry run uvicorn rsptx.library_server.core:app --reload --host 0.0.0.0 --port 8120
+   uv run uvicorn rsptx.library_server.core:app --reload --host 0.0.0.0 --port 8120
 
 
 Now lets add some database work.  Lets get all of the books in the library and show them as a list. update core.py to look like this:
@@ -110,15 +112,15 @@ You may also get an error because your database may not have been initialized.  
 .. code-block:: bash
 
    createdb runestone_dev1
-   poetry run rsmanage initdb
+   uv run rsmanage initdb
 
 
 OK, now change back to the library_server project and run the server again.  You may see some books or you may not.  If you created a new database you will not see any books.  You can add books to the database by running the following from the root of the monorepo:
 
 .. code-block:: bash
 
-   poetry run rsmanage addbookauthor
-   poetry run rsmanage build thinkcspy
+   uv run rsmanage addbookauthor
+   uv run rsmanage build thinkcspy
 
 Adding a Template
 -----------------
@@ -137,15 +139,14 @@ Now lets create a template to render the list of books.  Create a new folder in 
    </body>
 
 
-We also need to update our pyproject.toml file to include the templates folder.  Add the following to the ``pyproject.toml`` file:
+We also need to update our pyproject.toml file to include the templates folder.  Add the templates brick to the ``[tool.polylith.bricks]`` section:
 
-.. code-block:: python
+.. code-block:: toml
 
-   packages = [
-      {include = "rsptx/db", from = "../../components"},
-      {include = "rsptx/library", from = "../../bases"},
-      {include = "rsptx/templates", from = "../../components"},
-   ]
+   [tool.polylith.bricks]
+   "../../components/rsptx/db" = "rsptx/db"
+   "../../bases/rsptx/library" = "rsptx/library"
+   "../../components/rsptx/templates" = "rsptx/templates"
 
 
 Next we have to tell Fastapi to use the template.  Add the following to the top of the core.py file:
@@ -197,7 +198,7 @@ Now lets build a docker image for our library server.  First we need to create a
    # pull official base image
    FROM python:3.10-bullseye
 
-   # This is the name of the wheel that we build using `poetry build-project`
+   # This is the name of the wheel that we build using `uv build`
    ARG wheel=library_server-0.1.0-py3-none-any.whl
 
    # set work directory
@@ -235,7 +236,7 @@ To build the docker image you need to build the wheel for the library_server pro
 
 .. code-block:: bash
 
-   poetry build-project
+   uv build
    docker build -t library .
 
 You can run the docker image by running the following:
@@ -254,19 +255,18 @@ When you run the docker image you will see the following output:
       from rsptx.response_helpers.core import http_422error_detail
    ModuleNotFoundError: No module named 'rsptx.response_helpers'
 
-This is because the response_helpers package is not installed in the docker image.  We can fix this by updating the packates in our pyproject.toml file:
+This is because the response_helpers package is not installed in the docker image.  We can fix this by adding the missing bricks to the ``[tool.polylith.bricks]`` section of our pyproject.toml file:
 
-.. code-block:: python
+.. code-block:: toml
 
-   packages = [
-      { include = "rsptx/db", from="../../components"},
-      { include = "rsptx/library_server",  from="../../bases"},
-      { include = "rsptx/templates", from = "../../components" },
-      { include = "rsptx/configuration", from = "../../components"},
-      { include = "rsptx/logging", from = "../../components"},
-      { include = "rsptx/validation", from = "../../components"},
-      { include = "rsptx/response_helpers", from = "../../components"},
-   ]
+   [tool.polylith.bricks]
+   "../../components/rsptx/db" = "rsptx/db"
+   "../../bases/rsptx/library_server" = "rsptx/library_server"
+   "../../components/rsptx/templates" = "rsptx/templates"
+   "../../components/rsptx/configuration" = "rsptx/configuration"
+   "../../components/rsptx/logging" = "rsptx/logging"
+   "../../components/rsptx/validation" = "rsptx/validation"
+   "../../components/rsptx/response_helpers" = "rsptx/response_helpers"
 
 It would be nice if we could make all of the components completely independent, but there are naturally some dependencies between them.  In early development the structure of the monorepo makes it pretty easy to forget to add these dependencies to the pyproject.toml file.  Building the docker image will expose all of these. So you may just have rebuild a few times until you get it right.
 

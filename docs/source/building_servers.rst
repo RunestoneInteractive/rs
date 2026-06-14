@@ -7,20 +7,20 @@ You should have already:
 
 #. :ref:`Cloned the source code<get-the-code>` (after forking it if you intend to contribute changes)
 
-#. Set up Poetry.
+#. Set up uv.
 
 #. Copied ``sample.env`` to ``.env`` and edited the file -- make sure ``BOOK_PATH`` is set.
 
 Now you are ready to install the required dependencies and build the servers:
 
-4. Run ``poetry install --with=dev`` from the top level directory.  This will install all of the dependencies for the project.
+4. Run ``uv sync`` from the top level directory.  This will install all of the dependencies for the project.
 
-#. When that completes run ``poetry shell`` to start a poetry shell.  You can verify that this worked correctly by running ``which rsmanage``.  You should see a path something like `/path/to/rs/.venv/bin/rsmanage`.  If you do not see this then you may need to run ``poetry shell`` again.
+#. When that completes activate the virtual environment with ``source .venv/bin/activate``.  You can verify that this worked correctly by running ``which rsmanage``.  You should see a path something like `/path/to/rs/.venv/bin/rsmanage`.  If you do not see this then you may need to run ``uv sync`` and activate again.
 
-#. To leave the ``poetry`` shell, type ``exit``.
+#. To leave the virtual environment, type ``deactivate``.
 
 .. note::
-   Future instructions will make it clear which commands need to be run inside the poetry virtual environment by always including ``poetry run ...`` at the start of the command. This is what you will need to type if you are **NOT** in the poetry shell. If you activate the ``poetry shell``, you will be able to skip typing ``poetry run``. For example, to check the environmental variables, you would type ``poetry run rsmanage env`` if the poetry shell is not active; if the shell is active, you would just type ``rsmanage env``.
+   Future instructions will make it clear which commands need to be run inside the virtual environment by always including ``uv run ...`` at the start of the command. This is what you will need to type if you are **NOT** in the activated virtual environment. If you activate the virtual environment, you will be able to skip typing ``uv run``. For example, to check the environmental variables, you would type ``uv run rsmanage env`` if the virtual environment is not active; if the virtual environment is active, you would just type ``rsmanage env``.
 
 
 7.  Run the ``build`` script from the ``rs`` folder by doing ``build full``. The first step of this script will verify that you have all of your environment variables defined. It will then build the python wheels for all the runestone components and then build the docker servers. This will take a while.
@@ -95,7 +95,7 @@ The `build` script is a convenience script that will build the docker images for
 
 .. note::
 
-   You either have to be in the poetry shell or run the script with ``poetry run build ...``.
+   You either have to be in the activated virtual environment or run the script with ``uv run build ...``.
 
 There are several options that you can pass to the script.  You can see them by running ``build --help``.  The output of the help option is shown below:
 
@@ -139,7 +139,7 @@ Here is a bit more detail on how the script operates so you know what to expect:
 
 #. If you pass the ``--clean`` option it will remove all of the containers and images before starting.  This is useful if you are having trouble with the containers and want to start fresh.
 
-#. Build the python wheels for all of the runestone components.  This is done by running ``poetry build-project`` in each of the project directories.  This will create a wheel file in the ``dist`` directory of each project.  If there is a ``build.py`` file in the project folder it will be run before the wheel is built.  This is useful for projects that need to build some assets before the wheel is built. such as the interactives or the assignment projects.
+#. Build the python wheels for all of the runestone components.  This is done by running ``uv build`` in each of the project directories.  This will create a wheel file in the ``dist`` directory of each project.  If there is a ``build.py`` file in the project folder it will be run before the wheel is built.  This is useful for projects that need to build some assets before the wheel is built. such as the interactives or the assignment projects.
 
 #. Build the docker images for the runestone servers.  This is done by running ``docker compose build``.  This will build the images for the runestone servers.  If you pass the ``--all`` option it will also build the images for the author and worker servers.  If you pass one or more ``--service <service>`` option(s) it will build for the services you specify.
 
@@ -159,8 +159,8 @@ To keep the servers up to date with the latest changes in the codebase, you will
 The repository is under active development.  It is a really good idea to keep your local copy up to date.  You don't need to do this daily, but I would recommend weekly.  To do this you will need to:
 
 #. Pull the latest changes from the repo by running ``git pull``.
-#. Run ``poetry install --with=dev`` to install any new dependencies.
-#. Run ``poetry shell`` to start a poetry shell.
+#. Run ``uv sync`` to install any new dependencies.
+#. Activate the virtual environment with ``source .venv/bin/activate``.
 #. Run ``build full`` to rebuild the servers, and check the database.
 #. Run ``docker compose stop`` to start the servers.
 #. Run ``docker compose up -d`` to start the servers.
