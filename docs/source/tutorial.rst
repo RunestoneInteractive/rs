@@ -3,7 +3,7 @@ Tutorial: Adding a new Service
 
 Perhaps the best way to really understand the monorepo and how all of its pieces work is to walk through the process of adding a new service.  In this section we will walk through the entire process of adding a new server to the monorepo.  We will start with a new project and add a new base.  We will then build the project and run it in a docker container.  Finally we will run the project outside of the container.  We will create a library server that will allow us to display all of the books in the Runestone library.
 
-First we will create a new project.  We will call it ``library_server``.  We will create a new base as well.  We will call it ``rsptx.library``.  We will create a new folder in the ``bases`` directory called ``rsptx.library``.  We will create a new folder in the ``projects`` directory called ``library_server``.  
+First we will create a new project.  We will call it ``library_server``.  We will create a new base as well.  We will call it ``rsptx.library_server``.  We will create a new folder in the ``bases`` directory called ``rsptx.library_server``.  We will create a new folder in the ``projects`` directory called ``library_server``.
 
 Here is a quick overview of what we are going to work on:
 
@@ -48,16 +48,24 @@ Creating a new project
    uv add pyhumps
    uv add pydal
 
-Also add a ``[tool.polylith.bricks]`` section to the ``pyproject.toml`` file
-(this replaces poetry's ``packages = []`` list -- each entry maps a brick source
-directory to its package path in the wheel, and the ``hatch-polylith-bricks``
-build hook bundles them):
+.. note::
+
+   ``uv run poly create project`` will ask ``Do you want to add bricks to the
+   library_server project?``. You can answer ``n`` and edit the
+   ``[tool.polylith.bricks]`` section by hand as shown below.
+
+``poly create`` already generates a ``[build-system]`` (hatchling +
+``hatch-polylith-bricks``) and an empty ``[tool.polylith.bricks]`` section in the
+project's ``pyproject.toml``. Fill that section in -- each entry maps a brick
+source directory to its package path in the wheel (this replaces poetry's
+``packages = []`` list), and the ``hatch-polylith-bricks`` build hook bundles
+them:
 
 .. code-block:: toml
 
    [tool.polylith.bricks]
    "../../components/rsptx/db" = "rsptx/db"
-   "../../bases/rsptx/library" = "rsptx/library"
+   "../../bases/rsptx/library_server" = "rsptx/library_server"
 
 Now we can edit bases/rsptx/library_server/core.py
 
@@ -145,7 +153,7 @@ We also need to update our pyproject.toml file to include the templates folder. 
 
    [tool.polylith.bricks]
    "../../components/rsptx/db" = "rsptx/db"
-   "../../bases/rsptx/library" = "rsptx/library"
+   "../../bases/rsptx/library_server" = "rsptx/library_server"
    "../../components/rsptx/templates" = "rsptx/templates"
 
 
