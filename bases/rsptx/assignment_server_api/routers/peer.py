@@ -39,6 +39,7 @@ from rsptx.db.crud import (
     fetch_api_token,
     fetch_question,
     create_user_experiment_entry,
+    delete_user_experiment_entries,
 )
 from rsptx.db.models import UseinfoValidation, Useinfo
 from rsptx.db.async_session import async_session
@@ -698,63 +699,63 @@ async def make_pairs(
                         result |= s
                 return result
 
-            def process_peep(
-                sid: str,
-                remaining: list[str],
-                target_list: list[str],
-                other_list: list[str],
-                local_groups: list[set[str]],
-                mode: str,
-            ) -> None:
-                target_list.append(sid)
-                if sid in remaining:
-                    remaining.remove(sid)
-                other_peeps = find_set_containing_string(local_groups, sid)
-                # If no other peeps then this person must be put into a chat group,
-                # not an in-person group.
-                if not other_peeps and mode == "in_person":
-                    other_list.append(sid)
-                    return
-                for op in other_peeps:
-                    if op in remaining:
-                        remaining.remove(op)
-                    if op not in target_list:
-                        target_list.append(op)
-
-            peeps_in_chat: list[str] = []
-            peep_queue = [p for p in peeps if p in sid_ans]
-            while peep_queue:
-                p = peep_queue.pop()
-                if p in peeps_in_person or p in peeps_in_chat:
+            # Group the answering students into their recorded verbal-discussion
+            # clusters. A cluster is assigned to a condition as a whole and is
+            # never split, because verbal discussion depends on physical seating.
+            answerers = [p for p in peeps if p in sid_ans]
+            clusters: list[list[str]] = []
+            clustered: set[str] = set()
+            for p in answerers:
+                if p in clustered:
                     continue
-                if random.random() < 0.5:
-                    rslogger.debug(f"Adding {p} to the in_person list")
-                    process_peep(
-                        p,
-                        peeps,
-                        peeps_in_person,
-                        peeps_in_chat,
-                        in_person_groups,
-                        "in_person",
-                    )
+                grp = {
+                    s
+                    for s in find_set_containing_string(in_person_groups, p)
+                    if s in sid_ans
+                }
+                grp.add(p)
+                clustered |= grp
+                clusters.append(sorted(grp))
+
+            # Assign clusters to conditions with an approximately balanced (~50/50)
+            # split rather than an independent per-cluster coin flip. Shuffle for randomness, then use greedy algorithm to place
+            # each cluster into whichever condition currently has fewer students.
+            # Singletons (no recorded verbal partner) can only go to text chat,
+            # since they have no one to discuss with verbally.
+            random.shuffle(clusters)
+            peeps_in_chat: list[str] = []
+            for grp in clusters:
+                if len(grp) == 1:
+                    peeps_in_chat.extend(grp)
+                    continue
+                if len(peeps_in_person) <= len(peeps_in_chat):
+                    peeps_in_person.extend(grp)
                 else:
-                    process_peep(
-                        p,
-                        peeps,
-                        peeps_in_chat,
-                        peeps_in_person,
-                        in_person_groups,
-                        "chat",
-                    )
-            # Need to ensure that chat peeps have answered the question
+                    peeps_in_chat.extend(grp)
+
+            # make sure that  at least one student in each condition whenever
+            # that is actually possible (i.e. there is more than one cluster, or a
+            # multi-person cluster exists to seed the verbal side).
+            multi_clusters = [g for g in clusters if len(g) > 1]
+            if not peeps_in_person and multi_clusters:
+                promote = multi_clusters[0]
+                peeps_in_chat = [s for s in peeps_in_chat if s not in promote]
+                peeps_in_person.extend(promote)
+            if not peeps_in_chat and len(clusters) > 1:
+                demote = clusters[-1]
+                peeps_in_person = [s for s in peeps_in_person if s not in demote]
+                peeps_in_chat.extend(demote)
+
             peeps = [p for p in peeps_in_chat if p in sid_ans]
             rslogger.debug(f"FINAL PEEPS IN CHAT = {peeps}")
             rslogger.debug(f"FINAL PEEPS IN PERSON = {peeps_in_person}")
 
+            # Re-running the experiment will randomize it again so that it can clear any previous assignments to keep one unambiguous group per student.
             experiment_id = f"{div_id}_ab"
+            await delete_user_experiment_entries(experiment_id)
             for sid in peeps_in_person:
                 await create_user_experiment_entry(sid=sid, ab=experiment_id, group=0)
-            for sid in peeps_in_chat:
+            for sid in peeps:
                 await create_user_experiment_entry(sid=sid, ab=experiment_id, group=1)
 
         # Chat pairing for the remaining students in `peeps`

@@ -1,5 +1,5 @@
 from typing import List, Optional, Tuple, Dict
-from sqlalchemy import select, and_, or_, func, asc, desc, not_, update
+from sqlalchemy import select, and_, or_, func, asc, desc, not_, update, delete
 from sqlalchemy.exc import IntegrityError
 
 from ..models import (
@@ -494,6 +494,18 @@ async def create_user_experiment_entry(
     async with async_session.begin() as session:
         session.add(new_ue)
     return UserExperimentValidator.from_orm(new_ue)
+
+
+async def delete_user_experiment_entries(ab: str) -> None:
+    """
+    Delete all UserExperiment entries for the given AB experiment so the
+    experiment can be re-run with fresh group assignments.
+
+    :param ab: str, the name of the AB experiment
+    """
+    stmt = delete(UserExperiment).where(UserExperiment.experiment_id == ab)
+    async with async_session.begin() as session:
+        await session.execute(stmt)
 
 
 async def fetch_viewed_questions(sid: str, questionlist: List[str]) -> List[str]:

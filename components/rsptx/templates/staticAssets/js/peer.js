@@ -5,16 +5,12 @@ const STEP_CONFIG = {
         status: 'Vote 1 Stopped'
     },
     makep: {
-        next: ['vote2', 'makeabgroups'],
+        next: ['vote2'],
         status: 'Text Chat in Progress…'
     },
     facechat: {
-        next: ['vote2', 'makeabgroups'],
-        status: 'In-person Chat in Progress…'
-    },
-    makeabgroups: {
         next: ['vote2'],
-        status: 'A/B Experiment in Progress…'
+        status: 'In-person Chat in Progress…'
     },
     vote2: {
         next: ['vote3'],
@@ -27,7 +23,7 @@ const STEP_CONFIG = {
 };
 
 var currentStep = null;
-const CHAT_MODALITIES = ['makep', 'facechat', 'makeabgroups'];
+const CHAT_MODALITIES = ['makep', 'facechat'];
 
 function disableButton(btn) {
     if (btn) btn.disabled = true;
@@ -217,6 +213,7 @@ function connect(event) {
                                 // instructors only
                                 if (currentStep === 'vote1') {
                                     batchEnable(STEP_CONFIG['vote1'].next);
+                                    enableButton(document.getElementById('makeabgroups'));
                                 }
                             }
 
@@ -339,6 +336,17 @@ function connect(event) {
                     let facechat = document.getElementById("group_select_panel");
                     if (facechat) {
                         facechat.style.display = "block";
+                        // select2 mis-renders (zero width / invisible) when it was
+                        // initialized while the panel was hidden. Re-initialize now
+                        // that the panel is visible so the dropdown always appears.
+                        if ($('#assignment_group').data('select2')) {
+                            $('#assignment_group').select2('destroy');
+                        }
+                        $('#assignment_group').select2({
+                            placeholder: "Click to search or select by name",
+                            allowClear: true,
+                            maximumSelectionLength: 4,
+                        });
                     }
                     break; // incase default
                 default:
@@ -542,6 +550,11 @@ async function makePartners(event, is_ab) {
         // success
         handleButtonClick(event);
         butt.disabled = true;
+        if (is_ab) {
+            batchDisable(CHAT_MODALITIES);
+            disableButton(document.getElementById('makeabgroups'));
+            setText('pi-session-status', 'A/B Experiment in Progress…');
+        }
         document.querySelector("#vote2").disabled = false;
     }
 }
@@ -593,14 +606,14 @@ function startVote2(event) {
     //ws.send(JSON.stringify(mess));
     publishMessage(mess);
 
-    // Disabling the "Enable Text Chat" button (if not already done) once Vote 2 begins
+    // Disable chat/experiment buttons once Vote 2 begins
     let textChatButton = document.querySelector("#makep");
     textChatButton.classList.replace("btn-info", "btn-secondary");
     textChatButton.disabled = true;
-    // Disabling the "Enable in-person Chat" button (if not already done) once Vote 2 begins
     let faceChatButton = document.querySelector("#facechat");
     faceChatButton.classList.replace("btn-info", "btn-secondary");
     faceChatButton.disabled = true;
+    disableButton(document.getElementById('makeabgroups'));
 
     // Enabling the "Stop Vote 2" button once Vote 2 begins
     document.querySelector("#vote3").disabled = false;
@@ -764,6 +777,7 @@ async function setupPeerGroup() {
 
     let select = document.getElementById("assignment_group");
     for (let [sid, name] of Object.entries(studentList)) {
+        if (sid === eBookConfig.username) continue;
         let opt = document.createElement("option");
         peerList = localStorage.getItem("peerList");
         if (!peerList) {
