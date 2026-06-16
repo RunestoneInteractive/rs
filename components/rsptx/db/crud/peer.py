@@ -167,6 +167,7 @@ async def fetch_student_answers_in_timerange(
     start_time: datetime,
     end_time: Optional[datetime] = None,
     limit: int = 4000,
+    exclude_sid: str = None,
 ) -> List[Tuple[str, str]]:
     """
     Fetch the most recent answer for each student within a time range.
@@ -176,6 +177,7 @@ async def fetch_student_answers_in_timerange(
     :param start_time: datetime, only fetch answers after this time
     :param end_time: Optional[datetime], only fetch answers before this time
     :param limit: int, maximum number of results to return
+    :param exclude_sid: str, a sid to exclude (e.g. the instructor)
     :return: List[Tuple[str, str]], list of (sid, answer) tuples
     """
     async with async_session() as session:
@@ -193,6 +195,9 @@ async def fetch_student_answers_in_timerange(
             MchoiceAnswers.course_name == course_name,
             MchoiceAnswers.timestamp > start_time,
         )
+
+        if exclude_sid:
+            subquery = subquery.where(MchoiceAnswers.sid != exclude_sid)
 
         if end_time:
             subquery = subquery.where(MchoiceAnswers.timestamp < end_time)
