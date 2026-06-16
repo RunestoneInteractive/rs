@@ -333,6 +333,82 @@ async def get_assignment_gb(
         eng,
         params=(classid, classid),
     )
+
+    # Spaced practice grading, copied from the old gradebook logic.
+    # Get the spaced practice settings for this course.
+    practice_setting = pd.read_sql(
+        """
+        select spacing, day_points, max_practice_days, question_points, max_practice_questions
+        from course_practice
+        where course_name = %s
+        limit 1
+        """,
+        eng,
+        params=(course.course_name,),
+    )
+
+    # This dictionary will store each user's practice grade by user_id.
+    practice_by_user_id = {}
+    show_practice = False
+
+    # Only calculate practice grades if this course has practice settings
+    if not practice_setting.empty:
+        show_practice = True
+        ps = practice_setting.iloc[0]
+
+        # If spacing is 1, grade practice based on completed practice days.
+        if ps.spacing == 1:
+            practice_counts = pd.read_sql(
+                """
+                select user_id, count(*) as practice_completion_count
+                from user_topic_practice_completion
+                where course_name = %s
+                group by user_id
+                """,
+                eng,
+                params=(course.course_name,),
+            )
+
+            # Calculate the total possible points for practice days.
+            total_possible_points = float(ps.day_points or 0) * float(
+                ps.max_practice_days or 0
+            )
+
+            # Store the percent grade, or leave it blank if there are no possible points.
+            for _, prow in practice_counts.iterrows():
+                points_received = float(ps.day_points or 0) * float(
+                    prow.practice_completion_count or 0
+                )
+                practice_by_user_id[prow.user_id] = "{0:.2f}".format(
+                    100 * points_received / total_possible_points
+                )
+
+        # Otherwise, grade practice based on the number of completed questions.
+        else:
+            practice_counts = pd.read_sql(
+                """
+                select user_id, count(*) as practice_completion_count
+                from user_topic_practice_log
+                where course_name = %s
+                  and q != 0
+                  and q != -1
+                group by user_id
+                """,
+                eng,
+                params=(course.course_name,),
+            )
+
+            total_possible_points = float(ps.question_points or 0) * float(
+                ps.max_practice_questions or 0
+            )
+
+            for _, prow in practice_counts.iterrows():
+                points_received = float(ps.question_points or 0) * float(
+                    prow.practice_completion_count or 0
+                )
+                practice_by_user_id[prow.user_id] = "{0:.2f}".format(
+                    100 * points_received / total_possible_points
+                )
     apoints = {}
     for ix, row in assignments.iterrows():
         rslogger.debug(f"AROW = {row['name']}, {row.points}")
@@ -372,6 +448,15 @@ async def get_assignment_gb(
     pt["last_name"] = pt.index.map(slast)
     pt["email"] = pt.index.map(semail)
     pt["username"] = pt.index.map(suser)
+
+    # These are the columns that should always show first.
+    base_cols = ["first_name", "last_name", "email", "username"]
+
+    # Only add the Practice column if spaced practice is actually configured.
+    if show_practice:
+        pt["Practice"] = pt.index.map(lambda sid: practice_by_user_id.get(sid, ""))
+        base_cols.append("Practice")
+
     pt["_last_name_missing"] = pt["last_name"].fillna("").str.strip().eq("")
     pt["_first_name_missing"] = pt["first_name"].fillna("").str.strip().eq("")
     pt = pt.sort_values(
@@ -379,7 +464,7 @@ async def get_assignment_gb(
         na_position="last",
     )
     pt = pt.drop(columns=["_last_name_missing", "_first_name_missing"])
-    pt = pt[["first_name", "last_name", "email", "username"] + cols]
+    pt = pt[base_cols + cols]
     pt = pt.reset_index()
     pt = pt.drop(columns=["sid"], axis=1)
     pt.columns.name = None
@@ -400,7 +485,7 @@ async def get_assignment_gb(
         {
             "table_html": pt.to_html(
                 table_id="table",
-                columns=["first_name", "last_name", "email", "username"] + display_cols,
+                columns=base_cols + display_cols,
                 index=False,
                 na_rep="",
                 formatters=formatter_map,
