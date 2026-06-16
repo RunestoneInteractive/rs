@@ -313,6 +313,8 @@ function connect(event) {
                     break;
                 case "enableChat":
                     console.log(`got enableChat message with ${mess.answer}`);
+                    messarea = document.getElementById("imessage");
+                    messarea.innerHTML = `<h3>Text Chat Ready</h3><p>Please discuss with your partner(s) in the chat panel to the right.</p>`;
                     let discPanel = document.getElementById("discussion_panel");
                     if (discPanel) {
                         discPanel.style.display = "block";
