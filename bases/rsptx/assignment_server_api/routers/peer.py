@@ -1024,9 +1024,10 @@ async def get_num_answers(
     start_time_dt = st.replace(tzinfo=None)
 
     try:
-        # Count distinct students who answered
+        # Count distinct students who answered, excluding the instructor
+        # running the session (they may select an answer on the dashboard view)
         answer_count = await count_distinct_student_answers(
-            div_id, course_name, start_time_dt
+            div_id, course_name, start_time_dt, exclude_sid=user.username
         )
 
         # Count messages sent
@@ -1061,8 +1062,9 @@ async def get_percent_correct(
     start_time_dt = st.replace(tzinfo=None)
 
     try:
-        # Get the most recent answer for each student
-        rows = await fetch_recent_student_answers(div_id, course_name, start_time_dt)
+        rows = await fetch_recent_student_answers(
+            div_id, course_name, start_time_dt, exclude_sid=user.username
+        )
 
         if not rows:
             return JSONResponse(content={"pct_correct": 0})
