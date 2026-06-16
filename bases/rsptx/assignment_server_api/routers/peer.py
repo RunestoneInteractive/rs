@@ -900,7 +900,11 @@ async def get_chart_data(
             end_time_dt = st2.replace(tzinfo=None)
 
         rows1 = await fetch_student_answers_in_timerange(
-            div_id, course.course_name, start_time_dt, end_time_dt
+            div_id,
+            course.course_name,
+            start_time_dt,
+            end_time_dt,
+            exclude_sid=user.username,
         )
         data1 = [{"answer": answer, "rn": 1} for sid, answer in rows1]
 
@@ -908,7 +912,7 @@ async def get_chart_data(
         data2 = []
         if end_time_dt:
             rows2 = await fetch_student_answers_in_timerange(
-                div_id, course.course_name, end_time_dt
+                div_id, course.course_name, end_time_dt, exclude_sid=user.username
             )
             data2 = [{"answer": answer, "rn": 2} for sid, answer in rows2]
 
