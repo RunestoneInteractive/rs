@@ -242,7 +242,7 @@ export default class GodotActiveCode extends ActiveCode {
         }
 
         for (let check of (data.checks || [])) {
-            this._appendResultRow(table, check.passed ? "pass" : "fail", check.description, check.hint);
+            this._appendResultRow(table, check.status, check.description, check.hint);
             for (let sub of (check.subchecks || [])) {
                 this._appendResultRow(table, sub.passed ? "pass" : "fail", `— ${sub.description}`, sub.hint);
             }
@@ -267,9 +267,11 @@ export default class GodotActiveCode extends ActiveCode {
         const STATUS = {
             pass:  { label: "Pass",  cls: "ac-feedback-pass" },
             fail:  { label: "Fail",  cls: "ac-feedback-fail" },
+            disabled: {label: "Disabled", cls: "ac-feedback-fail"},
             error: { label: "Error", cls: "ac-feedback-fail" },
+            unknown: {label: "Unknown", cls: "ac-feedback-fail"},
         };
-        var info = STATUS[status] || STATUS.fail;
+        var info = STATUS[status] || STATUS.unknown;
 
         var row = document.createElement("tr");
 
