@@ -102,6 +102,11 @@ export default class GodotActiveCode extends ActiveCode {
         resultsDiv.style.display = "none";
         this.outDiv.parentNode.insertBefore(resultsDiv, this.outDiv);
         this.unitResultsDiv = resultsDiv;
+
+        // Buffer for print() lines received before or between result messages.
+        // Cleared at the start of each run and displayed in this.output
+        // alongside the final summary.
+        this._printLines = [];
     }
 
     // -------------------------------------------------------------------------
@@ -127,6 +132,9 @@ export default class GodotActiveCode extends ActiveCode {
             switch (data.type) {
                 case "ready":
                     this._onShellReady();
+                    break;
+                case "print":
+                    this._onPrint(data.text);
                     break;
                 case "result":
                     this._onResult(data);
@@ -176,7 +184,14 @@ export default class GodotActiveCode extends ActiveCode {
         // The plain-text output area now only shows the final summary line,
         // matching Python's "You passed: X% of the tests" paragraph — the
         // per-check detail lives in the table instead.
-        $(this.output).text(`${data.passed ? "All checks passed!" : "Some checks failed."} (${pct}%)`);
+        // Prepend any print() output captured during the run, separated from
+        // the summary line by a blank line — matching how Python's stdout
+        // appears above the unittest summary in standard activecode blocks.
+        var summaryLine = `${data.passed ? "All checks passed!" : "Some checks failed."} (${pct}%)`;
+        var outputText = this._printLines.length > 0
+            ? this._printLines.join("\n") + "\n\n" + summaryLine
+            : summaryLine;
+        $(this.output).text(outputText);
         $(this.output).css("visibility", "visible");
 
         // Store unit_results in the same format Runestone expects for
@@ -279,6 +294,33 @@ export default class GodotActiveCode extends ActiveCode {
     }
 
     // -------------------------------------------------------------------------
+    // Called when the shell posts { type: "print", text }.
+    // Godot's web export routes print() to console.log; Shell.gd monkey-patches
+    // console.log inside the iframe to also forward each line here.
+    // Lines are buffered and displayed above the result summary in this.output.
+    // -------------------------------------------------------------------------
+    _onPrint(text) {
+        if (typeof text !== "string") return;
+        // Filter out Godot engine internal messages that aren't student output.
+        // These include WebGL notices, shader compile messages, and the progress
+        // save confirmation that db.gd emits ("Progress saved successfully").
+        if (text.startsWith("WebGL") ||
+            text.startsWith("Godot") ||
+            text.startsWith("Progress saved") ||
+            text.startsWith("vram")) return;
+
+        this._printLines.push(text);
+
+        // Show print output immediately as it arrives, so students see it
+        // even before the result comes back (e.g. during a long sample window).
+        var current = $(this.output).text();
+        $(this.output).text(
+            current ? current + "\n" + text : text
+        );
+        $(this.output).css("visibility", "visible");
+    }
+
+    // -------------------------------------------------------------------------
     // Called when the shell posts { type: "error", message }.
     // -------------------------------------------------------------------------
     _onError(message) {
@@ -307,9 +349,10 @@ export default class GodotActiveCode extends ActiveCode {
         $(this.output).css("visibility", "visible");
         $(this.output).removeClass("error");
 
-        // Clear any results table from a previous run.
+        // Clear any results table and print buffer from a previous run.
         this.unitResultsDiv.innerHTML = "";
         this.unitResultsDiv.style.display = "none";
+        this._printLines = [];
 
         // Get the student's code from the CodeMirror editor.
         var studentCode = this.editor.getValue();
