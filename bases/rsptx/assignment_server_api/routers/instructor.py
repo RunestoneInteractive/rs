@@ -370,8 +370,8 @@ async def get_assignment_gb(
             )
 
             # Calculate the total possible points for practice days.
-            total_possible_points = (
-                float(ps.day_points or 0) * float(ps.max_practice_days or 0)
+            total_possible_points = float(ps.day_points or 0) * float(
+                ps.max_practice_days or 0
             )
 
             # Store the percent grade, or leave it blank if there are no possible points.
@@ -379,8 +379,8 @@ async def get_assignment_gb(
                 points_received = float(ps.day_points or 0) * float(
                     prow.practice_completion_count or 0
                 )
-                practice_by_user_id[prow.user_id] = (
-                    "{0:.2f}".format(100 * points_received / total_possible_points)
+                practice_by_user_id[prow.user_id] = "{0:.2f}".format(
+                    100 * points_received / total_possible_points
                 )
 
         # Otherwise, grade practice based on the number of completed questions.
@@ -398,17 +398,16 @@ async def get_assignment_gb(
                 params=(course.course_name,),
             )
 
-            total_possible_points = (
-                float(ps.question_points or 0)
-                * float(ps.max_practice_questions or 0)
+            total_possible_points = float(ps.question_points or 0) * float(
+                ps.max_practice_questions or 0
             )
 
             for _, prow in practice_counts.iterrows():
                 points_received = float(ps.question_points or 0) * float(
                     prow.practice_completion_count or 0
                 )
-                practice_by_user_id[prow.user_id] = (
-                    "{0:.2f}".format(100 * points_received / total_possible_points)
+                practice_by_user_id[prow.user_id] = "{0:.2f}".format(
+                    100 * points_received / total_possible_points
                 )
     apoints = {}
     for ix, row in assignments.iterrows():
@@ -463,7 +462,7 @@ async def get_assignment_gb(
     pt = pt.sort_values(
         by=["_last_name_missing", "_first_name_missing", "last_name", "first_name"],
         na_position="last",
-        )
+    )
     pt = pt.drop(columns=["_last_name_missing", "_first_name_missing"])
     pt = pt[base_cols + cols]
     pt = pt.reset_index()
@@ -486,7 +485,7 @@ async def get_assignment_gb(
         {
             "table_html": pt.to_html(
                 table_id="table",
-                columns= base_cols + display_cols,
+                columns=base_cols + display_cols,
                 index=False,
                 na_rep="",
                 formatters=formatter_map,
