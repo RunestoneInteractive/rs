@@ -49,6 +49,9 @@ services:
     # use a non-standard port to avoid conflicts with other postgres instances on the host
     ports:
       - 2345:5432
+    # persist the database on a named volume so data survives container restarts
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   # pgbouncer is for production only, when in a load balancer configuration.
   # This will effectively limit the total number of connections to the database
@@ -537,3 +540,5 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+  # persists the basic-profile PostgreSQL data directory across restarts
+  postgres_data:

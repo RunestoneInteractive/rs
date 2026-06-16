@@ -64,8 +64,8 @@ Managing Your Server
 - Stop the server: ``docker compose stop``
 - Start the server: ``docker compose start``
 - Restart services: ``docker compose restart``
-- Shut down and remove containers: ``docker compose down``
-- Shut down and remove volumes (WARNING: deletes all data): ``docker compose down -v``
+- Shut down and remove containers: ``docker compose down`` (database data is preserved on the ``postgres_data`` named volume)
+- Shut down and remove volumes (WARNING: deletes all data, including the database): ``docker compose down -v``
 
 **Viewing Logs:**
 
