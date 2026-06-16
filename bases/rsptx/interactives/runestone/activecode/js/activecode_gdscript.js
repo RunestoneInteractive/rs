@@ -106,16 +106,24 @@ export default class GodotActiveCode extends ActiveCode {
 
     // -------------------------------------------------------------------------
     // Listens for postMessage events from the Godot shell.
-    // Shell always sets event.data.source === "godot-activecode".
+    // Two guards are applied before handling a message:
+    //   1. event.source === this.godotIframe.contentWindow — ensures we only
+    //      handle messages from *this* instance's iframe, not from any other
+    //      GodotActiveCode iframe on the same page.
+    //   2. data.source === "godot-activecode" — ensures we only handle
+    //      messages intentionally sent by Shell.gd, ignoring anything else
+    //      posted to the window (browser extensions, other widgets, etc.).
     // -------------------------------------------------------------------------
     _listenForMessages() {
         window.addEventListener("message", (event) => {
+            // Guard 1: message must come from this instance's iframe.
+            if (event.source !== this.godotIframe.contentWindow) return;
+
             var data = event.data;
-            
+
+            // Guard 2: message must be from Shell.gd.
             if (!data || data.source !== "godot-activecode") return;
-            //console.log("activecode_gdscript received message:", data);
-            //console.log("gdscript handler processing:", data.type);
-        
+
             switch (data.type) {
                 case "ready":
                     this._onShellReady();
