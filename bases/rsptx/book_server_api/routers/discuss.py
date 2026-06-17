@@ -220,9 +220,13 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
                     partner_list = await r.hget(
                         f"partnerdb_{data['course_name']}", mess_from
                     )
+                    # enableFaceChat targets verbal-discussion students who are
+                    # intentionally not in partnerdb, so don't treat the missing
+                    # partner list as an error for it.
+                    is_facechat = data["message"] == "enableFaceChat"
                     if partner_list:
                         partner_list = json.loads(partner_list)
-                    else:
+                    elif not is_facechat:
                         try:
                             mess = {
                                 "type": "text",
@@ -243,12 +247,12 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
                             f"PEERCOM {os.getpid()}: Failed to find a partner for {mess_from}"
                         )
                     if (
-                        data["message"] == "enableChat"
+                        data["message"] in ("enableChat", "enableFaceChat")
                         and data.get("to", None) == username
                     ):
                         await manager.send_personal_message(username, data)
                     elif (
-                        data["message"] != "enableChat"
+                        data["message"] not in ("enableChat", "enableFaceChat")
                         and partner_list
                         and username in partner_list
                     ):
