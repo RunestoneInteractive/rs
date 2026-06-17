@@ -38,8 +38,7 @@ from rsptx.db.crud import (
     fetch_course_students,
     fetch_api_token,
     fetch_question,
-    create_user_experiment_entry,
-    delete_user_experiment_entries,
+    replace_user_experiment_entries,
 )
 from rsptx.db.models import UseinfoValidation, Useinfo
 from rsptx.db.async_session import async_session
@@ -751,12 +750,12 @@ async def make_pairs(
             rslogger.debug(f"FINAL PEEPS IN PERSON = {peeps_in_person}")
 
             # Re-running the experiment will randomize it again so that it can clear any previous assignments to keep one unambiguous group per student.
+            # Delete + insert now will happen in a single call so re-running stays fast for larger courses.
             experiment_id = f"{div_id}_ab"
-            await delete_user_experiment_entries(experiment_id)
-            for sid in peeps_in_person:
-                await create_user_experiment_entry(sid=sid, ab=experiment_id, group=0)
-            for sid in peeps:
-                await create_user_experiment_entry(sid=sid, ab=experiment_id, group=1)
+            assignments = [(sid, 0) for sid in peeps_in_person] + [
+                (sid, 1) for sid in peeps
+            ]
+            await replace_user_experiment_entries(experiment_id, assignments)
 
         # Chat pairing for the remaining students in `peeps`
         done = len(peeps) == 0
