@@ -1,7 +1,7 @@
 // Configuration for the PI steps and helper functions to handle step progression in the instructor's interface
 const STEP_CONFIG = {
     vote1: {
-        next: ['makep', 'facechat'],
+        next: ['makep', 'facechat', 'makeabgroups'],
         status: 'Vote 1 Stopped'
     },
     makep: {
@@ -11,6 +11,10 @@ const STEP_CONFIG = {
     facechat: {
         next: ['vote2'],
         status: 'In-person Chat in Progress…'
+    },
+    makeabgroups: {
+        next: ['vote2'],
+        status: 'A/B Experiment in Progress…'
     },
     vote2: {
         next: ['vote3'],
@@ -23,7 +27,7 @@ const STEP_CONFIG = {
 };
 
 var currentStep = null;
-const CHAT_MODALITIES = ['makep', 'facechat'];
+const CHAT_MODALITIES = ['makep', 'facechat', 'makeabgroups'];
 
 function disableButton(btn) {
     if (btn) btn.disabled = true;
@@ -321,6 +325,10 @@ function connect(event) {
                     }
                     let peerlist = document.getElementById("peerlist");
                     const ordA = 65;
+                    // Remove any partner rows from a previous enableChat
+                    while (peerlist.children.length > 1) {
+                        peerlist.removeChild(peerlist.lastChild);
+                    }
                     adict = JSON.parse(mess.answer);
                     for (const key in adict) {
                         let currAnswer = adict[key];
