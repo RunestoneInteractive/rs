@@ -94,7 +94,7 @@ The top level folders are:
         │  │  ├──  Dockerfile
         │  ├── 📁rsmanage
         │  │  ├── 📁dist
-        │  │  ├──  poetry.lock
+        │  │  ├──  uv.lock
         │  │  └──  pyproject.toml
         │  └── 📁w2p_login_assign_grade
         │     ├── 📁dist

@@ -1,61 +1,72 @@
-[tool.poetry]
+[project]
 name = "rsmanage"
 version = "2.0.1"
 description = ""
-authors = ['Brad Miller <bonelake@mac.com>']
-license = ""
-
-packages = [
-    { include = "rsptx/db", from = "../../components" },
-    { include = "rsptx/validation", from = "../../components" },
-    { include = "rsptx/response_helpers", from = "../../components" },
-    { include = "rsptx/configuration", from = "../../components" },
-    { include = "rsptx/build_tools", from = "../../components" },
-    { include = "rsptx/cl_utils", from = "../../components" },
-    { include = "rsptx/logging", from = "../../components" },
-    { include = "rsptx/rsmanage", from = "../../bases" },
-    { include = "rsptx/data_extract", from = "../../components" },
-    { include = "rsptx/data_types", from = "../../components" },
+authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
+requires-python = ">=3.10,<4"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "asyncclick==8.1.3.4",
+    "redis>=4.5.4,<5",
+    "pgcli>=4.0.0,<5",
+    "sqlalchemy>=2.0.0,<3",
+    "marshmallow-sqlalchemy>=1.4.1,<2",
+    "psycopg2-binary>=2.9.10,<3",
+    "anyio>=3.6.2,<4",
+    "pydantic[dotenv]>=2.0.0,<3",
+    "asyncpg>=0.30.0,<0.31",
+    "greenlet>=3.2.0,<4",
+    "pyhumps>=3.8.0,<4",
+    "fastapi>=0.115.0,<0.116",
+    "pydal>=20241204.1,<20241205",
+    "sphinx-reredirects>=0.1.2,<0.2",
+    "lxml>=6.0,<7",
+    "paver>=1.3.4,<2",
+    "sphinxcontrib-paverutils>=1.17.0,<2",
+    "runestone>=7.8.4,<8",
+    "python-dotenv>=1.0.0,<2",
+    "pydantic-settings>=2.0.3,<3",
+    "pretext>=2.35.0,<3",
+    "pandas>=2.3.0,<3",
+    "numpy>=1.0.0,<2",
+    "tqdm>=4.66.4,<5",
+    "CodeChat==1.9.3",
+    "cryptography>=46.0.0,<47",
+    "standard-imghdr>=3.13.0,<4",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-asyncclick = "8.1.3.4"
-redis = "^4.5.4"
-pgcli = "^4.0.0"
-sqlalchemy = "^2.0.0"
-marshmallow-sqlalchemy = "^1.4.1"
-psycopg2-binary = "^2.9.10"
-anyio = "^3.6.2"
-pydantic = { version = "^2.0.0", extras = ["dotenv"] }
-asyncpg = "^0.30.0"
-greenlet = "^3.2.0"
-pyhumps = "^3.8.0"
-fastapi = "^0.115.0"
-pydal = "^20241204.1"
-#myst-parser = "^1.0.0"
-sphinx-reredirects = "^0.1.2"
-lxml = "^6.0"
-paver = "^1.3.4"
-sphinxcontrib-paverutils = "^1.17.0"
-runestone = "^7.8.4"
-python-dotenv = "^1.0.0"
-pydantic-settings = "^2.0.3"
-pretext = "^2.35.0"
-pandas = "^2.3.0"
-numpy = "^1.0.0"
-tqdm = "^4.66.4"
-CodeChat = "1.9.3"
-cryptography = "^46.0.0"
-standard-imghdr = "^3.13.0"
+[project.scripts]
+rsmanage = "rsptx.rsmanage.core:cli"
+
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling", "hatch-polylith-bricks"]
+build-backend = "hatchling.build"
 
+# Bricks are force-included at build time by the polylith-bricks hook, so
+# there is no package dir named after the project for hatchling's default
+# file selection -- hence bypass-selection.
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
 
-# Scripts
-# =======
-# See `scripts <https://python-poetry.org/docs/pyproject/#scripts>`_.
-[tool.poetry.scripts]
-rsmanage = 'rsptx.rsmanage.core:cli'
+[tool.hatch.build.targets.wheel.hooks.polylith-bricks]
+
+# Polylith bricks to bundle into the wheel (replaces poetry's `packages`).
+[tool.polylith.bricks]
+"../../components/rsptx/db" = "rsptx/db"
+"../../components/rsptx/validation" = "rsptx/validation"
+"../../components/rsptx/response_helpers" = "rsptx/response_helpers"
+"../../components/rsptx/configuration" = "rsptx/configuration"
+"../../components/rsptx/build_tools" = "rsptx/build_tools"
+"../../components/rsptx/cl_utils" = "rsptx/cl_utils"
+"../../components/rsptx/logging" = "rsptx/logging"
+"../../bases/rsptx/rsmanage" = "rsptx/rsmanage"
+"../../components/rsptx/data_extract" = "rsptx/data_extract"
+"../../components/rsptx/data_types" = "rsptx/data_types"

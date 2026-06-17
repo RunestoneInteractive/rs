@@ -1,93 +1,104 @@
-[tool.poetry]
+[project]
 name = "book_server"
 version = "2.0.1"
 description = ""
-authors = ['Brad Miller <bonelake@mac.com>']
-license = ""
-
-packages = [
-    { include = "rsptx/auth", from = "../../components" },
-    { include = "rsptx/logging", from = "../../components" },
-    { include = "rsptx/db", from = "../../components" },
-    { include = "rsptx/validation", from = "../../components" },
-    { include = "rsptx/configuration", from = "../../components" },
-    { include = "rsptx/response_helpers", from = "../../components" },
-    { include = "rsptx/lp_sim_builder", from = "../../components" },
-    { include = "rsptx/grading_helpers", from = "../../components"},
-    { include = "rsptx/templates", from = "../../components" },
-    { include = "rsptx/exceptions", from = "../../components" },
-    { include = "rsptx/book_server_api", from = "../../bases" },
-    { include = "rsptx/practice", from = "../../components" },
-    { include = "rsptx/lti1p3", from = "../../components" },
-    { include = "rsptx/data_types", from = "../../components" }
+authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
+requires-python = ">=3.10,<4"
+dependencies = [
+    "aioredis>=2.0.0,<3",
+    "aiohttp>=3.11.11,<4",
+    "async-timeout>=4.0.0,<5",
+    "celery[redis]>=5.0.0,<6",
+    "fastapi>=0.115.0,<0.116.0",
+    # Per the uvicorn docs, install the standard (not minimal) extras.
+    "uvicorn[standard]>=0.17.0,<0.18.0",
+    "gunicorn>=20.0.0,<21 ; sys_platform != 'win32'",
+    "Jinja2>=3.1.0,<4",
+    "aiofiles>=0.8.0,<0.9.0",
+    "alembic>=1.0.0,<2",
+    "python-dateutil>=2.0.0,<3",
+    "fastapi-login>=1.10.0,<2",
+    "cryptography>=46.0.0,<47",
+    "pydal>=20210215.1",
+    "python-multipart>=0.0.5,<0.0.6",
+    "asyncpg>=0.30.0,<0.31.0",
+    "SQLAlchemy>=2.0.0,<3",
+    "aiosqlite>=0.18.0,<0.19.0",
+    "redis>=4.3.0,<5",
+    "pyhumps>=3.0.0,<4",
+    "bleach>=4.0.0,<5",
+    "boto3>=1.0.0,<2",
+    "multi-await>=1.0.0,<2",
+    "botocore>=1.29.87,<2",
+    "pyflakes>=3.0.1,<4",
+    "pillow>=10.0.0,<11",
+    "pydantic-settings>=2.0.3,<3",
+    "pytz>=2024.2,<2025",
+    "requests>=2.0.0,<3",
+    "jwcrypto>=1.5.6,<2",
+    "psycopg2-binary>=2.0.0,<3",
+    "openai>=1.59.3,<2",
+    "javalang>=0.13.0,<0.14.0",
 ]
 
+[project.scripts]
+bookserver = "rsptx.book_server_api.__main__:run"
 
-[tool.poetry.dependencies]
-python = "^3.10"
-aioredis = "^2.0.0"
-aiohttp = "^3.11.11"
-async-timeout = "^4.0.0"
-celery = { extras = ["redis"], version = "^5.0.0" }
-fastapi = "^0.115.0"
-# Per the `uvicorn docs <https://www.uvicorn.org/#quickstart>`_, install the standard (as opposed to minimal) uvicorn dependencies.
-uvicorn = { extras = ["standard"], version = "^0.17.0" }
-# See the `poetry docs <https://python-poetry.org/docs/dependency-specification/#using-environment-markers>`_.
-gunicorn = { version = "^20.0.0", markers = "sys.platform != 'win32'" }
-Jinja2 = "^3.1.0"
-aiofiles = "^0.8.0"
-alembic = "^1.0.0"
-python-dateutil = "^2.0.0"
-fastapi-login = "^1.10.0"
-cryptography = "^46.0.0"
-pydal = ">=20210215.1"
-python-multipart = "^0.0.5"
-asyncpg = "^0.30.0"
-SQLAlchemy = "^2.0.0"
-aiosqlite = "^0.18.0"
-redis = "^4.3.0"
-pyhumps = "^3.0.0"
-bleach = "^4.0.0"
-boto3 = "^1.0.0"
-multi-await = "^1.0.0"
-botocore = "^1.29.87"
-pyflakes = "^3.0.1"
-#runestone = "^7.0.0"
-pillow = "^10.0.0"
-pydantic-settings = "^2.0.3"
-pytz = "^2024.2"
-requests = "^2.0.0"
-jwcrypto = "^1.5.6"
-psycopg2-binary = "^2.0.0"
-openai = "^1.59.3"
-javalang = "^0.13.0"
+# Dev dependencies (poetry's [tool.poetry.group.dev.dependencies]).
+# Not included in the built wheel; installed via `uv sync`.
+[dependency-groups]
+dev = [
+    "black~=22.0",
+    "console-ctrl>=0.1.0,<0.2.0",
+    "pytest>=7.0.0,<8",
+    "flake8>=6.0.0,<7",
+    "sphinx-rtd-theme>=1.0.0,<2",
+    "mypy>0.910",
+    "coverage>=6.0.0,<7",
+    "tox>=3.0.0,<4",
+    "selenium>=3.0.0,<4",
+    "PyVirtualDisplay>=3.0,<4",
+    "polling2>=0.5.0,<0.6.0",
+    "pytest-asyncio>=0.17.0,<0.18.0",
+    "pytest-env>=0.6.0,<0.7.0",
+    "rope>=0.21.0,<0.22.0",
+    "runestone",
+]
 
-[tool.poetry.group.dev.dependencies]
-black = "~= 22.0"
-console-ctrl = "^0.1.0"
-pytest = "^7.0.0"
-flake8 = "^6.0.0"
-sphinx-rtd-theme = "^1.0.0"
-# Needed for the ``--install-types --non-interactive`` flags -- see the `mypy release notes <https://mypy-lang.blogspot.com/2021/06/mypy-0910-released.html>`_.
-mypy = "> 0.910"
-coverage = "^6.0.0"
-tox = "^3.0.0"
-selenium = "^3.0.0"
-PyVirtualDisplay = "^3.0"
-polling2 = "^0.5.0"
-pytest-asyncio = "^0.17.0"
-pytest-env = "^0.6.0"
-# This is used by VSCode for Python refactoring
-rope = "^0.21.0"
-runestone = { path = "../interactives", develop = true }
-
-# Scripts
-# =======
-# See `scripts <https://python-poetry.org/docs/pyproject/#scripts>`_.
-[tool.poetry.scripts]
-bookserver = 'rsptx.book_server_api.__main__:run'
-
+# The editable path dependency on the interactives (poetry's
+# `runestone = { path = "../interactives", develop = true }`).
+[tool.uv.sources]
+runestone = { path = "../interactives", editable = true }
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling", "hatch-polylith-bricks"]
+build-backend = "hatchling.build"
+
+# The brick files are added at build time by the polylith-bricks hook (via
+# force-include), so there is no package directory named after the project for
+# hatchling's default file-selection heuristic to find. bypass-selection tells
+# hatchling that's intentional, and the hooks table activates the plugin.
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+
+[tool.hatch.build.targets.wheel.hooks.polylith-bricks]
+
+# Polylith bricks to bundle into the wheel. This replaces poetry's
+# `packages = [{ include = ..., from = ... }]` list. Each entry maps a brick
+# source directory (relative to this file) to its package path in the wheel.
+# The hatch-polylith-bricks build hook force-includes these at build time.
+[tool.polylith.bricks]
+"../../components/rsptx/auth" = "rsptx/auth"
+"../../components/rsptx/logging" = "rsptx/logging"
+"../../components/rsptx/db" = "rsptx/db"
+"../../components/rsptx/validation" = "rsptx/validation"
+"../../components/rsptx/configuration" = "rsptx/configuration"
+"../../components/rsptx/response_helpers" = "rsptx/response_helpers"
+"../../components/rsptx/lp_sim_builder" = "rsptx/lp_sim_builder"
+"../../components/rsptx/grading_helpers" = "rsptx/grading_helpers"
+"../../components/rsptx/templates" = "rsptx/templates"
+"../../components/rsptx/exceptions" = "rsptx/exceptions"
+"../../bases/rsptx/book_server_api" = "rsptx/book_server_api"
+"../../components/rsptx/practice" = "rsptx/practice"
+"../../components/rsptx/lti1p3" = "rsptx/lti1p3"
+"../../components/rsptx/data_types" = "rsptx/data_types"
