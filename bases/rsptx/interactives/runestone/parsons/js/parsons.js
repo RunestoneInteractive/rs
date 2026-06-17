@@ -829,11 +829,11 @@ export default class Parsons extends RunestoneBase {
         this.areaHeight = areaHeight + 40;
         $(this.sourceArea).css({
             width: this.areaWidth + 2,
-            height: areaHeight,
+            height: this.areaHeight,
         });
         $(this.answerArea).css({
             width: this.options.pixelsPerIndent * indent + this.areaWidth + 2,
-            height: areaHeight,
+            height: this.areaHeight,
         });
 
         this.pairedBins = pairedBins;
