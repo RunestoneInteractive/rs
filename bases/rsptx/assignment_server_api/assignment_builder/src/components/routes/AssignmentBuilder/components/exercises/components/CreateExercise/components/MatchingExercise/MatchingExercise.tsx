@@ -14,18 +14,24 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from "@dnd-kit/sortable";
-import { Button } from "primereact/button";
-import { Toast } from "primereact/toast";
+import { UnstyledButton } from "@mantine/core";
 import { FC, useCallback, useMemo, useRef, useState, useEffect } from "react";
 
+import { Icon } from "@/components/ui/Icon";
 import { QuestionJSON } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
 import { safeJsonParse } from "@/utils/json";
 import { generateMatchingPreview } from "@/utils/preview/matchingPreview";
-import { buildQuestionJson } from "@/utils/questionJson";
+import { DEFAULT_INCORRECT_FEEDBACK, buildQuestionJson } from "@/utils/questionJson";
 
 import { MATCHING_STEP_VALIDATORS } from "../../config/stepConfigs";
 import { useBaseExercise } from "../../hooks/useBaseExercise";
+import {
+  ConnectionList,
+  blockSide,
+  connectionExistsBetween,
+  makeConnectionLabelResolver
+} from "../../shared/connections";
 import { useExerciseStepNavigation } from "../../hooks/useExerciseStepNavigation";
 import { ExerciseLayout } from "../../shared/ExerciseLayout";
 import { ExerciseComponentProps } from "../../types/ExerciseTypes";
@@ -60,7 +66,7 @@ const getDefaultFormData = (): MatchingData => ({
   left: [{ id: `left-${Date.now()}`, label: "" }],
   right: [{ id: `right-${Date.now() + 1}`, label: "" }],
   correctAnswers: [],
-  feedback: "Incorrect. Please try again."
+  feedback: DEFAULT_INCORRECT_FEEDBACK
 });
 
 export const MatchingExercise: FC<ExerciseComponentProps> = ({
@@ -71,13 +77,14 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
   onFormReset,
   isEdit = false
 }) => {
-  const toastRef = useRef<Toast>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, setSvgHeight] = useState<number>(0);
 
   const parsedInitialData = useMemo(() => {
     if (isEdit && initialData) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const initialWithJson = initialData as any;
       const questionJson = safeJsonParse<QuestionJSON>(initialWithJson.question_json || "{}") || {};
 
@@ -99,7 +106,7 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
         left: data.left || [],
         right: data.right || [],
         correctAnswers: data.correctAnswers || [],
-        feedback: data.feedback || "Incorrect. Please try again.",
+        feedback: data.feedback || DEFAULT_INCORRECT_FEEDBACK,
         name: data.name || "",
         statement: data.statement || ""
       });
@@ -110,9 +117,11 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
         question_json: buildQuestionJson({
           ...data,
           question_type: "matching"
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await onSave(augmentedData as any);
     },
     [onSave]
@@ -122,6 +131,7 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
     formData,
     activeStep,
     isSaving,
+    isDirty,
     updateFormData,
     handleSettingsChange,
     handleQuestionChange,
@@ -139,7 +149,7 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
         left: data.left || [],
         right: data.right || [],
         correctAnswers: data.correctAnswers || [],
-        feedback: data.feedback || "Incorrect. Please try again.",
+        feedback: data.feedback || DEFAULT_INCORRECT_FEEDBACK,
         name: data.name || "",
         statement: data.statement || ""
       }),
@@ -172,7 +182,7 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
           left: data.left || [],
           right: data.right || [],
           correctAnswers: data.correctAnswers || [],
-          feedback: data.feedback || "Incorrect. Please try again.",
+          feedback: data.feedback || DEFAULT_INCORRECT_FEEDBACK,
           name: data.name || "",
           statement: data.statement || ""
         }),
@@ -192,6 +202,7 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
     triggerConnectionsRedraw,
     handleStartConnection,
     handleCompleteConnection,
+    cancelConnection,
     handleDeleteConnection,
     getBlockPosition,
     generatePath,
@@ -200,8 +211,7 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
   } = useMatchingConnections({
     formData,
     updateFormData,
-    containerRef,
-    toastRef
+    containerRef
   });
 
   const handleAddLeftBlock = useCallback(() => {
@@ -283,11 +293,13 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
   const handleRemoveRightBlock = useCallback(
     (id: string) => {
       const hasConnections = (formData.correctAnswers || []).some(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         ([_, targetId]) => targetId === id
       );
 
       if (hasConnections) {
         const updatedConnections = (formData.correctAnswers || []).filter(
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           ([_, targetId]) => targetId !== id
         );
 
@@ -319,7 +331,7 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
   );
 
   const renderConnections = useCallback(() => {
-    return (formData.correctAnswers || []).map(([leftId, rightId], index) => {
+    return (formData.correctAnswers || []).map(([leftId, rightId]) => {
       const sourcePosition = getBlockPosition(leftId, true);
       const targetPosition = getBlockPosition(rightId, false);
 
@@ -328,17 +340,10 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
       const path = generatePath(sourcePosition, targetPosition);
       const midX = (sourcePosition.x + targetPosition.x) / 2;
       const midY = (sourcePosition.y + targetPosition.y) / 2;
-      const color = "#10b981";
 
       return (
         <g key={`connection-${leftId}-${rightId}`} className={styles.connection}>
-          <path
-            d={path}
-            fill="none"
-            stroke={color}
-            strokeWidth="2"
-            className={styles.connectionPath}
-          />
+          <path d={path} fill="none" strokeWidth="2" className={styles.connectionPath} />
           <g
             className={styles.deleteConnection}
             onClick={(e) => {
@@ -348,21 +353,13 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
             style={{ cursor: "pointer" }}
           >
             <rect x={midX - 12} y={midY - 12} width={24} height={24} fill="transparent" />
-            <circle
-              cx={midX}
-              cy={midY}
-              r="8"
-              className={styles.deleteCircle}
-              stroke={color}
-              fill="white"
-            />
+            <circle cx={midX} cy={midY} r="8" className={styles.deleteCircle} />
             <line
               x1={midX - 3}
               y1={midY - 3}
               x2={midX + 3}
               y2={midY + 3}
               className={styles.deleteLine}
-              stroke={color}
               strokeWidth="1.5"
             />
             <line
@@ -371,7 +368,6 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
               x2={midX - 3}
               y2={midY + 3}
               className={styles.deleteLine}
-              stroke={color}
               strokeWidth="1.5"
             />
           </g>
@@ -383,7 +379,7 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
   const renderActiveLine = useCallback(() => {
     if (!activeSource || !hasMovedEnough) return null;
 
-    const isLeftSource = activeSource.startsWith("left-");
+    const isLeftSource = blockSide(formData.left || [], formData.right || [], activeSource) === "left";
     const sourcePosition = getBlockPosition(activeSource, isLeftSource);
 
     if (!sourcePosition) return null;
@@ -394,13 +390,12 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
       <path
         d={path}
         fill="none"
-        stroke="#10b981"
         strokeWidth="2"
         strokeDasharray="5,5"
         className={styles.activePath}
       />
     );
-  }, [activeSource, hasMovedEnough, getBlockPosition, generatePath, mousePosition]);
+  }, [activeSource, hasMovedEnough, formData.left, formData.right, getBlockPosition, generatePath, mousePosition]);
 
   useEffect(() => {
     if (activeStep === 1) {
@@ -444,6 +439,22 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
     }
   }, [activeStep, triggerConnectionsRedraw, formData.left, formData.right]);
 
+  const isBlockConnectTarget = (blockId: string): boolean => {
+    if (!activeSource) return false;
+
+    const left = formData.left || [];
+    const right = formData.right || [];
+    const sourceSide = blockSide(left, right, activeSource);
+    const targetSide = blockSide(left, right, blockId);
+
+    if (sourceSide === targetSide) return false;
+
+    const [leftId, rightId] =
+      sourceSide === "left" ? [activeSource, blockId] : [blockId, activeSource];
+
+    return !connectionExistsBetween(formData.correctAnswers || [], leftId, rightId);
+  };
+
   const renderContentStep = () => {
     return (
       <div className={styles.contentStep} ref={containerRef} style={{ padding: 0 }}>
@@ -451,14 +462,7 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
           <div className={styles.columnsContent}>
             <div className={styles.column}>
               <div className={styles.columnHeader}>
-                <h3>Source Items</h3>
-                <Button
-                  icon="fa-solid fa-plus"
-                  text
-                  onClick={handleAddLeftBlock}
-                  aria-label="Add source item"
-                  className={styles.iconButton}
-                />
+                <h3>Source items</h3>
               </div>
               <div className={styles.blocksContainer}>
                 <DndContext
@@ -480,6 +484,9 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
                         canRemove={(formData.left || []).length > 1}
                         isLeft={true}
                         onStartConnection={handleStartConnection}
+                        onCancelConnection={cancelConnection}
+                        isConnectTarget={isBlockConnectTarget(item.id)}
+                        onCompleteConnection={handleCompleteConnection}
                         activeSource={activeSource}
                         connections={formData.correctAnswers}
                         index={index}
@@ -487,19 +494,20 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
                     ))}
                   </SortableContext>
                 </DndContext>
+                <UnstyledButton
+                  className={styles.addRow}
+                  onClick={handleAddLeftBlock}
+                  aria-label="Add source item"
+                >
+                  <Icon name="plus" size={14} />
+                  Add source item
+                </UnstyledButton>
               </div>
             </div>
 
             <div className={styles.column}>
               <div className={styles.columnHeader}>
-                <h3>Target Matches</h3>
-                <Button
-                  icon="fa-solid fa-plus"
-                  text
-                  onClick={handleAddRightBlock}
-                  aria-label="Add target match"
-                  className={styles.iconButton}
-                />
+                <h3>Target matches</h3>
               </div>
               <div className={styles.blocksContainer}>
                 <DndContext
@@ -520,8 +528,9 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
                         onRemove={handleRemoveRightBlock}
                         canRemove={(formData.right || []).length > 1}
                         isLeft={false}
-                        isRightTarget={activeSource !== null}
+                        isConnectTarget={isBlockConnectTarget(item.id)}
                         onStartConnection={handleStartConnection}
+                        onCancelConnection={cancelConnection}
                         onCompleteConnection={handleCompleteConnection}
                         activeSource={activeSource}
                         connections={formData.correctAnswers}
@@ -530,6 +539,14 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
                     ))}
                   </SortableContext>
                 </DndContext>
+                <UnstyledButton
+                  className={styles.addRow}
+                  onClick={handleAddRightBlock}
+                  aria-label="Add target match"
+                >
+                  <Icon name="plus" size={14} />
+                  Add target match
+                </UnstyledButton>
               </div>
             </div>
 
@@ -548,13 +565,22 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
           {activeSource && (
             <div className={styles.connectionGuide}>
               <div className={styles.guideContent}>
-                <i className="fa-solid fa-info-circle mr-2" />
-                Drag to {activeSource.startsWith("left-") ? "a target match" : "a source item"} to
-                create a connection
+                <Icon name="info-circle" size={14} color="currentColor" />
+                Pick{" "}
+                {blockSide(formData.left || [], formData.right || [], activeSource) === "left"
+                  ? "a target match"
+                  : "a source item"}{" "}
+                to finish the connection
               </div>
             </div>
           )}
         </div>
+
+        <ConnectionList
+          connections={formData.correctAnswers || []}
+          resolveLabel={makeConnectionLabelResolver(formData.left || [], formData.right || [])}
+          onRemove={handleDeleteConnection}
+        />
       </div>
     );
   };
@@ -578,7 +604,7 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
             left={formData.left || []}
             right={formData.right || []}
             correctAnswers={formData.correctAnswers || []}
-            feedback={formData.feedback || "Incorrect. Please try again."}
+            feedback={formData.feedback || DEFAULT_INCORRECT_FEEDBACK}
             name={formData.name || ""}
             statement={formData.statement || ""}
           />
@@ -590,7 +616,7 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
 
   return (
     <ExerciseLayout
-      title="Matching Exercise"
+      title="matching exercise"
       exerciseType="matching"
       isEdit={isEdit}
       steps={MATCHING_STEPS}
@@ -603,9 +629,9 @@ export const MatchingExercise: FC<ExerciseComponentProps> = ({
       onCancel={onCancel}
       onSave={handleSave}
       isSaving={isSaving}
+      isDirty={isDirty}
       validation={validation}
     >
-      <Toast ref={toastRef} />
       {renderStepContent()}
     </ExerciseLayout>
   );

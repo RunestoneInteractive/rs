@@ -1,13 +1,15 @@
-import { SelectButton } from "primereact/selectbutton";
+import { SegmentedControl } from "@mantine/core";
 import React from "react";
+
+import { Icon, PrimeIconName } from "@/components/ui/Icon";
 
 import styles from "../Grader.module.css";
 
 export type GraderViewMode = "cards" | "table";
 
-const VIEW_OPTIONS: { label: string; value: GraderViewMode; icon: string }[] = [
-  { label: "Cards", value: "cards", icon: "pi pi-th-large" },
-  { label: "Table", value: "table", icon: "pi pi-table" }
+const VIEW_OPTIONS: { label: string; value: GraderViewMode; icon: PrimeIconName }[] = [
+  { label: "Cards", value: "cards", icon: "th-large" },
+  { label: "Table", value: "table", icon: "table" }
 ];
 
 interface ViewModeToggleProps {
@@ -15,44 +17,32 @@ interface ViewModeToggleProps {
   onChange: (mode: GraderViewMode) => void;
   ariaLabel?: string;
   tourId?: string;
+  disabled?: boolean;
 }
 
 export const ViewModeToggle: React.FC<ViewModeToggleProps> = ({
   value,
   onChange,
   ariaLabel = "Toggle view",
-  tourId
+  tourId,
+  disabled = false
 }) => (
-  <div
-    className={styles.compactToggle}
-    style={{
-      display: "flex",
-      justifyContent: "flex-end",
-      marginBottom: "0.4rem"
-    }}
-    data-tour={tourId}
-  >
-    <SelectButton
+  <div className={styles.viewToggle} data-tour={tourId}>
+    <SegmentedControl
       value={value}
-      onChange={(e) => {
-        if (e.value) onChange(e.value as GraderViewMode);
-      }}
-      options={VIEW_OPTIONS}
-      optionLabel="label"
-      optionValue="value"
-      allowEmpty={false}
-      itemTemplate={(option: {
-        label: string;
-        value: GraderViewMode;
-        icon: string;
-      }) => (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <i className={option.icon} />
-          {option.label}
-        </span>
-      )}
+      onChange={(v) => onChange(v as GraderViewMode)}
+      size="xs"
+      disabled={disabled}
       aria-label={ariaLabel}
+      data={VIEW_OPTIONS.map((option) => ({
+        value: option.value,
+        label: (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Icon name={option.icon} size={14} />
+            {option.label}
+          </span>
+        )
+      }))}
     />
   </div>
 );
-

@@ -31,7 +31,7 @@ export default defineConfig(({ mode }: { mode: string }) => {
     },
     plugins: [react()],
     optimizeDeps: {
-      include: ["react", "react-dom", "quill"]
+      include: ["react", "react-dom"]
     }
   };
 });

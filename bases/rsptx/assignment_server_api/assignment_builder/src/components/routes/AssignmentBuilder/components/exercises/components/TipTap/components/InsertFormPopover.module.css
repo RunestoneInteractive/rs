@@ -1,0 +1,10 @@
+.insertForm {
+  position: fixed;
+  z-index: var(--rs-z-popover);
+  width: 280px;
+  padding: var(--rs-space-3);
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-sm);
+  box-shadow: var(--rs-shadow-overlay);
+}

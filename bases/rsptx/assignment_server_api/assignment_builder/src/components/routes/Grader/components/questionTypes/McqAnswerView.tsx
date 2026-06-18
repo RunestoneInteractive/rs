@@ -1,5 +1,6 @@
 import React from "react";
 
+import styles from "./AnswerViews.module.css";
 import { QuestionPreviewHeader } from "./RunestonePreview";
 import { AnswerRendererProps } from "./types";
 
@@ -10,24 +11,17 @@ export const McqAnswerView: React.FC<AnswerRendererProps> = (props) => {
   return (
     <div>
       <QuestionPreviewHeader {...props} />
-      <h4 style={{ margin: "0.75rem 0 0.5rem 0" }}>
-        Selected option{selected.length > 1 ? "s" : ""}
-      </h4>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+      <h4 className={styles.sectionTitle}>Selected option{selected.length > 1 ? "s" : ""}</h4>
+      <div className={styles.optionChips}>
         {selected.length === 0 ? (
-          <span style={{ color: "#64748b" }}>(no selection)</span>
+          <span className={styles.mutedNote}>(no selection)</span>
         ) : (
           selected.map((s) => (
             <span
               key={s}
-              style={{
-                padding: "0.3rem 0.7rem",
-                borderRadius: 999,
-                background: correct ? "#dcfce7" : "#fef3c7",
-                color: correct ? "#166534" : "#92400e",
-                fontWeight: 600,
-                fontSize: 13
-              }}
+              className={`${styles.optionChip} ${
+                correct ? styles.optionChipCorrect : styles.optionChipWrong
+              }`}
             >
               Option {s}
             </span>
@@ -37,4 +31,3 @@ export const McqAnswerView: React.FC<AnswerRendererProps> = (props) => {
     </div>
   );
 };
-

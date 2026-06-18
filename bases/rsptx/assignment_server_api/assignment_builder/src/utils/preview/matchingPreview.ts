@@ -1,5 +1,7 @@
 import { sanitizeId } from "../sanitize";
 
+import { DEFAULT_INCORRECT_FEEDBACK } from "@/utils/questionJson";
+
 interface ItemWithLabel {
   id: string;
   label: string;
@@ -37,7 +39,7 @@ export const generateMatchingPreview = ({
   const jsonData = {
     statement:
       statement || "Match each concept on the left with its correct description on the right.",
-    feedback: feedback || "Incorrect. Please try again.",
+    feedback: feedback || DEFAULT_INCORRECT_FEEDBACK,
     left: left.map((item) => ({ id: item.id, label: removePTags(item.label || "") })),
     right: right.map((item) => ({ id: item.id, label: removePTags(item.label || "") })),
     correctAnswers: correctAnswers

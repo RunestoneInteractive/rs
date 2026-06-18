@@ -1,0 +1,64 @@
+.rootFill {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.scrollFill {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+}
+
+.scrollSentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.sortButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortButton[data-align="center"] {
+  justify-content: center;
+}
+
+.sortButton[data-align="right"] {
+  justify-content: flex-end;
+}
+
+.sortIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.mutedText {
+  color: var(--rs-text-muted);
+}
+
+.footer {
+  padding: var(--rs-space-3) var(--rs-space-4);
+}
+
+.footerFill {
+  padding: var(--rs-space-2) var(--rs-space-4);
+  border-top: 1px solid var(--rs-border-solid);
+  background: var(--rs-surface);
+}

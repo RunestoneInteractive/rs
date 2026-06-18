@@ -14,20 +14,13 @@ export const StarterCodeEditor: FC<StarterCodeEditorProps> = ({
   language
 }) => {
   return (
-    <>
-      <div
-        className={`border rounded-lg overflow-hidden ${
-          !starterCode ? "border-red-500" : "border-gray-300"
-        }`}
-      >
-        <CodeHighlighter
-          code={starterCode}
-          language={language}
-          onChange={onChange}
-          height="400px"
-          placeholder="Enter starter code for students..."
-        />
-      </div>
-    </>
+    <CodeHighlighter
+      code={starterCode}
+      language={language}
+      onChange={onChange}
+      height="400px"
+      placeholder="Enter starter code for students…"
+      ariaLabel="Starter code"
+    />
   );
 };

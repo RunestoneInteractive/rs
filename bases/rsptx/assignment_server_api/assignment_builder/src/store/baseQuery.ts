@@ -4,7 +4,7 @@ import {
   fetchBaseQuery,
   FetchBaseQueryError
 } from "@reduxjs/toolkit/query";
-import toast from "react-hot-toast";
+import { notify } from "@components/ui/notify";
 
 import { HttpStatusCode } from "@/types/api";
 
@@ -26,13 +26,21 @@ export const baseQueryWithErrorHandlers: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  let result = await baseQuery(args, api, extraOptions);
+  const result = await baseQuery(args, api, extraOptions);
 
   if (result.error) {
     if (result.error.status === HttpStatusCode.UNAUTHORIZED) {
-      toast("Unauthorized");
+      notify.error({
+        id: "api-unauthorized",
+        message: "Your session expired. Sign in again.",
+        autoClose: 6000
+      });
     } else {
-      toast("Something went wrong");
+      notify.error({
+        id: "api-request-failed",
+        message: "Something went wrong. Try again.",
+        autoClose: 6000
+      });
     }
   }
 

@@ -33,6 +33,7 @@ export const AssignmentExercisesContainer = ({
   const [globalFilter, setGlobalFilter] = useState("");
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [lastExerciseType, setLastExerciseType] = useState<string>("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, setIsSaving] = useState(false);
   const [resetExerciseForm, setResetExerciseForm] = useState(false);
   const { updateAssignmentExercises } = useUpdateAssignmentExercise();

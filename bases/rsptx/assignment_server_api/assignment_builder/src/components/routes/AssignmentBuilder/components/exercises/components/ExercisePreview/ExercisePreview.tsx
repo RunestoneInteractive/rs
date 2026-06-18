@@ -13,7 +13,6 @@ export const ExercisePreview = ({
 
   useEffect(() => {
     if (ref.current) {
-      console.log("ref here");
       ref.current.innerHTML = htmlsrc;
       renderRunestoneComponent(ref, { isCalledFromBuilder: true }).then(forceUpdate);
     }
@@ -38,14 +37,14 @@ export const ExercisePreview = ({
             }
             .ptx-runestone-container th,
             .ptx-runestone-container td {
-              border: 1px solid #e2e8f0;
+              border: 1px solid var(--rs-border-solid);
               padding: 0.5rem;
               position: relative;
               vertical-align: top;
               min-width: 100px;
             }
             .ptx-runestone-container th {
-              background: #f8fafc;
+              background: var(--rs-neutral-50);
               font-weight: 600;
               text-align: left;
             }

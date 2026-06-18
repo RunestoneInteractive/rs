@@ -1,0 +1,12 @@
+.wrapper {
+  margin: -2rem;
+}
+
+.fieldStack {
+  padding: 0.5rem;
+}
+
+.headerSummary {
+  font-size: 0.85rem;
+  color: var(--rs-text-muted);
+}

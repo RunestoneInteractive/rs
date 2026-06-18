@@ -19,7 +19,7 @@
  * @memberof AssignmentEditor
  */
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import toast from "react-hot-toast";
+import { notify } from "@components/ui/notify";
 
 import { setSelectedNodes } from "../epicker/ePickerSlice";
 
@@ -40,10 +40,9 @@ import { setSelectedNodes } from "../epicker/ePickerSlice";
  */
 export const fetchAssignments = createAsyncThunk(
   "assignment/fetchAssignments",
-  async (neededForGetState, { getState, dispatch }) => {
+  async (neededForGetState, { dispatch }) => {
     const response = await fetch("/assignment/instructor/assignments");
     const data = await response.json();
-    let state = getState();
     //dispatch(updateField({ field: "exercises", newVal: data }));
 
     if (!response.ok) {
@@ -118,22 +117,19 @@ export const createAssignment = createAsyncThunk(
                 */
         let result = await resp.json();
 
-        toast(`Error ${result.detail[0].msg} for input ${result.detail[0].loc}`, {
-          duration: 5000
-        });
+        notify.error(
+          `Couldn't create assignment: ${result.detail[0].msg} (${result.detail[0].loc})`
+        );
       } else {
         let result = await resp.json();
 
         console.error(result.detail);
-        toast("Error creating assignment", {
-          icon: "🔥",
-          duration: 5000
-        });
+        notify.error("Couldn't create assignment. Try again.");
       }
 
       return;
     }
-    toast("Assignment created", { icon: "👍" });
+    notify.success("Assignment created");
     let result = await resp.json();
     // The result will contain the id assigned to the new assignment
 

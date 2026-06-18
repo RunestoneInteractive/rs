@@ -1,7 +1,6 @@
-import {
-  GraderQuestionStats,
-  GraderStudentAnswer
-} from "@store/grader/grader.logic.api";
+import { GraderQuestionStats, GraderStudentAnswer } from "@store/grader/grader.logic.api";
+
+import type { PrimeIconName } from "@/components/ui/Icon";
 
 export type StudentGradingStatus =
   | "graded"
@@ -10,8 +9,10 @@ export type StudentGradingStatus =
   | "pending"
   | "no_submission";
 
-const isAutogradeManual = (autograde?: string) =>
-  !autograde || autograde === "manual";
+const isAutogradeManual = (autograde?: string) => !autograde || autograde === "manual";
+
+export const isAutogradeable = (q: { autograde?: string }): boolean =>
+  !isAutogradeManual(q.autograde);
 
 export const getStudentStatus = (
   s: GraderStudentAnswer,
@@ -28,7 +29,6 @@ export const getStudentStatus = (
   }
 
   if (s.score != null) {
-
     if (s.comment && s.comment.length > 0) return "graded";
     return "autograded";
   }
@@ -100,20 +100,26 @@ export const statusLabel: Record<StudentGradingStatus, string> = {
   no_submission: "No submission"
 };
 
-export const statusIcon: Record<StudentGradingStatus, string> = {
-  graded: "pi pi-check-circle",
-  autograded: "pi pi-bolt",
-  in_progress: "pi pi-spin pi-sync",
-  pending: "pi pi-circle",
-  no_submission: "pi pi-minus-circle"
+export const statusIcon: Record<StudentGradingStatus, PrimeIconName> = {
+  graded: "check-circle",
+  autograded: "bolt",
+  in_progress: "circle-half",
+  pending: "circle",
+  no_submission: "minus"
 };
 
+export const effectiveViewMode = <TMode extends string>(
+  isDemo: boolean,
+  storedMode: TMode,
+  demoMode: TMode
+): TMode => (isDemo ? demoMode : storedMode);
+
 export const statusColor: Record<StudentGradingStatus, string> = {
-  graded: "#16a34a",
-  autograded: "#0ea5e9",
-  in_progress: "#f59e0b",
-  pending: "#94a3b8",
-  no_submission: "#cbd5e1"
+  graded: "var(--rs-status-graded)",
+  autograded: "var(--rs-status-autograded)",
+  in_progress: "var(--rs-status-in-progress)",
+  pending: "var(--rs-status-pending)",
+  no_submission: "var(--rs-status-no-submission)"
 };
 
 export type { GraderQuestionStats };

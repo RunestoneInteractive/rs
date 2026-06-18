@@ -1,0 +1,9 @@
+.tag {
+  border-radius: var(--rs-radius-sm);
+  padding: 0 var(--rs-space-2);
+  font-size: var(--rs-font-size-xs);
+  font-weight: var(--rs-font-weight-semibold);
+  text-transform: uppercase;
+  height: 20px;
+  line-height: 20px;
+}

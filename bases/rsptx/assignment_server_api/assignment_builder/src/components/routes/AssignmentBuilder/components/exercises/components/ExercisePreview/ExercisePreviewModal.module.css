@@ -1,0 +1,23 @@
+.nameChip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--rs-font-mono);
+  font-size: var(--rs-font-size-sm);
+  color: var(--rs-text);
+  background: var(--rs-neutral-100);
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-sm);
+  padding: 1px var(--rs-space-2);
+}
+
+.stage {
+  background: var(--rs-neutral-50);
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-md);
+  padding: var(--rs-space-4);
+  min-width: min(60vw, 640px);
+}

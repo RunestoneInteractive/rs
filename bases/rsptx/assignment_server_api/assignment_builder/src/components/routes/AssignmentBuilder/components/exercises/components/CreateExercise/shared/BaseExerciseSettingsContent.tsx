@@ -1,9 +1,5 @@
 import { useGetSectionsForChapterQuery } from "@store/dataset/dataset.logic.api";
-import { Chips } from "primereact/chips";
-import { Dropdown } from "primereact/dropdown";
-import { InputNumber, InputNumberChangeEvent } from "primereact/inputnumber";
-import { InputSwitch } from "primereact/inputswitch";
-import { InputText } from "primereact/inputtext";
+import { NumberInput, Select, Switch, TagsInput, TextInput } from "@mantine/core";
 import { ReactNode, useCallback, useEffect, useState } from "react";
 
 import { difficultyOptions } from "@/config/exerciseTypes";
@@ -31,6 +27,10 @@ export interface BaseExerciseSettingsContentProps<T extends BaseExerciseSettings
   additionalFields?: ReactNode;
 }
 
+const DEFAULT_POINTS = 3;
+const DEFAULT_DIFFICULTY = 1;
+const MAX_TAGS = 10;
+
 export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
   initialData,
   onSettingsChange,
@@ -38,9 +38,8 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
 }: BaseExerciseSettingsContentProps<T>) => {
   const { chapters } = useExercisesSelector();
 
-  // Initialize state with default values or initialData
   const [settings, setSettings] = useState<T>({
-    ...initialData, // Spread any additional fields from initialData
+    ...initialData,
     name: initialData?.name ?? createExerciseId(),
     author: initialData?.author ?? "",
     topic: initialData?.topic ?? "",
@@ -52,7 +51,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
     is_private: initialData?.is_private ?? false
   } as T);
 
-  // Handler to update a specific setting field
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateSetting = useCallback((field: keyof T, value: any) => {
     setSettings((prev) => ({
       ...prev,
@@ -60,7 +59,6 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
     }));
   }, []);
 
-  // Set the first chapter as default if chapters are available and no valid chapter is selected
   useEffect(() => {
     if (chapters && chapters.length > 0) {
       const currentChapterExists = chapters.some((option) => option.value === settings.chapter);
@@ -78,7 +76,6 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
     }
   );
 
-  // Set first section as default when sections are loaded and no valid section is selected
   useEffect(() => {
     if (sectionsOptions.length > 0) {
       const currentSubchapterExists = sectionsOptions.some(
@@ -91,176 +88,143 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
     }
   }, [sectionsOptions, settings.subchapter, updateSetting]);
 
-  // Report settings changes to parent
   useEffect(() => {
     onSettingsChange(settings);
   }, [settings, onSettingsChange]);
 
-  // Tags handling
   const handleTagsChange = (tags: string[]) => {
     updateSetting("tags", tags.join(","));
   };
 
-  // Check if fields have validation errors
   const nameValidationError = validateIdName(settings.name);
-  const nameError = !!nameValidationError;
   const chapterError = !settings.chapter;
   const subchapterError = !loadingSections && !settings.subchapter;
   const pointsError = settings.points <= 0;
 
-  const defaultValues = {
-    difficulty: 1,
-    points: 3
-  };
-  const onChangeInputNumber = (e: InputNumberChangeEvent, field: "difficulty" | "points") => {
-    updateSetting(field, e.value !== null ? e.value : defaultValues[field]);
-  };
+  const difficultyData = Object.entries(difficultyOptions).map(([key, label]) => ({
+    value: key,
+    label: String(label)
+  }));
 
   return (
     <>
       <div className={styles.settingsGrid}>
-        {/* First row with 3 fields */}
         <div className={styles.formField}>
-          <span className="p-float-label">
-            <InputText
-              id="name"
-              value={settings.name}
-              className={`w-full ${nameError ? styles.requiredField : ""}`}
-              onChange={(e) => updateSetting("name", e.target.value)}
-            />
-            <label htmlFor="name">Exercise Name*</label>
-          </span>
-          {nameError && <small className={styles.errorMessage}>{nameValidationError}</small>}
+          <TextInput
+            id="name"
+            label="Exercise name"
+            withAsterisk
+            value={settings.name}
+            error={nameValidationError || undefined}
+            onChange={(e) => updateSetting("name", e.target.value)}
+          />
         </div>
 
         <div className={styles.formField}>
-          <span className="p-float-label">
-            <Dropdown
-              id="chapter"
-              value={settings.chapter}
-              options={chapters}
-              optionLabel="label"
-              className={`w-full ${chapterError ? styles.requiredField : ""}`}
-              onChange={(e) => updateSetting("chapter", e.value)}
-            />
-            <label htmlFor="chapter">Chapter*</label>
-          </span>
-          {chapterError && <small className={styles.errorMessage}>Chapter is required</small>}
+          <Select
+            id="chapter"
+            label="Chapter"
+            withAsterisk
+            value={settings.chapter}
+            data={chapters ?? []}
+            allowDeselect={false}
+            error={chapterError ? "Chapter is required" : undefined}
+            onChange={(value) => updateSetting("chapter", value ?? "")}
+          />
         </div>
 
         <div className={styles.formField}>
-          <span className="p-float-label">
-            <Dropdown
-              id="subchapter"
-              value={settings.subchapter}
-              options={sectionsOptions}
-              optionLabel="label"
-              className={`w-full ${subchapterError ? styles.requiredField : ""}`}
-              onChange={(e) => updateSetting("subchapter", e.value)}
-              disabled={loadingSections || sectionsOptions.length === 0}
-              placeholder={loadingSections ? "Loading sections..." : "Select a section"}
-            />
-            <label htmlFor="subchapter">Section*</label>
-          </span>
-          {subchapterError && <small className={styles.errorMessage}>Section is required</small>}
+          <Select
+            id="subchapter"
+            label="Section"
+            withAsterisk
+            value={settings.subchapter}
+            data={sectionsOptions}
+            allowDeselect={false}
+            disabled={loadingSections || sectionsOptions.length === 0}
+            placeholder={loadingSections ? "Loading sections…" : "Select a section"}
+            error={subchapterError ? "Section is required" : undefined}
+            onChange={(value) => updateSetting("subchapter", value ?? "")}
+          />
         </div>
       </div>
 
       <div className={styles.settingsGridTopic}>
         <div className={styles.formField}>
-          <span className="p-float-label">
-            <InputText
-              id="topic"
-              value={settings.topic}
-              className="w-full"
-              onChange={(e) => updateSetting("topic", e.target.value)}
-            />
-            <label htmlFor="topic">Topic</label>
-          </span>
+          <TextInput
+            id="topic"
+            label="Topic"
+            value={settings.topic}
+            onChange={(e) => updateSetting("topic", e.target.value)}
+          />
         </div>
 
         <div className={styles.formField}>
-          <span className="p-float-label">
-            <InputText
-              id="author"
-              value={settings.author}
-              className="w-full"
-              onChange={(e) => updateSetting("author", e.target.value)}
-            />
-            <label htmlFor="author">Author (or your name)</label>
-          </span>
+          <TextInput
+            id="author"
+            label="Author (or your name)"
+            value={settings.author}
+            onChange={(e) => updateSetting("author", e.target.value)}
+          />
         </div>
 
         <div className={styles.pointsDifficultyContainer}>
           <div className={styles.formField}>
-            <span className="p-float-label">
-              <InputNumber
-                id="points"
-                value={settings.points}
-                min={0}
-                max={100000}
-                className={`w-full ${pointsError ? styles.requiredField : ""}`}
-                onChange={(e) => onChangeInputNumber(e, "points")}
-              />
-              <label htmlFor="points">Points*</label>
-            </span>
-            {pointsError && (
-              <small className={styles.errorMessage}>Points must be greater than 0</small>
-            )}
+            <NumberInput
+              id="points"
+              label="Points"
+              withAsterisk
+              value={settings.points}
+              min={0}
+              max={100000}
+              error={pointsError ? "Points must be greater than 0" : undefined}
+              onChange={(value) =>
+                updateSetting("points", value === "" ? DEFAULT_POINTS : Number(value))
+              }
+            />
           </div>
 
           <div className={styles.formField}>
-            <span className="p-float-label">
-              <Dropdown
-                id="difficulty"
-                value={settings.difficulty}
-                options={Object.entries(difficultyOptions).map(([key, label]) => ({
-                  label,
-                  value: Number(key)
-                }))}
-                optionLabel="label"
-                onChange={(e) => updateSetting("difficulty", e.value)}
-              />
-              <label htmlFor="difficulty">Difficulty</label>
-            </span>
+            <Select
+              id="difficulty"
+              label="Difficulty"
+              value={String(settings.difficulty)}
+              data={difficultyData}
+              allowDeselect={false}
+              onChange={(value) =>
+                updateSetting("difficulty", value ? Number(value) : DEFAULT_DIFFICULTY)
+              }
+            />
           </div>
         </div>
       </div>
 
       <div className={styles.settingsGridFull}>
         <div className={styles.formField}>
-          <span className="p-float-label">
-            <Chips
-              id="tags"
-              value={settings.tags ? settings.tags.split(",") : []}
-              onChange={(e) => handleTagsChange(e.value || [])}
-              className="w-full"
-              allowDuplicate={false}
-              separator=","
-              addOnBlur
-              max={10}
-            />
-            <label htmlFor="tags">Tags</label>
-          </span>
+          <TagsInput
+            id="tags"
+            label="Tags"
+            value={settings.tags ? settings.tags.split(",") : []}
+            onChange={handleTagsChange}
+            splitChars={[","]}
+            maxTags={MAX_TAGS}
+            placeholder="Add tags"
+            clearable
+          />
         </div>
       </div>
 
       <div className={styles.settingsGridFull}>
         <div className={styles.formField}>
-          <div className="flex align-items-center gap-2">
-            <InputSwitch
-              id="is_private"
-              checked={settings.is_private}
-              onChange={(e) => updateSetting("is_private", e.value)}
-            />
-            <label htmlFor="is_private" className="font-medium">
-              Private Exercise
-            </label>
-          </div>
+          <Switch
+            id="is_private"
+            label="Private exercise"
+            checked={settings.is_private}
+            onChange={(e) => updateSetting("is_private", e.currentTarget.checked)}
+          />
         </div>
       </div>
 
-      {/* Render additional fields if provided */}
       {additionalFields && <div className={styles.settingsGridFull}>{additionalFields}</div>}
     </>
   );

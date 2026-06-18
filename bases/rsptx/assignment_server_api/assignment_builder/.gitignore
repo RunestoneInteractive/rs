@@ -23,3 +23,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .vite
+# playwright e2e
+e2e/.auth/
+playwright-report/
+test-results/

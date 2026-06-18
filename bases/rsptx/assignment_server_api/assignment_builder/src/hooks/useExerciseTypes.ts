@@ -1,7 +1,11 @@
 import { datasetSelectors } from "@store/dataset/dataset.logic";
 import { useSelector } from "react-redux";
 
-import { colorSchemes, ExerciseTypeConfig } from "@/config/exerciseTypes";
+import {
+  ExerciseTypeConfig,
+  getExerciseColorScheme,
+  getExerciseTypeLabel
+} from "@/config/exerciseTypes";
 
 export const useExerciseTypes = (): ExerciseTypeConfig[] => {
   const questionTypeOptions = useSelector(datasetSelectors.getQuestionTypeOptions);
@@ -9,9 +13,10 @@ export const useExerciseTypes = (): ExerciseTypeConfig[] => {
 
   return questionTypeOptions
     .filter((questionTypeOption) => !unsupportedTypes.includes(questionTypeOption.value))
-    .map((option, index) => ({
+    .map((option) => ({
       ...option,
-      color: colorSchemes[index],
+      label: getExerciseTypeLabel(option.value, option.label),
+      color: getExerciseColorScheme(option.value),
       tag: option.value
     }));
 };

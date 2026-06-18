@@ -1,13 +1,15 @@
-import { Tooltip } from "primereact/tooltip";
+import { Tooltip } from "@mantine/core";
 
 import { Assignment } from "@/types/assignment";
 import { parseUTCDate } from "@/utils/date";
 
-interface VisibilityStatus {
-  text: string;
-  secondLine?: string;
-  color: string;
-  icon: string;
+import styles from "./VisibilityStatusBadge.module.css";
+
+export type VisibilityVariant = "success" | "info" | "neutral";
+
+export interface VisibilityStatus {
+  label: string;
+  variant: VisibilityVariant;
   tooltip: string;
 }
 
@@ -15,172 +17,115 @@ interface VisibilityStatusBadgeProps {
   assignment: Assignment;
 }
 
-const getVisibilityStatus = (assignment: Assignment): VisibilityStatus => {
-  const now = new Date();
+const formatShort = (date: Date, now: Date) =>
+  date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    ...(date.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {})
+  });
+
+export const getVisibilityStatus = (
+  assignment: Assignment,
+  now: Date = new Date()
+): VisibilityStatus => {
   const { visible, visible_on, hidden_on } = assignment;
 
-  // Check for scheduled period (both dates set)
   if (visible_on && hidden_on && !visible) {
     const visibleDate = parseUTCDate(visible_on);
     const hiddenDate = parseUTCDate(hidden_on);
 
-    const formatShort = (d: Date) =>
-      d.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-
     if (now < visibleDate) {
       return {
-        text: formatShort(visibleDate),
-        secondLine: formatShort(hiddenDate),
-        color: "#FFA500",
-        icon: "pi pi-clock",
+        label: `${formatShort(visibleDate, now)} – ${formatShort(hiddenDate, now)}`,
+        variant: "info",
         tooltip: `Visible from ${visibleDate.toLocaleString()} to ${hiddenDate.toLocaleString()}`
       };
-    } else if (now >= visibleDate && now < hiddenDate) {
+    }
+    if (now < hiddenDate) {
       return {
-        text: formatShort(visibleDate),
-        secondLine: formatShort(hiddenDate),
-        color: "#28A745",
-        icon: "pi pi-calendar",
+        label: `Until ${formatShort(hiddenDate, now)}`,
+        variant: "success",
         tooltip: `Visible until ${hiddenDate.toLocaleString()}`
       };
-    } else {
-      return {
-        text: formatShort(visibleDate),
-        secondLine: formatShort(hiddenDate),
-        color: "#DC3545",
-        icon: "pi pi-calendar-times",
-        tooltip: `Period ended on ${hiddenDate.toLocaleString()}`
-      };
     }
-  }
-
-  // Hidden state
-  if (!visible) {
-    if (visible_on) {
-      const visibleDate = parseUTCDate(visible_on);
-      if (now >= visibleDate) {
-        // visible_on has passed - assignment is now visible
-        return {
-          text: "Visible",
-          color: "#28A745",
-          icon: "pi pi-eye",
-          tooltip: ""
-        };
-      }
-      return {
-        text: visibleDate.toLocaleDateString(undefined, {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit"
-        }),
-        color: "#FFA500",
-        icon: "pi pi-clock",
-        tooltip: `Will become visible on ${visibleDate.toLocaleString()}`
-      };
-    }
-    // Simple hidden - no tooltip needed
     return {
-      text: "Hidden",
-      color: "#DC3545",
-      icon: "pi pi-eye-slash",
-      tooltip: ""
+      label: "Hidden",
+      variant: "neutral",
+      tooltip: `Period ended on ${hiddenDate.toLocaleString()}`
     };
   }
 
-  // Visible state
-  if (hidden_on) {
-    const hiddenDate = parseUTCDate(hidden_on);
-    if (now >= hiddenDate) {
-      // Already hidden by schedule - no tooltip needed
+  if (!visible) {
+    if (visible_on) {
+      const visibleDate = parseUTCDate(visible_on);
+
+      if (now >= visibleDate) {
+        return { label: "Visible", variant: "success", tooltip: "" };
+      }
       return {
-        text: "Hidden",
-        color: "#DC3545",
-        icon: "pi pi-eye-slash",
-        tooltip: ""
+        label: `From ${formatShort(visibleDate, now)}`,
+        variant: "info",
+        tooltip: `Will become visible on ${visibleDate.toLocaleString()}`
       };
     }
+    return { label: "Hidden", variant: "neutral", tooltip: "" };
+  }
+
+  if (hidden_on) {
+    const hiddenDate = parseUTCDate(hidden_on);
+
+    if (now >= hiddenDate) {
+      return { label: "Hidden", variant: "neutral", tooltip: "" };
+    }
     return {
-      text: hiddenDate.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      }),
-      color: "#17A2B8",
-      icon: "pi pi-calendar-times",
+      label: `Until ${formatShort(hiddenDate, now)}`,
+      variant: "info",
       tooltip: `Will be hidden on ${hiddenDate.toLocaleString()}`
     };
   }
 
   if (visible_on) {
     const visibleDate = parseUTCDate(visible_on);
+
     if (now >= visibleDate) {
-      // Simple visible now - no tooltip needed
-      return {
-        text: "Visible",
-        color: "#28A745",
-        icon: "pi pi-eye",
-        tooltip: ""
-      };
+      return { label: "Visible", variant: "success", tooltip: "" };
     }
     return {
-      text: visibleDate.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      }),
-      color: "#FFA500",
-      icon: "pi pi-clock",
+      label: `From ${formatShort(visibleDate, now)}`,
+      variant: "info",
       tooltip: `Will become visible on ${visibleDate.toLocaleString()}`
     };
   }
 
-  // Simple visible - no tooltip needed
-  return {
-    text: "Visible",
-    color: "#28A745",
-    icon: "pi pi-eye",
-    tooltip: ""
-  };
+  return { label: "Visible", variant: "success", tooltip: "" };
 };
+
+export const VisibilityChip = ({ status }: { status: VisibilityStatus }) => (
+  <span className={styles.chip} data-variant={status.variant}>
+    <span className={styles.dot} />
+    {status.label}
+  </span>
+);
 
 export const VisibilityStatusBadge = ({ assignment }: VisibilityStatusBadgeProps) => {
   const status = getVisibilityStatus(assignment);
-  const hasTooltip = status.tooltip !== "";
+
+  if (!status.tooltip) {
+    return <VisibilityChip status={status} />;
+  }
 
   return (
-    <>
-      {hasTooltip && <Tooltip target=".visibility-status-badge" showDelay={200} />}
-      <div
-        className={
-          hasTooltip
-            ? "visibility-status-badge flex flex-column align-items-center justify-content-center"
-            : "flex flex-column align-items-center justify-content-center"
-        }
-        style={{
-          fontSize: "0.85rem",
-          color: status.color,
-          fontWeight: 500,
-          cursor: hasTooltip ? "help" : "default"
-        }}
-        {...(hasTooltip && {
-          "data-pr-tooltip": status.tooltip,
-          "data-pr-position": "top"
-        })}
-      >
-        <div className="flex align-items-center gap-1">
-          <i className={status.icon} style={{ fontSize: "0.9rem" }}></i>
-          <span>{status.text}</span>
-        </div>
-        {status.secondLine && <span>{status.secondLine}</span>}
-      </div>
-    </>
+    <Tooltip
+      label={status.tooltip}
+      position="top"
+      openDelay={200}
+      withArrow
+      events={{ hover: true, focus: true, touch: true }}
+    >
+      <span className={styles.chip} data-variant={status.variant} tabIndex={0}>
+        <span className={styles.dot} />
+        {status.label}
+      </span>
+    </Tooltip>
   );
 };

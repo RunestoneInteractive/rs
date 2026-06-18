@@ -1,11 +1,11 @@
 .parsons-tour-popover {
-  --driver-popover-bg: #ffffff;
-  --driver-popover-border: 1px solid #e2e8f0;
-  --driver-popover-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --driver-popover-bg: var(--rs-surface);
+  --driver-popover-border: 1px solid var(--rs-border-solid);
+  --driver-popover-shadow: var(--rs-shadow-overlay);
 
   background: var(--driver-popover-bg) !important;
   border: var(--driver-popover-border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--rs-radius-md) !important;
   box-shadow: var(--driver-popover-shadow) !important;
   max-width: 380px !important;
   padding: 0 !important;
@@ -15,7 +15,7 @@
 .parsons-tour-popover .driver-popover-title {
   font-size: 0.95rem !important;
   font-weight: 600 !important;
-  color: #1e293b !important;
+  color: var(--rs-neutral-800) !important;
   padding: 0.875rem 1rem 0.25rem !important;
   margin: 0 !important;
   line-height: 1.3 !important;
@@ -23,14 +23,14 @@
 
 .parsons-tour-popover .driver-popover-description {
   font-size: 0.835rem !important;
-  color: #475569 !important;
+  color: var(--rs-neutral-600) !important;
   line-height: 1.55 !important;
   padding: 0.25rem 1rem 0.75rem !important;
   margin: 0 !important;
 }
 
 .parsons-tour-popover .driver-popover-description strong {
-  color: #1e293b;
+  color: var(--rs-neutral-800);
   font-weight: 600;
 }
 
@@ -39,14 +39,14 @@
   align-items: center !important;
   justify-content: space-between !important;
   padding: 0.5rem 1rem !important;
-  border-top: 1px solid #f1f5f9 !important;
-  background: #fafbfc !important;
+  border-top: 1px solid var(--rs-neutral-100) !important;
+  background: var(--rs-neutral-50) !important;
   gap: 0.5rem !important;
 }
 
 .parsons-tour-popover .driver-popover-progress-text {
   font-size: 0.72rem !important;
-  color: #94a3b8 !important;
+  color: var(--rs-text-subtle) !important;
   font-weight: 500 !important;
   letter-spacing: 0.02em !important;
 }
@@ -61,31 +61,31 @@
   font-size: 0.78rem !important;
   font-weight: 500 !important;
   padding: 0.35rem 0.85rem !important;
-  border-radius: 6px !important;
-  border: 1px solid #e2e8f0 !important;
-  background: #ffffff !important;
-  color: #334155 !important;
+  border-radius: var(--rs-radius-sm) !important;
+  border: 1px solid var(--rs-border-solid) !important;
+  background: var(--rs-neutral-0) !important;
+  color: var(--rs-neutral-700) !important;
   cursor: pointer !important;
-  transition: all 0.15s ease !important;
+  transition: all var(--rs-transition-fast) !important;
   text-shadow: none !important;
   line-height: 1.3 !important;
 }
 
 .parsons-tour-popover .driver-popover-prev-btn:hover,
 .parsons-tour-popover .driver-popover-next-btn:hover {
-  background: #f1f5f9 !important;
-  border-color: #cbd5e1 !important;
+  background: var(--rs-neutral-100) !important;
+  border-color: var(--rs-border-strong) !important;
 }
 
 .parsons-tour-popover .driver-popover-next-btn {
-  background: #6366f1 !important;
-  color: #ffffff !important;
-  border-color: #6366f1 !important;
+  background: var(--rs-brand-500) !important;
+  color: var(--rs-neutral-0) !important;
+  border-color: var(--rs-brand-500) !important;
 }
 
 .parsons-tour-popover .driver-popover-next-btn:hover {
-  background: #4f46e5 !important;
-  border-color: #4f46e5 !important;
+  background: var(--rs-brand-600) !important;
+  border-color: var(--rs-brand-600) !important;
 }
 
 .parsons-tour-popover .driver-popover-close-btn {
@@ -98,37 +98,35 @@
   align-items: center !important;
   justify-content: center !important;
   font-size: 1rem !important;
-  color: #94a3b8 !important;
+  color: var(--rs-text-subtle) !important;
   background: transparent !important;
   border: none !important;
   border-radius: 4px !important;
   cursor: pointer !important;
-  transition: all 0.15s ease !important;
+  transition: all var(--rs-transition-fast) !important;
 }
 
 .parsons-tour-popover .driver-popover-close-btn:hover {
-  color: #64748b !important;
-  background: #f1f5f9 !important;
+  color: var(--rs-text-muted) !important;
+  background: var(--rs-neutral-100) !important;
 }
 
 .parsons-tour-popover .driver-popover-arrow {
   border: none !important;
 }
 
-/* Arrow side-specific overrides */
 .parsons-tour-popover .driver-popover-arrow-side-top {
-  border-bottom-color: #ffffff !important;
+  border-bottom-color: var(--rs-surface) !important;
 }
 
 .parsons-tour-popover .driver-popover-arrow-side-bottom {
-  border-top-color: #ffffff !important;
+  border-top-color: var(--rs-surface) !important;
 }
 
 .parsons-tour-popover .driver-popover-arrow-side-left {
-  border-right-color: #ffffff !important;
+  border-right-color: var(--rs-surface) !important;
 }
 
 .parsons-tour-popover .driver-popover-arrow-side-right {
-  border-left-color: #ffffff !important;
+  border-left-color: var(--rs-surface) !important;
 }
-

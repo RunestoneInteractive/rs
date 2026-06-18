@@ -1,13 +1,22 @@
-import { Button } from "primereact/button";
-import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
-import { Dialog } from "primereact/dialog";
-import { FileUpload, FileUploadHandlerEvent } from "primereact/fileupload";
-import { InputText } from "primereact/inputtext";
-import { InputTextarea } from "primereact/inputtextarea";
-import { MultiSelect } from "primereact/multiselect";
+import {
+  ActionIcon,
+  Button,
+  Center,
+  FileButton,
+  Group,
+  Loader,
+  Modal,
+  MultiSelect,
+  Stack,
+  Text,
+  TextInput,
+  Textarea,
+  Tooltip
+} from "@mantine/core";
+import { modals } from "@mantine/modals";
 import { FC, useCallback, useRef, useState } from "react";
-import toast from "react-hot-toast";
 
+import { Icon } from "@/components/ui/Icon";
 import {
   useCreateDatafileMutation,
   useDeleteDatafileMutation,
@@ -16,15 +25,13 @@ import {
   useUpdateDatafileMutation
 } from "@/store/datafile/datafile.logic.api";
 import { DataFile, ExistingDataFile, SelectedDataFile } from "@/types/datafile";
+import { notify } from "@components/ui/notify";
 
-import styles from "../../../shared/styles/CreateExercise.module.css";
+import styles from "./DataFilesEditor.module.css";
 
-// Supported file extensions for datafiles
 const SUPPORTED_EXTENSIONS = [
-  // Text files
   ".txt",
   ".csv",
-  // Code files
   ".py",
   ".jar",
   ".js",
@@ -37,13 +44,14 @@ const SUPPORTED_EXTENSIONS = [
   ".h",
   ".hpp",
   ".sql",
-  // Image files
   ".png",
   ".jpg",
   ".jpeg",
   ".gif",
   ".svg"
 ];
+
+const UPLOAD_ACCEPT = "text/*,image/*,.txt,.csv,.json,.py,.js,.html,.css";
 
 const hasValidExtension = (filename: string): boolean => {
   if (!filename) return false;
@@ -76,7 +84,6 @@ interface DataFilesEditorProps {
   onSelectedDataFilesChange: (files: SelectedDataFile[]) => void;
 }
 
-// Initial state for new datafile in modal
 const initialNewDataFile: DataFile = {
   filename: "",
   content: "",
@@ -85,6 +92,9 @@ const initialNewDataFile: DataFile = {
   cols: 60,
   isEditable: true
 };
+
+const imageSource = (content: string): string =>
+  content.startsWith("data:") ? content : `data:image/png;base64,${content}`;
 
 export const DataFilesEditor: FC<DataFilesEditorProps> = ({
   selectedDataFiles,
@@ -101,8 +111,8 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
   const [editDataFile, setEditDataFile] = useState<DataFile>(initialNewDataFile);
   const [newDataFile, setNewDataFile] = useState<DataFile>(initialNewDataFile);
   const [filenameError, setFilenameError] = useState<string>("");
-  const fileUploadRef = useRef<FileUpload>(null);
-  const editFileUploadRef = useRef<FileUpload>(null);
+  const resetCreateUpload = useRef<() => void>(null);
+  const resetEditUpload = useRef<() => void>(null);
 
   const { data: editingDatafileData, isFetching: isFetchingEditData } = useFetchDatafileQuery(
     editingAcid || "",
@@ -119,17 +129,14 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
     setNewDataFile(initialNewDataFile);
     setFilenameError("");
     setIsModalOpen(false);
-    if (fileUploadRef.current) {
-      fileUploadRef.current.clear();
-    }
+    resetCreateUpload.current?.();
   };
 
-  const handleUpdateNewDataFile = (field: keyof DataFile, value: any) => {
+  const handleUpdateNewDataFile = (field: keyof DataFile, value: DataFile[keyof DataFile]) => {
     setNewDataFile((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleFileUpload = useCallback((event: FileUploadHandlerEvent) => {
-    const file = event.files[0];
+  const handleFileUpload = useCallback((file: File | null) => {
     if (!file) return;
 
     const reader = new FileReader();
@@ -152,9 +159,7 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
       reader.readAsText(file);
     }
 
-    if (fileUploadRef.current) {
-      fileUploadRef.current.clear();
-    }
+    resetCreateUpload.current?.();
   }, []);
 
   const handleCreateDataFile = async () => {
@@ -198,9 +203,7 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
     setEditingAcid(null);
     setEditDataFile(initialNewDataFile);
     setIsEditModalOpen(false);
-    if (editFileUploadRef.current) {
-      editFileUploadRef.current.clear();
-    }
+    resetEditUpload.current?.();
   };
 
   const handleEditDataLoaded = useCallback(() => {
@@ -228,21 +231,17 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
   };
 
   const handleEditFileUpload = useCallback(
-    (event: FileUploadHandlerEvent) => {
-      const file = event.files[0];
+    (file: File | null) => {
       if (!file) return;
 
       const originalExtension = getFileExtension(editDataFile.filename);
       const uploadedExtension = getFileExtension(file.name);
 
       if (originalExtension !== uploadedExtension) {
-        toast.error(
-          `File extension mismatch. Expected "${originalExtension}" but got "${uploadedExtension}". Please upload a file with the same extension.`,
-          { duration: 5000 }
+        notify.error(
+          `File extension mismatch. Expected "${originalExtension}" but got "${uploadedExtension}". Upload a file with the same extension.`
         );
-        if (editFileUploadRef.current) {
-          editFileUploadRef.current.clear();
-        }
+        resetEditUpload.current?.();
         return;
       }
 
@@ -266,9 +265,7 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
         reader.readAsText(file);
       }
 
-      if (editFileUploadRef.current) {
-        editFileUploadRef.current.clear();
-      }
+      resetEditUpload.current?.();
     },
     [editDataFile.filename]
   );
@@ -297,12 +294,12 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
   };
 
   const handleDeleteDatafile = (acid: string, filename: string) => {
-    confirmDialog({
-      message: `Are you sure you want to delete "${filename}"? This action cannot be undone.`,
-      header: "Delete Data File",
-      icon: "pi pi-exclamation-triangle",
-      acceptClassName: "p-button-danger",
-      accept: async () => {
+    modals.openConfirmModal({
+      title: "Delete data file",
+      children: <Text size="sm">Delete &quot;{filename}&quot;? This can&apos;t be undone.</Text>,
+      labels: { confirm: "Delete", cancel: "Cancel" },
+      confirmProps: { color: "red" },
+      onConfirm: async () => {
         try {
           await deleteDatafile(acid).unwrap();
 
@@ -321,93 +318,72 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
       value: df.acid
     }));
 
-  const modalFooter = (
-    <div className="flex justify-content-end gap-2">
-      <Button
-        label="Cancel"
-        icon="pi pi-times"
-        className="p-button-text"
-        onClick={handleCloseModal}
-        disabled={isCreating}
-      />
-      <Button
-        label="Create"
-        icon="pi pi-check"
-        onClick={handleCreateDataFile}
-        loading={isCreating}
-        disabled={!newDataFile.filename.trim() || isCreating}
-      />
-    </div>
-  );
-
   return (
     <div className={styles.dataFilesEditor}>
-      <div className="flex gap-2 align-items-start">
-        <div className="flex-grow-1">
+      <Group align="flex-start" gap="sm" wrap="nowrap">
+        <div className={styles.grow}>
           {isLoading ? (
-            <div className="flex align-items-center gap-2 p-3">
-              <i className="pi pi-spin pi-spinner"></i>
-              <span>Loading data files...</span>
-            </div>
+            <Group gap="sm" p="sm">
+              <Loader size="sm" />
+              <span>Loading data files…</span>
+            </Group>
           ) : (
             <MultiSelect
               id="data-files"
               value={selectedDataFiles}
-              options={existingDatafilesOptions}
-              onChange={(e) => {
-                onSelectedDataFilesChange(e.value);
-              }}
+              data={existingDatafilesOptions}
+              onChange={onSelectedDataFilesChange}
               placeholder="Select data files to include"
-              className="w-full"
-              display="chip"
-              filter
-              showSelectAll
-              maxSelectedLabels={5}
-              emptyMessage="No data files available"
-              emptyFilterMessage="No matching data files"
+              searchable
+              clearable
+              nothingFoundMessage="No matching data files"
             />
           )}
         </div>
         <Button
-          label="Add New"
-          icon="pi pi-plus"
-          className="p-button-outlined flex-shrink-0"
+          variant="outline"
+          leftSection={<Icon name="plus" size={14} />}
           onClick={handleOpenModal}
-        />
-      </div>
+        >
+          Create data file
+        </Button>
+      </Group>
 
       {selectedDataFiles.length > 0 && (
-        <div className="mt-3 p-3 surface-100 border-round">
-          <h5 className="m-0 mb-2">Selected Files ({selectedDataFiles.length})</h5>
-          <div className="flex flex-column gap-2">
+        <div className={styles.selectedList}>
+          <h5 className={styles.selectedTitle}>Selected files ({selectedDataFiles.length})</h5>
+          <Stack gap="xs">
             {selectedDataFiles.map((selectedFileAcid) => {
               const file = existingDatafiles.find((df) => df.acid === selectedFileAcid);
-              const isOwner = file?.owner !== null; // If owner is set and matches current user
+              const isOwner = file?.owner !== null;
               return (
-                <div
+                <Group
                   key={selectedFileAcid}
-                  className="flex align-items-center justify-content-between p-2 surface-0 border-round border-1 surface-border"
+                  justify="space-between"
+                  className={styles.selectedRow}
                 >
-                  <div className="flex align-items-center gap-2">
-                    <span className="font-medium">{file?.filename || selectedFileAcid}</span>
-                    {file?.owner && <span className="text-xs text-gray-500">by {file.owner}</span>}
-                  </div>
-                  <div className="flex align-items-center gap-2">
-                    {isOwner && (
-                      <>
-                        <Button
-                          icon="pi pi-pencil"
-                          className="p-button-text p-button-sm p-button-rounded"
-                          tooltip="Edit datafile"
-                          tooltipOptions={{ position: "top" }}
+                  <Group gap="xs">
+                    <span className={styles.fileName}>{file?.filename || selectedFileAcid}</span>
+                    {file?.owner && <span className={styles.fileOwner}>by {file.owner}</span>}
+                  </Group>
+                  {isOwner && (
+                    <Group gap="xs">
+                      <Tooltip label="Edit data file" position="top">
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          aria-label="Edit data file"
                           onClick={() => handleOpenEditModal(selectedFileAcid)}
                           disabled={isUpdating || isDeleting}
-                        />
-                        <Button
-                          icon="pi pi-trash"
-                          className="p-button-text p-button-sm p-button-rounded p-button-danger"
-                          tooltip="Delete datafile"
-                          tooltipOptions={{ position: "top" }}
+                        >
+                          <Icon name="pencil" size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Delete data file" position="top">
+                        <ActionIcon
+                          variant="subtle"
+                          color="red"
+                          aria-label="Delete data file"
                           onClick={() =>
                             handleDeleteDatafile(
                               selectedFileAcid,
@@ -415,211 +391,200 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
                             )
                           }
                           disabled={isUpdating || isDeleting}
-                        />
-                      </>
-                    )}
-                  </div>
-                </div>
+                        >
+                          <Icon name="trash" size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
+                  )}
+                </Group>
               );
             })}
-          </div>
+          </Stack>
         </div>
       )}
 
-      {/* Create New Data File Modal */}
-      <Dialog
-        header="Create New Data File"
-        visible={isModalOpen}
-        onHide={handleCloseModal}
-        style={{ width: "50vw", minWidth: "400px" }}
-        footer={modalFooter}
-        closable={!isCreating}
+      <Modal
+        title="Create data file"
+        opened={isModalOpen}
+        onClose={handleCloseModal}
+        size="lg"
         closeOnEscape={!isCreating}
-        dismissableMask={!isCreating}
-        modal
+        closeOnClickOutside={!isCreating}
+        withCloseButton={!isCreating}
+        centered
       >
-        <div className="flex flex-column gap-4">
-          <div className="flex gap-2 mb-2">
-            <FileUpload
-              ref={fileUploadRef}
-              mode="basic"
-              name="datafile"
-              accept="text/*,image/*,.txt,.csv,.json,.py,.js,.html,.css"
-              maxFileSize={5000000}
-              customUpload
-              auto
-              uploadHandler={handleFileUpload}
-              chooseLabel="Upload File"
-              className="p-button-outlined"
-            />
-            <small className="text-gray-500 flex align-items-center">
+        <Stack gap="md">
+          <Group gap="sm">
+            <FileButton
+              resetRef={resetCreateUpload}
+              accept={UPLOAD_ACCEPT}
+              onChange={handleFileUpload}
+            >
+              {(props) => (
+                <Button
+                  {...props}
+                  variant="outline"
+                  leftSection={<Icon name="download" size={14} />}
+                >
+                  Upload file
+                </Button>
+              )}
+            </FileButton>
+            <Text size="sm" c="dimmed">
               Or fill in the form manually below
-            </small>
-          </div>
+            </Text>
+          </Group>
 
-          <div>
-            <label htmlFor="new-filename" className="block mb-2 font-medium">
-              Filename *
-            </label>
-            <InputText
-              id="new-filename"
-              value={newDataFile.filename}
-              onChange={(e) => {
-                handleUpdateNewDataFile("filename", e.target.value);
-                if (filenameError) setFilenameError("");
-              }}
-              placeholder="e.g., data.txt or image.png"
-              className={`w-full ${filenameError ? "p-invalid" : ""}`}
-            />
-            {filenameError && <small className="p-error block mt-1">{filenameError}</small>}
-          </div>
+          <TextInput
+            id="new-filename"
+            label="Filename"
+            withAsterisk
+            value={newDataFile.filename}
+            error={filenameError || undefined}
+            onChange={(e) => {
+              handleUpdateNewDataFile("filename", e.target.value);
+              if (filenameError) setFilenameError("");
+            }}
+            placeholder="e.g., data.txt or image.png"
+          />
 
           {newDataFile.isImage ? (
             <div>
-              <label className="block mb-2 font-medium">Image Preview</label>
+              <Text size="sm" fw={500} mb={6}>
+                Image preview
+              </Text>
               {newDataFile.content ? (
                 <img
                   src={newDataFile.content}
                   alt={newDataFile.filename}
-                  style={{ maxWidth: "300px", maxHeight: "200px", objectFit: "contain" }}
-                  className="border-1 border-round surface-border"
+                  className={styles.imagePreview}
                 />
               ) : (
-                <div className="text-gray-500">No image loaded</div>
+                <Text c="dimmed">No image loaded</Text>
               )}
             </div>
           ) : (
-            <>
-              <div>
-                <label htmlFor="new-content" className="block mb-2 font-medium">
-                  File Content
-                </label>
-                <InputTextarea
-                  id="new-content"
-                  value={newDataFile.content}
-                  onChange={(e) => handleUpdateNewDataFile("content", e.target.value)}
-                  rows={10}
-                  className="w-full font-mono"
-                  placeholder="Enter file content here..."
-                  style={{ resize: "vertical" }}
-                />
-              </div>
-            </>
+            <Textarea
+              id="new-content"
+              label="File content"
+              value={newDataFile.content}
+              onChange={(e) => handleUpdateNewDataFile("content", e.target.value)}
+              autosize
+              minRows={10}
+              className={styles.mono}
+              placeholder="Enter file content…"
+            />
           )}
-        </div>
-      </Dialog>
 
-      {/* Edit Data File Modal */}
-      <Dialog
-        header="Edit Data File"
-        visible={isEditModalOpen}
-        onHide={handleCloseEditModal}
-        style={{ width: "50vw", minWidth: "400px" }}
-        footer={
-          <div className="flex justify-content-end gap-2">
+          <Group justify="flex-end" gap="sm">
+            <Button variant="subtle" onClick={handleCloseModal} disabled={isCreating}>
+              Cancel
+            </Button>
             <Button
-              label="Cancel"
-              icon="pi pi-times"
-              className="p-button-text"
-              onClick={handleCloseEditModal}
-              disabled={isUpdating}
-            />
-            <Button
-              label="Save"
-              icon="pi pi-check"
-              onClick={handleSaveEditDataFile}
-              loading={isUpdating}
-              disabled={!editDataFile.filename.trim() || isUpdating || isFetchingEditData}
-            />
-          </div>
-        }
-        closable={!isUpdating}
+              leftSection={<Icon name="check" size={14} />}
+              onClick={handleCreateDataFile}
+              loading={isCreating}
+              disabled={!newDataFile.filename.trim() || isCreating}
+            >
+              Create
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        title="Edit data file"
+        opened={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        size="lg"
         closeOnEscape={!isUpdating}
-        dismissableMask={!isUpdating}
-        modal
+        closeOnClickOutside={!isUpdating}
+        withCloseButton={!isUpdating}
+        centered
       >
         {isFetchingEditData ? (
-          <div className="flex align-items-center justify-content-center p-4">
-            <i className="pi pi-spin pi-spinner mr-2"></i>
-            <span>Loading datafile...</span>
-          </div>
+          <Center p="lg">
+            <Group gap="sm">
+              <Loader size="sm" />
+              <span>Loading data file…</span>
+            </Group>
+          </Center>
         ) : (
-          <div className="flex flex-column gap-4">
-            <div className="flex gap-2 mb-2">
-              <FileUpload
-                ref={editFileUploadRef}
-                mode="basic"
-                name="datafile"
-                accept="text/*,image/*,.txt,.csv,.json,.py,.js,.html,.css"
-                maxFileSize={5000000}
-                customUpload
-                auto
-                uploadHandler={handleEditFileUpload}
-                chooseLabel="Replace Content"
-                className="p-button-outlined"
-              />
-              <small className="text-gray-500 flex align-items-center">
+          <Stack gap="md">
+            <Group gap="sm">
+              <FileButton
+                resetRef={resetEditUpload}
+                accept={UPLOAD_ACCEPT}
+                onChange={handleEditFileUpload}
+              >
+                {(props) => (
+                  <Button
+                    {...props}
+                    variant="outline"
+                    leftSection={<Icon name="download" size={14} />}
+                  >
+                    Replace content
+                  </Button>
+                )}
+              </FileButton>
+              <Text size="sm" c="dimmed">
                 Upload a new file to replace current content
-              </small>
-            </div>
+              </Text>
+            </Group>
 
-            <div>
-              <label htmlFor="edit-filename" className="block mb-2 font-medium">
-                Filename
-              </label>
-              <InputText
-                id="edit-filename"
-                value={editDataFile.filename}
-                className="w-full"
-                disabled
-              />
-              <small className="text-gray-500 block mt-1">
-                Filename cannot be changed after creation
-              </small>
-            </div>
+            <TextInput
+              id="edit-filename"
+              label="Filename"
+              value={editDataFile.filename}
+              description="The filename can't be changed after creation"
+              disabled
+            />
 
             {editDataFile.isImage ? (
               <div>
-                <label className="block mb-2 font-medium">Image Preview</label>
+                <Text size="sm" fw={500} mb={6}>
+                  Image preview
+                </Text>
                 {editDataFile.content ? (
                   <img
-                    src={
-                      editDataFile.content.startsWith("data:")
-                        ? editDataFile.content
-                        : `data:image/png;base64,${editDataFile.content}`
-                    }
+                    src={imageSource(editDataFile.content)}
                     alt={editDataFile.filename}
-                    style={{ maxWidth: "300px", maxHeight: "200px", objectFit: "contain" }}
-                    className="border-1 border-round surface-border"
+                    className={styles.imagePreview}
                   />
                 ) : (
-                  <div className="text-gray-500">No image loaded</div>
+                  <Text c="dimmed">No image loaded</Text>
                 )}
               </div>
             ) : (
-              <div>
-                <label htmlFor="edit-content" className="block mb-2 font-medium">
-                  File Content
-                </label>
-                <InputTextarea
-                  id="edit-content"
-                  value={editDataFile.content}
-                  onChange={(e) =>
-                    setEditDataFile((prev) => ({ ...prev, content: e.target.value }))
-                  }
-                  rows={10}
-                  className="w-full font-mono"
-                  placeholder="Enter file content here..."
-                  style={{ resize: "vertical" }}
-                />
-              </div>
+              <Textarea
+                id="edit-content"
+                label="File content"
+                value={editDataFile.content}
+                onChange={(e) => setEditDataFile((prev) => ({ ...prev, content: e.target.value }))}
+                autosize
+                minRows={10}
+                className={styles.mono}
+                placeholder="Enter file content…"
+              />
             )}
-          </div>
-        )}
-      </Dialog>
 
-      {/* Confirm Dialog for delete */}
-      <ConfirmDialog />
+            <Group justify="flex-end" gap="sm">
+              <Button variant="subtle" onClick={handleCloseEditModal} disabled={isUpdating}>
+                Cancel
+              </Button>
+              <Button
+                leftSection={<Icon name="check" size={14} />}
+                onClick={handleSaveEditDataFile}
+                loading={isUpdating}
+                disabled={!editDataFile.filename.trim() || isUpdating || isFetchingEditData}
+              >
+                Save
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
     </div>
   );
 };

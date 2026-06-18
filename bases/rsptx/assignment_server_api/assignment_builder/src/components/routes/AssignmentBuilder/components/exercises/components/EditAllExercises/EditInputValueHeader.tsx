@@ -1,8 +1,11 @@
 import { withEditAllExercises } from "@components/routes/AssignmentBuilder/components/exercises/components/EditAllExercises/withEditAllExercises";
-import { InputNumber } from "primereact/inputnumber";
+import { NumberInput } from "@mantine/core";
 import { KeyboardEvent } from "react";
 
-import { DraggingExerciseNumberColumns } from "@/types/components/editableTableCell";
+import {
+  DraggingExerciseNumberColumns,
+  EDITABLE_FIELD_LABELS
+} from "@/types/components/editableTableCell";
 
 export interface EditInputValueHeaderComponentProps {
   value: number;
@@ -24,18 +27,21 @@ const EditInputValueHeaderComponent = ({
   };
 
   return (
-    <InputNumber
-      style={{ width: "100%" }}
+    <NumberInput
+      w="100%"
       id={field}
       name={field}
+      aria-label={`${EDITABLE_FIELD_LABELS[field]} for all exercises`}
       min={0}
       value={value}
-      onChange={(e) => onChange(e.value ?? 0)}
+      onChange={(next) => onChange(typeof next === "number" ? next : 0)}
       onKeyDown={handleKeyDown}
     />
   );
 };
 
-export const EditInputValueHeader = withEditAllExercises<number, any>(
-  EditInputValueHeaderComponent
-);
+export const EditInputValueHeader = withEditAllExercises<
+  number,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  any
+>(EditInputValueHeaderComponent);
