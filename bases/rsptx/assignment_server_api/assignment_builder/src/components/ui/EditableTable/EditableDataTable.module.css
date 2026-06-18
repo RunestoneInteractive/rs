@@ -1,0 +1,97 @@
+.wrap {
+  position: relative;
+  overflow: auto;
+  max-height: calc(100vh - 280px);
+  background: var(--rs-surface-raised);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-lg);
+}
+
+.wrapFlush {
+  max-height: none;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+
+.scrollSentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.wrap th {
+  height: 40px;
+  background: var(--rs-neutral-50);
+  font-size: var(--rs-font-size-xs);
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-muted);
+  border-bottom: 1px solid var(--rs-border-solid);
+}
+
+.wrap tbody td {
+  height: 44px;
+}
+
+.wrap tbody tr {
+  transition: background-color var(--rs-transition-fast);
+}
+
+.wrap tbody tr:hover {
+  background-color: var(--rs-neutral-50);
+}
+
+.wrap tbody tr[data-selected] {
+  background-color: var(--rs-brand-50);
+}
+
+.wrap tbody tr[data-dragging] {
+  background-color: var(--rs-surface);
+  box-shadow: var(--rs-shadow-md);
+}
+
+.controlCell {
+  width: 3rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.wrap td[data-field],
+.wrap td.flushTd {
+  padding: 0;
+  position: relative;
+}
+
+.wrap td[data-field]:hover {
+  outline: 2px solid var(--rs-brand-500);
+  outline-offset: -2px;
+}
+
+.dragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  cursor: grab;
+  color: var(--rs-text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+  touch-action: none;
+  opacity: 0.4;
+  transition: opacity var(--rs-transition-fast);
+}
+
+.wrap tbody tr:hover .dragHandle,
+.dragHandle:focus-visible {
+  opacity: 1;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}

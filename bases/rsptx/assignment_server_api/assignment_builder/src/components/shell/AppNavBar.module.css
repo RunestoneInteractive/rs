@@ -1,0 +1,109 @@
+.bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--rs-space-2);
+  height: 56px;
+  padding: 0 var(--rs-space-4);
+  background: var(--rs-surface-glass);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--rs-border-solid);
+  position: relative;
+  z-index: var(--rs-z-sticky);
+  transition: box-shadow var(--rs-transition-fast);
+}
+
+.bar[data-scrolled] {
+  box-shadow: var(--rs-shadow-sm);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+  margin-right: var(--rs-space-3);
+}
+
+.brandImage {
+  display: block;
+  height: 30px;
+  width: auto;
+  user-select: none;
+}
+
+.wordmark {
+  font-size: var(--rs-font-size-lg);
+  font-weight: var(--rs-font-weight-semibold);
+  letter-spacing: var(--rs-tracking-heading);
+  color: var(--rs-text-strong);
+  white-space: nowrap;
+}
+
+.items {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-1);
+  flex-wrap: nowrap;
+}
+
+.compact {
+  display: none;
+  margin-left: auto;
+}
+
+.navButton {
+  min-height: 40px;
+  max-width: 240px;
+  color: var(--rs-text);
+  font-weight: var(--rs-font-weight-medium);
+  transition:
+    background-color var(--rs-transition-fast),
+    color var(--rs-transition-fast);
+}
+
+.navButton :global(.mantine-Button-label) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navButton:hover {
+  background: var(--rs-neutral-100);
+  color: var(--rs-text-strong);
+}
+
+.navButton[data-active] {
+  background: var(--rs-brand-50);
+  color: var(--rs-brand-700);
+}
+
+.navButton[data-active]:hover {
+  background: var(--rs-brand-100);
+}
+
+.menuItemActive {
+  background: var(--rs-brand-50);
+  color: var(--rs-brand-700);
+}
+
+.menuItemActive:hover {
+  background: var(--rs-brand-100);
+  color: var(--rs-brand-700);
+}
+
+@media (max-width: 1024px) {
+  .items {
+    display: none;
+  }
+
+  .compact {
+    display: flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .wordmark {
+    display: none;
+  }
+}

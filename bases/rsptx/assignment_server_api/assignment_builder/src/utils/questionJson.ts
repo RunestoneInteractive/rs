@@ -1,6 +1,8 @@
 import { TableDropdownOption } from "@/types/dataset";
 import { CreateExerciseFormType, QuestionJSON } from "@/types/exercises";
 
+export const DEFAULT_INCORRECT_FEEDBACK = "Not quite. Try again.";
+
 export const buildQuestionJson = (data: CreateExerciseFormType) => {
   // Create the question JSON object based on question type
   const questionObject = {
@@ -94,7 +96,7 @@ export const getDefaultQuestionJson = (languageOptions: TableDropdownOption[]) =
   left: [{ id: "a", label: "" }],
   right: [{ id: "x", label: "" }],
   correctAnswers: [["a", "x"]],
-  feedback: "Incorrect. Please try again.",
+  feedback: DEFAULT_INCORRECT_FEEDBACK,
   blocks: [{ id: `block-${Date.now()}`, content: "", indent: 0 }],
   // Parsons problem options
   adaptive: true,

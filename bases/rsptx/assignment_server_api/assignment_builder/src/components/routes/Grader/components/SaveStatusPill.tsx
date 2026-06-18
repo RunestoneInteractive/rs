@@ -1,24 +1,37 @@
+import { Loader } from "@mantine/core";
 import React from "react";
 
-import {
-  AutoSaveStatus
-} from "../hooks/useAutoSaveGrade";
+import { Icon, PrimeIconName } from "@/components/ui/Icon";
 
-const STYLES: Record<AutoSaveStatus, React.CSSProperties> = {
-  idle: { display: "none" },
-  dirty: { background: "#f1f5f9", color: "#475569", borderColor: "#cbd5e1" },
-  saving: { background: "#eef2ff", color: "#4338ca", borderColor: "#c7d2fe" },
-  saved: { background: "#dcfce7", color: "#166534", borderColor: "#bbf7d0" },
-  error: { background: "#fee2e2", color: "#991b1b", borderColor: "#fecaca" }
-};
+import styles from "../Grader.module.css";
+import { AutoSaveStatus } from "../hooks/useAutoSaveGrade";
 
-const ICONS: Record<AutoSaveStatus, string> = {
+const PILL_CLASS: Record<AutoSaveStatus, string> = {
   idle: "",
-  dirty: "pi pi-circle",
-  saving: "pi pi-spin pi-spinner",
-  saved: "pi pi-check",
-  error: "pi pi-exclamation-triangle"
+  dirty: styles.savePillDirty,
+  saving: styles.savePillSaving,
+  saved: styles.savePillSaved,
+  error: styles.savePillError
 };
+
+const ICONS: Record<Exclude<AutoSaveStatus, "idle" | "saving" | "saved">, PrimeIconName> = {
+  dirty: "circle",
+  error: "exclamation-triangle"
+};
+
+const SavedCheckmark: React.FC = () => (
+  <svg viewBox="0 0 24 24" width={13} height={13} fill="none" aria-hidden="true">
+    <path
+      d="M5 12.5l4.5 4.5L19 7"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={styles.savePillCheck}
+      data-testid="save-pill-checkmark"
+    />
+  </svg>
+);
 
 const LABELS: Record<AutoSaveStatus, string> = {
   idle: "",
@@ -36,42 +49,19 @@ interface Props {
 
 export const SaveStatusPill: React.FC<Props> = ({ status, onRetry, errorMessage }) => {
   if (status === "idle") return null;
-  const style: React.CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "0.18rem 0.55rem",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 600,
-    border: "1px solid",
-    transition: "background 0.2s, color 0.2s",
-    ...STYLES[status]
-  };
   return (
     <span
-      style={style}
+      className={`${styles.savePill} ${PILL_CLASS[status]}`}
       role="status"
       aria-live="polite"
       title={status === "error" ? errorMessage : undefined}
     >
-      <i className={ICONS[status]} />
+      {status === "saving" && <Loader size={12} />}
+      {status === "saved" && <SavedCheckmark />}
+      {(status === "dirty" || status === "error") && <Icon name={ICONS[status]} size={13} />}
       <span>{LABELS[status]}</span>
       {status === "error" && onRetry && (
-        <button
-          type="button"
-          onClick={onRetry}
-          style={{
-            border: 0,
-            background: "transparent",
-            color: "#991b1b",
-            textDecoration: "underline",
-            cursor: "pointer",
-            fontWeight: 700,
-            fontSize: 12,
-            padding: 0
-          }}
-        >
+        <button type="button" onClick={onRetry} className={styles.savePillRetry}>
           Retry
         </button>
       )}

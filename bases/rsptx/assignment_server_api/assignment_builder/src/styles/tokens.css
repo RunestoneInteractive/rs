@@ -1,0 +1,209 @@
+:root {
+  --rs-brand-50: #eef2ff;
+  --rs-brand-100: #e0e7ff;
+  --rs-brand-200: #c7d2fe;
+  --rs-brand-300: #a5b4fc;
+  --rs-brand-400: #818cf8;
+  --rs-brand-500: #6366f1;
+  --rs-brand-600: #4f46e5;
+  --rs-brand-700: #4338ca;
+  --rs-brand-800: #3730a3;
+  --rs-brand-900: #312e81;
+
+  --rs-accent-violet: #8b5cf6;
+  --rs-accent-purple: #7c3aed;
+  --rs-accent-pink: #ec4899;
+  --rs-accent-sky: #0ea5e9;
+  --rs-accent-cyan: #06b6d4;
+
+  --rs-neutral-0: #ffffff;
+  --rs-neutral-50: #f8fafc;
+  --rs-neutral-100: #f1f5f9;
+  --rs-neutral-200: #e2e8f0;
+  --rs-neutral-300: #cbd5e1;
+  --rs-neutral-400: #94a3b8;
+  --rs-neutral-500: #64748b;
+  --rs-neutral-600: #475569;
+  --rs-neutral-700: #334155;
+  --rs-neutral-800: #1e293b;
+  --rs-neutral-900: #0f172a;
+  --rs-neutral-950: #020617;
+
+  --rs-success: #059669;
+  --rs-success-bg: #ecfdf5;
+  --rs-success-border: #a7f3d0;
+  --rs-success-text: #047857;
+
+  --rs-info: #2563eb;
+  --rs-info-bg: #eff6ff;
+  --rs-info-border: #bfdbfe;
+  --rs-info-text: #1d4ed8;
+
+  --rs-warning: #f59e0b;
+  --rs-warning-bg: #fffbeb;
+  --rs-warning-border: #fde68a;
+  --rs-warning-text: #b45309;
+
+  --rs-danger: #dc2626;
+  --rs-danger-bg: #fef2f2;
+  --rs-danger-border: #fecaca;
+  --rs-danger-text: #b91c1c;
+
+  --rs-extype-choice: var(--rs-brand-500);
+  --rs-extype-choice-bg: var(--rs-brand-50);
+  --rs-extype-choice-text: var(--rs-brand-700);
+  --rs-extype-code: var(--rs-accent-sky);
+  --rs-extype-code-bg: #f0f9ff;
+  --rs-extype-code-text: #0369a1;
+  --rs-extype-interactive: var(--rs-accent-pink);
+  --rs-extype-interactive-bg: #fdf2f8;
+  --rs-extype-interactive-text: #be185d;
+  --rs-extype-text: var(--rs-success);
+  --rs-extype-text-bg: var(--rs-success-bg);
+  --rs-extype-text-text: var(--rs-success-text);
+  --rs-extype-meta: var(--rs-neutral-500);
+  --rs-extype-meta-bg: var(--rs-neutral-100);
+  --rs-extype-meta-text: var(--rs-neutral-700);
+
+  --rs-status-graded: var(--rs-success);
+  --rs-status-autograded: var(--rs-accent-sky);
+  --rs-status-in-progress: var(--rs-warning);
+  --rs-status-pending: var(--rs-neutral-400);
+  --rs-status-no-submission: var(--rs-neutral-300);
+
+  --rs-text-strong: var(--rs-neutral-900);
+  --rs-text: var(--rs-neutral-700);
+  --rs-text-muted: var(--rs-neutral-500);
+  --rs-text-subtle: var(--rs-neutral-400);
+  --rs-text-on-brand: #ffffff;
+
+  --rs-surface: var(--rs-neutral-0);
+  --rs-surface-raised: rgba(255, 255, 255, 0.92);
+  --rs-surface-glass: rgba(255, 255, 255, 0.78);
+  --rs-surface-sunken: var(--rs-neutral-50);
+  --rs-surface-brand-soft: var(--rs-brand-50);
+
+  --rs-border: rgba(148, 163, 184, 0.22);
+  --rs-border-solid: var(--rs-neutral-200);
+  --rs-border-strong: var(--rs-neutral-300);
+  --rs-border-brand: rgba(99, 102, 241, 0.45);
+
+  --rs-space-1: 0.25rem;
+  --rs-space-2: 0.5rem;
+  --rs-space-3: 0.75rem;
+  --rs-space-4: 1rem;
+  --rs-space-5: 1.25rem;
+  --rs-space-6: 1.5rem;
+  --rs-space-8: 2rem;
+  --rs-space-10: 2.5rem;
+
+  --rs-page-gutter: var(--rs-space-6);
+
+  --rs-radius-sm: 8px;
+  --rs-radius-md: 12px;
+  --rs-radius-lg: 16px;
+  --rs-radius-xl: 20px;
+  --rs-radius-pill: 999px;
+
+  --rs-shadow-xs: 0 1px 2px rgba(2, 6, 23, 0.05);
+  --rs-shadow-sm: 0 1px 2px rgba(2, 6, 23, 0.04), 0 2px 4px rgba(2, 6, 23, 0.04);
+  --rs-shadow-md:
+    0 0 0 1px rgba(2, 6, 23, 0.04), 0 2px 4px rgba(2, 6, 23, 0.04), 0 4px 8px rgba(2, 6, 23, 0.04);
+  --rs-shadow-overlay:
+    0 0 0 1px rgba(2, 6, 23, 0.05), 0 4px 8px rgba(2, 6, 23, 0.06),
+    0 16px 32px rgba(2, 6, 23, 0.08);
+  --rs-shadow-modal:
+    0 0 0 1px rgba(2, 6, 23, 0.05), 0 8px 16px rgba(2, 6, 23, 0.08),
+    0 24px 48px rgba(2, 6, 23, 0.12);
+  --rs-shadow-lg: var(--rs-shadow-overlay);
+  --rs-shadow-brand: 0 8px 24px rgba(79, 70, 229, 0.16);
+  --rs-shadow-brand-soft: 0 2px 8px rgba(79, 70, 229, 0.14);
+
+  --rs-font-sans:
+    "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --rs-font-mono:
+    "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+    Consolas, monospace;
+
+  --rs-font-size-xs: 0.75rem;
+  --rs-font-size-sm: 0.8125rem;
+  --rs-font-size-md: 0.875rem;
+  --rs-font-size-lg: 1rem;
+  --rs-font-size-xl: 1.25rem;
+  --rs-font-size-2xl: 1.625rem;
+
+  --rs-font-weight-medium: 500;
+  --rs-font-weight-semibold: 600;
+  --rs-font-weight-bold: 700;
+  --rs-font-weight-heading: 650;
+
+  --rs-line-height: 1.45;
+  --rs-line-height-heading: 1.2;
+  --rs-tracking-heading: -0.015em;
+
+  --rs-gradient-brand: linear-gradient(95deg, var(--rs-brand-500), var(--rs-accent-violet));
+  --rs-gradient-brand-strong: linear-gradient(
+    120deg,
+    var(--rs-brand-600),
+    var(--rs-accent-purple) 55%,
+    var(--rs-accent-pink)
+  );
+  --rs-gradient-header: linear-gradient(180deg, var(--rs-brand-50), var(--rs-neutral-50));
+  --rs-gradient-app-bg:
+    radial-gradient(1100px 480px at 12% -8%, rgba(99, 102, 241, 0.1), transparent 60%),
+    linear-gradient(180deg, #fafbfc 0%, #f4f6fb 100%);
+
+  --rs-ease-out: cubic-bezier(0.165, 0.84, 0.44, 1);
+  --rs-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --rs-ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --rs-spring-snappy: linear(
+    0,
+    0.0017,
+    0.0069 1.16%,
+    0.0278 2.4%,
+    0.1118 5.04%,
+    0.4286 10.8%,
+    0.5821,
+    0.7104 16.2%,
+    0.8166 19.2%,
+    0.8989 22.32%,
+    0.9603 25.8%,
+    1.0007 29.64%,
+    1.0177 32.16%,
+    1.0306 35.16%,
+    1.0374 39%,
+    1.0339 45.24%,
+    1.0066 60.36%,
+    1.0006 70%,
+    1
+  );
+
+  --rs-duration-fast: 140ms;
+  --rs-duration: 200ms;
+  --rs-duration-slow: 320ms;
+
+  --rs-transition-fast: var(--rs-duration-fast) var(--rs-ease-out);
+  --rs-transition: var(--rs-duration) var(--rs-ease-out);
+  --rs-transition-slow: var(--rs-duration-slow) var(--rs-ease-out);
+
+  --rs-z-sticky: 50;
+  --rs-z-float: 900;
+  --rs-z-popover: 9999;
+}
+
+:focus-visible {
+  outline: 2px solid var(--rs-brand-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

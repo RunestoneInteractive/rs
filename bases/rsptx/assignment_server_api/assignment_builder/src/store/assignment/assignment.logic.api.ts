@@ -1,7 +1,7 @@
+import { notify } from "@components/ui/notify";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { assignmentActions } from "@store/assignment/assignment.logic";
 import { userActions } from "@store/user/userLogic";
-import toast from "react-hot-toast";
 
 import { baseQuery } from "@/store/baseQuery";
 import { DetailResponse, HttpStatusCode } from "@/types/api";
@@ -12,6 +12,19 @@ import {
   GetAssignmentResponse,
   GetAssignmentsResponse
 } from "@/types/assignment";
+
+export const ASSIGNMENT_TOAST_COPY = {
+  loadAssignmentsError: "Couldn't load assignments. Refresh the page.",
+  loadAssignmentError: "Couldn't load the assignment. Refresh the page.",
+  created: "Assignment created",
+  createValidationError: (message: string) => `Couldn't create assignment: ${message}`,
+  createError: "Couldn't create assignment. Try again.",
+  updateError: "Couldn't update assignment. Try again.",
+  deleted: "Assignment deleted",
+  deleteError: "Couldn't delete assignment. Try again.",
+  duplicated: (name: string) => `Assignment duplicated as "${name}"`,
+  duplicateError: "Couldn't duplicate assignment. Try again."
+} as const;
 
 export const assignmentApi = createApi({
   reducerPath: "assignmentAPI",
@@ -35,12 +48,16 @@ export const assignmentApi = createApi({
           };
 
           if (status === HttpStatusCode.UNAUTHORIZED) {
-            toast("Unauthorized to fetch assignments");
+            notify.error({
+              id: "api-unauthorized",
+              message: "Your session expired. Sign in again.",
+              autoClose: 6000
+            });
             dispatch(userActions.setIsAuthorized(false));
             return;
           }
 
-          toast.error("Unable to fetch assignments", { duration: Infinity });
+          notify.error(ASSIGNMENT_TOAST_COPY.loadAssignmentsError);
         });
       }
     }),
@@ -61,12 +78,16 @@ export const assignmentApi = createApi({
           };
 
           if (status === HttpStatusCode.UNAUTHORIZED) {
-            toast("Unauthorized to fetch assignment");
+            notify.error({
+              id: "api-unauthorized",
+              message: "Your session expired. Sign in again.",
+              autoClose: 6000
+            });
             dispatch(userActions.setIsAuthorized(false));
             return;
           }
 
-          toast.error("Unable to fetch assignment", { duration: Infinity });
+          notify.error(ASSIGNMENT_TOAST_COPY.loadAssignmentError);
         });
       }
     }),
@@ -86,7 +107,7 @@ export const assignmentApi = createApi({
         queryFulfilled
           .then(({ data }) => {
             dispatch(assignmentActions.setSelectedAssignmentId(data.detail.id));
-            toast.success("Assignment created");
+            notify.success(ASSIGNMENT_TOAST_COPY.created);
           })
           .catch((errorResponse) => {
             const { status, data } = errorResponse.error as {
@@ -95,13 +116,11 @@ export const assignmentApi = createApi({
             };
 
             if (status === HttpStatusCode.UNPROCESSABLE_CONTENT) {
-              toast.error(`Error ${data.detail[0].msg} for input ${data.detail[0].loc.join()}`, {
-                duration: Infinity
-              });
+              notify.error(ASSIGNMENT_TOAST_COPY.createValidationError(data.detail[0].msg));
               return;
             }
 
-            toast.error("Error creating assignment", { duration: Infinity });
+            notify.error(ASSIGNMENT_TOAST_COPY.createError);
           });
       }
     }),
@@ -119,7 +138,7 @@ export const assignmentApi = createApi({
       },
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
-          toast.error("Error updating assignment", { duration: Infinity });
+          notify.error(ASSIGNMENT_TOAST_COPY.updateError);
         });
       }
     }),
@@ -137,10 +156,10 @@ export const assignmentApi = createApi({
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled
           .then(() => {
-            toast.success("Assignment removed successfully");
+            notify.success(ASSIGNMENT_TOAST_COPY.deleted);
           })
           .catch(() => {
-            toast.error("Error removing assignment", { duration: Infinity });
+            notify.error(ASSIGNMENT_TOAST_COPY.deleteError);
           });
       }
     }),
@@ -158,10 +177,10 @@ export const assignmentApi = createApi({
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled
           .then(({ data }) => {
-            toast.success(`Assignment duplicated as "${data.detail.name}"`);
+            notify.success(ASSIGNMENT_TOAST_COPY.duplicated(data.detail.name));
           })
           .catch(() => {
-            toast.error("Error duplicating assignment", { duration: Infinity });
+            notify.error(ASSIGNMENT_TOAST_COPY.duplicateError);
           });
       }
     })

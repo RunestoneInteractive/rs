@@ -1,21 +1,22 @@
-import { Toast } from "primereact/toast";
 import { RefObject, useCallback, useEffect, useState } from "react";
+
+import { notify } from "@/components/ui/notify";
+
+import { CONNECTION_TOAST_COPY, blockSide } from "../../../shared/connections";
 
 import styles from "../MatchingExercise.module.css";
 import { MatchingData } from "../types";
 
 interface UseMatchingConnectionsProps {
   formData: MatchingData;
-  updateFormData: (field: keyof MatchingData, value: any) => void;
+  updateFormData: <K extends keyof MatchingData>(field: K, value: MatchingData[K]) => void;
   containerRef: RefObject<HTMLDivElement>;
-  toastRef: RefObject<Toast>;
 }
 
 export const useMatchingConnections = ({
   formData,
   updateFormData,
-  containerRef,
-  toastRef
+  containerRef
 }: UseMatchingConnectionsProps) => {
   const [activeSource, setActiveSource] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -67,29 +68,31 @@ export const useMatchingConnections = ({
       setActiveSource(sourceId);
       setHasMovedEnough(false);
 
-      const isLeftSource = sourceId.startsWith("left-");
+      const isLeftSource = blockSide(formData.left || [], formData.right || [], sourceId) === "left";
       const position = getBlockPosition(sourceId, isLeftSource);
 
       if (position) {
         setMousePosition(position);
       }
     },
-    [getBlockPosition]
+    [formData.left, formData.right, getBlockPosition]
   );
 
   const handleCompleteConnection = useCallback(
     (targetId: string) => {
       if (!activeSource) return;
 
-      const isSourceLeft = activeSource.startsWith("left-");
-      const isTargetLeft = targetId.startsWith("left-");
+      const left = formData.left || [];
+      const right = formData.right || [];
+      const isSourceLeft = blockSide(left, right, activeSource) === "left";
+      const isTargetLeft = blockSide(left, right, targetId) === "left";
 
       if (isSourceLeft === isTargetLeft) {
-        toastRef.current?.show({
-          severity: "warn",
-          summary: "Invalid Connection",
-          detail: "Cannot connect items on the same side",
-          life: 3000
+        notify.show({
+          title: CONNECTION_TOAST_COPY.sameSideTitle,
+          message: CONNECTION_TOAST_COPY.sameSideMessage,
+          color: "yellow",
+          autoClose: 3000
         });
         setActiveSource(null);
         return;
@@ -104,11 +107,11 @@ export const useMatchingConnections = ({
       );
 
       if (connectionExists) {
-        toastRef.current?.show({
-          severity: "warn",
-          summary: "Connection Exists",
-          detail: "This specific connection already exists",
-          life: 3000
+        notify.show({
+          title: CONNECTION_TOAST_COPY.duplicateTitle,
+          message: CONNECTION_TOAST_COPY.duplicateMessage,
+          color: "yellow",
+          autoClose: 3000
         });
         setActiveSource(null);
         return;
@@ -117,8 +120,12 @@ export const useMatchingConnections = ({
       updateFormData("correctAnswers", [...(formData.correctAnswers || []), connection]);
       setActiveSource(null);
     },
-    [activeSource, formData.correctAnswers, updateFormData, toastRef]
+    [activeSource, formData.left, formData.right, formData.correctAnswers, updateFormData]
   );
+
+  const cancelConnection = useCallback(() => {
+    setActiveSource(null);
+  }, []);
 
   const handleDeleteConnection = useCallback(
     (sourceId: string, targetId: string) => {
@@ -174,14 +181,16 @@ export const useMatchingConnections = ({
     const handleMouseUp = (e: MouseEvent) => {
       const elements = document.elementsFromPoint(e.clientX, e.clientY);
 
-      const isSourceLeft = activeSource.startsWith("left-");
+      const left = formData.left || [];
+      const right = formData.right || [];
+      const isSourceLeft = blockSide(left, right, activeSource) === "left";
 
       const targetBlock = elements.find((el) => {
         if (!(el instanceof HTMLElement)) return false;
 
         if (!el.dataset.blockId) return false;
 
-        const isTargetLeft = el.dataset.blockId.startsWith("left-");
+        const isTargetLeft = blockSide(left, right, el.dataset.blockId) === "left";
 
         return isSourceLeft !== isTargetLeft;
       }) as HTMLElement | undefined;
@@ -208,7 +217,7 @@ export const useMatchingConnections = ({
       window.removeEventListener("mouseup", handleMouseUp);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [activeSource, getScrollableContainer, handleCompleteConnection]);
+  }, [activeSource, formData.left, formData.right, getScrollableContainer, handleCompleteConnection]);
 
   useEffect(() => {
     const scrollableContainer = getScrollableContainer();
@@ -219,7 +228,7 @@ export const useMatchingConnections = ({
       triggerConnectionsRedraw();
 
       if (activeSource) {
-        const isLeftSource = activeSource.startsWith("left-");
+        const isLeftSource = blockSide(formData.left || [], formData.right || [], activeSource) === "left";
         const sourcePosition = getBlockPosition(activeSource, isLeftSource);
 
         if (sourcePosition && !hasMovedEnough) {
@@ -242,6 +251,8 @@ export const useMatchingConnections = ({
   }, [
     activeSource,
     hasMovedEnough,
+    formData.left,
+    formData.right,
     getBlockPosition,
     getScrollableContainer,
     triggerConnectionsRedraw
@@ -257,6 +268,7 @@ export const useMatchingConnections = ({
     generatePath,
     handleStartConnection,
     handleCompleteConnection,
+    cancelConnection,
     handleDeleteConnection
   };
 };

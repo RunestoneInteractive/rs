@@ -1,0 +1,27 @@
+.controlRoot {
+  width: 100%;
+  height: 100%;
+}
+
+.controlWrapper {
+  height: 100%;
+}
+
+.control {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  user-select: none;
+  padding-inline: var(--table-horizontal-spacing, var(--rs-space-3));
+}
+
+.control:focus-visible {
+  outline-offset: -2px;
+}
+
+.controlNumeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

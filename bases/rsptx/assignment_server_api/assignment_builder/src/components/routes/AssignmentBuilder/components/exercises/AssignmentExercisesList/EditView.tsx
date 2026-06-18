@@ -1,8 +1,9 @@
 import { useUpdateAssignmentQuestionsMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { datasetSelectors } from "@store/dataset/dataset.logic";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
+
+import { notify } from "@components/ui/notify";
 
 import { CreateExerciseFormType, Exercise, QuestionJSON } from "@/types/exercises";
 import { safeJsonParse } from "@/utils/json";
@@ -27,12 +28,12 @@ export const EditView = ({
 }: EditViewProps) => {
   const [updateExercises] = useUpdateAssignmentQuestionsMutation();
   const languageOptions = useSelector(datasetSelectors.getLanguageOptions);
-  const [isSaving, setIsSaving] = useState(false);
+  const [, setIsSaving] = useState(false);
 
   if (!currentEditExercise) return null;
 
   const questionJson = safeJsonParse<QuestionJSON>(currentEditExercise.question_json);
-  let initialData: CreateExerciseFormType = {
+  const initialData: CreateExerciseFormType = {
     ...currentEditExercise,
     ...mergeQuestionJsonWithDefaults(languageOptions, questionJson)
   };
@@ -47,22 +48,17 @@ export const EditView = ({
       onSave={async (data: CreateExerciseFormType) => {
         setIsSaving(true);
         try {
-          const response = await updateExercises([
-            { ...data, question_json: buildQuestionJson(data) }
-          ]);
+          await updateExercises([{ ...data, question_json: buildQuestionJson(data) }]).unwrap();
 
-          if (response.data) {
-            toast.success("Exercise was successfully updated!");
-            setViewMode("list");
-            setIsSaving(false);
-            setCurrentEditExercise(null);
-
-            if (refetch) refetch();
-          }
-        } catch (error) {
-          console.error("Error updating exercise:", error);
-          toast.error("An error occurred while updating the exercise. Please try again.");
+          notify.success("Exercise updated");
+          setViewMode("list");
           setIsSaving(false);
+          setCurrentEditExercise(null);
+
+          if (refetch) refetch();
+        } catch (error) {
+          setIsSaving(false);
+          throw error;
         }
       }}
       isEdit={true}

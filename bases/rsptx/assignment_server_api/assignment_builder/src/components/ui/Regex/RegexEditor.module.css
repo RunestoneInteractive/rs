@@ -1,0 +1,80 @@
+.editor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+  width: 100%;
+}
+
+.pattern {
+  flex: 1 1 auto;
+  width: 50%;
+}
+
+.flags {
+  flex-shrink: 0;
+  width: 15%;
+}
+
+.test {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--rs-space-1);
+  width: 30%;
+}
+
+.testInput {
+  flex: 1 1 auto;
+}
+
+.mono {
+  font-family: var(--rs-font-mono);
+}
+
+.popup {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 100;
+  width: 200px;
+  margin-top: var(--rs-space-1);
+  padding: var(--rs-space-2);
+  background-color: var(--rs-surface-raised);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
+  box-shadow: var(--rs-shadow-md);
+}
+
+.popupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--rs-space-2);
+}
+
+.matchLabel {
+  margin-left: var(--rs-space-1);
+  font-weight: var(--rs-font-weight-semibold);
+}
+
+.matchPositive {
+  color: var(--rs-success-text);
+}
+
+.matchNegative {
+  color: var(--rs-danger-text);
+}
+
+.matchesTitle {
+  margin-bottom: var(--rs-space-1);
+  font-size: var(--rs-font-size-sm);
+  font-weight: var(--rs-font-weight-semibold);
+}
+
+.matchesList {
+  margin: 0;
+  padding-left: var(--rs-space-3);
+  max-height: 100px;
+  overflow-y: auto;
+  font-size: var(--rs-font-size-sm);
+}

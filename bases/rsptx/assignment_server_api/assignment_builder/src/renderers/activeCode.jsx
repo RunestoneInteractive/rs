@@ -1,5 +1,4 @@
-import { Dropdown } from "primereact/dropdown";
-import { InputTextarea } from "primereact/inputtextarea";
+import { Select, Textarea } from "@mantine/core";
 import { useSelector, useDispatch } from "react-redux";
 
 import { createActiveCodeTemplate } from "../componentFuncs.js";
@@ -69,19 +68,18 @@ function ActiveCodeCreator() {
     <div style={acStyle}>
       <div className="item">
         <label htmlFor="language">Language</label>
-        <Dropdown
+        <Select
           id="language"
           value={language}
-          onChange={(e) => dispatch(updateField({ field: "language", newVal: e.value }))}
-          options={languageOptions}
-          optionLabel="label"
+          onChange={(value) => dispatch(updateField({ field: "language", newVal: value }))}
+          data={languageOptions}
         />
       </div>
 
       <label htmlFor="instructions" className="builderlabel">
         Instructions
       </label>
-      <InputTextarea
+      <Textarea
         rows={3}
         cols={60}
         id="instructions"
@@ -89,11 +87,11 @@ function ActiveCodeCreator() {
         value={instructions}
         onBlur={previewOnBlur}
         onChange={(e) => dispatch(updateField({ field: "instructions", newVal: e.target.value }))}
-      ></InputTextarea>
+      ></Textarea>
       <label htmlFor="prefix_code" className="builderlabel">
         Hidden Prefix Code
       </label>
-      <InputTextarea
+      <Textarea
         rows={4}
         cols={60}
         id="prefix_code"
@@ -101,11 +99,11 @@ function ActiveCodeCreator() {
         value={prefix_code}
         onBlur={previewOnBlur}
         onChange={(e) => dispatch(updateField({ field: "prefix_code", newVal: e.target.value }))}
-      ></InputTextarea>
+      ></Textarea>
       <label htmlFor="starter_code" className="builderlabel">
         Starter Code
       </label>
-      <InputTextarea
+      <Textarea
         rows={4}
         cols={60}
         id="starter_code"
@@ -113,11 +111,11 @@ function ActiveCodeCreator() {
         value={starter_code}
         onBlur={previewOnBlur}
         onChange={(e) => dispatch(updateField({ field: "starter_code", newVal: e.target.value }))}
-      ></InputTextarea>
+      ></Textarea>
       <label htmlFor="suffix_code" className="builderlabel">
         Hidden Suffix (Test) Code
       </label>
-      <InputTextarea
+      <Textarea
         rows={4}
         cols={60}
         id="suffix_code"
@@ -128,11 +126,11 @@ function ActiveCodeCreator() {
           dispatch(
             updateField({
               field: "suffix_code",
-              newVal: e.value,
+              newVal: e.target.value,
             }),
           );
         }}
-      ></InputTextarea>
+      ></Textarea>
     </div>
   );
 }

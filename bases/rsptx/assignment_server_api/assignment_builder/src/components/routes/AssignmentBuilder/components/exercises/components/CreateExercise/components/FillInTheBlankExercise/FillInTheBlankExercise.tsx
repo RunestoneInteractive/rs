@@ -3,7 +3,7 @@ import { FC, useCallback } from "react";
 import { CreateExerciseFormType } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
 import { generateFillInTheBlankPreview } from "@/utils/preview/fillInTheBlank";
-import { buildQuestionJson } from "@/utils/questionJson";
+import { DEFAULT_INCORRECT_FEEDBACK, buildQuestionJson } from "@/utils/questionJson";
 
 import { FILL_IN_THE_BLANK_STEP_VALIDATORS } from "../../config/stepConfigs";
 import { useBaseExercise } from "../../hooks/useBaseExercise";
@@ -19,7 +19,7 @@ import { BlankWithFeedback, FillInTheBlankData, GraderType } from "./types";
 
 const FILL_IN_THE_BLANK_STEPS = [
   { label: "Question" },
-  { label: "Answer Fields" },
+  { label: "Answer fields" },
   { label: "Settings" },
   { label: "Preview" }
 ];
@@ -41,8 +41,8 @@ const getDefaultFormData = (): FillInTheBlankData => ({
       id: `blank-${Date.now()}`,
       graderType: GraderType.STRING,
       exactMatch: "",
-      correctFeedback: "Correct!",
-      incorrectFeedback: "Incorrect, please try again."
+      correctFeedback: "Correct",
+      incorrectFeedback: DEFAULT_INCORRECT_FEEDBACK
     }
   ]
 });
@@ -68,6 +68,7 @@ export const FillInTheBlankExercise: FC<ExerciseComponentProps> = ({
     formData,
     activeStep,
     isSaving,
+    isDirty,
     updateFormData,
     handleSettingsChange,
     isCurrentStepValid,
@@ -169,13 +170,14 @@ export const FillInTheBlankExercise: FC<ExerciseComponentProps> = ({
 
   return (
     <ExerciseLayout
-      title="Fill in the Blank Exercise"
+      title="fill in the blank exercise"
       exerciseType="fillintheblank"
       isEdit={isEdit}
       steps={FILL_IN_THE_BLANK_STEPS}
       activeStep={activeStep}
       isCurrentStepValid={isCurrentStepValid}
       isSaving={isSaving}
+      isDirty={isDirty}
       stepsValidity={stepsValidity}
       onCancel={onCancel}
       onBack={goToPrevStep}

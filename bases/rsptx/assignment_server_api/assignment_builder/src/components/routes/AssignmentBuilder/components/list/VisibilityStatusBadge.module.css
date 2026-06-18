@@ -1,0 +1,58 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: var(--rs-radius-pill);
+  border: 1px solid var(--rs-border-solid);
+  background: var(--rs-neutral-100);
+  color: var(--rs-extype-meta-text);
+  font-size: var(--rs-font-size-sm);
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.chip[data-variant="success"] {
+  background: var(--rs-success-bg);
+  border-color: var(--rs-success-border);
+  color: var(--rs-success-text);
+}
+
+.chip[data-variant="info"] {
+  background: var(--rs-info-bg);
+  border-color: var(--rs-info-border);
+  color: var(--rs-info-text);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--rs-radius-pill);
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rs-space-1);
+  min-height: 40px;
+  padding: var(--rs-space-1);
+  border-radius: var(--rs-radius-pill);
+  cursor: pointer;
+}
+
+.trigger:hover .chevron {
+  color: var(--rs-text);
+}
+
+.chevron {
+  color: var(--rs-text-subtle);
+  display: inline-flex;
+  transition: transform var(--rs-transition-fast);
+}
+
+.trigger[data-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}

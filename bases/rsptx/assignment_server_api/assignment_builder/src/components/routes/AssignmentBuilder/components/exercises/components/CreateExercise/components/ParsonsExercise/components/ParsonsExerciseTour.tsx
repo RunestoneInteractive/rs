@@ -1,8 +1,9 @@
+import { Button } from "@mantine/core";
 import { driver, DriveStep, Driver } from "driver.js";
 import "driver.js/dist/driver.css";
-import { Button } from "primereact/button";
 import React, { FC, useCallback, useEffect, useRef } from "react";
 
+import { Icon } from "@/components/ui/Icon";
 import { ParsonsBlock } from "@/utils/preview/parsonsPreview";
 
 import { ParsonsMode } from "../ParsonsExercise";
@@ -32,6 +33,7 @@ export interface ParsonsExerciseTourProps {
     adaptive?: boolean;
   };
   onModeChange: (mode: ParsonsMode) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   updateFormData: (key: string, value: any) => void;
 }
 
@@ -98,7 +100,7 @@ export const ParsonsExerciseTour: FC<ParsonsExerciseTourProps> = ({
     isTouringRef.current = false;
 
     document
-      .querySelectorAll(".p-overlaypanel, .p-dropdown-panel")
+      .querySelectorAll(".mantine-Popover-dropdown, .mantine-Select-dropdown")
       .forEach((el) => ((el as HTMLElement).style.display = "none"));
   }, [onModeChange, updateFormData]);
 
@@ -241,14 +243,15 @@ export const ParsonsExerciseTour: FC<ParsonsExerciseTourProps> = ({
 
   return (
     <Button
-      label="Tour"
-      icon="pi pi-question-circle"
+      leftSection={<Icon name="question-circle" size={14} />}
       className={styles.addBlockButton}
-      size="small"
-      severity="help"
-      outlined
+      size="xs"
+      variant="outline"
+      color="grape"
       onClick={startTour}
       data-tour="tour-trigger-btn"
-    />
+    >
+      Tour
+    </Button>
   );
 };

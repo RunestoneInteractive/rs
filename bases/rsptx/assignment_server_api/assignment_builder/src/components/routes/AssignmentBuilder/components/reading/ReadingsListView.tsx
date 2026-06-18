@@ -1,9 +1,13 @@
+import { useScrollShadow } from "@components/shell/useScrollShadow";
+
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
 import { AssignmentReadingsTable } from "./AssignmentReadingsTable";
 import { ReadingsToolbar } from "./ReadingsToolbar";
-import { SetCurrentEditReading, MouseUpHandler } from "./types";
+import { MouseUpHandler } from "./types";
+
+import styles from "./ReadingsListView.module.css";
 
 interface ReadingsListViewProps {
   globalFilter: string;
@@ -12,12 +16,15 @@ interface ReadingsListViewProps {
   setSelectedReadings: (readings: Exercise[]) => void;
   handleRemoveSelected: () => void;
   assignmentReadings: Exercise[];
-  setCurrentEditReading: SetCurrentEditReading;
   startItemId: number | null;
   draggingFieldName: DraggingExerciseColumns | null;
   handleMouseDown: (itemId: number, fieldName: DraggingExerciseColumns) => void;
   handleMouseUp: MouseUpHandler;
-  handleChange: (itemId: number, fieldName: DraggingExerciseColumns, value: any) => void;
+  handleChange: (
+    itemId: number,
+    fieldName: DraggingExerciseColumns,
+    value: string | number
+  ) => void;
 }
 
 export const ReadingsListView = ({
@@ -27,34 +34,36 @@ export const ReadingsListView = ({
   setSelectedReadings,
   handleRemoveSelected,
   assignmentReadings,
-  setCurrentEditReading,
   startItemId,
   draggingFieldName,
   handleMouseDown,
   handleMouseUp,
   handleChange
 }: ReadingsListViewProps) => {
+  const { sentinelRef, scrolled } = useScrollShadow();
+
   return (
-    <div className="surface-card p-3 border-round">
+    <section className={styles.card} aria-label="Sections to read">
       <ReadingsToolbar
         globalFilter={globalFilter}
         setGlobalFilter={setGlobalFilter}
+        totalCount={assignmentReadings.length}
         selectedReadings={selectedReadings}
         handleRemoveSelected={handleRemoveSelected}
+        scrolled={scrolled}
       />
       <AssignmentReadingsTable
         assignmentReadings={assignmentReadings}
         selectedReadings={selectedReadings}
         setSelectedReadings={setSelectedReadings}
         globalFilter={globalFilter}
-        setCurrentEditReading={setCurrentEditReading}
-        setViewMode={() => {}}
         startItemId={startItemId}
         draggingFieldName={draggingFieldName}
         handleMouseDown={handleMouseDown}
         handleMouseUp={handleMouseUp}
         handleChange={handleChange}
+        scrollSentinelRef={sentinelRef}
       />
-    </div>
+    </section>
   );
 };

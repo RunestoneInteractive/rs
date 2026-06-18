@@ -1,0 +1,86 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+}
+
+.scrollSentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.scroll th {
+  background: var(--rs-neutral-50);
+  font-size: var(--rs-font-size-xs);
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-muted);
+}
+
+.firstCellTd {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.firstCell {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+  min-height: 2.25rem;
+}
+
+.firstCellParent {
+  font-weight: var(--rs-font-weight-semibold);
+}
+
+.indentGuide {
+  align-self: stretch;
+  width: 1.25rem;
+  flex-shrink: 0;
+  border-left: 1px solid var(--rs-neutral-200);
+  transform: translateX(9px);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-inline: -11px;
+  flex-shrink: 0;
+  cursor: pointer;
+  color: var(--rs-text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.toggle svg {
+  transition: transform var(--rs-transition-fast);
+}
+
+.toggle[data-expanded] svg {
+  transform: rotate(90deg);
+}
+
+.togglePlaceholder {
+  display: inline-block;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.headerBar {
+  flex-shrink: 0;
+  margin-bottom: var(--rs-space-2);
+}

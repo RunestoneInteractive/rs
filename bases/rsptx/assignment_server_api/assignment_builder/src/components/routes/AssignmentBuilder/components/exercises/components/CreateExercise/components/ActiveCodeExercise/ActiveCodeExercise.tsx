@@ -27,12 +27,12 @@ import { SuffixCodeEditor } from "./components/SuffixCodeEditor";
 // Define the steps for ActiveCode exercise
 const ACTIVE_CODE_STEPS = [
   { label: "Language" },
-  { label: "Data Files" },
+  { label: "Data files" },
   { label: "Instructions" },
-  { label: "Hidden Prefix" },
-  { label: "Starter Code" },
-  { label: "Hidden Suffix" },
-  { label: "Standard Input" },
+  { label: "Hidden prefix" },
+  { label: "Starter code" },
+  { label: "Hidden suffix" },
+  { label: "Standard input" },
   { label: "Settings" },
   { label: "Preview" }
 ];
@@ -113,6 +113,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
     formData,
     activeStep,
     isSaving,
+    isDirty,
     updateFormData,
     handleSettingsChange,
     isCurrentStepValid,
@@ -251,13 +252,14 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
 
   return (
     <ExerciseLayout
-      title="Active Code Exercise"
+      title="active code exercise"
       exerciseType="activecode"
       isEdit={isEdit}
       steps={ACTIVE_CODE_STEPS}
       activeStep={activeStep}
       isCurrentStepValid={isCurrentStepValid}
       isSaving={isSaving}
+      isDirty={isDirty}
       stepsValidity={stepsValidity}
       onCancel={onCancel}
       onBack={goToPrevStep}

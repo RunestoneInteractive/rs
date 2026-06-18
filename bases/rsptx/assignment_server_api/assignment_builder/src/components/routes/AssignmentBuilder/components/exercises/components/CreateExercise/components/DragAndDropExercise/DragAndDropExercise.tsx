@@ -14,18 +14,23 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from "@dnd-kit/sortable";
-import { Button } from "primereact/button";
-import { Toast } from "primereact/toast";
+import { UnstyledButton } from "@mantine/core";
 import { FC, useCallback, useMemo, useRef, useState, useEffect } from "react";
 
-import { QuestionJSON } from "@/types/exercises";
+import { Icon } from "@/components/ui/Icon";
+import { CreateExerciseFormType, QuestionJSON } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
 import { safeJsonParse } from "@/utils/json";
 import { generateDragAndDropPreview } from "@/utils/preview/dndPreview";
-import { buildQuestionJson } from "@/utils/questionJson";
+import { DEFAULT_INCORRECT_FEEDBACK, buildQuestionJson } from "@/utils/questionJson";
 
 import { DRAG_AND_DROP_STEP_VALIDATORS } from "../../config/stepConfigs";
 import { useBaseExercise } from "../../hooks/useBaseExercise";
+import {
+  ConnectionList,
+  connectionExistsBetween,
+  makeConnectionLabelResolver
+} from "../../shared/connections";
 import { useExerciseStepNavigation } from "../../hooks/useExerciseStepNavigation";
 import { ExerciseLayout } from "../../shared/ExerciseLayout";
 import { ExerciseComponentProps } from "../../types/ExerciseTypes";
@@ -60,7 +65,7 @@ const getDefaultFormData = (): DragAndDropData => ({
   left: [{ id: `left-${Date.now()}`, label: "" }],
   right: [{ id: `right-${Date.now() + 1}`, label: "" }],
   correctAnswers: [],
-  feedback: "Incorrect. Please try again."
+  feedback: DEFAULT_INCORRECT_FEEDBACK
 });
 
 export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
@@ -71,14 +76,14 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
   onFormReset,
   isEdit = false
 }) => {
-  const toastRef = useRef<Toast>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, setSvgHeight] = useState<number>(0);
 
   const parsedInitialData = useMemo(() => {
     if (isEdit && initialData) {
-      const initialWithJson = initialData as any;
+      const initialWithJson = initialData as { question_json?: string };
       const questionJson = safeJsonParse<QuestionJSON>(initialWithJson.question_json || "{}") || {};
 
       return {
@@ -99,7 +104,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
         left: data.left || [],
         right: data.right || [],
         correctAnswers: data.correctAnswers || [],
-        feedback: data.feedback || "Incorrect. Please try again.",
+        feedback: data.feedback || DEFAULT_INCORRECT_FEEDBACK,
         name: data.name || "",
         statement: data.statement || ""
       });
@@ -110,10 +115,10 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
         question_json: buildQuestionJson({
           ...data,
           question_type: "dragndrop"
-        } as any)
+        } as CreateExerciseFormType)
       };
 
-      await onSave(augmentedData as any);
+      await onSave(augmentedData as CreateExerciseFormType);
     },
     [onSave]
   );
@@ -122,6 +127,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
     formData,
     activeStep,
     isSaving,
+    isDirty,
     updateFormData,
     handleSettingsChange,
     handleQuestionChange,
@@ -139,7 +145,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
         left: data.left || [],
         right: data.right || [],
         correctAnswers: data.correctAnswers || [],
-        feedback: data.feedback || "Incorrect. Please try again.",
+        feedback: data.feedback || DEFAULT_INCORRECT_FEEDBACK,
         name: data.name || "",
         statement: data.statement || ""
       }),
@@ -172,7 +178,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
           left: data.left || [],
           right: data.right || [],
           correctAnswers: data.correctAnswers || [],
-          feedback: data.feedback || "Incorrect. Please try again.",
+          feedback: data.feedback || DEFAULT_INCORRECT_FEEDBACK,
           name: data.name || "",
           statement: data.statement || ""
         }),
@@ -192,6 +198,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
     triggerConnectionsRedraw,
     handleStartConnection,
     handleCompleteConnection,
+    cancelConnection,
     handleDeleteConnection,
     getBlockPosition,
     generatePath,
@@ -200,8 +207,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
   } = useDragAndDropConnections({
     formData,
     updateFormData,
-    containerRef,
-    toastRef
+    containerRef
   });
 
   const handleAddLeftBlock = useCallback(() => {
@@ -283,11 +289,13 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
   const handleRemoveRightBlock = useCallback(
     (id: string) => {
       const hasConnections = (formData.correctAnswers || []).some(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         ([_, targetId]) => targetId === id
       );
 
       if (hasConnections) {
         const updatedConnections = (formData.correctAnswers || []).filter(
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           ([_, targetId]) => targetId !== id
         );
 
@@ -319,7 +327,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
   );
 
   const renderConnections = useCallback(() => {
-    return (formData.correctAnswers || []).map(([sourceId, targetId], index) => {
+    return (formData.correctAnswers || []).map(([sourceId, targetId]) => {
       const sourcePosition = getBlockPosition(sourceId, true);
       const targetPosition = getBlockPosition(targetId, false);
 
@@ -328,17 +336,10 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
       const path = generatePath(sourcePosition, targetPosition);
       const midX = (sourcePosition.x + targetPosition.x) / 2;
       const midY = (sourcePosition.y + targetPosition.y) / 2;
-      const color = "#10b981";
 
       return (
         <g key={`connection-${sourceId}-${targetId}`}>
-          <path
-            d={path}
-            fill="none"
-            stroke={color}
-            strokeWidth="2"
-            className={styles.connectionPath}
-          />
+          <path d={path} fill="none" strokeWidth="2" className={styles.connectionPath} />
           <g
             className={styles.deleteConnection}
             onClick={(e) => {
@@ -348,20 +349,13 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
             style={{ cursor: "pointer" }}
           >
             <rect x={midX - 12} y={midY - 12} width={24} height={24} fill="transparent" />
-            <circle
-              cx={midX}
-              cy={midY}
-              r="8"
-              className={styles.deleteCircle}
-              stroke={color}
-              fill="white"
-            />
+            <circle cx={midX} cy={midY} r="8" className={styles.deleteCircle} />
             <line
               x1={midX - 3}
               y1={midY - 3}
               x2={midX + 3}
               y2={midY + 3}
-              stroke={color}
+              className={styles.deleteLine}
               strokeWidth="1.5"
             />
             <line
@@ -369,7 +363,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
               y1={midY - 3}
               x2={midX - 3}
               y2={midY + 3}
-              stroke={color}
+              className={styles.deleteLine}
               strokeWidth="1.5"
             />
           </g>
@@ -391,7 +385,6 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
       <path
         d={path}
         fill="none"
-        stroke="#10b981"
         strokeWidth="2"
         strokeDasharray="5,5"
         className={styles.activePath}
@@ -442,7 +435,6 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
   }, [activeStep, triggerConnectionsRedraw, formData.left, formData.right]);
 
   const renderContentStep = () => {
-    const totalConnections = formData.correctAnswers?.length || 0;
     const totalLeftItems = formData.left?.length || 0;
     const totalRightItems = formData.right?.length || 0;
 
@@ -451,6 +443,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
     ).size;
 
     const connectedRightItems = new Set(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       (formData.correctAnswers || []).map(([_, targetId]) => targetId)
     ).size;
 
@@ -462,13 +455,13 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
         <div className={styles.stepHeader}>
           <div className={styles.connectionStats}>
             <div className={styles.statItem}>
-              <span className={styles.statLabel}>Source Items Connected:</span>
+              <span className={styles.statLabel}>Source items connected:</span>
               <span className={styles.statValue}>
                 {connectedLeftItems} / {totalLeftItems}
               </span>
             </div>
             <div className={styles.statItem}>
-              <span className={styles.statLabel}>Target Items with Connections:</span>
+              <span className={styles.statLabel}>Target matches connected:</span>
               <span className={styles.statValue}>
                 {connectedRightItems} / {totalRightItems}
               </span>
@@ -489,14 +482,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
           <div className={styles.columnsContent}>
             <div className={styles.column}>
               <div className={styles.columnHeader}>
-                <h3>Source Items</h3>
-                <Button
-                  icon="fa-solid fa-plus"
-                  text
-                  onClick={handleAddLeftBlock}
-                  aria-label="Add source item"
-                  className={styles.iconButton}
-                />
+                <h3>Source items</h3>
               </div>
               <div className={styles.blocksContainer}>
                 <DndContext
@@ -518,6 +504,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
                         canRemove={(formData.left || []).length > 1}
                         isLeft={true}
                         onStartConnection={handleStartConnection}
+                        onCancelConnection={cancelConnection}
                         activeSource={activeSource}
                         connections={formData.correctAnswers}
                         index={index}
@@ -525,19 +512,20 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
                     ))}
                   </SortableContext>
                 </DndContext>
+                <UnstyledButton
+                  className={styles.addRow}
+                  onClick={handleAddLeftBlock}
+                  aria-label="Add source item"
+                >
+                  <Icon name="plus" size={14} />
+                  Add source item
+                </UnstyledButton>
               </div>
             </div>
 
             <div className={styles.column}>
               <div className={styles.columnHeader}>
-                <h3>Target Matches</h3>
-                <Button
-                  icon="fa-solid fa-plus"
-                  text
-                  onClick={handleAddRightBlock}
-                  aria-label="Add target match"
-                  className={styles.iconButton}
-                />
+                <h3>Target matches</h3>
               </div>
               <div className={styles.blocksContainer}>
                 <DndContext
@@ -558,7 +546,14 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
                         onRemove={handleRemoveRightBlock}
                         canRemove={(formData.right || []).length > 1}
                         isLeft={false}
-                        isRightTarget={activeSource !== null}
+                        isConnectTarget={
+                          activeSource !== null &&
+                          !connectionExistsBetween(
+                            formData.correctAnswers || [],
+                            activeSource,
+                            item.id
+                          )
+                        }
                         onCompleteConnection={handleCompleteConnection}
                         activeSource={activeSource}
                         connections={formData.correctAnswers}
@@ -567,6 +562,14 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
                     ))}
                   </SortableContext>
                 </DndContext>
+                <UnstyledButton
+                  className={styles.addRow}
+                  onClick={handleAddRightBlock}
+                  aria-label="Add target match"
+                >
+                  <Icon name="plus" size={14} />
+                  Add target match
+                </UnstyledButton>
               </div>
             </div>
 
@@ -585,12 +588,18 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
           {activeSource && (
             <div className={styles.connectionGuide}>
               <div className={styles.guideContent}>
-                <i className="fa-solid fa-info-circle mr-2" />
-                Drag to a target match to create a connection
+                <Icon name="info-circle" size={14} color="currentColor" />
+                Pick a target match to finish the connection
               </div>
             </div>
           )}
         </div>
+
+        <ConnectionList
+          connections={formData.correctAnswers || []}
+          resolveLabel={makeConnectionLabelResolver(formData.left || [], formData.right || [])}
+          onRemove={handleDeleteConnection}
+        />
       </div>
     );
   };
@@ -616,7 +625,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
             left={formData.left || []}
             right={formData.right || []}
             correctAnswers={formData.correctAnswers || []}
-            feedback={formData.feedback || "Incorrect. Please try again."}
+            feedback={formData.feedback || DEFAULT_INCORRECT_FEEDBACK}
             name={formData.name || ""}
             statement={formData.statement || ""}
           />
@@ -628,7 +637,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
 
   return (
     <ExerciseLayout
-      title="Drag and Drop Exercise"
+      title="drag and drop exercise"
       exerciseType="dragndrop"
       isEdit={isEdit}
       steps={DRAG_AND_DROP_STEPS}
@@ -641,9 +650,9 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
       onCancel={onCancel}
       onSave={handleSave}
       isSaving={isSaving}
+      isDirty={isDirty}
       validation={validation}
     >
-      <Toast ref={toastRef} />
       {renderStepContent()}
     </ExerciseLayout>
   );

@@ -1,14 +1,14 @@
 import { RegexEditor } from "@components/ui/Regex/RegexEditor";
-import { Accordion, AccordionTab } from "primereact/accordion";
-import { Dropdown } from "primereact/dropdown";
-import { InputText } from "primereact/inputtext";
-import { InputTextarea } from "primereact/inputtextarea";
-import { Message } from "primereact/message";
-import { FC, useEffect, useState, Suspense } from "react";
-import React from "react";
+import { Accordion, Alert, Group, Select, Stack, TextInput, Textarea } from "@mantine/core";
+import { FC, useEffect, useState } from "react";
+
+import { Icon } from "@/components/ui/Icon";
+import { DEFAULT_INCORRECT_FEEDBACK } from "@/utils/questionJson";
 
 import styles from "../../../shared/styles/CreateExercise.module.css";
 import { BlankWithFeedback, GraderType } from "../types";
+
+import local from "./BlankManager.module.css";
 
 interface BlankManagerProps {
   blanks: BlankWithFeedback[];
@@ -17,21 +17,21 @@ interface BlankManagerProps {
 }
 
 const graderOptions = [
-  { label: "String Match", value: GraderType.STRING },
-  { label: "Regular Expression", value: GraderType.REGEX },
-  { label: "Number Range", value: GraderType.NUMBER }
+  { label: "String match", value: GraderType.STRING },
+  { label: "Regular expression", value: GraderType.REGEX },
+  { label: "Number range", value: GraderType.NUMBER }
 ];
 
 const createBlank = (): BlankWithFeedback => ({
   id: `blank-${Date.now()}`,
   graderType: GraderType.STRING,
   exactMatch: "",
-  correctFeedback: "Correct!",
-  incorrectFeedback: "Incorrect, please try again."
+  correctFeedback: "Correct",
+  incorrectFeedback: DEFAULT_INCORRECT_FEEDBACK
 });
 
 export const BlankManager: FC<BlankManagerProps> = ({ blanks, onChange, questionText }) => {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const blankCount = (questionText.match(/{blank}/g) || []).length;
   const hasNoBlankPlaceholders = blankCount === 0;
@@ -55,7 +55,11 @@ export const BlankManager: FC<BlankManagerProps> = ({ blanks, onChange, question
     }
   }, [blankCount, blanks.length]);
 
-  const updateBlank = (index: number, field: keyof BlankWithFeedback, value: any) => {
+  const updateBlank = (
+    index: number,
+    field: keyof BlankWithFeedback,
+    value: BlankWithFeedback[keyof BlankWithFeedback]
+  ) => {
     const updatedBlanks = [...blanks];
 
     updatedBlanks[index] = {
@@ -135,153 +139,124 @@ export const BlankManager: FC<BlankManagerProps> = ({ blanks, onChange, question
     return (
       <div className={styles.questionContainer}>
         <div className={styles.questionHeader}>
-          <h3>Answer Fields</h3>
+          <h3>Answer fields</h3>
         </div>
         <div className={styles.questionContent}>
-          <Message
-            severity="info"
-            text="Add {blank} placeholders in your question text first. Answer fields will be automatically created."
-            className="w-full"
-          />
+          <Alert color="blue" variant="light">
+            Add {"{blank}"} placeholders in your question text first. Answer fields will be
+            automatically created.
+          </Alert>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ margin: "-2rem" }}>
+    <div className={local.wrapper}>
       <div className={styles.questionContent}>
-        <Accordion
-          activeIndex={activeIndex !== null ? activeIndex : undefined}
-          onTabChange={(e) => setActiveIndex(typeof e.index === "number" ? e.index : null)}
-          className="w-full compact-accordion"
-        >
+        <Accordion value={activeId} onChange={setActiveId} variant="separated">
           {blanks.map((blank, index) => (
-            <AccordionTab
-              key={blank.id}
-              header={
-                <div className="flex justify-content-between align-items-center w-full">
-                  <span className="font-semibold">Answer Field {index + 1}</span>
-                  <span className="text-sm text-color-secondary">
+            <Accordion.Item key={blank.id} value={blank.id}>
+              <Accordion.Control>
+                <Group justify="space-between" wrap="nowrap">
+                  <span className="font-semibold">Answer field {index + 1}</span>
+                  <span className={local.headerSummary}>
                     {blank.graderType === GraderType.STRING
                       ? `String: "${blank.exactMatch || "Not set"}"`
                       : blank.graderType === GraderType.REGEX
                         ? `Regex: "${getRegexDisplayValue(blank) || "Not set"}"`
                         : `Number: ${blank.numberMin || "0"} - ${blank.numberMax || "∞"}`}
                   </span>
-                </div>
-              }
-            >
-              <div className="flex flex-column gap-2 p-2">
-                <div className="field mb-2">
-                  <label htmlFor={`graderType-${index}`} className="text-sm">
-                    Grader Type
-                  </label>
-                  <Dropdown
+                </Group>
+              </Accordion.Control>
+              <Accordion.Panel>
+                <Stack gap="sm" className={local.fieldStack}>
+                  <Select
                     id={`graderType-${index}`}
+                    label="Grader type"
                     value={blank.graderType}
-                    options={graderOptions}
-                    onChange={(e) => handleGraderTypeChange(index, e.value)}
-                    className="w-full"
+                    data={graderOptions}
+                    allowDeselect={false}
+                    onChange={(value) =>
+                      handleGraderTypeChange(index, (value as GraderType) || GraderType.STRING)
+                    }
                   />
-                </div>
 
-                {blank.graderType === GraderType.STRING && (
-                  <div className="field mb-2">
-                    <label htmlFor={`exactMatch-${index}`} className="text-sm">
-                      Exact Match
-                    </label>
-                    <InputText
+                  {blank.graderType === GraderType.STRING && (
+                    <TextInput
                       id={`exactMatch-${index}`}
+                      label="Exact match"
                       value={blank.exactMatch || ""}
                       onChange={(e) => updateBlank(index, "exactMatch", e.target.value)}
-                      className="w-full"
                       placeholder="Exact text to match"
                     />
-                  </div>
-                )}
+                  )}
 
-                {blank.graderType === GraderType.REGEX && (
-                  <div className="field mb-2">
-                    <label htmlFor={`regex-${index}`} className="text-sm">
-                      Regular Expression
-                    </label>
-                    <RegexEditor
-                      value={getRegexDisplayValue(blank)}
-                      onChange={(value) => handleRegexInputChange(index, value)}
-                    />
-                  </div>
-                )}
-
-                {blank.graderType === GraderType.NUMBER && (
-                  <div className="flex gap-2 mb-2">
-                    <div className="field flex-1">
-                      <label htmlFor={`numberMin-${index}`} className="text-sm">
-                        Minimum Value
+                  {blank.graderType === GraderType.REGEX && (
+                    <div>
+                      <label htmlFor={`regex-${index}`} className={local.headerSummary}>
+                        Regular expression
                       </label>
-                      <InputText
+                      <RegexEditor
+                        value={getRegexDisplayValue(blank)}
+                        onChange={(value) => handleRegexInputChange(index, value)}
+                      />
+                    </div>
+                  )}
+
+                  {blank.graderType === GraderType.NUMBER && (
+                    <Group grow align="flex-start" wrap="nowrap">
+                      <TextInput
                         id={`numberMin-${index}`}
+                        label="Minimum value"
                         value={blank.numberMin || ""}
                         onChange={(e) => updateBlank(index, "numberMin", e.target.value)}
-                        className="w-full"
                         placeholder="e.g., 0"
-                        keyfilter="num"
+                        inputMode="numeric"
                       />
-                    </div>
-                    <div className="field flex-1">
-                      <label htmlFor={`numberMax-${index}`} className="text-sm">
-                        Maximum Value
-                      </label>
-                      <InputText
+                      <TextInput
                         id={`numberMax-${index}`}
+                        label="Maximum value"
                         value={blank.numberMax || ""}
                         onChange={(e) => updateBlank(index, "numberMax", e.target.value)}
-                        className="w-full"
                         placeholder="e.g., 100"
-                        keyfilter="num"
+                        inputMode="numeric"
                       />
-                    </div>
-                  </div>
-                )}
+                    </Group>
+                  )}
 
-                <div className="field mb-2">
-                  <label htmlFor={`correctFeedback-${index}`} className="text-sm">
-                    Correct Answer Feedback
-                  </label>
-                  <InputTextarea
+                  <Textarea
                     id={`correctFeedback-${index}`}
+                    label="Feedback for correct answer"
                     value={blank.correctFeedback || ""}
                     onChange={(e) => updateBlank(index, "correctFeedback", e.target.value)}
-                    rows={1}
-                    autoResize
-                    className="w-full"
+                    autosize
+                    minRows={1}
                     placeholder="Feedback shown for correct answers"
                   />
-                </div>
 
-                <div className="field mb-1">
-                  <label htmlFor={`incorrectFeedback-${index}`} className="text-sm">
-                    Incorrect Answer Feedback
-                  </label>
-                  <InputTextarea
+                  <Textarea
                     id={`incorrectFeedback-${index}`}
+                    label="Feedback for incorrect answer"
                     value={blank.incorrectFeedback || ""}
                     onChange={(e) => updateBlank(index, "incorrectFeedback", e.target.value)}
-                    rows={1}
-                    autoResize
-                    className="w-full"
+                    autosize
+                    minRows={1}
                     placeholder="Feedback shown for incorrect answers"
                   />
-                </div>
-              </div>
-            </AccordionTab>
+                </Stack>
+              </Accordion.Panel>
+            </Accordion.Item>
           ))}
         </Accordion>
 
-        <div className={styles.questionTips}>
-          <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
-          <span>Tip: Click on each answer field to configure validation and feedback.  Type / in the editor for a menu of options.</span>
-        </div>
+        <Group className={styles.questionTips} gap={6} align="center" wrap="nowrap" mt="md">
+          <Icon name="lightbulb" size={14} color="currentColor" />
+          <span>
+            Tip: Click on each answer field to configure validation and feedback. Type / in the
+            editor for a menu of options.
+          </span>
+        </Group>
       </div>
     </div>
   );

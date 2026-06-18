@@ -3,15 +3,18 @@ import sortBy from "lodash/sortBy";
 import { ActionType } from "typesafe-actions";
 
 import { RootState } from "@/state/store";
+import { Nullable } from "@/types/common";
 import { Exercise } from "@/types/exercises";
 import { getExercisesWithoutReadings } from "@/utils/exercise";
 
 export interface AssignmentExerciseState {
   assignmentExercises: Exercise[];
+  forAssignmentId: Nullable<number>;
 }
 
 const INITIAL_STATE: AssignmentExerciseState = {
-  assignmentExercises: []
+  assignmentExercises: [],
+  forAssignmentId: null
 };
 
 export const assignmentExerciseSlice = createSlice({
@@ -20,6 +23,13 @@ export const assignmentExerciseSlice = createSlice({
   reducers: {
     setAssignmentExercises: (state, action: PayloadAction<Exercise[]>) => {
       state.assignmentExercises = action.payload;
+    },
+    setAssignmentExercisesForAssignment: (
+      state,
+      action: PayloadAction<{ assignmentId: number; exercises: Exercise[] }>
+    ) => {
+      state.assignmentExercises = action.payload.exercises;
+      state.forAssignmentId = action.payload.assignmentId;
     }
   }
 });
@@ -42,7 +52,9 @@ export const getAssignmentReadingsSelector = createSelector(
 
 export const assignmentExerciseSelectors = {
   getAssignmentExercises: getAssignmentExercisesSelector,
-  getAssignmentReadings: getAssignmentReadingsSelector
+  getAssignmentReadings: getAssignmentReadingsSelector,
+  getExercisesForAssignmentId: (state: RootState): Nullable<number> =>
+    state.assignmentExercise.forAssignmentId
 };
 
 export type AssignmentExerciseActions = ActionType<typeof assignmentExerciseActions>;

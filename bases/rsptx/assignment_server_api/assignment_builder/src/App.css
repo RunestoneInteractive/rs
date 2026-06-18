@@ -10,37 +10,8 @@ html, body, #root {
 }
 
 .appGradientBg {
-  background:
-    radial-gradient(1200px 500px at 10% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
-    radial-gradient(1000px 400px at 110% 20%, rgba(236, 72, 153, 0.14), transparent 60%),
-    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  background: var(--rs-gradient-app-bg);
   background-attachment: local;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-.rsform {
-  margin-left: 10px;
-  margin-bottom: 10px;
 }
 
 .builderlabel {

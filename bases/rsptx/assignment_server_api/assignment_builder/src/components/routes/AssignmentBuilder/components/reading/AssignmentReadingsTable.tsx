@@ -1,9 +1,9 @@
 import { EditableCellFactory } from "@components/ui/EditableTable/EditableCellFactory";
+import { EditableColumn, EditableDataTable } from "@components/ui/EditableTable/EditableDataTable";
 import { TableSelectionOverlay } from "@components/ui/EditableTable/TableOverlay";
+import { Icon } from "@components/ui/Icon";
 import { useReorderAssignmentExercisesMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
-import { Column } from "primereact/column";
-import { DataTable, DataTableSelectionMultipleChangeEvent } from "primereact/datatable";
-import { useRef } from "react";
+import { RefCallback, useMemo, useState } from "react";
 
 import { Nullable } from "@/types/common";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
@@ -11,21 +11,40 @@ import { Exercise } from "@/types/exercises";
 
 import { ActivitiesRequiredCell } from "./components/ActivitiesRequiredCell";
 import { EditInputValueHeaderReadings } from "./components/EditAllReadings/EditInputValueHeaderReadings";
-import { SetCurrentEditReading, MouseUpHandler } from "./types";
+import { MouseUpHandler } from "./types";
+
+import styles from "./AssignmentReadingsTable.module.css";
 
 interface AssignmentReadingsTableProps {
   assignmentReadings: Exercise[];
   selectedReadings: Exercise[];
   setSelectedReadings: (readings: Exercise[]) => void;
   globalFilter: string;
-  setCurrentEditReading: SetCurrentEditReading;
-  setViewMode: () => void;
   startItemId: number | null;
   draggingFieldName: DraggingExerciseColumns | null;
   handleMouseDown: (itemId: number, fieldName: DraggingExerciseColumns) => void;
   handleMouseUp: MouseUpHandler;
-  handleChange: (itemId: number, fieldName: DraggingExerciseColumns, value: any) => void;
+  handleChange: (
+    itemId: number,
+    fieldName: DraggingExerciseColumns,
+    value: string | number
+  ) => void;
+  scrollSentinelRef?: RefCallback<HTMLElement>;
 }
+
+const getNumQuestionsOrDefault = (numQuestions: Nullable<number>): number =>
+  Math.max(numQuestions ?? 0, 1);
+
+const matchesFilter = (reading: Exercise, filter: string): boolean => {
+  const query = filter.trim().toLowerCase();
+
+  if (!query) {
+    return true;
+  }
+  return [reading.name, reading.title, reading.chapter, reading.subchapter]
+    .filter(Boolean)
+    .some((field) => field!.toLowerCase().includes(query));
+};
 
 export const AssignmentReadingsTable = ({
   assignmentReadings,
@@ -36,150 +55,130 @@ export const AssignmentReadingsTable = ({
   draggingFieldName,
   handleMouseDown,
   handleMouseUp,
-  handleChange
+  handleChange,
+  scrollSentinelRef
 }: AssignmentReadingsTableProps) => {
-  const dataTableRef = useRef<DataTable<Exercise[]>>(null);
   const [reorderReadings] = useReorderAssignmentExercisesMutation();
+  const [containerEl, setContainerEl] = useState<HTMLElement | null>(null);
 
   const handleActivitiesRequiredUpdate = (itemId: number, fieldName: string, value: number) => {
     handleChange(itemId, fieldName as DraggingExerciseColumns, value);
   };
 
-  const getNumQuestionsOrDefault = (numQuestions: Nullable<number>): number => {
-    const defaultNumQuestions = 1;
+  const filteredReadings = useMemo(
+    () => assignmentReadings.filter((reading) => matchesFilter(reading, globalFilter)),
+    [assignmentReadings, globalFilter]
+  );
 
-    return Math.max(numQuestions ?? 0, defaultNumQuestions);
-  };
+  const columns = useMemo<EditableColumn<Exercise>[]>(
+    () => [
+      {
+        key: "chapter",
+        header: "Chapter",
+        width: "12rem",
+        render: (row) => <div className={styles.nowrap}>{row.chapter}</div>
+      },
+      {
+        key: "subchapter",
+        header: "Section",
+        width: "20rem",
+        render: (row) => (
+          <div className={styles.sectionCell}>
+            <div className={styles.sectionTitle} title={row.name || row.title}>
+              {row.name || row.title}
+            </div>
+            <div className={styles.sectionPath} title={row.subchapter || undefined}>
+              {row.subchapter}
+            </div>
+          </div>
+        )
+      },
+      {
+        key: "numQuestions",
+        header: "Activities",
+        width: "7rem",
+        align: "right",
+        render: (row) => (
+          <span className="numeric">{getNumQuestionsOrDefault(row.numQuestions)}</span>
+        )
+      },
+      {
+        key: "activities_required",
+        header: "Required",
+        width: "7rem",
+        align: "right",
+        flushCell: true,
+        render: (row) => (
+          <ActivitiesRequiredCell
+            value={
+              row.activities_required ||
+              Math.round(getNumQuestionsOrDefault(row.numQuestions) * 0.8)
+            }
+            exercise={row}
+            onUpdate={handleActivitiesRequiredUpdate}
+            itemId={row.id}
+          />
+        )
+      },
+      {
+        key: "points",
+        field: "points",
+        width: "7rem",
+        align: "right",
+        header: <EditInputValueHeaderReadings field="points" label="Points" defaultValue={0} />,
+        render: (row) => (
+          <EditableCellFactory
+            fieldName="points"
+            itemId={row.id}
+            handleMouseDown={handleMouseDown}
+            handleChange={handleChange}
+            value={row.points}
+            questionType={row.question_type}
+            isDragging={startItemId !== null}
+            rowLabel={row.name || row.title}
+          />
+        )
+      }
+    ],
+    [handleMouseDown, handleChange, startItemId]
+  );
 
   return (
-    <div style={{ position: "relative", overflowX: "auto" }}>
-      <DataTable<Exercise[]>
-        style={{ minWidth: "100%", userSelect: "none" }}
-        value={assignmentReadings}
-        ref={dataTableRef}
-        selection={selectedReadings}
-        selectionMode="checkbox"
-        onSelectionChange={(e: DataTableSelectionMultipleChangeEvent<Exercise[]>) =>
-          setSelectedReadings(e.value)
-        }
-        dataKey="id"
-        scrollable
-        scrollHeight="calc(100vh - 280px)"
-        size="small"
-        rowClassName={() => "assignmentExercise_row"}
-        stripedRows
-        showGridlines
-        globalFilter={globalFilter}
-        globalFilterFields={["name", "title", "chapter", "subchapter"]}
-        emptyMessage={
-          <div className="text-center p-5">
-            <i className="pi pi-book text-4xl text-500 mb-3" style={{ display: "block" }} />
-            <p className="text-700 mb-2">No readings added</p>
-            <p className="text-500 text-sm">Click "Choose readings" to get started</p>
+    <EditableDataTable
+      data={filteredReadings}
+      columns={columns}
+      selection={selectedReadings}
+      onSelectionChange={setSelectedReadings}
+      onReorder={reorderReadings}
+      ariaLabel="Assignment readings"
+      getRowLabel={(row) => row.name || row.title || `row ${row.id}`}
+      containerRef={setContainerEl}
+      scrollSentinelRef={scrollSentinelRef}
+      flush
+      emptyMessage={
+        <div className={styles.empty}>
+          <div className={styles.emptyIcon}>
+            <Icon name="book" size={22} />
           </div>
-        }
-        reorderableRows
-        onRowReorder={(e) => reorderReadings(e.value.map((reading) => reading.id))}
-        resizableColumns
-        columnResizeMode="fit"
-      >
-        <Column resizeable={false} selectionMode="multiple" style={{ width: "3rem" }} />
-
-        {/* Chapter */}
-        <Column
-          field="chapter"
-          header="Chapter"
-          style={{
-            maxWidth: "12rem"
-          }}
-          body={(data: Exercise) => (
-            <div>
-              <div className="font-medium nowrap">{data.chapter}</div>
-            </div>
-          )}
-          sortable
-          resizeable
-        />
-
-        {/* Subchapter */}
-        <Column
-          field="subchapter"
-          header="Subchapter"
-          style={{ maxWidth: "30rem" }}
-          body={(data: Exercise) => (
-            <div>
-              <div className="font-medium nowrap">{data.name || data.title}</div>
-              <div className="text-500 text-sm nowrap">{data.subchapter}</div>
-            </div>
-          )}
-          sortable
-          resizeable
-        />
-
-        {/* Activity count (read-only) */}
-        <Column
-          resizeable={false}
-          field="numQuestions"
-          header="Activity count"
-          style={{ maxWidth: "7rem" }}
-          body={(data: Exercise) => (
-            <div className="text-center">{getNumQuestionsOrDefault(data.numQuestions)}</div>
-          )}
-          sortable
-        />
-
-        {/* # required (editable, no bulk edit) */}
-        <Column
-          resizeable={false}
-          field="activities_required"
-          header="# required"
-          style={{ maxWidth: "7rem" }}
-          bodyStyle={{ padding: 0 }}
-          body={(data: Exercise) => (
-            <ActivitiesRequiredCell
-              value={
-                data.activities_required ||
-                Math.round(getNumQuestionsOrDefault(data.numQuestions) * 0.8)
-              }
-              exercise={data}
-              onUpdate={handleActivitiesRequiredUpdate}
-              itemId={data.id}
-            />
-          )}
-        />
-
-        {/* Points */}
-        <Column
-          resizeable={false}
-          field="points"
-          bodyStyle={{ padding: 0 }}
-          style={{ maxWidth: "7rem" }}
-          header={() => (
-            <EditInputValueHeaderReadings field="points" label="Points" defaultValue={0} />
-          )}
-          body={(data: Exercise) => (
-            <EditableCellFactory
-              fieldName="points"
-              itemId={data.id}
-              handleMouseDown={handleMouseDown}
-              handleChange={handleChange}
-              value={data.points}
-              questionType={data.question_type}
-              isDragging={startItemId !== null}
-            />
-          )}
-        />
-
-        <Column resizeable={false} rowReorder style={{ width: "3rem" }} />
-      </DataTable>
+          <p className={styles.emptyTitle}>
+            {globalFilter ? "No readings match your search" : "No readings yet"}
+          </p>
+          <p className={styles.emptyText}>
+            {globalFilter
+              ? "Try a different search term."
+              : "Use “Choose readings” to add sections from the book."}
+          </p>
+        </div>
+      }
+    >
       <TableSelectionOverlay
         startItemId={startItemId}
         draggingFieldName={draggingFieldName}
-        tableRef={dataTableRef.current!}
+        containerEl={containerEl}
         handleMouseUp={handleMouseUp}
         type="readings"
-        exercises={assignmentReadings}
+        exercises={filteredReadings}
       />
-    </div>
+    </EditableDataTable>
   );
 };

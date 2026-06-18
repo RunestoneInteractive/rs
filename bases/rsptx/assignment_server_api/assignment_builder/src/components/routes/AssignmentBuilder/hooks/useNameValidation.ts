@@ -19,7 +19,7 @@ export const useNameValidation = ({ assignments, watch }: UseNameValidationProps
         return "Assignment name is required";
       }
       if (assignments.some((a) => a.name.toLowerCase() === name.toLowerCase())) {
-        return "An assignment with this name already exists";
+        return "An assignment with this name already exists. Pick another name.";
       }
       return null;
     },

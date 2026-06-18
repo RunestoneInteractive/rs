@@ -12,6 +12,13 @@ export const isDropdownField = (
   return ["autograde", "which_to_grade"].includes(field);
 };
 
+export const EDITABLE_FIELD_LABELS: Record<DraggingExerciseColumns, string> = {
+  autograde: "Autograde",
+  which_to_grade: "Which to grade",
+  points: "Points",
+  activities_required: "Activities required"
+};
+
 export const isNumberField = (
   field: DraggingExerciseColumns
 ): field is DraggingExerciseNumberColumns => {
@@ -28,6 +35,7 @@ export type EditableCellProps<
   hideDragIcon: VoidFunction;
   value: TFieldValue;
   questionType: string;
+  rowLabel?: string;
 };
 
 export type EditableCellFactoryProps<
@@ -41,4 +49,5 @@ export type EditableCellFactoryProps<
   value: TFieldValue;
   questionType: string;
   isDragging: boolean;
+  rowLabel?: string;
 };

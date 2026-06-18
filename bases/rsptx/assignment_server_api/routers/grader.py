@@ -1,6 +1,9 @@
+import csv
+import io
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select, func, and_, or_
 
@@ -10,11 +13,17 @@ from rsptx.db.crud import (
     fetch_assignment_questions,
     fetch_course,
     fetch_course_instructors,
+    fetch_gradebook,
+    fetch_grade,
     fetch_one_assignment,
     fetch_question_grade,
+    fetch_user,
     fetch_users_for_course,
     create_question_grade_entry,
+    set_manual_total,
     update_question_grade_entry,
+    update_assignment_released,
+    update_assignment_threshold,
 )
 from rsptx.db.models import (
     Code,
@@ -25,6 +34,11 @@ from rsptx.db.models import (
 from rsptx.endpoint_validators import instructor_role_required
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import make_json_response
+from rsptx.grading_helpers.regrade import (
+    RegradeOptions,
+    regrade_batch,
+    recompute_totals_for,
+)
 
 
 router = APIRouter(
@@ -619,4 +633,359 @@ async def upsert_grade(
             "sid": payload.sid,
             "div_id": payload.div_id,
         },
+    )
+
+
+class RegradeRequest(BaseModel):
+    assignment_id: int
+    question_ids: List[int]
+    sids: List[str] = []
+    overwrite_manual: bool = False
+    enforce_deadline: bool = True
+    recompute_totals: bool = True
+    which_to_grade_override: Optional[str] = None
+
+
+async def _build_regrade_inputs(course, assignment, req: RegradeRequest):
+    """Resolve the requested question ids and student ids into the objects the
+    regrade service needs. Returns (questions, sids) or raises ValueError."""
+    rows = await fetch_assignment_questions(assignment.id)
+    by_id = {row.Question.id: row for row in rows}
+    questions = []
+    for qid in req.question_ids:
+        row = by_id.get(qid)
+        if row is None:
+            raise ValueError(f"Question {qid} is not part of this assignment")
+        questions.append((row.Question, row.AssignmentQuestion))
+
+    instructor_ids = {
+        u.username for u in await fetch_course_instructors(course.course_name)
+    }
+    if req.sids:
+        sids = [s for s in req.sids if s not in instructor_ids]
+    else:
+        students = await fetch_users_for_course(course.course_name)
+        sids = [s.username for s in students if s.username not in instructor_ids]
+    return questions, sids
+
+
+@router.post("/regrade/preview")
+@instructor_role_required()
+async def regrade_preview(
+    payload: RegradeRequest, request: Request, user=Depends(auth_manager)
+):
+    """Dry-run a re-grade and return the before/after diff without writing."""
+    course = await fetch_course(user.course_name)
+    assignment = await fetch_one_assignment(payload.assignment_id)
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+    try:
+        questions, sids = await _build_regrade_inputs(course, assignment, payload)
+    except ValueError as e:
+        return make_json_response(status=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    options = RegradeOptions(
+        overwrite_manual=payload.overwrite_manual,
+        enforce_deadline=payload.enforce_deadline,
+        recompute_totals=payload.recompute_totals,
+        which_to_grade_override=payload.which_to_grade_override,
+    )
+    report = await regrade_batch(
+        course, sids, questions, assignment, options, dry_run=True
+    )
+    return make_json_response(status=status.HTTP_200_OK, detail=report.dict())
+
+
+@router.post("/regrade")
+@instructor_role_required()
+async def regrade_run(
+    payload: RegradeRequest, request: Request, user=Depends(auth_manager)
+):
+    """Run the re-grade across the student x question matrix and persist the
+    results, optionally recomputing assignment totals and pushing to the LMS.
+    """
+    course = await fetch_course(user.course_name)
+    assignment = await fetch_one_assignment(payload.assignment_id)
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+    try:
+        questions, sids = await _build_regrade_inputs(course, assignment, payload)
+    except ValueError as e:
+        return make_json_response(status=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    options = RegradeOptions(
+        overwrite_manual=payload.overwrite_manual,
+        enforce_deadline=payload.enforce_deadline,
+        recompute_totals=payload.recompute_totals,
+        which_to_grade_override=payload.which_to_grade_override,
+    )
+    report = await regrade_batch(
+        course, sids, questions, assignment, options, dry_run=False
+    )
+    rslogger.info(
+        f"Regrade run by {user.username} assignment={assignment.id} "
+        f"total={report.total} changed={report.changed} errors={report.errors}"
+    )
+    return make_json_response(status=status.HTTP_200_OK, detail=report.dict())
+
+
+class RecomputeTotalsRequest(BaseModel):
+    assignment_id: int
+    sids: List[str] = []
+
+
+@router.post("/recompute_totals")
+@instructor_role_required()
+async def recompute_totals(
+    payload: RecomputeTotalsRequest, request: Request, user=Depends(auth_manager)
+):
+    """Recompute assignment totals (and push to the LMS) for the given students.
+
+    Used after the manual multi-grade flow, since the single ``POST /grade``
+    endpoint only writes per-question grades without rolling up the total.
+    """
+    course = await fetch_course(user.course_name)
+    assignment = await fetch_one_assignment(payload.assignment_id)
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
+    instructor_ids = {
+        u.username for u in await fetch_course_instructors(course.course_name)
+    }
+    sids = [s for s in payload.sids if s not in instructor_ids]
+
+    processed = await recompute_totals_for(course, assignment, sids)
+    rslogger.info(
+        f"Recompute totals by {user.username} assignment={assignment.id} "
+        f"students={processed}"
+    )
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={"assignment_id": assignment.id, "students": processed},
+    )
+
+
+class ReleaseRequest(BaseModel):
+    assignment_id: int
+    released: bool
+
+
+@router.post("/release")
+@instructor_role_required()
+async def set_assignment_released(
+    payload: ReleaseRequest, request: Request, user=Depends(auth_manager)
+):
+    """Release or hide an assignment's grades to students by flipping the
+    Assignment.released flag. When released is False, the student-facing read
+    path hides scores (see the doAssignment template and the student dashboard).
+    """
+    course = await fetch_course(user.course_name)
+    assignment = await fetch_one_assignment(payload.assignment_id)
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
+    await update_assignment_released(assignment.id, payload.released)
+    rslogger.info(
+        f"Grades {'released' if payload.released else 'hidden'} by {user.username} "
+        f"assignment={assignment.id}"
+    )
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={"assignment_id": assignment.id, "released": payload.released},
+    )
+
+
+class ThresholdRequest(BaseModel):
+    assignment_id: int
+    threshold_pct: Optional[float] = None
+
+
+@router.post("/threshold")
+@instructor_role_required()
+async def set_assignment_threshold(
+    payload: ThresholdRequest, request: Request, user=Depends(auth_manager)
+):
+    """Set an assignment's threshold scoring percentage (a fraction in 0..1).
+
+    When a positive threshold is set, the AB recompute roll-up awards full
+    points to any student whose earned fraction exceeds it. A null or zero
+    threshold disables threshold scoring (recompute then uses the raw
+    per-question sum). This mirrors the legacy web2py threshold rule.
+    """
+    course = await fetch_course(user.course_name)
+    assignment = await fetch_one_assignment(payload.assignment_id)
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
+    if payload.threshold_pct is not None and not (0 <= payload.threshold_pct <= 1):
+        return make_json_response(
+            status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="threshold_pct must be a fraction between 0 and 1",
+        )
+
+    await update_assignment_threshold(assignment.id, payload.threshold_pct)
+    rslogger.info(
+        f"Threshold set by {user.username} assignment={assignment.id} "
+        f"threshold_pct={payload.threshold_pct}"
+    )
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "assignment_id": assignment.id,
+            "threshold_pct": payload.threshold_pct,
+        },
+    )
+
+
+class ManualTotalRequest(BaseModel):
+    assignment_id: int
+    sid: str
+    score: Optional[float] = None
+    manual: bool = True
+
+
+@router.post("/manual_total")
+@instructor_role_required()
+async def set_manual_assignment_total(
+    payload: ManualTotalRequest, request: Request, user=Depends(auth_manager)
+):
+    """Override or revert a student's assignment total.
+
+    With manual True the given score is stored and pinned: recompute_totals_for
+    will preserve it instead of rolling up the per-question grades. With manual
+    False the pin is cleared and the total is recomputed from the per-question
+    grades.
+    """
+    course = await fetch_course(user.course_name)
+    assignment = await fetch_one_assignment(payload.assignment_id)
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
+    student = await fetch_user(payload.sid)
+    if not student or not student.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Student not found"
+        )
+
+    if payload.manual:
+        if payload.score is None:
+            return make_json_response(
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="score is required when manual is true",
+            )
+        grade = await set_manual_total(
+            student.id, assignment.id, course.course_name, payload.score, True
+        )
+        rslogger.info(
+            f"Manual total set by {user.username} assignment={assignment.id} "
+            f"sid={payload.sid} score={payload.score}"
+        )
+        return make_json_response(
+            status=status.HTTP_200_OK,
+            detail={
+                "assignment_id": assignment.id,
+                "sid": payload.sid,
+                "score": grade.score,
+                "manual_total": True,
+            },
+        )
+
+    existing = await fetch_grade(student.id, assignment.id)
+    preserved = existing.score if existing and existing.score is not None else 0
+    await set_manual_total(
+        student.id, assignment.id, course.course_name, preserved, False
+    )
+    await recompute_totals_for(course, assignment, [payload.sid])
+    recomputed = await fetch_grade(student.id, assignment.id)
+    rslogger.info(
+        f"Manual total reverted by {user.username} assignment={assignment.id} "
+        f"sid={payload.sid}"
+    )
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "assignment_id": assignment.id,
+            "sid": payload.sid,
+            "score": recomputed.score if recomputed else None,
+            "manual_total": False,
+        },
+    )
+
+
+def _format_score(value: float) -> str:
+    if float(value).is_integer():
+        return str(int(value))
+    return str(round(value, 2))
+
+
+def _gradebook_to_csv(data: dict) -> str:
+    output = io.StringIO()
+    writer = csv.writer(output)
+    assignments = data["assignments"]
+    writer.writerow(["Student"] + [a["name"] for a in assignments] + ["Total"])
+    scores = {
+        (cell["sid"], cell["assignment_id"]): cell["score"] for cell in data["cells"]
+    }
+    for student in data["students"]:
+        row = [student["name"]]
+        total = 0.0
+        graded = False
+        for assignment in assignments:
+            score = scores.get((student["sid"], assignment["id"]))
+            if score is None:
+                row.append("")
+            else:
+                row.append(_format_score(score))
+                total += score
+                graded = True
+        row.append(_format_score(total) if graded else "")
+        writer.writerow(row)
+    return output.getvalue()
+
+
+@router.get("/gradebook/data")
+@instructor_role_required()
+async def get_gradebook(request: Request, user=Depends(auth_manager)):
+    """Return the gradebook matrix (assignments x students) for the caller's
+    course: assignments, students, per-cell scores, and per-assignment averages.
+
+    Served under ``/gradebook/data`` (not ``/gradebook``) so the single-segment
+    SPA deep link ``/grader/gradebook`` falls through to the React app instead of
+    being shadowed by this JSON endpoint.
+    """
+    data = await fetch_gradebook(user.course_name)
+    return make_json_response(status=status.HTTP_200_OK, detail=data)
+
+
+@router.get("/gradebook.csv")
+@instructor_role_required()
+async def get_gradebook_csv(request: Request, user=Depends(auth_manager)):
+    """Stream the gradebook as a CSV download (one row per student, one column
+    per assignment plus a total column).
+    """
+    data = await fetch_gradebook(user.course_name)
+    content = _gradebook_to_csv(data)
+    safe_course = "".join(
+        c if c.isalnum() or c in ("-", "_") else "-" for c in user.course_name
+    )
+    filename = f"gradebook-{safe_course}.csv"
+    rslogger.info(
+        f"Gradebook CSV exported by {user.username} course={user.course_name}"
+    )
+    return StreamingResponse(
+        iter([content]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

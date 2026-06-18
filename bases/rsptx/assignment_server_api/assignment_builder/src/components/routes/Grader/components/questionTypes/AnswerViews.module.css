@@ -1,0 +1,147 @@
+.sectionTitle {
+  margin: 0.75rem 0 0.5rem;
+  color: var(--rs-text-strong);
+}
+
+.rendererTitle {
+  margin: 0 0 0.5rem;
+  color: var(--rs-text-strong);
+}
+
+.previewTitle {
+  margin: 0 0 0.25rem;
+  color: var(--rs-text-strong);
+  font-size: 13px;
+}
+
+.previewTitleSection {
+  margin-bottom: 0.5rem;
+}
+
+.interactiveSection {
+  margin-bottom: 0.75rem;
+}
+
+.questionName {
+  font-family: var(--rs-font-mono);
+  font-variant-ligatures: none;
+}
+
+.mutedNote {
+  color: var(--rs-text-muted);
+}
+
+.emptyPreview {
+  padding: 1rem;
+  color: var(--rs-text-muted);
+}
+
+.emptyResponse {
+  color: var(--rs-text-subtle);
+}
+
+.blankList {
+  padding-left: 1.25rem;
+  margin: 0;
+}
+
+.blankItem {
+  margin-bottom: 4px;
+}
+
+.blankCode {
+  background: var(--rs-brand-50);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--rs-radius-sm);
+  color: var(--rs-brand-800);
+  font-family: var(--rs-font-mono);
+  font-variant-ligatures: none;
+}
+
+.responseBox {
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-md);
+  padding: 0.75rem;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  font-size: 14px;
+  color: var(--rs-text-strong);
+  max-height: 340px;
+  overflow: auto;
+}
+
+.blockList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.blockRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--rs-brand-50);
+  border: 1px solid var(--rs-brand-200);
+  border-radius: var(--rs-radius-sm);
+  padding: 0.45rem 0.6rem;
+  font-family: var(--rs-font-mono);
+  font-variant-ligatures: none;
+  font-size: 13px;
+}
+
+.blockIndex {
+  min-width: 24px;
+  height: 24px;
+  border-radius: var(--rs-radius-pill);
+  background: var(--rs-brand-600);
+  color: var(--rs-text-on-brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: var(--rs-font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.blockCode {
+  flex: 1;
+}
+
+.optionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.optionChip {
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--rs-radius-pill);
+  font-weight: var(--rs-font-weight-semibold);
+  font-size: 13px;
+}
+
+.optionChipCorrect {
+  background: var(--rs-success-bg);
+  color: var(--rs-success-text);
+}
+
+.optionChipWrong {
+  background: var(--rs-warning-bg);
+  color: var(--rs-warning-text);
+}
+
+.codeBlock {
+  background: var(--rs-neutral-900);
+  color: var(--rs-neutral-200);
+  padding: 0.85rem 1rem;
+  border-radius: var(--rs-radius-md);
+  font-family: var(--rs-font-mono);
+  font-variant-ligatures: none;
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 380px;
+  overflow: auto;
+}

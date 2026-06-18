@@ -1,4 +1,5 @@
-import { Button } from "primereact/button";
+import { Icon } from "@components/ui/Icon";
+import { Button } from "@mantine/core";
 import { FC } from "react";
 
 import styles from "./ErrorState.module.css";
@@ -6,28 +7,28 @@ import styles from "./ErrorState.module.css";
 interface ErrorStateProps {
   title?: string;
   message?: string;
+  retryLabel?: string;
+  onRetry?: () => void;
 }
 
 export const ErrorState: FC<ErrorStateProps> = ({
-  title = "Oops! Something went wrong",
-  message = "We encountered an unexpected error. Please try refreshing the page or contact support if the problem persists."
+  title = "Something went wrong",
+  message = "Refresh the page. If it keeps happening, contact support.",
+  retryLabel = "Refresh page",
+  onRetry = () => window.location.reload()
 }) => {
   return (
     <div className={styles.errorContainer}>
-      <div className={styles.errorContent}>
+      <div className={styles.errorContent} role="alert">
         <div className={styles.errorIcon}>
-          <i className="pi pi-exclamation-triangle"></i>
+          <Icon name="exclamation-triangle" size={26} />
         </div>
         <h2 className={styles.errorTitle}>{title}</h2>
         <p className={styles.errorMessage}>{message}</p>
         <div className={styles.errorActions}>
-          <Button
-            icon="pi pi-refresh"
-            label="Refresh Page"
-            onClick={() => window.location.reload()}
-            severity="success"
-            className={styles.retryButton}
-          />
+          <Button variant="default" leftSection={<Icon name="refresh" />} onClick={onRetry}>
+            {retryLabel}
+          </Button>
         </div>
       </div>
     </div>

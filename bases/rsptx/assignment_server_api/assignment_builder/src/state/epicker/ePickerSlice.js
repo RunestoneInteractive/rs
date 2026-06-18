@@ -4,7 +4,7 @@
  * @summary Redux slice for the ePicker component
  */
 import { createAsyncThunk, createSlice, createSelector } from "@reduxjs/toolkit";
-import toast from "react-hot-toast";
+import { notify } from "@components/ui/notify";
 
 /**
  * @function fetchChooserData
@@ -51,14 +51,9 @@ export const fetchChooserData = createAsyncThunk(
                 */
         let result = await resp.json();
 
-        toast(`Error ${result.detail[0].msg} for input ${result.detail[0].loc}`, {
-          duration: 5000
-        });
+        notify.error(`Couldn't load questions: ${result.detail[0].msg} (${result.detail[0].loc})`);
       } else {
-        toast("Error fetching questions", {
-          icon: "🔥",
-          duration: 5000
-        });
+        notify.error("Couldn't load questions. Try again.");
       }
 
       return;

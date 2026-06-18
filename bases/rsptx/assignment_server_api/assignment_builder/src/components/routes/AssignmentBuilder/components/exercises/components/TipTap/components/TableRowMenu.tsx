@@ -70,6 +70,7 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
 
     // Set selection to inside the first cell of the target row
     const $pos = doc.resolve(currentPos + 2); // +1 for row, +1 for cell
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tr = state.tr.setSelection(new (state.selection.constructor as any)($pos));
 
     editor.view.dispatch(tr);
@@ -114,6 +115,7 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
 
     // Set selection to inside the first cell of the target row
     const $pos = doc.resolve(currentPos + 2); // +1 for row, +1 for cell
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tr = state.tr.setSelection(new (state.selection.constructor as any)($pos));
 
     editor.view.dispatch(tr);
@@ -164,6 +166,7 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
 
     // Set selection to inside the first cell of the target row
     const $pos = doc.resolve(currentPos + 2); // +1 for row, +1 for cell
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tr = state.tr.setSelection(new (state.selection.constructor as any)($pos));
 
     editor.view.dispatch(tr);
@@ -182,17 +185,17 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
         transform: "translate(-100%, -50%)"
       }}
     >
-      <button className={styles.rowMenuButton} onClick={handleAddRowBefore}>
-        <i className="fa-solid fa-circle-plus" />
-        <span className={styles.rowMenuTooltip}>Add Row Above</span>
+      <button type="button" className={styles.rowMenuButton} onClick={handleAddRowBefore}>
+        <i className="fa-solid fa-circle-plus" aria-hidden="true" />
+        <span className={styles.rowMenuTooltip}>Add row above</span>
       </button>
-      <button className={styles.rowMenuButton} onClick={handleAddRowAfter}>
-        <i className="fa-solid fa-circle-plus" />
-        <span className={styles.rowMenuTooltip}>Add Row Below</span>
+      <button type="button" className={styles.rowMenuButton} onClick={handleAddRowAfter}>
+        <i className="fa-solid fa-circle-plus" aria-hidden="true" />
+        <span className={styles.rowMenuTooltip}>Add row below</span>
       </button>
-      <button className={styles.rowMenuButton} onClick={handleDeleteRow}>
-        <i className="fa-solid fa-trash-can" />
-        <span className={styles.rowMenuTooltip}>{isLastRow ? "Delete Table" : "Delete Row"}</span>
+      <button type="button" className={styles.rowMenuButton} onClick={handleDeleteRow}>
+        <i className="fa-solid fa-trash-can" aria-hidden="true" />
+        <span className={styles.rowMenuTooltip}>{isLastRow ? "Delete table" : "Delete row"}</span>
       </button>
     </div>
   );

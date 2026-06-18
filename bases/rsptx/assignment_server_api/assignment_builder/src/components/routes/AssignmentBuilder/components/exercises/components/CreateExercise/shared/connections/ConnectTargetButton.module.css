@@ -1,0 +1,15 @@
+.connectTarget {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--rs-success-bg);
+  color: var(--rs-success-text);
+  border: 1px solid var(--rs-success-border);
+  transition:
+    background-color var(--rs-transition-fast),
+    color var(--rs-transition-fast);
+}
+
+.connectTarget:hover {
+  background-color: color-mix(in srgb, var(--rs-success) 20%, transparent);
+}
