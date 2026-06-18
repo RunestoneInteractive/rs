@@ -24,17 +24,17 @@ export default class GodotActiveCode extends ActiveCode {
         // data-wasm on the textarea holds the path to the shell directory,
         // e.g. "/_static/godot-shell" — mirrors how SQL uses data-wasm.
         var shellBase;
-        if (
-            eBookConfig.useRunestoneServices ||
-            window.location.search.includes("mode=browsing")
-        ) {
-            // On a Runestone server, prefix with the published book path.
-            var bookprefix = `/ns/books/published/${eBookConfig.basecourse}`;
-            shellBase = bookprefix + $(this.origElem).data("wasm");
-        } else {
+        // if (
+        //     eBookConfig.useRunestoneServices ||
+        //     window.location.search.includes("mode=browsing")
+        // ) {
+        //     // On a Runestone server, prefix with the published book path.
+        //     var bookprefix = `/ns/books/published/${eBookConfig.basecourse}`;
+        //     shellBase = bookprefix + $(this.origElem).data("wasm");
+        // } else {
             // Static build — use the path as-is, relative to the book root.
             shellBase = $(this.origElem).data("wasm");
-        }
+        // }
         this.shellUrl = shellBase + "/index.html";
 
         // Per-exercise .pck URL and scene path, emitted by PreTeXt XSLT.
@@ -165,7 +165,14 @@ export default class GodotActiveCode extends ActiveCode {
     // -------------------------------------------------------------------------
     _sendToShell(payload) {
         try {
-            this.godotIframe.contentWindow.godotShell.loadExercise(payload);
+            // Specify your remote server origin for security
+            //const remoteOrigin = "https://runestone.academy"; 
+            const remoteOrigin = "https://wcu-cs-cooperlab.github.io"; 
+        
+            this.godotIframe.contentWindow.postMessage({
+                type: "loadExercise",
+                payload: payload
+            }, remoteOrigin);
         } catch (e) {
             this._onError("Could not communicate with Godot shell: " + e.message);
         }
