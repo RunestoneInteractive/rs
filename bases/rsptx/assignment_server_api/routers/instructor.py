@@ -404,12 +404,15 @@ async def get_assignment_gb(
                 ps.max_practice_questions or 0
             )
 
+            # Store the percent grade, or leave it blank if there are no possible points.
             for _, prow in practice_counts.iterrows():
                 points_received = float(ps.question_points or 0) * float(
                     prow.practice_completion_count or 0
                 )
-                practice_by_user_id[prow.user_id] = "{0:.2f}".format(
-                    100 * points_received / total_possible_points
+                practice_by_user_id[prow.user_id] = (
+                    ""
+                    if total_possible_points <= 0
+                    else "{0:.2f}".format(100 * points_received / total_possible_points)
                 )
     apoints = {}
     for ix, row in assignments.iterrows():
