@@ -13,7 +13,7 @@ Runestone Developer Documentation
    readme
    running
    developing
-   poetry
+   uv
    structure
    docker
    database

@@ -5,39 +5,39 @@ Development Environment Pre-Requisites
 
 Make sure you have Python installed.  We use 3.13 in production and 3.13 in development.  The web2py server still uses 3.10.  Earlier versions of python are not tested regularly and are not recommended.  macOS is fully supported as well as Ubuntu.  Ubuntu 24.04 comes with Python 3.12 and will likely work just fine.  We jumped from 3.11 to 3.13 so please let us know if 3.12 works without issue. The docker containers are self contained so even on Ubuntu 24.04 they will be fine.
 
-Poetry
-------
+uv
+--
 
-Runestone uses `Poetry <https://python-poetry.org/docs/>`__ to manage Python dependencies.
-You should begin by following the instructions to `install
-poetry <https://python-poetry.org/docs/>`__.  Make sure you have at least 2.1.x installed.
+Runestone uses `uv <https://docs.astral.sh/uv/>`__ to manage Python dependencies
+and the `polylith structure <https://polylith.gitbook.io/polylith/introduction/polylith-in-a-nutshell>`__.
+Begin by `installing uv <https://docs.astral.sh/uv/getting-started/installation/>`__.
 
-After installing Poetry, to support the `polylith structure <https://polylith.gitbook.io/polylith/introduction/polylith-in-a-nutshell>`__
-you should install the following plugins to poetry. These will be installed globally in
-your copy of poetry. Do the following from a command prompt:
+The Polylith tooling is provided by the ``polylith-cli`` package (the ``poly``
+command), which is listed in the ``dev`` dependency group -- so unlike the old
+poetry setup there are no global plugins to install. From the repository root,
+run ``uv sync`` to create the virtual environment (in ``.venv``) and install all
+dependencies. The ``dev`` and ``docs`` groups are installed by default (see
+``[tool.uv] default-groups`` in ``pyproject.toml``).
 
-1. ``poetry self add poetry-polylith-plugin``
-2. ``poetry self add poetry-multiproject-plugin``
-3. ``poetry self add poetry-dotenv-plugin``
-4. ``poetry self add poetry-plugin-shell``
+``uv`` has no ``shell`` subcommand. Either prefix commands with ``uv run`` (for
+example ``uv run pytest``), or activate the environment with
+``source .venv/bin/activate``.
 
-Note that before version 2.0 of poetry the ``shell`` subcommand was built in to poetry, but
-after 2.0 it was moved to a plugin. If you have an earlier version of poetry, you can skip step 4.
-The poetry project recommends using something like ``eval $(poetry env activate)`` instead of the ``poetry shell`` command.  That works great.
+.. note::
 
-.. warning::
+   ``uv run`` automatically reads variables from a ``.env`` file in the project
+   root, which keeps your Runestone installation self contained. If you edit
+   ``.env``, the new values take effect on the next ``uv run`` (there is no shell
+   to restart).
 
-   The ``poetry-dotenv-plugin`` causes ``poetry`` to import variables from the ``.env`` file.
-   This will make your Runestone installation much more self contained. That is a good thing.
+.. note::
 
-   However, plugins in ``poetry`` are global, not per-project. So if you
-   have other ``poetry`` projects with ``.env`` files that you don't want automatically
-   used, you may want to not use ``poetry-dotenv-plugin``. In that case, you will need to
-   manually set some environment variables on your machine (detailed later).
+   Each service under ``projects/`` builds its own isolated wheel and is **not**
+   a uv workspace member, so per-service dependency versions stay independent.
+   The root project serves as the shared development environment.
 
-   Also, if you edit the ``.env`` file, you will need to restart the poetry shell in order for those changes to take effect.
-
-With those installed descend into the Runestone repository by doing ``cd rs`` and run ``poetry poly info``. You should see something like this:
+With the environment set up, descend into the Runestone repository with ``cd rs``
+and run ``uv run poly info``. You should see something like this:
 
 
 .. code:: shell

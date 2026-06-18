@@ -64,8 +64,8 @@ Managing Your Server
 - Stop the server: ``docker compose stop``
 - Start the server: ``docker compose start``
 - Restart services: ``docker compose restart``
-- Shut down and remove containers: ``docker compose down``
-- Shut down and remove volumes (WARNING: deletes all data): ``docker compose down -v``
+- Shut down and remove containers: ``docker compose down`` (database data is preserved on the ``postgres_data`` named volume)
+- Shut down and remove volumes (WARNING: deletes all data, including the database): ``docker compose down -v``
 
 **Viewing Logs:**
 
@@ -79,10 +79,68 @@ To view logs from all services: ``docker compose logs -f``
 - Create a course: ``docker compose run --rm rsmanage rsmanage addcourse``
 - Add an instructor to a course: ``docker compose run --rm rsmanage rsmanage addinstructor``
 
+Customizing Your Configuration
+------------------------------
+
+Treat ``docker-compose.yml`` as a managed file that you do **not** edit: it is
+replaced wholesale when you run ``./init_runestone.sh update``, so any changes
+you make directly to it will be lost. Most settings should go in your ``.env``
+file instead.
+
+For anything ``.env`` cannot express (extra services, additional ports or
+volumes, image overrides, etc.), create a ``docker-compose.override.yml`` file
+next to ``docker-compose.yml``. Docker Compose automatically merges it on top of
+the base file every time you run ``docker compose`` -- no extra flags needed --
+and ``./init_runestone.sh update`` never touches it, so your customizations
+survive updates.
+
+A starting template is provided as ``docker-compose.override.yml.sample``; copy
+it to get going:
+
+.. code-block:: bash
+
+   cp docker-compose.override.yml.sample docker-compose.override.yml
+
+For example, to raise the log level of the book server and publish an extra
+port:
+
+.. code-block:: yaml
+
+   # docker-compose.override.yml
+   services:
+     book:
+       environment:
+         - LOG_LEVEL=DEBUG
+
+Note how Compose merges the two files: scalars and maps from the override win,
+but most sequences (``ports``, ``volumes``, list-form ``environment``) are
+**appended** to the base values rather than replacing them. So an override
+``ports:`` entry adds a published port; it does not remove the ones defined in
+``docker-compose.yml``.
+
 Updating Runestone
 -------------------
 
-We regularly push out updates to all of the Runestone services. To update your server to the latest version:
+We regularly push out updates to all of the Runestone services. The
+recommended way to update is:
+
+.. code-block:: bash
+
+   ./init_runestone.sh update
+
+This refreshes your ``docker-compose.yml`` (and ``sample.env``) to the latest
+version, backs up the previous copies, pulls the matching images, restarts the
+services, and then checks for and applies any pending database migrations
+(prompting before it does). Your ``.env`` is never touched. Keeping
+``docker-compose.yml`` in sync
+matters: newer images may expect changes in that file, so a plain
+``docker compose pull`` alone can leave you with a mismatched configuration. To
+catch that case, the stack runs a ``preflight`` check at startup and refuses to
+come up with a clear message if your ``docker-compose.yml`` is older than the
+images require.
+
+If you prefer to update manually (note this does **not** refresh
+``docker-compose.yml``):
 
 .. code-block:: bash
 
@@ -91,7 +149,7 @@ We regularly push out updates to all of the Runestone services. To update your s
    docker compose stop. # or use down IF you run you DB outside of Docker
    docker compose up -d
 
-If database migrations are required, the ``check-db-migrations.sh`` script will prompt you to run them. 
+If database migrations are required, the ``check-db-migrations.sh`` script will prompt you to run them.
 The command to update the database is:
 
 .. code-block:: bash

@@ -6,17 +6,14 @@ build:
         python: "3.13"
     jobs:
         post_create_environment:
-            # Install poetry
-            # https://python-poetry.org/docs/#installing-manually
-            - pip install poetry
-            # Tell poetry to not use a virtual environment
-            - poetry config virtualenvs.create false
+            # Install uv via the standalone installer
+            # https://docs.astral.sh/uv/getting-started/installation/#standalone-installer
+            - curl -LsSf https://astral.sh/uv/install.sh | sh
         post_install:
-            # Install dependencies with 'docs' dependency group
-            # https://python-poetry.org/docs/managing-dependencies/#dependency-groups
-            - poetry self add poetry-polylith-plugin
-            - poetry self add poetry-multiproject-plugin
-            - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH poetry install --all-groups
+            # Each job line runs in its own shell, so the installer's PATH change
+            # doesn't persist — invoke uv by its absolute install path. Install all
+            # dependency groups (including 'docs') into the Read the Docs virtualenv.
+            - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH $HOME/.local/bin/uv sync --all-groups --active
             # RUNESTONE_PATH is defined in the readthedocs control panel
 
 sphinx:

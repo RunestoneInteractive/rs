@@ -113,7 +113,11 @@ async def fetch_peer_useinfo(sid: str, div_id: str, course_name: str) -> list:
 
 
 async def fetch_recent_student_answers(
-    div_id: str, course_name: str, start_time: datetime, limit: int = 4000
+    div_id: str,
+    course_name: str,
+    start_time: datetime,
+    limit: int = 4000,
+    exclude_sid: str = None,
 ) -> List[Tuple[str, str, str]]:
     """
     Fetch the most recent answer for each student for a given question.
@@ -122,10 +126,18 @@ async def fetch_recent_student_answers(
     :param course_name: str, the course name
     :param start_time: datetime, only fetch answers after this time
     :param limit: int, maximum number of results to return
+    :param exclude_sid: str, a sid to exclude (e.g. the instructor)
     :return: List[Tuple[str, str, str]], list of (sid, answer, correct) tuples
     """
     async with async_session() as session:
         # Get the most recent answer for each student
+        conditions = [
+            MchoiceAnswers.div_id == div_id,
+            MchoiceAnswers.course_name == course_name,
+            MchoiceAnswers.timestamp > start_time,
+        ]
+        if exclude_sid:
+            conditions.append(MchoiceAnswers.sid != exclude_sid)
         subquery = (
             select(
                 MchoiceAnswers.sid,
@@ -138,11 +150,7 @@ async def fetch_recent_student_answers(
                 )
                 .label("rn"),
             )
-            .where(
-                MchoiceAnswers.div_id == div_id,
-                MchoiceAnswers.course_name == course_name,
-                MchoiceAnswers.timestamp > start_time,
-            )
+            .where(*conditions)
             .subquery()
         )
 
@@ -159,6 +167,7 @@ async def fetch_student_answers_in_timerange(
     start_time: datetime,
     end_time: Optional[datetime] = None,
     limit: int = 4000,
+    exclude_sid: str = None,
 ) -> List[Tuple[str, str]]:
     """
     Fetch the most recent answer for each student within a time range.
@@ -168,6 +177,7 @@ async def fetch_student_answers_in_timerange(
     :param start_time: datetime, only fetch answers after this time
     :param end_time: Optional[datetime], only fetch answers before this time
     :param limit: int, maximum number of results to return
+    :param exclude_sid: str, a sid to exclude (e.g. the instructor)
     :return: List[Tuple[str, str]], list of (sid, answer) tuples
     """
     async with async_session() as session:
@@ -186,6 +196,9 @@ async def fetch_student_answers_in_timerange(
             MchoiceAnswers.timestamp > start_time,
         )
 
+        if exclude_sid:
+            subquery = subquery.where(MchoiceAnswers.sid != exclude_sid)
+
         if end_time:
             subquery = subquery.where(MchoiceAnswers.timestamp < end_time)
 
@@ -198,7 +211,7 @@ async def fetch_student_answers_in_timerange(
 
 
 async def count_distinct_student_answers(
-    div_id: str, course_name: str, start_time: datetime
+    div_id: str, course_name: str, start_time: datetime, exclude_sid: str = None
 ) -> int:
     """
     Count distinct students who answered a question after a given time.
@@ -206,6 +219,7 @@ async def count_distinct_student_answers(
     :param div_id: str, the question div_id
     :param course_name: str, the course name
     :param start_time: datetime, only count answers after this time
+    :param exclude_sid: str, a sid to exclude from the count (e.g. the instructor)
     :return: int, count of distinct students
     """
     async with async_session() as session:
@@ -214,6 +228,8 @@ async def count_distinct_student_answers(
             MchoiceAnswers.course_name == course_name,
             MchoiceAnswers.timestamp > start_time,
         )
+        if exclude_sid:
+            query = query.where(MchoiceAnswers.sid != exclude_sid)
         result = await session.execute(query)
         return result.scalar() or 0
 

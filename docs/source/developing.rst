@@ -20,7 +20,7 @@ Getting started with Runestone Development
 To get started, work through the following sections of the documents. Each step will be explained in further detail in their own respective page. Briefly, you will need to:
 
 * :ref:`Get the Runestone code<get-the-code>`
-* :ref:`Set up Poetry and other tools<development-prerequisites>`
+* :ref:`Set up uv and other tools<development-prerequisites>`
 * :ref:`Set up environmental variables<environment-variables>`
 * :ref:`Chose how to set up your database<database-options>`
 * :ref:`Build the various Runestone servers and run them<building-servers>`
