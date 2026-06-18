@@ -563,6 +563,13 @@ async def get_peer_async(
     else:
         llm_enabled = has_api_token
 
+    if not llm_enabled:
+        pi_mode = "standard"
+    elif question_async_mode == "analogies":
+        pi_mode = "personalized_llm"
+    else:
+        pi_mode = "generic_llm"
+
     try:
         await create_useinfo_entry(
             UseinfoValidation(
@@ -570,7 +577,7 @@ async def get_peer_async(
                 sid=user.username,
                 div_id=current_question.name if current_question else "",
                 event="pi_mode",
-                act=json.dumps({"mode": "llm" if llm_enabled else "legacy"}),
+                act=json.dumps({"mode": pi_mode}),
                 timestamp=datetime.datetime.utcnow(),
             )
         )
@@ -1222,6 +1229,7 @@ async def clear_pairs(
 
 
 @router.get("/course_students")
+@instructor_role_required()
 @with_course()
 async def get_course_students(
     request: Request,
@@ -1531,6 +1539,27 @@ async def get_async_llm_reflection(
     theme_id = (data.get("theme_id") or "").strip()
     analogy_mapping = (data.get("analogy_mapping") or "").strip()
 
+    if theme_id:
+        theme_obj = THEME_BY_ID.get(theme_id)
+        theme_label = theme_obj["label"] if theme_obj else theme_id
+
+        try:
+            await create_useinfo_entry(
+                UseinfoValidation(
+                    course_id=user.course_name,
+                    sid=user.username,
+                    div_id=div_id,
+                    event="pi_theme",
+                    act=json.dumps({
+                        "theme_id": theme_id,
+                        "theme_label": theme_label,
+                    }),
+                    timestamp=datetime.datetime.utcnow(),
+                )
+            )
+        except Exception:
+            rslogger.exception("Failed to log personalized LLM theme")
+
     if not div_id:
         return JSONResponse(content={"ok": False, "error": "missing div_id"})
 
@@ -1752,3 +1781,4 @@ async def get_async_llm_reflection(
     if generated_mapping:
         result["analogy_mapping"] = generated_mapping
     return JSONResponse(content=result)
+
