@@ -61,6 +61,7 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
   enableCodeTailor: false,
   parsonspersonalize: "",
   parsonsexample: "",
+  parsonsPersonalized: true,
   enableCodelens: true
 });
 
@@ -100,6 +101,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
           enableCodeTailor: data.enableCodeTailor,
           parsonspersonalize: data.parsonspersonalize,
           parsonsexample: data.parsonsexample,
+          parsonsPersonalized: data.parsonsPersonalized,
           enableCodelens: data.enableCodelens
         }
       );
@@ -238,6 +240,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
             enableCodeTailor={formData.enableCodeTailor}
             parsonspersonalize={formData.parsonspersonalize}
             parsonsexample={formData.parsonsexample}
+            parsonsPersonalized={formData.parsonsPersonalized}
             enableCodelens={formData.enableCodelens}
           />
         );

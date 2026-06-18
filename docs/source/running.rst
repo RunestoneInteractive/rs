@@ -64,8 +64,8 @@ Managing Your Server
 - Stop the server: ``docker compose stop``
 - Start the server: ``docker compose start``
 - Restart services: ``docker compose restart``
-- Shut down and remove containers: ``docker compose down``
-- Shut down and remove volumes (WARNING: deletes all data): ``docker compose down -v``
+- Shut down and remove containers: ``docker compose down`` (database data is preserved on the ``postgres_data`` named volume)
+- Shut down and remove volumes (WARNING: deletes all data, including the database): ``docker compose down -v``
 
 **Viewing Logs:**
 
@@ -78,6 +78,25 @@ To view logs from all services: ``docker compose logs -f``
 - Build a PreTeXt book: ``docker compose run --rm rsmanage rsmanage build --ptx <bookname>``
 - Create a course: ``docker compose run --rm rsmanage rsmanage addcourse``
 - Add an instructor to a course: ``docker compose run --rm rsmanage rsmanage addinstructor``
+
+Updating Runestone
+-------------------
+
+We regularly push out updates to all of the Runestone services. To update your server to the latest version:
+
+.. code-block:: bash
+
+   docker compose pull
+   docker compose run --rm rsmanage check-db-migrations.sh
+   docker compose stop. # or use down IF you run you DB outside of Docker
+   docker compose up -d
+
+If database migrations are required, the ``check-db-migrations.sh`` script will prompt you to run them. 
+The command to update the database is:
+
+.. code-block:: bash
+
+   docker compose run --rm rsmanage alembic upgrade head
 
 **Troubleshooting:**
 

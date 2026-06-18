@@ -11,7 +11,15 @@ from .crud import (
     is_server_feedback,
     EVENT2TABLE,
 )
-from .user import fetch_user, create_user, update_user, delete_user
+from .user import (
+    fetch_user,
+    fetch_user_by_email,
+    create_user,
+    update_user,
+    delete_user,
+    set_reset_token,
+    consume_reset_token,
+)
 
 from .assignment import (
     create_assignment,
@@ -63,6 +71,7 @@ from .course import (
     fetch_current_instructors_for_course,
     fetch_instructor_courses,
     fetch_users_for_course,
+    fetch_courses_by_institution,
     update_course_settings,
     user_in_course,
 )
@@ -113,6 +122,18 @@ from .library import (
     update_library_book,
 )
 
+from .telemetry import (
+    bucket_count,
+    build_checkin_payload,
+    count_courses,
+    count_enrolled_students,
+    gather_served_books,
+    get_last_sent,
+    get_or_create_instance_id,
+    set_last_sent,
+    upsert_installation,
+)
+
 # import all functions from .lti by name
 from .lti import (
     create_lti_course,
@@ -142,6 +163,7 @@ from .peer import (
     fetch_last_useinfo_peergroup,
     get_peer_votes,
     did_send_messages,
+    fetch_peer_useinfo,
     fetch_recent_student_answers,
     fetch_student_answers_in_timerange,
     count_distinct_student_answers,
@@ -161,6 +183,8 @@ from .question import (
     create_question_grade_entry,
     create_question,
     create_user_experiment_entry,
+    delete_user_experiment_entries,
+    replace_user_experiment_entries,
     fetch_assignment_question,
     fetch_assignment_questions,
     fetch_matching_questions,
@@ -196,6 +220,7 @@ from .rslogging import (
     create_useinfo_entry,
     fetch_code,
     fetch_last_answer_table_entry,
+    fetch_last_course_access,
     fetch_last_poll_response,
     fetch_poll_summary,
     fetch_top10_fitb,
@@ -285,6 +310,20 @@ __all__ += [
     "get_courses_per_basecourse",
     "get_students_per_basecourse",
     "update_library_book",
+]
+
+# from .telemetry
+
+__all__ += [
+    "bucket_count",
+    "build_checkin_payload",
+    "count_courses",
+    "count_enrolled_students",
+    "gather_served_books",
+    "get_last_sent",
+    "get_or_create_instance_id",
+    "set_last_sent",
+    "upsert_installation",
 ]
 
 # from .lti
@@ -378,6 +417,7 @@ __all__ += [
     "fetch_last_useinfo_peergroup",
     "get_peer_votes",
     "did_send_messages",
+    "fetch_peer_useinfo",
     "fetch_recent_student_answers",
     "fetch_student_answers_in_timerange",
     "count_distinct_student_answers",
@@ -399,6 +439,8 @@ __all__ += [
     "create_question",
     "create_question_grade_entry",
     "create_user_experiment_entry",
+    "delete_user_experiment_entries",
+    "replace_user_experiment_entries",
     "fetch_assignment_question",
     "fetch_assignment_questions",
     "fetch_matching_questions",
@@ -436,6 +478,7 @@ __all__ += [
     "create_useinfo_entry",
     "fetch_code",
     "fetch_last_answer_table_entry",
+    "fetch_last_course_access",
     "fetch_last_poll_response",
     "fetch_poll_summary",
     "fetch_top10_fitb",
@@ -467,7 +510,11 @@ __all__ += [
 # from .user
 __all__ += [
     "fetch_user",
+    "fetch_user_by_email",
     "create_user",
     "update_user",
     "delete_user",
+    "set_reset_token",
+    "consume_reset_token",
+    "fetch_courses_by_institution",
 ]

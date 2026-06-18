@@ -34,8 +34,26 @@ import styles from "./AssignmentExercisesTable.module.css";
 
 const ASYNC_MODE_OPTIONS = (hasApiKey: boolean) => [
   { value: "Standard", label: "Standard" },
-  { value: "LLM", label: "LLM", disabled: !hasApiKey }
+  { value: "Generic LLM", label: "Generic LLM", disabled: !hasApiKey },
+  { value: "Personalized LLM", label: "Personalized LLM", disabled: !hasApiKey }
 ];
+
+const asyncModeToLabel = (asyncMode: string | undefined, hasApiKey: boolean): string => {
+  if (!hasApiKey || !asyncMode || asyncMode === "standard") {
+    return "Standard";
+  }
+  return asyncMode === "analogies" ? "Personalized LLM" : "Generic LLM";
+};
+
+const labelToAsyncMode = (label: string | null): string => {
+  if (label === "Generic LLM") {
+    return "llm";
+  }
+  if (label === "Personalized LLM") {
+    return "analogies";
+  }
+  return "standard";
+};
 
 const AsyncModeHeader = ({ hasApiKey }: { hasApiKey: boolean }) => {
   const [updateExercises, { isLoading }] = useUpdateAssignmentQuestionsMutation();
@@ -49,7 +67,7 @@ const AsyncModeHeader = ({ hasApiKey }: { hasApiKey: boolean }) => {
     const exercises = assignmentExercises.map((ex) => ({
       ...ex,
       question_json: JSON.stringify(ex.question_json),
-      use_llm: value === "LLM"
+      async_mode: labelToAsyncMode(value)
     }));
     const { error } = await updateExercises(exercises);
     const copy = getRangeUpdateToastCopy("exercises", rowCount);
@@ -377,19 +395,19 @@ export const AssignmentExercisesTable = ({
 
     if (showAsyncColumn) {
       baseColumns.push({
-        key: "use_llm",
+        key: "async_mode",
         width: "12rem",
         header: <AsyncModeHeader hasApiKey={hasApiKey} />,
         render: (row) => (
           <Select
             aria-label={`Async mode for ${row.name || row.title}`}
-            value={row.use_llm && hasApiKey ? "LLM" : "Standard"}
+            value={asyncModeToLabel(row.async_mode, hasApiKey)}
             onChange={(next) =>
               updateAssignmentQuestions([
                 {
                   ...row,
                   question_json: JSON.stringify(row.question_json),
-                  use_llm: next === "LLM"
+                  async_mode: labelToAsyncMode(next)
                 }
               ])
             }

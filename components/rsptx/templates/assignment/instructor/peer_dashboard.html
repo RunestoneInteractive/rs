@@ -7,9 +7,240 @@ Peer Instruction Dashboard - {{ assignment_name }}
 {% block css %}
 <link rel="stylesheet" href="/runestone/static/css/peer.css?v={{ peer_mtime }}">
 <style>
-    .hidden-content {
-        display: none;
+    .hidden-content { display: none; }
+
+    .navbar { position: fixed !important; top: 0 !important; width: 100% !important; z-index: 1030 !important; margin-left: 0 !important; margin-right: 0 !important; }
+    .container-fluid { padding-top: 0 !important; }
+    body { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+
+    #pi-instructor-interface { max-width: 1200px; margin: 0 auto; }
+    #pi-top-bar {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 10px;
+        margin-bottom: 14px;
     }
+    #pi-top-bar-left { display: flex; align-items: center; gap: 14px; }
+    #pi-question-indicator h3 { margin: 0; font-size: 15px; font-weight: 600; color: #374151; }
+    #pi-group-size-selector { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: #6b7280; }
+    #pi-group-size-selector select {
+        font-size: 13.5px; border: 1px solid #d1d5db; border-radius: 5px;
+        padding: 3px 7px; color: #374151; background: #fff;
+    }
+    #pi-assignment-navigation { display: flex; align-items: center; gap: 8px; }
+    #pi-assignment-navigation .btn { font-size: 13.5px; }
+    #nextq.btn-info { background-color: #1a6a83 !important; border-color: #155a70 !important; }
+    #nextq.btn-info:hover { background-color: #124f63 !important; border-color: #124f63 !important; }
+
+    
+    :root {
+        --af-green:     #5cb85c;
+        --af-ink-2:     #374151;
+        --af-ink-3:     #6b7280;
+        --af-line:      #e5e7eb;
+        --af-line-2:    #d1d5db;
+        --af-red:       #b91c1c;
+        --af-red-soft:  #fee2e2;
+        --pi-teal:      #46B8DA;
+        --pi-teal-dark: #1A6A83;
+    }
+
+    .flow {
+        background: #fff;
+        border: 1px solid var(--af-line);
+        border-radius: 8px;
+        padding: 16px 20px 20px;
+        margin-bottom: 18px;
+    }
+    .flow-head {
+        display: flex; justify-content: flex-end; align-items: baseline;
+        margin-bottom: 10px;
+    }
+    .flow-meta { font-size: 12px; color: var(--af-ink-3); }
+    .flow-meta strong { color: var(--af-ink-2); font-weight: 600; }
+
+    .flow .stepper {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        position: relative;
+    }
+
+    .flow .stepper::before {
+        content: '';
+        position: absolute;
+        top: 35px;
+        left: calc(12.5% + 21px);   
+        right: calc(12.5% + 21px);  
+        height: 1px;
+        background: #ccc;
+        z-index: 0;
+    }
+
+    .flow .pi-step-group {
+        flex-direction: column;
+        align-items: center;
+        padding: 14px 6px 18px;
+        gap: 10px;
+        box-shadow: none !important;
+        position: relative;
+        z-index: 1;  
+    }
+
+    .flow .pi-step-group.active {
+        margin: 0 !important;
+    }
+
+    .flow .pi-step-number { z-index: 2; }
+
+    .flow .pi-step-group.done .pi-step-number {
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+    .flow .pi-step-group.done .pi-step-number-inner {
+        background: var(--af-green) !important;
+        border-color: var(--af-green) !important;
+        color: #fff !important;
+    }
+
+    .flow .step-top {
+        display: flex; align-items: center; justify-content: center;
+        width: 100%; position: relative;
+    }
+    .flow .step-label {
+        font-size: 11.5px; color: #888;
+        text-transform: uppercase; letter-spacing: .05em;
+        font-weight: 600; text-align: center;
+        transition: color .3s;
+    }
+    .flow .pi-step-group.active .step-label { color: var(--pi-teal-dark); }
+    .flow .pi-step-group.done   .step-label { color: #15803d; }
+
+    .flow .step-actions {
+        display: flex; flex-direction: column; align-items: center;
+        gap: 5px; min-height: 68px;
+    }
+    .flow .step-actions .or {
+        font-size: 10.5px; color: #999;
+        text-transform: uppercase; letter-spacing: .06em; font-weight: 600;
+    }
+    .flow .step-action {
+        font-family: inherit; font-size: 13px; font-weight: 500;
+        padding: 5px 12px; border-radius: 4px;
+        display: inline-block; text-align: center; line-height: 1.5;
+        border: 1px solid #d1d5db; background: #f9fafb; color: #bbb;
+        cursor: not-allowed;
+    }
+    .flow .step-action:not([disabled]):not(.danger):not(.primary) {
+        background: #1a6a83; color: #fff;
+        border-color: #155a70; cursor: pointer;
+    }
+    .flow .step-action:not([disabled]):not(.danger):not(.primary):hover {
+        background: #124f63; border-color: #124f63;
+    }
+    .flow .step-action.primary:not([disabled]) {
+        background: #337ab7; color: #fff; border-color: #2e6da4; cursor: pointer;
+    }
+    .flow .step-action.primary:not([disabled]):hover { background: #286090; border-color: #204d74; }
+    .flow .step-action.danger:not([disabled]) {
+        background: #fff; color: var(--af-red); border-color: #fca5a5; cursor: pointer;
+    }
+    .flow .step-action.danger:not([disabled]):hover { background: var(--af-red-soft); border-color: var(--af-red); }
+
+    @media (max-width: 720px) {
+        .flow .stepper { grid-template-columns: 1fr 1fr; gap: 16px 0; }
+        .flow .stepper::before { display: none; }
+    }
+    .vote-panel {
+        border: 1px solid var(--af-line);
+        border-radius: 6px;
+        background: #fff;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+    .vote-panel-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 11px 16px;
+        background: #fafbfc;
+        border-bottom: 1px solid var(--af-line);
+    }
+    .vote-panel-title { font-size: 14px; font-weight: 600; color: var(--af-ink-2); }
+    #hideShowGraph {
+        font-family: inherit; font-size: 12.5px;
+        background: #fff; color: var(--af-ink-2);
+        border: 1px solid var(--af-line-2);
+        border-radius: 4px; padding: 4px 10px;
+        cursor: pointer; font-weight: 500;
+    }
+    #hideShowGraph:hover:not([disabled]) { border-color: var(--pi-teal); color: var(--pi-teal-dark); }
+    #hideShowGraph[disabled] {
+        opacity: 0.45;
+        cursor: not-allowed;
+        pointer-events: none;
+        color: #aaa;
+        background: #f5f5f5;
+    }
+
+    .vote-count-strip {
+        padding: 14px 18px;
+        display: flex; align-items: center; gap: 16px;
+        border-bottom: 1px solid var(--af-line);
+    }
+    .vote-count-big {
+        font-size: 38px; font-weight: 600; color: #1f2937;
+        font-variant-numeric: tabular-nums; line-height: 1; flex-shrink: 0;
+    }
+    .vote-count-main { font-size: 13px; font-weight: 600; color: var(--af-ink-2); }
+    .vote-count-sub  { font-size: 12px; color: var(--af-ink-3); margin-top: 2px; }
+
+    .vote-graph-area { padding: 12px 14px; border-bottom: 1px solid var(--af-line); }
+
+    @keyframes pi-dot-pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.25; }
+    }
+    #pi-session-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background-color: #fff;
+        border: 1px solid #d1d5db;
+        color: #374151;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        margin: 0;
+        white-space: nowrap;
+    }
+    #pi-session-status::before {
+        content: '';
+        display: inline-block;
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background-color: #22c55e;
+        flex-shrink: 0;
+        animation: pi-dot-pulse 2s ease-in-out infinite;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        #pi-session-status::before { animation: none; }
+    }
+
+    #messcounter { display: none; }
+
+    #vote1details { background: #fafbfc; }
+    #vote1details summary {
+        list-style: none; cursor: pointer;
+        padding: 10px 16px;
+        font-size: 13px; font-weight: 500; color: var(--af-ink-2);
+        display: flex; align-items: center; gap: 6px;
+        user-select: none;
+        border-top: 1px solid var(--af-line);
+    }
+    #vote1details summary::-webkit-details-marker { display: none; }
+    #vote1details summary::before { content: '▸'; color: var(--af-ink-3); font-size: 10px; transition: transform .15s; }
+    #vote1details[open] summary::before { transform: rotate(90deg); }
+    #vote1details summary:hover { color: var(--pi-teal-dark); }
+    #vote1details > div { padding: 4px 16px 12px; font-size: 13px; color: var(--af-ink-2); }
+
 </style>
 {% endblock %}
 
@@ -21,113 +252,121 @@ Peer Instruction Dashboard - {{ assignment_name }}
     \( {{ latex_macros|safe }} \)
 </div>
 
-<h2>Peer Instruction: {{ assignment_name }}</h2>
-
 <div id="pi-instructor-interface">
-    <div class="row">
-        <form action="/assignment/peer/instructor/dashboard" method="GET">
-            <div id="pi-question-info">
+<h2>Peer Instruction: {{ assignment_name }}</h2>
+    <form action="/assignment/peer/instructor/dashboard" method="GET">
+        <input type="hidden" name="assignment_id" value="{{ assignment_id }}" />
+
+        <div id="pi-top-bar">
+            <div id="pi-top-bar-left">
                 <div id="pi-question-indicator">
                     <h3>Question {{ current_qnum }} of {{ num_questions }}</h3>
+                </div>
+                <div id="pi-group-size-selector">
+                    <label for="groupsize">Group Size</label>
+                    <select id="groupsize" name="groupsize">
+                        <option value="2" {% if groupsize == "2" %}selected{% endif %}>2</option>
+                        <option value="3" {% if groupsize == "3" %}selected{% endif %}>3</option>
+                        <option value="4" {% if groupsize == "4" %}selected{% endif %}>4</option>
+                        <option value="5" {% if groupsize == "5" %}selected{% endif %}>5</option>
+                    </select>
+                </div>
+            </div>
+            <div id="pi-assignment-navigation">
+                {% if not is_last %}
+                <button type="submit" id="nextq" class="btn btn-info" name="next" value="Next">Next Question</button>
+                {% else %}
+                <button type="button" id="asyncToggle"
+                    onclick="handleAsyncToggle(this)"
+                    class="btn btn-sm"
+                    style="display:inline-flex; align-items:center; gap:6px;
+                           min-width:138px; flex-shrink:0;
+                           border-color:{{ '#007bff' if peer_async_visible else '#ccc' }};
+                           background-color:{{ '#e8f0fe' if peer_async_visible else '#fff' }};
+                           transition:all .18s;">
+                    <span style="display:flex; flex-direction:column; align-items:flex-start; line-height:1.2; flex:1; pointer-events:none;">
+                        <span style="font-size:10px; font-weight:600; color:#9ca3af; text-transform:uppercase; letter-spacing:.05em;">After-Class</span>
+                        <span id="asyncToggleStateLabel" style="font-size:12px; font-weight:600; color:{{ '#0056b3' if peer_async_visible else '#6b7280' }};">{{ 'Released ✓' if peer_async_visible else 'Not Released' }}</span>
+                    </span>
+                    <span style="position:relative; display:inline-block; width:28px; height:16px; flex-shrink:0; pointer-events:none;">
+                        <span id="asyncToggleTrack" style="position:absolute; top:0; left:0; right:0; bottom:0; border-radius:8px;
+                            background:{{ '#007bff' if peer_async_visible else '#ccc' }}; transition:background .2s;"></span>
+                        <span id="asyncToggleThumb" style="position:absolute; top:2px; left:{{ '12px' if peer_async_visible else '2px' }};
+                            width:12px; height:12px; background:#fff; border-radius:50%;
+                            transition:left .18s; box-shadow:0 1px 2px rgba(0,0,0,.25);"></span>
+                    </span>
+                </button>
+                {% endif %}
+                <button type="submit" id="restart" class="btn btn-danger" name="next" value="Reset">Start Over</button>
+                {% if lti %}
+                <button type="button" id="sendScores" class="btn btn-info" onclick="sendLtiScores(event)" disabled>Send LTI Scores</button>
+                {% endif %}
+            </div>
+        </div>
 
-                    <div id="pi-group-size-selector">
-                        <input type="hidden" name="assignment_id" value="{{ assignment_id }}" />
-                        <label for="groupsize">Group Size</label>
-                        <select id="groupsize" name="groupsize">
-                            <option value="2" {% if groupsize == "2" %}selected{% endif %}>2</option>
-                            <option value="3" {% if groupsize == "3" %}selected{% endif %}>3</option>
-                            <option value="4" {% if groupsize == "4" %}selected{% endif %}>4</option>
-                            <option value="5" {% if groupsize == "5" %}selected{% endif %}>5</option>
-                        </select>
+        <section class="flow">
+            <div class="flow-head">
+                <div class="flow-meta">Step <strong id="stepNow">1</strong> of 4 · <span id="stepName">Vote 1 in progress</span></div>
+            </div>
+
+            <div class="stepper">
+                <div class="pi-step-group pi-step active" id="pi-step-col-1">
+                    <div class="step-top">
+                        <div class="pi-step-number">
+                            <div class="pi-step-number-inner"><span>1</span></div>
+                        </div>
+                    </div>
+                    <div class="step-label">Vote 1</div>
+                    <div class="step-actions">
+                        <button type="button" id="vote1" class="step-action danger" onclick="warnAndStopVote(event)">Stop Vote 1</button>
                     </div>
                 </div>
 
-                <div id="pi-session-status">
-                    Vote 1 in Progress...
-                </div>
-
-                <div id="pi-assignment-navigation">
-                    <button type="submit" id="nextq" class="btn btn-info" name="next" value="Next">
-                        Next Question
-                    </button>
-                    <button type="submit" id="restart" class="btn btn-danger" name="next" value="Reset">
-                        Start Over
-                    </button>
-                    {% if lti %}
-                        <button type="button" id="sendScores" class="btn btn-info" onclick="sendLtiScores(event)" disabled>
-                            Send LTI Scores
-                        </button>
+                <div class="pi-step-group pi-step" id="pi-step-col-2">
+                    <div class="step-top">
+                        <div class="pi-step-number">
+                            <div class="pi-step-number-inner"><span>2</span></div>
+                        </div>
+                    </div>
+                    <div class="step-label">Discuss</div>
+                    <div class="step-actions" id="chat-modality">
+                        <button type="button" id="facechat" class="step-action" onclick="enableFaceChat(event)" disabled>Enable In-Person Chat</button>
+                        <span class="or">or</span>
+                        <button type="button" id="makep" class="step-action" onclick="makePartners(event, false)" disabled>Enable Text Chat</button>
+                    </div>
+                    {% if enable_ab %}
+                    <div style="margin-top:8px; border-top:1px solid #e5e7eb; padding-top:8px;" class="step-actions">
+                        <button type="button" id="makeabgroups" class="step-action" onclick="makePartners(event, true)" disabled>Run A/B Experiment</button>
+                    </div>
                     {% endif %}
                 </div>
-            </div>
 
-            <div class="pi-stepper row" style="flex-wrap: nowrap;">
-                <div class="pi-step-group active" style="flex-shrink: 0;">
-                    <div class="pi-step first active">
+                <div class="pi-step-group pi-step" id="pi-step-col-3">
+                    <div class="step-top">
                         <div class="pi-step-number">
-                            <div class="pi-step-number-inner">1</div>
+                            <div class="pi-step-number-inner"><span>3</span></div>
                         </div>
-                        <div class="pi-step-buttons">
-                            <button type="button" id="vote1" class="btn btn-info" onclick="warnAndStopVote(event)">
-                                Stop Vote 1
-                            </button>
-                        </div>
+                    </div>
+                    <div class="step-label">Vote 2</div>
+                    <div class="step-actions">
+                        <button type="button" id="vote2" class="step-action" onclick="startVote2(event)" disabled>Start Vote 2</button>
                     </div>
                 </div>
 
-                <div class="pi-step-group middle" style="flex-shrink: 0; width: auto;">
-                    <div class="pi-stepper-line"></div>
-                    <div class="pi-step outside">
+                <div class="pi-step-group pi-step" id="pi-step-col-4">
+                    <div class="step-top">
                         <div class="pi-step-number">
-                            <div class="pi-step-number-inner">2</div>
-                        </div>
-                        <div class="pi-step-buttons" id="chat-modality">
-                            <button type="button" id="facechat" class="btn btn-info" onclick="enableFaceChat(event)" disabled>
-                                Enable In-Person Chat
-                            </button>
-                            OR
-                            <button type="button" id="makep" class="btn btn-info" onclick="makePartners(event,false)" disabled>
-                                Enable Text Chat
-                            </button>
-                            {% if enable_ab %}
-                                OR
-                                <button type="button" id="makeabgroups" class="btn btn-info" onclick="makePartners(event, true)" disabled>
-                                    Run A/B Experiment
-                                </button>
-                            {% endif %}
+                            <div class="pi-step-number-inner"><span>4</span></div>
                         </div>
                     </div>
-                    <div class="pi-stepper-line"></div>
-                </div>
-
-                <div class="pi-step-group last" style="flex-shrink: 0; width: auto;">
-                    <div class="pi-step">
-                        <div class="pi-step-number">
-                            <div class="pi-step-number-inner">3</div>
-                        </div>
-                        <div class="pi-step-buttons">
-                            <button type="button" id="vote2" class="btn btn-info" onclick="startVote2(event)" disabled>
-                                Start Vote 2
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="pi-stepper-line"></div>
-
-                    <div class="pi-step last">
-                        <div class="pi-step-number">
-                            <div class="pi-step-number-inner">4</div>
-                        </div>
-                        <div class="pi-step-buttons">
-                            <button type="button" id="vote3" class="btn btn-info" onclick="warnAndStopVote(event)" disabled>
-                                Stop Vote 2
-                            </button>
-                        </div>
+                    <div class="step-label">Results</div>
+                    <div class="step-actions">
+                        <button type="button" id="vote3" class="step-action danger" onclick="warnAndStopVote(event)" disabled>Stop Vote 2</button>
                     </div>
                 </div>
             </div>
-        </form>
-    </div>
+        </section>
+    </form>
 
     <div id="imessage"></div>
 
@@ -135,19 +374,42 @@ Peer Instruction Dashboard - {{ assignment_name }}
         <div class="oneq col-md-6 runestone-sphinx">
             {{ current_question.htmlsrc|safe }}
         </div>
+
         <div id="pi-live-vote-graph" class="col-md-6">
-            <div id="counter1"></div>
-            <div id="counter2"></div>
-            <details id="vote1details" class="vote-details">
-                <summary style="display: list-item">Vote Details</summary>
-                <div id="vote1detailscontent"><p>Percent Correct</p></div>
-            </details>
-            <div id="messcounter"></div>
-            <div id="first_answer" style="display: none"></div>
-            <div id="second_answer"></div>
-            <button id="hideShowGraph" class="btn" type="button" onclick="hideShowGraph()" disabled>
-                Hide/Show Graph
-            </button>
+            <div id="counter1" style="display:none"></div>
+            <div id="counter2" style="display:none"></div>
+
+            <div class="vote-panel">
+                <div class="vote-panel-head">
+                    <div class="vote-panel-title" id="panelTitle">Vote 1 — live</div>
+                    <button id="hideShowGraph" type="button" onclick="hideShowGraph()" disabled>Show Graph</button>
+                </div>
+
+                <div class="vote-count-strip">
+                    <span class="vote-count-big" id="answerCountDisplay">—</span>
+                    <div>
+                        <div class="vote-count-main" id="answerCountLabel">answers received</div>
+                        <div class="vote-count-sub" id="vote1CountLabel" style="display:none">
+                            Vote 1 count: <span id="vote1CountDisplay">—</span>
+                        </div>
+                        <div class="vote-count-sub" id="messDisplay" style="display:none">
+                            <span id="messNum">0</span> messages sent
+                        </div>
+                    </div>
+                </div>
+
+                <div id="messcounter"></div>
+
+                <div id="graphArea" class="vote-graph-area" style="display:none">
+                    <div id="first_answer"></div>
+                    <div id="second_answer"></div>
+                </div>
+
+                <details id="vote1details">
+                    <summary>Vote Details</summary>
+                    <div id="vote1detailscontent"><p>Percent Correct</p></div>
+                </details>
+            </div>
         </div>
     </div>
 </div>
@@ -161,6 +423,7 @@ Peer Instruction Dashboard - {{ assignment_name }}
 <script>
     eBookConfig.peer = true;
     var voteStopped = false;
+    var _graphInterval = null;
 
     async function updateGraphs() {
         var opt = { renderer: "canvas", actions: false };
@@ -171,96 +434,61 @@ Peer Instruction Dashboard - {{ assignment_name }}
             start_time2: startTime2,
             num_answers: window.componentMap[currentQuestion].answerList.length,
         };
-        let jsheaders = new Headers({
-            "Content-type": "application/json; charset=utf-8",
-            Accept: "application/json",
-        });
-        let request = new Request("/assignment/peer/api/chart_data", {
-            method: "POST",
-            headers: jsheaders,
-            body: JSON.stringify(data),
-        });
-        let resp = await fetch(request);
+        let jsheaders = new Headers({ "Content-type": "application/json; charset=utf-8", Accept: "application/json" });
+        let resp = await fetch(new Request("/assignment/peer/api/chart_data", { method: "POST", headers: jsheaders, body: JSON.stringify(data) }));
         let spec = await resp.json();
-
         vegaEmbed("#first_answer", spec, opt);
     }
 
     function hideShowGraph() {
-        let graph = document.getElementById("first_answer");
-        if (graph.style.display == "none") {
-            graph.style.display = "block";
+        const graphArea = document.getElementById("graphArea");
+        const btn = document.getElementById("hideShowGraph");
+        if (graphArea.style.display === "none") {
+            graphArea.style.display = "";
+            btn.textContent = "Hide Graph";
+            updateGraphs();
+            if (!_graphInterval) _graphInterval = setInterval(updateGraphs, 5000);
         } else {
-            graph.style.display = "none";
+            graphArea.style.display = "none";
+            btn.textContent = "Show Graph";
         }
-        updateGraphs();
-        setInterval(updateGraphs, 5000);
     }
 
     async function updateCount() {
-        let data = {
-            div_id: "{{ current_question.name }}",
-            start_time: startTime,
-            course_name: "{{ course.course_name }}"
-        };
-        if (startTime2 !== null) {
-            data.start_time = startTime2;
-        }
-
-        let jsheaders = new Headers({
-            "Content-type": "application/json; charset=utf-8",
-            Accept: "application/json",
-        });
-
-        let request = new Request("/assignment/peer/api/num_answers", {
-            method: "POST",
-            headers: jsheaders,
-            body: JSON.stringify(data),
-        });
-        let resp = await fetch(request);
+        let data = { div_id: "{{ current_question.name }}", start_time: startTime, course_name: "{{ course.course_name }}" };
+        if (startTime2 !== null) data.start_time = startTime2;
+        let jsheaders = new Headers({ "Content-type": "application/json; charset=utf-8", Accept: "application/json" });
+        let resp = await fetch(new Request("/assignment/peer/api/num_answers", { method: "POST", headers: jsheaders, body: JSON.stringify(data) }));
         let spec = await resp.json();
 
-        let counterel = null;
-        let v = 0;
-        if (startTime2 === null) {
-            counterel = document.querySelector("#counter1");
-            v = 1;
-        } else {
-            counterel = document.querySelector("#counter2");
-            v = 2;
-        }
+        let counterel, v;
+        if (startTime2 === null) { counterel = document.querySelector("#counter1"); v = 1; }
+        else                     { counterel = document.querySelector("#counter2"); v = 2; }
+
+        const countDisplay = document.getElementById('answerCountDisplay');
+        if (countDisplay) countDisplay.textContent = spec.count;
 
         if (v === 1) {
-            const pctRequest = new Request("/assignment/peer/api/percent_correct", {
-                method: "POST",
-                headers: jsheaders,
-                body: JSON.stringify(data)
-            });
-            const pctResp = await fetch(pctRequest);
-
-            if (!pctResp.ok) {
-                console.warn("percent_correct failed:", pctResp.statusText);
-                counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count}</p>`;
-            } else {
+            const pctResp = await fetch(new Request("/assignment/peer/api/percent_correct", { method: "POST", headers: jsheaders, body: JSON.stringify(data) }));
+            if (pctResp.ok) {
                 const pctSpec = await pctResp.json();
-                let pctMessage = "";
-                if (voteStopped) {
-                    pctMessage = `${pctSpec.pct_correct}% Correct`;
-                }
                 counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count}</p>`;
-                let vote1detailscontent = document.querySelector("#vote1detailscontent");
-                vote1detailscontent.innerHTML = `<p>  ${pctMessage} </p>`;
+                document.querySelector("#vote1detailscontent").innerHTML = `<p>${voteStopped ? pctSpec.pct_correct + '% Correct' : ''}</p>`;
+            } else {
+                counterel.innerHTML = `<p>Vote 1 Answers: ${spec.count}</p>`;
             }
-        }
-        else {
+        } else {
             counterel.innerHTML = `<p>Vote ${v} Answers: ${spec.count}</p>`;
+            const vote1Label = document.getElementById('vote1CountLabel');
+            if (vote1Label) vote1Label.style.display = '';
         }
 
         if (spec.mess_count > 0) {
-            mcounterel = document.querySelector("#messcounter");
-            mcounterel.innerHTML = `<p>Messages Sent ${spec.mess_count}</p>`;
+            const messNum = document.getElementById('messNum');
+            const messDisplay = document.getElementById('messDisplay');
+            if (messNum) messNum.textContent = spec.mess_count;
+            if (messDisplay) messDisplay.style.display = '';
         }
-        console.log(`startTime = ${startTime} startTime2 = ${startTime2} spec = ${JSON.stringify(spec, null, 2)}`)
         answerCount = spec.count;
     }
 </script>
@@ -269,17 +497,92 @@ Peer Instruction Dashboard - {{ assignment_name }}
     var user = "{{ user.username }}";
     var currentQuestion = "{{ current_question.name }}";
     var voteNum = 1;
-    document.addEventListener("DOMContentLoaded", function (event) {
+
+    document.addEventListener("DOMContentLoaded", function () {
         setTimeout(connect, 1000);
         setInterval(updateCount, 2000);
+        initActivityFlow();
     });
+
     var startTime = new Date().toUTCString();
     var startTime2 = null;
     var mess_count = 0;
     var answerCount = 0;
     var done = {{ 'true' if is_last else 'false' }};
-    if (done) {
-        document.getElementById("nextq").disabled = true;
+    if (done) { document.getElementById("nextq") && (document.getElementById("nextq").disabled = true); }
+
+    var asyncReleased = {{ 'true' if peer_async_visible else 'false' }};
+
+    async function handleAsyncToggle(btn) {
+        btn.disabled = true;
+        var resp = await fetch("/assignment/peer/api/toggle_async", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ assignment_id: {{ assignment_id }} })
+        });
+        var data = await resp.json();
+        asyncReleased = data.peer_async_visible;
+
+        var stateLabel = document.getElementById("asyncToggleStateLabel");
+        var track = document.getElementById("asyncToggleTrack");
+        var thumb = document.getElementById("asyncToggleThumb");
+
+        if (asyncReleased) {
+            btn.style.borderColor = "#007bff";
+            btn.style.backgroundColor = "#e8f0fe";
+            stateLabel.textContent = "Released ✓";
+            stateLabel.style.color = "#0056b3";
+            track.style.background = "#007bff";
+            thumb.style.left = "12px";
+        } else {
+            btn.style.borderColor = "#ccc";
+            btn.style.backgroundColor = "#fff";
+            stateLabel.textContent = "Not Released";
+            stateLabel.style.color = "#6b7280";
+            track.style.background = "#ccc";
+            thumb.style.left = "2px";
+        }
+        btn.disabled = false;
     }
+
+    const AF_STEP_NAMES   = ['Vote 1 in progress', 'Discussion', 'Vote 2 in progress', 'Results'];
+    const AF_STATUS_TEXT  = ['Vote 1 in Progress', 'Discussion Phase', 'Vote 2 in Progress', 'Vote 2 Complete'];
+
+    function syncActivityFlow() {
+        const groups = Array.from(document.querySelectorAll('.flow .pi-step-group'));
+        let activeIdx = groups.findIndex(g => g.classList.contains('active'));
+        if (activeIdx === -1) return;
+
+        groups.forEach((g, i) => {
+            const isDone = i < activeIdx;
+            g.classList.toggle('done', isDone);
+            const inner = g.querySelector('.pi-step-number-inner span');
+            if (inner) inner.textContent = isDone ? '✓' : (i + 1);
+        });
+
+        const vote2Btn = document.getElementById('vote2');
+        if (vote2Btn) vote2Btn.classList.toggle('primary', activeIdx === 1 && !vote2Btn.disabled);
+
+        document.getElementById('stepNow').textContent  = activeIdx + 1;
+        document.getElementById('stepName').textContent = AF_STEP_NAMES[activeIdx] || '';
+
+        const sessionStatus = document.getElementById('pi-session-status');
+        if (sessionStatus) sessionStatus.textContent = AF_STATUS_TEXT[activeIdx] || '';
+
+        const panelTitle = document.getElementById('panelTitle');
+        if (panelTitle) {
+            const titles = ['Vote 1 — live', 'Vote 1 — results', 'Vote 2 — live', 'Vote 2 — results'];
+            panelTitle.textContent = titles[activeIdx] || '';
+        }
+    }
+
+    function initActivityFlow() {
+        const container = document.querySelector('.flow .stepper');
+        if (!container) return;
+        new MutationObserver(syncActivityFlow).observe(container, {
+            attributes: true, attributeFilter: ['class', 'disabled'], subtree: true
+        });
+        syncActivityFlow();
+    }
+
 </script>
 {% endblock %}

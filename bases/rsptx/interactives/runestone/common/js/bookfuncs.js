@@ -734,7 +734,7 @@ function createStudyCluesWidget() {
         if (studyCluesConversationId === -1) {
             if (sectionInfo) {
                 query = `Regarding section "${sectionInfo}": ${query}`;
-            } 
+            }
         }
         rb.logBookEvent({ event: "studyclues_query", act: `query: ${query}`, div_id: `${sectionInfo}` });
         appendStudyCluesMessage(messagesEl, "user", query); // todo: make this conditional on being a book page and on the book being one of the supported books
@@ -827,7 +827,10 @@ function shouldShowStudyCluesWidget() {
 
 
     const enabledBasecourses = ["csawesome2", "py4e-int", "thinkcspy", "httlacs", "PTXSB", "cppds2"];
-    const enabledCourses = ["SI201-W26-MW", "SI201-W26-TTh", "DukeCS101SP26", "mcd-csa-schoology", "mcd-csa-canvas", "csawesome2-MOOC", "test_py4e-int_api", "bc_cppds_s26", "Test-py4e-int", "virginiatech_py4e-int_spring26"];
+    const enabledCourses = ["SI201-W26-MW", "SI201-W26-TTh", "DukeCS101SP26",
+        "mcd-csa-schoology", "mcd-csa-canvas", "csawesome2-MOOC",
+        "test_py4e-int_api", "bc_cppds_s26", "Test-py4e-int",
+        "virginiatech_py4e-int_spring26", "umsi101_fall26"];
     const host = window.location.hostname;
 
     if (host === "localhost") {
@@ -955,9 +958,7 @@ function setupNavbarLoggedIn() {
     if (registerLink) registerLink.style.display = "none";
     document.querySelectorAll("li.loginout").forEach((el) => {
         el.innerHTML =
-            '<a href="' +
-            eBookConfig.app +
-            '/default/user/logout">Log Out</a>';
+            '<a href="/admin/auth/logout">Log Out</a>';
     });
 }
 document.addEventListener("runestone:login", setupNavbarLoggedIn);

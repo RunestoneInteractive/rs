@@ -15,7 +15,11 @@ project = toml.load("pyproject.toml")
 if sys.argv[1:] == ["--test"]:
     VERSION = "test"
 else:
-    VERSION = project["tool"]["poetry"]["version"]
+    # pyproject was migrated from poetry ([tool.poetry]) to PEP 621 ([project]);
+    # fall back to the old location for safety.
+    VERSION = project.get("project", {}).get("version") or project["tool"][
+        "poetry"
+    ]["version"]
 
 
 def rebuild_micro_parsons():

@@ -109,8 +109,8 @@
                                     <li class="divider"></li>
                                     <li><a href="{{=URL('assignments','chooseAssignment')}}">Assignments</a></li>
                                     <li><a href="{{=URL('assignments','practice')}}">Practice</a></li>
-                                    <li id="inst_peer_link"><a href='/runestone/peer/instructor.html'>Peer Instruction (Instructor)</a></li>            
-                                    <li><a href='/runestone/peer/student.html'>Peer Instruction (Student)</a></li>    
+                                    <li id="inst_peer_link"><a href='/assignment/peer/instructor'>Peer Instruction (Instructor)</a></li>
+                                    <li><a href='/assignment/peer/student'>Peer Instruction (Student)</a></li>
                                     <li><a href="/assignment/instructor/invoice_request">Request Invoice</a></li>        
                                     <li class="divider"></li>
                                     {{ if settings.academy_mode: }}
@@ -140,11 +140,11 @@
                                         {{ pass }}
                                         <li><a href="{{=URL('dashboard','studentreport')}}">Progress Page</a></li>
                                         <li class="divider"></li>
-                                        <li><a href="/{{=request.application}}/default/user/profile">Edit Profile</a>
+                                        <li><a href="/admin/auth/profile">Edit Profile</a>
                                         <li><a href="/{{=request.application}}/default/user/change_password">Change Password</a>
-                                        <li class='loginout'><a href='{{=URL("default", "user/logout")}}'>Log Out</a></li>
+                                        <li class='loginout'><a href='/admin/auth/logout'>Log Out</a></li>
                                     {{ else: }}
-                                        <li><a href='{{=URL("default", "user/register")}}'>Register</a></li>
+                                        <li><a href='/admin/auth/register'>Register</a></li>
                                         <li class='loginout'><a href='{{=URL("default", "user/login")}}'>Login</a></li>
                                     {{ pass }}
                                 {{ else: }}
@@ -197,7 +197,7 @@
                         <li class="divider-vertical"></li>
                     </ul>
                     {{if not auth.user and (request.args(0) == 'login' or request.controller == 'books') and settings.academy_mode:}}
-                        <a href="/{{=request.application}}/default/user/register" class="btn btn-primary navbar-btn" ><span class="glyphicon glyphicon-user"></span> Sign Up</a>
+                        <a href="/admin/auth/register" class="btn btn-primary navbar-btn" ><span class="glyphicon glyphicon-user"></span> Sign Up</a>
                     {{pass}}
                 </div>
             </div>

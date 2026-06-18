@@ -81,8 +81,17 @@ target "rs-nginx-dstart-dev" {
     push       = true
 }
 
+target "rs-caddy" {
+    context    = "./"
+    dockerfile = "projects/caddy/Dockerfile"
+    platforms  = ["linux/amd64", "linux/arm64"]
+    tags       = ["ghcr.io/runestoneinteractive/rs-caddy:latest", "ghcr.io/runestoneinteractive/rs-caddy:${VERSION}"]
+    push       = true
+}
+
 target "rs-rsmanage" {
-    context    = "./projects/rsmanage"
+    context    = "./"
+    dockerfile = "projects/rsmanage/Dockerfile"
     platforms  = ["linux/amd64", "linux/arm64"]
     tags       = ["ghcr.io/runestoneinteractive/rs-rsmanage:latest", "ghcr.io/runestoneinteractive/rs-rsmanage:${VERSION}"]
     push       = true

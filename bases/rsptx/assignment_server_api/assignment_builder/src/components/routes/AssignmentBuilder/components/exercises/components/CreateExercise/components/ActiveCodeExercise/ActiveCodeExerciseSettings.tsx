@@ -36,7 +36,8 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
     onChange({
       enableCodeTailor: enabled,
       parsonspersonalize: enabled ? "movable" : "",
-      parsonsexample: enabled ? formData.parsonsexample : ""
+      parsonsexample: enabled ? formData.parsonsexample : "",
+      parsonsPersonalized: enabled ? (formData.parsonsPersonalized ?? true) : true
     });
   };
 
@@ -97,6 +98,18 @@ export const ActiveCodeExerciseSettings: FC<ActiveCodeExerciseSettingsProps> = (
               onChange={(e) => handleParsonsExampleChange(e.target.value)}
               placeholder="Parsons problem ID (optional)"
             />
+          </div>
+
+          <div className={styles.formField}>
+            <Group align="center" gap="xs">
+              <Switch
+                id="parsonsPersonalized"
+                label="Personalize to student's code (CodeTailor)"
+                checked={formData.parsonsPersonalized ?? true}
+                onChange={(e) => onChange({ parsonsPersonalized: e.currentTarget.checked })}
+              />
+              <InfoTooltip label="When off, 'Get Help' shows the example Parsons puzzle without adapting to the student's code." />
+            </Group>
           </div>
         </div>
       )}

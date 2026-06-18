@@ -1,0 +1,107 @@
+{% extends "admin/auth/_auth_base.html" %}
+
+{% block title %}Edit Profile — Runestone Academy{% endblock %}
+
+{% block css %}
+<style>
+    .auth-card { max-width: 580px; }
+    .section-label {
+        color: #4a90e2;
+        font-size: 1em;
+        font-weight: 600;
+        margin-top: 24px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #c8dff5;
+        padding-bottom: 4px;
+    }
+    .danger-zone {
+        margin-top: 40px;
+        padding: 20px;
+        border: 1px solid #f5c6cb;
+        border-radius: 6px;
+        background: #fff8f8;
+    }
+    .danger-zone h5 { color: #721c24; margin-bottom: 12px; }
+    .btn-danger-outline {
+        background: white;
+        color: #dc3545;
+        border: 1px solid #dc3545;
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .btn-danger-outline:hover { background: #dc3545; color: white; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <h1>Edit Profile</h1>
+
+    {% if errors %}
+    <div class="alert alert-danger">
+        <ul class="mb-0">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    {% if success %}
+    <div class="alert alert-success">{{ success }}</div>
+    {% endif %}
+
+    <form method="post" action="/admin/auth/profile">
+        <div class="section-label">Name</div>
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="first_name">First Name</label>
+                <input type="text" class="form-control" id="first_name" name="first_name"
+                       value="{{ user.first_name }}" required>
+            </div>
+            <div class="form-group col-md-6">
+                <label for="last_name">Last Name</label>
+                <input type="text" class="form-control" id="last_name" name="last_name"
+                       value="{{ user.last_name }}" required>
+            </div>
+        </div>
+
+        <div class="section-label">Contact</div>
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" class="form-control" id="email" name="email"
+                   value="{{ user.email }}" required>
+        </div>
+
+        <div class="section-label">Username</div>
+        <div class="form-group">
+            <input type="text" class="form-control" value="{{ user.username }}" disabled>
+            <small class="form-text text-muted">Usernames cannot be changed.</small>
+        </div>
+
+        <button type="submit" class="btn btn-rs-primary" style="width:auto; margin-top:8px;">Save Changes</button>
+    </form>
+
+    <div class="mt-3">
+        <a href="/admin/auth/forgot-password">Change password</a> &middot;
+        <a href="/admin/auth/courses">Add or change course</a>
+    </div>
+
+    <div class="danger-zone">
+        <h5>Delete Account</h5>
+        <p class="text-muted small">This permanently removes your account and all associated data. This cannot be undone.</p>
+        <button class="btn-danger-outline" data-toggle="collapse" data-target="#deleteForm">
+            Delete My Account
+        </button>
+        <div id="deleteForm" class="collapse mt-3">
+            <form method="post" action="/admin/auth/delete-account"
+                  onsubmit="return confirm('This will permanently delete your account. Are you sure?')">
+                <div class="form-group">
+                    <label>Type your username <strong>{{ user.username }}</strong> to confirm:</label>
+                    <input type="text" class="form-control" name="confirm" required
+                           placeholder="{{ user.username }}">
+                </div>
+                <button type="submit" class="btn-danger-outline">Permanently Delete Account</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

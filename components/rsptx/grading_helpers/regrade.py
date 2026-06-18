@@ -24,7 +24,11 @@ from rsptx.db.models import (
 )
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
 from rsptx.logging import rslogger
-from rsptx.grading_helpers.scoring import score_answer_values, PEER_CHAT_SENTINEL
+from rsptx.grading_helpers.scoring import (
+    score_answer_values,
+    score_peer_values,
+    PEER_SCORE_SENTINEL,
+)
 
 
 QTYPE_TO_TABLE = {
@@ -147,11 +151,16 @@ async def _score_row(
         percent=percent,
         event=event,
     )
-    if score == PEER_CHAT_SENTINEL:
-        from rsptx.db.crud import did_send_messages
+    if score == PEER_SCORE_SENTINEL:
+        from rsptx.db.crud import fetch_peer_useinfo
 
-        did_chat = await did_send_messages(sid, div_id, course_name)
-        return max_score if did_chat else 0.5 * max_score
+        rows = await fetch_peer_useinfo(sid, div_id, course_name)
+        has_vote1 = any("vote1" in (r.act or "") for r in rows)
+        has_vote2 = any("vote2" in (r.act or "") for r in rows)
+        sent_message = any(r.event == "sendmessage" for r in rows)
+        return score_peer_values(
+            how_to_score, max_score, has_vote1, has_vote2, sent_message
+        )
     return score
 
 

@@ -56,7 +56,7 @@ export type Exercise = {
   reading_assignment: boolean;
   sorting_priority: number;
   activities_required: number;
-  use_llm: boolean;
+  async_mode: string;
   qnumber: string;
   name: string;
   subchapter: string;
@@ -110,6 +110,7 @@ export type QuestionJSON = Partial<{
   enableCodeTailor: boolean;
   parsonspersonalize: "movable" | "partial" | "";
   parsonsexample: string;
+  parsonsPersonalized: boolean;
   enableCodelens: boolean;
   iframeSrc: string;
   // Parsons problem options

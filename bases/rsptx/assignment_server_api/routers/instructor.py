@@ -137,7 +137,7 @@ async def review_peer_assignment(
 
     if assignment_id is None:
         rslogger.error("BAD ASSIGNMENT = %s assignment %s", course, assignment_id)
-        return RedirectResponse("/runestone/peer/instructor.html")
+        return RedirectResponse("/assignment/peer/instructor")
 
     # Check if the user is an instructor
     user_is_instructor = await is_instructor(request, user=user)
@@ -161,14 +161,14 @@ async def review_peer_assignment(
             course,
             user.username,
         )
-        return RedirectResponse("/runestone/peer/instructor.html")
+        return RedirectResponse("/assignment/peer/instructor")
 
     if not is_assignment_visible_to_students(assignment):
         if not user_is_instructor:
             rslogger.error(
                 f"Attempt to access invisible assignment {assignment_id} by {user.username}"
             )
-            return RedirectResponse("/runestone/peer/instructor.html")
+            return RedirectResponse("/assignment/peer/instructor")
 
     # Fetch questions within the assignment
     questions = await fetch_assignment_questions(assignment_id)
@@ -283,6 +283,8 @@ async def get_assignment_gb(
 ):
     # get the course
     course = await fetch_course(user.course_name)
+    course_attrs = await fetch_all_course_attributes(course.id)
+    show_points = course_attrs.get("show_points", "false") == "true"
 
     if settings.server_config == "development":
         dburl = settings.dev_dburl
@@ -301,11 +303,15 @@ async def get_assignment_gb(
     select score, points, assignments.id as assignment, auth_user.id as sid, is_submit
     from auth_user join grades on (auth_user.id = grades.auth_user)
     join assignments on (grades.assignment = assignments.id)
-    where points is not null and assignments.course = %s
+        where points is not null
+            and assignments.course = %s
+            and auth_user.id not in (
+                select instructor from course_instructor where course = %s
+            )
     order by last_name, first_name, assignments.duedate, assignments.id
     """,
         eng,
-        params=(classid,),
+        params=(classid, classid),
     )
 
     assignments = pd.read_sql(
@@ -320,10 +326,14 @@ async def get_assignment_gb(
         """
         select auth_user.id, username, first_name, last_name, email from auth_user join user_courses on auth_user.id = user_id
         join courses on user_courses.course_id = courses.id
-        where courses.id = %s order by last_name, first_name
+                where courses.id = %s
+                    and auth_user.id not in (
+                        select instructor from course_instructor where course = %s
+                    )
+                order by last_name, first_name
         """,
         eng,
-        params=(classid,),
+        params=(classid, classid),
     )
     apoints = {}
     for ix, row in assignments.iterrows():
@@ -343,15 +353,34 @@ async def get_assignment_gb(
     )
 
     cols = pt.columns.to_list()
-    cols_plus_points = []
+    display_cols = []
+    formatter_map = {}
+
+    def format_percent(value):
+        return "" if pd.isna(value) else f"{value:.2f}"
+
     for c in cols:
-        cols_plus_points.append(c + f" ({apoints.get(c,'0')} pts)")
+        points = apoints.get(c, 0)
+        if show_points:
+            display_name = c + f" ({points} pts)"
+        else:
+            display_name = c + " (%)"
+            if points and points > 0:
+                pt[c] = (pt[c] / points * 100).round(2)
+            formatter_map[display_name] = format_percent
+        display_cols.append(display_name)
 
     pt["first_name"] = pt.index.map(sfirst)
     pt["last_name"] = pt.index.map(slast)
     pt["email"] = pt.index.map(semail)
     pt["username"] = pt.index.map(suser)
-    pt = pt.sort_values(by=["last_name", "first_name"])
+    pt["_last_name_missing"] = pt["last_name"].fillna("").str.strip().eq("")
+    pt["_first_name_missing"] = pt["first_name"].fillna("").str.strip().eq("")
+    pt = pt.sort_values(
+        by=["_last_name_missing", "_first_name_missing", "last_name", "first_name"],
+        na_position="last",
+    )
+    pt = pt.drop(columns=["_last_name_missing", "_first_name_missing"])
     pt = pt[["first_name", "last_name", "email", "username"] + cols]
     pt = pt.reset_index()
     pt = pt.drop(columns=["sid"], axis=1)
@@ -365,7 +394,7 @@ async def get_assignment_gb(
     # pt = pt.drop(columns=["username"], axis=1)
     templates = Jinja2Templates(directory=template_folder)
     # rename the columns in cols to cols_plus_points
-    rename_dict = {old: new for old, new in zip(cols, cols_plus_points)}
+    rename_dict = {old: new for old, new in zip(cols, display_cols)}
     pt = pt.rename(columns=rename_dict)
 
     return templates.TemplateResponse(
@@ -373,10 +402,10 @@ async def get_assignment_gb(
         {
             "table_html": pt.to_html(
                 table_id="table",
-                columns=["first_name", "last_name", "email", "username"]
-                + cols_plus_points,
+                columns=["first_name", "last_name", "email", "username"] + display_cols,
                 index=False,
                 na_rep="",
+                formatters=formatter_map,
             ),
             "pt": names,
             "course": course,

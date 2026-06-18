@@ -1,0 +1,147 @@
+# Caddyfile - reverse proxy for the Runestone stack
+#
+# This is a drop-in replacement for projects/nginx/runestone. It performs the
+# exact same routing, but uses Caddy so that HTTPS "just works":
+#
+#   * Local dev:  set CADDY_SITE_ADDRESS=https://localhost (Caddy issues a cert
+#                 from its own internal CA - no certbot, no config).
+#   * Single-app: set CADDY_SITE_ADDRESS=https://your.domain.com and Caddy will
+#                 automatically obtain and renew a Let's Encrypt certificate.
+#                 (To receive expiry notices, add a global `email you@x.com`
+#                 option block at the top of this file.)
+#   * Parity:     leave CADDY_SITE_ADDRESS unset and Caddy listens on :80 only,
+#                 behaving just like the nginx container.
+#
+# Everything below mirrors projects/nginx/runestone one-for-one.
+
+# --------------------------------------------------------------------------
+# All of the routing lives in this snippet so the same rules apply no matter
+# what address (http :80, https://localhost, https://domain) we listen on.
+# --------------------------------------------------------------------------
+(runestone_routes) {
+	# gzip_static on; -> serve precompressed files and compress on the fly.
+	encode gzip zstd
+
+	# Access log to stdout so `docker logs` shows requests. The transform
+	# encoder (built into the image via xcaddy, see Dockerfile) reproduces the
+	# exact single-line format the old nginx config used:
+	#   $remote_addr - [$time_local] Request: "$request" Status: $status
+	#   Bytes: $body_bytes_sent RequestTime: $request_time
+	#   Referrer: "$http_referer" Agent: "$http_user_agent"
+	log {
+		output stdout
+		format transform `{request>remote_ip} - [{ts}] Request: "{request>method} {request>uri} {request>proto}" Status: {status} Bytes: {size} RequestTime: {duration} Referrer: "{request>headers>Referer>[0]}" Agent: "{request>headers>User-Agent>[0]}"` {
+			time_format "02/Jan/2006:15:04:05 -0700"
+			time_local
+		}
+	}
+
+	# A `route` block runs its directives top-to-bottom in the order written,
+	# which is what lets us reproduce nginx's location precedence exactly.
+	route {
+		# ----- internal rewrites (no client redirect), same as nginx -----
+		# rewrite ^/ads.txt /runestone/static/ads.txt;
+		@ads path /ads.txt
+		rewrite @ads /runestone/static/ads.txt
+
+		# rewrite ^/runestone/static/JavaReview/(\w+)/(.*)$ /ns/books/published/apcsareview/$1/$2;
+		@javareview path_regexp jr ^/runestone/static/JavaReview/(\w+)/(.*)$
+		rewrite @javareview /ns/books/published/apcsareview/{re.jr.1}/{re.jr.2}
+
+		# rewrite ^/runestone/static/csawesome/(\w+)/(.*)$ /ns/books/published/csawesome/$1/$2;
+		@csawesome path_regexp csa ^/runestone/static/csawesome/(\w+)/(.*)$
+		rewrite @csawesome /ns/books/published/csawesome/{re.csa.1}/{re.csa.2}
+
+		# ----- shared static assets -----
+		# location ~* ^/staticAssets/(.*)$ { alias /usr/share/nginx/html/staticAssets/$1; }
+		handle_path /staticAssets/* {
+			root * /srv/staticAssets
+			file_server
+		}
+
+		# ----- new server (book server) -----
+		# This MUST come before the book-static handlers below. nginx used a
+		# negative lookahead (?!ns/) to keep /ns/... out of the static-file
+		# match; Go's regexp engine has no lookahead, so we get the same effect
+		# by matching /ns/* first (handle blocks are terminal once matched).
+		#
+		# location /ns/ { proxy_pass http://book:8111/; client_max_body_size 25M; }
+		handle_path /ns/* {
+			# nginx's "25M" is 25 MiB (26214400 bytes); Caddy's "MB" is decimal,
+			# so use "MiB" to match byte-for-byte.
+			request_body {
+				max_size 25MiB
+			}
+			reverse_proxy book:8111 {
+				header_up X-Forwarded-Proto https
+			}
+		}
+
+		# ----- book static files, application prefix present -----
+		# location ~* ^/(?!ns/)(\w+)/books/(published|draft)/(\w+)/(_static|_images|images)/(.*)$
+		#     alias /usr/books/$3/$2/$3/$4/$5;
+		@book_app path_regexp bookapp ^/(\w+)/books/(published|draft)/(\w+)/(_static|_images|images)/(.*)$
+		handle @book_app {
+			root * /usr/books
+			rewrite * /{re.bookapp.3}/{re.bookapp.2}/{re.bookapp.3}/{re.bookapp.4}/{re.bookapp.5}
+			file_server
+		}
+
+		# ----- book static files, no application prefix -----
+		# location ~* ^/books/(published|draft)/(\w+)/(_static|_images|images)/(.*)$
+		#     alias /usr/books/$2/$1/$2/$3/$4;
+		@book_noapp path_regexp booknoapp ^/books/(published|draft)/(\w+)/(_static|_images|images)/(.*)$
+		handle @book_noapp {
+			root * /usr/books
+			rewrite * /{re.booknoapp.2}/{re.booknoapp.1}/{re.booknoapp.2}/{re.booknoapp.3}/{re.booknoapp.4}
+			file_server
+		}
+
+		# ----- assignment server -----
+		# location /assignment/ { proxy_pass http://assignment:8113/; }
+		handle_path /assignment/* {
+			reverse_proxy assignment:8113 {
+				header_up X-Forwarded-Proto https
+			}
+		}
+
+		# ----- admin server -----
+		# location /admin/ { proxy_pass http://admin:8115/; }
+		handle_path /admin/* {
+			reverse_proxy admin:8115 {
+				header_up X-Forwarded-Proto https
+			}
+		}
+
+		# ----- author server (optional) -----
+		# nginx keeps the /author prefix when proxying (proxy_pass without a
+		# trailing path), so we use `handle` (not handle_path) to preserve it.
+		# location /author/ { proxy_pass $aserver$request_uri; }
+		#
+		# A bare /author (no trailing slash) is not matched by /author/*
+		# and would otherwise fall through to runestone; redirect it to
+		# /author/ so it reaches the author server.
+		@author_bare path /author
+		redir @author_bare /author/ 308
+
+		handle /author/* {
+			reverse_proxy author:8114 {
+				header_up X-Forwarded-Proto https
+			}
+		}
+
+		# ----- everything else -> web2py (runestone) -----
+		# location / { proxy_pass http://runestone:8112; }
+		handle {
+			reverse_proxy runestone:8112
+		}
+	}
+}
+
+# --------------------------------------------------------------------------
+# The actual site. Address is env-driven so the same image works for plain
+# HTTP (parity with nginx), local HTTPS, or a public domain with Let's Encrypt.
+# --------------------------------------------------------------------------
+{$CADDY_SITE_ADDRESS::80} {
+	import runestone_routes
+}

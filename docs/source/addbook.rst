@@ -25,7 +25,7 @@ Building the Book
 ~~~~~~~~~~~~~~~~~
 
 1. Go to your ``$BOOK_PATH`` folder and clone a book.  Lets take our simple overview book as an example. run the command ``git clone https://github.com/RunestoneInteractive/overview.git``  You should see a new folder called ``overview``
-2. The over view book is already in the database, so the only thing we need to do is build it.  ``cd overview`` and then run ``runestone build --all deploy``  If the command fails, make sure you have your virtual environment activated.  You can do this by running ``poetry shell`` from the top level directory (rs).
+2. The over view book is already in the database, so the only thing we need to do is build it.  ``cd overview`` and then run ``runestone build --all deploy``  If the command fails, make sure you have your virtual environment activated.  You can do this by running ``source .venv/bin/activate`` from the top level directory (rs).
 
 This builds the book and deploys it to ``overview/published/overview``  This is the location that the Runestone server will look for it.  Important:  The book name and the folder name must match.  So if you want to build a book called ``mybook`` then you need to clone it into a folder called ``mybook`` and then build it into ``mybook/published/mybook``.
 

@@ -1,4 +1,5 @@
 # generate imports
+import datetime
 from typing import Optional, List, Dict, Any
 from sqlalchemy import select, func, and_, delete, update
 from ..models import (
@@ -691,3 +692,35 @@ async def fetch_basecourse_courses(base_course: str) -> List[CoursesValidator]:
         res = await session.execute(query)
     course_list = [CoursesValidator.from_orm(x) for x in res.scalars().fetchall()]
     return course_list
+
+
+async def fetch_courses_by_institution(institution: str) -> List[CoursesValidator]:
+    """
+    Return courses whose institution fuzzy-matches the given string and whose
+    term_start_date is within the last 9 months (i.e. active or recently started).
+    Uses Python difflib so no pg_trgm extension is required.
+
+    :param institution: str, the institution name to match
+    :return: List[CoursesValidator]
+    """
+    from difflib import SequenceMatcher
+
+    cutoff = datetime.date.today() - datetime.timedelta(days=275)  # ~9 months
+    query = select(Courses).where(
+        and_(Courses.institution != "", Courses.term_start_date >= cutoff)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        all_courses = res.scalars().fetchall()
+
+    needle = institution.lower()
+    matches = []
+    seen = set()
+    for course in all_courses:
+        ratio = SequenceMatcher(None, needle, course.institution.lower()).ratio()
+        if ratio >= 0.6 and course.course_name not in seen:
+            seen.add(course.course_name)
+            matches.append((ratio, CoursesValidator.from_orm(course)))
+
+    matches.sort(key=lambda x: x[0], reverse=True)
+    return [c for _, c in matches[:20]]

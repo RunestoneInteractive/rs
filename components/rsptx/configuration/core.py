@@ -149,6 +149,21 @@ class Settings(BaseSettings):
     academy_mode: bool = True
     lti_only_mode: bool = False
 
+    # Anonymous usage telemetry. The book server periodically sends a small,
+    # anonymous check-in to ``telemetry_url`` so we can count Runestone installs
+    # worldwide and the books they serve. It contains NO personal data (no
+    # usernames, emails, answers, or grades) and NO IP-based location -- only a
+    # random per-install id, the version, the self-declared region/institution
+    # below, the list of base courses served, and bucketed counts.
+    # This is opt-out: set ``TELEMETRY_ENABLED=false`` to disable it entirely.
+    telemetry_enabled: bool = True
+    telemetry_url: str = "https://runestone.academy/admin/telemetry/checkin"
+    # High-level, self-declared location (e.g. a country or continent). Left
+    # blank means "unspecified" -- we never derive location from your IP.
+    telemetry_region: str = ""
+    # Optional, self-declared institution name to associate with this install.
+    telemetry_institution: str = ""
+
     # This is the secret key used for generating the JWT token.
     jwt_secret: bytes = b"supersecret"
     fernet_secret: bytes = b"6M7llOz2ztmNV_5dZ0rOsODNACMkRLLMDb9K1MLw91w="
@@ -202,6 +217,10 @@ class Settings(BaseSettings):
 
     jobe_key: str = ""
     jobe_server: str = "http://jobe"
+
+    mailgun_api_key: str = ""
+    mailgun_domain: str = ""
+    email_from: str = "support@runestone.academy"
 
 
 settings = Settings(book_server_config=os.environ.get("SERVER_CONFIG", "development"))

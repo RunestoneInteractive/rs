@@ -13,6 +13,10 @@ Grade Book
 {{table_html|safe}}
 
 <button id="export" data-export="export">Download Gradebook</button>
+<label for="assignment-column-filter" style="margin-left: 12px;">Show assignment column:</label>
+<select id="assignment-column-filter">
+    <option value="all">All assignments</option>
+</select>
 
 <h4>Quick Links to Student Progress</h4>
 
@@ -29,6 +33,16 @@ Grade Book
 <script type="text/javascript" src="/staticAssets/js/jquery.tabletoCSV.js"></script>
 <script>
     var gbTable;
+    var assignmentColumnIndexes = [];
+
+    function setAssignmentColumnVisibility(selectedValue) {
+        assignmentColumnIndexes.forEach(function (idx) {
+            var shouldShow = selectedValue === "all" || Number(selectedValue) === idx;
+            gbTable.column(idx).visible(shouldShow, false);
+        });
+        gbTable.columns.adjust().draw(false);
+    }
+
     $(document).ready( function () {
         let t = document.getElementById('table');
         t.classList.add('stripe');
@@ -43,6 +57,23 @@ Grade Book
         });
         // hide teh username column
         gbTable.column(3).visible(false);
+
+        // Columns: 0=first_name, 1=last_name, 2=email, 3=username, 4+=assignments
+        var select = document.getElementById('assignment-column-filter');
+        gbTable.columns().every(function (idx) {
+            if (idx >= 4) {
+                assignmentColumnIndexes.push(idx);
+                var headerText = this.header().textContent.trim();
+                var opt = document.createElement('option');
+                opt.value = String(idx);
+                opt.textContent = headerText;
+                select.appendChild(opt);
+            }
+        });
+
+        select.addEventListener('change', function () {
+            setAssignmentColumnVisibility(this.value);
+        });
     });
 
 

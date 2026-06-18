@@ -33,6 +33,8 @@ from psycopg2.sql import Identifier, SQL
 # our own package imports
 
 from rsptx.db.crud import (
+    build_checkin_payload,
+    set_last_sent,
     copy_course_attributes,
     create_initial_courses_users,
     create_book_author,
@@ -1440,6 +1442,55 @@ async def library_github(ctx, book, url):
     print(f"Setting the github_url to {url} for {book} in the library")
     bookrec = await fetch_library_book(book)
     await update_library_book(bookrec.id, dict(github_url=url))
+
+
+@cli.command()
+@click.option("--send", is_flag=True, help="Actually send the check-in now")
+@pass_config
+async def telemetry(config, send):
+    """Preview (default) or send the anonymous usage check-in.
+
+    By default this only prints the exact payload that would be sent so you can
+    see precisely what leaves your server. Use --send to transmit it now.
+    Telemetry is opt-out: set TELEMETRY_ENABLED=false to turn it off entirely.
+    """
+    await init_models()
+    try:
+        payload = await build_checkin_payload()
+        click.echo("Anonymous usage check-in payload (no personal data, no IP):")
+        click.echo(json.dumps(payload, indent=2, default=str))
+        click.echo(f"\nTelemetry enabled: {settings.telemetry_enabled}")
+        click.echo(f"Destination: {settings.telemetry_url}")
+
+        if not send:
+            click.echo("\nNothing sent. Re-run with --send to transmit.")
+            return
+
+        # Use the standard library for this one-shot POST so rsmanage doesn't
+        # need an HTTP client dependency.
+        import urllib.error
+        import urllib.request
+
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            settings.telemetry_url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                status_code = resp.status
+        except urllib.error.HTTPError as e:
+            status_code = e.code
+
+        if status_code < 400:
+            await set_last_sent(datetime.datetime.utcnow())
+            click.echo(f"\nSent. Server responded HTTP {status_code}.")
+        else:
+            click.echo(f"\nServer responded HTTP {status_code}; not recorded.")
+    finally:
+        await term_models()
 
 
 if __name__ == "__main__":

@@ -351,13 +351,39 @@ export const AssignmentEdit = ({
       </nav>
       <div className={styles.main}>
         <div className={styles.mainHeader}>
-          <Group align="center" gap="xs">
-            <ActionIcon variant="subtle" color="gray" size={40} onClick={onBack} aria-label="Back">
-              <Icon name="arrow-left" />
-            </ActionIcon>
-            <h1 className={styles.assignmentName} title={selectedAssignment?.name}>
-              {selectedAssignment?.name}
-            </h1>
+          <Group align="center" gap="xs" justify="space-between" w="100%" wrap="nowrap">
+            <Group align="center" gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size={40}
+                onClick={onBack}
+                aria-label="Back"
+              >
+                <Icon name="arrow-left" />
+              </ActionIcon>
+              <h1 className={styles.assignmentName} title={selectedAssignment?.name}>
+                {selectedAssignment?.name}
+              </h1>
+            </Group>
+            <Tooltip label="Preview as student" position="bottom">
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size={40}
+                aria-label="Preview as student"
+                disabled={!selectedAssignment?.id}
+                onClick={() => {
+                  if (!selectedAssignment?.id) return;
+                  const { protocol, hostname } = window.location;
+                  const previewUrl = `${protocol}//${hostname}/assignment/student/doAssignment?assignment_id=${selectedAssignment.id}`;
+
+                  window.open(previewUrl, "_blank");
+                }}
+              >
+                <Icon name="eye" />
+              </ActionIcon>
+            </Tooltip>
           </Group>
         </div>
         <div className={styles.mainScroll}>

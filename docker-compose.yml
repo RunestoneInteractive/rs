@@ -49,6 +49,9 @@ services:
     # use a non-standard port to avoid conflicts with other postgres instances on the host
     ports:
       - 2345:5432
+    # persist the database on a named volume so data survives container restarts
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   # pgbouncer is for production only, when in a load balancer configuration.
   # This will effectively limit the total number of connections to the database
@@ -135,6 +138,11 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
       - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
+      # Anonymous, opt-out usage telemetry (see sample.env / README)
+      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+      - TELEMETRY_URL=${TELEMETRY_URL:-https://runestone.academy/admin/telemetry/checkin}
+      - TELEMETRY_REGION=${TELEMETRY_REGION:-}
+      - TELEMETRY_INSTITUTION=${TELEMETRY_INSTITUTION:-}
 
     depends_on:
       redis:
@@ -266,7 +274,7 @@ services:
         required: false
 
   nginx:
-
+    profiles: ['nginx']
     # Note we use context: ./ here so that the Dockerfile can copy from the components folder
     build:
       context: ./
@@ -285,6 +293,59 @@ services:
     #- 443:443
     volumes:
       - ${BOOK_PATH}:/usr/books
+    depends_on:
+      runestone:
+        condition: service_started
+        required: true
+      book:
+        condition: service_started
+        required: true
+      assignment:
+        condition: service_started
+        required: true
+      admin:
+        condition: service_started
+        required: false
+      author:
+        condition: service_started
+        required: false
+
+  # Caddy is a drop-in alternative to the nginx service above. It performs the
+  # exact same routing (see projects/caddy/Caddyfile) but gives you HTTPS with
+  # no hassle: automatic Let's Encrypt for a real domain, or a locally-trusted
+  # cert for dev. Because it also wants ports 80/443 it lives in its own
+  # "caddy" profile so it never competes with nginx - run ONE of them, e.g.
+  #   COMPOSE_PROFILES=basic,caddy docker compose up
+  # For local HTTPS set CADDY_SITE_ADDRESS=https://localhost in your .env;
+  # for a public site set CADDY_SITE_ADDRESS=https://your.domain.
+  caddy:
+  #  profiles: [ "caddy" ]
+    # Note we use context: ./ here so that the Dockerfile can copy from the components folder
+    build:
+      context: ./
+      dockerfile: projects/caddy/Dockerfile
+    image: ghcr.io/runestoneinteractive/rs-caddy
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: always
+    logging:
+      <<: *json-file-logging
+      options:
+        tag: runestone.caddy
+    environment:
+      # Unset -> listen on :80 only (parity with nginx).
+      # https://localhost -> local dev cert from Caddy's internal CA.
+      # https://your.domain -> automatic Let's Encrypt certificate.
+      - CADDY_SITE_ADDRESS=${CADDY_SITE_ADDRESS:-:80}
+    ports:
+      # ports are specified host:container
+      - 80:80
+      - 443:443
+    volumes:
+      - ${BOOK_PATH}:/usr/books
+      # Persist issued certificates and Caddy state across restarts.
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       runestone:
         condition: service_started
@@ -325,7 +386,8 @@ services:
   # docker compose run rsmanage rsmanage --help
   rsmanage:
     build:
-      context: ./projects/rsmanage
+      context: ./
+      dockerfile: projects/rsmanage/Dockerfile
     image: ghcr.io/runestoneinteractive/rs-rsmanage
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -348,6 +410,11 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-runestone}
+      # Anonymous, opt-out usage telemetry (see sample.env / README)
+      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
+      - TELEMETRY_URL=${TELEMETRY_URL:-https://runestone.academy/admin/telemetry/checkin}
+      - TELEMETRY_REGION=${TELEMETRY_REGION:-}
+      - TELEMETRY_INSTITUTION=${TELEMETRY_INSTITUTION:-}
 
   author:
     profiles: [ "author" ]
@@ -450,6 +517,7 @@ services:
       - SERVER_CONFIG=${SERVER_CONFIG}
       - RUNESTONE_PATH=/usr/src/app
       - RUNESTONE_HOST=${RUNESTONE_HOST}
+      - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
       - JWT_SECRET=${JWT_SECRET}
       # - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
       - REDIS_URI=redis://${REDIS_HOST}:6379/0
@@ -466,3 +534,11 @@ services:
       redis:
         condition: service_started
         required: true
+
+# Named volumes used by the optional caddy reverse-proxy service to persist
+# TLS certificates and Caddy's own state between restarts.
+volumes:
+  caddy_data:
+  caddy_config:
+  # persists the basic-profile PostgreSQL data directory across restarts
+  postgres_data:

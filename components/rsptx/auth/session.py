@@ -41,15 +41,20 @@ class NotAuthenticatedException(Exception):
 class RSLoginManager(LoginManager):
     """
     Custom LoginManager class to force access token cookie to be SameSite=None so that iframe embedding and redirects from LTI tools work properly.
+
+    In production (HTTPS) we need SameSite=None; Secure for LTI iframe support.
+    In development (HTTP / localhost) those flags cause browsers to silently drop
+    the cookie, so we fall back to SameSite=Lax; Secure=False.
     """
 
     def set_cookie(self, response, token):
+        production = settings.server_config == "production"
         response.set_cookie(
             key=self.cookie_name,
             value=token,
             httponly=True,
-            samesite="None",
-            secure=True,
+            samesite="None" if production else "Lax",
+            secure=production,
         )
 
 

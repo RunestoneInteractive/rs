@@ -106,19 +106,19 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
         },
         {
           label: "Peer instruction (instructor)",
-          command: () => navigateToPath("/runestone/peer/instructor.html"),
+          command: () => navigateToPath("/assignment/peer/instructor"),
           visible: isInstructor
         },
         {
           label: "Peer instruction (student)",
-          command: () => navigateToPath("/runestone/peer/student.html")
+          command: () => navigateToPath("/assignment/peer/student")
         },
         {
           separator: true
         },
         {
           label: "Change course",
-          command: () => navigateToPath("/runestone/default/courses")
+          command: () => navigateToPath("/admin/auth/my_courses")
         },
         {
           separator: true
@@ -141,7 +141,7 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
         },
         {
           label: "Edit profile",
-          command: () => navigateToPath("/runestone/default/user/profile")
+          command: () => navigateToPath("/admin/auth/profile")
         },
         {
           label: "Change password",
@@ -149,7 +149,7 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
         },
         {
           label: "Logout",
-          command: () => navigateToPath("/runestone/default/user/logout")
+          command: () => navigateToPath("/admin/auth/logout")
         }
       ]
     },

@@ -18,6 +18,7 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
       enableCodeTailor: data.enableCodeTailor,
       parsonspersonalize: data.parsonspersonalize,
       parsonsexample: data.parsonsexample,
+      parsonsPersonalized: data.parsonsPersonalized,
       enableCodelens: data.enableCodelens
     }),
     ...(data.question_type === "shortanswer" && {
@@ -105,6 +106,7 @@ export const getDefaultQuestionJson = (languageOptions: TableDropdownOption[]) =
   enableCodeTailor: false,
   parsonspersonalize: "",
   parsonsexample: "",
+  parsonsPersonalized: true,
   enableCodelens: true
 });
 
@@ -114,7 +116,7 @@ export const mergeQuestionJsonWithDefaults = (
 ): QuestionJSON => {
   const defaultQuestionJson = getDefaultQuestionJson(languageOptions);
 
-  return {
+  const merged = {
     ...defaultQuestionJson,
     ...questionJson,
     optionList: questionJson?.optionList ?? defaultQuestionJson.optionList,
@@ -137,6 +139,8 @@ export const mergeQuestionJsonWithDefaults = (
       questionJson?.parsonspersonalize ??
       (defaultQuestionJson.parsonspersonalize as "" | "movable" | "partial"),
     parsonsexample: questionJson?.parsonsexample ?? defaultQuestionJson.parsonsexample,
+    parsonsPersonalized: questionJson?.parsonsPersonalized ?? defaultQuestionJson.parsonsPersonalized,
     questionLabels: questionJson?.questionLabels ?? {}
   };
+  return merged;
 };

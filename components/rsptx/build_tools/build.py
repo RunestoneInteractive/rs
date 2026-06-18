@@ -101,7 +101,12 @@ def cli(config, verbose, all, core, service, clean, skip_pre, skip_tests):
 
     with open("pyproject.toml") as f:
         config.pyproject = toml.load(f)
-        config.version = config.pyproject["tool"]["poetry"]["version"]
+        # The root was migrated from poetry ([tool.poetry]) to PEP 621
+        # ([project]); fall back to the old location for safety.
+        config.version = (
+            config.pyproject.get("project", {}).get("version")
+            or config.pyproject["tool"]["poetry"]["version"]
+        )
 
     res = subprocess.run("docker info", shell=True, capture_output=True)
     if res.returncode != 0:
@@ -391,14 +396,24 @@ def wheel(config):
     with Live(generate_wheel_table(status), refresh_per_second=4) as lt:
         status = {}
         for proj in config.ym["services"].keys():
-            if (
-                "build" not in config.ym["services"][proj]
-                or config.ym["services"][proj]["build"]["context"] == "./"
-            ):
+            if "build" not in config.ym["services"][proj]:
                 status[proj] = "[blue]Skipped[/blue]"
                 lt.update(generate_wheel_table(status))
                 continue
-            projdir = config.ym["services"][proj]["build"]["context"]
+            # The wheel is built from the project directory (where its
+            # pyproject.toml lives), which is not always the Docker build
+            # context. When an explicit ``dockerfile`` is given the context may
+            # be the repo root (e.g. so the image can bundle migrations/), so
+            # derive the project directory from the Dockerfile's location.
+            # Services without a pyproject.toml (nginx, etc.) fall through and
+            # are skipped by the check farther down.
+            build = config.ym["services"][proj]["build"]
+            if "dockerfile" in build:
+                projdir = os.path.dirname(
+                    os.path.join(build.get("context", "."), build["dockerfile"])
+                )
+            else:
+                projdir = build["context"]
             if os.path.isdir(projdir):
                 with pushd(projdir):
                     if os.path.isfile("build.py") and config.skip_pre is False:
@@ -422,37 +437,70 @@ def wheel(config):
                                     f.write(res.stderr.decode(stdout_err_encoding))
                                     f.write(res.stdout.decode(stdout_err_encoding))
                             sys.exit(1)
-                    if os.path.isfile("pyproject.toml"):
+                    if proj == "interactives":
+                        # interactives ships a JS release only (built by its
+                        # pre-build step above); no Python wheel is produced.
+                        status[proj] = "[blue]JS only[/blue]"
+                        lt.update(generate_wheel_table(status))
+                    elif os.path.isfile("pyproject.toml"):
                         status[proj] = "[grey62]building...[/grey62]"
                         lt.update(generate_wheel_table(status))
-                        toml_stat = os.stat("pyproject.toml")
-                        lock_stat = os.stat("poetry.lock")
-                        if toml_stat.st_mtime > lock_stat.st_mtime:
-                            res = subprocess.run(
-                                ["poetry", "--version"], capture_output=True
+                        with open("pyproject.toml") as f:
+                            backend = (
+                                toml.load(f)
+                                .get("build-system", {})
+                                .get("build-backend", "")
                             )
-                            # poetry 2.0 removed the --no-update flag (it is the default)
-                            lock_opts = ["poetry", "lock"]
-                            if "version 1" in res.stdout.decode(stdout_err_encoding):
-                                lock_opts.append("--no-update")
-
-                            res = subprocess.run(lock_opts, capture_output=True)
-                            if res.returncode != 0:
-                                status[proj] = (
-                                    f"[red]Fail[/red] probable dependency conflict see {projdir}/build.log"
+                        # During the poetry -> uv migration the repo may hold a
+                        # mix of projects. uv-based projects use the hatchling
+                        # backend and are built with `uv build`; legacy poetry
+                        # projects still use `poetry build-project`.
+                        if "hatchling" in backend:
+                            # uv reads pyproject directly to build the wheel; no
+                            # separate lock step is needed for the wheel's
+                            # dependency metadata. The wheel lands in ./dist,
+                            # where the service Dockerfile expects it.
+                            res = subprocess.run(
+                                ["uv", "build", "--wheel"], capture_output=True
+                            )
+                        else:
+                            if os.path.isfile("poetry.lock"):
+                                relock = (
+                                    os.stat("pyproject.toml").st_mtime
+                                    > os.stat("poetry.lock").st_mtime
                                 )
-                                lt.update(generate_wheel_table(status))
-                                if config.verbose:
-                                    console.print(
-                                        res.stderr.decode(stdout_err_encoding)
+                            else:
+                                relock = True
+                            if relock:
+                                ver = subprocess.run(
+                                    ["poetry", "--version"], capture_output=True
+                                )
+                                # poetry 2.0 removed the --no-update flag (it is the default)
+                                lock_opts = ["poetry", "lock"]
+                                if "version 1" in ver.stdout.decode(
+                                    stdout_err_encoding
+                                ):
+                                    lock_opts.append("--no-update")
+
+                                res = subprocess.run(lock_opts, capture_output=True)
+                                if res.returncode != 0:
+                                    status[proj] = (
+                                        f"[red]Fail[/red] probable dependency conflict see {projdir}/build.log"
                                     )
-                                else:
-                                    with open("build.log", "a") as f:
-                                        f.write(res.stderr.decode(stdout_err_encoding))
-                                sys.exit(1)
-                        res = subprocess.run(
-                            ["poetry", "build-project"], capture_output=True
-                        )
+                                    lt.update(generate_wheel_table(status))
+                                    if config.verbose:
+                                        console.print(
+                                            res.stderr.decode(stdout_err_encoding)
+                                        )
+                                    else:
+                                        with open("build.log", "a") as f:
+                                            f.write(
+                                                res.stderr.decode(stdout_err_encoding)
+                                            )
+                                    sys.exit(1)
+                            res = subprocess.run(
+                                ["poetry", "build-project"], capture_output=True
+                            )
                         if res.returncode == 0:
                             status[proj] = "[green]Yes[/green]"
                             lt.update(generate_wheel_table(status))
@@ -567,6 +615,9 @@ def image(config):
             status[service] = "[grey62]building...[/grey62]"
             lt.update(generate_table(status))
             # to use a different wheel without editing Dockerfile use --build-arg wheel="wheelname"
+            # Bake the release version into the images (Dockerfiles that declare
+            # the ``runestone_version`` ARG turn it into RUNESTONE_VERSION); it
+            # is ignored by the others.
             command_list = [
                 "docker",
                 "compose",
@@ -575,6 +626,8 @@ def image(config):
                 "--progress",
                 "plain",
                 "build",
+                "--build-arg",
+                f"runestone_version={config.version}",
                 "--builder",
                 "rn-builder",
                 service,
@@ -669,8 +722,10 @@ def push(config):
         )
         if update_version.lower() in ["y", "yes"]:
             new_version = input("Enter the new version number: ")
+            # uv version updates [project].version in the root pyproject.toml
+            # (the poetry equivalent was `poetry version <new>`).
             subprocess.run(
-                ["poetry", "version", new_version], capture_output=True, check=True
+                ["uv", "version", new_version], capture_output=True, check=True
             )
             console.out("Version updated, don't forget to commit the change.")
             # add a git tag for the new version

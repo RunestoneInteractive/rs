@@ -26,6 +26,11 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
 
+# The Runestone release version, baked in at build time so rsmanage telemetry
+# reports the same version this image is tagged with.
+ARG runestone_version=unknown
+ENV RUNESTONE_VERSION=${runestone_version}
+
 # install dependencies
 RUN pip install --upgrade pip
 RUN apt update
@@ -35,9 +40,13 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 RUN apt-get install -y nodejs
 
 # copy project
-COPY ./dist/$wheel /usr/src/app/$wheel
+COPY ./projects/rsmanage/dist/$wheel /usr/src/app/$wheel
+COPY ./alembic.ini /usr/src/app/alembic.ini
+COPY ./migrations /usr/src/app/migrations
+COPY ./components/rsptx/build_tools/check-db-migrations.sh /usr/local/bin/check-db-migrations.sh
 # When you pip install a wheel it also installs all of the dependencies
 # which are stored in the METADATA file inside the wheel
 RUN pip install --no-cache-dir --upgrade /usr/src/app/$wheel
+RUN pip install --no-cache-dir --upgrade alembic
 RUN git config --global --add safe.directory '*'
 

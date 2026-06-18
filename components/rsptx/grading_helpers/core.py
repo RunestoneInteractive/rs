@@ -11,7 +11,7 @@ from rsptx.db.crud import (
     upsert_grade,
     fetch_assignment_scores,
     fetch_deadline_exception,
-    did_send_messages,
+    fetch_peer_useinfo,
 )
 from rsptx.validation.schemas import (
     LogItemIncoming,
@@ -24,7 +24,11 @@ from rsptx.db.models import (
 )
 from rsptx.logging import rslogger
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
-from rsptx.grading_helpers.scoring import score_answer_values, PEER_CHAT_SENTINEL
+from rsptx.grading_helpers.scoring import (
+    score_answer_values,
+    score_peer_values,
+    PEER_SCORE_SENTINEL,
+)
 
 
 async def grade_submission(
@@ -198,14 +202,20 @@ async def score_one_answer(
         percent=submission.percent,
         event=submission.event,
     )
-    if score == PEER_CHAT_SENTINEL:
-        did_chat = await did_send_messages(
+    if score == PEER_SCORE_SENTINEL:
+        rows = await fetch_peer_useinfo(
             scoreSpec.username, submission.div_id, submission.course_name
         )
-        if did_chat:
-            return scoreSpec.max_score
-        else:
-            return 0.5 * scoreSpec.max_score
+        has_vote1 = any("vote1" in (r.act or "") for r in rows)
+        has_vote2 = any("vote2" in (r.act or "") for r in rows)
+        sent_message = any(r.event == "sendmessage" for r in rows)
+        return score_peer_values(
+            scoreSpec.how_to_score,
+            scoreSpec.max_score,
+            has_vote1,
+            has_vote2,
+            sent_message,
+        )
     return score
 
 

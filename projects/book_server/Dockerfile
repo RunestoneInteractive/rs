@@ -38,6 +38,11 @@ RUN rm /usr/src/app/$wheel
 FROM python:3.13-slim
 WORKDIR /usr/src/app
 
+# The Runestone release version, baked in at build time so the server can
+# report it (e.g. in telemetry). Matches the tag applied to this image.
+ARG runestone_version=unknown
+ENV RUNESTONE_VERSION=${runestone_version}
+
 COPY --from=builder /usr/local /usr/local
 
 CMD ["uvicorn", "rsptx.book_server_api.main:app", "--host", "0.0.0.0", "--port", "8000"]

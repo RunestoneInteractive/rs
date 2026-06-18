@@ -7,7 +7,7 @@ The Runestone Server is a complex system, but it runs in production and serves m
 
 The rs repository is under continuous development so make sure that you keep it up to date by doing `git pull` frequently.  Like any system developed by humans sometimes bugs do creep into the main branch but we do our best to make sure that whatever gets pushed to main will start up and run.  If it doesn't those issues are normally fixed and corrected quickly, so it pays to keep current.
 
-Make sure that you are running the **rs** virtual environment.  Normally your shell will show you your current virtual environment by decorating the command prompt.  Also, make sure that you keep your virtual environment up to date.  If the pyproject.toml file changes or the poetry.lock file changes then you should update your virtual environment by running `poetry install --with=dev` from the root folder of the **rs** repository.
+Make sure that you are running the **rs** virtual environment.  Normally your shell will show you your current virtual environment by decorating the command prompt.  Also, make sure that you keep your virtual environment up to date.  If the pyproject.toml file changes or the uv.lock file changes then you should update your virtual environment by running `uv sync` from the root folder of the **rs** repository.
 
 Make sure that you run `build --core full` or `build --all full` command from the root folder, and pay attention to the status messages both for building the Wheels and for building the services.  If a service fails to build you should look at the log in the project folder for that service.
 
@@ -15,7 +15,7 @@ Many problems can be traced back to bad or missing environment variables.  Make 
 
 Use ``docker compose ps`` to check the status of the running services.
 
-You are trying to run the ``runestone build`` command but it fails with a stack trace, or you get command not found, or...   If you get a "command not found" error the most likely cause of that is that you have not activated the virtual environment.  Make sure that you have activated the **rs** virtual environment with the command ``poetry shell``  when you are in the ``/path/to/rs`` folder.
+You are trying to run the ``runestone build`` command but it fails with a stack trace, or you get command not found, or...   If you get a "command not found" error the most likely cause of that is that you have not activated the virtual environment.  Make sure that you have activated the **rs** virtual environment with the command ``source .venv/bin/activate``  when you are in the ``/path/to/rs`` folder.
 
 If you get an error when you are running runestone the first thing to do is to make sure you are running the version of the command you think you are running.  Run the command ``which runestone``, it should tell show you something like ``/path/to/rs/.venv/bin/runestone``  If the error indicates that a package or module is missing, make sure you update the virtual environment as described above.
 
@@ -47,7 +47,7 @@ I'm having problems installing/configuring postgresql.  There is **extensive** d
 Interactive Testing with ipython
 --------------------------------
 
-Using ``ipython`` it is easy to test a lot of the functionality of the runestone server.  You can start an ipython shell by running ``poetry run ipython`` from the root of the rs repository.  You can then import the runestone modules and test them interactively.  For example:  
+Using ``ipython`` it is easy to test a lot of the functionality of the runestone server.  You can start an ipython shell by running ``uv run ipython`` from the root of the rs repository.  You can then import the runestone modules and test them interactively.  For example:  
 
 .. code-block:: python
 

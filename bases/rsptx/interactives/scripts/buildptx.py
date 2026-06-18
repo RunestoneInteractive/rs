@@ -8,6 +8,8 @@ import pathlib
 import fnmatch
 
 from rsptx.build_tools.core import _build_ptx_book
+from rsptx.build_tools.notifications import notify
+
 import click
 
 
@@ -69,9 +71,11 @@ def build_book(target, clean, generate, bookname):
 
     if not res.get("completed", False):
         print(res.get("status", "build failed"))
+        notify(f"Build of {bookname} Failed", res.get("status", "build failed"), priority=1)
         exit(-1)
     else:
         print(res.get("status", "build Finished with errors"))
+        notify(f"Build of {bookname} Finished", res.get("status", "build Finished with errors"), priority=0)
 
     # touch the file build_complete
     with open("build_success", "w") as f:
