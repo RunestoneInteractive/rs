@@ -209,8 +209,15 @@ Do all of these together:
    lockstep -- the invariant is that a matching file provides ``N`` and the
    image requires ``N``, so any older file (``< N``) is rejected.
 #. Rebuild and publish the images, **always including** ``rs-book`` (the
-   preflight check lives in that image), plus any other images that actually
-   need the change.
+   preflight check -- ``check_compose_version.sh`` and
+   ``REQUIRED_COMPOSE_SCHEMA_VERSION`` -- lives in that image), plus any other
+   images that actually need the change. The ``preflight`` service has no image
+   of its own; it reuses ``rs-book``, so there is nothing extra to add to
+   ``docker-bake.hcl``. Republish ``rs-book`` with:
+
+   .. code-block:: bash
+
+      docker buildx bake --file docker-bake.hcl rs-book --push
 #. Commit and push the new ``docker-compose.yml`` to ``main`` -- that is where
    ``init_runestone.sh update`` fetches it from.
 
