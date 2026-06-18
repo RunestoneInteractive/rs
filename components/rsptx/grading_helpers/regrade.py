@@ -188,7 +188,7 @@ async def regrade_one(
             item.old_score = float(existing.score)
         if (
             existing is not None
-            and existing.comment
+            and existing.score is not None
             and existing.comment != MANUAL_COMMENT
             and not options.overwrite_manual
         ):
