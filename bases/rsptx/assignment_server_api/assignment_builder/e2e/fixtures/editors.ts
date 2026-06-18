@@ -39,7 +39,7 @@ export const fillSettings = async (page: Page, exerciseName: string): Promise<vo
 
 export const selectEditorLanguage = async (page: Page, placeholder: string): Promise<void> => {
   await page.getByRole("textbox", { name: placeholder }).click();
-  await page.getByRole("option", { name: /python/i }).click();
+  await page.getByRole("option", { name: "Python (in browser)", exact: true }).click();
 };
 
 export const selectEditorWord = async (editor: Locator, word: string): Promise<void> => {

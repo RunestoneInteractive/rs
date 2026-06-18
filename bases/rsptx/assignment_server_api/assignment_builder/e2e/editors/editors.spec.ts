@@ -299,6 +299,7 @@ test(
     await row.getByRole("button", { name: "Edit exercise" }).click();
 
     await page.getByRole("button", { name: /Options$/ }).click();
+    await expect(tipTapEditors(page).first()).toContainText("4");
     await typeIntoTipTap(tipTapEditors(page).first(), " extra");
 
     await page.getByRole("button", { name: /Preview$/ }).click();

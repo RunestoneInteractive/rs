@@ -200,4 +200,19 @@ describe("ExerciseLayout", () => {
     await userEvent.click(screen.getByRole("button", { name: /Second/i }));
     expect(onStepSelect).toHaveBeenCalledWith(1);
   });
+
+  it("keeps each step's accessible name when the visual label is hidden at narrow widths", () => {
+    renderWithMantine(
+      <ExerciseLayout {...baseProps} activeStep={0}>
+        <div>content</div>
+      </ExerciseLayout>
+    );
+
+    for (const step of steps) {
+      expect(screen.getByRole("button", { name: step.label })).toHaveAttribute(
+        "aria-label",
+        step.label
+      );
+    }
+  });
 });

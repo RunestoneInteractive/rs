@@ -186,7 +186,7 @@ export const ExerciseLayout = ({
             className={styles.stepper}
           >
             {steps.map((step, index) => (
-              <Stepper.Step key={index} label={step.label} />
+              <Stepper.Step key={index} label={step.label} aria-label={step.label} />
             ))}
           </Stepper>
         </div>

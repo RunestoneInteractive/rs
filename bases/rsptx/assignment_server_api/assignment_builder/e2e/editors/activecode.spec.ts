@@ -85,8 +85,8 @@ test.describe("editor stepper at 360", () => {
     async ({ page, scratchAssignment }) => {
       await openCreateEditor(page, scratchAssignment.name, /Active Code/i);
 
-      await expect(page.getByRole("button", { name: /Preview/ })).toBeVisible();
-      await expect(page.getByRole("button", { name: /Standard input/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Preview", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Standard input", exact: true })).toBeVisible();
 
       const scroll = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,
@@ -95,7 +95,7 @@ test.describe("editor stepper at 360", () => {
 
       expect(scroll.scrollWidth).toBeLessThanOrEqual(scroll.clientWidth);
 
-      const lastStep = page.getByRole("button", { name: /Preview/ });
+      const lastStep = page.getByRole("button", { name: "Preview", exact: true });
       const box = await lastStep.boundingBox();
 
       expect(box).not.toBeNull();
