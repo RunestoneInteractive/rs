@@ -981,8 +981,8 @@ def test(config):
         console.print("Skipping tests and format checks", style="bold yellow")
         return
     checks = [
-        ["black", "--config", "pyproject.toml", "bases"],
-        ["black", "--config", "pyproject.toml", "components"],
+        ["black", "--check", "--config", "pyproject.toml", "bases"],
+        ["black", "--check", "--config", "pyproject.toml", "components"],
     ]
 
     for command_list in checks:
