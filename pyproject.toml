@@ -1,3 +1,5 @@
+# Root pyproject.toml file.
+# Uses UV not Poetry -- conversion to uv in June 2026
 [project]
 name = "rs"
 version = "8.7.5"
@@ -153,11 +155,11 @@ exclude = ["bases/rsptx/web2py_server", "bases/rsptx/interactives", "bases/rsptx
 [tool.ruff.lint]
 ignore = ["E501"]
 exclude = [
-    "bases/rsptx/web2py_server", 
-    ".venv", 
-    "build", 
-    "dist", 
-    "docs/_build", 
+    "bases/rsptx/web2py_server",
+    ".venv",
+    "build",
+    "dist",
+    "docs/_build",
     "components/rsptx/web2py_server/static/lib",
     "bases/rsptx/interactives/runestone",
     "bases/rsptx/dash_server_api",
