@@ -7,15 +7,13 @@ build:
     jobs:
         post_create_environment:
             # Install poetry
-            # https://python-poetry.org/docs/#installing-manually
-            - pip install poetry
+            # https://docs.astral.sh/uv/getting-started/installation/#standalone-installer
+            - curl -LsSf https://astral.sh/uv/install.sh | sh
             # Tell poetry to not use a virtual environment
-            - poetry config virtualenvs.create false
+            - uv sync
         post_install:
             # Install dependencies with 'docs' dependency group
             # https://python-poetry.org/docs/managing-dependencies/#dependency-groups
-            - poetry self add poetry-polylith-plugin
-            - poetry self add poetry-multiproject-plugin
             - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH poetry install --all-groups
             # RUNESTONE_PATH is defined in the readthedocs control panel
 
