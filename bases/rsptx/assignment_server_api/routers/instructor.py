@@ -379,8 +379,10 @@ async def get_assignment_gb(
                 points_received = float(ps.day_points or 0) * float(
                     prow.practice_completion_count or 0
                 )
-                practice_by_user_id[prow.user_id] = "{0:.2f}".format(
-                    100 * points_received / total_possible_points
+                practice_by_user_id[prow.user_id] = (
+                    ""
+                    if total_possible_points <= 0
+                    else "{0:.2f}".format(100 * points_received / total_possible_points)
                 )
 
         # Otherwise, grade practice based on the number of completed questions.
