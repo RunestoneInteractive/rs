@@ -166,3 +166,79 @@ The repository is under active development.  It is a really good idea to keep yo
 #. Run ``docker compose up -d`` to start the servers.
 
 If  you find that your database is horribly out of date, and running ``alembic upgrade head`` fails. You can run ``docker compose down db`` the down subcommand will  **remove** the database container and then run ``docker compose up -d db`` to start a fresh database.  You will then need to run ``docker compose run rsmanage rsmanage initdb`` to initialize the database.  This will create the tables and add the initial data.  You will then need to run ``alembic stamp head`` to mark the current state of the database.  This will allow you to run migrations in the future to ensure that your database schema is up to date.
+
+.. _releasing-compose-changes:
+
+Releasing a docker-compose.yml change to end users
+---------------------------------------------------------
+
+End users run the composed application from a ``docker-compose.yml`` file they
+downloaded (via ``init_runestone.sh``); they update their images with
+``docker compose pull`` and update the file itself with
+``./init_runestone.sh update``. The problem is that a new image sometimes
+*expects* changes in ``docker-compose.yml``, and a user who only pulls images
+can end up with a file that is out of sync with the images.
+
+To guard against that, the stack carries a **compose schema version**:
+
+- ``docker-compose.yml`` declares the version it provides via
+  ``COMPOSE_SCHEMA_VERSION`` in the ``preflight`` service.
+- The ``rs-book`` image bakes in the minimum version it requires via
+  ``REQUIRED_COMPOSE_SCHEMA_VERSION`` (see
+  ``projects/book_server/Dockerfile``).
+- A ``preflight`` service (which every long-running service depends on) runs
+  ``check_compose_version.sh`` at startup and refuses to bring the stack up,
+  with an actionable message, if the file's version is older than the image
+  requires.
+
+When you change ``docker-compose.yml`` you must decide whether the change is
+**breaking** (newer images cannot work with the old file) or
+**backward-compatible** (old images do not care).
+
+If the change is one users *must* adopt (breaking)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Do all of these together:
+
+#. Edit ``docker-compose.yml`` as needed.
+#. Bump the file's schema version in the ``preflight`` service, e.g.
+   ``COMPOSE_SCHEMA_VERSION=2`` (was ``1``).
+#. Bump the image's required version to match in
+   ``projects/book_server/Dockerfile``:
+   ``ENV REQUIRED_COMPOSE_SCHEMA_VERSION=2``. Keep these two numbers in
+   lockstep -- the invariant is that a matching file provides ``N`` and the
+   image requires ``N``, so any older file (``< N``) is rejected.
+#. Rebuild and publish the images, **always including** ``rs-book`` (the
+   preflight check lives in that image), plus any other images that actually
+   need the change.
+#. Commit and push the new ``docker-compose.yml`` to ``main`` -- that is where
+   ``init_runestone.sh update`` fetches it from.
+
+**Ordering matters:** make sure the new ``docker-compose.yml`` is on ``main``
+before (or at the same time as) you publish the new images. Otherwise a user
+who pulls the new image (requires ``2``) but whose ``update`` fetches a
+not-yet-updated file (still provides ``1``) is blocked with no working fix.
+
+The user experience is then: ``docker compose pull`` gets an image requiring
+the new version, the next ``docker compose up`` fails the preflight check with
+a message telling them to run ``./init_runestone.sh update``, and that command
+fetches the matching file, pulls images, restarts, and migrates.
+
+If the change is backward-compatible
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For cosmetic edits, comments, or additive ``${VAR:-default}`` options that old
+images simply ignore, just edit ``docker-compose.yml`` and push to ``main``.
+**Do not** bump the schema numbers, or you will force-block every user for a
+change that does not require it. They pick it up on their next
+``./init_runestone.sh update`` without being forced.
+
+New ``.env`` variables are not covered by this
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The schema version validates the *structure* of ``docker-compose.yml``, not the
+contents of ``.env`` (which is user-owned and never overwritten -- only
+``sample.env`` is refreshed by ``update``). If your change needs a new
+variable, give it a safe default in compose (``${NEW_VAR:-default}``) so
+existing ``.env`` files keep working, and add it to ``sample.env`` with
+documentation.

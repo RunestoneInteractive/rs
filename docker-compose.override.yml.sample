@@ -1,0 +1,52 @@
+# docker-compose.override.yml  (sample)
+#
+# Copy this file to "docker-compose.override.yml" to customize your deployment:
+#
+#     cp docker-compose.override.yml.sample docker-compose.override.yml
+#
+# Docker Compose AUTOMATICALLY merges docker-compose.override.yml on top of
+# docker-compose.yml every time you run `docker compose ...` -- you do not need
+# any -f flags. This is the right place for local customizations because:
+#
+#   * docker-compose.yml is a managed file that `./init_runestone.sh update`
+#     replaces wholesale, so edits made directly to it are lost on update.
+#   * This override file is yours; `update` never touches it, so your changes
+#     survive updates.
+#
+# Most settings belong in your .env file. Use this override file only for things
+# .env cannot express (extra services, additional ports/volumes, a different
+# image, resource limits, etc.).
+#
+# MERGE RULES worth knowing:
+#   * Scalars and maps: the override value wins.
+#   * Sequences (ports, volumes, list-form environment, ...): the override is
+#     APPENDED to the base list -- it does not replace it. So adding a `ports:`
+#     entry publishes an ADDITIONAL port; it does not remove the base ones.
+#
+# Everything below is commented out. Uncomment and adapt what you need.
+
+# services:
+
+  # --- Raise the book server's log level -------------------------------------
+  # book:
+  #   environment:
+  #     - LOG_LEVEL=DEBUG
+
+  # --- Publish an extra port (appended to the service's existing ports) -------
+  # book:
+  #   ports:
+  #     - "9111:8111"
+
+  # --- Mount an additional host directory into a service ----------------------
+  # runestone:
+  #   volumes:
+  #     - /path/on/host:/path/in/container
+
+  # --- Pin a service to a specific image tag instead of the default ----------
+  # admin:
+  #   image: ghcr.io/runestoneinteractive/rs-admin:some-tag
+
+  # --- Add a service of your own ---------------------------------------------
+  # my-extra-service:
+  #   image: some/image:latest
+  #   restart: always

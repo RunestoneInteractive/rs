@@ -43,6 +43,16 @@ WORKDIR /usr/src/app
 ARG runestone_version=unknown
 ENV RUNESTONE_VERSION=${runestone_version}
 
+# Minimum docker-compose.yml schema version this image requires. The compose
+# `preflight` service runs check_compose_version.sh to compare this against the
+# file's declared COMPOSE_SCHEMA_VERSION and refuses to start the stack if the
+# user's docker-compose.yml is older. BUMP THIS (and COMPOSE_SCHEMA_VERSION in
+# docker-compose.yml) whenever the compose file changes in a way newer images
+# rely on.
+ENV REQUIRED_COMPOSE_SCHEMA_VERSION=1
+
 COPY --from=builder /usr/local /usr/local
+COPY ./check_compose_version.sh /usr/local/bin/check_compose_version.sh
+RUN chmod +x /usr/local/bin/check_compose_version.sh
 
 CMD ["uvicorn", "rsptx.book_server_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
