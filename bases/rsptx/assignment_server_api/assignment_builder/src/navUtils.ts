@@ -134,7 +134,7 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
         },
         {
           label: "Progress page",
-          command: () => navigateToPath("/runestone/dashboard/studentreport")
+          command: () => navigateToPath("/assignment/student/studentreport")
         },
         {
           separator: true

@@ -219,11 +219,14 @@ from .rslogging import (
     create_code_entry,
     create_useinfo_entry,
     fetch_code,
+    fetch_code_for_sid,
     fetch_last_answer_table_entry,
     fetch_last_course_access,
     fetch_last_poll_response,
     fetch_poll_summary,
+    fetch_recent_useinfo,
     fetch_top10_fitb,
+    fetch_useinfo_for_sid,
 )
 
 from .scoring import (
@@ -477,11 +480,14 @@ __all__ += [
     "create_code_entry",
     "create_useinfo_entry",
     "fetch_code",
+    "fetch_code_for_sid",
     "fetch_last_answer_table_entry",
     "fetch_last_course_access",
     "fetch_last_poll_response",
     "fetch_poll_summary",
+    "fetch_recent_useinfo",
     "fetch_top10_fitb",
+    "fetch_useinfo_for_sid",
 ]
 
 # from .scoring

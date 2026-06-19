@@ -1113,9 +1113,9 @@ window.addEventListener("DOMContentLoaded", function(event) {
     menuContentArea.appendChild(makeLink("/ns/course/index", "Course Home"));
     menuContentArea.appendChild(makeLink("/runestone/assignments/chooseAssignment", "Assignments"));
     menuContentArea.appendChild(makeLink("/assignment/peer/student", "Peer Instruction (Student)"));
-    menuContentArea.appendChild(makeLink("/runestone/dashboard/studentreport", "Progress"));
-    menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
+    menuContentArea.appendChild(makeLink("/assignment/student/studentreport", "Progress"));
     if (eBookConfig.isInstructor) {
+        menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
         menuContentArea.appendChild(makeLink("/admin/instructor/menu", "Instructor Dashboard"));
         menuContentArea.appendChild(makeLink("/assignment/peer/instructor",
             "Peer Instruction (Instructor)"));
