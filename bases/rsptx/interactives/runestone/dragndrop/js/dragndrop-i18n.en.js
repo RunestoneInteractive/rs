@@ -1,4 +1,6 @@
-$.i18n().load({
+import { load } from "../../common/js/rsi18n.js";
+
+load({
     en: {
         msg_dragndrop_correct_answer: "You are correct!",
         msg_dragndrop_incorrect_answer:

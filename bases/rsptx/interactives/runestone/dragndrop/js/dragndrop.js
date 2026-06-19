@@ -30,9 +30,11 @@
 "use strict";
 
 import RunestoneBase from "../../common/js/runestonebase.js";
+import { t } from "../../common/js/rsi18n.js";
 import "../css/dragndrop.less";
 import "./dragndrop-i18n.en.js";
 import "./dragndrop-i18n.pt-br.js";
+import "./dragndrop-i18n.sr-Cyrl.js";
 //import "./DragDropTouch.js";
 
 // The student must have at least this many gradeable tries before misplaced
@@ -263,7 +265,7 @@ export default class DragNDrop extends RunestoneBase {
         this.buttonDiv = document.createElement("div");
         this.buttonDiv.classList.add("dnd-button-container");
         this.submitButton = document.createElement("button"); // Check me button
-        this.submitButton.textContent = $.i18n("msg_dragndrop_check_me");
+        this.submitButton.textContent = t("msg_dragndrop_check_me");
         this.submitButton.setAttribute("class", "btn btn-success drag-button");
         this.submitButton.setAttribute("name", "do answer");
         this.submitButton.setAttribute("type", "button");
@@ -278,7 +280,7 @@ export default class DragNDrop extends RunestoneBase {
             this.logCurrentAnswer();
         }.bind(this);
         this.resetButton = document.createElement("button"); // Check me button
-        this.resetButton.textContent = $.i18n("msg_dragndrop_reset");
+        this.resetButton.textContent = t("msg_dragndrop_reset");
         this.resetButton.setAttribute(
             "class",
             "btn btn-default drag-button drag-reset"
@@ -681,10 +683,7 @@ export default class DragNDrop extends RunestoneBase {
         if (!this.enoughPlaced) {
             this.clearIncorrectHighlights();
             let remaining = this.requiredPlacements - this.placedNum;
-            var msgPlaceMore = $.i18n(
-                $.i18n("msg_dragndrop_place_more"),
-                remaining
-            );
+            var msgPlaceMore = t("msg_dragndrop_place_more", remaining);
             setTimeout(() => {
                 this.feedBackDiv.innerHTML = `<div class="para">${msgPlaceMore}</div>`;
             }, 10);
@@ -724,15 +723,15 @@ export default class DragNDrop extends RunestoneBase {
             }
         }
         if (this.correct) {
-            var msgCorrect = $.i18n("msg_dragndrop_correct_answer");
+            var msgCorrect = t("msg_dragndrop_correct_answer");
             setTimeout(() => {
                 this.feedBackDiv.innerHTML = msgCorrect;
             }, 10);
             this.feedBackDiv.className = "alert alert-info draggable-feedback exercise-content";
 
         } else {
-            var msgIncorrect = $.i18n(
-                $.i18n("msg_dragndrop_incorrect_answer"),
+            var msgIncorrect = t(
+                "msg_dragndrop_incorrect_answer",
                 this.correctNum,
                 this.incorrectNum,
                 this.dragNum,
