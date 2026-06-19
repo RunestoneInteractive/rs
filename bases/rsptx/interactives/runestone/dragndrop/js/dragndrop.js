@@ -35,6 +35,10 @@ import "./dragndrop-i18n.en.js";
 import "./dragndrop-i18n.pt-br.js";
 //import "./DragDropTouch.js";
 
+// The student must have at least this many gradeable tries before misplaced
+// blocks are colored red.
+const MIN_TRIES_FOR_COLOR = 3;
+
 export default class DragNDrop extends RunestoneBase {
     constructor(opts) {
         super(opts);
@@ -49,6 +53,10 @@ export default class DragNDrop extends RunestoneBase {
         }
         this.feedback = "";
         this.question = "";
+        // Number of times the student has submitted a gradeable attempt (one
+        // where they have placed enough blocks). Misplaced blocks are only
+        // colored red once this reaches MIN_TRIES_FOR_COLOR.
+        this.tries = 0;
         this.populate(); // Populates this.responseArray, this.premiseArray, this.feedback and this.question
         this.createNewElements();
         this.caption = "Drag-N-Drop";
@@ -261,6 +269,11 @@ export default class DragNDrop extends RunestoneBase {
         this.submitButton.setAttribute("type", "button");
         this.submitButton.onclick = function () {
             this.checkCurrentAnswer();
+            // Only count this as a try once the student has placed enough
+            // blocks to be graded.
+            if (this.enoughPlaced) {
+                this.tries++;
+            }
             this.renderFeedback();
             this.logCurrentAnswer();
         }.bind(this);
@@ -507,9 +520,15 @@ export default class DragNDrop extends RunestoneBase {
             this.premiseArray = shuffleArray(this.premiseArray);
         }
         for (let premise of this.premiseArray) {
+            // Clear any incorrect highlighting left over from a previous check
+            premise.classList.remove("drop-incorrect");
+            premise.setAttribute("aria-invalid", "false");
+            premise.removeAttribute("aria-errormessage");
             this.draggableDiv.appendChild(premise);
         }
         this.answerState = {};
+        // Start the "3 tries before red" cycle over after a reset
+        this.tries = 0;
         this.feedBackDiv.style.display = "none";
         this.adjustDragDropWidths();
         this.minheight = this.draggableDiv.offsetHeight;
@@ -540,18 +559,28 @@ export default class DragNDrop extends RunestoneBase {
         this.unansweredNum = 0;
         this.incorrectNum = 0;
         this.correctNum = 0;
+        this.placedNum = 0;
         this.dragNum = this.premiseArray.length;
+        // Distractors are premises whose category does not match any dropzone,
+        // i.e. blocks that are not meant to be placed.
+        let distractorNum = 0;
 
         for (let response of this.dropZoneDiv.childNodes) {
             // ignore drop zone children that aren't premises
             for (let premise of Array.from(response.childNodes).filter(
                 this.ivp
             )) {
+                this.placedNum++;
                 if (premise.dataset.category == response.dataset.category) {
                     this.correctNum++;
                 } else {
                     this.incorrectNum++;
                 }
+            }
+        }
+        for (let premise of this.premiseArray) {
+            if (categories.indexOf(premise.dataset.category) == -1) {
+                distractorNum++;
             }
         }
         for (let premise of Array.from(this.draggableDiv.childNodes).filter(
@@ -563,6 +592,11 @@ export default class DragNDrop extends RunestoneBase {
                 this.unansweredNum++;
             }
         }
+        // The student must attempt to place every block that belongs in a
+        // dropzone (total premises minus the distractors) before we give any
+        // correctness feedback.
+        this.requiredPlacements = this.premiseArray.length - distractorNum;
+        this.enoughPlaced = this.placedNum >= this.requiredPlacements;
         this.percent = this.correctNum / this.premiseArray.length;
         console.log(this.percent, this.incorrectNum, this.unansweredNum);
         if (this.percent < 1.0) {
@@ -620,7 +654,49 @@ export default class DragNDrop extends RunestoneBase {
         }
         await this.logBookEvent(data);
     }
+    clearIncorrectHighlights() {
+        // Remove the red "drop-incorrect" highlighting and related a11y
+        // attributes from every placed premise.
+        for (let response of this.dropZoneDiv.childNodes) {
+            for (let premise of Array.from(response.childNodes).filter(
+                this.ivp
+            )) {
+                premise.classList.remove("drop-incorrect");
+                premise.setAttribute("aria-invalid", "false");
+                premise.removeAttribute("aria-errormessage");
+            }
+        }
+    }
     renderFeedback() {
+        if (!this.feedBackDiv) {
+            this.createFeedbackDiv();
+        }
+        // The reset button hides the feedback area with display:none, so make
+        // sure it is shown again whenever we render feedback.
+        this.feedBackDiv.style.display = "";
+        this.feedBackDiv.style.visibility = "visible";
+
+        // Requirement 1: don't give any correctness feedback until the student
+        // has attempted to place all the blocks that belong in a dropzone.
+        if (!this.enoughPlaced) {
+            this.clearIncorrectHighlights();
+            let remaining = this.requiredPlacements - this.placedNum;
+            var msgPlaceMore = $.i18n(
+                $.i18n("msg_dragndrop_place_more"),
+                remaining
+            );
+            setTimeout(() => {
+                this.feedBackDiv.innerHTML = `<div class="para">${msgPlaceMore}</div>`;
+            }, 10);
+            this.feedBackDiv.className =
+                "alert alert-warning draggable-feedback exercise-content";
+            this.queueMathJax(this.feedBackDiv);
+            return;
+        }
+
+        // Requirement 2: only color the misplaced blocks red once the student
+        // has had at least MIN_TRIES_FOR_COLOR gradeable tries.
+        let showColors = this.tries >= MIN_TRIES_FOR_COLOR;
         for (let response of this.dropZoneDiv.childNodes) {
             // iterate over all the premises in the response
             for (let premise of Array.from(response.childNodes).filter(
@@ -628,6 +704,7 @@ export default class DragNDrop extends RunestoneBase {
             )) {
                 // if the premise is not in the correct category, add the class
                 if (
+                    showColors &&
                     premise.dataset.category != response.dataset.category
                 ) {
                     premise.classList.add("drop-incorrect");
@@ -646,10 +723,6 @@ export default class DragNDrop extends RunestoneBase {
                 }
             }
         }
-        if (!this.feedBackDiv) {
-            this.createFeedbackDiv();
-        }
-        this.feedBackDiv.style.visibility = "visible";
         if (this.correct) {
             var msgCorrect = $.i18n("msg_dragndrop_correct_answer");
             setTimeout(() => {
