@@ -1,3 +1,5 @@
+import { t } from "../../common/js/rsi18n.js";
+
 // var testString = `[doctest] doctest version is "2.4.11"
 // [doctest] run with "--help" for options
 // asdf===============================================================================
@@ -88,16 +90,16 @@ export default class DoctestTestParser {
             parent.setAttribute("id", `${parentId}_unit_results`);
             let trh = document.createElement("tr");
             trh.innerHTML =
-                `<th class="ac-feedback">Result</th><th class="ac-feedback">${$.i18n("msg_activecode_assertions_checked")}</th><th class="ac-feedback">Passed:</th><th class="ac-feedback">Failed:</th>`;
+                `<th class="ac-feedback">Result</th><th class="ac-feedback">${t("msg_activecode_assertions_checked")}</th><th class="ac-feedback">Passed:</th><th class="ac-feedback">Failed:</th>`;
             tbl.appendChild(trh);
             let tr = document.createElement("tr");
             let td = document.createElement("td");
             td.classList.add("ac-feedback");
             if (this.pct == 100) {
-                td.innerHTML = $.i18n("msg_activecode_passed");
+                td.innerHTML = t("msg_activecode_passed");
                 td.classList.add("ac-feedback-pass");
             } else {
-                td.innerHTML = $.i18n("msg_activecode_failed");
+                td.innerHTML = t("msg_activecode_failed");
                 td.classList.add("ac-feedback-fail");
             }
             tr.appendChild(td);

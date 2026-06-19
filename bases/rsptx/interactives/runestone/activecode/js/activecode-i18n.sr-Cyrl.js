@@ -1,4 +1,6 @@
-$.i18n().load({
+import { load } from "../../common/js/rsi18n.js";
+
+load({
     "sr-Cyrl": {
         msg_activecode_load_history: "Учитај историју",
         msg_activecode_audio_tour: "Аудио тура",

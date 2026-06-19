@@ -1,3 +1,5 @@
+import { t } from "../../common/js/rsi18n.js";
+
 var testString = `Starting Tests
 Expected: Answer                   Actual: Answer                   Message: Checking method printAnswer()                     Passed: true
 Expected: 6 line(s) of text        Actual: 0 line(s) of text        Message: Checking main method                              Passed: false
@@ -36,10 +38,10 @@ export default class JUnitTestParser {
             td.classList.add("ac-feedback");
             if (match[match.length - 1] == "true") {
                 td.classList.add("ac-feedback-pass");
-                td.innerHTML = $.i18n("msg_activecode_passed");
+                td.innerHTML = t("msg_activecode_passed");
             } else {
                 td.classList.add("ac-feedback-fail");
-                td.innerHTML = $.i18n("msg_activecode_failed");
+                td.innerHTML = t("msg_activecode_failed");
             }
             tr.appendChild(td);
             tbl.appendChild(tr);

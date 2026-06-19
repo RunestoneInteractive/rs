@@ -1,4 +1,5 @@
 import { ActiveCode } from "./activecode.js";
+import { t } from "../../common/js/rsi18n.js";
 import MD5 from "./md5.js";
 import JUnitTestParser from "./extractUnitResults-JUnit.js";
 import DoctestTestParser from "./extractUnitResults-Doctest.js";
@@ -39,7 +40,7 @@ export default class LiveCode extends ActiveCode {
         let inputContainer = document.createElement("div");
         var label = document.createElement("label");
         label.for = this.divid + "_stdin";
-        $(label).text($.i18n("msg_activecode_input_prg"));
+        $(label).text(t("msg_activecode_input_prg"));
         var input = document.createElement("textarea");
         input.id = this.divid + "_stdin";
         input.classList.add("activecode__stdin");
@@ -96,7 +97,7 @@ export default class LiveCode extends ActiveCode {
                 let res = await this.submitToJobe();
                 if (!res.ok) {
                     this.addJobeErrorMessage(
-                        $.i18n(`Server Error: ${res.statusText}`)
+                        t(`Server Error: ${res.statusText}`)
                     );
                     $(this.runButton).removeAttr("disabled");
                     return "fail";
@@ -115,7 +116,7 @@ export default class LiveCode extends ActiveCode {
                         let iores = await this.submitToJobe();
                         if (!iores.ok) {
                             this.addJobeErrorMessage(
-                                $.i18n(`Server Error: ${iores.statusText}`)
+                                t(`Server Error: ${iores.statusText}`)
                             );
                             $(this.runButton).removeAttr("disabled");
                             return "fail";
@@ -129,7 +130,7 @@ export default class LiveCode extends ActiveCode {
             }
         } catch (e) {
             this.addJobeErrorMessage(
-                $.i18n("msg_activecode_server_comm_err") + e.toString()
+                t("msg_activecode_server_comm_err") + e.toString()
             );
             $(this.runButton).removeAttr("disabled");
             return `fail: ${e}`;
@@ -239,7 +240,7 @@ export default class LiveCode extends ActiveCode {
             this.sourcefile = sfilemap[this.language];
         }
 
-        $(this.output).html($.i18n("msg_activecode_compiling_running"));
+        $(this.output).html(t("msg_activecode_compiling_running"));
 
         // Need to handle additional files
         // that come from additional_files (based on ids) and datafiles (based on filenames)
@@ -369,7 +370,7 @@ export default class LiveCode extends ActiveCode {
                 }
             } else {
                 // if we don't have a file name, then we don't have a file
-                $.i18n("msg_activecode_no_file_or_dir")
+                t("msg_activecode_no_file_or_dir")
             }
         }
         // If we are running unit tests we need to substitute the test driver for the student
@@ -525,7 +526,7 @@ export default class LiveCode extends ActiveCode {
                 break;
             }
             case 11: // compiler error
-                $(odiv).html($.i18n("msg_activecode_were_compiling_err"));
+                $(odiv).html(t("msg_activecode_were_compiling_err"));
                 this.addJobeErrorMessage(result.cmpinfo);
                 this.errinfo = result.cmpinfo;
                 break;
@@ -536,7 +537,7 @@ export default class LiveCode extends ActiveCode {
                     && result.stderr.includes("Permission denied")
                     && this.compileargs && this.compileargs.includes("-c")
                 ) {
-                    $(odiv).html($.i18n("msg_activecode_compile_only"));
+                    $(odiv).html(t("msg_activecode_compile_only"));
                 } else {
                     // any other case is real run time error
                     $(odiv).html(result.stdout.replace(/\n/g, "<br>"));
@@ -548,7 +549,7 @@ export default class LiveCode extends ActiveCode {
             case 13: // time limit
                 $(odiv).html(escapeHtml(result.stdout).replace(/\n/g, "<br>"));
                 this.addJobeErrorMessage(
-                    $.i18n("msg_activecode_time_limit_exc")
+                    t("msg_activecode_time_limit_exc")
                 );
                 break;
             default:
@@ -556,7 +557,7 @@ export default class LiveCode extends ActiveCode {
                     $(odiv).html(result.stderr.replace(/\n/g, "<br>"));
                 } else {
                     this.addJobeErrorMessage(
-                        $.i18n("msg_activecode_server_err")
+                        t("msg_activecode_server_err")
                     );
                 }
         }
@@ -567,7 +568,7 @@ export default class LiveCode extends ActiveCode {
     processJobeIOResponses(resultList) {
         //process a series of IO test results into one unittest-like result
 
-        $(this.output).html($.i18n("msg_activecode_iotest_results"));
+        $(this.output).html(t("msg_activecode_iotest_results"));
         $(this.runButton).removeAttr("disabled");
         const odiv = this.output;
         this.parsedOutput = {};
@@ -576,7 +577,7 @@ export default class LiveCode extends ActiveCode {
         const parent = document.createElement("div");
         const heading = document.createElement("div");
         heading.classList.add("unittest-results__heading");
-        heading.innerHTML = $.i18n("msg_activecode_unit_test_results");
+        heading.innerHTML = t("msg_activecode_unit_test_results");
         parent.appendChild(heading);
         parent.classList.add("unittest-results");
         const tbl = document.createElement("table");
@@ -623,28 +624,28 @@ export default class LiveCode extends ActiveCode {
                 case 15:
                     if(produced === desired) {
                         passedTests++;
-                        td4.innerHTML = $.i18n("msg_activecode_passed");
+                        td4.innerHTML = t("msg_activecode_passed");
                         td4.classList.add("ac-feedback-pass");
                     } else {
-                        td4.innerHTML = $.i18n("msg_activecode_failed");
+                        td4.innerHTML = t("msg_activecode_failed");
                         td4.classList.add("ac-feedback-fail");
                     }
                     break;
                 case 11: // compiler error
                     $(odiv).html(result.cmpinfo.replace(/\n/g, "<br>"));
-                    td4.innerHTML = $.i18n("msg_activecode_test_compile_error");
+                    td4.innerHTML = t("msg_activecode_test_compile_error");
                     td4.classList.add("ac-feedback-fail");
                     this.errinfo = result.cmpinfo;
                     break;
                 case 12: // run time error
                     $(odiv).html(result.stderr.replace(/\n/g, "<br>"));
-                    td4.innerHTML = $.i18n("msg_activecode_test_run_error");
+                    td4.innerHTML = t("msg_activecode_test_run_error");
                     td4.classList.add("ac-feedback-fail");
                     this.errinfo = result.stderr;
                     break;
                 case 13: // time limit
                     $(odiv).html(escapeHtml(result.stdout).replace(/\n/g, "<br>"));
-                    td4.innerHTML = $.i18n("msg_activecode_time_limit_exc");
+                    td4.innerHTML = t("msg_activecode_time_limit_exc");
                     td4.classList.add("ac-feedback-fail");
                     this.errinfo = 'time exceeded ' + result.stdout;
                     break;
@@ -652,7 +653,7 @@ export default class LiveCode extends ActiveCode {
                     if (result.stderr) {
                         $(odiv).html(result.stderr.replace(/\n/g, "<br>"));
                     }
-                    td4.innerHTML = $.i18n("msg_activecode_server_err");
+                    td4.innerHTML = t("msg_activecode_server_err");
                     td4.classList.add("ac-feedback-fail");
                     this.errinfo = result.stderr;
             }
@@ -665,7 +666,7 @@ export default class LiveCode extends ActiveCode {
         this.unit_results = `percent:${pct}:passed:${passedTests}:failed:${resultList.length - passedTests}`;
         const pctString = document.createElement("div");
         pctString.classList.add("unittest-results__percent");
-        pctString.innerHTML = `${Math.round(pct)}% ` + $.i18n("msg_activecode_passed");
+        pctString.innerHTML = `${Math.round(pct)}% ` + t("msg_activecode_passed");
         this.parsedOutput.pctString = pctString;
 
         if (!this.errinfo) {
@@ -806,10 +807,10 @@ export default class LiveCode extends ActiveCode {
             this.codelens.style.display = "block";
             clMess = "Building your visualization";
             this.codelens.innerHTML = clMess;
-            this.clButton.innerText = $.i18n("msg_activecode_hide_codelens");
+            this.clButton.innerText = t("msg_activecode_hide_codelens");
         } else {
             this.codelens.style.display = "none";
-            this.clButton.innerText = $.i18n("msg_activecode_show_in_codelens");
+            this.clButton.innerText = t("msg_activecode_show_in_codelens");
             return;
         }
         var cl = this.codelens.firstChild;

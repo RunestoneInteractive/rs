@@ -1,4 +1,6 @@
-$.i18n().load({
+import { load } from "../../common/js/rsi18n.js";
+
+load({
     "pt-br": {
         msg_activecode_load_history: "Carregar histórico",
         msg_activecode_audio_tour: "Tour de áudio",

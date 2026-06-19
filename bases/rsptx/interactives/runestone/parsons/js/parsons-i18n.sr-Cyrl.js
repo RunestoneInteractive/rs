@@ -1,4 +1,6 @@
-$.i18n().load({
+import { load } from "../../common/js/rsi18n.js";
+
+load({
     "sr-Cyrl": {
         msg_parson_check_me: "Провери",
         msg_parson_reset: "Поништи",

@@ -8,6 +8,7 @@
 "use strict";
 
 import RunestoneBase from "../../common/js/runestonebase.js";
+import { t } from "../../common/js/rsi18n.js";
 import AudioTour from "./audiotour.js";
 import "./activecode-i18n.en.js";
 import "./activecode-i18n.pt-br.js";
@@ -1130,8 +1131,8 @@ export class ActiveCode extends RunestoneBase {
         $(ctrlDiv).addClass("ac_actions");
         // Run
         butt = document.createElement("button");
-        butt.title = $.i18n("msg_activecode_run_button_title");
-        $(butt).text($.i18n("msg_activecode_run_code"));
+        butt.title = t("msg_activecode_run_button_title");
+        $(butt).text(t("msg_activecode_run_code"));
         $(butt).addClass("btn btn-success run-button");
         ctrlDiv.appendChild(butt);
         this.runButton = butt;
@@ -1206,7 +1207,7 @@ export class ActiveCode extends RunestoneBase {
     addFeedbackButton(ctrlDiv) {
         let butt = document.createElement("button");
         $(butt).addClass("ac_opt btn btn-default");
-        $(butt).text($.i18n("msg_activecode_show_feedback"));
+        $(butt).text(t("msg_activecode_show_feedback"));
         $(butt).css("margin-left", "10px");
         $(butt).attr("type", "button");
         this.gradeButton = butt;
@@ -1228,7 +1229,7 @@ export class ActiveCode extends RunestoneBase {
         $(this.runButton).attr("disabled", "disabled");
         let butt = document.createElement("button");
         $(butt).addClass("ac_opt btn btn-default");
-        $(butt).text($.i18n("msg_activecode_show_code"));
+        $(butt).text(t("msg_activecode_show_code"));
         $(butt).css("margin-left", "10px");
         $(butt).attr("type", "button");
         this.showHideButt = butt;
@@ -1243,14 +1244,14 @@ export class ActiveCode extends RunestoneBase {
                 }
                 if (
                     $(this.showHideButt).text() ==
-                    $.i18n("msg_activecode_show_code")
+                    t("msg_activecode_show_code")
                 ) {
                     $(this.showHideButt).text(
-                        $.i18n("msg_activecode_hide_code")
+                        t("msg_activecode_hide_code")
                     );
                 } else {
                     $(this.showHideButt).text(
-                        $.i18n("msg_activecode_show_code")
+                        t("msg_activecode_show_code")
                     );
                 }
                 if ($(this.runButton).attr("disabled")) {
@@ -1265,7 +1266,7 @@ export class ActiveCode extends RunestoneBase {
     enableCodeLens(ctrlDiv) {
         let butt = document.createElement("button");
         $(butt).addClass("ac_opt btn btn-default");
-        $(butt).text($.i18n("msg_activecode_show_codelens"));
+        $(butt).text(t("msg_activecode_show_codelens"));
         $(butt).css("margin-left", "10px");
         this.clButton = butt;
         ctrlDiv.appendChild(butt);
@@ -1275,7 +1276,7 @@ export class ActiveCode extends RunestoneBase {
     enableReformat(ctrlDiv) {
         let butt = document.createElement("button");
         $(butt).addClass("ac_opt btn btn-default");
-        $(butt).text($.i18n("msg_activecode_reformat"));
+        $(butt).text(t("msg_activecode_reformat"));
         $(butt).css("margin-left", "10px");
         this.reformatButton = butt;
         ctrlDiv.appendChild(butt);
@@ -1285,7 +1286,7 @@ export class ActiveCode extends RunestoneBase {
     enableAudioTours(ctrlDiv) {
         let butt = document.createElement("button");
         $(butt).addClass("ac_opt btn btn-default");
-        $(butt).text($.i18n("msg_activecode_audio_tour"));
+        $(butt).text(t("msg_activecode_audio_tour"));
         $(butt).css("margin-left", "10px");
         this.atButton = butt;
         ctrlDiv.appendChild(butt);
@@ -1457,7 +1458,7 @@ export class ActiveCode extends RunestoneBase {
     }
 
     enableSaveLoad() {
-        $(this.runButton).text($.i18n("msg_activecode_save_run"));
+        $(this.runButton).text(t("msg_activecode_save_run"));
     }
 
     // _`addHistoryScrubber`
@@ -1635,7 +1636,7 @@ export class ActiveCode extends RunestoneBase {
         coachDiv.setAttribute("role", "log");
         $(coachDiv).css("display", "none");
         let coachHead = coachDiv.appendChild(document.createElement("h3"));
-        coachHead.textContent = $.i18n("msg_activecode_code_coach");
+        coachHead.textContent = t("msg_activecode_code_coach");
         this.outerDiv.appendChild(coachDiv);
         this.codecoach = coachDiv;
 
@@ -1840,10 +1841,10 @@ export class ActiveCode extends RunestoneBase {
     async showCodelens() {
         if (this.codelens.style.display == "none") {
             this.codelens.style.display = "block";
-            this.clButton.innerText = $.i18n("msg_activecode_hide_codelens");
+            this.clButton.innerText = t("msg_activecode_hide_codelens");
         } else {
             this.codelens.style.display = "none";
-            this.clButton.innerText = $.i18n("msg_activecode_show_in_codelens");
+            this.clButton.innerText = t("msg_activecode_show_in_codelens");
             return;
         }
         var cl = this.codelens.firstChild;
@@ -1982,7 +1983,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             Sk.builtinFiles === undefined ||
             Sk.builtinFiles["files"][x] === undefined
         )
-            throw $.i18n("msg_activecode_file_not_found", x);
+            throw t("msg_activecode_file_not_found", x);
         return Sk.builtinFiles["files"][x];
     }
     fileReader(fileName) {
@@ -2039,7 +2040,7 @@ Yet another is that there is an internal error.  The internal error message is: 
                 return result;
             } else {
                 throw new Sk.builtin.IOError(
-                    $.i18n("msg_activecode_no_file_or_dir", fileName)
+                    t("msg_activecode_no_file_or_dir", fileName)
                 );
             }
         }
@@ -2394,7 +2395,7 @@ Yet another is that there is an internal error.  The internal error message is: 
             this.codelens.style.display = "none";
         }
         if (this.clButton) {
-            this.clButton.innerText = $.i18n("msg_activecode_show_in_codelens");
+            this.clButton.innerText = t("msg_activecode_show_in_codelens");
         }
         Sk.configure({
             output: this.outputfun.bind(this),
@@ -2521,52 +2522,52 @@ var reformatable = new Set(["java", "cpp", "c", "javascript"]);
 
 var errorText = {};
 
-errorText.ParseError = $.i18n("msg_sctivecode_parse_error");
-errorText.ParseErrorFix = $.i18n("msg_sctivecode_parse_error_fix");
-errorText.TypeError = $.i18n("msg_activecode_type_error");
-errorText.TypeErrorFix = $.i18n("msg_activecode_type_error_fix");
-errorText.NameError = $.i18n("msg_activecode_name_error");
-errorText.NameErrorFix = $.i18n("msg_activecode_name_error_fix");
-errorText.ValueError = $.i18n("msg_activecode_value_error");
-errorText.ValueErrorFix = $.i18n("msg_activecode_value_error_fix");
-errorText.AttributeError = $.i18n("msg_activecode_attribute_error");
-errorText.AttributeErrorFix = $.i18n("msg_activecode_attribute_error_fix");
-errorText.TokenError = $.i18n("msg_activecode_token_error");
-errorText.TokenErrorFix = $.i18n("msg_activecode_token_error_fix");
-errorText.TimeLimitError = $.i18n("msg_activecode_time_limit_error");
-errorText.TimeLimitErrorFix = $.i18n("msg_activecode_time_limit_error_fix");
-errorText.TimeoutError = $.i18n("msg_activecode_time_limit_error");
-errorText.TimeoutErrorFix = $.i18n("msg_activecode_time_limit_error_fix");
-errorText.Error = $.i18n("msg_activecode_general_error");
-errorText.ErrorFix = $.i18n("msg_activecode_general_error_fix");
-errorText.SyntaxError = $.i18n("msg_activecode_syntax_error");
-errorText.SyntaxErrorFix = $.i18n("msg_activecode_syntax_error_fix");
-errorText.IndexError = $.i18n("msg_activecode_index_error");
-errorText.IndexErrorFix = $.i18n("msg_activecode_index_error_fix");
-errorText.URIError = $.i18n("msg_activecode_uri_error");
-errorText.URIErrorFix = $.i18n("msg_activecode_uri_error_fix");
-errorText.ImportError = $.i18n("msg_activecode_import_error");
-errorText.ImportErrorFix = $.i18n("msg_activecode_import_error_fix");
-errorText.ReferenceError = $.i18n("msg_activecode_reference_error");
-errorText.ReferenceErrorFix = $.i18n("msg_activecode_reference_error_fix");
-errorText.ZeroDivisionError = $.i18n("msg_activecode_zero_division_error");
-errorText.ZeroDivisionErrorFix = $.i18n(
+errorText.ParseError = t("msg_sctivecode_parse_error");
+errorText.ParseErrorFix = t("msg_sctivecode_parse_error_fix");
+errorText.TypeError = t("msg_activecode_type_error");
+errorText.TypeErrorFix = t("msg_activecode_type_error_fix");
+errorText.NameError = t("msg_activecode_name_error");
+errorText.NameErrorFix = t("msg_activecode_name_error_fix");
+errorText.ValueError = t("msg_activecode_value_error");
+errorText.ValueErrorFix = t("msg_activecode_value_error_fix");
+errorText.AttributeError = t("msg_activecode_attribute_error");
+errorText.AttributeErrorFix = t("msg_activecode_attribute_error_fix");
+errorText.TokenError = t("msg_activecode_token_error");
+errorText.TokenErrorFix = t("msg_activecode_token_error_fix");
+errorText.TimeLimitError = t("msg_activecode_time_limit_error");
+errorText.TimeLimitErrorFix = t("msg_activecode_time_limit_error_fix");
+errorText.TimeoutError = t("msg_activecode_time_limit_error");
+errorText.TimeoutErrorFix = t("msg_activecode_time_limit_error_fix");
+errorText.Error = t("msg_activecode_general_error");
+errorText.ErrorFix = t("msg_activecode_general_error_fix");
+errorText.SyntaxError = t("msg_activecode_syntax_error");
+errorText.SyntaxErrorFix = t("msg_activecode_syntax_error_fix");
+errorText.IndexError = t("msg_activecode_index_error");
+errorText.IndexErrorFix = t("msg_activecode_index_error_fix");
+errorText.URIError = t("msg_activecode_uri_error");
+errorText.URIErrorFix = t("msg_activecode_uri_error_fix");
+errorText.ImportError = t("msg_activecode_import_error");
+errorText.ImportErrorFix = t("msg_activecode_import_error_fix");
+errorText.ReferenceError = t("msg_activecode_reference_error");
+errorText.ReferenceErrorFix = t("msg_activecode_reference_error_fix");
+errorText.ZeroDivisionError = t("msg_activecode_zero_division_error");
+errorText.ZeroDivisionErrorFix = t(
     "msg_activecode_zero_division_error_fix"
 );
-errorText.RangeError = $.i18n("msg_activecode_range_error");
-errorText.RangeErrorFix = $.i18n("msg_activecode_range_error_fix");
-errorText.InternalError = $.i18n("msg_activecode_internal_error");
-errorText.InternalErrorFix = $.i18n("msg_activecode_internal_error_fix");
-errorText.IndentationError = $.i18n("msg_activecode_indentation_error");
-errorText.IndentationErrorFix = $.i18n("msg_activecode_indentation_error_fix");
-errorText.NotImplementedError = $.i18n("msg_activecode_not_implemented_error");
-errorText.NotImplementedErrorFix = $.i18n(
+errorText.RangeError = t("msg_activecode_range_error");
+errorText.RangeErrorFix = t("msg_activecode_range_error_fix");
+errorText.InternalError = t("msg_activecode_internal_error");
+errorText.InternalErrorFix = t("msg_activecode_internal_error_fix");
+errorText.IndentationError = t("msg_activecode_indentation_error");
+errorText.IndentationErrorFix = t("msg_activecode_indentation_error_fix");
+errorText.NotImplementedError = t("msg_activecode_not_implemented_error");
+errorText.NotImplementedErrorFix = t(
     "msg_activecode_not_implemented_error_fix"
 );
-errorText.KeyError = $.i18n("msg_activecode_key_error");
-errorText.KeyErrorFix = $.i18n("msg_activecode_key_error_fix");
-errorText.AssertionError = $.i18n("msg_activecode_assertion_error");
-errorText.AssertionErrorFix = $.i18n("msg_activecode_assertion_error_fix");
+errorText.KeyError = t("msg_activecode_key_error");
+errorText.KeyErrorFix = t("msg_activecode_key_error_fix");
+errorText.AssertionError = t("msg_activecode_assertion_error");
+errorText.AssertionErrorFix = t("msg_activecode_assertion_error_fix");
 
 String.prototype.replaceAll = function (target, replacement) {
     return this.split(target).join(replacement);

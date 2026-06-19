@@ -1,4 +1,5 @@
 import { ActiveCode } from "./activecode.js";
+import { t } from "../../common/js/rsi18n.js";
 import Handsontable from "handsontable";
 import "handsontable/dist/handsontable.full.css";
 import initSqlJs from "sql.js/dist/sql-wasm.js";
@@ -49,7 +50,7 @@ export default class SQLActiveCode extends ActiveCode {
                 }
                 $(self.runButton).attr("disabled", "disabled");
                 let buttonText = $(self.runButton).text();
-                $(self.runButton).text($.i18n("msg_activecode_load_db"));
+                $(self.runButton).text(t("msg_activecode_load_db"));
                 if (!(self.dburl in allDburls)) {
                     allDburls[self.dburl] = {
                         status: "loading",

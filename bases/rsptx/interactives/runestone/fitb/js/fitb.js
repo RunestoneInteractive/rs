@@ -67,6 +67,7 @@
 "use strict";
 
 import RunestoneBase from "../../common/js/runestonebase.js";
+import { t } from "../../common/js/rsi18n.js";
 import {
     renderDynamicContent,
     checkAnswersCore,
@@ -74,6 +75,7 @@ import {
 } from "./fitb-utils.js";
 import "./fitb-i18n.en.js";
 import "./fitb-i18n.pt-br.js";
+import "./fitb-i18n.sr-Cyrl.js";
 import "../css/fitb.css";
 
 // Object containing all instances of FITB that aren't a child of a timed assessment.
@@ -257,7 +259,7 @@ export default class FITB extends RunestoneBase {
     renderFITBButtons() {
         // "submit" button
         this.submitButton = document.createElement("button");
-        this.submitButton.textContent = $.i18n("msg_fitb_check_me");
+        this.submitButton.textContent = t("msg_fitb_check_me");
         this.submitButton.className = "btn btn-success";
         this.submitButton.name = "do answer";
         this.submitButton.type = "button";
@@ -278,7 +280,7 @@ export default class FITB extends RunestoneBase {
             this.compareButton.id = this.origElem.id + "_bcomp";
             this.compareButton.disabled = true;
             this.compareButton.name = "compare";
-            this.compareButton.textContent = $.i18n("msg_fitb_compare_me");
+            this.compareButton.textContent = t("msg_fitb_compare_me");
             this.compareButton.addEventListener(
                 "click",
                 function () {
@@ -295,7 +297,7 @@ export default class FITB extends RunestoneBase {
             this.randomizeButton.className = "btn btn-default";
             this.randomizeButton.id = this.origElem.id + "_bcomp";
             this.randomizeButton.name = "randomize";
-            this.randomizeButton.textContent = $.i18n("msg_fitb_randomize");
+            this.randomizeButton.textContent = t("msg_fitb_randomize");
             this.randomizeButton.addEventListener(
                 "click",
                 function () {
