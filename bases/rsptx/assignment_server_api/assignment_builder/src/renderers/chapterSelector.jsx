@@ -1,4 +1,4 @@
-import { Dropdown } from "primereact/dropdown";
+import { Select } from "@mantine/core";
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
@@ -16,13 +16,12 @@ export function ChapterSelector() {
   const [selectedChapter, setSelectedChapter] = useState(sChapter);
 
   return (
-    <Dropdown
-      options={chapterOptions}
-      value={selectedChapter}
-      optionLabel="title"
-      onChange={(e) => {
-        dispatch(setChapter(e.value.chapter));
-        setSelectedChapter(e.value);
+    <Select
+      data={chapterOptions.map((node) => ({ value: node.chapter, label: node.title }))}
+      value={selectedChapter ? selectedChapter.chapter : null}
+      onChange={(value) => {
+        dispatch(setChapter(value));
+        setSelectedChapter(chapterOptions.find((node) => node.chapter === value) || null);
       }}
       placeholder="Select a chapter"
     />

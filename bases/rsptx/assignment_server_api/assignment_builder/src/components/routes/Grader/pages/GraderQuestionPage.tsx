@@ -1,9 +1,9 @@
-import { Button } from "primereact/button";
-import { ProgressSpinner } from "primereact/progressspinner";
-import { Toast } from "primereact/toast";
+import { Button, Center, Loader } from "@mantine/core";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
+import { Icon } from "@/components/ui/Icon";
+import { notify } from "@/components/ui/notify";
 import {
   GraderStudentAnswer,
   useGetGraderAnswersQuery,
@@ -12,6 +12,8 @@ import {
 } from "@store/grader/grader.logic.api";
 
 import { GradePanel, GradePanelHandle } from "../components/GradePanel";
+import { DeadlineExceptionDialog } from "../components/DeadlineExceptionDialog";
+import { RegradeWizard } from "../components/RegradeWizard";
 import { ShortcutsHelpDialog } from "../components/ShortcutsHelpDialog";
 import { StudentListSidebar } from "../components/StudentListSidebar";
 import { SubmissionPane, SubmissionPaneHandle } from "../components/SubmissionPane";
@@ -41,8 +43,8 @@ export const GraderQuestionPage: React.FC = () => {
     { assignmentId: aid, questionId: qid },
     { skip: !aid || !qid || isDemo }
   );
-  const data = isDemo ? getDemoAnswersFor(aid, qid) ?? undefined : realData;
-  const qData = isDemo ? getDemoQuestionsFor(aid) ?? undefined : qRealData;
+  const data = isDemo ? (getDemoAnswersFor(aid, qid) ?? undefined) : realData;
+  const qData = isDemo ? (getDemoQuestionsFor(aid) ?? undefined) : qRealData;
   const questionMeta = qData?.questions.find((q) => q.id === qid);
 
   const answers: ReadonlyArray<GraderStudentAnswer> = data?.answers ?? [];
@@ -81,7 +83,7 @@ export const GraderQuestionPage: React.FC = () => {
   const student = nav.current;
 
   const { prefs, updatePrefs } = useGraderPrefs();
-  const toastRef = useRef<Toast>(null);
+  const notifIdRef = useRef<string | null>(null);
   const [revertGrade] = useSaveGradeMutation();
 
   const advanceTimerRef = useRef<number | null>(null);
@@ -114,7 +116,10 @@ export const GraderQuestionPage: React.FC = () => {
   const undoSave = useCallback(
     async (info: AutoSavedInfo) => {
       cancelPendingAdvance();
-      toastRef.current?.clear();
+      if (notifIdRef.current) {
+        notify.hide(notifIdRef.current);
+        notifIdRef.current = null;
+      }
       try {
         if (!isDemo) {
           await revertGrade({
@@ -126,9 +131,7 @@ export const GraderQuestionPage: React.FC = () => {
             assignmentId: aid
           }).unwrap();
         }
-      } catch {
-
-      }
+      } catch {}
 
       navRef.current.goTo(info.sid);
 
@@ -145,35 +148,34 @@ export const GraderQuestionPage: React.FC = () => {
           ? `${row.first_name ?? ""} ${row.last_name ?? ""}`.trim()
           : info.sid;
 
-      toastRef.current?.replace({
-        severity: "success",
-        content: (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "0.25rem 0.25rem"
-            }}
-          >
-            <i className="pi pi-check-circle" style={{ color: "#16a34a" }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: 13 }}>Saved {displayName}</div>
-              <div style={{ fontSize: 11, color: "#64748b" }}>
+      if (notifIdRef.current) {
+        notify.hide(notifIdRef.current);
+      }
+      notifIdRef.current = notify.success({
+        icon: <Icon name="check-circle" className={styles.toastIcon} />,
+        autoClose: 5000,
+        onClose: () => {
+          notifIdRef.current = null;
+        },
+        message: (
+          <div className={styles.toastBody}>
+            <div className={styles.toastText}>
+              <div className={styles.toastTitle}>Saved {displayName}</div>
+              <div className={styles.toastSub}>
                 {info.next.score} pt{info.next.score === 1 ? "" : "s"}
                 {info.next.comment ? " · with comment" : ""}
               </div>
             </div>
             <Button
-              label="Undo"
-              icon="pi pi-undo"
-              text
-              size="small"
+              leftSection={<Icon name="undo" size={14} />}
+              variant="subtle"
+              size="xs"
               onClick={() => undoSave(info)}
-            />
+            >
+              Undo
+            </Button>
           </div>
-        ),
-        life: 5000
+        )
       });
 
       if (prefsRef.current.autoAdvance && navRef.current.hasNext) {
@@ -209,7 +211,6 @@ export const GraderQuestionPage: React.FC = () => {
     if (!student?.sid) return;
     const id = student.sid;
     if (autoSave.status === "dirty" || autoSave.status === "saving") {
-
       cancelPendingAdvance();
       setDirtySids((prev) => {
         if (prev.has(id)) return prev;
@@ -229,6 +230,8 @@ export const GraderQuestionPage: React.FC = () => {
 
   const [help, setHelp] = useState(false);
   const [hideGraded, setHideGraded] = useState(false);
+  const [showRegrade, setShowRegrade] = useState(false);
+  const [showExtraTime, setShowExtraTime] = useState(false);
   const gradePanelRef = useRef<GradePanelHandle>(null);
   const submissionRef = useRef<SubmissionPaneHandle>(null);
 
@@ -260,9 +263,7 @@ export const GraderQuestionPage: React.FC = () => {
       const row = answers.find((a) => a.sid === nextSid);
       setDemoSelected(row ?? null);
     } else {
-      navigate(
-        `/grader/${aid}/questions/${qid}/students/${encodeURIComponent(nextSid)}`
-      );
+      navigate(`/grader/${aid}/questions/${qid}/students/${encodeURIComponent(nextSid)}`);
     }
   };
 
@@ -273,17 +274,54 @@ export const GraderQuestionPage: React.FC = () => {
 
   if (!data && isLoading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "4rem 0" }}>
-        <ProgressSpinner />
-      </div>
+      <Center className={styles.loadingWrap}>
+        <Loader />
+      </Center>
     );
   }
   if (!data) {
-    return <div className={styles.emptyState}>Could not load student answers.</div>;
+    return (
+      <div className={styles.emptyState}>Couldn't load student answers. Refresh the page.</div>
+    );
   }
 
   return (
     <>
+      {!isDemo && (
+        <div className={styles.splitActions}>
+          <Button
+            leftSection={<Icon name="refresh" size={14} />}
+            variant="default"
+            size="xs"
+            onClick={() => setShowRegrade(true)}
+          >
+            Regrade this question…
+          </Button>
+          <Button
+            leftSection={<Icon name="clock" size={14} />}
+            variant="default"
+            size="xs"
+            onClick={() => setShowExtraTime(true)}
+          >
+            Extra time…
+          </Button>
+        </div>
+      )}
+      {qData?.questions && (
+        <RegradeWizard
+          visible={showRegrade}
+          onHide={() => setShowRegrade(false)}
+          assignmentId={aid}
+          questions={qData.questions}
+          selectedQuestionIds={[qid]}
+        />
+      )}
+      <DeadlineExceptionDialog
+        visible={showExtraTime}
+        onHide={() => setShowExtraTime(false)}
+        assignmentId={aid}
+        presetSids={activeSid ? [activeSid] : []}
+      />
       <div className={styles.splitPane} data-tour="grader-split-pane">
         <StudentListSidebar
           answers={answers}
@@ -298,14 +336,11 @@ export const GraderQuestionPage: React.FC = () => {
         <div className={styles.splitMain}>
           {!student ? (
             <div className={styles.splitGrid}>
-              <div
-                className={styles.emptyState}
-                style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
-              >
+              <div className={`${styles.emptyState} ${styles.emptyStateFill}`}>
                 {answers.length === 0 ? (
-                  <h3>No student answers yet.</h3>
+                  <h3>No student answers yet</h3>
                 ) : (
-                  <h3>Select a student from the list to start grading.</h3>
+                  <h3>Select a student from the list to start grading</h3>
                 )}
               </div>
               <GradePanel
@@ -373,13 +408,7 @@ export const GraderQuestionPage: React.FC = () => {
         </div>
       </div>
 
-      <Toast ref={toastRef} position="bottom-right" />
-
-      <ShortcutsHelpDialog
-        visible={help}
-        onHide={() => setHelp(false)}
-        platform={platform}
-      />
+      <ShortcutsHelpDialog visible={help} onHide={() => setHelp(false)} platform={platform} />
     </>
   );
 };

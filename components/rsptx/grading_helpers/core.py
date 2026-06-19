@@ -24,6 +24,11 @@ from rsptx.db.models import (
 )
 from rsptx.logging import rslogger
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
+from rsptx.grading_helpers.scoring import (
+    score_answer_values,
+    score_peer_values,
+    PEER_SCORE_SENTINEL,
+)
 
 
 async def grade_submission(
@@ -190,43 +195,28 @@ async def score_one_answer(
     rslogger.debug(
         f"scoreSpec.how_to_score = {scoreSpec.how_to_score} {scoreSpec.max_score}"
     )
-    if scoreSpec.how_to_score == "pct_correct":
-        if submission.correct:
-            return scoreSpec.max_score
-        else:
-            if submission.percent:
-                # for some reason, lost to the sands of time, the percent is an int for unittests
-                if submission.event == "unittest":
-                    return (submission.percent / 100.0) * scoreSpec.max_score
-                else:
-                    return submission.percent * scoreSpec.max_score
-            return 0
-    elif scoreSpec.how_to_score == "all_or_nothing":
-        if submission.correct:
-            return scoreSpec.max_score
-        else:
-            return 0
-    elif (
-        scoreSpec.how_to_score == "interact" or scoreSpec.how_to_score == "interaction"
-    ):
-        return scoreSpec.max_score
-    elif scoreSpec.how_to_score in ("peer", "peer_chat"):
-        # Match web2py's _score_peer_instruction:
-        # award points for vote1, vote2, and (for peer_chat) sending a message.
+    score = score_answer_values(
+        how_to_score=scoreSpec.how_to_score,
+        max_score=scoreSpec.max_score,
+        correct=submission.correct,
+        percent=submission.percent,
+        event=submission.event,
+    )
+    if score == PEER_SCORE_SENTINEL:
         rows = await fetch_peer_useinfo(
             scoreSpec.username, submission.div_id, submission.course_name
         )
         has_vote1 = any("vote1" in (r.act or "") for r in rows)
         has_vote2 = any("vote2" in (r.act or "") for r in rows)
         sent_message = any(r.event == "sendmessage" for r in rows)
-        tot = int(has_vote1) + int(has_vote2) + int(sent_message)
-        if scoreSpec.how_to_score == "peer_chat":
-            return (tot / 3) * scoreSpec.max_score
-        else:
-            return min(1.0, tot / 2) * scoreSpec.max_score
-    else:
-        rslogger.debug(f"Unknown how_to_score {scoreSpec.how_to_score}")
-        return 0
+        return score_peer_values(
+            scoreSpec.how_to_score,
+            scoreSpec.max_score,
+            has_vote1,
+            has_vote2,
+            sent_message,
+        )
+    return score
 
 
 async def compute_total_score(

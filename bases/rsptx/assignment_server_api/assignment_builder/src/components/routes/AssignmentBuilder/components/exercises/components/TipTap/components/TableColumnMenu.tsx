@@ -38,26 +38,29 @@ export const TableColumnMenu: React.FC<TableColumnMenuProps> = ({
       }}
     >
       <button
+        type="button"
         className={styles.columnMenuButton}
         onClick={() => {
           editor.chain().focus().addColumnBefore().run();
           onClose();
         }}
       >
-        <i className="fa-solid fa-circle-plus" />
-        <span>Add Column Left</span>
+        <i className="fa-solid fa-circle-plus" aria-hidden="true" />
+        <span>Add column left</span>
       </button>
       <button
+        type="button"
         className={styles.columnMenuButton}
         onClick={() => {
           editor.chain().focus().addColumnAfter().run();
           onClose();
         }}
       >
-        <i className="fa-solid fa-circle-plus" />
-        <span>Add Column Right</span>
+        <i className="fa-solid fa-circle-plus" aria-hidden="true" />
+        <span>Add column right</span>
       </button>
       <button
+        type="button"
         className={styles.columnMenuButton}
         onClick={() => {
           if (isLastColumn) {
@@ -68,8 +71,8 @@ export const TableColumnMenu: React.FC<TableColumnMenuProps> = ({
           onClose();
         }}
       >
-        <i className="fa-solid fa-trash-can" />
-        <span>{isLastColumn ? "Delete Table" : "Delete Column"}</span>
+        <i className="fa-solid fa-trash-can" aria-hidden="true" />
+        <span>{isLastColumn ? "Delete table" : "Delete column"}</span>
       </button>
     </div>
   );

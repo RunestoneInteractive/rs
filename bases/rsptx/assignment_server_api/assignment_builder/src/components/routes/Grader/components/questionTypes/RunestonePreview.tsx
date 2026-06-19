@@ -4,6 +4,7 @@ import React, { useEffect, useReducer, useRef } from "react";
 
 import { renderRunestoneComponent } from "@/componentFuncs";
 
+import styles from "./AnswerViews.module.css";
 import { AnswerRendererProps } from "./types";
 
 export const RunestonePreview: React.FC<{ htmlsrc?: string; divId: string }> = ({
@@ -19,15 +20,10 @@ export const RunestonePreview: React.FC<{ htmlsrc?: string; divId: string }> = (
     renderRunestoneComponent(ref, { isCalledFromBuilder: true, graderactive: false })
       .then(forceUpdate)
       .catch(() => undefined);
-
   }, [htmlsrc, divId]);
 
   if (!htmlsrc) {
-    return (
-      <div style={{ padding: "1rem", color: "#64748b" }}>
-        No rendered question preview available.
-      </div>
-    );
+    return <div className={styles.emptyPreview}>No rendered question preview available.</div>;
   }
 
   return (
@@ -49,14 +45,14 @@ export const RunestonePreview: React.FC<{ htmlsrc?: string; divId: string }> = (
             }
             .ptx-runestone-container th,
             .ptx-runestone-container td {
-              border: 1px solid #e2e8f0;
+              border: 1px solid var(--rs-border-solid);
               padding: 0.5rem;
               position: relative;
               vertical-align: top;
               min-width: 100px;
             }
             .ptx-runestone-container th {
-              background: #f8fafc;
+              background: var(--rs-neutral-50);
               font-weight: 600;
               text-align: left;
             }
@@ -75,11 +71,9 @@ export const RunestonePreview: React.FC<{ htmlsrc?: string; divId: string }> = (
 export const QuestionPreviewHeader: React.FC<
   Pick<AnswerRendererProps, "htmlsrc" | "questionName">
 > = ({ questionName }) => (
-
-  <section style={{ marginBottom: "0.5rem" }}>
-    <h4 style={{ margin: "0 0 0.25rem 0", color: "#0f172a", fontSize: 13 }}>
-      Question: <span style={{ fontFamily: "monospace" }}>{questionName}</span>
+  <section className={styles.previewTitleSection}>
+    <h4 className={styles.previewTitle}>
+      Question: <span className={styles.questionName}>{questionName}</span>
     </h4>
   </section>
 );
-

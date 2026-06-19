@@ -1,4 +1,4 @@
-import { Dropdown } from "primereact/dropdown";
+import { Select } from "@mantine/core";
 import { FC, useMemo } from "react";
 import { useSelector } from "react-redux";
 
@@ -22,18 +22,17 @@ export const ParsonsLanguageSelector: FC<ParsonsLanguageSelectorProps> = ({
       return baseLanguageOptions;
     }
 
-    return [{ value: "text", label: "Text Content" }, ...baseLanguageOptions];
+    return [{ value: "text", label: "Text content" }, ...baseLanguageOptions];
   }, [baseLanguageOptions]);
 
   return (
-    <div className="mb-4">
-      <Dropdown
-        value={language}
-        options={languageOptions}
-        onChange={(e) => onChange(e.value)}
-        placeholder="Select content type"
-        className={`w-full ${!language ? "p-invalid" : ""}`}
-      />
-    </div>
+    <Select
+      value={language || null}
+      data={languageOptions}
+      onChange={(value) => onChange(value ?? "")}
+      placeholder="Select content type"
+      allowDeselect={false}
+      error={!language}
+    />
   );
 };

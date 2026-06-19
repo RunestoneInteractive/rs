@@ -75,6 +75,7 @@ export const MultiChoiceExercise: FC<BaseExerciseProps> = ({
     formData,
     activeStep,
     isSaving,
+    isDirty,
     updateFormData,
     handleSettingsChange,
     handleQuestionChange,
@@ -167,13 +168,14 @@ export const MultiChoiceExercise: FC<BaseExerciseProps> = ({
 
   return (
     <ExerciseLayout
-      title="Multiple Choice Exercise"
+      title="multiple choice exercise"
       exerciseType="mchoice"
       isEdit={isEdit}
       steps={MULTI_CHOICE_STEPS}
       activeStep={activeStep}
       isCurrentStepValid={isCurrentStepValid}
       isSaving={isSaving}
+      isDirty={isDirty}
       stepsValidity={stepsValidity}
       onCancel={onCancel}
       onBack={goToPrevStep}

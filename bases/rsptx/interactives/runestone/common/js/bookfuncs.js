@@ -41,7 +41,7 @@ var rb = new RunestoneBase();
 Maybe something like this at the top:
 
 Active assignment: [Ch 15 reading]      [Exit assignment link]
-On page (3 of 7) [Select input showing current page, can select others] 
+On page (3 of 7) [Select input showing current page, can select others]
 Becoming this if not on a page in assignment
 
 Active assignment: [Ch 15 reading]      [Exit assignment link]
@@ -71,7 +71,7 @@ function addReadingList() {
         exit_link.textContent = " Exit Assignment";
         exit_link.href = window.location.pathname;
 
-        exit_link.addEventListener('click', function (event) {
+        exit_link.addEventListener('click', function(event) {
             localStorage.removeItem(`currentAssignmentInfo_${eBookConfig.course}`);
         });
 
@@ -124,7 +124,7 @@ function addReadingList() {
             let pageExercises = Object.keys(componentMap);
             if (pageExercises.length == 0) {
                 pageExercises = document.querySelectorAll("[data-component]");
-                pageExercises = Array.from(pageExercises).map(function (el) {
+                pageExercises = Array.from(pageExercises).map(function(el) {
                     return el.id;
                 })
             }
@@ -176,7 +176,7 @@ function addReadingList() {
             txt.textContent = "Notice: this page is not part of the assignment. To remove this warning click ";
             let exit_clone = exit_link.cloneNode(true);
 
-            exit_clone.addEventListener('click', function (event) {
+            exit_clone.addEventListener('click', function(event) {
                 localStorage.removeItem(`currentAssignmentInfo_${eBookConfig.course}`);
             });
             txt.append(exit_clone);
@@ -276,7 +276,7 @@ class PageProgressBar {
             this.activities = actDict;
         } else {
             let activities = { page: 0 };
-            document.querySelectorAll(".runestone").forEach(function (e) {
+            document.querySelectorAll(".runestone").forEach(function(e) {
                 activities[e.firstElementChild.id] = 0;
             });
             this.activities = activities;
@@ -398,7 +398,7 @@ class PageProgressBar {
             }
             if (
                 val == 100.0 &&
-                (function () {
+                (function() {
                     const cb = document.getElementById("completionButton");
                     return (
                         cb &&
@@ -422,8 +422,7 @@ class PageProgressBar {
         });
         let data = { ...this.assignment_spec };
         let request = new Request(
-            `${eBookConfig.new_server_prefix}/logger/update_reading_score`,
-            {
+            `${eBookConfig.new_server_prefix}/logger/update_reading_score`, {
                 method: "POST",
                 body: JSON.stringify(data),
                 headers: headers,
@@ -751,8 +750,7 @@ function createStudyCluesWidget() {
 
         try {
             const response = await fetch(
-                `/assignment/student/studyclues_query`,
-                {
+                `/assignment/student/studyclues_query`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -830,7 +828,8 @@ function shouldShowStudyCluesWidget() {
     const enabledCourses = ["SI201-W26-MW", "SI201-W26-TTh", "DukeCS101SP26",
         "mcd-csa-schoology", "mcd-csa-canvas", "csawesome2-MOOC",
         "test_py4e-int_api", "bc_cppds_s26", "Test-py4e-int",
-        "virginiatech_py4e-int_spring26", "umsi101_fall26"];
+        "virginiatech_py4e-int_spring26", "umsi101_fall26"
+    ];
     const host = window.location.hostname;
 
     if (host === "localhost") {
@@ -880,8 +879,7 @@ async function handlePageSetup() {
         if (tz_match === false) {
             // Set a cookie so we don't have to do this again for a while.
             let request = new Request(
-                `${eBookConfig.new_server_prefix}/logger/set_tz_offset`,
-                {
+                `${eBookConfig.new_server_prefix}/logger/set_tz_offset`, {
                     method: "POST",
                     body: JSON.stringify(data),
                     headers: headers,
@@ -1009,7 +1007,7 @@ function placeAdCopy() {
 }
 
 // initialize stuff
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function() {
     if (eBookConfig) {
         handlePageSetup();
         placeAdCopy();
@@ -1024,9 +1022,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // misc stuff
 // todo:  This could be further distributed but making a video.js file just for one function seems dumb.
-window.addEventListener("load", function () {
+window.addEventListener("load", function() {
     // add the video play button overlay image
-    document.querySelectorAll(".video-play-overlay").forEach(function (el) {
+    document.querySelectorAll(".video-play-overlay").forEach(function(el) {
         el.style.backgroundImage =
             "url('{{pathto('_static/play_overlay_icon.png', 1)}}')";
     });
@@ -1036,8 +1034,8 @@ window.addEventListener("load", function () {
     // it (like the search bar) is clicked
     document
         .querySelectorAll(".dropdown input, .dropdown label")
-        .forEach(function (el) {
-            el.addEventListener("click", function (e) {
+        .forEach(function(el) {
+            el.addEventListener("click", function(e) {
                 e.stopPropagation();
             });
         });
@@ -1059,12 +1057,83 @@ window.addEventListener("load", function () {
                     anchorText = link.href.substring(aPoint);
                     link.href = link.href.substring(0, aPoint);
                 }
-                link.href = link.href.includes("?")
-                    ? link.href + queryString.replace("?", "&") + anchorText
-                    : link.href + queryString + anchorText;
+                link.href = link.href.includes("?") ?
+                    link.href + queryString.replace("?", "&") + anchorText :
+                    link.href + queryString + anchorText;
             }
         });
     }
+});
+
+// The Bust Menu
+/*
+Course Home
+Assignments
+Progress
+Peer Instruction (Student)
+------
+Instructor Dashboard
+Peer Instruction (Instructor)
+Author Interface (optional)
+Editor Interface (optional)
+Request Invoice
+------
+Change Course
+Profile
+Log Out
+*/
+window.addEventListener("DOMContentLoaded", function(event) {
+
+    const oldDropDown = this.document.querySelector(".dropdown-content[data-deprecated]");
+    if (oldDropDown)
+        oldDropDown.remove();
+
+    const itemTemplate = this.document.getElementById("ptx-user-dropdown-content_item-template");
+    const sepTemplate = this.document.getElementById("ptx-user-dropdown-content_separator-template");
+    const menuContentArea = this.document.getElementById("ptx-user-dropdown_rs-content");
+
+    if (!itemTemplate || !sepTemplate || !menuContentArea) {
+        console.error("Missing required template or content area for user dropdown");
+        return;
+    }
+
+    function makeLink(url, title, ariaLabel = null) {
+        // All we should assume about the item template is that it has an anchor element
+        const link = itemTemplate.content.cloneNode(true);
+        const linkAnchor = link.querySelector("a");
+        linkAnchor.href = url;
+        linkAnchor.innerText = title;
+        if (ariaLabel) {
+            linkAnchor.ariaLabel = ariaLabel;
+        }
+        // return entire item template, not just link
+        return link;
+    }
+
+    menuContentArea.appendChild(makeLink("/ns/course/index", "Course Home"));
+    menuContentArea.appendChild(makeLink("/runestone/assignments/chooseAssignment", "Assignments"));
+    menuContentArea.appendChild(makeLink("/assignment/peer/student", "Peer Instruction (Student)"));
+    menuContentArea.appendChild(makeLink("/assignment/student/studentreport", "Progress"));
+    if (eBookConfig.isInstructor) {
+        menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
+        menuContentArea.appendChild(makeLink("/admin/instructor/menu", "Instructor Dashboard"));
+        menuContentArea.appendChild(makeLink("/assignment/peer/instructor",
+            "Peer Instruction (Instructor)"));
+        if (eBookConfig.isAuthor) {
+            menuContentArea.appendChild(makeLink("https://author.runestone.academy/author/",
+                "Author Dashboard"));
+        }
+        if (eBookConfig.isEditor) {
+            menuContentArea.appendChild(makeLink("https://author.runestone.academy/author/",
+                "Editor Dashboard"));
+        }
+        menuContentArea.appendChild(makeLink("/assignment/instructor/invoice_request",
+            "Request Invoice"));
+    }
+    menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
+    menuContentArea.appendChild(makeLink("/admin/auth/my_courses", "Change Course"));
+    menuContentArea.appendChild(makeLink("/admin/auth/profile", "Profile"));
+    menuContentArea.appendChild(makeLink("/admin/auth/logout", "Log Out"));
 });
 
 /**

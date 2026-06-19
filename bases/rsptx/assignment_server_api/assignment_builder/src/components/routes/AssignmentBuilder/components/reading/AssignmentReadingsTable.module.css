@@ -1,0 +1,56 @@
+.nowrap {
+  white-space: nowrap;
+}
+
+.sectionCell {
+  min-width: 0;
+  max-width: 24rem;
+}
+
+.sectionTitle {
+  font-weight: var(--rs-font-weight-medium);
+  color: var(--rs-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sectionPath {
+  font-size: var(--rs-font-size-xs);
+  color: var(--rs-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--rs-space-2);
+  padding: var(--rs-space-10) var(--rs-space-4);
+  text-align: center;
+}
+
+.emptyIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--rs-radius-pill);
+  background: var(--rs-brand-50);
+  color: var(--rs-brand-700);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-strong);
+}
+
+.emptyText {
+  margin: 0;
+  font-size: var(--rs-font-size-sm);
+  color: var(--rs-text-muted);
+}

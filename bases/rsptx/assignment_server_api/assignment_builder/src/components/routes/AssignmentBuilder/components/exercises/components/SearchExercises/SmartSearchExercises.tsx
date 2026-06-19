@@ -1,21 +1,37 @@
+import { ErrorState } from "@components/routes/AssignmentBuilder/components/ErrorState/ErrorState";
 import { ExercisePreviewModal } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreviewModal";
+import { useScrollShadow } from "@components/shell/useScrollShadow";
+import { DataGrid } from "@components/ui/DataGrid";
 import { ExerciseTypeTag } from "@components/ui/ExerciseTypeTag";
-import { datasetSelectors } from "@store/dataset/dataset.logic";
+import { FilterMultiSelect } from "@components/ui/FilterMultiSelect/FilterMultiSelect";
+import { Icon } from "@components/ui/Icon";
+import { TabToolbar } from "@components/ui/TabToolbar/TabToolbar";
+import {
+  ActionIcon,
+  Button,
+  Center,
+  Checkbox,
+  Group,
+  Loader,
+  Switch,
+  TagsInput,
+  Text,
+  Tooltip
+} from "@mantine/core";
+import {
+  ColumnDef,
+  ColumnFiltersState,
+  OnChangeFn,
+  PaginationState,
+  RowSelectionState,
+  SortingState
+} from "@tanstack/react-table";
 import {
   searchExercisesActions,
   searchExercisesSelectors
 } from "@store/searchExercises/searchExercises.logic";
-import { FilterMatchMode, SortOrder } from "primereact/api";
-import { Button } from "primereact/button";
-import { Chip } from "primereact/chip";
-import { Chips } from "primereact/chips";
-import { Column } from "primereact/column";
-import { DataTable, DataTableFilterMetaData } from "primereact/datatable";
-import { InputSwitch } from "primereact/inputswitch";
-import { MultiSelect } from "primereact/multiselect";
-import { Paginator } from "primereact/paginator";
-import { ProgressSpinner } from "primereact/progressspinner";
-import { useState } from "react";
+import { datasetSelectors } from "@store/dataset/dataset.logic";
+import { useCallback, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { useSmartExerciseSearch } from "@/hooks/useSmartExerciseSearch";
@@ -26,13 +42,21 @@ import { CopyExerciseModal } from "../CopyExercise/CopyExerciseModal";
 
 import styles from "./SmartSearchExercises.module.css";
 
-/**
- * Smart exercise search component with fixed layout and enhanced UX
- */
 interface SmartSearchExercisesProps {
   setCurrentEditExercise?: (exercise: Exercise | null) => void;
   setViewMode?: (mode: "list" | "browse" | "search" | "create" | "edit") => void;
 }
+
+type FilterMetaValue = { value: string | string[] | null };
+
+const MATCH_CONTAINS = "contains";
+const MATCH_IN = "in";
+
+const renderEllipsis = (text?: string | null) => (
+  <div className={styles.ellipsisText} title={text ?? ""}>
+    {text}
+  </div>
+);
 
 export const SmartSearchExercises = ({
   setCurrentEditExercise,
@@ -41,11 +65,11 @@ export const SmartSearchExercises = ({
   const dispatch = useDispatch();
   const selectedExercises = useSelector(searchExercisesSelectors.getSelectedExercises);
   const exerciseTypes = useSelector(datasetSelectors.getQuestionTypeOptions);
-  const { updateAssignmentExercises } = useUpdateAssignmentExercise();
+  const { updateAssignmentExercises, isUpdating } = useUpdateAssignmentExercise();
   const [copyModalVisible, setCopyModalVisible] = useState(false);
   const [selectedExerciseForCopy, setSelectedExerciseForCopy] = useState<Exercise | null>(null);
+  const { sentinelRef, scrolled } = useScrollShadow();
 
-  // Use the smart exercise search hook
   const {
     exercises,
     pagination,
@@ -55,20 +79,20 @@ export const SmartSearchExercises = ({
     searchParams,
     filters,
     updateFilters,
+    updateSorting,
+    updatePagination,
     onGlobalFilterChange,
-    onPage,
-    onSort,
-    onFilter,
     toggleBaseCourse,
     refetch
   } = useSmartExerciseSearch();
 
-  // Set selected exercises
-  const setSelectedExercises = (ex: Exercise[]) => {
-    dispatch(searchExercisesActions.setSelectedExercises(ex));
-  };
+  const setSelectedExercises = useCallback(
+    (ex: Exercise[]) => {
+      dispatch(searchExercisesActions.setSelectedExercises(ex));
+    },
+    [dispatch]
+  );
 
-  // Add selected exercises to assignment
   const onAddSelectedClick = async () => {
     if (selectedExercises.length === 0) return;
 
@@ -84,365 +108,372 @@ export const SmartSearchExercises = ({
     );
   };
 
-  const getIsCopyable = (exercise: Exercise) => {
-    return !!exercise.question_json;
+  const handleBackToList = () => {
+    setSelectedExercises([]);
+    setViewMode?.("list");
   };
 
-  const handleCopyClick = (exercise: Exercise) => {
+  const handleCopyClick = useCallback((exercise: Exercise) => {
     setSelectedExerciseForCopy(exercise);
     setCopyModalVisible(true);
-  };
+  }, []);
 
   const handleCopyModalHide = () => {
     setCopyModalVisible(false);
     setSelectedExerciseForCopy(null);
   };
 
-  // Error state UI
+  const globalValue = (filters.global as FilterMetaValue).value;
+  const globalTerms = typeof globalValue === "string" ? globalValue.split(" ").filter(Boolean) : [];
+  const selectedTypes = ((filters.question_type as FilterMetaValue).value as string[]) ?? [];
+
+  const sorting: SortingState = useMemo(
+    () => [{ id: searchParams.sorting.field, desc: searchParams.sorting.order === -1 }],
+    [searchParams.sorting.field, searchParams.sorting.order]
+  );
+
+  const paginationState: PaginationState = useMemo(
+    () => ({ pageIndex: searchParams.page, pageSize: searchParams.limit }),
+    [searchParams.page, searchParams.limit]
+  );
+
+  const columnFilters: ColumnFiltersState = useMemo(() => {
+    const result: ColumnFiltersState = [];
+
+    (["name", "author", "topic"] as const).forEach((id) => {
+      const value = (filters[id] as FilterMetaValue | undefined)?.value;
+
+      if (value) {
+        result.push({ id, value });
+      }
+    });
+    return result;
+  }, [filters]);
+
+  const rowSelection: RowSelectionState = useMemo(
+    () => Object.fromEntries(selectedExercises.map((ex) => [String(ex.id), true])),
+    [selectedExercises]
+  );
+
+  const handleSortingChange: OnChangeFn<SortingState> = useCallback(
+    (updater) => {
+      const next = typeof updater === "function" ? updater(sorting) : updater;
+      const first = next[0];
+
+      if (!first) return;
+      updateSorting(first.id, first.desc ? -1 : 1);
+    },
+    [sorting, updateSorting]
+  );
+
+  const handlePaginationChange: OnChangeFn<PaginationState> = useCallback(
+    (updater) => {
+      const next = typeof updater === "function" ? updater(paginationState) : updater;
+
+      updatePagination(next.pageIndex, next.pageSize);
+    },
+    [paginationState, updatePagination]
+  );
+
+  const handleColumnFiltersChange: OnChangeFn<ColumnFiltersState> = useCallback(
+    (updater) => {
+      const next = typeof updater === "function" ? updater(columnFilters) : updater;
+      const valueOf = (id: string) => (next.find((f) => f.id === id)?.value as string) ?? null;
+
+      updateFilters({
+        name: { value: valueOf("name"), matchMode: MATCH_CONTAINS },
+        author: { value: valueOf("author"), matchMode: MATCH_CONTAINS },
+        topic: { value: valueOf("topic"), matchMode: MATCH_CONTAINS }
+      });
+    },
+    [columnFilters, updateFilters]
+  );
+
+  const handleRowSelectionChange: OnChangeFn<RowSelectionState> = useCallback(
+    (updater) => {
+      const next = typeof updater === "function" ? updater(rowSelection) : updater;
+      const selectedIds = new Set(Object.keys(next).filter((key) => next[key]));
+      const byId = new Map<string, Exercise>();
+
+      selectedExercises.forEach((ex) => byId.set(String(ex.id), ex));
+      exercises.forEach((ex) => byId.set(String(ex.id), ex));
+
+      const nextSelected = [...selectedIds]
+        .map((id) => byId.get(id))
+        .filter((ex): ex is Exercise => !!ex);
+
+      setSelectedExercises(nextSelected);
+    },
+    [rowSelection, selectedExercises, exercises, setSelectedExercises]
+  );
+
+  const columns = useMemo<ColumnDef<Exercise, unknown>[]>(
+    () => [
+      {
+        id: "select",
+        enableSorting: false,
+        meta: { headerStyle: { width: 40 } },
+        header: ({ table }) => (
+          <Checkbox
+            size="sm"
+            aria-label="Select all"
+            checked={table.getIsAllPageRowsSelected()}
+            indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            size="sm"
+            aria-label={`Select ${row.original.name}`}
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+          />
+        )
+      },
+      {
+        id: "preview",
+        header: "",
+        enableSorting: false,
+        meta: { headerStyle: { width: 48 }, hiddenHeaderLabel: "Preview" },
+        cell: ({ row }) =>
+          row.original.htmlsrc ? (
+            <ExercisePreviewModal
+              htmlsrc={row.original.htmlsrc}
+              questionName={row.original.name}
+              triggerButton={
+                <ActionIcon variant="subtle" color="gray" aria-label="Preview exercise">
+                  <Icon name="eye" />
+                </ActionIcon>
+              }
+            />
+          ) : null
+      },
+      {
+        id: "copy",
+        header: "",
+        enableSorting: false,
+        meta: { headerStyle: { width: 48 }, hiddenHeaderLabel: "Copy" },
+        cell: ({ row }) =>
+          row.original.question_json ? (
+            <Tooltip label="Copy exercise" position="top">
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                aria-label="Copy exercise"
+                onClick={() => handleCopyClick(row.original)}
+              >
+                <Icon name="copy" />
+              </ActionIcon>
+            </Tooltip>
+          ) : null
+      },
+      {
+        accessorKey: "qnumber",
+        header: "Number",
+        enableSorting: false,
+        meta: { headerStyle: { width: 112 } },
+        cell: ({ row }) => renderEllipsis(row.original.qnumber)
+      },
+      {
+        accessorKey: "name",
+        header: "Name",
+        meta: {
+          headerStyle: { minWidth: 220 },
+          filter: { variant: "text", placeholder: "Search by name" }
+        },
+        cell: ({ row }) => (
+          <div className={styles.monoName} data-mono-name="" title={row.original.name ?? ""}>
+            {row.original.name}
+          </div>
+        )
+      },
+      {
+        accessorKey: "question_type",
+        header: "Type",
+        meta: { headerStyle: { width: 140 } },
+        cell: ({ row }) => <ExerciseTypeTag type={row.original.question_type} />
+      },
+      {
+        accessorKey: "author",
+        header: "Author",
+        meta: {
+          headerStyle: { minWidth: 160 },
+          filter: { variant: "text", placeholder: "Search by author" }
+        },
+        cell: ({ row }) => renderEllipsis(row.original.author)
+      },
+      {
+        accessorKey: "tags",
+        header: "Tags",
+        enableSorting: false,
+        meta: { headerStyle: { minWidth: 160 } },
+        cell: ({ row }) => {
+          const tags = row.original.tags;
+
+          if (!tags) return null;
+          const list = tags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean);
+          const maxVisible = 3;
+
+          return (
+            <Group gap={4} wrap="nowrap" className={styles.tagContainer}>
+              {list.slice(0, maxVisible).map((tag, index) => (
+                <span key={`${tag}_${index}`} className={styles.tag}>
+                  {tag}
+                </span>
+              ))}
+              {list.length > maxVisible && (
+                <span className={styles.moreTags}>+{list.length - maxVisible}</span>
+              )}
+            </Group>
+          );
+        }
+      },
+      {
+        accessorKey: "topic",
+        header: "Topic",
+        meta: {
+          headerStyle: { minWidth: 160 },
+          filter: { variant: "text", placeholder: "Search by topic" }
+        },
+        cell: ({ row }) => renderEllipsis(row.original.topic)
+      }
+    ],
+    [handleCopyClick]
+  );
+
   if (error) {
     return (
-      <div className={styles.errorContainer}>
-        <i
-          className="pi pi-exclamation-triangle"
-          style={{ fontSize: "2.5rem", color: "var(--red-500)" }}
-        ></i>
-        <p>Error loading exercises</p>
-        <Button label="Retry" icon="pi pi-refresh" rounded onClick={refetch} />
-      </div>
+      <ErrorState
+        title="Couldn't search exercises"
+        message="Try again."
+        retryLabel="Try again"
+        onRetry={refetch}
+      />
     );
   }
 
-  const renderExerciseType = (rowData: Exercise) => {
-    return <ExerciseTypeTag type={rowData.question_type} />;
-  };
-
-  const renderTags = (rowData: Exercise) => {
-    if (!rowData.tags) return null;
-
-    const tagsList = rowData.tags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
-    const maxVisibleTags = 3;
-
-    return (
-      <div className={styles.tagContainer}>
-        {tagsList.slice(0, maxVisibleTags).map((tag, index) => (
-          <Chip key={`${tag}_${index}`} label={tag} className={styles.tag} />
-        ))}
-        {tagsList.length > maxVisibleTags && (
-          <span className={styles.moreTags}>+{tagsList.length - maxVisibleTags}</span>
-        )}
-      </div>
-    );
-  };
-
-  const renderEllipsisText = (text: string) => {
-    return (
-      <div className={styles.ellipsisText} title={text}>
-        {text}
-      </div>
-    );
-  };
-
-  const renderPreview = (data: Exercise) => {
-    return data?.htmlsrc ? (
-      <ExercisePreviewModal
-        htmlsrc={data.htmlsrc}
-        triggerButton={<Button icon="pi pi-eye" rounded text aria-label="Preview exercise" />}
-      />
-    ) : null;
-  };
-
-  const renderCopyButton = (data: Exercise) => {
-    return getIsCopyable(data) ? (
-      <Button
-        icon="pi pi-copy"
-        rounded
-        text
-        aria-label="Copy exercise"
-        onClick={() => handleCopyClick(data)}
-        title="Copy exercise"
-      />
-    ) : null;
-  };
-
-  // Convert sort order for PrimeReact
-  const primeSortOrder: SortOrder = searchParams.sorting.order === 1 ? 1 : -1;
-
   return (
-    <div className={styles.container}>
-      {/* Top controls block */}
-      <div className={styles.topControls}>
-        <div className={styles.searchAndFilters}>
-          {/* Global search field */}
-          <div className={styles.searchField}>
-            <span className={styles.searchWrapper}>
-              <i className={styles.searchIcon + " pi pi-search"} />
-              <Chips
-                value={
-                  (filters.global as DataTableFilterMetaData).value
-                    ? (filters.global as DataTableFilterMetaData).value.split(" ").filter(Boolean)
-                    : []
-                }
-                onChange={(e) => onGlobalFilterChange(e.value?.join(" ") || "")}
-                placeholder="Search terms..."
-                className={styles.searchInput + " w-full"}
-              />
+    <section className={styles.card} aria-label="Search exercises">
+      <TabToolbar
+        title="Search exercises"
+        count={pagination?.total ?? 0}
+        scrolled={scrolled}
+        leading={
+          setViewMode && (
+            <Tooltip label="Back to exercises" position="bottom" openDelay={500}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onClick={handleBackToList}
+                aria-label="Back to exercises"
+              >
+                <Icon name="arrow-left" />
+              </ActionIcon>
+            </Tooltip>
+          )
+        }
+      >
+        <TagsInput
+          className={styles.search}
+          value={globalTerms}
+          onChange={(terms) => onGlobalFilterChange(terms.join(" "))}
+          placeholder="Search terms…"
+          leftSection={<Icon name="search" />}
+          clearable
+        />
+        <Switch
+          size="sm"
+          label={searchParams.use_base_course ? "Book exercises" : "All exercises"}
+          labelPosition="left"
+          checked={searchParams.use_base_course}
+          onChange={(e) => toggleBaseCourse(e.currentTarget.checked)}
+        />
+        <FilterMultiSelect
+          label="Exercise types"
+          options={exerciseTypes}
+          value={selectedTypes}
+          onChange={(value) => updateFilters({ question_type: { value, matchMode: MATCH_IN } })}
+        />
+      </TabToolbar>
+
+      <div className={styles.selectionBar}>
+        <div className={styles.selectionGroup}>
+          {selectedExercises.length > 0 ? (
+            <>
+              <Button
+                size="xs"
+                leftSection={<Icon name="plus" />}
+                loading={isUpdating}
+                onClick={onAddSelectedClick}
+              >
+                Add {selectedExercises.length} selected
+              </Button>
+              <Button
+                size="xs"
+                variant="default"
+                leftSection={<Icon name="times" />}
+                onClick={() => setSelectedExercises([])}
+              >
+                Clear selection
+              </Button>
+            </>
+          ) : (
+            <Text size="sm" c="dimmed">
+              Select exercises to add
+            </Text>
+          )}
+        </div>
+        <div className={styles.selectionGroup}>
+          {pagination && (
+            <span className={styles.resultCount}>
+              Showing {exercises.length} of {pagination.total} exercises
             </span>
-          </div>
-
-          <div className={styles.filtersContainer}>
-            <div className={styles.baseCourseFilter}>
-              <label htmlFor="source-switch" className={styles.switchLabel}>
-                {searchParams.use_base_course ? "Book exercises" : "All Exercises"}
-              </label>
-              <InputSwitch
-                inputId="source-switch"
-                checked={searchParams.use_base_course}
-                onChange={(e) => toggleBaseCourse(e.value || false)}
-                className={styles.inputSwitch}
-                tooltip={
-                  searchParams.use_base_course
-                    ? "Showing exercises from current book only"
-                    : "Showing exercises from all books"
-                }
-                tooltipOptions={{ position: "bottom" }}
-              />
-            </div>
-            <MultiSelect
-              value={(filters.question_type as DataTableFilterMetaData).value}
-              options={exerciseTypes}
-              onChange={(e) => {
-                updateFilters({
-                  question_type: { value: e.value, matchMode: FilterMatchMode.IN }
-                });
-              }}
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Exercise types"
-              className={styles.typeFilter}
-              panelClassName="text-sm"
-              maxSelectedLabels={1}
-              selectedItemsLabel="{0} exercise types selected"
-            />
-          </div>
-        </div>
-
-        {/* Status bar with pagination and loading indicator */}
-        <div className={styles.statusBar}>
-          <div className={styles.actionButtons}>
-            {selectedExercises.length > 0 ? (
-              <>
-                <Button
-                  className={styles.addButton}
-                  icon="pi pi-plus"
-                  label={`Add ${selectedExercises.length} selected`}
-                  onClick={onAddSelectedClick}
-                  tooltip="Add selected exercises to assignment"
-                  tooltipOptions={{ position: "top" }}
-                  size="small"
-                  severity="success"
-                />
-                <Button
-                  className={styles.clearButton}
-                  icon="pi pi-times"
-                  label="Clear selection"
-                  onClick={() => setSelectedExercises([])}
-                  tooltip="Clear exercise selection"
-                  tooltipOptions={{ position: "top" }}
-                  size="small"
-                  outlined
-                />
-              </>
-            ) : (
-              <span className={styles.noSelectionText}>Select exercises to add</span>
-            )}
-          </div>
-
-          <div className={styles.paginationContainer}>
-            <div className={styles.paginationInfo}>
-              {pagination && (
-                <span>
-                  Showing {exercises.length > 0 ? exercises.length : 0} of {pagination.total}{" "}
-                  exercises
-                </span>
-              )}
-            </div>
-            <Paginator
-              first={searchParams.page * searchParams.limit}
-              rows={searchParams.limit}
-              totalRecords={pagination?.total || 0}
-              rowsPerPageOptions={[10, 20, 50]}
-              onPageChange={onPage}
-              template="PrevPageLink PageLinks NextPageLink RowsPerPageDropdown"
-              className={styles.paginationControls}
-            />
-            <div className={styles.loadingIndicatorFixed}>
-              {loading && <ProgressSpinner style={{ width: "1.5rem", height: "1.5rem" }} />}
-            </div>
-          </div>
+          )}
+          {loading && !initialLoading && <Loader size="xs" />}
         </div>
       </div>
 
-      {/* Table wrapper with fixed height */}
-      <div className={styles.tableWrapper}>
-        {initialLoading ? (
-          <div className={styles.initialLoadingContainer}>
-            <ProgressSpinner />
-            <div className={styles.loadingText}>Loading exercises...</div>
-          </div>
-        ) : (
-          <DataTable
-            value={exercises}
-            lazy
-            dataKey="id"
-            scrollable
-            scrollHeight="flex"
-            first={searchParams.page * searchParams.limit}
-            rows={searchParams.limit}
-            totalRecords={pagination?.total || 0}
-            onPage={onPage}
-            sortField={searchParams.sorting.field}
-            sortOrder={primeSortOrder}
-            onSort={onSort}
-            onFilter={onFilter}
-            size="small"
-            stripedRows
-            showGridlines
-            selection={selectedExercises}
-            selectionMode="multiple"
-            onSelectionChange={(e) => setSelectedExercises(e.value as Exercise[])}
-            className={styles.table}
-            filters={filters}
-            globalFilterFields={["name", "question_type", "author", "topic", "tags", "htmlsrc"]}
-            emptyMessage={
-              <div className={styles.emptyMessage}>
-                <i
-                  className="pi pi-search"
-                  style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}
-                ></i>
-                <p>No exercises found</p>
-              </div>
-            }
-            rowHover
-            filterDisplay="menu"
-            tableStyle={{ tableLayout: "fixed" }} // Fixed table layout
-            resizableColumns
-            columnResizeMode="fit"
-          >
-            {/* Multiple selection column */}
-            <Column
-              resizeable={false}
-              selectionMode="multiple"
-              headerStyle={{ width: "3rem" }}
-              style={{ width: "3rem" }}
-              className={styles.column}
-              headerClassName={styles.selectionColumnHeader}
-            />
-
-            {/* Preview */}
-            <Column
-              resizeable={false}
-              headerStyle={{ width: "4rem" }}
-              style={{ width: "4rem" }}
-              body={renderPreview}
-              frozen={true}
-              className="preview-column"
-            />
-
-            {/* Copy button */}
-            <Column
-              resizeable={false}
-              headerStyle={{ width: "4rem" }}
-              style={{ width: "4rem" }}
-              body={renderCopyButton}
-              frozen={true}
-              className="copy-column"
-            />
-
-            {/* Question number */}
-            <Column
-              resizeable={false}
-              field="qnumber"
-              header="Number"
-              headerStyle={{ width: "7rem" }}
-              style={{ width: "7rem" }}
-              body={(rowData) => renderEllipsisText(rowData.qnumber)}
-              className="number-column"
-            />
-
-            {/* Question name */}
-            <Column
-              field="name"
-              header="Name"
-              sortable
-              filter
-              filterPlaceholder="Search by name"
-              headerStyle={{ width: "20rem" }}
-              style={{ width: "20rem" }}
-              body={(rowData) => renderEllipsisText(rowData.name)}
-              showFilterMenu={true}
-              filterMenuStyle={{ width: "15rem" }}
-              className="name-column"
-              resizeable
-            />
-
-            {/* Question type */}
-            <Column
-              resizeable={false}
-              field="question_type"
-              header="Type"
-              sortable
-              showFilterMenu={false}
-              body={renderExerciseType}
-              headerStyle={{ width: "10rem" }}
-              style={{ width: "10rem" }}
-              className="type-column"
-            />
-
-            {/* Author */}
-            <Column
-              field="author"
-              header="Author"
-              sortable
-              filter
-              filterPlaceholder="Search by author"
-              headerStyle={{ width: "12rem" }}
-              style={{ width: "12rem" }}
-              body={(rowData) => renderEllipsisText(rowData.author)}
-              showFilterMenu={true}
-              filterMenuStyle={{ width: "15rem" }}
-              className="author-column"
-            />
-
-            {/* Tags */}
-            <Column
-              field="tags"
-              header="Tags"
-              body={renderTags}
-              headerStyle={{ width: "15rem" }}
-              style={{ width: "15rem" }}
-              className="tags-column"
-            />
-
-            {/* Topic */}
-            <Column
-              field="topic"
-              header="Topic"
-              sortable
-              filter
-              filterPlaceholder="Search by topic"
-              headerStyle={{ width: "15rem" }}
-              style={{ width: "15rem" }}
-              body={(rowData) => renderEllipsisText(rowData.topic)}
-              showFilterMenu={true}
-              filterMenuStyle={{ width: "15rem" }}
-              className="topic-column"
-            />
-          </DataTable>
-        )}
-      </div>
+      {initialLoading ? (
+        <Center className={styles.initialLoading} role="status">
+          <Loader />
+          <Text size="sm" c="dimmed">
+            Loading exercises…
+          </Text>
+        </Center>
+      ) : (
+        <div className={styles.body}>
+          <DataGrid
+            data={exercises}
+            columns={columns}
+            getRowId={(row) => String(row.id)}
+            enableRowSelection
+            rowSelection={rowSelection}
+            onRowSelectionChange={handleRowSelectionChange}
+            enableColumnFilters
+            columnFilters={columnFilters}
+            onColumnFiltersChange={handleColumnFiltersChange}
+            manualFiltering
+            sorting={sorting}
+            onSortingChange={handleSortingChange}
+            manualSorting
+            enableSortingRemoval={false}
+            pagination={paginationState}
+            onPaginationChange={handlePaginationChange}
+            pageCount={pagination?.pages ?? -1}
+            manualPagination
+            pageSizeOptions={[10, 20, 50]}
+            loading={loading}
+            emptyMessage="No exercises found"
+            ariaLabel="Search exercises"
+            fillHeight
+            scrollSentinelRef={sentinelRef}
+          />
+        </div>
+      )}
 
       <CopyExerciseModal
         visible={copyModalVisible}
@@ -451,6 +482,6 @@ export const SmartSearchExercises = ({
         setCurrentEditExercise={setCurrentEditExercise}
         setViewMode={setViewMode}
       />
-    </div>
+    </section>
   );
 };

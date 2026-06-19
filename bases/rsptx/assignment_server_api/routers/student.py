@@ -5,6 +5,7 @@
 #
 # *     chooseAssignment
 # *     doAssignment
+# *     studentreport
 #
 # Imports
 # =======
@@ -12,7 +13,9 @@
 #
 # Standard library
 # ----------------
+import csv
 import datetime
+import io
 from typing import Optional
 import json
 import re
@@ -21,7 +24,12 @@ import requests
 # Third-party imports
 # -------------------
 from fastapi import APIRouter, Depends, Request, Cookie
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
@@ -32,17 +40,24 @@ from rsptx.db.crud import (
     create_useinfo_entry,
     fetch_assignments,
     fetch_all_assignment_stats,
+    fetch_all_grades_for_assignment,
     fetch_grade,
     upsert_grade,
     fetch_lti_version,
     fetch_course,
     fetch_all_course_attributes,
+    fetch_code_for_sid,
     fetch_deadline_exception,
     fetch_one_assignment,
     fetch_assignment_questions,
     fetch_question_grade,
+    fetch_recent_useinfo,
+    fetch_user,
     fetch_user_chapter_progress,
     fetch_user_sub_chapter_progress,
+    fetch_useinfo_for_sid,
+    get_book_chapters,
+    get_book_subchapters,
 )
 from rsptx.grading_helpers.core import check_for_exceptions
 
@@ -166,6 +181,217 @@ async def get_assignments(
             "visibility_map": visibility_map,
         },
     )
+
+
+# studentreport
+# -------------
+# A student's progress report: book completion, assignment grades, profile
+# information and recent activity.  This is a port of the legacy web2py
+# ``dashboard/studentreport`` controller.  An instructor may view any student in
+# their course by passing ``?id=<username>``; a student sees only their own
+# report.
+_COMPLETION_STATUS_TEXT = {1: "completed", 0: "started", -1: "notstarted"}
+
+
+def _build_chapter_progress(chapters, subchapters, progress):
+    """Build the "Book Completion" data structure for the progress report.
+
+    :param chapters: List[ChapterValidator] ordered by chapter_num.
+    :param subchapters: List[SubChapterValidator] ordered by chapter/subchapter.
+    :param progress: List[UserSubChapterProgressValidator] for the student.
+        Note ``chapter_id`` here holds the chapter *label* and ``sub_chapter_id``
+        holds the subchapter *label*.
+    :return: A list of dicts with ``label``, ``status`` and ``subchapters``.
+    """
+    # Map a chapter's numeric id -> its label, so we can group subchapters
+    # (which reference Chapter.id) by the chapter label used in the progress
+    # table.
+    label_by_id = {c.id: c.chapter_label for c in chapters}
+
+    # chapter_label -> {sub_chapter_label: sub_chapter_name} (preserving order)
+    subnames_by_chapter: dict = {}
+    for sc in subchapters:
+        clabel = label_by_id.get(sc.chapter_id)
+        if clabel is None:
+            continue
+        subnames_by_chapter.setdefault(clabel, {})[
+            sc.sub_chapter_label
+        ] = sc.sub_chapter_name
+
+    # chapter_label -> {sub_chapter_label: status}
+    progress_by_chapter: dict = {}
+    for p in progress:
+        progress_by_chapter.setdefault(p.chapter_id, {})[p.sub_chapter_id] = p.status
+
+    result = []
+    for chapter in chapters:
+        clabel = chapter.chapter_label
+        chap_progress = progress_by_chapter.get(clabel, {})
+
+        # Determine the chapter-level status the same way the legacy dashboard
+        # did: completed only if every started subchapter is completed, started
+        # if any progress exists, otherwise not started.
+        highest = -1
+        lowest = 1
+        for status in chap_progress.values():
+            lowest = min(lowest, status)
+            highest = max(highest, status)
+        if highest == -1:
+            chapter_status = -1
+        elif lowest == 1:
+            chapter_status = 1
+        else:
+            chapter_status = 0
+
+        sub_name_map = subnames_by_chapter.get(clabel, {})
+        sub_list = []
+        for sub_label, status in chap_progress.items():
+            sub_list.append(
+                {
+                    "label": sub_name_map.get(sub_label, sub_label),
+                    "status": _COMPLETION_STATUS_TEXT.get(status, status),
+                }
+            )
+
+        result.append(
+            {
+                "label": chapter.chapter_name,
+                "status": _COMPLETION_STATUS_TEXT.get(chapter_status, chapter_status),
+                "subchapters": sub_list,
+            }
+        )
+    return result
+
+
+async def _build_assignment_grades(course_name, target_id, student_view):
+    """Build the per-assignment grade table (score, percent, class average).
+
+    :param course_name: The course name.
+    :param target_id: The auth_user id of the student being reported on.
+    :param student_view: bool, True when a student is viewing their own report;
+        unreleased assignments are shown as N/A in that case.
+    :return: dict keyed by assignment name.
+    """
+    assignments = await fetch_assignments(course_name, fetch_all=True)
+    grades = {}
+    for assign in assignments:
+        due_date = assign.duedate.date().strftime("%m-%d-%Y")
+        entry = {
+            "score": "N/A",
+            "pct": "N/A",
+            "class_average": "N/A",
+            "due_date": due_date,
+        }
+        if not (student_view and not assign.released):
+            all_grades = await fetch_all_grades_for_assignment(assign.id)
+            total = 0.0
+            count = 0
+            for g in all_grades:
+                if g.score is not None:
+                    total += g.score
+                    count += 1
+                    if g.auth_user == target_id:
+                        entry["score"] = g.score
+                        if assign.points:
+                            entry["pct"] = round(100 * g.score / assign.points)
+                        else:
+                            entry["pct"] = "N/A"
+            average = total / count if count else 0
+            entry["class_average"] = "{:.02f}".format(average)
+        grades[assign.name] = entry
+    return grades
+
+
+def _validators_to_csv(rows) -> str:
+    """Serialize a list of pydantic validator objects to CSV text."""
+    output = io.StringIO()
+    if not rows:
+        return output.getvalue()
+    fieldnames = list(rows[0].dict().keys())
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+    for row in rows:
+        writer.writerow(row.dict())
+    return output.getvalue()
+
+
+@router.get("/studentreport")
+async def studentreport(
+    request: Request,
+    id: Optional[str] = None,
+    action: Optional[str] = None,
+    user=Depends(auth_manager),
+):
+    """Render the student progress report (book completion, grades, profile and
+    recent activity).  Instructors may pass ``?id=<username>`` to view another
+    student; ``?action=dlcsv`` / ``?action=dlcode`` download the student's raw
+    activity / code history as CSV.
+    """
+    course = await fetch_course(user.course_name)
+    user_is_instructor = await is_instructor(request, user=user)
+
+    if id and user_is_instructor:
+        sid = id
+        target_user = await fetch_user(id)
+    else:
+        sid = user.username
+        target_user = user
+
+    # Students only see released assignment grades; instructors see everything
+    # (matches the legacy dashboard ``studentView = not for_dashboard``).
+    student_view = not user_is_instructor
+
+    if not target_user:
+        return RedirectResponse(url="/assignment/student/chooseAssignment")
+
+    # CSV downloads -----------------------------------------------------------
+    if action == "dlcsv":
+        rows = await fetch_useinfo_for_sid(sid, course.course_name)
+        return StreamingResponse(
+            iter([_validators_to_csv(rows)]),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f'attachment; filename="data_for_{sid}.csv"'
+            },
+        )
+    if action == "dlcode":
+        rows = await fetch_code_for_sid(sid, course.id)
+        return StreamingResponse(
+            iter([_validators_to_csv(rows)]),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f'attachment; filename="code_for_{sid}.csv"'
+            },
+        )
+
+    # Book completion ---------------------------------------------------------
+    base_course = course.base_course
+    chapters = await get_book_chapters(base_course)
+    subchapters = await get_book_subchapters(base_course)
+    progress = await fetch_user_sub_chapter_progress(target_user)
+    chapter_progress = _build_chapter_progress(chapters, subchapters, progress)
+
+    # Grades ------------------------------------------------------------------
+    grades = await _build_assignment_grades(
+        course.course_name, target_user.id, student_view
+    )
+
+    # Recent activity ---------------------------------------------------------
+    activity = await fetch_recent_useinfo(sid, course.course_name)
+
+    templates = Jinja2Templates(directory=template_folder)
+    context = dict(
+        request=request,
+        course=course,
+        user=target_user,
+        is_instructor=user_is_instructor,
+        student_page=True,
+        chapters=chapter_progress,
+        assignments=grades,
+        activity=activity,
+        target_id=id if (id and user_is_instructor) else None,
+    )
+    return templates.TemplateResponse("assignment/student/studentreport.html", context)
 
 
 class UpdateStatusRequest(BaseModel):

@@ -4,27 +4,22 @@
  *
  */
 
-import { useSelector, useDispatch } from "react-redux";
+import {
+  Accordion,
+  Alert,
+  Autocomplete,
+  Button,
+  NumberInput,
+  SegmentedControl,
+  Switch,
+  Tabs,
+  TextInput
+} from "@mantine/core";
+import { DateTimePicker } from "@mantine/dates";
+import { IconClock } from "@tabler/icons-react";
 import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 
-import "primereact/resources/themes/lara-light-blue/theme.css";
-import "primeflex/primeflex.css";
-import { AutoComplete } from "primereact/autocomplete";
-import { Button } from "primereact/button";
-import { Calendar } from "primereact/calendar";
-import { InputNumber } from "primereact/inputnumber";
-import { InputSwitch } from "primereact/inputswitch";
-import { InputText } from "primereact/inputtext";
-
-import { ExerciseSelector } from "./ePicker";
-import { SearchPanel } from "./searchPanel";
-
-import { Message } from "primereact/message";
-import { Panel } from "primereact/panel";
-import { SelectButton } from "primereact/selectbutton";
-import { TabView, TabPanel } from "primereact/tabview";
-
-import "primeicons/primeicons.css";
 import Preview from "../renderers/preview.jsx";
 import {
   createAssignment,
@@ -56,6 +51,8 @@ import {
 import { store } from "../state/store";
 
 import { EditorContainer, EditorChooser } from "./editorModeChooser.jsx";
+import { ExerciseSelector } from "./ePicker";
+import { SearchPanel } from "./searchPanel";
 
 //
 // subscribe to the store and update the assignment when it changes
@@ -138,50 +135,43 @@ function AssignmentEditor() {
   const points = useSelector(selectPoints);
   const assignData = useSelector(selectAll);
   const [items, setItems] = useState(assignData.all_assignments.map((a) => a.name));
-  const search = (e) => {
+
+  const chooseOrNameAssignment = (value) => {
     setItems(
-      assignData.all_assignments.filter((a) => a.name.toLowerCase().includes(e.query.toLowerCase()))
+      assignData.all_assignments
+        .filter((a) => a.name.toLowerCase().includes((value || "").toLowerCase()))
+        .map((a) => a.name)
     );
-  };
 
-  const chooseOrNameAssignment = (e) => {
-    console.log(`in choseOrName ${e.value} items: ${items}`);
-    // This is a bit tricky.
-    // if e.value is an object then we are selecting an existing assignment
-    // if e.value is a string then we are still searching
-    // occasionally we get a hiccup where items isn't yet updated so will only create when
-    // the button is clicked.
-    if (typeof e.value === "string") {
-      dispatch(setName(e.value));
+    const current = assignData.all_assignments.find((a) => a.name === value);
+
+    if (!current) {
+      dispatch(setName(value));
+      return;
+    }
+    dispatch(setName(current.name));
+    if (current.description === null) {
+      dispatch(setDesc(""));
     } else {
-      console.log(`choosing current assignment ${e.value.name}`);
-      let current = e.value;
-
-      dispatch(setName(current.name));
-
-      if (current.description === null) {
-        dispatch(setDesc(""));
-      } else {
-        dispatch(setDesc(current.description));
-      }
-      dispatch(setDue(current.duedate));
-      dispatch(setPoints(current.points));
-      dispatch(setId(current.id));
-      dispatch(setVisible(current.visible));
-      dispatch(setIsPeer(current.is_peer));
-      dispatch(setIsTimed(current.is_timed));
-      dispatch(setFromSource(current.from_source));
-      dispatch(setReleased(current.released));
-      dispatch(setTimeLimit(current.time_limit));
-      dispatch(setNoFeedback(current.nofeedback));
-      dispatch(setNoPause(current.nopause));
-      dispatch(setPeerAsyncVisible(current.peer_async_visible));
-      dispatch(fetchAssignmentQuestions(current.id));
-      if (current.is_peer) {
-        dispatch(setKind("Peer"));
-      } else if (current.is_timed) {
-        dispatch(setKind("Timed"));
-      }
+      dispatch(setDesc(current.description));
+    }
+    dispatch(setDue(current.duedate));
+    dispatch(setPoints(current.points));
+    dispatch(setId(current.id));
+    dispatch(setVisible(current.visible));
+    dispatch(setIsPeer(current.is_peer));
+    dispatch(setIsTimed(current.is_timed));
+    dispatch(setFromSource(current.from_source));
+    dispatch(setReleased(current.released));
+    dispatch(setTimeLimit(current.time_limit));
+    dispatch(setNoFeedback(current.nofeedback));
+    dispatch(setNoPause(current.nopause));
+    dispatch(setPeerAsyncVisible(current.peer_async_visible));
+    dispatch(fetchAssignmentQuestions(current.id));
+    if (current.is_peer) {
+      dispatch(setKind("Peer"));
+    } else if (current.is_timed) {
+      dispatch(setKind("Timed"));
     }
   };
 
@@ -204,12 +194,14 @@ function AssignmentEditor() {
   // We use two representations because the Calendar, internally wants a date
   // but Redux gets unhappy with a Date object because its not serializable.
   // So we use a string for Redux and a Date object for the Calendar.
-  const handleDueChange = (e) => {
-    setDatetime12h(e.value);
-    console.log(`due change ${datetime12h} ${e.value}`);
-    let d = e.value.toISOString().replace("Z", "");
+  const handleDueChange = (value) => {
+    if (!value) {
+      return;
+    }
+    const d = new Date(value);
 
-    dispatch(setDue(d));
+    setDatetime12h(d);
+    dispatch(setDue(d.toISOString().replace("Z", "")));
   };
 
   return (
@@ -217,16 +209,13 @@ function AssignmentEditor() {
       <div className="p-fluid">
         <div className="p-field p-grid">
           <label htmlFor="name">Assignment Name</label>
-          <AutoComplete
+          <Autocomplete
             className="field"
             id="name"
-            field="name"
-            suggestions={items}
-            completeMethod={search}
+            data={assignData.all_assignments.map((a) => a.name)}
             placeholder="Enter or select assignment name... start typing"
             value={name}
             onChange={chooseOrNameAssignment}
-            dropdown
           />
           {items.length == 0 && name ? (
             <Button type="button" className="mb-3 md:mb-0" onClick={newAssignment}>
@@ -234,7 +223,7 @@ function AssignmentEditor() {
             </Button>
           ) : null}
           <label htmlFor="desc">Assignment Description</label>
-          <InputText
+          <TextInput
             id="desc"
             className="field"
             placeholder="Enter assignment description"
@@ -244,38 +233,35 @@ function AssignmentEditor() {
           <div className="contain2col">
             <div className="item">
               <label htmlFor="due">Due</label>
-              <Calendar
+              <DateTimePicker
                 className="field"
-                dateFormat="m/d/yy,"
+                valueFormat="MM/DD/YYYY, hh:mm A"
                 id="due"
                 value={datetime12h}
                 placeholder={placeDate.toLocaleString()}
                 onChange={handleDueChange}
-                showTime
-                hourFormat="12"
-                stepMinute={5}
               />
             </div>
 
             <div className="item">
               <label htmlFor="points">Total Points</label>
-              <InputNumber
+              <NumberInput
                 id="points"
                 disabled
                 className="field"
                 placeholder="Points"
                 value={points}
-                onChange={(e) => dispatch(setPoints(e.value))}
+                onChange={(value) => dispatch(setPoints(value))}
               />
               <div className="field grid">
                 <label className="col-fixed" htmlFor="visible">
                   Visible to Students
                 </label>
-                <InputSwitch
+                <Switch
                   id="visible"
                   className="field"
                   checked={assignData.visible}
-                  onChange={(e) => dispatch(setVisible(e.value))}
+                  onChange={(e) => dispatch(setVisible(e.currentTarget.checked))}
                 />
               </div>
             </div>
@@ -294,6 +280,7 @@ export function MoreOptions() {
   ];
   const assignData = useSelector(selectAll);
   const assignmentKind = useSelector(selectKind);
+  const dispatch = useDispatch();
   var kind = "";
 
   if (assignData.is_peer) {
@@ -306,12 +293,12 @@ export function MoreOptions() {
   // todo - set assignmentKind in the store
 
   console.log("assignment kind = ", assignmentKind, kind);
-  const changeAssigmentKind = (e) => {
-    dispatch(setKind(e.value));
-    if (e.value === "Timed") {
+  const changeAssigmentKind = (value) => {
+    dispatch(setKind(value));
+    if (value === "Timed") {
       dispatch(setIsTimed(true));
       dispatch(setIsPeer(false));
-    } else if (e.value === "Peer") {
+    } else if (value === "Peer") {
       dispatch(setIsTimed(false));
       dispatch(setIsPeer(true));
     } else {
@@ -319,34 +306,33 @@ export function MoreOptions() {
       dispatch(setIsPeer(false));
     }
   };
-  const dispatch = useDispatch();
   const renderOptions = () => {
     if (assignmentKind === "Timed") {
       return (
         <>
           <div className="p-inputgroup">
             <span className="p-inputgroup-addon">
-              <i className="pi pi-clock">time</i>
+              <IconClock size={16} />
             </span>
-            <InputNumber
+            <NumberInput
               id="timeLimit"
               placeholder="Time Limit (minutes)"
               value={assignData.timeLimit}
-              onChange={(e) => dispatch(setTimeLimit(e.value))}
+              onChange={(value) => dispatch(setTimeLimit(value))}
             />
             <span className="p-inputgroup-addon">minutes</span>
           </div>
           <label htmlFor="feedback">Allow Feedback</label>
-          <InputSwitch
+          <Switch
             id="feedback"
             checked={assignData.feedback}
-            onChange={(e) => dispatch(setNoFeedback(e.value))}
+            onChange={(e) => dispatch(setNoFeedback(e.currentTarget.checked))}
           />
           <label htmlFor="allowPause">Allow Pause</label>
-          <InputSwitch
+          <Switch
             id="allowPause"
             checked={assignData.allowPause}
-            onChange={(e) => dispatch(setNoPause(e.value))}
+            onChange={(e) => dispatch(setNoPause(e.currentTarget.checked))}
           />
         </>
       );
@@ -354,10 +340,10 @@ export function MoreOptions() {
       return (
         <>
           <label htmlFor="showAsync">Show Async Peer</label>
-          <InputSwitch
+          <Switch
             id="showAsync"
             checked={assignData.showAsync}
-            onChange={(e) => dispatch(setPeerAsyncVisible(e.value))}
+            onChange={(e) => dispatch(setPeerAsyncVisible(e.currentTarget.checked))}
           />
         </>
       );
@@ -368,15 +354,24 @@ export function MoreOptions() {
 
   return (
     <div className="App">
-      <Panel header="More Options" collapsed={true} toggleable>
-        <div className="p-fluid">
-          <div className="p-field p-grid">
-            <label htmlFor="name">What kind of Assignment?</label>
-            <SelectButton value={assignmentKind} onChange={changeAssigmentKind} options={options} />
-          </div>
-          {renderOptions()}
-        </div>
-      </Panel>
+      <Accordion>
+        <Accordion.Item value="more-options">
+          <Accordion.Control>More Options</Accordion.Control>
+          <Accordion.Panel>
+            <div className="p-fluid">
+              <div className="p-field p-grid">
+                <label htmlFor="name">What kind of Assignment?</label>
+                <SegmentedControl
+                  value={assignmentKind}
+                  onChange={changeAssigmentKind}
+                  data={options}
+                />
+              </div>
+              {renderOptions()}
+            </div>
+          </Accordion.Panel>
+        </Accordion.Item>
+      </Accordion>
     </div>
   );
 }
@@ -390,28 +385,34 @@ export function AddQuestionTabGroup() {
   if (assignmentId === 0) {
     return (
       <div className="App card flex justify-content-center">
-        <Message text="Please select or create an assignment to add exercises." />
+        <Alert>Please select or create an assignment to add exercises.</Alert>
       </div>
     );
   }
   return (
     <div className="App">
-      <TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)}>
-        <TabPanel header="Choose Readings">
+      <Tabs value={String(activeIndex)} onChange={(value) => setActiveIndex(Number(value))}>
+        <Tabs.List>
+          <Tabs.Tab value="0">Choose Readings</Tabs.Tab>
+          <Tabs.Tab value="1">Choose Exercises</Tabs.Tab>
+          <Tabs.Tab value="2">Search for Exercises</Tabs.Tab>
+          <Tabs.Tab value="3">Write an Exercise</Tabs.Tab>
+        </Tabs.List>
+        <Tabs.Panel value="0">
           <ExerciseSelector level="subchapter" />
-        </TabPanel>
-        <TabPanel header="Choose Exercises">
+        </Tabs.Panel>
+        <Tabs.Panel value="1">
           <ExerciseSelector />
-        </TabPanel>
-        <TabPanel header="Search for Exercises">
+        </Tabs.Panel>
+        <Tabs.Panel value="2">
           <SearchPanel />
-        </TabPanel>
-        <TabPanel header="Write an Exercise">
+        </Tabs.Panel>
+        <Tabs.Panel value="3">
           <EditorChooser />
           <EditorContainer />
           <Preview />
-        </TabPanel>
-      </TabView>
+        </Tabs.Panel>
+      </Tabs>
     </div>
   );
 }

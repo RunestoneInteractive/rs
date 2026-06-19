@@ -81,6 +81,15 @@ async def test_get_assignment_by_id(auth_instructor_client):
 # ---------------------------------------------------------------------------
 
 async def test_course_roster(auth_instructor_client):
-    """Instructor can retrieve the course roster."""
+    """Instructor can retrieve the course roster with a students list."""
     resp = await auth_instructor_client.get("/instructor/course_roster")
     assert resp.status_code == 200
+    data = resp.json()
+    assert "students" in data["detail"]
+    assert isinstance(data["detail"]["students"], list)
+
+
+async def test_course_roster_rejects_non_instructor(auth_student_client):
+    """A non-instructor (student) is rejected by @instructor_role_required()."""
+    resp = await auth_student_client.get("/instructor/course_roster")
+    assert resp.status_code in (401, 403)

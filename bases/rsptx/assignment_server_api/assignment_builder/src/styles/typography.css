@@ -1,0 +1,32 @@
+body {
+  font-family: var(--rs-font-sans);
+  font-size: var(--rs-font-size-md);
+  line-height: var(--rs-line-height);
+  color: var(--rs-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: var(--rs-line-height-heading);
+  letter-spacing: var(--rs-tracking-heading);
+  color: var(--rs-text-strong);
+}
+
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--rs-font-mono);
+  font-variant-ligatures: none;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+}

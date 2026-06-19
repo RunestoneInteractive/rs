@@ -1,0 +1,26 @@
+.bar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--rs-space-2);
+  flex-shrink: 0;
+  padding: var(--rs-space-3) var(--rs-space-4);
+  background: var(--rs-danger-bg);
+  border-top: 1px solid var(--rs-danger-border);
+  color: var(--rs-danger-text);
+  font-size: var(--rs-font-size-sm);
+}
+
+.icon {
+  display: inline-flex;
+  flex: none;
+  margin-top: 1px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

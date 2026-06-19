@@ -1,16 +1,18 @@
 import { TipTapImageAttributes } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Plugins/Image";
 import { Editor, Extension, Range } from "@tiptap/core";
 import { ReactRenderer } from "@tiptap/react";
-import Suggestion from "@tiptap/suggestion";
+import Suggestion, { SuggestionProps, SuggestionKeyDownProps } from "@tiptap/suggestion";
 import React, { useCallback, useState, useImperativeHandle } from "react";
-import tippy from "tippy.js";
+import tippy, { GetReferenceClientRect } from "tippy.js";
 
 import styles from "./SlashCommands.module.css";
+import { openInsertForm } from "./extensions/InsertFormBridge";
 
 interface CommandItem {
   title: string;
   description: string;
   icon: string;
+  kbd?: string;
   command?: ({ editor, range }: { editor: Editor; range: Range }) => void;
   submenu?: CommandItem[];
 }
@@ -22,8 +24,14 @@ interface CommandListProps {
   range: Range;
 }
 
-const CommandList = React.forwardRef<any, CommandListProps>(
-  ({ items, command, editor, range }, ref) => {
+interface CommandListRef {
+  selectItem: (index: number) => void;
+  selectedIndex: number;
+  onKeyDown: (e: React.KeyboardEvent) => boolean;
+}
+
+export const CommandList = React.forwardRef<CommandListRef, CommandListProps>(
+  ({ items, command }, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [showSubmenu, setShowSubmenu] = useState<number | null>(null);
     const [submenuSelectedIndex, setSubmenuSelectedIndex] = useState(0);
@@ -132,10 +140,19 @@ const CommandList = React.forwardRef<any, CommandListProps>(
     }));
 
     return (
-      <div className={styles.commandList} onKeyDown={onKeyDown}>
-        {items.map((item: any, index: number) => (
+      <div
+        className={styles.commandList}
+        role="listbox"
+        aria-label="Editor commands"
+        tabIndex={-1}
+        onKeyDown={onKeyDown}
+      >
+        {items.map((item, index: number) => (
           <div key={index} className={styles.commandItemWrapper}>
             <button
+              type="button"
+              role="option"
+              aria-selected={index === selectedIndex}
               className={styles.commandItem}
               onClick={() => selectItem(index)}
               onMouseEnter={() => {
@@ -149,34 +166,36 @@ const CommandList = React.forwardRef<any, CommandListProps>(
               }}
               data-selected={index === selectedIndex}
             >
-              <i className={`fa-solid ${item.icon}`} />
+              <i className={`fa-solid ${item.icon}`} aria-hidden="true" />
               <div>
                 <div className={styles.commandTitle}>{item.title}</div>
                 <div className={styles.commandDescription}>{item.description}</div>
               </div>
+              {item.kbd && <kbd className={styles.kbd}>{item.kbd}</kbd>}
               {item.submenu && (
-                <i
-                  className="fa-solid fa-chevron-right"
-                  style={{ marginLeft: "auto", opacity: 0.5 }}
-                />
+                <i className={`fa-solid fa-chevron-right ${styles.chevron}`} aria-hidden="true" />
               )}
             </button>
 
             {showSubmenu === index && item.submenu && (
-              <div className={styles.submenu}>
-                {item.submenu.map((submenuItem: any, submenuIndex: number) => (
+              <div className={styles.submenu} role="listbox" aria-label={item.title}>
+                {item.submenu.map((submenuItem, submenuIndex: number) => (
                   <button
                     key={submenuIndex}
+                    type="button"
+                    role="option"
+                    aria-selected={submenuIndex === submenuSelectedIndex}
                     className={styles.submenuItem}
                     onClick={() => selectSubmenuItem(submenuIndex)}
                     onMouseEnter={() => setSubmenuSelectedIndex(submenuIndex)}
                     data-selected={submenuIndex === submenuSelectedIndex}
                   >
-                    <i className={`fa-solid ${submenuItem.icon}`} />
+                    <i className={`fa-solid ${submenuItem.icon}`} aria-hidden="true" />
                     <div>
                       <div className={styles.commandTitle}>{submenuItem.title}</div>
                       <div className={styles.commandDescription}>{submenuItem.description}</div>
                     </div>
+                    {submenuItem.kbd && <kbd className={styles.kbd}>{submenuItem.kbd}</kbd>}
                   </button>
                 ))}
               </div>
@@ -191,22 +210,24 @@ const CommandList = React.forwardRef<any, CommandListProps>(
 // Simplified to 5 main categories with submenus
 export const items: CommandItem[] = [
   {
-    title: "Text Formatting",
+    title: "Text formatting",
     description: "Format text with bold, italic, etc.",
     icon: "fa-font",
     submenu: [
       {
-        title: "Bold Text",
+        title: "Bold",
         description: "Make text bold",
         icon: "fa-bold",
+        kbd: "Ctrl+B",
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleBold().run();
         }
       },
       {
-        title: "Italic Text",
+        title: "Italic",
         description: "Make text italic",
         icon: "fa-italic",
+        kbd: "Ctrl+I",
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleItalic().run();
         }
@@ -215,6 +236,7 @@ export const items: CommandItem[] = [
         title: "Underline",
         description: "Underline text",
         icon: "fa-underline",
+        kbd: "Ctrl+U",
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleUnderline().run();
         }
@@ -236,7 +258,7 @@ export const items: CommandItem[] = [
         }
       },
       {
-        title: "Clear Formatting",
+        title: "Clear formatting",
         description: "Remove all text formatting",
         icon: "fa-eraser",
         command: ({ editor, range }) => {
@@ -254,6 +276,7 @@ export const items: CommandItem[] = [
         title: "Heading 1",
         description: "Large heading",
         icon: "fa-heading",
+        kbd: "#",
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).setHeading({ level: 1 }).run();
         }
@@ -262,6 +285,7 @@ export const items: CommandItem[] = [
         title: "Heading 2",
         description: "Medium heading",
         icon: "fa-heading",
+        kbd: "##",
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).setHeading({ level: 2 }).run();
         }
@@ -270,6 +294,7 @@ export const items: CommandItem[] = [
         title: "Heading 3",
         description: "Small heading",
         icon: "fa-heading",
+        kbd: "###",
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run();
         }
@@ -278,6 +303,7 @@ export const items: CommandItem[] = [
         title: "Heading 4",
         description: "Extra small heading",
         icon: "fa-heading",
+        kbd: "####",
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).setHeading({ level: 4 }).run();
         }
@@ -285,22 +311,24 @@ export const items: CommandItem[] = [
     ]
   },
   {
-    title: "Lists & Structure",
+    title: "Lists & structure",
     description: "Create lists and structure content",
     icon: "fa-list",
     submenu: [
       {
-        title: "Bullet List",
+        title: "Bullet list",
         description: "Create a bullet list",
         icon: "fa-list-ul",
+        kbd: "-",
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleBulletList().run();
         }
       },
       {
-        title: "Numbered List",
+        title: "Numbered list",
         description: "Create a numbered list",
         icon: "fa-list-ol",
+        kbd: "1.",
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleOrderedList().run();
         }
@@ -309,12 +337,13 @@ export const items: CommandItem[] = [
         title: "Quote",
         description: "Add a blockquote",
         icon: "fa-quote-left",
+        kbd: ">",
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleBlockquote().run();
         }
       },
       {
-        title: "Horizontal Rule",
+        title: "Horizontal rule",
         description: "Add a horizontal line",
         icon: "fa-minus",
         command: ({ editor, range }) => {
@@ -324,59 +353,33 @@ export const items: CommandItem[] = [
     ]
   },
   {
-    title: "Code & Math",
+    title: "Code & math",
     description: "Insert code blocks and math expressions",
     icon: "fa-code",
     submenu: [
       {
-        title: "Code Block",
+        title: "Code block",
         description: "Insert a code block",
         icon: "fa-code",
         command: ({ editor, range }) => {
-          const language = prompt(
-            "Enter programming language (e.g., python, javascript, java) or leave empty for default:"
-          );
-
-          if (language !== null) {
-            // User didn't cancel
-            const trimmedLanguage = language.trim();
-
-            if (trimmedLanguage) {
-              editor
-                .chain()
-                .focus()
-                .deleteRange(range)
-                .setCodeBlock({ language: trimmedLanguage })
-                .run();
-            } else {
-              editor.chain().focus().deleteRange(range).setCodeBlock().run();
-            }
-          }
+          openInsertForm(editor, "codeBlock", range);
         }
       },
       {
-        title: "Inline Code",
+        title: "Inline code",
         description: "Insert inline code",
         icon: "fa-terminal",
+        kbd: "`",
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).toggleCode().run();
         }
       },
       {
-        title: "Math Expression",
+        title: "Math expression",
         description: "Add mathematical formulas (LaTeX)",
         icon: "fa-square-root-variable",
         command: ({ editor, range }) => {
-          const formula = prompt("Enter LaTeX formula:");
-
-          if (formula) {
-            editor
-              .chain()
-              .focus()
-              .deleteRange(range)
-              .insertContent({ type: "inlineMath", attrs: { latex: formula } })
-              .run();
-          }
+          openInsertForm(editor, "math", range);
         }
       }
     ]
@@ -387,7 +390,7 @@ export const items: CommandItem[] = [
     icon: "fa-table",
     submenu: [
       {
-        title: "Insert Table",
+        title: "Insert table",
         description: "Create a new table (3x3)",
         icon: "fa-table",
         command: ({ editor, range }) => {
@@ -400,63 +403,63 @@ export const items: CommandItem[] = [
         }
       },
       {
-        title: "Add Column Before",
-        description: "Add a column before current",
+        title: "Add column left",
+        description: "Insert a column to the left",
         icon: "fa-table-columns",
         command: ({ editor }) => {
           editor.chain().focus().addColumnBefore().run();
         }
       },
       {
-        title: "Add Column After",
-        description: "Add a column after current",
+        title: "Add column right",
+        description: "Insert a column to the right",
         icon: "fa-table-columns",
         command: ({ editor }) => {
           editor.chain().focus().addColumnAfter().run();
         }
       },
       {
-        title: "Delete Column",
-        description: "Remove current column",
+        title: "Delete column",
+        description: "Remove the current column",
         icon: "fa-table-columns",
         command: ({ editor }) => {
           editor.chain().focus().deleteColumn().run();
         }
       },
       {
-        title: "Add Row Before",
-        description: "Add a row before current",
+        title: "Add row above",
+        description: "Insert a row above",
         icon: "fa-table-rows",
         command: ({ editor }) => {
           editor.chain().focus().addRowBefore().run();
         }
       },
       {
-        title: "Add Row After",
-        description: "Add a row after current",
+        title: "Add row below",
+        description: "Insert a row below",
         icon: "fa-table-rows",
         command: ({ editor }) => {
           editor.chain().focus().addRowAfter().run();
         }
       },
       {
-        title: "Delete Row",
-        description: "Remove current row",
+        title: "Delete row",
+        description: "Remove the current row",
         icon: "fa-table-rows",
         command: ({ editor }) => {
           editor.chain().focus().deleteRow().run();
         }
       },
       {
-        title: "Toggle Header Row",
-        description: "Toggle header for first row",
+        title: "Toggle header row",
+        description: "Toggle the header style of the first row",
         icon: "fa-heading",
         command: ({ editor }) => {
           editor.chain().focus().toggleHeaderRow().run();
         }
       },
       {
-        title: "Merge Cells",
+        title: "Merge cells",
         description: "Merge selected cells",
         icon: "fa-object-group",
         command: ({ editor }) => {
@@ -464,16 +467,16 @@ export const items: CommandItem[] = [
         }
       },
       {
-        title: "Split Cell",
-        description: "Split merged cell",
+        title: "Split cell",
+        description: "Split the merged cell",
         icon: "fa-object-ungroup",
         command: ({ editor }) => {
           editor.chain().focus().splitCell().run();
         }
       },
       {
-        title: "Delete Table",
-        description: "Remove entire table",
+        title: "Delete table",
+        description: "Remove the entire table",
         icon: "fa-trash",
         command: ({ editor }) => {
           editor.chain().focus().deleteTable().run();
@@ -482,7 +485,7 @@ export const items: CommandItem[] = [
     ]
   },
   {
-    title: "Media & Links",
+    title: "Media & links",
     description: "Insert images, links and media",
     icon: "fa-image",
     submenu: [
@@ -491,15 +494,11 @@ export const items: CommandItem[] = [
         description: "Insert a hyperlink",
         icon: "fa-link",
         command: ({ editor, range }) => {
-          const url = prompt("Enter URL:");
-
-          if (url) {
-            editor.chain().focus().deleteRange(range).setLink({ href: url }).run();
-          }
+          openInsertForm(editor, "link", range);
         }
       },
       {
-        title: "Upload Image",
+        title: "Upload image",
         description: "Upload and insert an image",
         icon: "fa-image",
         command: ({ editor, range }) => {
@@ -538,25 +537,15 @@ export const items: CommandItem[] = [
         description: "Insert an image from URL",
         icon: "fa-link",
         command: ({ editor, range }) => {
-          const url = prompt("Enter image URL:");
-
-          if (url) {
-            const attrs: TipTapImageAttributes = { src: url };
-
-            editor.chain().focus().deleteRange(range).setImage(attrs).run();
-          }
+          openInsertForm(editor, "imageUrl", range);
         }
       },
       {
-        title: "YouTube Video",
+        title: "YouTube video",
         description: "Embed a YouTube video",
         icon: "fa-video",
         command: ({ editor, range }) => {
-          const url = prompt("Enter YouTube URL:");
-
-          if (url) {
-            editor.chain().focus().deleteRange(range).setYoutubeVideo({ src: url }).run();
-          }
+          openInsertForm(editor, "youtube", range);
         }
       }
     ]
@@ -565,10 +554,10 @@ export const items: CommandItem[] = [
 
 export const renderItems = () => {
   let component: ReactRenderer | null = null;
-  let popup: any = null;
+  let popup: ReturnType<typeof tippy> | null = null;
 
   return {
-    onStart: (props: any) => {
+    onStart: (props: SuggestionProps) => {
       component = new ReactRenderer(CommandList, {
         props,
         editor: props.editor
@@ -584,7 +573,7 @@ export const renderItems = () => {
       };
 
       popup = tippy("body", {
-        getReferenceClientRect: props.clientRect,
+        getReferenceClientRect: props.clientRect as GetReferenceClientRect,
         appendTo: getAppendTarget,
         content: component.element,
         showOnCreate: true,
@@ -594,7 +583,7 @@ export const renderItems = () => {
       });
     },
 
-    onUpdate(props: any) {
+    onUpdate(props: SuggestionProps) {
       component?.updateProps(props);
 
       if (!props.clientRect) {
@@ -602,11 +591,11 @@ export const renderItems = () => {
       }
 
       popup?.[0].setProps({
-        getReferenceClientRect: props.clientRect
+        getReferenceClientRect: props.clientRect as GetReferenceClientRect
       });
     },
 
-    onKeyDown(props: any) {
+    onKeyDown(props: SuggestionKeyDownProps) {
       if (props.event.key === "Escape") {
         popup?.[0].hide();
         return true;
@@ -616,10 +605,12 @@ export const renderItems = () => {
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(props.event.key)) {
         props.event.preventDefault();
 
-        const commandListRef = (component as any)?.ref;
+        const commandListRef = (component as ReactRenderer | null)?.ref as
+          | CommandListRef
+          | undefined;
 
         if (commandListRef?.onKeyDown) {
-          return commandListRef.onKeyDown(props.event);
+          return commandListRef.onKeyDown(props.event as unknown as React.KeyboardEvent);
         }
       }
 
@@ -640,8 +631,16 @@ export const Command = Extension.create({
     return {
       suggestion: {
         char: "/",
-        command: ({ editor, range, props }: { editor: Editor; range: Range; props: any }) => {
-          props.command({ editor, range });
+        command: ({
+          editor,
+          range,
+          props
+        }: {
+          editor: Editor;
+          range: Range;
+          props: CommandItem;
+        }) => {
+          props.command!({ editor, range });
         },
         items: ({ query }: { query: string }) => {
           return items.filter(

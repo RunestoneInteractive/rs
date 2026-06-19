@@ -1,5 +1,4 @@
-import { Column } from "primereact/column";
-import { DataTable } from "primereact/datatable";
+import { Table } from "@mantine/core";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
@@ -16,7 +15,7 @@ export function AssignmentSummary() {
       due: "2021-09-01",
       average: 75.5,
       min: 0,
-      max: 100,
+      max: 100
     },
     {
       key: 2,
@@ -26,7 +25,7 @@ export function AssignmentSummary() {
       due: "2021-09-01",
       average: 75.5,
       min: 0,
-      max: 100,
+      max: 100
     },
     {
       key: 3,
@@ -36,8 +35,8 @@ export function AssignmentSummary() {
       due: "2021-09-01",
       average: 75.5,
       min: 0,
-      max: 100,
-    },
+      max: 100
+    }
   ];
   const [assignData, setAssignData] = useState([data]);
   const [selectedRow, setSelectedRow] = useState(null);
@@ -50,46 +49,71 @@ export function AssignmentSummary() {
   const data2 = [
     { key: 1, sid: "bmiller", response: "A", points: 100 },
     { key: 2, sid: "jdoe", response: "B", points: 50 },
-    { key: 3, sid: "jdown", response: "C", points: 75 },
+    { key: 3, sid: "jdown", response: "C", points: 75 }
   ];
+
+  const isSelected = (row) => selectedRow && selectedRow.id === row.id;
 
   return (
     <div>
-      <DataTable
-        value={assignData}
-        paginator
-        rows={10}
-        selectionMode="single"
-        selection={selectedRow}
-        onSelectionChange={(e) => {
-          setSelectedRow(e.value);
-          setQuestionData(data2);
-        }}
-        dataKey="id"
-      >
-        <Column key="title" field="title" header="title" />
-        <Column field="points" header="points" />
-        <Column field="due" header="due" />
-        <Column field="average" header="average" />
-        <Column field="min" header="min" />
-        <Column field="max" header="max" />
-      </DataTable>
+      <Table highlightOnHover>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>title</Table.Th>
+            <Table.Th>points</Table.Th>
+            <Table.Th>due</Table.Th>
+            <Table.Th>average</Table.Th>
+            <Table.Th>min</Table.Th>
+            <Table.Th>max</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {(Array.isArray(assignData) ? assignData : []).map((row) => (
+            <Table.Tr
+              key={row.id}
+              bg={isSelected(row) ? "var(--mantine-color-blue-light)" : undefined}
+              style={{ cursor: "pointer" }}
+              onClick={() => {
+                setSelectedRow(row);
+                setQuestionData(data2);
+              }}
+            >
+              <Table.Td>{row.title}</Table.Td>
+              <Table.Td>{row.points}</Table.Td>
+              <Table.Td>{row.due}</Table.Td>
+              <Table.Td>{row.average}</Table.Td>
+              <Table.Td>{row.min}</Table.Td>
+              <Table.Td>{row.max}</Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
 
       <p>Preview of Question goes here (maybe)</p>
 
-      <DataTable
-        value={questionData}
-        paginator
-        rows={10}
-        selectionMode="single"
-        selection={selectedRow}
-        onSelectionChange={(e) => setSelectedRow(e.value)}
-        dataKey="id"
-      >
-        <Column key="1" field="sid" header="Student" />
-        <Column key="2" field="response" header="Response" />
-        <Column key="3" field="points" header="Points" />
-      </DataTable>
+      <Table highlightOnHover>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Student</Table.Th>
+            <Table.Th>Response</Table.Th>
+            <Table.Th>Points</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {(questionData || []).map((row) => (
+            <Table.Tr
+              key={row.key}
+              bg={isSelected(row) ? "var(--mantine-color-blue-light)" : undefined}
+              style={{ cursor: "pointer" }}
+              onClick={() => setSelectedRow(row)}
+            >
+              <Table.Td>{row.sid}</Table.Td>
+              <Table.Td>{row.response}</Table.Td>
+              <Table.Td>{row.points}</Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
     </div>
   );
 }

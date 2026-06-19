@@ -1,4 +1,5 @@
 import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
+import { Icon } from "@components/ui/Icon";
 import { FC } from "react";
 
 import { useValidation } from "../../../shared/ExerciseLayout";
@@ -22,7 +23,7 @@ export const PollQuestionEditor: FC<PollQuestionEditorProps> = ({ question, onCh
       </div>
 
       <div className={styles.questionTips}>
-        <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
+        <Icon name="lightbulb" style={{ marginRight: "4px" }} />
         <span>
           Tip: Create a clear question that students will respond to with the poll options. Type /
           in the editor for a menu of options.

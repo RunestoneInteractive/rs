@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 export type AssignmentMode = "list" | "create" | "edit";
 export type WizardStep = "basic" | "type" | "visibility";
@@ -34,7 +34,7 @@ export const useAssignmentRouting = () => {
     const path = window.location.pathname;
     const basePath = "/builder";
 
-    let state: AssignmentRouteState = {
+    const state: AssignmentRouteState = {
       mode: "list",
       selectedAssignmentId: null,
       wizardStep: "basic",

@@ -25,37 +25,33 @@ interface PollExerciseData extends Partial<CreateExerciseFormType> {
 const stepConfigs: Record<string, ExerciseStepConfig> = {
   parsonsprob: {
     0: {
-      title: "Select Language",
+      title: "Select language",
       description: "Choose the programming language for this Parsons problem"
     },
     1: {
-      title: "Write Instructions",
+      title: "Write instructions",
       description: "Provide instructions for the student"
     },
     2: {
-      title: "Create Content Blocks",
+      title: "Create content blocks",
       description: "Enter the code blocks that students will arrange"
     },
     3: {
-      title: "Manage Blocks",
-      description: "Organize the code blocks in the correct order"
-    },
-    4: {
-      title: "Exercise Settings",
+      title: "Exercise settings",
       description: "Configure exercise settings such as name, points, etc."
     },
-    5: {
+    4: {
       title: "Preview",
       description: "Preview the exercise as students will see it"
     }
   },
   shortanswer: {
     0: {
-      title: "Create Question",
+      title: "Create question",
       description: "Write the question that students will answer"
     },
     1: {
-      title: "Exercise Settings",
+      title: "Exercise settings",
       description: "Configure exercise settings such as name, points, etc."
     },
     2: {
@@ -65,11 +61,11 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
   },
   clickablearea: {
     0: {
-      title: "Create Content",
+      title: "Create content",
       description: "Create the clickable area exercise content"
     },
     1: {
-      title: "Exercise Settings",
+      title: "Exercise settings",
       description: "Configure exercise settings such as name, points, etc."
     },
     2: {
@@ -79,15 +75,15 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
   },
   mchoice: {
     0: {
-      title: "Create Question",
+      title: "Create question",
       description: "Write a clear multiple choice question"
     },
     1: {
-      title: "Answer Options",
+      title: "Answer options",
       description: "Create and manage options for your multiple choice question"
     },
     2: {
-      title: "Exercise Settings",
+      title: "Exercise settings",
       description: "Configure exercise settings such as name, points, etc."
     },
     3: {
@@ -97,35 +93,35 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
   },
   activecode: {
     0: {
-      title: "Select Language",
+      title: "Select language",
       description: "Choose the programming language for this active code exercise"
     },
     1: {
-      title: "Data Files",
+      title: "Data files",
       description: "Create or select data files that students can read from in their programs"
     },
     2: {
-      title: "Write Instructions",
+      title: "Write instructions",
       description: "Provide instructions for the student"
     },
     3: {
-      title: "Hidden Prefix",
+      title: "Hidden prefix",
       description: "Add code that runs before the student's code but is hidden from them"
     },
     4: {
-      title: "Starter Code",
+      title: "Starter code",
       description: "Provide initial code that students will see and modify"
     },
     5: {
-      title: "Hidden Suffix",
+      title: "Hidden suffix",
       description: "Add code that runs after the student's code but is hidden from them"
     },
     6: {
-      title: "Standard Input",
+      title: "Standard input",
       description: "Provide input data for programs that read from stdin"
     },
     7: {
-      title: "Exercise Settings",
+      title: "Exercise settings",
       description: "Configure exercise settings such as name, points, etc."
     },
     8: {
@@ -135,19 +131,19 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
   },
   poll: {
     0: {
-      title: "Create Question",
+      title: "Create question",
       description: "Write the question for the poll"
     },
     1: {
-      title: "Poll Type",
+      title: "Poll type",
       description: "Choose the type of poll"
     },
     2: {
-      title: "Answer Options",
+      title: "Answer options",
       description: "Create and manage options for the poll"
     },
     3: {
-      title: "Exercise Settings",
+      title: "Exercise settings",
       description: "Configure exercise settings such as name, points, etc."
     },
     4: {
@@ -157,16 +153,16 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
   },
   dragndrop: {
     0: {
-      title: "Create Statement",
+      title: "Create statement",
       description:
         "Write clear instructions for students about how to complete the drag and drop exercise"
     },
     1: {
-      title: "Content Matching",
+      title: "Content matching",
       description: "Create blocks in both columns and connect matching items"
     },
     2: {
-      title: "Exercise Settings",
+      title: "Exercise settings",
       description: "Configure exercise settings such as name, points, etc."
     },
     3: {
@@ -176,16 +172,16 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
   },
   matching: {
     0: {
-      title: "Create Statement",
+      title: "Create statement",
       description:
         "Write clear instructions for students about how to complete the matching exercise"
     },
     1: {
-      title: "Content Matching",
+      title: "Content matching",
       description: "Create blocks in both columns and connect matching items"
     },
     2: {
-      title: "Exercise Settings",
+      title: "Exercise settings",
       description: "Configure exercise settings such as name, points, etc."
     },
     3: {
@@ -195,16 +191,16 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
   },
   fillintheblank: {
     0: {
-      title: "Create Question",
+      title: "Create question",
       description:
         "Write your question text and use {blank} to indicate where input fields should appear"
     },
     1: {
-      title: "Answer Fields",
+      title: "Answer fields",
       description: "Configure the answer fields for each blank in your question"
     },
     2: {
-      title: "Exercise Settings",
+      title: "Exercise settings",
       description: "Configure exercise settings such as name, points, etc."
     },
     3: {
@@ -214,15 +210,15 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
   },
   selectquestion: {
     0: {
-      title: "AB Experiment & Questions",
+      title: "AB experiment and questions",
       description: "Configure question list, AB experiment"
     },
     1: {
-      title: "Toggle Options",
+      title: "Toggle options",
       description: "Configure toggle options for the exercise"
     },
     2: {
-      title: "Settings",
+      title: "Exercise settings",
       description: "Configure exercise settings such as name, points, etc."
     },
     3: {
@@ -232,11 +228,11 @@ const stepConfigs: Record<string, ExerciseStepConfig> = {
   },
   iframe: {
     0: {
-      title: "iFrame URL",
+      title: "Iframe URL",
       description: "Enter the URL of the content to embed"
     },
     1: {
-      title: "Exercise Settings",
+      title: "Exercise settings",
       description: "Configure exercise settings such as name, points, etc."
     },
     2: {
@@ -257,7 +253,7 @@ export const PARSONS_STEP_VALIDATORS: StepValidator<ParsonsData>[] = [
     const errors: string[] = [];
 
     if (!data.language) {
-      errors.push("Please select a language");
+      errors.push("Select a language");
     }
     return errors;
   },
@@ -275,7 +271,7 @@ export const PARSONS_STEP_VALIDATORS: StepValidator<ParsonsData>[] = [
     const errors: string[] = [];
 
     if (!data.blocks?.length) {
-      errors.push("Please add some code blocks");
+      errors.push("Add at least one code block");
     } else if (data.blocks.some((block) => !block.content.trim())) {
       errors.push("All blocks must contain content");
     }
@@ -329,7 +325,7 @@ export const PARSONS_STEP_VALIDATORS: StepValidator<ParsonsData>[] = [
             const blockAbove = data.blocks[i - 1];
             if (blockAbove.isDistractor) {
               errors.push(
-                `Paired distractor "${block.content.substring(0, 30)}..." must be placed directly after a solution block, not another distractor`
+                `Paired distractor "${block.content.substring(0, 30)}…" must be placed directly after a solution block, not another distractor`
               );
             }
           }
@@ -466,7 +462,7 @@ export const ACTIVE_CODE_STEP_VALIDATORS: StepValidator<Partial<CreateExerciseFo
     return errors;
   },
   // Data Files - optional step, no validation required
-  (data) => {
+  () => {
     const errors: string[] = [];
 
     return errors;
@@ -540,8 +536,10 @@ export const POLL_STEP_VALIDATORS: StepValidator<PollExerciseData>[] = [
     const options = data.optionList || [];
 
     if (data.poll_type === "scale") {
-      if (!data.scale_min && !data.scale_max) {
+      if (!data.scale_min || !data.scale_max) {
         errors.push("Scale polls must define minimum and maximum values");
+      } else if (data.scale_min >= data.scale_max) {
+        errors.push("Scale minimum must be less than the maximum");
       }
     } else if (data.poll_type === "options") {
       if (options.length < 2 || options.some((option) => !option.choice?.trim())) {
@@ -592,7 +590,7 @@ export const DRAG_AND_DROP_STEP_VALIDATORS: StepValidator<DragAndDropData>[] = [
 
     // Check for items
     if (!data.left?.length || !data.right?.length) {
-      errors.push("You must create items in both columns");
+      errors.push("Add at least one item in each column");
       return errors;
     }
 
@@ -607,9 +605,7 @@ export const DRAG_AND_DROP_STEP_VALIDATORS: StepValidator<DragAndDropData>[] = [
 
     // Check for connections
     if (!data.correctAnswers?.length) {
-      errors.push(
-        "You need to create at least one connection between source items and matching targets"
-      );
+      errors.push("Add at least one connection between a source item and a target match");
     }
 
     return errors;
@@ -717,12 +713,12 @@ export const FILL_IN_THE_BLANK_STEP_VALIDATORS: StepValidator<FillInTheBlankData
   () => []
 ];
 
-export const SELECT_QUESTION_STEP_VALIDATORS: StepValidator<any>[] = [
+export const SELECT_QUESTION_STEP_VALIDATORS: StepValidator<Partial<CreateExerciseFormType>>[] = [
   (data) => {
     const errors: string[] = [];
 
     if (!data.questionList || data.questionList.length === 0) {
-      errors.push("Please add at least one question to the list");
+      errors.push("Add at least one question");
     }
 
     return errors;
@@ -768,20 +764,20 @@ export const CLICKABLE_AREA_STEP_VALIDATORS: StepValidator<Partial<CreateExercis
     const questionText = data.questionText || "";
 
     if (!questionText.trim()) {
-      errors.push("Content is required. Please add clickable areas to your exercise");
+      errors.push("Content is required");
       return errors;
     }
 
     // Check for at least one correct clickable area
     const hasCorrect = questionText.includes("data-correct");
     if (!hasCorrect) {
-      errors.push("You must mark at least one correct clickable area");
+      errors.push("Mark at least one correct area");
     }
 
     // Check for at least one incorrect clickable area
     const hasIncorrect = questionText.includes("data-incorrect");
     if (!hasIncorrect) {
-      errors.push("You must mark at least one incorrect clickable area");
+      errors.push("Mark at least one incorrect area");
     }
 
     return errors;
@@ -827,9 +823,9 @@ export const IFRAME_STEP_VALIDATORS: StepValidator<Partial<CreateExerciseFormTyp
     const errors: string[] = [];
 
     if (!data.iframeSrc?.trim()) {
-      errors.push("iFrame URL is required");
+      errors.push("Iframe URL is required");
     } else if (!isValidUrl(data.iframeSrc)) {
-      errors.push("Please enter a valid URL");
+      errors.push("Enter a valid URL (https://…)");
     }
 
     return errors;

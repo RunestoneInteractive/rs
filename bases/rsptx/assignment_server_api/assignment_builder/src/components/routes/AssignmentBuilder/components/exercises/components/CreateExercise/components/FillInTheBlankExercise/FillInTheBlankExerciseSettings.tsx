@@ -2,10 +2,7 @@ import { FC } from "react";
 
 import { CreateExerciseFormType } from "@/types/exercises";
 
-import {
-  BaseExerciseSettings,
-  BaseExerciseSettingsContent
-} from "../../shared/BaseExerciseSettingsContent";
+import { BaseExerciseSettingsContent } from "../../shared/BaseExerciseSettingsContent";
 
 import { FillInTheBlankSettings } from "./types";
 

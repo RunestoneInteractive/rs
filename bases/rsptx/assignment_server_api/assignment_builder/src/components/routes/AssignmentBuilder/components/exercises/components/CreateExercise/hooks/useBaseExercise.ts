@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
 
 import { CreateExerciseFormType, Option } from "@/types/exercises";
+import { notify } from "@components/ui/notify";
 import { createExerciseId } from "@/utils/exercise";
 import { OptionWithId } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components";
 
@@ -42,10 +42,8 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
   validateForm,
   getDefaultFormData,
   onSave,
-  onCancel,
   resetForm,
-  onFormReset,
-  isEdit = false
+  onFormReset
 }: UseBaseExerciseProps<T>) => {
   const [formData, setFormData] = useState<T>(() => {
     const mergedData = initialData
@@ -64,6 +62,7 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
 
   const [activeStep, setActiveStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   const [stepsVisited, setStepsVisited] = useState<Record<number, boolean>>(() =>
     Object.fromEntries(steps.map((_, index) => [index, false]))
@@ -77,6 +76,7 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
       setFormData(getDefaultFormData());
       setActiveStep(0);
       setIsSaving(false);
+      setIsDirty(false);
       setQuestionInteracted(false);
       setSettingsInteracted(false);
       setStepsVisited(Object.fromEntries(steps.map((_, index) => [index, false])));
@@ -89,6 +89,7 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
       ...prev,
       [field]: value
     }));
+    setIsDirty(true);
   }, []);
 
   const handleSettingsChange = useCallback((settings: Partial<T>) => {
@@ -97,10 +98,12 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
       ...settings
     }));
     setSettingsInteracted(true);
+    setIsDirty(true);
   }, []);
 
   const handleQuestionChange = useCallback(
     (content: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       updateFormData("statement" as keyof T, content as any);
       setQuestionInteracted(true);
     },
@@ -140,7 +143,7 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
     const errors = validateForm(formData);
 
     if (errors.length > 0) {
-      errors.forEach((error) => toast.error(error));
+      errors.forEach((error) => notify.error(error));
       setStepsVisited(Object.fromEntries(steps.map((_, index) => [index, true])));
       setQuestionInteracted(true);
       setSettingsInteracted(true);
@@ -161,7 +164,6 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
       } as T);
     } catch (error) {
       console.error(`Error saving ${exerciseType} exercise:`, error);
-      toast.error("Failed to save exercise");
       setIsSaving(false);
     }
   }, [validateForm, formData, steps, onSave, generateHtmlPreview, exerciseType]);
@@ -170,6 +172,7 @@ export const useBaseExercise = <T extends Partial<CreateExerciseFormType>>({
     formData,
     activeStep,
     isSaving,
+    isDirty,
     stepsVisited,
     questionInteracted,
     settingsInteracted,

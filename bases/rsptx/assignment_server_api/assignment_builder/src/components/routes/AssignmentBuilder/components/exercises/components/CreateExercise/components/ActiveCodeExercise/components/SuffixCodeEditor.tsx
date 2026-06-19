@@ -10,14 +10,13 @@ interface SuffixCodeEditorProps {
 
 export const SuffixCodeEditor: FC<SuffixCodeEditorProps> = ({ suffixCode, onChange, language }) => {
   return (
-    <div className="border border-gray-300 rounded-lg overflow-hidden">
-      <CodeHighlighter
-        code={suffixCode}
-        language={language}
-        onChange={onChange}
-        height="400px"
-        placeholder="Enter test code to verify student solutions..."
-      />
-    </div>
+    <CodeHighlighter
+      code={suffixCode}
+      language={language}
+      onChange={onChange}
+      height="400px"
+      placeholder="Enter test code to verify student solutions…"
+      ariaLabel="Hidden suffix code"
+    />
   );
 };

@@ -16,11 +16,14 @@ import {
   useSortable
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Button } from "primereact/button";
-import { Checkbox } from "primereact/checkbox";
+import { ActionIcon, Checkbox, Tooltip, UnstyledButton } from "@mantine/core";
 import { useCallback } from "react";
 
+import { Icon } from "@/components/ui/Icon";
 import { Option } from "@/types/exercises";
+
+import { REMOVE_OPTION_CONFIRM, confirmRemoval } from "../../utils/removeConfirm";
+import { isTipTapContentEmpty } from "../../utils/validation";
 
 import styles from "./MultiChoiceOptions.module.css";
 
@@ -39,13 +42,15 @@ interface SortableOptionProps {
 
 const SortableOption = ({ option, onUpdate, onRemove, totalOptions }: SortableOptionProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: option.id
+    id: option.id,
+    transition: { duration: 250, easing: "var(--rs-spring-snappy)" }
   });
 
+  const baseTransform = CSS.Transform.toString(transform);
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: isDragging && baseTransform ? `${baseTransform} scale(0.98)` : baseTransform,
     transition,
-    opacity: isDragging ? 0.5 : 1
+    zIndex: isDragging ? 1 : undefined
   };
 
   const handleContentChange = useCallback(
@@ -73,7 +78,8 @@ const SortableOption = ({ option, onUpdate, onRemove, totalOptions }: SortableOp
     <div
       ref={setNodeRef}
       style={style}
-      className={`${styles.optionContainer} ${isDragging ? styles.dragging : ""}`}
+      className={styles.optionContainer}
+      data-dragging={isDragging || undefined}
     >
       <div
         className={styles.dragHandle}
@@ -81,7 +87,7 @@ const SortableOption = ({ option, onUpdate, onRemove, totalOptions }: SortableOp
         {...listeners}
         aria-label="Drag to reorder"
       >
-        <i className="pi pi-bars" />
+        <Icon name="bars" />
       </div>
 
       <div className={styles.optionContent}>
@@ -97,26 +103,24 @@ const SortableOption = ({ option, onUpdate, onRemove, totalOptions }: SortableOp
           </div>
 
           <div className={styles.controlsSection}>
-            <div className={styles.checkboxContainer}>
-              <Checkbox
-                inputId={`correct-${option.id}`}
-                checked={!!option.correct}
-                onChange={(e) => handleCorrectChange(e.checked ?? false)}
-              />
-              <label className={styles.checkboxLabel}>Correct</label>
-            </div>
-
-            <Button
-              icon="pi pi-trash"
-              severity="danger"
-              text
-              onClick={() => onRemove(option.id)}
-              className={styles.removeButton}
-              tooltip="Remove option"
-              tooltipOptions={{ position: "left" }}
-              disabled={totalOptions <= 2}
-              aria-label="Remove option"
+            <Checkbox
+              id={`correct-${option.id}`}
+              checked={!!option.correct}
+              onChange={(e) => handleCorrectChange(e.currentTarget.checked)}
+              label="Correct"
             />
+
+            <Tooltip label="Remove option" position="left">
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                onClick={() => onRemove(option.id)}
+                disabled={totalOptions <= 2}
+                aria-label="Remove option"
+              >
+                <Icon name="trash" size={16} />
+              </ActionIcon>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -153,7 +157,16 @@ export const MultiChoiceOptions = ({ options, onChange }: MultiChoiceOptionsProp
   // Handle removing an option
   const handleRemoveOption = (id: string) => {
     if (options.length <= 2) return;
-    onChange(options.filter((opt) => opt.id !== id));
+    const option = options.find((opt) => opt.id === id);
+    const hasContent =
+      !!option &&
+      (!isTipTapContentEmpty(option.choice || "") || !isTipTapContentEmpty(option.feedback || ""));
+
+    confirmRemoval({
+      hasContent,
+      ...REMOVE_OPTION_CONFIRM,
+      onConfirm: () => onChange(options.filter((opt) => opt.id !== id))
+    });
   };
 
   // Handle updating an option
@@ -176,14 +189,7 @@ export const MultiChoiceOptions = ({ options, onChange }: MultiChoiceOptionsProp
   return (
     <div className={styles.optionsContainer}>
       <div className={styles.optionsHeader}>
-        <h3>Answer Options</h3>
-        <Button
-          label="Add Option"
-          icon="pi pi-plus"
-          className={styles.addButton}
-          onClick={handleAddOption}
-          aria-label="Add new answer option"
-        />
+        <h3>Answer options</h3>
       </div>
 
       <div className={styles.optionsContent}>
@@ -206,6 +212,11 @@ export const MultiChoiceOptions = ({ options, onChange }: MultiChoiceOptionsProp
             </div>
           </SortableContext>
         </DndContext>
+
+        <UnstyledButton className={styles.addRow} onClick={handleAddOption} aria-label="Add option">
+          <Icon name="plus" size={14} />
+          Add option
+        </UnstyledButton>
       </div>
     </div>
   );

@@ -12,7 +12,6 @@ export function useViewModeStorage<TMode extends string>(
       ? (stored as TMode)
       : defaultMode;
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
   const [mode, setModeState] = useState<TMode>(readInitial);

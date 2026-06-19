@@ -1,5 +1,6 @@
 import styles from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/shared/styles/CreateExercise.module.css";
 import { PollType } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/types/PollTypes";
+import { Icon } from "@components/ui/Icon";
 import { useCallback } from "react";
 
 interface PollTypeSelectorProps {
@@ -18,7 +19,7 @@ export const PollTypeSelector = ({ value, onChange }: PollTypeSelectorProps) => 
   return (
     <div className={styles.pollTypeContainer}>
       <div className={styles.pollTypeHeader}>
-        <h3>Select Poll Type</h3>
+        <h3>Select poll type</h3>
         <p>Choose how students will respond to your question</p>
       </div>
 
@@ -32,7 +33,7 @@ export const PollTypeSelector = ({ value, onChange }: PollTypeSelectorProps) => 
           aria-pressed={value === "scale"}
         >
           <div className={styles.pollTypeIcon}>
-            <i className="pi pi-sliders-h"></i>
+            <Icon name="sliders-h" size={20} />
           </div>
           <div className={styles.pollTypeTitle}>Scale (1 to N)</div>
           <div className={styles.pollTypeDescription}>
@@ -49,9 +50,9 @@ export const PollTypeSelector = ({ value, onChange }: PollTypeSelectorProps) => 
           aria-pressed={value === "options"}
         >
           <div className={styles.pollTypeIcon}>
-            <i className="pi pi-list"></i>
+            <Icon name="list" size={20} />
           </div>
-          <div className={styles.pollTypeTitle}>Multiple Options</div>
+          <div className={styles.pollTypeTitle}>Multiple options</div>
           <div className={styles.pollTypeDescription}>
             Students choose from custom options that you create and order
           </div>
@@ -59,11 +60,11 @@ export const PollTypeSelector = ({ value, onChange }: PollTypeSelectorProps) => 
       </div>
 
       <div className={styles.pollTypeHelp}>
-        <i className="pi pi-info-circle"></i>
+        <Icon name="info-circle" />
         <span>
           {value === "scale"
-            ? "Scale polls are perfect for rating questions or gauging intensity on a numeric scale"
-            : "Multiple choice polls are ideal for questions with specific answer choices"}
+            ? "Scale polls work well for rating questions or gauging intensity on a numeric scale"
+            : "Multiple choice polls work well for questions with specific answer choices"}
         </span>
       </div>
     </div>

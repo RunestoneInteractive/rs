@@ -15,7 +15,7 @@ import { IframeExerciseSettings } from "./IframeExerciseSettings";
 import { IframePreview } from "./IframePreview";
 import { IframeUrlInput } from "./components/IframeUrlInput";
 
-const IFRAME_STEPS = [{ label: "iFrame URL" }, { label: "Settings" }, { label: "Preview" }];
+const IFRAME_STEPS = [{ label: "Iframe URL" }, { label: "Settings" }, { label: "Preview" }];
 
 // Define the default form data
 const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
@@ -49,6 +49,7 @@ export const IframeExercise: FC<ExerciseComponentProps> = ({
     formData,
     activeStep,
     isSaving,
+    isDirty,
     updateFormData,
     handleSettingsChange,
     isCurrentStepValid,
@@ -114,13 +115,14 @@ export const IframeExercise: FC<ExerciseComponentProps> = ({
 
   return (
     <ExerciseLayout
-      title="iFrame Exercise"
+      title="iframe exercise"
       exerciseType="iframe"
       isEdit={isEdit}
       steps={IFRAME_STEPS}
       activeStep={activeStep}
       isCurrentStepValid={isCurrentStepValid}
       isSaving={isSaving}
+      isDirty={isDirty}
       stepsValidity={stepsValidity}
       onCancel={onCancel}
       onBack={goToPrevStep}

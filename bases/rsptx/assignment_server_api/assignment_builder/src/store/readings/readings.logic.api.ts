@@ -2,11 +2,11 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@store/baseQuery";
 import { exercisesActions } from "@store/exercises/exercises.logic";
 import { readingsActions } from "@store/readings/readings.logic";
-import { TreeNode } from "primereact/treenode";
-import toast from "react-hot-toast";
+import { notify } from "@components/ui/notify";
 
 import { DetailResponse } from "@/types/api";
 import { GetAvailableReadingsPayload } from "@/types/readings";
+import { TreeNode } from "@/types/treeNode";
 
 export const readingsApi = createApi({
   reducerPath: "readingsAPI",
@@ -31,7 +31,7 @@ export const readingsApi = createApi({
             dispatch(exercisesActions.setAvailableExercises(data));
           })
           .catch(() => {
-            toast.error("Error searching available readings", { duration: Infinity });
+            notify.error("Couldn't search available readings. Try again.");
           });
       }
     })

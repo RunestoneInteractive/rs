@@ -1,6 +1,4 @@
-import styles from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/shared/styles/CreateExerciseOptions.module.css";
 import { PollOption } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/types/PollTypes";
-import { isTipTapContentEmpty } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/utils/validation";
 import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
 import {
   DndContext,
@@ -19,8 +17,15 @@ import {
   useSortable
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Button } from "primereact/button";
+import { ActionIcon, Tooltip, UnstyledButton } from "@mantine/core";
 import { useCallback } from "react";
+
+import { Icon } from "@/components/ui/Icon";
+
+import { REMOVE_OPTION_CONFIRM, confirmRemoval } from "../../utils/removeConfirm";
+import { isTipTapContentEmpty } from "../../utils/validation";
+
+import styles from "./PollOptions.module.css";
 
 interface PollOptionItemProps {
   option: PollOption;
@@ -35,16 +40,17 @@ const SortableOption = ({
   totalOptions
 }: PollOptionItemProps & { totalOptions: number }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: option.id
+    id: option.id,
+    transition: { duration: 250, easing: "var(--rs-spring-snappy)" }
   });
 
+  const baseTransform = CSS.Transform.toString(transform);
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: isDragging && baseTransform ? `${baseTransform} scale(0.98)` : baseTransform,
     transition,
-    opacity: isDragging ? 0.5 : 1
+    zIndex: isDragging ? 1 : undefined
   };
 
-  // Handle content change with proper validation for TipTap
   const handleContentChange = useCallback(
     (html: string) => {
       onUpdate(option.id, { choice: html });
@@ -52,38 +58,36 @@ const SortableOption = ({
     [option.id, onUpdate]
   );
 
-  const isEmpty = isTipTapContentEmpty(option.choice);
-
-  // Visual indicator for empty options
-  const editorContainerClass = `${styles.editorContainer} ${isEmpty ? styles.emptyEditor : ""}`;
-
   return (
-    <div ref={setNodeRef} style={style} className={styles.optionContainer}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={styles.optionContainer}
+      data-dragging={isDragging || undefined}
+    >
       <div
         className={styles.dragHandle}
         {...attributes}
         {...listeners}
         aria-label="Drag to reorder"
       >
-        <i className="fa-solid fa-grip-vertical" />
+        <Icon name="bars" />
       </div>
       <div className={styles.optionContent}>
-        <div className={editorContainerClass}>
-          <Editor content={option.choice} onChange={handleContentChange} />
-        </div>
+        <Editor content={option.choice} onChange={handleContentChange} />
       </div>
       <div className={styles.optionActions}>
-        <Button
-          icon="fa-solid fa-trash"
-          severity="danger"
-          text
-          onClick={() => onRemove(option.id)}
-          className={styles.removeButton}
-          tooltip="Remove option"
-          tooltipOptions={{ position: "left" }}
-          disabled={totalOptions <= 2}
-          aria-label="Remove option"
-        />
+        <Tooltip label="Remove option" position="left">
+          <ActionIcon
+            variant="subtle"
+            color="red"
+            onClick={() => onRemove(option.id)}
+            disabled={totalOptions <= 2}
+            aria-label="Remove option"
+          >
+            <Icon name="trash" size={16} />
+          </ActionIcon>
+        </Tooltip>
       </div>
     </div>
   );
@@ -123,7 +127,13 @@ export const PollOptions = ({
 
   const handleRemove = (id: string) => {
     if (options.length <= 2) return;
-    onChange(options.filter((option) => option.id !== id));
+    const option = options.find((opt) => opt.id === id);
+
+    confirmRemoval({
+      hasContent: !!option && !isTipTapContentEmpty(option.choice || ""),
+      ...REMOVE_OPTION_CONFIRM,
+      onConfirm: () => onChange(options.filter((opt) => opt.id !== id))
+    });
   };
 
   const handleAdd = () => {
@@ -138,15 +148,7 @@ export const PollOptions = ({
   return (
     <div className={styles.optionsContainer}>
       <div className={styles.optionsHeader}>
-        <h3>Poll Options</h3>
-        <Button
-          label="Add Option"
-          icon="fa-solid fa-plus"
-          text
-          onClick={handleAdd}
-          className={styles.addButton}
-          aria-label="Add new poll option"
-        />
+        <h3>Poll options</h3>
       </div>
 
       <div className={styles.optionsContent}>
@@ -169,6 +171,11 @@ export const PollOptions = ({
             </div>
           </SortableContext>
         </DndContext>
+
+        <UnstyledButton className={styles.addRow} onClick={handleAdd} aria-label="Add option">
+          <Icon name="plus" size={14} />
+          Add option
+        </UnstyledButton>
       </div>
     </div>
   );

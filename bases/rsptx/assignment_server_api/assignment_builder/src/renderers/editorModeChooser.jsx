@@ -1,4 +1,4 @@
-import { Dropdown } from "primereact/dropdown";
+import { Select } from "@mantine/core";
 import PropTypes from "prop-types";
 import { useSelector, useDispatch } from "react-redux";
 
@@ -24,13 +24,14 @@ export function EditorChooser() {
   const selectedComponent = useSelector(selectComponent);
 
   return (
-    <Dropdown
-      options={componentOptions}
-      value={selectedComponent}
-      optionLabel="title"
-      onChange={(e) => {
-        dispatch(setComponent(e.value));
-        dispatch(setQuestionType(e.value));
+    <Select
+      data={componentOptions.map((option) => ({ value: option.title, label: option.title }))}
+      value={selectedComponent ? selectedComponent.title : null}
+      onChange={(value) => {
+        const option = componentOptions.find((item) => item.title === value);
+
+        dispatch(setComponent(option));
+        dispatch(setQuestionType(option));
       }}
       placeholder="What kind of Exercise?"
     />

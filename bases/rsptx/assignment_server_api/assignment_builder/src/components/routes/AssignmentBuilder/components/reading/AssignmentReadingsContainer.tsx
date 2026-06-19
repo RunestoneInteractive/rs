@@ -1,4 +1,5 @@
 import styles from "@components/routes/AssignmentBuilder/AssignmentBuilder.module.css";
+import { ErrorState } from "@components/routes/AssignmentBuilder/components/ErrorState/ErrorState";
 import { Loader } from "@components/ui/Loader";
 import { readingsActions, readingsSelectors } from "@store/readings/readings.logic";
 import { useState } from "react";
@@ -23,7 +24,6 @@ export const AssignmentReadingsContainer = ({
   const selectedReadings = useSelector(readingsSelectors.getSelectedReadings);
   const [globalFilter, setGlobalFilter] = useState("");
   const { updateAssignmentExercises } = useUpdateAssignmentExercise();
-  const [_, setCurrentEditReading] = useState<Exercise | null>(null);
 
   const setSelectedReadings = (readings: Exercise[]) => {
     if (startItemId === null) {
@@ -45,10 +45,12 @@ export const AssignmentReadingsContainer = ({
 
   if (error) {
     return (
-      <div>
-        <p>Error fetching readings for the selected assignment.</p>
-        <button onClick={refetch}>Refetch</button>
-      </div>
+      <ErrorState
+        title="Could not load readings"
+        message="Something went wrong while fetching the readings for this assignment."
+        retryLabel="Try again"
+        onRetry={refetch}
+      />
     );
   }
 
@@ -61,7 +63,6 @@ export const AssignmentReadingsContainer = ({
         setSelectedReadings={setSelectedReadings}
         handleRemoveSelected={handleRemoveSelected}
         assignmentReadings={readingExercises}
-        setCurrentEditReading={setCurrentEditReading}
         startItemId={startItemId}
         draggingFieldName={draggingFieldName}
         handleMouseDown={handleMouseDown}

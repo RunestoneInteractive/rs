@@ -1,5 +1,6 @@
 import "react-datepicker/dist/react-datepicker.css";
 
+import { Icon } from "@components/ui/Icon";
 import classNames from "classnames";
 import DatePicker from "react-datepicker";
 
@@ -20,6 +21,10 @@ interface DateTimePickerProps {
   className?: string;
   /** If true, treat dates as UTC. If false (default), treat as local time. */
   utc?: boolean;
+  /** If false, render the calendar inline instead of portaling it to #root. */
+  withinPortal?: boolean;
+  id?: string;
+  ariaLabel?: string;
 }
 
 export const DateTimePicker = ({
@@ -27,7 +32,10 @@ export const DateTimePicker = ({
   onChange,
   placeholder = "Select date and time",
   className,
-  utc = false
+  utc = false,
+  withinPortal = true,
+  id,
+  ariaLabel
 }: DateTimePickerProps) => {
   const handleChange = (date: Date | null) => {
     if (date) {
@@ -50,9 +58,11 @@ export const DateTimePicker = ({
         calendarClassName={styles.calendar}
         wrapperClassName={styles.datepickerWrapper}
         showIcon
-        icon={<i className="pi pi-calendar" />}
+        icon={<Icon name="calendar" />}
         popperClassName={styles.popper}
-        portalId="root"
+        portalId={withinPortal ? "root" : undefined}
+        id={id}
+        customInput={ariaLabel ? <input type="text" aria-label={ariaLabel} /> : undefined}
       />
     </div>
   );

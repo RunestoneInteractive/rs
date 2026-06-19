@@ -1,13 +1,25 @@
-import { useToastContext } from "@components/ui/ToastContext";
+import { notify } from "@components/ui/notify";
 import { useUpdateAssignmentExercisesMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
 
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { UpdateAssignmentExercisesPayload } from "@/types/exercises";
 
+const exerciseNoun = (count: number) => (count === 1 ? "exercise" : "exercises");
+
+export const getExercisesUpdateMessage = (addedCount: number, removedCount: number): string => {
+  if (addedCount && removedCount) {
+    return `Added ${addedCount}, removed ${removedCount} ${exerciseNoun(removedCount)}`;
+  }
+  if (addedCount) {
+    return `Added ${addedCount} ${exerciseNoun(addedCount)}`;
+  }
+  return `Removed ${removedCount} ${exerciseNoun(removedCount)}`;
+};
+
 export const useUpdateAssignmentExercise = () => {
   const { selectedAssignment } = useSelectedAssignment();
-  const [updateAssignmentExercisesPut] = useUpdateAssignmentExercisesMutation();
-  const { showToast } = useToastContext();
+  const [updateAssignmentExercisesPut, { isLoading: isUpdating }] =
+    useUpdateAssignmentExercisesMutation();
 
   const updateAssignmentExercises = async (
     {
@@ -29,21 +41,11 @@ export const useUpdateAssignmentExercise = () => {
     });
 
     if (response.error) {
-      showToast({
-        severity: "error",
-        summary: "Error",
-        detail: "Failed to update exercises"
-      });
+      notify.error("Couldn't update exercises. Try again.");
       return;
     }
 
-    showToast({
-      severity: "success",
-      summary: "Success",
-      detail: `${!!idsToAdd.length ? `${idsToAdd.length} exercises successfully added` : ""}
-${!!idsToRemove.length && !!idsToAdd.length ? ", " : ""}
-${!!idsToRemove.length ? `${idsToRemove.length} exercises successfully removed` : ""}`
-    });
+    notify.success(getExercisesUpdateMessage(idsToAdd.length, idsToRemove.length));
 
     await onSuccess();
 
@@ -51,6 +53,7 @@ ${!!idsToRemove.length ? `${idsToRemove.length} exercises successfully removed` 
   };
 
   return {
-    updateAssignmentExercises
+    updateAssignmentExercises,
+    isUpdating
   };
 };

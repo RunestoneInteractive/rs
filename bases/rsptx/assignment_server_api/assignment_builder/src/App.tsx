@@ -1,19 +1,18 @@
 import "./App.css";
-import { DialogContextProvider } from "@components/ui/DialogContext";
-import { ToastContextProvider } from "@components/ui/ToastContext";
-import { Menubar } from "primereact/menubar";
-import { ToastBar, Toaster, toast } from "react-hot-toast";
+import { AppNavBar } from "@components/shell/AppNavBar";
+import { useScrollShadow } from "@components/shell/useScrollShadow";
 import { useSelector } from "react-redux";
 import {
   createBrowserRouter,
   RouterProvider,
-  useSearchParams,
   useNavigate,
+  useLocation,
   Outlet
 } from "react-router-dom";
 
 import { routerService } from "@/router";
 
+import shellStyles from "./components/shell/AppShell.module.css";
 import { buildNavBar } from "./navUtils.js";
 import AssignmentEditor, { MoreOptions, AddQuestionTabGroup } from "./renderers/assignment.jsx";
 import { AssignmentPicker } from "./renderers/assignmentPicker.jsx";
@@ -28,15 +27,9 @@ import { AssignmentSummary } from "./renderers/assignmentSummary.jsx";
 import { ExceptionScheduler } from "./renderers/exceptionScheduler.jsx";
 import { selectIsAuthorized } from "./state/assignment/assignSlice.js";
 
-import "@fortawesome/fontawesome-free/css/all.min.css";
 import "katex/dist/katex.min.css";
 
 function OldAssignmentBuilder() {
-  const [searchParams] = useSearchParams();
-  let assignmentId = searchParams.get("assignment_id");
-
-  console.log("assignmentId: ", assignmentId);
-
   return (
     <>
       {" "}
@@ -48,13 +41,13 @@ function OldAssignmentBuilder() {
       <AssignmentEditor />
       <MoreOptions />
       <AssignmentQuestion
-        headerTitle="Sections to Read"
+        headerTitle="Sections to read"
         columns={readingColumns}
         columnSpecs={readingColumnSpec}
         isReading={true}
       />
       <AssignmentQuestion
-        headerTitle="Graded Exercises"
+        headerTitle="Graded exercises"
         columns={problemColumns}
         columnSpecs={problemColumnSpec}
       />
@@ -66,38 +59,35 @@ function OldAssignmentBuilder() {
 function AssignmentGraderOld() {
   return (
     <div className="App">
-      <h1>Assignment Grader (legacy)</h1>
+      <h1>Assignment grader (legacy)</h1>
       <AssignmentPicker />
       <AssignmentSummary />
     </div>
   );
 }
 
+const FULL_BLEED_ROUTE = /^\/(grader|builder)(\/|$)/;
+
 function AppContent() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { sentinelRef, scrolled } = useScrollShadow();
   const items = buildNavBar(window.eBookConfig, navigate);
-  const start = <img alt="" src="/staticAssets/RAIcon.png" height="30px" />;
+  const isFullBleedRoute = FULL_BLEED_ROUTE.test(location.pathname);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        overflow: "hidden"
-      }}
-    >
-      <Menubar style={{ flexShrink: 0, flexWrap: "nowrap" }} model={items} start={start} />
-      <div
-        className="appGradientBg"
-        style={{
-          flex: "1 1 auto",
-          overflow: "auto",
-          height: "100%"
-        }}
-      >
-        <Outlet />
-      </div>
+    <div className={shellStyles.shell}>
+      <AppNavBar items={items} activePath={location.pathname} scrolled={scrolled} />
+      <main className={`appGradientBg ${shellStyles.content}`}>
+        <div ref={sentinelRef} className={shellStyles.scrollSentinel} aria-hidden="true" />
+        {isFullBleedRoute ? (
+          <Outlet />
+        ) : (
+          <div className={shellStyles.routeContainer}>
+            <Outlet />
+          </div>
+        )}
+      </main>
     </div>
   );
 }
@@ -107,7 +97,7 @@ function App() {
     return (
       <div>
         <h1 className="App">Assignment Builder</h1>
-        <h2>Error fetching assignments, you may not be authorized.</h2>
+        <h2>Couldn&apos;t load assignments. You may not have instructor access. Sign in again.</h2>
       </div>
     );
   }
@@ -126,8 +116,6 @@ function App() {
    * add back in the basename attribute to the BrowserRouter.
    * basename={import.meta.env.BASE_URL}
    */
-  console.log("ENV: ", import.meta.env);
-
   const router = routerService.init(
     createBrowserRouter(
       [
@@ -138,7 +126,7 @@ function App() {
             {
               index: true,
               async lazy() {
-                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+                const { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
 
                 return { Component: AssignmentBuilder };
               }
@@ -146,121 +134,28 @@ function App() {
             {
               path: "builder",
               async lazy() {
-                let { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
+                const { AssignmentBuilder } = await import("@components/routes/AssignmentBuilder");
 
                 return { Component: AssignmentBuilder };
               },
               children: [
-                {
-                  path: "create",
-                  async lazy() {
-                    let { AssignmentBuilderCreate } = await import(
-                      "./components/routes/AssignmentBuilder/components/AssignmentBuilderCreate"
-                    );
-
-                    return { Component: AssignmentBuilderCreate };
-                  }
-                },
-                {
-                  path: "create/:step",
-                  async lazy() {
-                    let { AssignmentBuilderCreate } = await import(
-                      "./components/routes/AssignmentBuilder/components/AssignmentBuilderCreate"
-                    );
-
-                    return { Component: AssignmentBuilderCreate };
-                  }
-                },
-                {
-                  path: ":assignmentId",
-                  async lazy() {
-                    let { AssignmentBuilderEdit } = await import(
-                      "./components/routes/AssignmentBuilder/components/AssignmentBuilderEdit"
-                    );
-
-                    return { Component: AssignmentBuilderEdit };
-                  }
-                },
-                {
-                  path: ":assignmentId/:tab",
-                  async lazy() {
-                    let { AssignmentBuilderEdit } = await import(
-                      "./components/routes/AssignmentBuilder/components/AssignmentBuilderEdit"
-                    );
-
-                    return { Component: AssignmentBuilderEdit };
-                  }
-                },
-                {
-                  path: ":assignmentId/exercises/:viewMode",
-                  async lazy() {
-                    let { AssignmentBuilderExercises } = await import(
-                      "./components/routes/AssignmentBuilder/components/AssignmentBuilderExercises"
-                    );
-
-                    return { Component: AssignmentBuilderExercises };
-                  }
-                },
-                {
-                  path: ":assignmentId/exercises/:viewMode/:exerciseType",
-                  async lazy() {
-                    let { AssignmentBuilderExercises } = await import(
-                      "./components/routes/AssignmentBuilder/components/AssignmentBuilderExercises"
-                    );
-
-                    return { Component: AssignmentBuilderExercises };
-                  }
-                },
+                { path: "create", element: null },
+                { path: "create/:step", element: null },
+                { path: ":assignmentId", element: null },
+                { path: ":assignmentId/:tab", element: null },
+                { path: ":assignmentId/exercises/:viewMode", element: null },
+                { path: ":assignmentId/exercises/:viewMode/:exerciseType", element: null },
                 {
                   path: ":assignmentId/exercises/:viewMode/:exerciseType/:exerciseSubType",
-                  async lazy() {
-                    let { AssignmentBuilderExercises } = await import(
-                      "./components/routes/AssignmentBuilder/components/AssignmentBuilderExercises"
-                    );
-
-                    return { Component: AssignmentBuilderExercises };
-                  }
+                  element: null
                 },
                 {
                   path: ":assignmentId/exercises/:viewMode/:exerciseType/:exerciseSubType/:step",
-                  async lazy() {
-                    let { AssignmentBuilderExercises } = await import(
-                      "./components/routes/AssignmentBuilder/components/AssignmentBuilderExercises"
-                    );
-
-                    return { Component: AssignmentBuilderExercises };
-                  }
+                  element: null
                 },
-                {
-                  path: ":assignmentId/exercises/:viewMode/:exerciseType/:step",
-                  async lazy() {
-                    let { AssignmentBuilderExercises } = await import(
-                      "./components/routes/AssignmentBuilder/components/AssignmentBuilderExercises"
-                    );
-
-                    return { Component: AssignmentBuilderExercises };
-                  }
-                },
-                {
-                  path: ":assignmentId/exercises/edit/:exerciseId",
-                  async lazy() {
-                    let { AssignmentBuilderExercises } = await import(
-                      "./components/routes/AssignmentBuilder/components/AssignmentBuilderExercises"
-                    );
-
-                    return { Component: AssignmentBuilderExercises };
-                  }
-                },
-                {
-                  path: ":assignmentId/exercises/edit/:exerciseId/:step",
-                  async lazy() {
-                    let { AssignmentBuilderExercises } = await import(
-                      "./components/routes/AssignmentBuilder/components/AssignmentBuilderExercises"
-                    );
-
-                    return { Component: AssignmentBuilderExercises };
-                  }
-                }
+                { path: ":assignmentId/exercises/:viewMode/:exerciseType/:step", element: null },
+                { path: ":assignmentId/exercises/edit/:exerciseId", element: null },
+                { path: ":assignmentId/exercises/edit/:exerciseId/:step", element: null }
               ]
             },
             {
@@ -277,45 +172,42 @@ function App() {
                 {
                   index: true,
                   async lazy() {
-                    const { GraderAssignmentsPage } = await import(
-                      "@components/routes/Grader"
-                    );
+                    const { GraderAssignmentsPage } = await import("@components/routes/Grader");
                     return { Component: GraderAssignmentsPage };
+                  }
+                },
+                {
+                  path: "gradebook",
+                  async lazy() {
+                    const { GraderGradebookPage } = await import("@components/routes/Grader");
+                    return { Component: GraderGradebookPage };
                   }
                 },
                 {
                   path: ":assignmentId",
                   async lazy() {
-                    const { GraderQuestionsPage } = await import(
-                      "@components/routes/Grader"
-                    );
+                    const { GraderQuestionsPage } = await import("@components/routes/Grader");
                     return { Component: GraderQuestionsPage };
                   }
                 },
                 {
                   path: ":assignmentId/questions/:questionId",
                   async lazy() {
-                    const { GraderQuestionPage } = await import(
-                      "@components/routes/Grader"
-                    );
+                    const { GraderQuestionPage } = await import("@components/routes/Grader");
                     return { Component: GraderQuestionPage };
                   }
                 },
                 {
                   path: ":assignmentId/questions/:questionId/students/:sid",
                   async lazy() {
-                    const { GraderQuestionPage } = await import(
-                      "@components/routes/Grader"
-                    );
+                    const { GraderQuestionPage } = await import("@components/routes/Grader");
                     return { Component: GraderQuestionPage };
                   }
                 },
                 {
                   path: ":assignmentId/questions/:questionId/:sid",
                   async lazy() {
-                    const { GraderQuestionPage } = await import(
-                      "@components/routes/Grader"
-                    );
+                    const { GraderQuestionPage } = await import("@components/routes/Grader");
                     return { Component: GraderQuestionPage };
                   }
                 }
@@ -327,7 +219,7 @@ function App() {
             },
             {
               path: "admin",
-              element: <h1>Coming Soon</h1>
+              element: <h1>Coming soon</h1>
             },
             {
               path: "except",
@@ -342,22 +234,7 @@ function App() {
     )
   );
 
-  return (
-    <ToastContextProvider>
-      <DialogContextProvider>
-        <RouterProvider router={router} future={{ v7_startTransition: true }} />
-        <Toaster toastOptions={{ duration: 3000 }}>
-          {(t) => {
-            return (
-              <div className="w-auto cursor-pointer" onClick={() => toast.dismiss(t.id)}>
-                <ToastBar toast={t} />
-              </div>
-            );
-          }}
-        </Toaster>
-      </DialogContextProvider>
-    </ToastContextProvider>
-  );
+  return <RouterProvider router={router} future={{ v7_startTransition: true }} />;
 }
 
 export default App;

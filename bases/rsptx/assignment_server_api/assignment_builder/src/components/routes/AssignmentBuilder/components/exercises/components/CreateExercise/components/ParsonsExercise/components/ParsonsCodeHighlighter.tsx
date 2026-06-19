@@ -1,6 +1,9 @@
 import { Editor } from "@monaco-editor/react";
-import { classNames } from "primereact/utils";
-import { FC, useRef, useEffect, useState } from "react";
+import classNames from "classnames";
+import { editor } from "monaco-editor";
+import { FC, useRef, useEffect } from "react";
+
+import { MONACO_FONT_FAMILY } from "../../../shared/CodeHighlighter";
 
 import "../ParsonsStyles.css";
 
@@ -12,6 +15,7 @@ interface ParsonsCodeHighlighterProps {
   placeholder?: string;
   readOnly?: boolean;
   className?: string;
+  ariaLabel?: string;
 }
 
 export const ParsonsCodeHighlighter: FC<ParsonsCodeHighlighterProps> = ({
@@ -19,11 +23,12 @@ export const ParsonsCodeHighlighter: FC<ParsonsCodeHighlighterProps> = ({
   language,
   onChange,
   height = "36px",
-  placeholder = "Enter code here...",
+  placeholder = "Enter code here…",
   readOnly = false,
-  className
+  className,
+  ariaLabel = "Code block editor"
 }) => {
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const getMonacoLanguage = (lang: string): string => {
@@ -45,7 +50,7 @@ export const ParsonsCodeHighlighter: FC<ParsonsCodeHighlighterProps> = ({
     const updateEditorLayout = () => {
       if (editorRef.current) {
         setTimeout(() => {
-          editorRef.current.layout();
+          editorRef.current?.layout();
         }, 10);
       }
     };
@@ -70,21 +75,21 @@ export const ParsonsCodeHighlighter: FC<ParsonsCodeHighlighterProps> = ({
     };
   }, []);
 
-  const handleEditorDidMount = (editor: any) => {
-    editorRef.current = editor;
+  const handleEditorDidMount = (editorInstance: editor.IStandaloneCodeEditor) => {
+    editorRef.current = editorInstance;
 
-    editor.onDidContentSizeChange(() => {
-      const contentHeight = Math.min(Math.max(editor.getContentHeight(), 36), 500);
+    editorInstance.onDidContentSizeChange(() => {
+      const contentHeight = Math.min(Math.max(editorInstance.getContentHeight(), 36), 500);
 
       const container = containerRef.current;
 
       if (container) {
         container.style.height = `${contentHeight}px`;
-        editor.layout();
+        editorInstance.layout();
       }
     });
 
-    editor.layout();
+    editorInstance.layout();
   };
 
   const isSmallScreen = typeof window !== "undefined" && window.innerWidth < 768;
@@ -103,6 +108,7 @@ export const ParsonsCodeHighlighter: FC<ParsonsCodeHighlighterProps> = ({
           className="w-full h-full p-1 font-mono text-sm border-none"
           style={{ resize: "none", minHeight: "36px" }}
           placeholder={placeholder}
+          aria-label={ariaLabel}
         />
       </div>
     );
@@ -123,9 +129,12 @@ export const ParsonsCodeHighlighter: FC<ParsonsCodeHighlighterProps> = ({
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
           fontSize: 16,
+          fontFamily: MONACO_FONT_FAMILY,
+          fontLigatures: false,
           readOnly,
           tabSize: 4,
           automaticLayout: true,
+          ariaLabel,
           lineNumbers: "off",
           folding: false,
           glyphMargin: false,

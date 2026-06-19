@@ -1,4 +1,4 @@
-import { useToastContext } from "@components/ui/ToastContext";
+import { notify } from "@components/ui/notify";
 import { useUpdateAssignmentQuestionsMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { useCallback } from "react";
 
@@ -7,7 +7,6 @@ import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
 export const useUpdateReadings = () => {
-  const { showToast } = useToastContext();
   const [updateExercises] = useUpdateAssignmentQuestionsMutation();
   const { readingExercises = [] } = useReadingsSelector();
 
@@ -16,11 +15,7 @@ export const useUpdateReadings = () => {
       const readingToUpdate = readingExercises.find((reading) => reading.id === readingId);
 
       if (!readingToUpdate) {
-        showToast({
-          severity: "error",
-          summary: "Error",
-          detail: "Reading not found"
-        });
+        notify.error("This reading is no longer in the assignment");
         return;
       }
 
@@ -37,20 +32,12 @@ export const useUpdateReadings = () => {
       const { error } = await updateExercises([updatedExercise]);
 
       if (!error) {
-        showToast({
-          severity: "success",
-          summary: "Success",
-          detail: "Reading updated successfully"
-        });
+        notify.success("Reading updated");
       } else {
-        showToast({
-          severity: "error",
-          summary: "Error",
-          detail: "Failed to update reading"
-        });
+        notify.error("Couldn't update reading. Try again.");
       }
     },
-    [readingExercises, showToast, updateExercises]
+    [readingExercises, updateExercises]
   );
 
   return { handleChange };

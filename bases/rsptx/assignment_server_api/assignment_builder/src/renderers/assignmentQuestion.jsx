@@ -8,9 +8,9 @@
  * This table uses the Handsontable library.
  * @memberof AssignmentEditor
  */
-import { Button } from "primereact/button";
-import { Dialog } from "primereact/dialog";
-import { Panel } from "primereact/panel";
+import { ActionIcon, Button, Collapse, Group, Modal, Paper } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import { IconChevronDown, IconInfoCircle, IconLink } from "@tabler/icons-react";
 import PropTypes from "prop-types";
 import { useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
@@ -28,7 +28,7 @@ import {
   reorderAssignmentQuestions,
   sendDeleteExercises,
   sumPoints,
-  selectId,
+  selectId
 } from "../state/assignment/assignSlice";
 import { fetchChooserData } from "../state/epicker/ePickerSlice";
 import { unSelectNode } from "../state/epicker/ePickerSlice";
@@ -60,14 +60,14 @@ export const problemColumnSpec = [
       "peer",
       "peer_chat",
       "interaction",
-      "unittest",
-    ],
+      "unittest"
+    ]
   },
   {
     type: "dropdown",
-    source: ["first_answer", "last_answer", "all_answer", "best_answer"],
+    source: ["first_answer", "last_answer", "all_answer", "best_answer"]
   },
-  { type: "numeric" },
+  { type: "numeric" }
 ];
 
 // this was experimental, and I got it working but I don't see a reason to use
@@ -92,7 +92,7 @@ export const readingColumnSpec = [
   { type: "text", readOnly: true },
   { type: "numeric", readOnly: true },
   { type: "numeric" },
-  { type: "numeric" },
+  { type: "numeric" }
 ];
 
 /**
@@ -196,7 +196,9 @@ export function AssignmentQuestion(props) {
       dispatch(deleteExercises(toRemove));
       dispatch(sendDeleteExercises(toRemove));
       dispatch(sumPoints());
-      dispatch(fetchChooserData({ skipreading: false, from_source_only: false, pages_only: false }));
+      dispatch(
+        fetchChooserData({ skipreading: false, from_source_only: false, pages_only: false })
+      );
       dispatch(unSelectNode(namesToRemove));
     } catch (e) {
       console.error(e);
@@ -217,7 +219,7 @@ export function AssignmentQuestion(props) {
     dispatch(reorderAssignmentQuestions(idxs));
   };
   const aqStyle = {
-    marginBottom: "10px",
+    marginBottom: "10px"
   };
 
   const readingHelpText = (
@@ -250,94 +252,85 @@ export function AssignmentQuestion(props) {
     </>
   );
 
+  const [opened, { toggle }] = useDisclosure(true);
+  const [helpVisible, setHelpVisible] = useState(false);
+  const currentId = useSelector(selectId);
+  const assignHref = `/assignment/student/doAssignment?assignment_id=${currentId}`;
+  const helptext = props.isReading ? readingHelpText : problemHelpText;
+  const showPreview = props.headerTitle === "Graded Exercises";
+
   return (
     <div className="App">
-      <Panel
-        headerTemplate={qpHeader}
-        header={props.headerTitle}
-        helptext={props.isReading ? readingHelpText : problemHelpText}
-        toggleable
+      <Paper withBorder style={aqStyle}>
+        <Group justify="space-between" p="sm">
+          <div className="flex align-items-center gap-2">
+            <span className="p-panel-title">{props.headerTitle} </span>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              onClick={() => setHelpVisible(true)}
+              aria-label="Help"
+            >
+              <IconInfoCircle size={16} />
+            </ActionIcon>
+            {showPreview && (
+              <Button
+                variant="subtle"
+                color="gray"
+                leftSection={<IconLink size={16} />}
+                onClick={() => window.open(assignHref)}
+              >
+                Preview
+              </Button>
+            )}
+          </div>
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            onClick={toggle}
+            aria-label={opened ? "Collapse" : "Expand"}
+          >
+            <IconChevronDown size={16} style={{ transform: opened ? "rotate(180deg)" : "none" }} />
+          </ActionIcon>
+        </Group>
+        <Collapse in={opened}>
+          <div style={{ padding: "0 0.75rem 0.75rem" }}>
+            <HotTable
+              style={aqStyle}
+              width="100%"
+              data={hotData}
+              stretchH="all"
+              colHeaders={props.columns}
+              rowHeaders={true}
+              manualRowMove={true}
+              contextMenu={true}
+              allowRemoveRow={true}
+              hiddenColumns={{ columns: [0] }}
+              columns={props.columnSpecs}
+              afterChange={handleChange}
+              afterRowMove={handleReorder}
+              afterRemoveRow={handleDelete}
+              licenseKey="non-commercial-and-evaluation"
+            />
+          </div>
+        </Collapse>
+      </Paper>
+      <Modal
+        opened={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={props.headerTitle}
+        size="50%"
       >
-        <HotTable
-          style={aqStyle}
-          width="100%"
-          data={hotData}
-          stretchH="all"
-          colHeaders={props.columns}
-          rowHeaders={true}
-          manualRowMove={true}
-          contextMenu={true}
-          allowRemoveRow={true}
-          hiddenColumns={{ columns: [0] }}
-          columns={props.columnSpecs}
-          afterChange={handleChange}
-          afterRowMove={handleReorder}
-          afterRemoveRow={handleDelete}
-          licenseKey="non-commercial-and-evaluation"
-        />
-      </Panel>
+        {helptext}
+      </Modal>
       <div ref={ref} />
     </div>
   );
 }
 
-/**
- *
- * @param {*} options
- * @function qpHeader
- * @returns A header for the reading panel.  This header contains a help icon that displays a dialog when clicked.
- * @memberof AssignmentEditor
- * @note options is an object that contains a props object that is passed through from the Panel
- */
-const qpHeader = (options) => {
-  const className = `${options.className} justify-content-space-between`;
-  const [visible, setVisible] = useState(false);
-  const currentId = useSelector(selectId);
-  const assignHref = `/assignment/student/doAssignment?assignment_id=${currentId}`;
-  var previewButton = null;
-
-  if (options.props.header === "Graded Exercises") {
-    previewButton = (
-      <Button
-        label="Preview"
-        icon="pi pi-link"
-        severity="secondary"
-        text
-        outlined
-        onClick={() => window.open(assignHref)}
-      />
-    );
-  }
-
-  return (
-    <>
-      <div className={className}>
-        <div className="flex align-items-center gap-2">
-          <span className="p-panel-title">{options.props.header} </span>
-          <button className="p-panel-header-icon p-link mr-2">
-            <span>
-              <i className="pi pi-info-circle" onClick={() => setVisible(true)}></i>
-            </span>
-          </button>
-          {previewButton}
-        </div>
-        <div>{options.togglerElement}</div>
-      </div>
-      <Dialog
-        header={options.props.header}
-        visible={visible}
-        style={{ width: "50vw" }}
-        onHide={() => setVisible(false)}
-      >
-        {options.props.helptext}
-      </Dialog>
-    </>
-  );
-};
-
 AssignmentQuestion.propTypes = {
   headerTitle: PropTypes.string,
   columns: PropTypes.array,
   columnSpecs: PropTypes.array,
-  isReading: PropTypes.bool,
+  isReading: PropTypes.bool
 };

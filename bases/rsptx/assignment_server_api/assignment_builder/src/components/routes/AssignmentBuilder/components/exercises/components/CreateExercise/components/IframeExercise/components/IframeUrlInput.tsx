@@ -1,8 +1,12 @@
-import { InputText } from "primereact/inputtext";
+import { Group, Stack, TextInput } from "@mantine/core";
 import { FC } from "react";
 
+import { Icon } from "@/components/ui/Icon";
+
 import { useValidation } from "../../../shared/ExerciseLayout";
-import styles from "../../../shared/styles/CreateExercise.module.css";
+import shared from "../../../shared/styles/CreateExercise.module.css";
+
+import styles from "./IframeUrlInput.module.css";
 
 interface IframeUrlInputProps {
   iframeSrc: string;
@@ -24,55 +28,45 @@ export const IframeUrlInput: FC<IframeUrlInputProps> = ({ iframeSrc, onChange })
   const isEmpty = !iframeSrc?.trim();
   const isInvalidUrl = iframeSrc?.trim() && !isValidUrl(iframeSrc);
   const shouldShowError = (isEmpty || isInvalidUrl) && shouldShowValidation;
+  const errorMessage = shouldShowError
+    ? isEmpty
+      ? "Iframe URL is required"
+      : "Enter a valid URL (https://…)"
+    : undefined;
 
   return (
-    <>
-      <div className={styles.formField}>
-        <label htmlFor="iframeSrc" className="font-medium block mb-2">
-          iFrame Source URL *
-        </label>
-        <InputText
-          id="iframeSrc"
-          value={iframeSrc}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="https://example.com/exercise"
-          className={`w-full ${shouldShowError ? "p-invalid" : ""}`}
-        />
-        {shouldShowError && isEmpty && (
-          <small className="p-error mt-1 block">iFrame URL is required</small>
-        )}
-        {shouldShowError && isInvalidUrl && (
-          <small className="p-error mt-1 block">Please enter a valid URL</small>
-        )}
-      </div>
+    <Stack gap="md">
+      <TextInput
+        id="iframeSrc"
+        label="Iframe URL"
+        withAsterisk
+        value={iframeSrc}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="https://example.com/exercise"
+        error={errorMessage}
+      />
 
-      <div className={styles.questionTips}>
-        <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
+      <Group className={shared.questionTips} gap={6} align="center" wrap="nowrap">
+        <Icon name="lightbulb" size={14} color="currentColor" />
         <span>
           Tip: Enter a valid URL that can be embedded in an iframe (e.g., videos, interactive
           content, external tools).
         </span>
-      </div>
+      </Group>
 
       {iframeSrc && isValidUrl(iframeSrc) && (
-        <div className="mt-4">
-          <label className="font-medium block mb-2">Preview</label>
-          <div
-            style={{
-              border: "1px solid var(--surface-border)",
-              borderRadius: "6px",
-              overflow: "hidden"
-            }}
-          >
+        <div className={styles.previewWrapper}>
+          <label className={styles.previewLabel}>Preview</label>
+          <div className={styles.previewFrame}>
             <iframe
               src={iframeSrc}
-              title="iFrame Preview"
-              style={{ width: "100%", border: "none" }}
+              title="Iframe preview"
+              className={styles.previewIframe}
               allowFullScreen
             />
           </div>
         </div>
       )}
-    </>
+    </Stack>
   );
 };

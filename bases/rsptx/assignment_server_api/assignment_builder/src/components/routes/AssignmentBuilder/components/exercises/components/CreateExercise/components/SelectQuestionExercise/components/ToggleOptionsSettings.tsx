@@ -1,5 +1,5 @@
-import { RadioButton } from "primereact/radiobutton";
-import React, { FC, useState } from "react";
+import { Radio, Stack } from "@mantine/core";
+import { FC, useState } from "react";
 
 import styles from "./ToggleOptionsSettings.module.css";
 
@@ -21,17 +21,17 @@ export const ToggleOptionsSettings: FC<ToggleOptionsSettingsProps> = ({
 
   const toggleModes = [
     {
-      label: "Single Question",
+      label: "Single question",
       value: "none",
       description: "Student sees only one question from the list"
     },
     {
-      label: "Allow Question Switching",
+      label: "Allow question switching",
       value: "toggle",
       description: "Student can switch between questions, any question can be graded"
     },
     {
-      label: "Switch with Lock",
+      label: "Switch with lock",
       value: "toggle_lock",
       description: "Student can switch between questions, but only first question is graded"
     }
@@ -61,27 +61,23 @@ export const ToggleOptionsSettings: FC<ToggleOptionsSettingsProps> = ({
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h4 className={styles.title}>Question Interaction Mode</h4>
+        <h4 className={styles.title}>Question interaction mode</h4>
       </div>
 
       <p className={styles.description}>Choose how students interact with the question list.</p>
 
-      <div className={styles.optionsSection}>
-        {toggleModes.map((mode) => (
-          <div key={mode.value} className={styles.optionItem}>
-            <RadioButton
-              inputId={mode.value}
+      <Radio.Group value={selectedMode} onChange={handleModeChange}>
+        <Stack gap="sm" className={styles.optionsSection}>
+          {toggleModes.map((mode) => (
+            <Radio
+              key={mode.value}
               value={mode.value}
-              checked={selectedMode === mode.value}
-              onChange={(e) => handleModeChange(e.value)}
+              label={mode.label}
+              description={mode.description}
             />
-            <label htmlFor={mode.value} className={styles.optionLabel}>
-              <span className="font-medium">{mode.label}</span>
-              <span className={styles.optionDescription}> - {mode.description}</span>
-            </label>
-          </div>
-        ))}
-      </div>
+          ))}
+        </Stack>
+      </Radio.Group>
     </div>
   );
 };

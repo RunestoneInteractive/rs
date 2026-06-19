@@ -89,8 +89,8 @@ with pushd("../../bases/rsptx/interactives"):
 if "--dev" in sys.argv:
     sys.exit(0)
 
-if "--fromroot" not in sys.argv:
-    subprocess.run(["poetry", "build-project"], check=True)
+# if "--fromroot" not in sys.argv:
+#     subprocess.run(["poetry", "build-project"], check=True)
 
 
 if sys.argv[1:] == ["--publish"]:
@@ -134,7 +134,21 @@ if sys.argv[1:] == ["--publish"]:
         subprocess.run(
             " ".join(["mv", f"dist-{VERSION}.tgz", "../jsdist"]), check=True, shell=True
         )
-    with pushd("../author_server"):
-        subprocess.run(["poetry", "update", "pretext"], check=True)
-    with pushd("../rsmanage"):
-        subprocess.run(["poetry", "update", "pretext"], check=True)
+    with pushd("../../bases/rsptx/interactives"):
+        if os.path.exists("./extra_dependencies"):
+            folders = [f for f in os.listdir("./extra_dependencies") if os.path.isdir(os.path.join("./extra_dependencies", f))]
+            for folder in folders:
+                subprocess.run(
+                    [
+                        "rsync",
+                        "-avz",
+                        os.path.join("./extra_dependencies", folder),
+                        "balance.runestoneacademy.org:/var/www/html/cdn/runestone",
+                    ],
+                    check=True,
+                )
+
+# No longer need to poetry update pretext for other projects
+    with pushd("../../"):
+        subprocess.run(["uv", "lock", "--upgrade-package", "pretext"], check=True, shell=True)
+        subprocess.run(["uv", "sync"], check=True, shell=True)

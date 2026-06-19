@@ -1,6 +1,8 @@
 import { ItemWithLabel } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/DragAndDropExercise/types";
 import { sanitizeId } from "../sanitize";
 
+import { DEFAULT_INCORRECT_FEEDBACK } from "@/utils/questionJson";
+
 interface DragAndDropPreviewProps {
   left: ItemWithLabel[];
   right: ItemWithLabel[];
@@ -38,6 +40,7 @@ export const generateDragAndDropPreview = ({
     const connections = correctAnswers.filter(([sourceId]) => sourceId === leftItem.id);
 
     if (connections.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       connections.forEach(([_, targetId]) => {
         const rightItem = right.find((item) => item.id === targetId);
 
@@ -66,6 +69,7 @@ export const generateDragAndDropPreview = ({
     }
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const usedRightItems = new Set(correctAnswers.map(([_, targetId]) => targetId));
 
   right.forEach((rightItem) => {
@@ -81,7 +85,7 @@ export const generateDragAndDropPreview = ({
 <div class="runestone flex justify-content-center">
 <ul data-component="dragndrop" data-question_label="${safeId}" id="${safeId}" style="visibility: hidden; margin: 0 auto; text-align: center;">
     <span data-subcomponent="question">${removePTags(statement || "Match items from the left column with their corresponding items on the right.")}</span>
-    <span data-subcomponent="feedback">${removePTags(feedback || "Incorrect. Please try again.")}</span>
+    <span data-subcomponent="feedback">${removePTags(feedback || DEFAULT_INCORRECT_FEEDBACK)}</span>
 ${html}
 </ul>   
 </div>`;

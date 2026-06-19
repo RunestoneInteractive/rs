@@ -1,20 +1,19 @@
-import { FilterMatchMode } from "primereact/api";
-import { Column } from "primereact/column";
-import { DataTable, DataTableFilterMeta } from "primereact/datatable";
-import { ProgressSpinner } from "primereact/progressspinner";
-import React, { useState } from "react";
+import { Button, Center, Loader } from "@mantine/core";
+import { ColumnDef, FilterFn } from "@tanstack/react-table";
+import React, { useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
+import { DataGrid } from "@/components/ui/DataGrid";
+import { Icon } from "@/components/ui/Icon";
 import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
 
-import {
-  GraderViewMode,
-  ViewModeToggle
-} from "../components/ViewModeToggle";
+import { ReleaseStatusBadge } from "../components/ReleaseStatusBadge";
+import { GraderViewMode, ViewModeToggle } from "../components/ViewModeToggle";
 import styles from "../Grader.module.css";
 import { useViewModeStorage } from "../hooks/useViewModeStorage";
+import { effectiveViewMode } from "../state/graderSelectors";
 import { DEMO_ASSIGNMENTS } from "../tour/graderDemoData";
 import { useGraderTourContext } from "../tour/GraderTourContext";
 
@@ -33,12 +32,6 @@ const formatDate = (iso?: string | null) => {
     return iso;
   }
 };
-
-const buildInitialFilters = (): DataTableFilterMeta => ({
-  name: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  description: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  points: { value: null, matchMode: FilterMatchMode.EQUALS }
-});
 
 const matchesDateRange = (
   dueDate: Date | null,
@@ -62,6 +55,14 @@ const matchesDateRange = (
   return true;
 };
 
+type Assignment = NonNullable<ReturnType<typeof useGetAssignmentsQuery>["data"]>[number];
+type AssignmentRow = Assignment & { duedateDate: Date | null; duedateDisplay: string };
+
+const numericEquals: FilterFn<AssignmentRow> = (row, columnId, value) => {
+  if (value == null || value === "") return true;
+  return Number(row.getValue(columnId)) === Number(value);
+};
+
 export const GraderAssignmentsPage: React.FC = () => {
   const navigate = useNavigate();
   const { data: realAssignments, isLoading } = useGetAssignmentsQuery();
@@ -73,209 +74,181 @@ export const GraderAssignmentsPage: React.FC = () => {
     VIEW_MODES,
     "cards"
   );
+  const activeViewMode = effectiveViewMode<GraderViewMode>(isDemo, viewMode, "cards");
 
-  const [filters, setFilters] = useState<DataTableFilterMeta>(buildInitialFilters);
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null] | null>(null);
 
-  const [dateRange, setDateRange] = useState<[Date | null, Date | null] | null>(
-    null
-  );
-
-  const [first, setFirst] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
-
-  const [sortField, setSortField] = useState<string | undefined>("duedateDate");
-  const [sortOrder, setSortOrder] = useState<1 | -1 | 0 | null | undefined>(1);
+  const columns = useMemo<ColumnDef<AssignmentRow, unknown>[]>(() => {
+    const [startDate, endDate] = dateRange ?? [null, null];
+    return [
+      {
+        accessorKey: "name",
+        header: "Name",
+        filterFn: "includesString",
+        meta: { filter: { variant: "text", placeholder: "Search name" } },
+        cell: ({ row }) => (
+          <div className={styles.iconText}>
+            <Icon name="file-edit" className={styles.metaIcon} />
+            {row.original.name}
+          </div>
+        )
+      },
+      {
+        accessorKey: "description",
+        header: "Description",
+        filterFn: "includesString",
+        meta: { filter: { variant: "text", placeholder: "Search description" } },
+        cell: ({ row }) =>
+          row.original.description ? (
+            <span className={styles.cellMuted} title={row.original.description}>
+              {row.original.description}
+            </span>
+          ) : (
+            <span className={styles.cellDash}>—</span>
+          )
+      },
+      {
+        id: "duedate",
+        header: "Due date",
+        accessorFn: (row) => (row.duedateDate ? row.duedateDate.getTime() : 0),
+        sortingFn: "basic",
+        enableColumnFilter: false,
+        meta: {
+          headerStyle: { width: 240 },
+          cellClassName: "numeric",
+          filter: {
+            variant: "custom",
+            element: () => (
+              <DatePicker
+                selectsRange
+                startDate={startDate ?? undefined}
+                endDate={endDate ?? undefined}
+                onChange={(dates) => {
+                  const [from, to] = (dates as [Date | null, Date | null]) ?? [null, null];
+                  setDateRange(!from && !to ? null : [from, to]);
+                }}
+                isClearable
+                dateFormat="MMM d, yyyy"
+                placeholderText="Pick range"
+                className={styles.dateFilterInput}
+                wrapperClassName={styles.dateFilterWrapper}
+                popperClassName={styles.dateFilterPopper}
+                portalId="root"
+              />
+            )
+          }
+        },
+        cell: ({ row }) => (
+          <span className={styles.iconText}>
+            <Icon name="calendar" className={styles.metaIcon} />
+            {row.original.duedateDisplay}
+          </span>
+        )
+      },
+      {
+        accessorKey: "points",
+        header: "Points",
+        filterFn: numericEquals,
+        meta: {
+          headerStyle: { width: 140 },
+          align: "right",
+          cellClassName: "numeric",
+          filter: { variant: "numeric", placeholder: "=" }
+        },
+        cell: ({ row }) => (
+          <span>
+            <strong className={styles.cellStrong}>{row.original.points ?? 0}</strong>
+            <span className={styles.cellSubtle}> pts</span>
+          </span>
+        )
+      },
+      {
+        id: "released",
+        header: "Visibility",
+        accessorFn: (row) => (row.released ? 1 : 0),
+        sortingFn: "basic",
+        enableColumnFilter: false,
+        meta: { headerStyle: { width: 130 } },
+        cell: ({ row }) => <ReleaseStatusBadge released={row.original.released} />
+      },
+      {
+        id: "chevron",
+        header: "",
+        enableSorting: false,
+        enableColumnFilter: false,
+        meta: { headerStyle: { width: 60 }, align: "center", hiddenHeaderLabel: "Open" },
+        cell: () => <Icon name="angle-right" className={styles.cellLink} />
+      }
+    ];
+  }, [dateRange]);
 
   if (!assignments && isLoading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "4rem 0" }}>
-        <ProgressSpinner />
-      </div>
+      <Center className={styles.loadingWrap}>
+        <Loader />
+      </Center>
     );
   }
 
   if (!assignments?.length) {
     return (
       <div className={styles.emptyState}>
-        <i className="pi pi-inbox" style={{ fontSize: 32 }} />
+        <Icon name="inbox" size={30} className={styles.emptyStateIcon} />
         <h3>No assignments yet</h3>
         <p>Create an assignment in the Assignment Builder to start grading.</p>
       </div>
     );
   }
 
-  const allRows = assignments.map((a) => ({
+  const allRows: AssignmentRow[] = assignments.map((a) => ({
     ...a,
     duedateDate: a.duedate ? new Date(a.duedate) : null,
     duedateDisplay: formatDate(a.duedate)
-  }));
+  })) as AssignmentRow[];
 
   const rows = dateRange
     ? allRows.filter((r) => matchesDateRange(r.duedateDate, dateRange))
     : allRows;
 
   const viewToggle = (
-    <ViewModeToggle
-      value={viewMode}
-      onChange={setViewMode}
-      ariaLabel="Toggle assignments view"
-      tourId="grader-assignments-view-toggle"
-    />
+    <div className={styles.toolbar}>
+      <Button
+        component={Link}
+        to="/grader/gradebook"
+        leftSection={<Icon name="table" size={14} />}
+        variant="light"
+        size="xs"
+        disabled={isDemo}
+      >
+        Gradebook
+      </Button>
+      <ViewModeToggle
+        value={activeViewMode}
+        onChange={setViewMode}
+        ariaLabel="Toggle assignments view"
+        tourId="grader-assignments-view-toggle"
+        disabled={isDemo}
+      />
+    </div>
   );
 
-  if (viewMode === "table") {
+  if (activeViewMode === "table") {
     return (
       <>
         {viewToggle}
         <div className={styles.tableWrap} data-tour="grader-assignment-picker">
-          <DataTable
-            value={rows}
-            paginator
-            first={first}
-            rows={rowsPerPage}
-            onPage={(e) => {
-              setFirst(e.first);
-              setRowsPerPage(e.rows);
-            }}
-            rowsPerPageOptions={[10, 25, 50, 100]}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={(e) => {
-              setSortField(e.sortField);
-              setSortOrder(e.sortOrder as 1 | -1 | 0 | null | undefined);
-              setFirst(0);
-            }}
-            selectionMode="single"
-            onRowClick={(e) => {
-              const row = e.data as (typeof rows)[number];
-              navigate(`/grader/${row.id}`);
-            }}
-            rowHover
-            className={styles.row}
+          <DataGrid<AssignmentRow>
+            data={rows}
+            columns={columns}
+            getRowId={(r) => String(r.id)}
+            onRowClick={(row) => navigate(`/grader/${row.id}`)}
+            enableColumnFilters
+            enableSortingRemoval={false}
+            initialSorting={[{ id: "duedate", desc: false }]}
+            initialPageSize={25}
+            ariaLabel="Assignments"
             emptyMessage="No assignments match the current filters."
-            filters={filters}
-            onFilter={(e) => {
-              setFilters(e.filters);
-              setFirst(0);
-            }}
-            filterDisplay="row"
-          >
-            <Column
-              header="Name"
-              field="name"
-              sortable
-              filter
-              filterPlaceholder="Search name"
-              showFilterMenu={false}
-              body={(row) => (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    fontWeight: 600,
-                    color: "#0f172a"
-                  }}
-                >
-                  <i className="pi pi-file-edit" style={{ color: "#6366f1" }} />
-                  {row.name}
-                </div>
-              )}
-            />
-            <Column
-              header="Description"
-              field="description"
-              sortable
-              filter
-              filterPlaceholder="Search description"
-              showFilterMenu={false}
-              body={(row) =>
-                row.description ? (
-                  <span
-                    style={{
-                      display: "inline-block",
-                      maxWidth: 420,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      color: "#475569",
-                      fontSize: 13
-                    }}
-                    title={row.description}
-                  >
-                    {row.description}
-                  </span>
-                ) : (
-                  <span style={{ color: "#cbd5e1" }}>—</span>
-                )
-              }
-            />
-            <Column
-              header="Due date"
-              field="duedateDate"
-              sortable
-              dataType="date"
-              filter
-              showFilterMenu={false}
-
-              filterElement={() => {
-                const [startDate, endDate] = dateRange ?? [null, null];
-                return (
-                  <DatePicker
-                    selectsRange
-                    startDate={startDate ?? undefined}
-                    endDate={endDate ?? undefined}
-                    onChange={(dates) => {
-                      const [from, to] =
-                        (dates as [Date | null, Date | null]) ?? [null, null];
-                      setDateRange(!from && !to ? null : [from, to]);
-                      setFirst(0);
-                    }}
-                    isClearable
-                    dateFormat="MMM d, yyyy"
-                    placeholderText="Pick range"
-                    className={styles.dateFilterInput}
-                    wrapperClassName={styles.dateFilterWrapper}
-                    popperClassName={styles.dateFilterPopper}
-                    portalId="root"
-                  />
-                );
-              }}
-              style={{ width: 240 }}
-              body={(row) => (
-                <span>
-                  <i
-                    className="pi pi-calendar"
-                    style={{ marginRight: 6, color: "#6366f1" }}
-                  />
-                  {row.duedateDisplay}
-                </span>
-              )}
-            />
-            <Column
-              header="Points"
-              field="points"
-              sortable
-              dataType="numeric"
-              filter
-              filterPlaceholder="="
-              showFilterMenu={false}
-              style={{ width: 140 }}
-              body={(row) => (
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>
-                  <strong>{row.points ?? 0}</strong>
-                  <span style={{ color: "#94a3b8" }}> pts</span>
-                </span>
-              )}
-            />
-            <Column
-              header=""
-              style={{ width: 60 }}
-              body={() => (
-                <i className="pi pi-angle-right" style={{ color: "#6366f1" }} />
-              )}
-            />
-          </DataTable>
+          />
         </div>
       </>
     );
@@ -295,35 +268,22 @@ export const GraderAssignmentsPage: React.FC = () => {
             data-tour={idx === 0 ? "grader-assignment-card" : undefined}
             className={styles.card}
             onClick={() => navigate(`/grader/${a.id}`)}
-            style={{ textAlign: "left" }}
           >
             <div className={styles.cardTitle}>
-              <i className="pi pi-file-edit" style={{ color: "#6366f1" }} />
+              <Icon name="file-edit" className={styles.metaIcon} />
               {a.name}
             </div>
-            {a.description && (
-              <div
-                style={{
-                  color: "#475569",
-                  fontSize: 13,
-                  lineHeight: 1.4,
-                  minHeight: 36,
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden"
-                }}
-              >
-                {a.description}
-              </div>
-            )}
+            {a.description && <div className={styles.cardDescription}>{a.description}</div>}
             <div className={styles.metaRow}>
               <span>
-                <i className="pi pi-calendar" /> <strong>{formatDate(a.duedate)}</strong>
+                <Icon name="calendar" size={14} /> <strong>{formatDate(a.duedate)}</strong>
               </span>
               <span>
-                <i className="pi pi-star" /> <strong>{a.points ?? 0}</strong> pts
+                <Icon name="star" size={14} /> <strong>{a.points ?? 0}</strong> pts
               </span>
+            </div>
+            <div className={styles.cardBadgeRow}>
+              <ReleaseStatusBadge released={a.released} />
             </div>
           </button>
         ))}
@@ -333,4 +293,3 @@ export const GraderAssignmentsPage: React.FC = () => {
 };
 
 export default GraderAssignmentsPage;
-

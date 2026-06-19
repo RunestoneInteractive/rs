@@ -3,7 +3,6 @@ import { Alignment, Side } from "driver.js";
 export type TourRoute = "assignments" | "questions" | "answers" | "student";
 
 export interface TourStepConfig {
-
   element: string;
   title: string;
   description: string;
@@ -19,9 +18,9 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
   {
     route: "assignments",
     element: '[data-tour="grader-title"]',
-    title: "Welcome to the Grader",
+    title: "Welcome to the assignment grader",
     description:
-      "This quick tour walks through every feature. We've loaded a demo course so you can see each view — even if your real course is empty.",
+      "This quick tour walks through every feature. We've loaded a demo course so you can see each view, even if your real course is empty.",
     side: "bottom",
     align: "start"
   },
@@ -30,7 +29,7 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
     element: '[data-tour="grader-shortcuts-btn"]',
     title: "Keyboard shortcuts",
     description:
-      "Power-users: open the cheatsheet at any time, or just hit ? on the keyboard. J / K (or ↑ / ↓) walk through students and roll over to the neighbouring question when you hit the end of the list.",
+      "Open this cheatsheet any time by pressing ?. J / K (or ↑ / ↓) move through students and roll over to the next question at the end of the list.",
     side: "left",
     align: "start"
   },
@@ -75,7 +74,7 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
     element: '[data-tour="grader-question-grid"]',
     title: "Questions overview",
     description:
-      "A grid of every gradable question in the assignment. The demo course includes one of every supported type so you can see the colour coding.",
+      "A grid of every gradable question in the assignment. The demo course includes one of every supported type so you can see the color coding.",
     side: "bottom",
     align: "start"
   },
@@ -84,14 +83,14 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
     element: '[data-tour="grader-question-card"]',
     title: "Question card",
     description:
-      "Each card shows the question name, a colour-coded type tag, and four aggregated metrics.",
+      "Each card shows the question name, a color-coded type tag, and four aggregated metrics.",
     side: "right",
     align: "start"
   },
   {
     route: "questions",
     element: '[data-tour="grader-q-answered"]',
-    title: "Answered — number of students",
+    title: "Answered",
     description:
       "How many students submitted at least one attempt. For ActiveCode this also includes students who only ran the code, so the card matches what you'll see on the per-question screen.",
     side: "right",
@@ -100,36 +99,35 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
   {
     route: "questions",
     element: '[data-tour="grader-q-correct"]',
-    title: "Fully correct / fully scored — depends on type",
+    title: "Fully correct or fully scored",
     description:
-      "Students whose LAST attempt is a complete solution. The label changes with the question type:\n• Auto-graded (mchoice, activecode, codelens, webwork, splice, …): `correct = TRUE` (or `percent ≥ 1`) on the latest answer → shown as 'fully correct'.\n• Manually graded (shortanswer, parsons with `autograde=manual`, …): the instructor's score in `question_grades` equals the question's max points → shown as 'fully scored'.\n• Partial-credit types (dragndrop, clickablearea, matching, fillintheblank, parsons): we instead show 'avg. credit' — see the next step.",
+      "Students whose last attempt is a complete solution. The label changes with the question type:\n• Auto-graded types (multiple choice, ActiveCode, CodeLens, WebWork, …) show 'fully correct': answers the system marked fully correct.\n• Manually graded types (short answer, manual Parsons, …) show 'fully scored': students whose recorded score equals the question's maximum points.\n• Partial-credit types (drag and drop, clickable areas, matching, fill in the blank, Parsons) show 'avg. credit' instead; see the next step.",
     side: "right",
     align: "start"
   },
   {
     route: "questions",
     element: '[data-tour="grader-q-average"]',
-    title: "Average score — based on the gradebook",
-    description:
-      "Mean of `question_grades.score` across students who already have a graded row.",
+    title: "Average score",
+    description: "The mean recorded score across students who already have a grade.",
     side: "right",
     align: "start"
   },
   {
     route: "questions",
     element: '[data-tour="grader-q-percent"]',
-    title: "% correct or % credit — depends on type",
+    title: "% correct or % credit",
     description:
-      "For binary types this is `correct / answered` — the share of students whose last attempt is fully correct.\nFor partial-credit types (dragndrop, clickablearea, matching, fillintheblank, parsons) we switch to '% credit', which is the average `percent` (0–100%) over the LATEST attempt of every student. This is honest about partially-correct answers — '50% credit' on Drag-and-drop means the class on average got half the items right, not zero.",
+      "For binary types this is the share of students whose last attempt is fully correct.\nFor partial-credit types (drag and drop, clickable areas, matching, fill in the blank, Parsons) it switches to '% credit': the average credit (0–100%) over each student's latest attempt. '50% credit' on drag and drop means the class on average got half the items right, not zero.",
     side: "left",
     align: "start"
   },
   {
     route: "questions",
     element: '[data-tour="grader-q-progress"]',
-    title: "Progress bar — average / max points",
+    title: "Progress bar",
     description:
-      "Visual ratio of `average score / max points` for the question. Empty bar means nobody is graded yet; a full bar means the average submission already earned the maximum.",
+      "The ratio of the average score to the question's maximum points. An empty bar means nobody is graded yet; a full bar means the average submission already earned the maximum.",
     side: "bottom",
     align: "start"
   },
@@ -149,7 +147,7 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
     element: '[data-tour="grader-student-sidebar"]',
     title: "Student sidebar",
     description:
-      "All students who attempted the question. Coloured icons show progress: green ✓ already graded, blue ⚡ auto-graded, grey ◯ pending. Filter, search, or hit H to hide already-graded students.",
+      "All students who attempted the question. Status icons show progress: ✓ graded, ⚡ auto-graded, ◐ in progress, ○ pending, – no submission. Filter, search, or press H to hide already-graded students.",
     side: "right",
     align: "start"
   },
@@ -159,7 +157,7 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
     element: '[data-tour="grader-preview-pane"]',
     title: "Answer preview",
     description:
-      "The question is rendered exactly as the student saw it. Different question types get specialised renderers (MCQ, Parsons, ActiveCode, Fill-in-the-blank, etc.).",
+      "The question is rendered exactly as the student saw it. Different question types get specialized renderers (MCQ, Parsons, ActiveCode, fill in the blank, and more).",
     side: "right",
     align: "start"
   },
@@ -179,7 +177,7 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
     element: '[data-tour="grader-grade-panel"]',
     title: "Grade panel",
     description:
-      "Score and comment for the active student. Changes are auto-saved when you tab out of a field — watch the small status pill in the top-right.",
+      "Score and comment for the active student. Changes are auto-saved when you tab out of a field; watch the small status pill in the top-right.",
     side: "left",
     align: "start"
   },
@@ -198,8 +196,7 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
     openDialog: true,
     element: '[data-tour="grader-comment-input"]',
     title: "Leave feedback",
-    description:
-      "Add a short comment the student will see on their results page.",
+    description: "Add a short comment the student will see on their results page.",
     side: "left",
     align: "start"
   },
@@ -207,9 +204,9 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
     route: "student",
     openDialog: true,
     element: '[data-tour="grader-next"]',
-    title: "Manual prev / next",
+    title: "Previous and next",
     description:
-      "Walk through students with the Prev / Next buttons (or J / K on the keyboard). When you reach the last student in a question, Next rolls over to the first ungraded student of the next question; Prev does the same backwards. Changes are auto-saved as you type — there is no save button.",
+      "Walk through students with the Previous / Next buttons (or J / K on the keyboard). When you reach the last student in a question, Next rolls over to the first ungraded student of the next question; Previous does the same backwards. Changes are auto-saved as you type, so there is no save button.",
     side: "left",
     align: "end"
   },
@@ -219,7 +216,7 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
     element: '[data-tour="grader-auto-advance"]',
     title: "Auto-advance after save",
     description:
-      "Flip this switch to keep your hands on the keyboard. Once a student's grade is auto-saved (and you stop editing for a moment), the Grader jumps to the next ungraded student automatically — perfect for long batches. A short Undo toast lets you roll back the move and the save if you change your mind.",
+      "Flip this switch to keep your hands on the keyboard. Once a student's grade is auto-saved (and you stop editing for a moment), the grader jumps to the next ungraded student automatically, which is useful for long grading batches. A short Undo toast lets you roll back the move and the save if you change your mind.",
     side: "left",
     align: "end"
   }
