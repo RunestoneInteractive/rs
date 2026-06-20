@@ -714,36 +714,40 @@ export default class Parsons extends RunestoneBase {
         // Layout the areas
         var areaWidth, areaHeight;
         // Establish the width and height of the droppable areas
-        var item, maxFunction;
+        var item;
         areaHeight = 20;
         var height_add = 0;
         if (this.options.numbered != undefined) {
             height_add = 1;
         }
-        // Warning -- all of this is just a bit of pixie dust discovered by trial
-        // and error to try to get the height of the drag and drop boxes.
-        // item is a jQuery object
-        // outerHeight can be unreliable if elements are not yet visible
-        // outerHeight will return bad results if MathJax has not rendered the math
+
+        // Use two explicit passes — first measure all widths (with MathJax awaited per block for math),
+        // then apply the final areaWidth to all blocks and measure heights.
         areaWidth = 0;
         let self = this;
-        maxFunction = async function (item) {
-            if (
-                this.options.language == "natural" ||
-                this.options.language == "math"
-            ) {
+
+        // Pass 1: render math (if needed) and measure natural width of each block
+        const isMath = this.options.language == "natural" ||
+                    this.options.language == "math";
+        for (i = 0; i < blocks.length; i++) {
+            let item = $(blocks[i].view);
+            if (isMath) {
                 if (typeof runestoneMathReady !== "undefined") {
                     await runestoneMathReady.then(
                         async () => await self.queueMathJax(item[0])
                     );
                 } else {
-                    // this is for older rst builds not ptx
                     if (typeof MathJax.startup !== "undefined") {
                         await self.queueMathJax(item[0]);
                     }
                 }
             }
             areaWidth = Math.max(areaWidth, item.outerWidth(true));
+        }
+
+        // Pass 2: apply uniform width to all blocks, then measure heights
+        for (i = 0; i < blocks.length; i++) {
+            let item = $(blocks[i].view);
             item.width(areaWidth - 22);
             var addition = 3.8;
             let outerH = item.outerHeight(true);
@@ -751,10 +755,8 @@ export default class Parsons extends RunestoneBase {
                 addition = (3.1 * (outerH - 38)) / 21;
             }
             areaHeight += outerH + height_add * addition;
-        }.bind(this);
-        for (i = 0; i < blocks.length; i++) {
-            await maxFunction($(blocks[i].view));
         }
+
         // sometimes we have a problem with hidden elements not getting the right height
         // just make sure that we have a reasonable height. There must be a better way to
         // do this.
@@ -825,10 +827,11 @@ export default class Parsons extends RunestoneBase {
         } else {
             pairedBins = [];
         }
-        areaHeight += pairedBins.length * 10; // the paired bins take up extra space which can
+        // This does not seem to be necessary - so set multiplier to 0.
+        areaHeight += pairedBins.length * 0; // the paired bins take up extra space which can
         // cause the blocks to spill out.  This
         // corrects that by adding a little extra
-        this.areaHeight = areaHeight + 40;
+        this.areaHeight = areaHeight;
         $(this.sourceArea).css({
             width: this.areaWidth + 2,
             height: this.areaHeight,
@@ -857,13 +860,126 @@ export default class Parsons extends RunestoneBase {
             this.blocks[i].initializeInteractivity();
         }
         this.initializeTabIndex();
-        let self = this;
+        let self = this; // TODO Why?
         if (
             this.options.language == "natural" ||
             this.options.language == "math"
         ) {
             if (typeof MathJax.startup !== "undefined") {
-                self.queueMathJax(self.outerDiv);
+                // Since aQueue is the same AutoQueue instance that processes the per-block items, 
+                // enqueueing outerDiv directly guarantees it runs after all per-block items 
+                // already in the queue have been typeset. The .then() then fires with all 
+                // blocks fully rendered at their final heights.
+                self.aQueue.enqueue(self.outerDiv).then(() => {
+                    // Recalculate areaWidth and areaHeight from all blocks (source + answer)
+                    // now that MathJax has rendered to final dimensions.
+                    var newAreaWidth = 0;
+                    var newAreaHeight = 20;
+                    var height_add = self.options.numbered != undefined ? 1 : 0;
+                    var sourceBlocks = self.sourceBlocks();
+                    var answerBlocks = self.answerBlocks();
+                    var allBlocks = sourceBlocks.concat(answerBlocks);
+
+                    // First pass: find max natural width across all blocks
+                    for (var i = 0; i < allBlocks.length; i++) {
+                        var blockView = $(allBlocks[i].view);
+                        blockView.css("width", "");   // release fixed width to get natural width
+                        newAreaWidth = Math.max(newAreaWidth, blockView.outerWidth(true));
+                    }
+                    if (self.options.numbered != undefined) {
+                        newAreaWidth += 25;
+                    }
+                    var baseWidth = newAreaWidth - 22;
+                    var answerWidth = newAreaWidth + self.indent * self.options.pixelsPerIndent - 22;
+
+                    // Second pass: apply correct width and accumulate height
+                    for (var i = 0; i < allBlocks.length; i++) {
+                        var blockView = $(allBlocks[i].view);
+                        blockView.css("width", baseWidth);
+                        var outerH = blockView.outerHeight(true);
+                        var addition = 3.8;
+                        if (outerH != 38) {
+                            addition = (3.1 * (outerH - 38)) / 21;
+                        }
+                        newAreaHeight += outerH + height_add * addition;
+                    }
+
+                    self.areaWidth = newAreaWidth;
+                    self.areaHeight = newAreaHeight;
+
+                    // Resize source and answer areas
+                    $(self.sourceArea).css({
+                        width: newAreaWidth + 2,
+                        height: newAreaHeight,
+                    });
+                    $(self.answerArea).css({
+                        width: self.options.pixelsPerIndent * self.indent + newAreaWidth + 2,
+                        height: newAreaHeight,
+                    });
+
+                    // Reposition source blocks
+                    var positionTop = 0;
+                    for (var i = 0; i < sourceBlocks.length; i++) {
+                        $(sourceBlocks[i].view).css({
+                            left: 0,
+                            top: positionTop,
+                            width: baseWidth,
+                            "z-index": 2,
+                        });
+                        positionTop += $(sourceBlocks[i].view).outerHeight(true);
+                    }
+
+                    // Reposition paired distractor brackets
+                    for (var i = 0; i < self.pairedBins.length; i++) {
+                        var bin = self.pairedBins[i];
+                        var matching = [];
+                        for (var j = 0; j < sourceBlocks.length; j++) {
+                            if (sourceBlocks[j].matchesBin(bin)) {
+                                matching.push(sourceBlocks[j]);
+                            }
+                        }
+                        var div = self.pairedDivs[i];
+                        if (matching.length == 0) {
+                            $(div).hide();
+                        } else {
+                            $(div).show();
+                            var height = -5;
+                            height += parseInt($(matching[matching.length - 1].view).css("top"));
+                            height -= parseInt($(matching[0].view).css("top"));
+                            height += $(matching[matching.length - 1].view).outerHeight(true);
+                            $(div).css({
+                                left: -6,
+                                top: $(matching[0].view).css("top"),
+                                width: baseWidth + 34,
+                                height: height,
+                                "z-index": 1,
+                                "text-indent": -30,
+                                "padding-top": (height - 70) / 2,
+                                overflow: "visible",
+                                "font-size": 43,
+                                "vertical-align": "middle",
+                                color: "#7e7ee7",
+                            });
+                            $(div).html(
+                                "<span id='st' style='vertical-align: middle; font-weight: bold; font-size: 15px'>or</span>{"
+                            );
+                        }
+                    }
+
+                    // Reposition answer blocks
+                    positionTop = 0;
+                    for (var i = 0; i < answerBlocks.length; i++) {
+                        var block = answerBlocks[i];
+                        var indent = block.indent * self.options.pixelsPerIndent;
+                        $(block.view).css({
+                            left: indent,
+                            top: positionTop,
+                            width: answerWidth - indent,
+                            "z-index": 2,
+                        });
+                        positionTop += $(block.view).outerHeight(true);
+                    }
+                });            
             }
         }
     }
