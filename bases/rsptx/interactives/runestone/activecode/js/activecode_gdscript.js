@@ -166,9 +166,8 @@ export default class GodotActiveCode extends ActiveCode {
     _sendToShell(payload) {
         try {
             // Specify your remote server origin for security
-            //const remoteOrigin = "https://runestone.academy"; 
-            const remoteOrigin = "https://wcu-cs-cooperlab.github.io"; 
-        
+            const remoteOrigin = "https://runestone.academy"; 
+            
             this.godotIframe.contentWindow.postMessage({
                 type: "loadExercise",
                 payload: payload
