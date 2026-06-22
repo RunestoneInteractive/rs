@@ -1070,7 +1070,9 @@ function enableChat(reflection, selected) {
     var studentSubmittedVote2 = false;
     var vote2done = false;
     var llmUserMessageCount = 0;
-    var likertSubmitted = false;
+    // Likert is opt-in per course via the enable_likert course attribute.
+    window.PI_ENABLE_LIKERT = {{ 'true' if enable_likert else 'false' }};
+    var likertSubmitted = !window.PI_ENABLE_LIKERT;
 
 window.PI_LIKERT_STATEMENTS = [
     {
@@ -1177,7 +1179,7 @@ window.PI_LIKERT_CHOICES = [
     updateNextQuestionBtnState();
 }
   function resetLikertPanel() {
-    likertSubmitted = false;
+    likertSubmitted = !window.PI_ENABLE_LIKERT;
 
     const panel = document.getElementById("piLikertPanel");
     const items = document.getElementById("piLikertItems");
@@ -1474,7 +1476,9 @@ function bindLikertSubmitHandler() {
 
               updateStepBanner(4);
               enableNextQuestionBtn();
-              showLikertPanel();
+              if (window.PI_ENABLE_LIKERT) {
+                showLikertPanel();
+              }
 }
             if (studentSubmittedVote2) {
               try {

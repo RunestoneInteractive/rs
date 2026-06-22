@@ -550,6 +550,7 @@ async def get_peer_async(
 
     course_attrs = await fetch_all_course_attributes(course.id)
     latex_macros = course_attrs.get("latex_macros", "")
+    enable_likert = course_attrs.get("enable_likert", "false") == "true"
 
     async_llm_modes_enabled = (
         course_attrs.get("enable_async_llm_modes", "false") == "true"
@@ -612,6 +613,7 @@ async def get_peer_async(
         "has_reflection": has_reflection,
         "llm_enabled": llm_enabled,
         "async_mode": question_async_mode,
+        "enable_likert": enable_likert,
         "pi_themes_json": json.dumps(PI_THEMES),
         "llm_reply": None,
         "latex_macros": latex_macros,
