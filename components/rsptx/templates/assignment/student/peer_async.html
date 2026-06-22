@@ -215,7 +215,72 @@
     }
     #readyVote2Btn:hover:not(:disabled) { background:var(--pi-blue2); }
     #readyVote2Btn:disabled { background:var(--pi-line2); color:#9ca3af; cursor:not-allowed; }
+    .pi-likert-panel {
+      display: none;
+      border-top: 1px solid var(--pi-line);
+      padding: 14px;
+      background: #fff;
+    }
 
+    .pi-likert-panel.visible {
+      display: block;
+    }
+
+    .pi-likert-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--pi-ink);
+      margin-bottom: 4px;
+    }
+
+    .pi-likert-sub {
+      font-size: 13px;
+      color: var(--pi-ink3);
+      margin-bottom: 12px;
+    }
+
+    .pi-likert-item {
+      border: 1px solid var(--pi-line);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #fafbfc;
+    }
+
+    .pi-likert-statement {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--pi-ink);
+      margin-bottom: 10px;
+    }
+
+    .pi-likert-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+    }
+
+    .pi-likert-options label {
+      font-size: 13px;
+      color: var(--pi-ink2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pi-likert-footer {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #piLikertError {
+      display: none;
+      font-size: 13px;
+      color: #b91c1c;
+    }
 </style>
 {% endblock %}
 
@@ -375,6 +440,24 @@
             <span id="vote2Prompt" style="display:none; font-size:13px; color:var(--pi-ink3);">Submit your vote above to finish.</span>
           </div>
           <button id="readyVote2Btn" disabled onclick="enableSecondVoteAsync()">Vote again →</button>
+        </div>
+
+        <div class="pi-likert-panel" id="piLikertPanel">
+          <div class="pi-likert-title">Before you continue</div>
+          <div class="pi-likert-sub">
+            Please answer the following questions before moving to the next question.
+          </div>
+
+          <form id="piLikertForm">
+            <div id="piLikertItems"></div>
+
+            <div class="pi-likert-footer">
+              <span id="piLikertError">Please answer every question.</span>
+              <button id="piLikertSubmit" type="button" class="btn btn-primary" disabled>
+                Submit responses
+              </button>
+            </div>
+          </form>
         </div>
 
       </div>
@@ -987,6 +1070,32 @@ function enableChat(reflection, selected) {
     var studentSubmittedVote2 = false;
     var vote2done = false;
     var llmUserMessageCount = 0;
+    // Likert is opt-in per course via the enable_likert course attribute.
+    window.PI_ENABLE_LIKERT = {{ 'true' if enable_likert else 'false' }};
+    var likertSubmitted = !window.PI_ENABLE_LIKERT;
+
+window.PI_LIKERT_STATEMENTS = [
+    {
+        id: "back_and_forth",
+        text: "This experience felt like a back-and-forth exchange."
+    },
+    {
+        id: "both_sides_contributing",
+        text: "I felt like both sides were contributing to the conversation."
+    },
+    {
+        id: "built_explanation",
+        text: "This experience helped me build my own explanation of the concept."
+    }
+];
+
+window.PI_LIKERT_CHOICES = [
+    { value: 5, label: "Strongly Agree" },
+    { value: 4, label: "Agree" },
+    { value: 3, label: "Neutral" },
+    { value: 2, label: "Disagree" },
+    { value: 1, label: "Strongly Disagree" }
+];
     var nextQuestionNumber = {{ nextQnum }};
     var assignId = '{{ assignment_id }}';
     window.PI_IS_LAST_QUESTION = {{ 'true' if is_last_question else 'false' }};
@@ -1037,27 +1146,227 @@ function enableChat(reflection, selected) {
     }
 
     function enableNextQuestionBtn() {
-        const wrapper = document.getElementById("nextQuestionWrapper");
-        const btn = document.getElementById("nextQuestionSubmit");
-        if (!wrapper || !btn) return;
+    const wrapper = document.getElementById("nextQuestionWrapper");
+    const btn = document.getElementById("nextQuestionSubmit");
+    if (!wrapper || !btn) return;
+
+    btn.onclick = function() {
+        if (!studentSubmittedVote2 || !likertSubmitted) {
+            updateNextQuestionBtnState();
+            return;
+        }
+
+        const form = document.createElement("form");
+        form.method = "get";
+        form.action = "/assignment/peer/student/async";
+
+        const aid = document.createElement("input");
+        aid.type = "hidden";
+        aid.name = "assignment_id";
+        aid.value = window.PI_ASSIGNMENT_ID;
+
+        const qnum = document.createElement("input");
+        qnum.type = "hidden";
+        qnum.name = "question_num";
+        qnum.value = window.PI_NEXT_QNUM;
+
+        form.appendChild(aid);
+        form.appendChild(qnum);
+        document.body.appendChild(form);
+        form.submit();
+    };
+
+    updateNextQuestionBtnState();
+}
+  function resetLikertPanel() {
+    likertSubmitted = !window.PI_ENABLE_LIKERT;
+
+    const panel = document.getElementById("piLikertPanel");
+    const items = document.getElementById("piLikertItems");
+    const submit = document.getElementById("piLikertSubmit");
+    const error = document.getElementById("piLikertError");
+
+    if (panel) panel.classList.remove("visible");
+    if (items) items.innerHTML = "";
+    if (submit) submit.disabled = true;
+    if (error) error.style.display = "none";
+}
+function renderLikertPanel() {
+    const items = document.getElementById("piLikertItems");
+    if (!items) return;
+
+    items.innerHTML = "";
+
+    window.PI_LIKERT_STATEMENTS.forEach(function(statement, index) {
+        const item = document.createElement("div");
+        item.className = "pi-likert-item";
+
+        const statementText = document.createElement("div");
+        statementText.className = "pi-likert-statement";
+        statementText.textContent = statement.text;
+
+        const options = document.createElement("div");
+        options.className = "pi-likert-options";
+
+        window.PI_LIKERT_CHOICES.forEach(function(choice) {
+            const label = document.createElement("label");
+
+            const input = document.createElement("input");
+            input.type = "radio";
+            input.name = "likert_" + statement.id;
+            input.value = choice.value;
+            input.setAttribute("data-statement-id", statement.id);
+            input.setAttribute("data-statement-text", statement.text);
+            input.setAttribute("data-choice-label", choice.label);
+
+            input.addEventListener("change", updateLikertSubmitState);
+
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(choice.label));
+            options.appendChild(label);
+        });
+
+        item.appendChild(statementText);
+        item.appendChild(options);
+        items.appendChild(item);
+    });
+}
+
+function updateLikertSubmitState() {
+    const submit = document.getElementById("piLikertSubmit");
+    if (!submit) return;
+
+    const allAnswered = window.PI_LIKERT_STATEMENTS.every(function(statement) {
+        return !!document.querySelector(
+            `input[name="likert_${statement.id}"]:checked`
+        );
+    });
+
+    submit.disabled = !allAnswered;
+
+    const error = document.getElementById("piLikertError");
+    if (error && allAnswered) {
+        error.style.display = "none";
+    }
+}
+
+function showLikertPanel() {
+    renderLikertPanel();
+
+    const tabBar = document.querySelector(".pi-tab-bar");
+    const tabBody1 = document.getElementById("piTabBody1");
+    const tabBody2 = document.getElementById("piTabBody2");
+    const voteBar = document.getElementById("piVoteBar");
+    const likertPanel = document.getElementById("piLikertPanel");
+
+    const panelTitle = document.querySelector(".pi-panel-title");
+    const pickChip = document.querySelector(".pi-pick-chip");
+
+    if (tabBar) tabBar.style.display = "none";
+    if (tabBody1) tabBody1.style.display = "none";
+    if (tabBody2) tabBody2.style.display = "none";
+    if (voteBar) voteBar.style.display = "none";
+
+    if (panelTitle) panelTitle.textContent = "Final reflection";
+    if (pickChip) pickChip.style.display = "none";
+
+    if (likertPanel) {
+        likertPanel.classList.add("visible");
+    }
+
+    updateNextQuestionBtnState();
+}
+
+function collectLikertResponses() {
+    return window.PI_LIKERT_STATEMENTS.map(function(statement) {
+        const selected = document.querySelector(
+            `input[name="likert_${statement.id}"]:checked`
+        );
+
+        return {
+            statement_id: statement.id,
+            statement: statement.text,
+            value: selected ? Number(selected.value) : null,
+            label: selected ? selected.getAttribute("data-choice-label") : null
+        };
+    });
+}
+
+function logLikertResponses() {
+    const responses = collectLikertResponses();
+
+    if (typeof logPeerEvent === "function") {
+        logPeerEvent({
+            sid: eBookConfig.username,
+            div_id: currentQuestion,
+            event: "pi_likert",
+            act: JSON.stringify({
+                pi_attempt_id: getPiAttemptId(),
+                responses: responses
+            }),
+            course_name: eBookConfig.course,
+        });
+    }
+}
+
+function updateNextQuestionBtnState() {
+    const wrapper = document.getElementById("nextQuestionWrapper");
+    const btn = document.getElementById("nextQuestionSubmit");
+    if (!wrapper || !btn) return;
+
+    const canContinue = studentSubmittedVote2 && likertSubmitted;
+
+    if (canContinue) {
         wrapper.style.cursor = "auto";
         wrapper.removeAttribute("data-tooltip");
         btn.disabled = false;
-        btn.onclick = function() {
-            const form = document.createElement("form");
-            form.method = "get";
-            form.action = "/assignment/peer/student/async";
-            const aid = document.createElement("input");
-            aid.type = "hidden"; aid.name = "assignment_id"; aid.value = window.PI_ASSIGNMENT_ID;
-            const qnum = document.createElement("input");
-            qnum.type = "hidden"; qnum.name = "question_num"; qnum.value = window.PI_NEXT_QNUM;
-            form.appendChild(aid); form.appendChild(qnum);
-            document.body.appendChild(form); form.submit();
-        };
+    } else {
+        wrapper.style.cursor = "not-allowed";
+        wrapper.setAttribute(
+            "data-tooltip",
+            studentSubmittedVote2
+                ? "Complete the Likert questions to continue"
+                : "Complete both votes to continue"
+        );
+        btn.disabled = true;
     }
+}
 
+function bindLikertSubmitHandler() {
+    const submit = document.getElementById("piLikertSubmit");
+    const error = document.getElementById("piLikertError");
+    if (!submit) return;
+
+    submit.addEventListener("click", function() {
+        const allAnswered = window.PI_LIKERT_STATEMENTS.every(function(statement) {
+            return !!document.querySelector(
+                `input[name="likert_${statement.id}"]:checked`
+            );
+        });
+
+        if (!allAnswered) {
+            if (error) error.style.display = "inline";
+            return;
+        }
+
+        likertSubmitted = true;
+        logLikertResponses();
+
+        submit.disabled = true;
+        submit.textContent = "✓ Submitted";
+
+        document
+            .querySelectorAll("#piLikertPanel input")
+            .forEach(input => input.disabled = true);
+
+        updateStepBanner(4);
+        updateNextQuestionBtnState();
+    });
+}
     $(document).on("runestone:login-complete", function () {
         llmUserMessageCount = 0;
+        resetLikertPanel();
+        bindLikertSubmitHandler();
         const clearComp = function(comp) {
             comp.restoreAnswers = function() {};
             try { localStorage.removeItem(comp.localStorageKey()); } catch(e) {}
@@ -1162,9 +1471,15 @@ function enableChat(reflection, selected) {
               studentVoteCount = 2;
               studentSubmittedVote2 = true;
               window._vote2Enabled = false;
+
+              setVoteInputsLocked(true);
+
               updateStepBanner(4);
               enableNextQuestionBtn();
-            }
+              if (window.PI_ENABLE_LIKERT) {
+                showLikertPanel();
+              }
+}
             if (studentSubmittedVote2) {
               try {
                 const comp = window.componentMap[currentQuestion];
