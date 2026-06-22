@@ -163,7 +163,7 @@ def generate_personalized_fix(
     end_marker = "[end-fixed-code]"
     start_marker = "[fixed-code]:\n"
 
-    fixed_code = raw_completion_response.choices[0].message.content
+    fixed_code = raw_completion_response.choices[0].message.content or ""
 
     if fixed_code.endswith(end_marker):
         fixed_code = fixed_code.removesuffix(end_marker).rstrip()
@@ -257,7 +257,7 @@ def get_example_solution(api_token, language, problem_description, unittest_code
     )
 
     completion = raw_completion_response.choices[0].message
-    LLM_example_code = completion.content
+    LLM_example_code = completion.content or ""
     # test if the LLM_example_code is correct remove all potential #
     LLM_example_code = LLM_example_code.lstrip("#").rstrip("#").strip()
     unittest_result, cleaned_LLM_example_code = unittest_evaluation(

@@ -166,6 +166,12 @@ exclude = [
     "bases/rsptx/library_server_api",
 ]
 
+[tool.ruff.format]
+quote-style = "double"     # matches Black
+indent-style = "space"     # matches Black
+skip-magic-trailing-comma = false  # respect Black's magic trailing comma
+line-ending = "auto"
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
