@@ -1038,7 +1038,7 @@ def bake(ctx, config, version):
     ctx.invoke(test)
     ctx.invoke(wheel)
     for service in config.ym["services"]:
-        if service == "nginx_dstart_dev":
+        if service == "nginx_dstart_dev" or service == "preflight":
             continue
         if "image" not in config.ym["services"][service]:
             continue

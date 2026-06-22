@@ -294,4 +294,4 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
 @router.post("/send_message")
 async def send_message(packet: PeerMessage):
     r = await aioredis.from_url(settings.redis_uri)
-    r.publish("peermessages", packet.json())
+    r.publish("peermessages", packet.model_dump_json())

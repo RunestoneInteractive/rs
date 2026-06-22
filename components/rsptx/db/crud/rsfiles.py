@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import select, and_, or_
 
 from ..models import SourceCode, SourceCodeValidator
@@ -113,7 +115,10 @@ def generate_datafile_acid(filename: str, owner: str, course_id: str) -> str:
 
 
 async def fetch_source_code(
-    base_course: str, course_name: str, acid: str = None, filename: str = None
+    base_course: str,
+    course_name: str,
+    acid: Optional[str] = None,
+    filename: Optional[str] = None,
 ) -> SourceCodeValidator:
     """
     Fetch the source code for a given acid or filename

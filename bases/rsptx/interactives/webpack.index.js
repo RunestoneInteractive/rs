@@ -20,13 +20,8 @@
 import "jquery-ui/jquery-ui.js";
 import "jquery-ui/themes/base/jquery.ui.all.css";
 import "./runestone/common/js/jquery.idle-timer.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.emitter.bidi.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.emitter.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.fallbacks.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.messagestore.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.parser.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.language.js";
+// i18n is now handled by the dependency-free runestone/common/js/rsi18n.js;
+// the vendored Wikimedia jquery.i18n plugin has been removed.
 
 // Bootstrap - not needed for pxx development
 import "bootstrap/dist/js/bootstrap.js";

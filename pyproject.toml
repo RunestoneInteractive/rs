@@ -2,7 +2,7 @@
 # Uses UV not Poetry -- conversion to uv in June 2026
 [project]
 name = "rs"
-version = "8.7.5"
+version = "8.8.0"
 description = ""
 authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
 requires-python = ">=3.13,<4"
@@ -165,6 +165,12 @@ exclude = [
     "bases/rsptx/dash_server_api",
     "bases/rsptx/library_server_api",
 ]
+
+[tool.ruff.format]
+quote-style = "double"     # matches Black
+indent-style = "space"     # matches Black
+skip-magic-trailing-comma = false  # respect Black's magic trailing comma
+line-ending = "auto"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

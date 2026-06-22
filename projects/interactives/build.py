@@ -126,10 +126,13 @@ if sys.argv[1:] == ["--publish"]:
             ],
             check=True,
         )
-        # tag the release in the repo
-        subprocess.run(
-            ["git", "tag", f"components_{VERSION}"], check=True
-        )
+        try:
+            # tag the release in the repo
+            subprocess.run(
+                ["git", "tag", f"components_{VERSION}"], check=True
+            )
+        except subprocess.CalledProcessError:
+            print(f"Failed to tag release components_{VERSION}")
         print("Moving release to jsdist")
         subprocess.run(
             " ".join(["mv", f"dist-{VERSION}.tgz", "../jsdist"]), check=True, shell=True
@@ -150,5 +153,10 @@ if sys.argv[1:] == ["--publish"]:
 
 # No longer need to poetry update pretext for other projects
     with pushd("../../"):
-        subprocess.run(["uv", "lock", "--upgrade-package", "pretext"], check=True, shell=True)
-        subprocess.run(["uv", "sync"], check=True, shell=True)
+        subprocess.run(["pwd"], check=True, shell=True)
+        try:
+            subprocess.run(["uv", "lock", "--upgrade-package", "pretext"], check=True, shell=True)
+            subprocess.run(["uv", "sync"], check=True, shell=True)
+        except subprocess.CalledProcessError:
+            print("Failed to update pretext package")
+
