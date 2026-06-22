@@ -1550,10 +1550,12 @@ async def get_async_llm_reflection(
                     sid=user.username,
                     div_id=div_id,
                     event="pi_theme",
-                    act=json.dumps({
-                        "theme_id": theme_id,
-                        "theme_label": theme_label,
-                    }),
+                    act=json.dumps(
+                        {
+                            "theme_id": theme_id,
+                            "theme_label": theme_label,
+                        }
+                    ),
                     timestamp=datetime.datetime.utcnow(),
                 )
             )
@@ -1781,4 +1783,3 @@ async def get_async_llm_reflection(
     if generated_mapping:
         result["analogy_mapping"] = generated_mapping
     return JSONResponse(content=result)
-
