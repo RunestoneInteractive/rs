@@ -25,11 +25,13 @@ const REQUIRED_FIELDS: Record<ExerciseType, RequiredFieldRule[]> = {
   activecode: [{ field: "language", type: "string" }],
   parsonsprob: [{ field: "blocks", type: "array" }],
   dragndrop: [
+    { field: "statement", type: "string" },
     { field: "left", type: "array" },
     { field: "right", type: "array" },
     { field: "correctAnswers", type: "array" }
   ],
   matching: [
+    { field: "statement", type: "string" },
     { field: "left", type: "array" },
     { field: "right", type: "array" },
     { field: "correctAnswers", type: "array" }
