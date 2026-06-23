@@ -724,31 +724,28 @@ export default class Parsons extends RunestoneBase {
         // Use two explicit passes — first measure all widths (with MathJax awaited per block for math),
         // then apply the final areaWidth to all blocks and measure heights.
         areaWidth = 0;
-        const isMath = this.options.language == "natural" ||
-                       this.options.language == "math";
+        let self = this;
 
-        // Pass 1: render math if needed.
-        // Typeset all blocks in a single MathJax call instead of one per block,
-        // which eliminates the N-fold serial overhead of the previous approach.
-        if (isMath) {
-            const blockElements = blocks.map(b => $(b.view)[0]);
-            if (typeof runestoneMathReady !== "undefined") {
-                await runestoneMathReady.then(
-                    async () => await MathJax.typesetPromise(blockElements)
-                );
-            } else {
-                if (typeof MathJax.startup !== "undefined") {
-                    await MathJax.typesetPromise(blockElements);
+        // Pass 1: render math (if needed) and measure natural width of each block
+        const isMath = this.options.language == "natural" ||
+                    this.options.language == "math";
+        for (i = 0; i < blocks.length; i++) {
+            let item = $(blocks[i].view);
+            if (isMath) {
+                if (typeof runestoneMathReady !== "undefined") {
+                    await runestoneMathReady.then(
+                        async () => await self.queueMathJax(item[0])
+                    );
+                } else {
+                    if (typeof MathJax.startup !== "undefined") {
+                        await self.queueMathJax(item[0]);
+                    }
                 }
             }
+            areaWidth = Math.max(areaWidth, item.outerWidth(true));
         }
 
-        // Pass 2: measure natural width of each block (now fully rendered)
-        for (i = 0; i < blocks.length; i++) {
-            areaWidth = Math.max(areaWidth, $(blocks[i].view).outerWidth(true));
-        }
-
-        // Pass 3: apply uniform final width to all blocks, then measure heights
+        // Pass 2: apply uniform width to all blocks, then measure heights
         for (i = 0; i < blocks.length; i++) {
             let item = $(blocks[i].view);
             item.width(areaWidth - 22);
@@ -863,23 +860,24 @@ export default class Parsons extends RunestoneBase {
             this.blocks[i].initializeInteractivity();
         }
         this.initializeTabIndex();
+        let self = this; // TODO Why?
         if (
             this.options.language == "natural" ||
             this.options.language == "math"
         ) {
             if (typeof MathJax.startup !== "undefined") {
-                // initializeAreas already typeset all blocks in a single batch call,
-                // so no further MathJax work is needed here. Promise.resolve().then()
-                // defers the re-layout by one microtask tick, giving the browser time
-                // to reflow the newly rendered math before outerHeight() is measured.
-                Promise.resolve().then(() => {
+                // Since aQueue is the same AutoQueue instance that processes the per-block items, 
+                // enqueueing outerDiv directly guarantees it runs after all per-block items 
+                // already in the queue have been typeset. The .then() then fires with all 
+                // blocks fully rendered at their final heights.
+                self.aQueue.enqueue(self.outerDiv).then(() => {
                     // Recalculate areaWidth and areaHeight from all blocks (source + answer)
                     // now that MathJax has rendered to final dimensions.
                     var newAreaWidth = 0;
                     var newAreaHeight = 20;
-                    var height_add = this.options.numbered != undefined ? 1 : 0;
-                    var sourceBlocks = this.sourceBlocks();
-                    var answerBlocks = this.answerBlocks();
+                    var height_add = self.options.numbered != undefined ? 1 : 0;
+                    var sourceBlocks = self.sourceBlocks();
+                    var answerBlocks = self.answerBlocks();
                     var allBlocks = sourceBlocks.concat(answerBlocks);
 
                     // First pass: find max natural width across all blocks
@@ -888,11 +886,11 @@ export default class Parsons extends RunestoneBase {
                         blockView.css("width", "");   // release fixed width to get natural width
                         newAreaWidth = Math.max(newAreaWidth, blockView.outerWidth(true));
                     }
-                    if (this.options.numbered != undefined) {
+                    if (self.options.numbered != undefined) {
                         newAreaWidth += 25;
                     }
                     var baseWidth = newAreaWidth - 22;
-                    var answerWidth = newAreaWidth + this.indent * this.options.pixelsPerIndent - 22;
+                    var answerWidth = newAreaWidth + self.indent * self.options.pixelsPerIndent - 22;
 
                     // Second pass: apply correct width and accumulate height
                     for (var i = 0; i < allBlocks.length; i++) {
@@ -906,16 +904,16 @@ export default class Parsons extends RunestoneBase {
                         newAreaHeight += outerH + height_add * addition;
                     }
 
-                    this.areaWidth = newAreaWidth;
-                    this.areaHeight = newAreaHeight;
+                    self.areaWidth = newAreaWidth;
+                    self.areaHeight = newAreaHeight;
 
                     // Resize source and answer areas
-                    $(this.sourceArea).css({
+                    $(self.sourceArea).css({
                         width: newAreaWidth + 2,
                         height: newAreaHeight,
                     });
-                    $(this.answerArea).css({
-                        width: this.options.pixelsPerIndent * this.indent + newAreaWidth + 2,
+                    $(self.answerArea).css({
+                        width: self.options.pixelsPerIndent * self.indent + newAreaWidth + 2,
                         height: newAreaHeight,
                     });
 
@@ -932,15 +930,15 @@ export default class Parsons extends RunestoneBase {
                     }
 
                     // Reposition paired distractor brackets
-                    for (var i = 0; i < this.pairedBins.length; i++) {
-                        var bin = this.pairedBins[i];
+                    for (var i = 0; i < self.pairedBins.length; i++) {
+                        var bin = self.pairedBins[i];
                         var matching = [];
                         for (var j = 0; j < sourceBlocks.length; j++) {
                             if (sourceBlocks[j].matchesBin(bin)) {
                                 matching.push(sourceBlocks[j]);
                             }
                         }
-                        var div = this.pairedDivs[i];
+                        var div = self.pairedDivs[i];
                         if (matching.length == 0) {
                             $(div).hide();
                         } else {
@@ -972,7 +970,7 @@ export default class Parsons extends RunestoneBase {
                     positionTop = 0;
                     for (var i = 0; i < answerBlocks.length; i++) {
                         var block = answerBlocks[i];
-                        var indent = block.indent * this.options.pixelsPerIndent;
+                        var indent = block.indent * self.options.pixelsPerIndent;
                         $(block.view).css({
                             left: indent,
                             top: positionTop,
