@@ -15,8 +15,23 @@ vi.mock("@components/routes/AssignmentBuilder/hooks/useAssignmentRouting", () =>
   })
 }));
 
+vi.mock("react-redux", () => ({
+  useSelector: () => [{ value: "python", label: "Python" }]
+}));
+
 vi.mock("./components/ExerciseFactory", () => ({
-  ExerciseFactory: ({ type }: { type: string }) => <div data-testid="factory">{type}</div>
+  ExerciseFactory: ({
+    type,
+    initialData
+  }: {
+    type: string;
+    initialData?: { statement?: string };
+  }) => (
+    <div data-testid="factory">
+      {type}
+      <span data-testid="factory-statement">{initialData?.statement ?? ""}</span>
+    </div>
+  )
 }));
 
 vi.mock("./components/ExerciseTypeSelect", () => ({
@@ -25,6 +40,21 @@ vi.mock("./components/ExerciseTypeSelect", () => ({
       pick-mchoice
     </button>
   )
+}));
+
+vi.mock("./components/ImportQuestionJsonModal", () => ({
+  ImportQuestionJsonModal: ({
+    opened,
+    onApply
+  }: {
+    opened: boolean;
+    onApply: (type: string, data: { statement: string }) => void;
+  }) =>
+    opened ? (
+      <button type="button" onClick={() => onApply("mchoice", { statement: "from-json" })}>
+        apply-import
+      </button>
+    ) : null
 }));
 
 beforeEach(() => {
@@ -71,5 +101,35 @@ describe("CreateExercise", () => {
     renderWithMantine(<CreateExercise onCancel={vi.fn()} onSave={vi.fn()} />);
 
     expect(screen.getByTestId("factory")).toHaveTextContent("activecode");
+  });
+
+  it("shows the Paste JSON button on the type-selection view", () => {
+    renderWithMantine(<CreateExercise onCancel={vi.fn()} onSave={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: "Paste JSON" })).toBeInTheDocument();
+  });
+
+  it("importing JSON renders the factory pre-filled with the chosen type", () => {
+    renderWithMantine(<CreateExercise onCancel={vi.fn()} onSave={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Paste JSON" }));
+    fireEvent.click(screen.getByRole("button", { name: "apply-import" }));
+
+    expect(updateExerciseType).toHaveBeenCalledWith("mchoice");
+    expect(screen.getByTestId("factory")).toHaveTextContent("mchoice");
+    expect(screen.getByTestId("factory-statement")).toHaveTextContent("from-json");
+  });
+
+  it("offers a View / Replace JSON button in edit mode", () => {
+    renderWithMantine(
+      <CreateExercise
+        onCancel={vi.fn()}
+        onSave={vi.fn()}
+        isEdit
+        initialData={{ question_type: "mchoice" }}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "View / Replace JSON" })).toBeInTheDocument();
   });
 });
