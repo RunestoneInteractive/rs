@@ -737,7 +737,7 @@ export default class Parsons extends RunestoneBase {
                         async () => await self.queueMathJax(item[0])
                     );
                 } else {
-                    if (typeof MathJax.startup !== "undefined") {
+                    if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
                         await self.queueMathJax(item[0]);
                     }
                 }
@@ -768,7 +768,6 @@ export default class Parsons extends RunestoneBase {
             this.areaWidth += 25;
             //areaHeight += (blocks.length);
         }
-        // + 40 to areaHeight to provide some additional buffer in case any text overflow still happens - Vincent Qiu (September 2020)
         if (indent > 0 && indent <= 4) {
             $(this.answerArea).addClass("answer" + indent);
         } else {
@@ -827,10 +826,6 @@ export default class Parsons extends RunestoneBase {
         } else {
             pairedBins = [];
         }
-        // This does not seem to be necessary - so set multiplier to 0.
-        areaHeight += pairedBins.length * 0; // the paired bins take up extra space which can
-        // cause the blocks to spill out.  This
-        // corrects that by adding a little extra
         this.areaHeight = areaHeight;
         $(this.sourceArea).css({
             width: this.areaWidth + 2,
@@ -860,12 +855,12 @@ export default class Parsons extends RunestoneBase {
             this.blocks[i].initializeInteractivity();
         }
         this.initializeTabIndex();
-        let self = this; // TODO Why?
+        let self = this;
         if (
             this.options.language == "natural" ||
             this.options.language == "math"
         ) {
-            if (typeof MathJax.startup !== "undefined") {
+            if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
                 // Since aQueue is the same AutoQueue instance that processes the per-block items, 
                 // enqueueing outerDiv directly guarantees it runs after all per-block items 
                 // already in the queue have been typeset. The .then() then fires with all 
@@ -886,9 +881,7 @@ export default class Parsons extends RunestoneBase {
                         blockView.css("width", "");   // release fixed width to get natural width
                         newAreaWidth = Math.max(newAreaWidth, blockView.outerWidth(true));
                     }
-                    if (self.options.numbered != undefined) {
-                        newAreaWidth += 25;
-                    }
+
                     var baseWidth = newAreaWidth - 22;
                     var answerWidth = newAreaWidth + self.indent * self.options.pixelsPerIndent - 22;
 
