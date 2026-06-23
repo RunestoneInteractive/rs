@@ -121,8 +121,9 @@ export default class GodotActiveCode extends ActiveCode {
     // -------------------------------------------------------------------------
     _listenForMessages() {
         window.addEventListener("message", (event) => {
-            // Guard 1: message must come from this instance's iframe.
-            if (event.source !== this.godotIframe.contentWindow) return;
+            // Guard 1: message must come from this instance's iframe and expected origin.
+            const expectedOrigin = new URL(this.shellUrl, window.location.href).origin;
+            if (event.source !== this.godotIframe.contentWindow || event.origin !== expectedOrigin) return;
 
             var data = event.data;
 
@@ -166,12 +167,12 @@ export default class GodotActiveCode extends ActiveCode {
     _sendToShell(payload) {
         try {
             // Specify your remote server origin for security
-            const remoteOrigin = "https://runestone.academy"; 
-            
-            this.godotIframe.contentWindow.postMessage({
-                type: "loadExercise",
-                payload: payload
-            }, remoteOrigin);
+            const targetOrigin = new URL(this.shellUrl, window.location.href).origin;
+
+            this.godotIframe.contentWindow.postMessage(
+                { type: "loadExercise", payload: payload },
+                targetOrigin
+            );
         } catch (e) {
             this._onError("Could not communicate with Godot shell: " + e.message);
         }
