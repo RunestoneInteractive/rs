@@ -1553,7 +1553,7 @@ async def get_async_llm_reflection(
     theme_id = (data.get("theme_id") or "").strip()
     analogy_mapping = (data.get("analogy_mapping") or "").strip()
 
-    if theme_id:
+    if theme_id and div_id:
         theme_obj = THEME_BY_ID.get(theme_id)
         theme_label = theme_obj["label"] if theme_obj else theme_id
 

@@ -1474,7 +1474,9 @@ function bindLikertSubmitHandler() {
 
               setVoteInputsLocked(true);
 
-              updateStepBanner(4);
+              if (!window.PI_ENABLE_LIKERT) {
+                updateStepBanner(4);
+              }
               enableNextQuestionBtn();
               if (window.PI_ENABLE_LIKERT) {
                 showLikertPanel();
