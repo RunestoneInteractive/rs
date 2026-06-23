@@ -634,6 +634,7 @@ export default class Parsons extends RunestoneBase {
     // Based on the blocks, create the source and answer areas
     async initializeAreas(sourceBlocks, answerBlocks, options) {
         // Create blocks property as the sum of the two
+        const parent = this.outerDiv.parentNode;
         var blocks = [];
         var i, block;
         for (i = 0; i < sourceBlocks.length; i++) {
@@ -653,7 +654,7 @@ export default class Parsons extends RunestoneBase {
             for (i = 0; i < blocks.length; i++) {
                 block = blocks[i];
                 if (disabled.includes(block.lines[0].index)) {
-                    $(block.view).addClass("disabled");
+                    block.view.classList.add("disabled");
                 }
             }
         }
@@ -672,10 +673,11 @@ export default class Parsons extends RunestoneBase {
         var replaceElement;
         if (isHidden) {
             replaceElement = document.createElement("div");
-            replaceElement.classList.add("runestone-sphinx");
-            $(this.outerDiv).replaceWith(replaceElement);
+            if (parent) {
+               parent.replaceChild(replaceElement, this.outerDiv);
+            }
             // add runestone-sphinx class so the css rules for parsons will apply
-            $(this.outerDiv).addClass("runestone-sphinx");
+            this.outerDiv.classList.add("runestone-sphinx");
             document.body.appendChild(this.outerDiv);
         }
 
@@ -714,47 +716,51 @@ export default class Parsons extends RunestoneBase {
         // Layout the areas
         var areaWidth, areaHeight;
         // Establish the width and height of the droppable areas
-        var item, maxFunction;
+        var item;
         areaHeight = 20;
         var height_add = 0;
         if (this.options.numbered != undefined) {
             height_add = 1;
         }
-        // Warning -- all of this is just a bit of pixie dust discovered by trial
-        // and error to try to get the height of the drag and drop boxes.
-        // item is a jQuery object
-        // outerHeight can be unreliable if elements are not yet visible
-        // outerHeight will return bad results if MathJax has not rendered the math
+
+        // Use two explicit passes — first measure all widths (with MathJax awaited per block for math),
+        // then apply the final areaWidth to all blocks and measure heights.
         areaWidth = 0;
         let self = this;
-        maxFunction = async function (item) {
-            if (
-                this.options.language == "natural" ||
-                this.options.language == "math"
-            ) {
+
+        // Pass 1: render math (if needed) and measure natural width of each block
+        const isMath = this.options.language == "natural" ||
+                    this.options.language == "math";
+        for (i = 0; i < blocks.length; i++) {
+            const item = blocks[i].view;
+            if (isMath) {
                 if (typeof runestoneMathReady !== "undefined") {
                     await runestoneMathReady.then(
-                        async () => await self.queueMathJax(item[0])
+                        async () => await self.queueMathJax(item)
                     );
                 } else {
-                    // this is for older rst builds not ptx
-                    if (typeof MathJax.startup !== "undefined") {
-                        await self.queueMathJax(item[0]);
+                    if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
+                        await self.queueMathJax(item);
                     }
                 }
             }
-            areaWidth = Math.max(areaWidth, item.outerWidth(true));
-            item.width(areaWidth - 22);
+            areaWidth = Math.max(areaWidth, item.getBoundingClientRect().width);
+        }
+        // Pass 2: apply uniform width to all blocks, then measure heights
+        for (i = 0; i < blocks.length; i++) {
+            const item = blocks[i].view;
+            item.style.width = (areaWidth - 22) + "px";
             var addition = 3.8;
-            let outerH = item.outerHeight(true);
+            const style = getComputedStyle(item);
+            const outerH = item.getBoundingClientRect().height + 
+                        parseFloat(style.marginTop) + 
+                        parseFloat(style.marginBottom);
             if (outerH != 38) {
                 addition = (3.1 * (outerH - 38)) / 21;
             }
             areaHeight += outerH + height_add * addition;
-        }.bind(this);
-        for (i = 0; i < blocks.length; i++) {
-            await maxFunction($(blocks[i].view));
-        }
+        }        
+
         // sometimes we have a problem with hidden elements not getting the right height
         // just make sure that we have a reasonable height. There must be a better way to
         // do this.
@@ -766,11 +772,10 @@ export default class Parsons extends RunestoneBase {
             this.areaWidth += 25;
             //areaHeight += (blocks.length);
         }
-        // + 40 to areaHeight to provide some additional buffer in case any text overflow still happens - Vincent Qiu (September 2020)
         if (indent > 0 && indent <= 4) {
-            $(this.answerArea).addClass("answer" + indent);
+            this.answerArea.classList.add("answer" + indent);
         } else {
-            $(this.answerArea).addClass("answer");
+            this.answerArea.classList.add("answer");
         }
         // Initialize paired distractor decoration
         var bins = [];
@@ -815,28 +820,20 @@ export default class Parsons extends RunestoneBase {
             }
             for (i = 0; i < pairedBins.length; i++) {
                 var pairedDiv = document.createElement("div");
-                $(pairedDiv).addClass("paired");
-                $(pairedDiv).html(
-                    "<span id= 'st' style = 'vertical-align: middle; font-weight: bold'>or{</span>"
-                );
+                pairedDiv.classList.add("paired");
+                pairedDiv.innerHTML =
+                    "<span id='st' style='vertical-align: middle; font-weight: bold'>or{</span>";
                 pairedDivs.push(pairedDiv);
                 this.sourceArea.appendChild(pairedDiv);
             }
         } else {
             pairedBins = [];
         }
-        areaHeight += pairedBins.length * 10; // the paired bins take up extra space which can
-        // cause the blocks to spill out.  This
-        // corrects that by adding a little extra
-        this.areaHeight = areaHeight + 40;
-        $(this.sourceArea).css({
-            width: this.areaWidth + 2,
-            height: this.areaHeight,
-        });
-        $(this.answerArea).css({
-            width: this.options.pixelsPerIndent * indent + this.areaWidth + 2,
-            height: this.areaHeight,
-        });
+        this.areaHeight = areaHeight;
+        this.sourceArea.style.width = `${this.areaWidth + 2}px`;
+        this.sourceArea.style.height = `${this.areaHeight}px`;
+        this.answerArea.style.width = `${this.options.pixelsPerIndent * indent + this.areaWidth + 2}px`;
+        this.answerArea.style.height = `${this.areaHeight}px`;
 
         this.pairedBins = pairedBins;
         this.pairedDivs = pairedDivs;
@@ -848,9 +845,10 @@ export default class Parsons extends RunestoneBase {
         this.updateView();
         // Put back into the offscreen position
         if (isHidden) {
-            $(replaceElement).replaceWith(this.outerDiv);
+            replaceElement.parentNode.replaceChild(this.outerDiv, replaceElement);
         }
     }
+
     // Make blocks interactive (both drag-and-drop and keyboard)
     initializeInteractivity() {
         for (var i = 0; i < this.blocks.length; i++) {
@@ -862,8 +860,123 @@ export default class Parsons extends RunestoneBase {
             this.options.language == "natural" ||
             this.options.language == "math"
         ) {
-            if (typeof MathJax.startup !== "undefined") {
-                self.queueMathJax(self.outerDiv);
+            if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
+                // Since aQueue is the same AutoQueue instance that processes the per-block items, 
+                // enqueueing outerDiv directly guarantees it runs after all per-block items 
+                // already in the queue have been typeset. The .then() then fires with all 
+                // blocks fully rendered at their final heights.
+                self.aQueue.enqueue(self.outerDiv).then(() => {
+                    // Recalculate areaWidth and areaHeight from all blocks (source + answer)
+                    // now that MathJax has rendered to final dimensions.
+                    var newAreaWidth = 0;
+                    var newAreaHeight = 20;
+                    var height_add = self.options.numbered != undefined ? 1 : 0;
+                    var sourceBlocks = self.sourceBlocks();
+                    var answerBlocks = self.answerBlocks();
+                    var allBlocks = sourceBlocks.concat(answerBlocks);
+
+                    // First pass: find max natural width across all blocks
+                    for (var i = 0; i < allBlocks.length; i++) {
+                        var blockViewEl = allBlocks[i].view;
+                        blockViewEl.style.width = ""; // release fixed width to get natural width
+                        var bvStyle = getComputedStyle(blockViewEl);
+                        var bvWidth = blockViewEl.getBoundingClientRect().width +
+                            parseFloat(bvStyle.marginLeft || 0) +
+                            parseFloat(bvStyle.marginRight || 0);
+                        newAreaWidth = Math.max(newAreaWidth, bvWidth);
+                    }
+
+                    var baseWidth = newAreaWidth - 22;
+                    var answerWidth = newAreaWidth + self.indent * self.options.pixelsPerIndent - 22;
+
+                    // Second pass: apply correct width and accumulate height
+                    for (var i = 0; i < allBlocks.length; i++) {
+                        var blockEl = allBlocks[i].view;
+                        blockEl.style.width = baseWidth + "px";
+                        var bStyle = getComputedStyle(blockEl);
+                        var outerH = blockEl.getBoundingClientRect().height +
+                            parseFloat(bStyle.marginTop || 0) +
+                            parseFloat(bStyle.marginBottom || 0);
+                        var addition = 3.8;
+                        if (outerH != 38) {
+                            addition = (3.1 * (outerH - 38)) / 21;
+                        }
+                        newAreaHeight += outerH + height_add * addition;
+                    }
+
+                    self.areaWidth = newAreaWidth;
+                    self.areaHeight = newAreaHeight;
+
+                    // Resize source and answer areas
+                    self.sourceArea.style.width = (newAreaWidth + 2) + "px";
+                    self.sourceArea.style.height = newAreaHeight + "px";
+                    self.answerArea.style.width = (self.options.pixelsPerIndent * self.indent + newAreaWidth + 2) + "px";
+                    self.answerArea.style.height = newAreaHeight + "px";
+
+                    // Reposition source blocks
+                    var positionTop = 0;
+                    for (var i = 0; i < sourceBlocks.length; i++) {
+                        var sv = sourceBlocks[i].view;
+                        sv.style.left = "0px";
+                        sv.style.top = positionTop + "px";
+                        sv.style.width = baseWidth + "px";
+                        sv.style.zIndex = 2;
+                        var svStyle = getComputedStyle(sv);
+                        positionTop += sv.getBoundingClientRect().height + parseFloat(svStyle.marginTop || 0) + parseFloat(svStyle.marginBottom || 0);
+                    }
+
+                    // Reposition paired distractor brackets
+                    for (var i = 0; i < self.pairedBins.length; i++) {
+                        var bin = self.pairedBins[i];
+                        var matching = [];
+                        for (var j = 0; j < sourceBlocks.length; j++) {
+                            if (sourceBlocks[j].matchesBin(bin)) {
+                                matching.push(sourceBlocks[j]);
+                            }
+                        }
+                        var div = self.pairedDivs[i];
+                        if (matching.length == 0) {
+                            div.style.display = "none";
+                        } else {
+                            div.style.display = "";
+                            var height = -5;
+                            var lastView = matching[matching.length - 1].view;
+                            var firstView = matching[0].view;
+                            var lastTop = parseFloat(getComputedStyle(lastView).top) || 0;
+                            var firstTop = parseFloat(getComputedStyle(firstView).top) || 0;
+                            height += lastTop;
+                            height -= firstTop;
+                            var lastStyle = getComputedStyle(lastView);
+                            height += lastView.getBoundingClientRect().height + parseFloat(lastStyle.marginTop || 0) + parseFloat(lastStyle.marginBottom || 0);
+                            div.style.left = "-6px";
+                            div.style.top = getComputedStyle(firstView).top;
+                            div.style.width = (baseWidth + 34) + "px";
+                            div.style.height = height + "px";
+                            div.style.zIndex = 1;
+                            div.style.textIndent = "-30px";
+                            div.style.paddingTop = ((height - 70) / 2) + "px";
+                            div.style.overflow = "visible";
+                            div.style.fontSize = "43px";
+                            div.style.verticalAlign = "middle";
+                            div.style.color = "#7e7ee7";
+                            div.innerHTML = "<span id='st' style='vertical-align: middle; font-weight: bold; font-size: 15px'>or</span>{";
+                        }
+                    }
+
+                    // Reposition answer blocks
+                    positionTop = 0;
+                    for (var i = 0; i < answerBlocks.length; i++) {
+                        var block = answerBlocks[i];
+                        var indent = block.indent * self.options.pixelsPerIndent;
+                        var bv = block.view;
+                        bv.style.left = indent + "px";
+                        bv.style.top = positionTop + "px";
+                        bv.style.width = (answerWidth - indent) + "px";
+                        bv.style.zIndex = 2;
+                        var bvStyle2 = getComputedStyle(bv);
+                        positionTop += bv.getBoundingClientRect().height + parseFloat(bvStyle2.marginTop || 0) + parseFloat(bvStyle2.marginBottom || 0);
+                    }
+                });            
             }
         }
     }
