@@ -12,6 +12,7 @@ import {
     TimedJSActiveCode,
     TimedHTMLActiveCode,
     TimedSQLActiveCode,
+    TimedGodotActiveCode,
 } from "./timed_activecode";
 import "../../common/js/jquery.highlight.js";
 
