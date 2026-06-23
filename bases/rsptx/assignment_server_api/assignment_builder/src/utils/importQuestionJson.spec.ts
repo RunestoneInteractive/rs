@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { ExerciseType, QuestionJSON, supportedExerciseTypes } from "@/types/exercises";
 
-import { parseQuestionJsonInput, validateQuestionJsonForType } from "./importQuestionJson";
+import {
+  REQUIRED_FIELDS,
+  RequiredFieldType,
+  parseQuestionJsonInput,
+  validateQuestionJsonForType
+} from "./importQuestionJson";
 
 describe("parseQuestionJsonInput", () => {
   it("returns an error for empty input", () => {
@@ -42,44 +47,6 @@ describe("parseQuestionJsonInput", () => {
     expect(result.data).toEqual({ iframeSrc: "https://x" });
   });
 });
-
-type RequiredFieldType = "string" | "array";
-
-interface RequiredFieldSpec {
-  field: string;
-  type: RequiredFieldType;
-}
-
-const REQUIRED_FIELDS: Record<ExerciseType, RequiredFieldSpec[]> = {
-  mchoice: [
-    { field: "statement", type: "string" },
-    { field: "optionList", type: "array" }
-  ],
-  poll: [
-    { field: "statement", type: "string" },
-    { field: "optionList", type: "array" }
-  ],
-  shortanswer: [{ field: "statement", type: "string" }],
-  activecode: [{ field: "language", type: "string" }],
-  parsonsprob: [{ field: "blocks", type: "array" }],
-  dragndrop: [
-    { field: "left", type: "array" },
-    { field: "right", type: "array" },
-    { field: "correctAnswers", type: "array" }
-  ],
-  matching: [
-    { field: "left", type: "array" },
-    { field: "right", type: "array" },
-    { field: "correctAnswers", type: "array" }
-  ],
-  fillintheblank: [
-    { field: "questionText", type: "string" },
-    { field: "blanks", type: "array" }
-  ],
-  clickablearea: [{ field: "questionText", type: "string" }],
-  selectquestion: [{ field: "questionList", type: "array" }],
-  iframe: [{ field: "iframeSrc", type: "string" }]
-};
 
 const VALID_PAYLOADS: Record<ExerciseType, QuestionJSON> = {
   mchoice: {
@@ -231,7 +198,8 @@ describe("validateQuestionJsonForType", () => {
       left: "bad"
     } as unknown as QuestionJSON);
 
-    expect(errors).toHaveLength(3);
+    expect(errors).toHaveLength(4);
+    expect(errors.some((message) => message.includes("statement"))).toBe(true);
     expect(errors.find((message) => message.includes("left"))).toMatch(/must be an array/i);
     expect(errors.some((message) => message.includes("right"))).toBe(true);
     expect(errors.some((message) => message.includes("correctAnswers"))).toBe(true);

@@ -5,14 +5,14 @@ export interface ParsedQuestionJsonResult {
   error?: string;
 }
 
-type RequiredFieldType = "string" | "array" | "object";
+export type RequiredFieldType = "string" | "array" | "object";
 
-interface RequiredFieldRule {
+export interface RequiredFieldRule {
   field: string;
   type: RequiredFieldType;
 }
 
-const REQUIRED_FIELDS: Record<ExerciseType, RequiredFieldRule[]> = {
+export const REQUIRED_FIELDS: Record<ExerciseType, RequiredFieldRule[]> = {
   mchoice: [
     { field: "statement", type: "string" },
     { field: "optionList", type: "array" }
@@ -40,7 +40,10 @@ const REQUIRED_FIELDS: Record<ExerciseType, RequiredFieldRule[]> = {
     { field: "questionText", type: "string" },
     { field: "blanks", type: "array" }
   ],
-  clickablearea: [{ field: "questionText", type: "string" }],
+  clickablearea: [
+    { field: "statement", type: "string" },
+    { field: "questionText", type: "string" }
+  ],
   selectquestion: [{ field: "questionList", type: "array" }],
   iframe: [{ field: "iframeSrc", type: "string" }]
 };
@@ -79,10 +82,7 @@ const matchesType = (value: unknown, type: RequiredFieldType): boolean => {
   return typeof value === "string";
 };
 
-export const validateQuestionJsonForType = (
-  type: ExerciseType,
-  data: QuestionJSON
-): string[] => {
+export const validateQuestionJsonForType = (type: ExerciseType, data: QuestionJSON): string[] => {
   const rules = REQUIRED_FIELDS[type] ?? [];
   const record = data as Record<string, unknown>;
   const errors: string[] = [];
