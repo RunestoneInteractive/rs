@@ -1254,6 +1254,9 @@ async def get_course_students(
     Return a dict of {username: full_name} for all students in the course.
     Used by peer.js to populate the group selection panel.
     """
+    if course.course_name == course.base_course:
+        return JSONResponse(status_code=403, content={})
+
     students = await fetch_course_students(course.id)
     result = {s.username: f"{s.first_name} {s.last_name}".strip() for s in students}
     return JSONResponse(content=result)
