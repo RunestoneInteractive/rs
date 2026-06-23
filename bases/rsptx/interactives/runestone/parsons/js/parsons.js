@@ -634,6 +634,7 @@ export default class Parsons extends RunestoneBase {
     // Based on the blocks, create the source and answer areas
     async initializeAreas(sourceBlocks, answerBlocks, options) {
         // Create blocks property as the sum of the two
+        const parent = this.outerDiv.parentNode;
         var blocks = [];
         var i, block;
         for (i = 0; i < sourceBlocks.length; i++) {
@@ -653,7 +654,7 @@ export default class Parsons extends RunestoneBase {
             for (i = 0; i < blocks.length; i++) {
                 block = blocks[i];
                 if (disabled.includes(block.lines[0].index)) {
-                    $(block.view).addClass("disabled");
+                    block.view.classList.add("disabled");
                 }
             }
         }
@@ -672,10 +673,11 @@ export default class Parsons extends RunestoneBase {
         var replaceElement;
         if (isHidden) {
             replaceElement = document.createElement("div");
-            replaceElement.classList.add("runestone-sphinx");
-            $(this.outerDiv).replaceWith(replaceElement);
+            if (parent) {
+               parent.replaceChild(replaceElement, this.outerDiv);
+            }
             // add runestone-sphinx class so the css rules for parsons will apply
-            $(this.outerDiv).addClass("runestone-sphinx");
+            this.outerDiv.classList.add("runestone-sphinx");
             document.body.appendChild(this.outerDiv);
         }
 
@@ -730,32 +732,34 @@ export default class Parsons extends RunestoneBase {
         const isMath = this.options.language == "natural" ||
                     this.options.language == "math";
         for (i = 0; i < blocks.length; i++) {
-            let item = $(blocks[i].view);
+            const item = blocks[i].view;
             if (isMath) {
                 if (typeof runestoneMathReady !== "undefined") {
                     await runestoneMathReady.then(
-                        async () => await self.queueMathJax(item[0])
+                        async () => await self.queueMathJax(item)
                     );
                 } else {
                     if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
-                        await self.queueMathJax(item[0]);
+                        await self.queueMathJax(item);
                     }
                 }
             }
-            areaWidth = Math.max(areaWidth, item.outerWidth(true));
+            areaWidth = Math.max(areaWidth, item.getBoundingClientRect().width);
         }
-
         // Pass 2: apply uniform width to all blocks, then measure heights
         for (i = 0; i < blocks.length; i++) {
-            let item = $(blocks[i].view);
-            item.width(areaWidth - 22);
+            const item = blocks[i].view;
+            item.style.width = (areaWidth - 22) + "px";
             var addition = 3.8;
-            let outerH = item.outerHeight(true);
+            const style = getComputedStyle(item);
+            const outerH = item.getBoundingClientRect().height + 
+                        parseFloat(style.marginTop) + 
+                        parseFloat(style.marginBottom);
             if (outerH != 38) {
                 addition = (3.1 * (outerH - 38)) / 21;
             }
             areaHeight += outerH + height_add * addition;
-        }
+        }        
 
         // sometimes we have a problem with hidden elements not getting the right height
         // just make sure that we have a reasonable height. There must be a better way to
@@ -769,9 +773,9 @@ export default class Parsons extends RunestoneBase {
             //areaHeight += (blocks.length);
         }
         if (indent > 0 && indent <= 4) {
-            $(this.answerArea).addClass("answer" + indent);
+            this.answerArea.classList.add("answer" + indent);
         } else {
-            $(this.answerArea).addClass("answer");
+            this.answerArea.classList.add("answer");
         }
         // Initialize paired distractor decoration
         var bins = [];
@@ -816,10 +820,9 @@ export default class Parsons extends RunestoneBase {
             }
             for (i = 0; i < pairedBins.length; i++) {
                 var pairedDiv = document.createElement("div");
-                $(pairedDiv).addClass("paired");
-                $(pairedDiv).html(
-                    "<span id= 'st' style = 'vertical-align: middle; font-weight: bold'>or{</span>"
-                );
+                pairedDiv.classList.add("paired");
+                pairedDiv.innerHTML =
+                    "<span id='st' style='vertical-align: middle; font-weight: bold'>or{</span>";
                 pairedDivs.push(pairedDiv);
                 this.sourceArea.appendChild(pairedDiv);
             }
@@ -827,14 +830,10 @@ export default class Parsons extends RunestoneBase {
             pairedBins = [];
         }
         this.areaHeight = areaHeight;
-        $(this.sourceArea).css({
-            width: this.areaWidth + 2,
-            height: this.areaHeight,
-        });
-        $(this.answerArea).css({
-            width: this.options.pixelsPerIndent * indent + this.areaWidth + 2,
-            height: this.areaHeight,
-        });
+        this.sourceArea.style.width = `${this.areaWidth + 2}px`;
+        this.sourceArea.style.height = `${this.areaHeight}px`;
+        this.answerArea.style.width = `${this.options.pixelsPerIndent * indent + this.areaWidth + 2}px`;
+        this.answerArea.style.height = `${this.areaHeight}px`;
 
         this.pairedBins = pairedBins;
         this.pairedDivs = pairedDivs;
@@ -846,9 +845,10 @@ export default class Parsons extends RunestoneBase {
         this.updateView();
         // Put back into the offscreen position
         if (isHidden) {
-            $(replaceElement).replaceWith(this.outerDiv);
+            replaceElement.parentNode.replaceChild(this.outerDiv, replaceElement);
         }
     }
+
     // Make blocks interactive (both drag-and-drop and keyboard)
     initializeInteractivity() {
         for (var i = 0; i < this.blocks.length; i++) {
@@ -877,9 +877,13 @@ export default class Parsons extends RunestoneBase {
 
                     // First pass: find max natural width across all blocks
                     for (var i = 0; i < allBlocks.length; i++) {
-                        var blockView = $(allBlocks[i].view);
-                        blockView.css("width", "");   // release fixed width to get natural width
-                        newAreaWidth = Math.max(newAreaWidth, blockView.outerWidth(true));
+                        var blockViewEl = allBlocks[i].view;
+                        blockViewEl.style.width = ""; // release fixed width to get natural width
+                        var bvStyle = getComputedStyle(blockViewEl);
+                        var bvWidth = blockViewEl.getBoundingClientRect().width +
+                            parseFloat(bvStyle.marginLeft || 0) +
+                            parseFloat(bvStyle.marginRight || 0);
+                        newAreaWidth = Math.max(newAreaWidth, bvWidth);
                     }
 
                     var baseWidth = newAreaWidth - 22;
@@ -887,9 +891,12 @@ export default class Parsons extends RunestoneBase {
 
                     // Second pass: apply correct width and accumulate height
                     for (var i = 0; i < allBlocks.length; i++) {
-                        var blockView = $(allBlocks[i].view);
-                        blockView.css("width", baseWidth);
-                        var outerH = blockView.outerHeight(true);
+                        var blockEl = allBlocks[i].view;
+                        blockEl.style.width = baseWidth + "px";
+                        var bStyle = getComputedStyle(blockEl);
+                        var outerH = blockEl.getBoundingClientRect().height +
+                            parseFloat(bStyle.marginTop || 0) +
+                            parseFloat(bStyle.marginBottom || 0);
                         var addition = 3.8;
                         if (outerH != 38) {
                             addition = (3.1 * (outerH - 38)) / 21;
@@ -901,25 +908,21 @@ export default class Parsons extends RunestoneBase {
                     self.areaHeight = newAreaHeight;
 
                     // Resize source and answer areas
-                    $(self.sourceArea).css({
-                        width: newAreaWidth + 2,
-                        height: newAreaHeight,
-                    });
-                    $(self.answerArea).css({
-                        width: self.options.pixelsPerIndent * self.indent + newAreaWidth + 2,
-                        height: newAreaHeight,
-                    });
+                    self.sourceArea.style.width = (newAreaWidth + 2) + "px";
+                    self.sourceArea.style.height = newAreaHeight + "px";
+                    self.answerArea.style.width = (self.options.pixelsPerIndent * self.indent + newAreaWidth + 2) + "px";
+                    self.answerArea.style.height = newAreaHeight + "px";
 
                     // Reposition source blocks
                     var positionTop = 0;
                     for (var i = 0; i < sourceBlocks.length; i++) {
-                        $(sourceBlocks[i].view).css({
-                            left: 0,
-                            top: positionTop,
-                            width: baseWidth,
-                            "z-index": 2,
-                        });
-                        positionTop += $(sourceBlocks[i].view).outerHeight(true);
+                        var sv = sourceBlocks[i].view;
+                        sv.style.left = "0px";
+                        sv.style.top = positionTop + "px";
+                        sv.style.width = baseWidth + "px";
+                        sv.style.zIndex = 2;
+                        var svStyle = getComputedStyle(sv);
+                        positionTop += sv.getBoundingClientRect().height + parseFloat(svStyle.marginTop || 0) + parseFloat(svStyle.marginBottom || 0);
                     }
 
                     // Reposition paired distractor brackets
@@ -933,29 +936,30 @@ export default class Parsons extends RunestoneBase {
                         }
                         var div = self.pairedDivs[i];
                         if (matching.length == 0) {
-                            $(div).hide();
+                            div.style.display = "none";
                         } else {
-                            $(div).show();
+                            div.style.display = "";
                             var height = -5;
-                            height += parseInt($(matching[matching.length - 1].view).css("top"));
-                            height -= parseInt($(matching[0].view).css("top"));
-                            height += $(matching[matching.length - 1].view).outerHeight(true);
-                            $(div).css({
-                                left: -6,
-                                top: $(matching[0].view).css("top"),
-                                width: baseWidth + 34,
-                                height: height,
-                                "z-index": 1,
-                                "text-indent": -30,
-                                "padding-top": (height - 70) / 2,
-                                overflow: "visible",
-                                "font-size": 43,
-                                "vertical-align": "middle",
-                                color: "#7e7ee7",
-                            });
-                            $(div).html(
-                                "<span id='st' style='vertical-align: middle; font-weight: bold; font-size: 15px'>or</span>{"
-                            );
+                            var lastView = matching[matching.length - 1].view;
+                            var firstView = matching[0].view;
+                            var lastTop = parseFloat(getComputedStyle(lastView).top) || 0;
+                            var firstTop = parseFloat(getComputedStyle(firstView).top) || 0;
+                            height += lastTop;
+                            height -= firstTop;
+                            var lastStyle = getComputedStyle(lastView);
+                            height += lastView.getBoundingClientRect().height + parseFloat(lastStyle.marginTop || 0) + parseFloat(lastStyle.marginBottom || 0);
+                            div.style.left = "-6px";
+                            div.style.top = getComputedStyle(firstView).top;
+                            div.style.width = (baseWidth + 34) + "px";
+                            div.style.height = height + "px";
+                            div.style.zIndex = 1;
+                            div.style.textIndent = "-30px";
+                            div.style.paddingTop = ((height - 70) / 2) + "px";
+                            div.style.overflow = "visible";
+                            div.style.fontSize = "43px";
+                            div.style.verticalAlign = "middle";
+                            div.style.color = "#7e7ee7";
+                            div.innerHTML = "<span id='st' style='vertical-align: middle; font-weight: bold; font-size: 15px'>or</span>{";
                         }
                     }
 
@@ -964,13 +968,13 @@ export default class Parsons extends RunestoneBase {
                     for (var i = 0; i < answerBlocks.length; i++) {
                         var block = answerBlocks[i];
                         var indent = block.indent * self.options.pixelsPerIndent;
-                        $(block.view).css({
-                            left: indent,
-                            top: positionTop,
-                            width: answerWidth - indent,
-                            "z-index": 2,
-                        });
-                        positionTop += $(block.view).outerHeight(true);
+                        var bv = block.view;
+                        bv.style.left = indent + "px";
+                        bv.style.top = positionTop + "px";
+                        bv.style.width = (answerWidth - indent) + "px";
+                        bv.style.zIndex = 2;
+                        var bvStyle2 = getComputedStyle(bv);
+                        positionTop += bv.getBoundingClientRect().height + parseFloat(bvStyle2.marginTop || 0) + parseFloat(bvStyle2.marginBottom || 0);
                     }
                 });            
             }
