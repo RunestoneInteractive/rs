@@ -2,14 +2,10 @@ import RunestoneBase from "../../common/js/runestonebase.js";
 import "../css/hljs-xcode.css";
 import BlockFeedback from "./BlockFeedback.js";
 import SQLFeedback from "./SQLFeedback.js";
-import { InitMicroParsons } from "micro-parsons/micro-parsons/micro-parsons.js";
-import "micro-parsons/micro-parsons/micro-parsons.css";
-// If you need to debug something in the micro-parsons library then
-// gh repo clone amy21206/micro-parsons-element
-// run npm install and npm build
-// copy everything from bin into the hparsons/js folder and build the components.
-/*import {InitMicroParsons} from './micro-parsons.js';
-import './micro-parsons.css';*/
+// The micro-parsons element source now lives alongside hparsons in ./micro-parsons.
+// It is compiled directly by the interactives webpack/ts-loader build (no separate
+// repo or npm tarball). micro-parsons.ts imports its own style/style.css.
+import { InitMicroParsons } from "./micro-parsons/micro-parsons";
 // last to override micro-parsons css if needed
 import "../css/hparsons.css";
 
@@ -189,6 +185,11 @@ export default class HParsons extends RunestoneBase {
             const blocks = document.querySelectorAll(`#${this.divid}-container .parsons-block`);
             blocks.forEach(block => {
                 block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
+                if (block.innerHTML.indexOf("process-math") !== -1) {
+                    // remove the span tag with process-math class
+                    block.innerHTML = block.innerHTML.replace(/<span class="process-math">|<\/span>/g, "");
+                }
+
                 this.queueMathJax(block);
             });
         }, 10);
