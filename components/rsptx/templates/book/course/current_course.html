@@ -8,11 +8,9 @@ My Course
 <link href="/staticAssets/course.css" rel="stylesheet" media="screen" />
 {% endblock %}
 
-{% block backTo %}
-textbook
-{% endblock %}
+{% set back_to = "textbook" %}
 
-{% block navitems %}
+{% set navitems %}
 {% if course_list|length > 1 %}
 <li class="nav-item">
   <span class="nav-link">
@@ -27,7 +25,7 @@ textbook
   </span>
 </li>
 {% endif %}
-{% endblock %}
+{% endset %}
 
 {% block content %}
 <div class="course_page">

@@ -71,6 +71,19 @@ async def _current_user(request: Request):
         return None
 
 
+async def _navbar_context(user: AuthUserValidator) -> dict:
+    """Context the shared navbar (_navbar.html) needs for a logged-in user.
+
+    Provides the user's active course and whether they are an instructor in
+    it, which the navbar uses to decide what links and menus to show.
+    """
+    course = await fetch_course(user.course_name)
+    is_instructor = False
+    if course and course.id:
+        is_instructor = bool(await fetch_instructor_courses(user.id, course.id))
+    return {"course": course, "is_instructor": is_instructor}
+
+
 # ---------------------------------------------------------------------------
 # Login
 # ---------------------------------------------------------------------------
@@ -278,6 +291,7 @@ async def courses_page(request: Request, institution: str = ""):
             "institution_courses": institution_courses,
             "institution": institution,
             "error": None,
+            **(await _navbar_context(user)),
         },
     )
 
@@ -307,6 +321,7 @@ async def courses_post(
                 "institution_courses": institution_courses,
                 "institution": institution,
                 "error": f"Course '{course_name}' not found. Please check the name and try again.",
+                **(await _navbar_context(user)),
             },
         )
 
@@ -340,7 +355,7 @@ async def donate_page(request: Request):
         )
     return templates.TemplateResponse(
         "admin/auth/donate.html",
-        {"request": request, "user": user},
+        {"request": request, "user": user, **(await _navbar_context(user))},
     )
 
 
@@ -362,7 +377,7 @@ async def donate_mark(request: Request):
 # ---------------------------------------------------------------------------
 
 
-async def _build_my_courses_context(user):
+async def _build_my_courses_context(user: AuthUserValidator):
     """Return the template context dict for the my_courses page."""
     enrolled = await fetch_courses_for_user(user.id)
 
@@ -380,9 +395,12 @@ async def _build_my_courses_context(user):
 
     open_books = []
     class_courses = []
+    active_course = None
     for course in enrolled:
         is_instructor = course.id in instructor_course_ids
         is_active = course.course_name == user.course_name
+        if is_active:
+            active_course = course
         entry = {
             "course_name": course.course_name,
             "is_instructor": is_instructor,
@@ -409,7 +427,13 @@ async def _build_my_courses_context(user):
 
     open_books.sort(key=_sort_key)
     class_courses.sort(key=_sort_key)
-    return {"open_books": open_books, "class_courses": class_courses}
+    return {
+        "open_books": open_books,
+        "class_courses": class_courses,
+        "course": active_course,
+        "is_instructor": bool(active_course)
+        and active_course.id in instructor_course_ids,
+    }
 
 
 @router.get("/my_courses", response_class=HTMLResponse)
@@ -495,10 +519,15 @@ async def profile_page(request: Request):
         return RedirectResponse(
             f"{_LOGIN}?next={_PROFILE}", status_code=status.HTTP_302_FOUND
         )
-
     return templates.TemplateResponse(
         "admin/auth/profile.html",
-        {"request": request, "user": user, "errors": [], "success": None},
+        {
+            "request": request,
+            "user": user,
+            "errors": [],
+            "success": None,
+            **(await _navbar_context(user)),
+        },
     )
 
 
@@ -521,13 +550,20 @@ async def profile_post(
     if errors:
         return templates.TemplateResponse(
             "admin/auth/profile.html",
-            {"request": request, "user": user, "errors": errors, "success": None},
+            {
+                "request": request,
+                "user": user,
+                "errors": errors,
+                "success": None,
+                **(await _navbar_context(user)),
+            },
         )
 
     await update_user(
         user.id, {"first_name": first_name, "last_name": last_name, "email": email}
     )
     updated = await fetch_user(user.username)
+
     return templates.TemplateResponse(
         "admin/auth/profile.html",
         {
@@ -535,6 +571,7 @@ async def profile_post(
             "user": updated,
             "errors": [],
             "success": "Profile updated successfully.",
+            **(await _navbar_context(updated)),
         },
     )
 
@@ -553,6 +590,7 @@ async def delete_account(request: Request, confirm: str = Form(default="")):
                 "user": user,
                 "errors": ["Username confirmation did not match. Account not deleted."],
                 "success": None,
+                **(await _navbar_context(user)),
             },
         )
 

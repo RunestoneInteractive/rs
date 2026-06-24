@@ -41,3 +41,13 @@ body {
 .autopermalink {
     display: none;
 }
+
+/* Navbar icon helpers (used by _navbar.html) */
+.ti-big {
+  font-size: 1.5em;
+}
+.caption-wrap {
+  display: inline-flex;   /* or flex, if you want it to be block-level */
+  align-items: center;    /* vertical centering */
+  gap: 0.4em;             /* spacing between icon and text */
+}
