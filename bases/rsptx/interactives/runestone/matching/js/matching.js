@@ -1,6 +1,6 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
 import "../css/matching.less";
-import { xmlToJson } from "./xmlconversion.js";
+import { MatchingXmlConverter } from "./xmlconversion.js";
 export class MatchingProblem extends RunestoneBase {
     constructor(opts) {
         super(opts);
@@ -13,7 +13,7 @@ export class MatchingProblem extends RunestoneBase {
                 // the script is called xml but may also contain some html for the statement.
                 if (script.type == "text/xml") {
                     const xml = script.textContent;
-                    boxData = xmlToJson(xml);
+                    boxData = new MatchingXmlConverter(xml).toJson();
                 } else {
                     boxData = JSON.parse(script.textContent);
                 }

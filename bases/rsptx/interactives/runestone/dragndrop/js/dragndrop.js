@@ -31,6 +31,7 @@
 
 import RunestoneBase from "../../common/js/runestonebase.js";
 import { t } from "../../common/js/rsi18n.js";
+import { DragndropXmlConverter } from "./xmlconversion.js";
 import "../css/dragndrop.less";
 import "./dragndrop-i18n.en.js";
 import "./dragndrop-i18n.pt-br.js";
@@ -78,11 +79,12 @@ export default class DragNDrop extends RunestoneBase {
         invisibleErrorDiv.classList.add("ptx-runestone-container");
         document.body.appendChild(invisibleErrorDiv);
         console.log("Populating DragNDrop with premises and responses");
-        // A question may be authored as a JSON <script> block (the same shape
-        // used by matching) instead of the legacy data-subcomponent markup.
+        // A question may be authored as a <script> block -- either XML
+        // (type="text/xml") or JSON -- in the same shape used by matching,
+        // instead of the legacy data-subcomponent markup.
         const script = this.origElem.querySelector("script");
         if (script) {
-            this.populateFromJson(script, invisibleErrorDiv);
+            this.populateFromScript(script, invisibleErrorDiv);
         } else {
             this.populateFromHtml(invisibleErrorDiv);
         }
@@ -130,8 +132,10 @@ export default class DragNDrop extends RunestoneBase {
     }
 
     /*
-     * Build the premises/responses from a JSON representation of the question.
-     * The schema matches matching.js:
+     * Build the premises/responses from a <script> representation of the
+     * question. The script holds either XML (type="text/xml", parsed by
+     * DragndropXmlConverter) or JSON; both yield the same shape used by
+     * matching.js:
      *   { statement, feedback,
      *     left:  [{id, label}, ...],   // draggables (premises)
      *     right: [{id, label}, ...],   // dropzones (responses)
@@ -141,12 +145,16 @@ export default class DragNDrop extends RunestoneBase {
      * the same response (many-to-one). A premise that appears in no pair is a
      * distractor and gets a category that matches no dropzone.
      */
-    populateFromJson(script, invisibleErrorDiv) {
+    populateFromScript(script, invisibleErrorDiv) {
         let data;
         try {
-            data = JSON.parse(script.textContent);
+            if (script.type == "text/xml") {
+                data = new DragndropXmlConverter(script.textContent).toJson();
+            } else {
+                data = JSON.parse(script.textContent);
+            }
         } catch (err) {
-            console.error("Failed to parse dragndrop JSON:", err);
+            console.error("Failed to parse dragndrop question data:", err);
             return;
         }
         this.boxData = data;
