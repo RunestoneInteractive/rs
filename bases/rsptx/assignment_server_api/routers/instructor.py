@@ -431,9 +431,17 @@ async def get_assignment_gb(
     slast = students.last_name.to_dict()
     semail = students.email.to_dict()
     suser = students.username.to_dict()
+    # Start with only assignment columns that already exist in the grades table.
     pt = df.pivot(index="sid", columns="assignment", values="score").rename(
         columns=aname
     )
+
+    # Add all students, including students who only have spaced practice.
+    # This does not add all assignments.
+    pt = pt.reindex(index=students.index)
+
+    # Make sure reset_index() creates a sid column later.
+    pt.index.name = "sid"
 
     cols = pt.columns.to_list()
     display_cols = []
