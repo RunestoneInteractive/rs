@@ -43,7 +43,8 @@ class DataFile extends RunestoneBase {
             }
         }
         // search for a parent div with the class 'datafile_caption' in plain javascript
-        let captionDiv = this.containerDiv.parentElement?.querySelector(".datafile_caption");
+        let captionDiv =
+            this.containerDiv.parentElement?.querySelector(".datafile_caption");
         if (captionDiv && this.displayClass === "none") {
             // hide the captionDiv if the datafile is hidden
             captionDiv.style.display = "none";
@@ -78,13 +79,15 @@ class DataFile extends RunestoneBase {
 =================================*/
 
 document.addEventListener("runestone:login-complete", function () {
-    document.querySelectorAll("[data-component=datafile]").forEach(function (el) {
-        try {
-            dfList[el.id] = new DataFile({ orig: el });
-        } catch (err) {
-            console.log(`Error rendering DataFile ${el.id}`);
-        }
-    });
+    document
+        .querySelectorAll("[data-component=datafile]")
+        .forEach(function (el) {
+            try {
+                dfList[el.id] = new DataFile({ orig: el });
+            } catch (err) {
+                console.log(`Error rendering DataFile ${el.id}`);
+            }
+        });
 });
 
 if (typeof window.component_factory === "undefined") {

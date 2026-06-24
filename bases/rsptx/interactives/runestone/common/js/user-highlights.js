@@ -8,7 +8,7 @@ function getCompletions() {
     // Get the completion status
     if (
         window.location.href.match(
-            /(\/index.html|toctree.html|genindex.html|navhelp.html|toc.html|assignments.html|Exercises.html)/
+            /(\/index.html|toctree.html|genindex.html|navhelp.html|toc.html|assignments.html|Exercises.html)/,
         )
     ) {
         return;
@@ -18,7 +18,7 @@ function getCompletions() {
     if (currentPathname.indexOf("?") !== -1) {
         currentPathname = currentPathname.substring(
             0,
-            currentPathname.lastIndexOf("?")
+            currentPathname.lastIndexOf("?"),
         );
     }
     var data = {
@@ -49,10 +49,10 @@ function getCompletions() {
                 }
                 $("#scprogresscontainer").append(
                     '<div style="text-align:center"><button class="btn btn-lg ' +
-                    completionClass +
-                    '" id="completionButton">' +
-                    completionMsg +
-                    "</button></div>"
+                        completionClass +
+                        '" id="completionButton">' +
+                        completionMsg +
+                        "</button></div>",
                 );
             }
         });
@@ -63,8 +63,8 @@ function showLastPositionBanner() {
     if (typeof lastPositionVal !== "undefined") {
         $("body").append(
             '<img src="../_static/last-point.png" style="position:absolute; padding-top:55px; left: 10px; top: ' +
-            parseInt(lastPositionVal) +
-            'px;"/>'
+                parseInt(lastPositionVal) +
+                'px;"/>',
         );
         $("html, body").animate({ scrollTop: parseInt(lastPositionVal) }, 1000);
     }
@@ -73,7 +73,7 @@ function showLastPositionBanner() {
 function addNavigationAndCompletionButtons() {
     if (
         window.location.href.match(
-            /(index.html|genindex.html|navhelp.html|toc.html|assignments.html|Exercises.html|toctree.html)/
+            /(index.html|genindex.html|navhelp.html|toc.html|assignments.html|Exercises.html|toctree.html)/,
         )
     ) {
         return;
@@ -99,20 +99,20 @@ function addNavigationAndCompletionButtons() {
         ) {
             $("#navLinkBgRight").animate(
                 { right: navLinkBgRightHalfOpen },
-                200
+                200,
             );
             $("#navLinkBgLeft").animate({ left: "0px" }, 200);
             if ($("#completionButton").hasClass("buttonConfirmCompletion")) {
                 $("#relations-next").animate(
                     { right: relationsNextIconNewPosition },
-                    200
+                    200,
                 );
             }
             navBgShown = true;
         } else if (navBgShown) {
             $("#navLinkBgRight").animate(
                 { right: navLinkBgRightHiddenPosition },
-                200
+                200,
             );
             $("#navLinkBgLeft").animate({ left: "-65px" }, 200);
             $("#relations-next").animate({
@@ -139,7 +139,7 @@ function addNavigationAndCompletionButtons() {
                 .removeClass("buttonAskCompletion")
                 .addClass("buttonConfirmCompletion")
                 .html(
-                    "<i class='glyphicon glyphicon-ok'></i> Completed. Well Done!"
+                    "<i class='glyphicon glyphicon-ok'></i> Completed. Well Done!",
                 );
             $("#navLinkBgRight").animate({ right: navLinkBgRightFullOpen });
             $("#relations-next").animate({
@@ -165,7 +165,7 @@ function addNavigationAndCompletionButtons() {
             completionFlag,
             false,
             markingComplete,
-            markingIncomplete
+            markingIncomplete,
         );
     });
 
@@ -200,8 +200,8 @@ function decorateTableOfContents() {
                                 if (
                                     allSubChapterURLs[s].href.indexOf(
                                         item.chapterName +
-                                        "/" +
-                                        item.subChapterName
+                                            "/" +
+                                            item.subChapterName,
                                     ) != -1
                                 ) {
                                     if (item.completionStatus == 1) {
@@ -209,8 +209,8 @@ function decorateTableOfContents() {
                                             .addClass("completed")
                                             .append(
                                                 '<span class="infoTextCompleted">- Completed this topic on ' +
-                                                item.endDate +
-                                                "</span>"
+                                                    item.endDate +
+                                                    "</span>",
                                             )
                                             .children()
                                             .first()
@@ -218,25 +218,25 @@ function decorateTableOfContents() {
                                                 function () {
                                                     $(this)
                                                         .next(
-                                                            ".infoTextCompleted"
+                                                            ".infoTextCompleted",
                                                         )
                                                         .show();
                                                 },
                                                 function () {
                                                     $(this)
                                                         .next(
-                                                            ".infoTextCompleted"
+                                                            ".infoTextCompleted",
                                                         )
                                                         .hide();
-                                                }
+                                                },
                                             );
                                     } else if (item.completionStatus == 0) {
                                         $(allSubChapterURLs[s].parentElement)
                                             .addClass("active")
                                             .append(
                                                 '<span class="infoTextActive">Last read this topic on ' +
-                                                item.endDate +
-                                                "</span>"
+                                                    item.endDate +
+                                                    "</span>",
                                             )
                                             .children()
                                             .first()
@@ -250,14 +250,14 @@ function decorateTableOfContents() {
                                                     $(this)
                                                         .next(".infoTextActive")
                                                         .hide();
-                                                }
+                                                },
                                             );
                                     }
                                 }
                             }
                         });
                     }
-                }
+                },
             );
         }
         var data = { course: eBookConfig.course };
@@ -273,20 +273,20 @@ function decorateTableOfContents() {
                             .show()
                             .html(
                                 '<div id="jump-to-chapter" class="alert alert-info" ><strong>You were Last Reading:</strong> ' +
-                                lastPageData.lastPageChapter +
-                                (lastPageData.lastPageSubchapter
-                                    ? " &gt; " +
-                                    lastPageData.lastPageSubchapter
-                                    : "") +
-                                ' <a href="' +
-                                lastPageData.lastPageUrl +
-                                "?lastPosition=" +
-                                lastPageData.lastPageScrollLocation +
-                                '">Continue Reading</a></div>'
+                                    lastPageData.lastPageChapter +
+                                    (lastPageData.lastPageSubchapter
+                                        ? " &gt; " +
+                                          lastPageData.lastPageSubchapter
+                                        : "") +
+                                    ' <a href="' +
+                                    lastPageData.lastPageUrl +
+                                    "?lastPosition=" +
+                                    lastPageData.lastPageScrollLocation +
+                                    '">Continue Reading</a></div>',
                             );
                     }
                 }
-            }
+            },
         );
     }
 }
@@ -315,14 +315,14 @@ function processPageState(
     completionFlag,
     pageLoad,
     markingComplete,
-    markingIncomplete
+    markingIncomplete,
 ) {
     /*Log last page visited*/
     var currentPathname = window.location.pathname;
     if (currentPathname.indexOf("?") !== -1) {
         currentPathname = currentPathname.substring(
             0,
-            currentPathname.lastIndexOf("?")
+            currentPathname.lastIndexOf("?"),
         );
     }
     // Is this a ptx book?

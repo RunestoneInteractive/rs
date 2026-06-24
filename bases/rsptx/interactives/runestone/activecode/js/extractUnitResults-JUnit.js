@@ -18,7 +18,7 @@ export default class JUnitTestParser {
     constructor(output, parentId) {
         let patt = new RegExp(
             "Expected:\\s+(.*?)Actual:\\s+(.*?)Message:\\s+(.*?)Passed:\\s+(true|false)",
-            "g"
+            "g",
         );
         this.textResults = "";
         let matches = output.matchAll(patt);
@@ -57,7 +57,7 @@ export default class JUnitTestParser {
             output = output.replace(match[0], "");
         }
         let match = output.match(
-            /You got\s+(\d+) out of (\d+) correct.\s+(\d+\.\d+)%/
+            /You got\s+(\d+) out of (\d+) correct.\s+(\d+\.\d+)%/,
         );
         if (match) {
             output = output.replace(match[0], "");

@@ -52,7 +52,11 @@ export default class ShortAnswer extends RunestoneBase {
     renderHTML() {
         this.containerDiv = document.createElement("div");
         this.containerDiv.id = this.divid;
-        this.containerDiv.classList.add(...(this.origElem.getAttribute("class") || "").split(" ").filter(Boolean));
+        this.containerDiv.classList.add(
+            ...(this.origElem.getAttribute("class") || "")
+                .split(" ")
+                .filter(Boolean),
+        );
         this.newForm = document.createElement("form");
         this.newForm.id = this.divid + "_journal";
         this.newForm.name = this.newForm.id;
@@ -96,9 +100,11 @@ export default class ShortAnswer extends RunestoneBase {
         this.jTextArea.addEventListener("keydown", () => {
             if (this.isTimed) {
                 // no need for danger status... nothing for user to do here
-                this.feedbackDiv.innerHTML = "Your answer is automatically saved.";
+                this.feedbackDiv.innerHTML =
+                    "Your answer is automatically saved.";
             } else {
-                this.feedbackDiv.innerHTML = "Your answer has not been saved yet!";
+                this.feedbackDiv.innerHTML =
+                    "Your answer has not been saved yet!";
                 this.feedbackDiv.classList.remove("alert-success");
                 this.feedbackDiv.classList.add("alert", "alert-danger");
             }
@@ -135,18 +141,18 @@ export default class ShortAnswer extends RunestoneBase {
         this.feedbackDiv.style.display = "none";
         this.fieldSet.appendChild(this.feedbackDiv);
         if (this.attachment) {
-            let attachDiv = document.createElement("div")
+            let attachDiv = document.createElement("div");
             this.attachDiv = attachDiv;
             if (this.graderactive) {
                 // If in grading mode make a button to create a popup with the image
-                let viewButton = document.createElement("button")
-                viewButton.type = "button"
-                viewButton.innerHTML = "View Attachment"
+                let viewButton = document.createElement("button");
+                viewButton.type = "button";
+                viewButton.innerHTML = "View Attachment";
                 viewButton.onclick = this.viewFile.bind(this);
                 attachDiv.appendChild(viewButton);
             } else {
                 // Otherwise make a button for the student to select a file to upload.
-                this.fileUpload = document.createElement("input")
+                this.fileUpload = document.createElement("input");
                 this.fileUpload.type = "file";
                 this.fileUpload.id = `${this.divid}_fileme`;
                 attachDiv.appendChild(this.fileUpload);
@@ -167,20 +173,30 @@ export default class ShortAnswer extends RunestoneBase {
         if (looksLikeLatexMath(value)) {
             if (!this.renderedAnswer) {
                 this.rederedAnswerDiv = document.createElement("div");
-                this.rederedAnswerDiv.classList.add("shortanswer__rendered-answer-div");
+                this.rederedAnswerDiv.classList.add(
+                    "shortanswer__rendered-answer-div",
+                );
                 this.fieldSet.appendChild(this.rederedAnswerDiv);
 
                 this.renderedAnswerLabel = document.createElement("label");
                 this.renderedAnswerLabel.innerHTML = "Rendered Answer:";
-                this.renderedAnswerLabel.id = this.divid + "_rendered_answer_label";
-                this.renderedAnswerLabel.classList.add("shortanswer__rendered-answer-label");
+                this.renderedAnswerLabel.id =
+                    this.divid + "_rendered_answer_label";
+                this.renderedAnswerLabel.classList.add(
+                    "shortanswer__rendered-answer-label",
+                );
                 this.rederedAnswerDiv.appendChild(this.renderedAnswerLabel);
 
                 this.renderedAnswer = document.createElement("div");
-                this.renderedAnswer.classList.add("shortanswer__rendered-answer");
+                this.renderedAnswer.classList.add(
+                    "shortanswer__rendered-answer",
+                );
                 this.renderedAnswer.classList.add("latexoutput");
-                this.renderedAnswer.setAttribute('aria-labelledby', this.renderedAnswerLabel.id);
-                this.renderedAnswer.setAttribute('aria-live', "polite");
+                this.renderedAnswer.setAttribute(
+                    "aria-labelledby",
+                    this.renderedAnswerLabel.id,
+                );
+                this.renderedAnswer.setAttribute("aria-live", "polite");
                 this.rederedAnswerDiv.appendChild(this.renderedAnswer);
             }
             value = value.replace(/\$\$(.*?)\$\$/g, "\\[ $1 \\]");
@@ -190,7 +206,6 @@ export default class ShortAnswer extends RunestoneBase {
 
             this.rederedAnswerDiv.style.display = "block";
             this.queueMathJax(this.renderedAnswer);
-
         } else {
             if (this.renderedAnswer) {
                 this.rederedAnswerDiv.style.display = "none";
@@ -258,14 +273,18 @@ export default class ShortAnswer extends RunestoneBase {
                     answer = storedData.answer;
                 } catch (err) {
                     // error while parsing; likely due to bad value stored in storage
-                    console.log(`Error parsing stored shortanswer data for ${this.divid}: ${err.message}`);
+                    console.log(
+                        `Error parsing stored shortanswer data for ${this.divid}: ${err.message}`,
+                    );
                     error = true;
                 }
                 if (error || storedData.timestamp < eBookConfig.termStartDate) {
                     localStorage.removeItem(this.localStorageKey());
                     return;
                 }
-                let solution = document.getElementById(this.divid + "_solution");
+                let solution = document.getElementById(
+                    this.divid + "_solution",
+                );
                 if (solution) {
                     solution.value = answer;
                 }
@@ -312,7 +331,7 @@ export default class ShortAnswer extends RunestoneBase {
                         this.jTextArea.value = data.last_answer;
                         this.answer = data.last_answer;
                         display_timestamp = new Date(
-                            data.last_timestamp
+                            data.last_timestamp,
                         ).toLocaleString();
                         button_text = "Show on-Time Answer";
                         this.current_answer = "late";
@@ -326,7 +345,7 @@ export default class ShortAnswer extends RunestoneBase {
                     this.renderMath(this.answer);
                     p.textContent = `Submitted: ${display_timestamp}`;
                     toggle_answer_button.textContent = button_text;
-                }.bind(this)
+                }.bind(this),
             );
 
             this.buttonDiv.appendChild(toggle_answer_button);
@@ -357,7 +376,10 @@ export default class ShortAnswer extends RunestoneBase {
         }
         const response = await fetch(requestUrl);
         if (!response.ok) {
-            console.error("Error fetching attachment name:", response.statusText);
+            console.error(
+                "Error fetching attachment name:",
+                response.statusText,
+            );
             return null;
         }
         const obj = await response.json();
@@ -373,13 +395,15 @@ export default class ShortAnswer extends RunestoneBase {
     }
 
     async uploadFile() {
-        const files = this.fileUpload.files
+        const files = this.fileUpload.files;
         // get the suffix from the file name
         const fileName = files[0].name;
-        const suffix = fileName.split('.').pop();
+        const suffix = fileName.split(".").pop();
         // if the suffix is not in the list of allowed suffixes, return
-        if (!['jpg', 'jpeg', 'png', 'gif', 'pdf'].includes(suffix)) {
-            alert("File type not allowed. Please upload a jpg, jpeg, png, gif, or pdf file.");
+        if (!["jpg", "jpeg", "png", "gif", "pdf"].includes(suffix)) {
+            alert(
+                "File type not allowed. Please upload a jpg, jpeg, png, gif, or pdf file.",
+            );
             return;
         }
         // if the file size is greater than 5MB, return
@@ -387,20 +411,20 @@ export default class ShortAnswer extends RunestoneBase {
             alert("File size exceeds 5MB limit. Please upload a smaller file.");
             return;
         }
-        const data = new FormData()
+        const data = new FormData();
         if (this.fileUpload.files.length > 0) {
-            data.append('file', files[0])
+            data.append("file", files[0]);
             fetch(`/ns/logger/upload/${this.divid}`, {
-                method: 'POST',
-                body: data
+                method: "POST",
+                body: data,
             })
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data)
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log(data);
                 })
-                .catch(error => {
-                    console.error(error)
-                })
+                .catch((error) => {
+                    console.error(error);
+                });
         }
     }
 
@@ -409,9 +433,9 @@ export default class ShortAnswer extends RunestoneBase {
         if (this.attachURL) {
             //window.open(this.attachURL, "_blank");
             //<embed src="example.pdf" type="application/pdf" width="100%" height="600px" />
-            //switch to 
-            const image_window = window.open("", "_blank")
-            if (this.attachURL.indexOf('.pdf?') !== -1) {
+            //switch to
+            const image_window = window.open("", "_blank");
+            if (this.attachURL.indexOf(".pdf?") !== -1) {
                 const embed = image_window.document.createElement("object");
                 embed.setAttribute("data", this.attachURL);
                 embed.setAttribute("type", "application/pdf");
@@ -422,15 +446,14 @@ export default class ShortAnswer extends RunestoneBase {
                 alt.setAttribute("href", this.attachURL);
                 alt.innerText = "Download PDF";
                 embed.appendChild(alt);
-            }
-            else {
+            } else {
                 const img = image_window.document.createElement("img");
                 img.setAttribute("src", this.attachURL);
                 img.setAttribute("style", "width:100%; height:auto;");
                 image_window.document.body.appendChild(img);
             }
         } else {
-            alert("No attachment for this student.")
+            alert("No attachment for this student.");
         }
     }
 }
@@ -440,18 +463,20 @@ export default class ShortAnswer extends RunestoneBase {
 ==   execute our code on them    ==
 =================================*/
 document.addEventListener("runestone:login-complete", function () {
-    document.querySelectorAll("[data-component=shortanswer]").forEach(function (el) {
-        // If this element exists within a timed component, don't render it here
-        if (!el.closest("[data-component=timedAssessment]")) {
-            try {
-                window.componentMap[el.id] = new ShortAnswer({
-                    orig: el,
-                    useRunestoneServices: eBookConfig.useRunestoneServices,
-                });
-            } catch (err) {
-                console.log(`Error rendering ShortAnswer Problem ${el.id}
+    document
+        .querySelectorAll("[data-component=shortanswer]")
+        .forEach(function (el) {
+            // If this element exists within a timed component, don't render it here
+            if (!el.closest("[data-component=timedAssessment]")) {
+                try {
+                    window.componentMap[el.id] = new ShortAnswer({
+                        orig: el,
+                        useRunestoneServices: eBookConfig.useRunestoneServices,
+                    });
+                } catch (err) {
+                    console.log(`Error rendering ShortAnswer Problem ${el.id}
                 Details: ${err}`);
+                }
             }
-        }
-    });
+        });
 });

@@ -11,7 +11,7 @@ export default class BlockFeedback extends HParsonsFeedback {
         this.messageDiv = document.createElement("div");
         this.hparsons.outerDiv.appendChild(this.messageDiv);
     }
-    
+
     customizeUI() {
         this.hparsons.runButton.textContent = "Check Me";
     }
@@ -24,7 +24,8 @@ export default class BlockFeedback extends HParsonsFeedback {
         const solutionIndices = this.hparsons.blockAnswer.map(Number);
         this.solution = solutionIndices;
         this.grader.solution = solutionIndices;
-        this.answerArea = this.hparsons.hparsonsInput.querySelector('.drop-area');
+        this.answerArea =
+            this.hparsons.hparsonsInput.querySelector(".drop-area");
     }
 
     // Called when check button clicked (block-based Feedback)
@@ -37,18 +38,18 @@ export default class BlockFeedback extends HParsonsFeedback {
     async logCurrentAnswer() {
         let act = {
             scheme: "block",
-            correct: this.grader.graderState == 'correct' ? "T" : "F",
+            correct: this.grader.graderState == "correct" ? "T" : "F",
             answer: this.hparsons.hparsonsInput.getBlockIndices(),
-            percent: this.grader.percent
-        }
+            percent: this.grader.percent,
+        };
         let logData = {
             event: "hparsonsAnswer",
             div_id: this.hparsons.divid,
             act: JSON.stringify(act),
-            answer: JSON.stringify({"blocks": act.answer}),
+            answer: JSON.stringify({ blocks: act.answer }),
             percent: this.grader.percent,
             correct: act.correct,
-        }
+        };
         await this.hparsons.logBookEvent(logData);
     }
 
@@ -77,8 +78,10 @@ export default class BlockFeedback extends HParsonsFeedback {
             feedbackArea.style.display = "";
             feedbackArea.className = "hp_feedback alert alert-info";
             if (this.checkCount > 1) {
-                feedbackArea.innerHTML =
-                    t("msg_parson_correct", this.checkCount);
+                feedbackArea.innerHTML = t(
+                    "msg_parson_correct",
+                    this.checkCount,
+                );
             } else {
                 feedbackArea.innerHTML = t("msg_parson_correct_first_try");
             }
@@ -129,7 +132,7 @@ export default class BlockFeedback extends HParsonsFeedback {
         for (var i = 0; i < children.length; i++) {
             children[i].classList.remove(
                 "correctPosition",
-                "incorrectPosition"
+                "incorrectPosition",
             );
         }
         this.messageDiv.style.display = "none";
@@ -143,5 +146,4 @@ export default class BlockFeedback extends HParsonsFeedback {
         }
         this.clearFeedback();
     }
-
 }

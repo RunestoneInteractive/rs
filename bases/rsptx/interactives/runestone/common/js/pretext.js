@@ -20,7 +20,11 @@ function setupPTXEvents() {
         el.addEventListener("toggle", function () {
             if (el.open) {
                 let div_id = el.id;
-                rb.logBookEvent({ event: "knowl", act: "open", div_id: div_id });
+                rb.logBookEvent({
+                    event: "knowl",
+                    act: "open",
+                    div_id: div_id,
+                });
             }
         });
     });
@@ -28,13 +32,17 @@ function setupPTXEvents() {
     document.querySelectorAll(".sagecell_evalButton").forEach((btn) => {
         btn.addEventListener("click", function () {
             let container = btn.closest(".ptx-sagecell");
-            let codeInput = container ? container.querySelector(".sagecell_input") : null;
+            let codeInput = container
+                ? container.querySelector(".sagecell_input")
+                : null;
             let code = codeInput ? codeInput.textContent : "";
             let div_id = container ? container.id : null;
-            if (! div_id) {
-                console.warn("Could not find container or div_id for sagecell button");
+            if (!div_id) {
+                console.warn(
+                    "Could not find container or div_id for sagecell button",
+                );
                 return;
-                }
+            }
 
             rb.logBookEvent({ event: "sage", act: "run", div_id: div_id });
         });

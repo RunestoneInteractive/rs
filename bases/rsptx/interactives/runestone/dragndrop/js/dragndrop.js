@@ -78,64 +78,143 @@ export default class DragNDrop extends RunestoneBase {
         invisibleErrorDiv.classList.add("ptx-runestone-container");
         document.body.appendChild(invisibleErrorDiv);
         console.log("Populating DragNDrop with premises and responses");
+        // A question may be authored as a JSON <script> block (the same shape
+        // used by matching) instead of the legacy data-subcomponent markup.
+        const script = this.origElem.querySelector("script");
+        if (script) {
+            this.populateFromJson(script, invisibleErrorDiv);
+        } else {
+            this.populateFromHtml(invisibleErrorDiv);
+        }
+    }
+
+    /*
+     * Build the premises/responses from the legacy markup where each
+     * draggable/dropzone is a data-subcomponent element linked by data-category.
+     */
+    populateFromHtml(invisibleErrorDiv) {
         this.cards = this.origElem.querySelectorAll(
-            "[data-subcomponent='draggable']"
+            "[data-subcomponent='draggable']",
         );
         for (let element of this.cards) {
-            let replaceSpan = document.createElement("span");
-            replaceSpan.innerHTML = element.innerHTML;
-            replaceSpan.id = element.id;
-            replaceSpan.setAttribute("draggable", "true");
-            replaceSpan.classList.add("draggable-drag");
-            replaceSpan.classList.add("premise");
-            replaceSpan.tabIndex = 0;
-            replaceSpan.setAttribute('role', 'button');
-            replaceSpan.dataset.category = this.getCategory(element);
-            replaceSpan.dataset.parent_id = this.divid;
-            this.premiseArray.push(replaceSpan);
-            this.setDragListeners(replaceSpan);
-            // now create an error message for when the premise is dropped in the wrong place
-            let errorMessage = document.createElement("div");
-            errorMessage.classList.add("vh-dnd-error");
-            errorMessage.innerHTML = "Incorrect drop zone for " + replaceSpan.innerHTML;
-            errorMessage.setAttribute("role", "alert");
-            errorMessage.id = replaceSpan.id + "_error";
-            invisibleErrorDiv.appendChild(errorMessage);
+            this.makePremise(
+                element.id,
+                element.innerHTML,
+                this.getCategory(element),
+                invisibleErrorDiv,
+            );
         }
         if (this.random) {
             // Shuffle the premiseArray if random is true
             this.premiseArray = shuffleArray(this.premiseArray);
         }
         for (let element of this.origElem.querySelectorAll(
-            "[data-subcomponent='dropzone']"
+            "[data-subcomponent='dropzone']",
         )) {
-            let replaceSpan = document.createElement("span");
-            replaceSpan.innerHTML = element.innerHTML;
-            replaceSpan.id = element
-                .getAttribute("for")
-                .replace("drag", "drop");
-            replaceSpan.classList.add(
-                "draggable-drop",
-                "drop-label",
-                "response"
+            this.makeResponse(
+                element.getAttribute("for").replace("drag", "drop"),
+                element.innerHTML,
+                this.getCategory(element),
             );
-            replaceSpan.tabIndex = 0;
-            replaceSpan.setAttribute('role', 'button');
-            replaceSpan.dataset.category = this.getCategory(element);
-            replaceSpan.dataset.parent_id = this.divid;
-            this.responseArray.push(replaceSpan);
-            this.setDropListeners(replaceSpan);
         }
 
         this.question = this.origElem.querySelector(
-            "[data-subcomponent='question']"
+            "[data-subcomponent='question']",
         ).innerHTML;
         let feedback = this.origElem.querySelector(
-            "[data-subcomponent='feedback']"
+            "[data-subcomponent='feedback']",
         );
         if (feedback) {
             this.feedback = feedback.innerHTML;
         }
+    }
+
+    /*
+     * Build the premises/responses from a JSON representation of the question.
+     * The schema matches matching.js:
+     *   { statement, feedback,
+     *     left:  [{id, label}, ...],   // draggables (premises)
+     *     right: [{id, label}, ...],   // dropzones (responses)
+     *     correctAnswers: [[leftId, rightId], ...] }
+     * A premise belongs in the dropzone given by its correctAnswers pair, so we
+     * use the response id as the shared category. Several premises may map to
+     * the same response (many-to-one). A premise that appears in no pair is a
+     * distractor and gets a category that matches no dropzone.
+     */
+    populateFromJson(script, invisibleErrorDiv) {
+        let data;
+        try {
+            data = JSON.parse(script.textContent);
+        } catch (err) {
+            console.error("Failed to parse dragndrop JSON:", err);
+            return;
+        }
+        this.boxData = data;
+        let premiseCategory = {};
+        for (let pair of data.correctAnswers || []) {
+            premiseCategory[pair[0]] = pair[1];
+        }
+        for (let item of data.left || []) {
+            let category = premiseCategory[item.id] || "distractor-" + item.id;
+            this.makePremise(item.id, item.label, category, invisibleErrorDiv);
+        }
+        if (this.random) {
+            // Shuffle the premiseArray if random is true
+            this.premiseArray = shuffleArray(this.premiseArray);
+        }
+        for (let item of data.right || []) {
+            // A response's category is its own id; the premises that belong in
+            // it share that category.
+            this.makeResponse(item.id, item.label, item.id);
+        }
+        this.question = data.statement || "";
+        this.feedback = data.feedback || "";
+    }
+
+    /*
+     * Create a draggable premise span and register it. Shared by the HTML and
+     * JSON population paths.
+     */
+    makePremise(id, label, category, invisibleErrorDiv) {
+        let replaceSpan = document.createElement("span");
+        replaceSpan.innerHTML = label;
+        replaceSpan.id = id;
+        replaceSpan.setAttribute("draggable", "true");
+        replaceSpan.classList.add("draggable-drag");
+        replaceSpan.classList.add("premise");
+        replaceSpan.tabIndex = 0;
+        replaceSpan.setAttribute("role", "button");
+        replaceSpan.dataset.category = category;
+        replaceSpan.dataset.parent_id = this.divid;
+        this.premiseArray.push(replaceSpan);
+        this.setDragListeners(replaceSpan);
+        // now create an error message for when the premise is dropped in the wrong place
+        let errorMessage = document.createElement("div");
+        errorMessage.classList.add("vh-dnd-error");
+        errorMessage.innerHTML =
+            "Incorrect drop zone for " + replaceSpan.innerHTML;
+        errorMessage.setAttribute("role", "alert");
+        errorMessage.id = replaceSpan.id + "_error";
+        invisibleErrorDiv.appendChild(errorMessage);
+        return replaceSpan;
+    }
+
+    /*
+     * Create a dropzone response span and register it. Shared by the HTML and
+     * JSON population paths.
+     */
+    makeResponse(id, label, category) {
+        let replaceSpan = document.createElement("span");
+        replaceSpan.innerHTML = label;
+        replaceSpan.id = id;
+        replaceSpan.classList.add("draggable-drop", "drop-label", "response");
+        replaceSpan.tabIndex = 0;
+        replaceSpan.setAttribute("role", "button");
+        replaceSpan.dataset.category = category;
+        replaceSpan.dataset.parent_id = this.divid;
+        this.responseArray.push(replaceSpan);
+        this.setDropListeners(replaceSpan);
+        return replaceSpan;
     }
 
     getCategory(elem) {
@@ -221,7 +300,7 @@ export default class DragNDrop extends RunestoneBase {
                     return;
                 }
                 this.draggableDiv.classList.add("possibleDrop");
-            }.bind(this)
+            }.bind(this),
         );
         this.draggableDiv.addEventListener(
             "drop",
@@ -249,7 +328,7 @@ export default class DragNDrop extends RunestoneBase {
                         act: `${data} -> dragzone`,
                     });
                 }
-            }.bind(this)
+            }.bind(this),
         );
         this.draggableDiv.addEventListener(
             "dragleave",
@@ -258,7 +337,7 @@ export default class DragNDrop extends RunestoneBase {
                     return;
                 }
                 this.draggableDiv.classList.remove("possibleDrop");
-            }.bind(this)
+            }.bind(this),
         );
     }
     createButtons() {
@@ -283,7 +362,7 @@ export default class DragNDrop extends RunestoneBase {
         this.resetButton.textContent = t("msg_dragndrop_reset");
         this.resetButton.setAttribute(
             "class",
-            "btn btn-default drag-button drag-reset"
+            "btn btn-default drag-button drag-reset",
         );
         this.resetButton.setAttribute("name", "do answer");
         this.resetButton.onclick = function () {
@@ -317,7 +396,7 @@ export default class DragNDrop extends RunestoneBase {
                             response.appendChild(foundPremise);
                         } else {
                             console.warn(
-                                `Premise with ID ${premise} not found in premiseArray`
+                                `Premise with ID ${premise} not found in premiseArray`,
                             );
                         }
                     }
@@ -378,7 +457,7 @@ export default class DragNDrop extends RunestoneBase {
                     // Make sure element isn't already there--prevents errors w/appending child
                     this.draggableDiv.appendChild(draggedSpan);
                 }
-            }.bind(this)
+            }.bind(this),
         );
 
         // Add keyboard navigation for selecting premises
@@ -408,7 +487,7 @@ export default class DragNDrop extends RunestoneBase {
                 if (ev.target.classList.contains("draggable-drop")) {
                     ev.target.classList.add("possibleDrop");
                 }
-            }.bind(this)
+            }.bind(this),
         );
         dpSpan.addEventListener("dragleave", function (ev) {
             self.isAnswered = true;
@@ -445,12 +524,15 @@ export default class DragNDrop extends RunestoneBase {
                 this.queueMathJax(this.containerDiv).then(() => {
                     this.adjustDragDropWidths();
                 });
-            }.bind(this)
+            }.bind(this),
         );
 
         // Add keyboard navigation for dropping premises
         dpSpan.addEventListener("keydown", function (ev) {
-            if ((ev.key === "Enter" || ev.key === " ") && self.selectedPremise) {
+            if (
+                (ev.key === "Enter" || ev.key === " ") &&
+                self.selectedPremise
+            ) {
                 ev.preventDefault();
                 if (
                     !self.strangerDanger(self.selectedPremise) &&
@@ -534,8 +616,7 @@ export default class DragNDrop extends RunestoneBase {
         this.feedBackDiv.style.display = "none";
         this.adjustDragDropWidths();
         this.minheight = this.draggableDiv.offsetHeight;
-        this.dragDropWrapDiv.style.minHeight =
-            this.minheight.toString() + "px";
+        this.dragDropWrapDiv.style.minHeight = this.minheight.toString() + "px";
         this.feedBackDiv.style.visibility = "hidden";
         this.logBookEvent({
             event: "dragNdrop-reset",
@@ -570,7 +651,7 @@ export default class DragNDrop extends RunestoneBase {
         for (let response of this.dropZoneDiv.childNodes) {
             // ignore drop zone children that aren't premises
             for (let premise of Array.from(response.childNodes).filter(
-                this.ivp
+                this.ivp,
             )) {
                 this.placedNum++;
                 if (premise.dataset.category == response.dataset.category) {
@@ -586,7 +667,7 @@ export default class DragNDrop extends RunestoneBase {
             }
         }
         for (let premise of Array.from(this.draggableDiv.childNodes).filter(
-            (node) => node.nodeType !== Node.TEXT_NODE
+            (node) => node.nodeType !== Node.TEXT_NODE,
         )) {
             if (categories.indexOf(premise.dataset.category) == -1) {
                 this.correctNum++;
@@ -661,7 +742,7 @@ export default class DragNDrop extends RunestoneBase {
         // attributes from every placed premise.
         for (let response of this.dropZoneDiv.childNodes) {
             for (let premise of Array.from(response.childNodes).filter(
-                this.ivp
+                this.ivp,
             )) {
                 premise.classList.remove("drop-incorrect");
                 premise.setAttribute("aria-invalid", "false");
@@ -699,7 +780,7 @@ export default class DragNDrop extends RunestoneBase {
         for (let response of this.dropZoneDiv.childNodes) {
             // iterate over all the premises in the response
             for (let premise of Array.from(response.childNodes).filter(
-                this.ivp
+                this.ivp,
             )) {
                 // if the premise is not in the correct category, add the class
                 if (
@@ -710,11 +791,11 @@ export default class DragNDrop extends RunestoneBase {
                     premise.setAttribute("aria-invalid", "true");
                     premise.setAttribute(
                         "aria-errormessage",
-                        premise.id + "_error"
+                        premise.id + "_error",
                     );
-                    document.getElementById(
-                        premise.id + "_error"
-                    ).classList.remove("vh-dnd-error");
+                    document
+                        .getElementById(premise.id + "_error")
+                        .classList.remove("vh-dnd-error");
                 } else {
                     premise.classList.remove("drop-incorrect");
                     premise.setAttribute("aria-invalid", "false");
@@ -727,15 +808,15 @@ export default class DragNDrop extends RunestoneBase {
             setTimeout(() => {
                 this.feedBackDiv.innerHTML = msgCorrect;
             }, 10);
-            this.feedBackDiv.className = "alert alert-info draggable-feedback exercise-content";
-
+            this.feedBackDiv.className =
+                "alert alert-info draggable-feedback exercise-content";
         } else {
             var msgIncorrect = t(
                 "msg_dragndrop_incorrect_answer",
                 this.correctNum,
                 this.incorrectNum,
                 this.dragNum,
-                this.unansweredNum
+                this.unansweredNum,
             );
             // this.feedback comes from the author (a hint maybe)
             setTimeout(() => {
@@ -780,7 +861,9 @@ export default class DragNDrop extends RunestoneBase {
                     this.dropwidth = storedObj.drop_width;
                 } catch (err) {
                     // error while parsing; likely due to bad value stored in storage
-                    console.log(`Error parsing stored DragNDrop data for ${this.divid}: ${err}`);
+                    console.log(
+                        `Error parsing stored DragNDrop data for ${this.divid}: ${err}`,
+                    );
                     error = true;
                 }
                 if (error || storedObj.timestamp < eBookConfig.termStartDate) {
@@ -838,7 +921,7 @@ export default class DragNDrop extends RunestoneBase {
         };
         localStorage.setItem(
             this.localStorageKey(),
-            JSON.stringify(storageObj)
+            JSON.stringify(storageObj),
         );
     }
 
@@ -879,7 +962,7 @@ document.addEventListener("runestone:login-complete", function () {
                 window.componentMap[element.id] = new DragNDrop(opts);
             } catch (err) {
                 console.log(
-                    `Error rendering DragNDrop Problem ${element.id}: ${err}`
+                    `Error rendering DragNDrop Problem ${element.id}: ${err}`,
                 );
             }
         }
