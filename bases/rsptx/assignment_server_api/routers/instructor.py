@@ -355,9 +355,10 @@ async def get_assignment_gb(
     practice_total_points = 0.0
 
     def format_practice_grade(points_received, total_possible_points):
+        # If there are no possible points, return an empty string to avoid division by zero.
         if not total_possible_points:
             return ""
-
+        # Format the grade based on whether we are showing points or percentage.
         if show_points:
             return "{0:.2f}".format(points_received)
 
@@ -386,6 +387,8 @@ async def get_assignment_gb(
             ps.max_practice_days or 0
             )
 
+            # Loop through each student with completed practice questions and calculate
+            # their spaced practice grade based on the number of questions they completed.
             for _, prow in practice_counts.iterrows():
                 points_received = float(ps.day_points or 0) * float(
                 prow.practice_completion_count or 0)
@@ -407,11 +410,12 @@ async def get_assignment_gb(
                 eng,
                 params=(course.course_name,),
             )
-
             practice_total_points = float(ps.question_points or 0) * float(
             ps.max_practice_questions or 0
             )
 
+            # Loop through each student with completed practice questions and calculate
+            # their spaced practice grade based on the number of questions they completed.
             for _, prow in practice_counts.iterrows():
                 points_received = float(ps.question_points or 0) * float(
                 prow.practice_completion_count or 0)
