@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  background: #fff;
+  background: var(--rs-surface);
   overflow: visible;
 }
 
@@ -11,81 +11,56 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  padding: var(--rs-space-3) var(--rs-space-4);
+  background: var(--rs-neutral-50);
+  border-bottom: 1px solid var(--rs-border-solid);
 }
 
 .optionsHeader h3 {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #334155;
-}
-
-.addButton {
-  font-size: 0.875rem;
-  padding: 0.4rem 0.75rem;
-  background: #fff;
-  border: 1px dashed #cbd5e1;
-  color: #3b82f6;
-  transition: all 0.2s ease;
-  border-radius: 6px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.addButton:hover {
-  background: #f0f7ff;
-  border-color: #3b82f6;
-  color: #2563eb;
-  transform: translateY(-1px);
-}
-
-.addButton:focus {
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-.addButton i {
-  font-size: 0.75rem;
+  font-size: var(--rs-font-size-md);
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-strong);
 }
 
 .optionsContent {
   flex: 1;
-  padding: 1.5rem;
-  background: white;
+  padding: var(--rs-space-4);
+  background: var(--rs-surface);
   overflow: visible;
 }
 
 .optionsList {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--rs-space-3);
 }
 
 .optionContainer {
   display: flex;
   align-items: stretch;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  transition: all 0.2s ease;
+  gap: var(--rs-space-3);
+  padding: var(--rs-space-3);
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-md);
+  transition:
+    border-color var(--rs-transition-fast),
+    box-shadow var(--rs-transition-fast);
   position: relative;
 }
 
 .optionContainer:hover {
-  border-color: #cbd5e1;
-  background: #f1f5f9;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-color: var(--rs-border-strong);
 }
 
 .optionContainer:focus-within {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  border-color: var(--rs-brand-500);
+}
+
+.optionContainer[data-dragging] {
+  border-color: var(--rs-brand-300);
+  box-shadow: var(--rs-shadow-md);
 }
 
 .dragHandle {
@@ -93,23 +68,22 @@
   align-items: center;
   justify-content: center;
   width: 2rem;
-  color: #94a3b8;
+  color: var(--rs-text-subtle);
+  opacity: 0.4;
   cursor: grab;
-  transition: color 0.2s ease;
-  padding: 0.5rem 0.25rem;
-  border-radius: 0.25rem;
+  transition: opacity var(--rs-transition-fast);
+  padding: var(--rs-space-2) var(--rs-space-1);
+  border-radius: var(--rs-radius-sm);
+}
+
+.optionContainer:hover .dragHandle,
+.dragHandle:focus-visible,
+.optionContainer[data-dragging] .dragHandle {
+  opacity: 1;
 }
 
 .dragHandle:active {
   cursor: grabbing;
-}
-
-.dragHandle:hover {
-  color: #64748b;
-}
-
-.dragHandle i {
-  font-size: 1rem;
 }
 
 .optionContent {
@@ -118,21 +92,13 @@
   width: 100%;
 }
 
-/* Horizontal layout */
 .horizontalLayout {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: var(--rs-space-2) var(--rs-space-4);
   align-items: center;
   width: 100%;
   min-width: 0;
-}
-
-.optionNumber {
-  font-weight: 600;
-  color: #64748b;
-  font-size: 0.875rem;
-  min-width: 1.5rem;
 }
 
 .editorSection {
@@ -146,107 +112,47 @@
 }
 
 .optionLabel {
-  font-size: 0.75rem;
+  font-size: var(--rs-font-size-xs);
   display: block;
-  margin-bottom: 0.25rem;
-  color: #64748b;
-  font-weight: 500;
-}
-
-.editorContainer {
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  background-color: white;
-  overflow: visible;
-  min-height: 2.5rem;
-}
-
-.editorContainer > div {
-  padding: 0.25rem 0.5rem;
-}
-
-.editorContainer :global(.ProseMirror) {
-  min-height: 2rem;
-}
-
-.emptyEditor {
-  border-color: #f87171;
+  margin-bottom: var(--rs-space-1);
+  color: var(--rs-text-muted);
+  font-weight: var(--rs-font-weight-medium);
 }
 
 .controlsSection {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--rs-space-3);
   align-items: center;
   justify-content: flex-end;
   min-width: 140px;
   flex-shrink: 0;
 }
 
-.checkboxContainer {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  white-space: nowrap;
-}
-
-.checkboxLabel {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #334155;
-}
-
-.optionActions {
+.addRow {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: var(--rs-space-2);
+  width: 100%;
+  margin-top: var(--rs-space-3);
+  padding: var(--rs-space-3);
+  background: transparent;
+  border: 1px dashed var(--rs-border-strong);
+  border-radius: var(--rs-radius-md);
+  color: var(--rs-text-muted);
+  font-size: var(--rs-font-size-md);
+  font-weight: var(--rs-font-weight-medium);
+  cursor: pointer;
+  transition:
+    border-color var(--rs-transition-fast),
+    color var(--rs-transition-fast),
+    background-color var(--rs-transition-fast);
 }
 
-.removeButton {
-  color: #ef4444 !important;
-}
-
-.removeButton:hover {
-  background-color: rgba(239, 68, 68, 0.1) !important;
-}
-
-.validationError {
-  color: #ef4444;
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.validationError::before {
-  content: "!";
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1rem;
-  height: 1rem;
-  border-radius: 50%;
-  background-color: #ef4444;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: bold;
-}
-
-.validationErrors {
-  padding: 0.75rem 1rem;
-  background-color: #fef2f2;
-  border-top: 1px solid #fecaca;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-/* Drag and drop styling */
-.dragging {
-  opacity: 0.5;
-  border: 1px dashed #3b82f6;
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
-  background-color: #eff6ff;
+.addRow:hover {
+  border-color: var(--rs-brand-500);
+  color: var(--rs-brand-700);
+  background: var(--rs-brand-50);
 }
 
 @media (max-width: 768px) {
@@ -255,30 +161,16 @@
   }
 
   .optionsHeader {
-    padding: 0.75rem 1rem;
-  }
-
-  .optionsHeader h3 {
-    font-size: 0.95rem;
-  }
-
-  .addButton {
-    font-size: 0.8rem;
-    padding: 0.35rem 0.6rem;
+    padding: var(--rs-space-3);
   }
 
   .optionsContent {
-    padding: 0.75rem;
+    padding: var(--rs-space-3);
     overflow: visible;
   }
 
-  .optionContainer {
-    padding: 0.75rem;
-    margin-bottom: 0.75rem;
-  }
-
   .horizontalLayout {
-    gap: 0.5rem;
+    gap: var(--rs-space-2);
     flex-direction: column;
   }
 
@@ -288,19 +180,10 @@
     width: 100%;
   }
 
-  .editorContainer {
-    overflow: visible;
-  }
-
   .controlsSection {
     justify-content: flex-start;
     min-width: auto;
     width: 100%;
-    gap: 0.5rem;
-  }
-
-  .optionLabel {
-    font-size: 0.7rem;
-    margin-bottom: 0.2rem;
+    gap: var(--rs-space-2);
   }
 }

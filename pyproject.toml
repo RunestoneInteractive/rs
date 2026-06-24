@@ -1,156 +1,147 @@
-# This is the Root pyproject.toml
-# ===============================
-#
-# Poetry configuration
-# --------------------
-[tool.poetry]
+# Root pyproject.toml file.
+# Uses UV not Poetry -- conversion to uv in June 2026
+[project]
 name = "rs"
-version = "8.7.5"
+version = "8.8.0"
 description = ""
-authors = ["Brad Miller <bonelake@mac.com>"]
-license = "MIT"
+authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
+requires-python = ">=3.13,<4"
 readme = "README.rst"
-
-packages = [
-    # These are the components for the author server
-    { include = "development" },
-    { include = "rsptx/data_extract", from = "components" },
-    { include = "rsptx/visualization", from = "components" },
-    { include = "rsptx/db", from = "components" },
-    { include = "rsptx/forms", from = "components" },
-    { include = "rsptx/auth", from = "components" },
-    { include = "rsptx/logging", from = "components" },
-    { include = "rsptx/response_helpers", from = "components" },
-    { include = "rsptx/validation", from = "components" },
-    { include = "rsptx/templates", from = "components" },
-    { include = "rsptx/cl_utils", from = "components" },
-    { include = "runestone", from = "bases/rsptx/interactives" },
-    { include = "rsptx/author_server_api", from = "bases" },
-    { include = "rsptx/book_server_api", from = "bases" },
-    { include = "rsptx/web2py_server", from = "bases" },
-    { include = "rsptx/rsmanage", from = "bases" },
-    { include = "rsptx/assignment_server_api", from = "bases" },
-    { include = "rsptx/dash_server_api", from = "bases" },
-    { include = "rsptx/lp_sim_builder", from = "components" },
-    { include = "rsptx/configuration", from = "components" },
-    { include = "rsptx/exceptions", from = "components" },
-    { include = "rsptx/build_tools", from = "components" },
-    { include = "rsptx/practice", from = "components" },
-    { include = "rsptx/interactives/scripts", from = "bases" },
-    { include = "rsptx/lti1p3", from = "components" },
-    { include = "rsptx/admin_server_api", from = "bases" },
+license = "MIT"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "aiofiles>=0.8.0,<0.9",
+    "aiohttp>=3.11.11,<4",
+    "aioredis>=2.0.1,<3",
+    "aiosqlite>=0.18.0,<0.19",
+    "alembic>=1.13.1,<2",
+    "altair>=4.2.0,<5",
+    "asyncclick>=8.1.3.4,<9",
+    "asyncpg>=0.30.0,<0.31",
+    "beautifulsoup4>=4.0.0,<5",
+    "bleach>=6.0.0,<7",
+    "boto3>=1.26.88,<2",
+    "botocore>=1.29.87,<2",
+    "celery>=5.2.7,<6",
+    "cryptography>=46.0.0,<47",
+    "cssselect>= 1.0",
+    "dash[celery, diskcache]>=2.7.0,<3",
+    "diff-match-patch>= 20110725.1",
+    "fastapi>=0.115.0,<0.116",
+    "fastapi-login>=1.10.0,<2",
+    "gunicorn>=20.1.0,<21",
+    "ipyleaflet>=0.19.2,<0.20",
+    "ipython>=8.23.0,<9",
+    "Jinja2>=3.0.0,<4",
+    "jwcrypto>=1.5.6,<2",
+    "lxml>=6.0,<7",
+    "multi-await>=1.0.4,<2",
+    "numpy>= 1.9.2",
+    "oauth2>=1.9",
+    "pandas[pyarrow]>=2.3.0,<3",
+    "paver>=1.3.4,<2",
+    "pgcli>=4.0.0,<5",
+    "pretext>=2.42",
+    "psycopg2-binary>=2.9.3,<3",
+    "pycryptodome>=3.18.0,<4",
+    "pydal>=20230521.1",
+    "pydantic>=2.0.0,<3",
+    "pydantic-settings>=2.0.3,<3",
+    "pyhumps>=3.8.0,<4",
+    "pyjwt>=2.0.0,<3",
+    "pylint>= 1.2.1",
+    "python-dateutil>=2.8.2,<3",
+    "python-dotenv>=1.0.0,<2",
+    "python-multipart>=0.0.5,<0.0.6",
+    "pytz>= 2016.6.1",
+    "redis>=4.3.4,<5",
+    "requests>=2.28.1,<3",
+    "rich>=13.3.5,<14",
+    "scikit-learn>=1.5.1,<2",
+    "SQLAlchemy>=2.0.0,<3",
+    "Starlette-WTF>=0.4.3,<0.5",
+    "stripe>=2.0.0,<3",
+    "toml>=0.10.2,<0.11",
+    "tqdm>=4.65.0,<5",
+    "uvicorn>=0.27.0,<0.28",
+    "WTForms>=3.0.0,<4",
+    "itsdangerous>=2.2.0,<3",
+    "standard-asyncore>=3.13.0,<4",
+    "standard-imghdr>=3.13.0,<4",
+    "standard-cgi>=3.13.0,<4",
+    "duckdb>=1.3.2,<2",
+    "tldextract>=5.0.0,<6",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.13"
-
-aiofiles = "^0.8.0"
-aiohttp = "^3.11.11"
-aioredis = "^2.0.1"
-aiosqlite = "^0.18.0"
-alembic = "^1.13.1"
-altair = "^4.2.0"
-asyncclick = "^8.1.3.4"
-asyncpg = "^0.30.0"
-beautifulsoup4 = "^4.0.0"
-bleach = "^6.0.0"
-boto3 = "^1.26.88"
-botocore = "^1.29.87"
-celery = "^5.2.7"
-cryptography = "^46.0.0"
-cssselect = ">= 1.0"
-dash = { extras = ["celery", "diskcache"], version = "^2.7.0" }
-diff-match-patch = ">= 20110725.1"
-fastapi = "^0.115.0"
-fastapi-login = "^1.10.0"
-gunicorn = "^20.1.0"
-ipyleaflet = "^0.19.2"
-ipython = "^8.23.0"
-Jinja2 = "^3.0.0"
-jwcrypto = "^1.5.6"
-lxml = "^6.0"
-multi-await = "^1.0.4"
-numpy = ">= 1.9.2"
-oauth2 = ">=1.9"
-pandas = {version = "^2.3.0", extras = ["pyarrow"]}
-paver = "^1.3.4"
-pgcli = "^4.0.0"
-pretext = "^2.8.2"
-psycopg2-binary = "^2.9.3"
-pycryptodome = "^3.18.0"
-pydal = ">=20230521.1"
-pydantic = "^2.0.0"
-pydantic-settings = "^2.0.3"
-pyhumps = "^3.8.0"
-pyjwt = "^2.0.0"
-pylint = ">= 1.2.1"
-python-dateutil = "^2.8.2"
-python-dotenv = "^1.0.0"
-python-multipart = "^0.0.5"
-pytz = ">= 2016.6.1"
-redis = "^4.3.4"
-requests = "^2.28.1"
-rich = "^13.3.5"
-scikit-learn = "^1.5.1"
-SQLAlchemy = "^2.0.0"
-Starlette-WTF = "^0.4.3"
-stripe = "^2.0.0"
-toml = "^0.10.2"
-tqdm = "^4.65.0"
-uvicorn = "^0.27.0"
-WTForms = "^3.0.0"
-itsdangerous = "^2.2.0"
-standard-asyncore = "^3.13.0"
-standard-imghdr = "^3.13.0"
-standard-cgi = "^3.13.0"
-duckdb = "^1.3.2"
-tldextract = "^5.0.0"
-
-[tool.poetry.group.dev.dependencies]
-black = "~= 25.0"
-CodeChat = "^1.9.3"
-contextlib2 = "^0.6.0"
-coverage = "^6.0.0"
-coveralls = "^3.0.0"
-flake8 = "^7.0.0"
-html5validator = "^0.3.0"
-isort = "^5"
-mock = "^4.0.0"
-mypy = "^1"
-polling2 = "^0.5.0"
-pytest = "^8.0.0"
-pyvirtualdisplay = "^3.0.0"
-pywin32 = { version = ">= 301", markers = "sys.platform == 'win32'" }
-selenium = "^3.0.0"
-#rsmanage = { path = "./projects/rsmanage", develop = true }
-json2xml = "^3.21.0"
-pytest-asyncio = "^0.24.0"
-openai = "^1.59.3"
-javalang = "^0.13.0"
-pre-commit = "^4.5.1"
-ruff = "^0.15.2"
-
-
-[tool.poetry.group.docs.dependencies]
-sphinx-click = "^6.0.0"
-Sphinx = "^5.0.0"
-sphinx-reredirects = "^0.1.1"
-sphinxcontrib-paverutils = "^1.18.1"
-jupyter-sphinx = "<0.5"
-jupyterlab = "^4.2.4"
-jupyterlite-sphinx = "^0.9.3"
-myst-parser = "^1.0.0"
-cogapp = "^3.3.0"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.scripts]
+[project.scripts]
 buildptx = "rsptx.interactives.scripts.buildptx:build_book"
 build = "rsptx.build_tools.build:cli"
 rsmanage = "rsptx.rsmanage.core:cli"
+
+[dependency-groups]
+dev = [
+    "black~= 25.0",
+    "CodeChat>=1.9.3,<2",
+    "contextlib2>=0.6.0,<0.7",
+    "coverage>=6.0.0,<7",
+    "coveralls>=3.0.0,<4",
+    "flake8>=7.0.0,<8",
+    "html5validator>=0.3.0,<0.4",
+    "isort>=5,<6",
+    "mock>=4.0.0,<5",
+    "mypy>=1,<2",
+    "polling2>=0.5.0,<0.6",
+    "pytest>=8.0.0,<9",
+    "pyvirtualdisplay>=3.0.0,<4",
+    "pywin32>= 301 ; sys_platform == 'win32'",
+    "selenium>=3.0.0,<4",
+    "json2xml>=3.21.0,<4",
+    "pytest-asyncio>=0.24.0,<0.25",
+    "openai>=1.59.3,<2",
+    "javalang>=0.13.0,<0.14",
+    "pre-commit>=4.5.1,<5",
+    "ruff>=0.15.2,<0.16",
+    "polylith-cli>=1.40.0",
+]
+docs = [
+    "sphinx-click>=6.0.0,<7",
+    "Sphinx>=5.0.0,<6",
+    "sphinx-reredirects>=0.1.1,<0.2",
+    "sphinxcontrib-paverutils>=1.18.1,<2",
+    "jupyter-sphinx<0.5",
+    "jupyterlab>=4.2.4,<5",
+    "jupyterlite-sphinx>=0.9.3,<0.10",
+    "myst-parser>=1.0.0,<2",
+    "cogapp>=3.3.0,<4",
+]
+
+# This root project is the DEVELOPMENT environment only -- it is never built
+# into a deployed wheel (each service under projects/ builds its own isolated
+# wheel). `uv sync` installs it editable; dev-mode-dirs puts the Polylith brick
+# source directories on the path so every `rsptx.*` brick (plus the top-level
+# `runestone` and `development` packages) is importable and live-editable.
+[tool.hatch.build]
+dev-mode-dirs = ["components", "bases", "bases/rsptx/interactives", "development", "."]
+
+# bypass-selection: the importable code lives in the dev-mode-dirs above rather
+# than in a package directory named after this project, which is intentional.
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Poetry installed every dependency group by default; uv installs only `dev` by
+# default. Replicate the old behavior so the dev environment is complete (e.g.
+# the build/rsmanage CLIs pull in the runestone interactives, which needs sphinx
+# from the docs group). `uv sync` now installs main + dev + docs.
+[tool.uv]
+default-groups = ["dev", "docs"]
 
 # isort configuration
 # -------------------
@@ -164,16 +155,22 @@ exclude = ["bases/rsptx/web2py_server", "bases/rsptx/interactives", "bases/rsptx
 [tool.ruff.lint]
 ignore = ["E501"]
 exclude = [
-    "bases/rsptx/web2py_server", 
-    ".venv", 
-    "build", 
-    "dist", 
-    "docs/_build", 
+    "bases/rsptx/web2py_server",
+    ".venv",
+    "build",
+    "dist",
+    "docs/_build",
     "components/rsptx/web2py_server/static/lib",
     "bases/rsptx/interactives/runestone",
     "bases/rsptx/dash_server_api",
     "bases/rsptx/library_server_api",
 ]
+
+[tool.ruff.format]
+quote-style = "double"     # matches Black
+indent-style = "space"     # matches Black
+skip-magic-trailing-comma = false  # respect Black's magic trailing comma
+line-ending = "auto"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

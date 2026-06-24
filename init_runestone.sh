@@ -1221,6 +1221,130 @@ cleanup_on_error() {
 trap cleanup_on_error ERR INT TERM
 
 ################################################################################
+# Update Flow
+################################################################################
+
+# Check whether the database schema matches the (just-pulled) images and, if
+# not, offer to apply the migrations. check-db-migrations.sh exits 0 when the
+# schema is up to date and non-zero (printing details) when migrations are
+# pending. Requires the database to be reachable, so call this after the stack
+# is up.
+run_db_migrations() {
+    print_step "Checking database migrations..."
+    local rc=0
+    docker compose run --rm rsmanage check-db-migrations.sh || rc=$?
+
+    if [[ $rc -eq 0 ]]; then
+        print_success "Database schema is up to date"
+        return 0
+    fi
+
+    # Non-zero: migrations pending (or the DB could not be reached - the output
+    # above shows which). Offer to apply them.
+    echo ""
+    if prompt_yes_no "Apply the pending database migrations now?" "y"; then
+        print_step "Applying database migrations..."
+        if docker compose run --rm rsmanage alembic upgrade head; then
+            print_success "Database migrations applied"
+        else
+            print_error "Migration failed. Resolve it manually with:"
+            print_info "    docker compose run --rm rsmanage alembic upgrade head"
+            exit 1
+        fi
+    else
+        print_warning "Skipping migrations - the app may misbehave until you run:"
+        print_info "    docker compose run --rm rsmanage alembic upgrade head"
+    fi
+}
+
+# Refresh the managed configuration files (docker-compose.yml, sample.env) to
+# the latest version, pull matching images, and apply any database migrations.
+# Safe because all user-specific configuration lives in .env, which is never
+# touched here.
+update_runestone() {
+    echo "Runestone Update Started at $(date)" > "$LOG_FILE"
+    print_header "Runestone Update"
+
+    if [[ ! -f docker-compose.yml ]]; then
+        print_error "No docker-compose.yml found in $(pwd)."
+        print_info "Run the setup wizard first (./init_runestone.sh) before updating."
+        exit 1
+    fi
+
+    local stamp
+    stamp="$(date +%Y%m%d-%H%M%S)"
+
+    # --- docker-compose.yml (download to a temp file so a failure never
+    #     clobbers the working copy) ---
+    print_step "Backing up current docker-compose.yml..."
+    cp docker-compose.yml "docker-compose.yml.bak.${stamp}"
+    print_success "Backed up to docker-compose.yml.bak.${stamp}"
+
+    print_step "Downloading latest docker-compose.yml..."
+    if download_file_from_github "docker-compose.yml" "docker-compose.yml.new"; then
+        mv "docker-compose.yml.new" "docker-compose.yml"
+        print_success "Updated docker-compose.yml"
+    else
+        rm -f "docker-compose.yml.new"
+        print_error "Download failed; your existing docker-compose.yml is unchanged."
+        exit 1
+    fi
+
+    # --- sample.env (a template; the user's real config in .env is left
+    #     untouched, but refreshing the template surfaces any new options) ---
+    if [[ -f sample.env ]]; then
+        cp sample.env "sample.env.bak.${stamp}"
+    fi
+    print_step "Downloading latest sample.env..."
+    if download_file_from_github "sample.env" "sample.env.new"; then
+        mv "sample.env.new" "sample.env"
+        print_success "Updated sample.env (your .env was not modified)"
+    else
+        rm -f "sample.env.new"
+        print_warning "Could not refresh sample.env; continuing."
+    fi
+
+    # --- pull matching images ---
+    pull_images
+
+    # --- apply the update: restart with new images (which starts the DB per
+    #     the user's profiles), then run any pending migrations ---
+    echo ""
+    if prompt_yes_no "Apply the update now (restart services and run any database migrations)?" "y"; then
+        print_step "Restarting services with the updated configuration..."
+        if ! docker compose up -d; then
+            print_error "Failed to start services. Check 'docker compose logs'."
+            exit 1
+        fi
+        print_success "Services restarted"
+        run_db_migrations
+    else
+        print_info "When ready, finish the update with:"
+        print_info "    docker compose up -d"
+        print_info "    docker compose run --rm rsmanage check-db-migrations.sh"
+        print_info "    docker compose run --rm rsmanage alembic upgrade head   # if migrations are pending"
+    fi
+
+    echo ""
+    print_success "Update complete."
+    print_info "To roll back: cp docker-compose.yml.bak.${stamp} docker-compose.yml"
+    log "Update completed successfully"
+}
+
+show_usage() {
+    cat <<'EOF'
+Runestone setup / maintenance script.
+
+Usage:
+  ./init_runestone.sh           Run the interactive setup wizard (default).
+  ./init_runestone.sh update    Update docker-compose.yml + sample.env to the
+                                latest version and pull matching images. Your
+                                .env is left untouched.
+  ./init_runestone.sh help      Show this message.
+EOF
+}
+
+################################################################################
 # Main Flow
 ################################################################################
 
@@ -1258,5 +1382,21 @@ main() {
     log "Setup completed successfully"
 }
 
-# Run main function
-main "$@"
+# Dispatch on subcommand (default: interactive setup wizard).
+case "${1:-}" in
+    update)
+        update_runestone
+        ;;
+    -h | --help | help)
+        show_usage
+        ;;
+    "")
+        main "$@"
+        ;;
+    *)
+        print_error "Unknown command: $1"
+        echo ""
+        show_usage
+        exit 1
+        ;;
+esac

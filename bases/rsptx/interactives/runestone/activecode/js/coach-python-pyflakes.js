@@ -1,4 +1,6 @@
-$.i18n().load({
+import { load, t } from "../../common/js/rsi18n.js";
+
+load({
     en: {
         msd_pyflakes_coach_line: "Line",
     },
@@ -32,7 +34,7 @@ export default class PyflakesCoach {
                             if(!lineParts[3].includes("defined from star imports") 
                             && !lineParts[3].includes("*' used; unable to detect undefined names"))
                             {
-                                message += $.i18n("msd_pyflakes_coach_line") + lineParts[1] + ": " + lineParts[3] + "\n";
+                                message += t("msd_pyflakes_coach_line") + lineParts[1] + ": " + lineParts[3] + "\n";
                                 message += codeLines[lineParts[1] - 1] + "\n";
                                 message += " ".repeat(lineParts[2] - 1) + "^\n";
                             }

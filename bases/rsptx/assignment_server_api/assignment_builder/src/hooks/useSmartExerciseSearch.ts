@@ -1,17 +1,27 @@
 import { assignmentSelectors } from "@store/assignment/assignment.logic";
 import { useSearchExercisesSmartQuery } from "@store/exercises/exercises.logic.api";
 import debounce from "lodash/debounce";
-import { FilterMatchMode } from "primereact/api";
-import {
-  DataTableFilterMeta,
-  DataTablePageEvent,
-  DataTableSortEvent,
-  DataTableStateEvent
-} from "primereact/datatable";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 
 import { ExercisesSearchRequest, FilterValue } from "@/types/exercises";
+import { FilterMatchMode } from "@/types/filterMatchMode";
+
+type DataTableFilterMeta = Record<string, { value: unknown; matchMode?: FilterMatchMode }>;
+
+interface DataTablePageEvent {
+  page: number;
+  rows: number;
+}
+
+interface DataTableSortEvent {
+  sortField: string;
+  sortOrder: number | null;
+}
+
+interface DataTableStateEvent {
+  filters: DataTableFilterMeta;
+}
 
 /**
  * Hook for smart exercise search with support for pagination, filtering, sorting
@@ -86,6 +96,7 @@ export const useSmartExerciseSearch = (initialParams?: Partial<ExercisesSearchRe
 
   // Function to update filters
   const updateFilters = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (newFilters: Record<string, any>) => {
       setFilters((prevFilters) => ({
         ...prevFilters,
@@ -164,7 +175,6 @@ export const useSmartExerciseSearch = (initialParams?: Partial<ExercisesSearchRe
 
   // Filter change handler for DataTable
   const onFilter = (event: DataTableStateEvent) => {
-    console.log(event);
     updateFilters(event.filters);
   };
 
@@ -182,6 +192,8 @@ export const useSmartExerciseSearch = (initialParams?: Partial<ExercisesSearchRe
     searchParams,
     filters,
     updateFilters,
+    updateSorting,
+    updatePagination,
     onGlobalFilterChange,
     onPage,
     onSort,

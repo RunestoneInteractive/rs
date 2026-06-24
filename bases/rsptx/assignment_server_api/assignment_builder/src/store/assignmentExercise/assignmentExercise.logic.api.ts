@@ -3,7 +3,7 @@ import { assignmentApi } from "@store/assignment/assignment.logic.api";
 import { assignmentExerciseActions } from "@store/assignmentExercise/assignmentExercise.logic";
 import { baseQuery } from "@store/baseQuery";
 import { chooseExercisesActions } from "@store/chooseExercises/chooseExercises.logic";
-import toast from "react-hot-toast";
+import { notify } from "@components/ui/notify";
 
 import { RootState } from "@/state/store";
 import { DetailResponse } from "@/types/api";
@@ -15,6 +15,14 @@ import {
   UpdateAssignmentExercisesPayload
 } from "@/types/exercises";
 import { getSelectedKeys } from "@/utils/exercise";
+
+export const ASSIGNMENT_EXERCISE_TOAST_COPY = {
+  loadExercisesError: "Couldn't load exercises. Refresh the page.",
+  updateExercisesError: "Couldn't update exercises. Try again.",
+  reorderError: "Couldn't reorder exercises. Try again.",
+  createError: "Couldn't create exercise. Try again.",
+  copyError: "Couldn't copy exercise. Try again."
+} as const;
 
 export const assignmentExerciseApi = createApi({
   reducerPath: "assignmentExerciseAPI",
@@ -32,12 +40,17 @@ export const assignmentExerciseApi = createApi({
       transformResponse: (response: DetailResponse<GetExercisesResponse>) => {
         return response.detail.exercises;
       },
-      onQueryStarted: (_, { queryFulfilled, dispatch, getState }) => {
+      onQueryStarted: (assignment, { queryFulfilled, dispatch, getState }) => {
         queryFulfilled
           .then(({ data }) => {
             const state = getState() as RootState;
 
-            dispatch(assignmentExerciseActions.setAssignmentExercises(data));
+            dispatch(
+              assignmentExerciseActions.setAssignmentExercisesForAssignment({
+                assignmentId: assignment,
+                exercises: data
+              })
+            );
             dispatch(
               chooseExercisesActions.setSelectedKeys(
                 getSelectedKeys(state.exercises.availableExercises, data)
@@ -47,7 +60,7 @@ export const assignmentExerciseApi = createApi({
             dispatch(chooseExercisesActions.resetSelections());
           })
           .catch(() => {
-            toast.error("Unable to fetch exercises", { duration: Infinity });
+            notify.error(ASSIGNMENT_EXERCISE_TOAST_COPY.loadExercisesError);
           });
       }
     }),
@@ -77,7 +90,7 @@ export const assignmentExerciseApi = createApi({
             );
           })
           .catch(() => {
-            toast.error("Error updating assignment exercises", { duration: Infinity });
+            notify.error(ASSIGNMENT_EXERCISE_TOAST_COPY.updateExercisesError);
           });
       }
     }),
@@ -108,7 +121,7 @@ export const assignmentExerciseApi = createApi({
       },
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
-          toast.error("Error reordering assignment exercise", { duration: Infinity });
+          notify.error(ASSIGNMENT_EXERCISE_TOAST_COPY.reorderError);
         });
       }
     }),
@@ -126,7 +139,7 @@ export const assignmentExerciseApi = createApi({
       },
       onQueryStarted: (_, { queryFulfilled }) => {
         queryFulfilled.catch(() => {
-          toast.error("Error creating assignment exercise", { duration: Infinity });
+          notify.error(ASSIGNMENT_EXERCISE_TOAST_COPY.createError);
         });
       }
     }),
@@ -156,7 +169,7 @@ export const assignmentExerciseApi = createApi({
             );
           })
           .catch(() => {
-            toast.error("Error updating assignment exercises", { duration: Infinity });
+            notify.error(ASSIGNMENT_EXERCISE_TOAST_COPY.updateExercisesError);
           });
       }
     }),
@@ -216,7 +229,7 @@ export const assignmentExerciseApi = createApi({
             }
           })
           .catch(() => {
-            toast.error("Error copying question", { duration: Infinity });
+            notify.error(ASSIGNMENT_EXERCISE_TOAST_COPY.copyError);
           });
       }
     })

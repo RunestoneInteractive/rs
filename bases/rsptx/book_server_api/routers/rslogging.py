@@ -29,6 +29,7 @@ from fastapi import (
 )
 import boto3
 import botocore
+import botocore.config
 from fastapi.responses import JSONResponse
 
 # Local application imports
@@ -118,7 +119,7 @@ async def log_book_event(
     # Always use the server's time.
     entry.timestamp = canonical_utcnow()
     # The endpoint receives a ``course_name``, but the ``useinfo`` table calls this ``course_id``. Rename it.
-    useinfo_dict = entry.dict()
+    useinfo_dict = entry.model_dump()
     useinfo_dict["course_id"] = useinfo_dict.pop("course_name")
     # This will validate the fields.  If a field does not validate
     # an error will be raised and a 422 response code will be returned
@@ -183,7 +184,7 @@ async def log_book_event(
                 else:
                     tz = "UTC"
             scoreSpec = await grade_submission(user, entry, tz)
-            response_dict.update(scoreSpec.dict())
+            response_dict.update(scoreSpec.model_dump())
 
     if idx:
         return make_json_response(status=status.HTTP_201_CREATED, detail=response_dict)
@@ -261,7 +262,7 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
 
     # everything after this assumes that the user is logged in
 
-    useinfo_dict = data.dict()
+    useinfo_dict = data.model_dump()
     edit_distance = useinfo_dict.pop("editDist", None)
     cps = useinfo_dict.pop("changesPerSecond", None)
     useinfo_dict["course_id"] = useinfo_dict.pop("course")
@@ -339,7 +340,7 @@ async def updatelastpage(
         return make_json_response(detail="No Data")
 
     if request.state.user:
-        lpd = request_data.dict()
+        lpd = request_data.model_dump()
         rslogger.debug(f"{lpd=}")
         user = request.state.user
 
@@ -602,7 +603,7 @@ async def update_reading_score(request: Request, data: ReadingAssignmentSpec):
 async def get_datafile(
     request: Request,
     course_id: str,
-    acid: str = None,
+    acid: Optional[str] = None,
     response_class=JSONResponse,
 ):
     """
@@ -622,8 +623,8 @@ async def get_datafile(
 async def get_source_code(
     request: Request,
     course_id: str,
-    acid: str = None,
-    filename: str = None,
+    acid: Optional[str] = None,
+    filename: Optional[str] = None,
     response_class=JSONResponse,
 ):
     """

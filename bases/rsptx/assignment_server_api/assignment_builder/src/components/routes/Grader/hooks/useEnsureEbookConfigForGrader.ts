@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 export function useEnsureEbookConfigForGrader() {
   useEffect(() => {
-    const w = window as any;
+    const w = window as Window & { eBookConfig?: Record<string, unknown> };
     if (!w.eBookConfig) w.eBookConfig = {};
     const cfg = w.eBookConfig;
     cfg.useRunestoneServices = cfg.useRunestoneServices !== false;
@@ -15,4 +15,3 @@ export function useEnsureEbookConfigForGrader() {
     if (!cfg.email) cfg.email = cfg.username ?? "instructor";
   }, []);
 }
-

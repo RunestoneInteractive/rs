@@ -1,4 +1,5 @@
 import { ActiveCode } from "./activecode.js";
+import { t } from "../../common/js/rsi18n.js";
 
 export default class HTMLActiveCode extends ActiveCode {
     constructor(opts) {
@@ -199,6 +200,6 @@ export default class HTMLActiveCode extends ActiveCode {
     }
 
     enableSaveLoad() {
-        $(this.runButton).text($.i18n("msg_activecode_render"));
+        $(this.runButton).text(t("msg_activecode_render"));
     }
 }

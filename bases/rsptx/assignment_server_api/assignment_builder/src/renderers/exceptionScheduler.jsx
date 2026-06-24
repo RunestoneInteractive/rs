@@ -1,18 +1,24 @@
+import {
+  ActionIcon,
+  Button,
+  Checkbox,
+  Modal,
+  MultiSelect,
+  NumberInput,
+  Switch,
+  Table
+} from "@mantine/core";
+import { IconHelpCircle } from "@tabler/icons-react";
 import React from "react";
-import { Button } from "primereact/button";
-import { Dialog } from "primereact/dialog";
-import { InputNumber } from "primereact/inputnumber";
-import { InputSwitch } from "primereact/inputswitch";
-import { ListBox } from "primereact/listbox";
 import { useState } from "react";
-import { DataTable } from "primereact/datatable";
-import { Column } from "primereact/column";
-
-import { Toaster } from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
 
 import { selectAllAssignments } from "../state/assignment/assignSlice";
-import { setSelected, selectSelectedAssignments, fetchAssignments } from "../state/assignment/assignSlice";
+import {
+  setSelected,
+  selectSelectedAssignments,
+  fetchAssignments
+} from "../state/assignment/assignSlice";
 import {
   fetchClassRoster,
   selectRoster,
@@ -35,7 +41,6 @@ export function ExceptionScheduler() {
     dispatch(fetchClassRoster());
     dispatch(fetchAssignments());
   }, [dispatch]);
-
 
   const [checked, setChecked] = useState(false);
   const [tlMult, setTlMult] = useState(null);
@@ -60,7 +65,9 @@ export function ExceptionScheduler() {
         savePromises.push(dispatch(saveException(exception)));
       } else {
         for (let assignment of assignments) {
-          console.log(`Saving exception: ${student.username} ${tlMult}, ${extraDays}, ${checked} ${linked}`);
+          console.log(
+            `Saving exception: ${student.username} ${tlMult}, ${extraDays}, ${checked} ${linked}`
+          );
           let exception = {
             time_limit: tlMult,
             due_date: extraDays,
@@ -101,6 +108,14 @@ export function ExceptionScheduler() {
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.26)"
   };
 
+  const toggleAccommodation = (row, isChecked) => {
+    if (isChecked) {
+      setSelectedStudents([...(selectedStudents || []), row]);
+    } else {
+      setSelectedStudents((selectedStudents || []).filter((r) => r !== row));
+    }
+  };
+
   return (
     <div className="App">
       <h1>Accommodation Scheduler</h1>
@@ -109,7 +124,6 @@ export function ExceptionScheduler() {
         November 5, This is an experimental feature. All features should work, but please report any
         problems.{" "}
       </p>
-      <Toaster />
       <h3>Choose one or more students</h3>
       <StudentPicker />
       <h3>Choose zero or more assignments</h3>
@@ -118,53 +132,58 @@ export function ExceptionScheduler() {
       <div className="card flex flex-wrap gap-3 p-fluid" style={style}>
         <div className="flex-auto">
           <label htmlFor="tlmulti">Time Limit Multiplier</label>
-          <InputNumber
+          <NumberInput
             id="tlmulti"
             placeholder="1.5, 2.0 or similar"
             value={tlMult}
-            onValueChange={(e) => setTlMult(e.value)}
-            minFractionDigits={1}
-            maxFractionDigits={2}
+            onChange={(value) => setTlMult(value)}
+            decimalScale={2}
             min={1.0}
             max={5.0}
           />
         </div>
         <div className="flex-auto">
           <label htmlFor="extradays">Number of Extra Days</label>
-          <InputNumber
+          <NumberInput
             id="extradays"
             placeholder="integer, extra days, time is the same"
             value={extraDays}
-            onValueChange={(e) => setExtraDays(e.value)}
+            onChange={(value) => setExtraDays(value)}
           />
         </div>
         <div className="flex-auto">
           <label htmlFor="access">
             Allow student to see/access assignments that are not visible to others.
           </label>
-          <InputSwitch id="access" checked={checked} onChange={(e) => setChecked(e.value)} />
+          <Switch
+            id="access"
+            checked={checked}
+            onChange={(e) => setChecked(e.currentTarget.checked)}
+          />
         </div>
         <div className="flex-auto">
           <label htmlFor="linkTo">
             Allow students with a link to access the assignment even when not visible.
           </label>
-          <InputSwitch id="linkTo" checked={linked} onChange={(e) => setLinked(e.value)} />
+          <Switch
+            id="linkTo"
+            checked={linked}
+            onChange={(e) => setLinked(e.currentTarget.checked)}
+          />
         </div>
 
         <div className="flex-auto">
-          <Button
-            icon="pi pi-question-circle"
-            rounded
-            outlined
+          <ActionIcon
+            variant="outline"
+            color="gray"
+            radius="xl"
             onClick={() => setHelpVisible(true)}
-          />
-          <Dialog
-            header="Help"
-            visible={helpVisible}
-            style={{ width: "50vw" }}
-            onHide={() => setHelpVisible(false)}
+            aria-label="Help"
           >
-            <p>
+            <IconHelpCircle size={16} />
+          </ActionIcon>
+          <Modal title="Help" opened={helpVisible} size="50%" onClose={() => setHelpVisible(false)}>
+            <div>
               <ul>
                 <li>Time Limit Multiplier: Give the student N times the standard amount</li>
                 <li>Extra Days: Extend the deadline by X days.</li>
@@ -180,61 +199,60 @@ export function ExceptionScheduler() {
               Note: If you have already extended the deadline for a student by N days and you still
               want to give them more time, you should enter the total number of days you want to
               give them. The last entry wins.
-            </p>
-          </Dialog>
+            </div>
+          </Modal>
           <p></p>
         </div>
       </div>
-      <Button label="Save" onClick={saveAllExceptions} />
+      <Button onClick={saveAllExceptions}>Save</Button>
       {/* Add the accommodations table here */}
       <div style={{ marginTop: "2rem" }}>
         <h3>Current Accommodations</h3>
-        <DataTable
-          value={accommodations}
-          paginator
-          rows={10}
-          emptyMessage="No accommodations found."
-          className="p-datatable-striped"
-          selectionMode='checkbox'
-          selection={selectedStudents}
-          onSelectionChange={(e) => setSelectedStudents(e.value)}
-        >
-          <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-          <Column field="sid" header="Student ID" sortable />
-          <Column field="assignment_id" header="Assignment" sortable />
-          <Column
-            field="time_limit"
-            header="Time Multiplier"
-            sortable
-            body={(rowData) => rowData.time_limit ? `${rowData.time_limit}x` : 'N/A'}
-          />
-          <Column
-            field="duedate"
-            header="Extra Days"
-            sortable
-            body={(rowData) => rowData.duedate ? `${rowData.duedate} days` : 'N/A'}
-          />
-          <Column
-            field="visible"
-            header="Special Access"
-            sortable
-            body={(rowData) => rowData.visible ? 'Yes' : 'No'}
-          />
-          <Column
-            field="allowLink"
-            header="Link Access"
-            sortable
-            body={(rowData) => rowData.allowLink ? 'Yes' : 'No'}
-          />
-        </DataTable>
+        <Table highlightOnHover className="p-datatable-striped">
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th style={{ width: "3rem" }} />
+              <Table.Th>Student ID</Table.Th>
+              <Table.Th>Assignment</Table.Th>
+              <Table.Th>Time Multiplier</Table.Th>
+              <Table.Th>Extra Days</Table.Th>
+              <Table.Th>Special Access</Table.Th>
+              <Table.Th>Link Access</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {accommodations && accommodations.length > 0 ? (
+              accommodations.map((row) => (
+                <Table.Tr key={row.row_id}>
+                  <Table.Td>
+                    <Checkbox
+                      checked={(selectedStudents || []).includes(row)}
+                      onChange={(e) => toggleAccommodation(row, e.currentTarget.checked)}
+                      aria-label="Select accommodation"
+                    />
+                  </Table.Td>
+                  <Table.Td>{row.sid}</Table.Td>
+                  <Table.Td>{row.assignment_id}</Table.Td>
+                  <Table.Td>{row.time_limit ? `${row.time_limit}x` : "N/A"}</Table.Td>
+                  <Table.Td>{row.duedate ? `${row.duedate} days` : "N/A"}</Table.Td>
+                  <Table.Td>{row.visible ? "Yes" : "No"}</Table.Td>
+                  <Table.Td>{row.allowLink ? "Yes" : "No"}</Table.Td>
+                </Table.Tr>
+              ))
+            ) : (
+              <Table.Tr>
+                <Table.Td colSpan={7}>No accommodations found.</Table.Td>
+              </Table.Tr>
+            )}
+          </Table.Tbody>
+        </Table>
         <Button
-          label="Delete Selected"
-          className="p-button-danger"
+          color="red"
           onClick={() => {
             if (selectedStudents && selectedStudents.length > 0) {
-              let toDelete = []
+              let toDelete = [];
               selectedStudents.forEach((accommodation) => {
-                toDelete.push(accommodation.row_id)
+                toDelete.push(accommodation.row_id);
               });
               console.log(`deleting accommodations ${toDelete.join(", ")}`);
               dispatch(deleteAccommodations(toDelete)).then(() => {
@@ -243,9 +261,10 @@ export function ExceptionScheduler() {
               });
             }
           }}
-        />
+        >
+          Delete Selected
+        </Button>
       </div>
-
     </div>
   );
 }
@@ -255,54 +274,43 @@ function StudentPicker() {
   let students = useSelector(selectRoster);
   const [selectedStudents, setSelectedStudents] = useState([]);
 
-  const handleChange = (e) => {
-    setSelectedStudents(e.value);
-    dispatch(setStudents(e.value));
+  const handleChange = (values) => {
+    const selected = (students || []).filter((s) => values.includes(s.username));
+
+    setSelectedStudents(values);
+    dispatch(setStudents(selected));
   };
 
   return (
-    <ListBox
-      multiple
-      filter
+    <MultiSelect
+      searchable
       value={selectedStudents}
-      options={students}
-      optionLabel="label"
-      //itemTemplate={studentTemplate}
+      data={(students || []).map((s) => ({ value: s.username, label: s.label }))}
       onChange={handleChange}
-      listStyle={{ maxHeight: "250px" }}
+      maxDropdownHeight={250}
     />
   );
 }
-
-const studentTemplate = (option) => {
-  return (
-    <div className="flex align-items-center">
-      <div>
-        {option.username} ({option.first_name} {option.last_name})
-      </div>
-    </div>
-  );
-};
 
 function AssignmentPicker() {
   const dispatch = useDispatch();
   let assignments = useSelector(selectAllAssignments);
   const [selectedAssignments, setSelectedAssignments] = useState([]);
 
-  const handleChange = (e) => {
-    setSelectedAssignments(e.value);
-    dispatch(setSelected(e.value));
+  const handleChange = (values) => {
+    const selected = (assignments || []).filter((a) => values.includes(String(a.id)));
+
+    setSelectedAssignments(values);
+    dispatch(setSelected(selected));
   };
 
   return (
-    <ListBox
-      multiple
-      filter
+    <MultiSelect
+      searchable
       value={selectedAssignments}
       onChange={handleChange}
-      options={assignments}
-      optionLabel="name"
-      listStyle={{ maxHeight: "250px" }}
+      data={(assignments || []).map((a) => ({ value: String(a.id), label: a.name }))}
+      maxDropdownHeight={250}
     />
   );
 }

@@ -1,4 +1,5 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
+import { t } from "../../common/js/rsi18n.js";
 
 // function to display the audio tours
 export default class AudioTour extends RunestoneBase {
@@ -293,7 +294,7 @@ export default class AudioTour extends RunestoneBase {
         var atype = audio_type.split(";");
         var name = atype[0].replaceAll('"', " ");
         this.tourName = name;
-        $(this.status).html($.i18n("msg_activecode_starting", name));
+        $(this.status).html(t("msg_activecode_starting", name));
         //log tour type to db
         this.logBookEvent({ event: "Audio", act: name, div_id: divid });
         var max = atype.length;
@@ -465,7 +466,7 @@ export default class AudioTour extends RunestoneBase {
             "btn-default glyphicon glyphicon-pause"
         ) {
             $(this.status).html(
-                $.i18n("msg_activecode_playing", this.tourName)
+                t("msg_activecode_playing", this.tourName)
             );
             $("#" + afile).bind(
                 "ended",
@@ -491,7 +492,7 @@ export default class AudioTour extends RunestoneBase {
         //console.log("in playaudio " + elem.duration);
         if (isNaN(this.elem.duration) || this.elem.duration == 0) {
             // set the status
-            $(this.status).html($.i18n("msg_activecode_loading_audio"));
+            $(this.status).html(t("msg_activecode_loading_audio"));
             $("#" + this.afile).bind(
                 "canplaythrough",
                 function () {
@@ -514,15 +515,15 @@ export default class AudioTour extends RunestoneBase {
             this.elem.play(); // start the audio from current spot
             this.pause_audio.className =
                 "btn-default glyphicon glyphicon-pause";
-            this.pause_audio.title = $.i18n(
+            this.pause_audio.title = t(
                 "msg_activecode_pause_current_audio"
             );
             this.pause_audio.setAttribute(
                 "aria-label",
-                $.i18n("msg_activecode_pause_audio")
+                t("msg_activecode_pause_audio")
             );
             $(this.status).html(
-                $.i18n("msg_activecode_playing", this.tourName)
+                t("msg_activecode_playing", this.tourName)
             );
             //log change to db
             this.logBookEvent({
@@ -535,13 +536,13 @@ export default class AudioTour extends RunestoneBase {
         else if (this.playing) {
             this.elem.pause(); // pause the audio
             this.pause_audio.className = "btn-default glyphicon glyphicon-play";
-            this.pause_audio.title = $.i18n("msg_activecode_play_paused_audio");
+            this.pause_audio.title = t("msg_activecode_play_paused_audio");
             this.pause_audio.setAttribute(
                 "aria-label",
-                $.i18n("msg_activecode_play_paused_audio")
+                t("msg_activecode_play_paused_audio")
             );
             $(this.status).html(
-                $.i18n("msg_activecode_audio_paused", this.tourName)
+                t("msg_activecode_audio_paused", this.tourName)
             );
             //log change to db
             this.logBookEvent({

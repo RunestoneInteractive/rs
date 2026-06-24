@@ -10,14 +10,13 @@ interface PrefixCodeEditorProps {
 
 export const PrefixCodeEditor: FC<PrefixCodeEditorProps> = ({ prefixCode, onChange, language }) => {
   return (
-    <div className="border border-gray-300 rounded-lg overflow-hidden">
-      <CodeHighlighter
-        code={prefixCode}
-        language={language}
-        onChange={onChange}
-        height="400px"
-        placeholder="Enter code that will run before the student's code..."
-      />
-    </div>
+    <CodeHighlighter
+      code={prefixCode}
+      language={language}
+      onChange={onChange}
+      height="400px"
+      placeholder="Enter code that will run before the student's code…"
+      ariaLabel="Hidden prefix code"
+    />
   );
 };

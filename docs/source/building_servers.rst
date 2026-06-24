@@ -7,20 +7,20 @@ You should have already:
 
 #. :ref:`Cloned the source code<get-the-code>` (after forking it if you intend to contribute changes)
 
-#. Set up Poetry.
+#. Set up uv.
 
 #. Copied ``sample.env`` to ``.env`` and edited the file -- make sure ``BOOK_PATH`` is set.
 
 Now you are ready to install the required dependencies and build the servers:
 
-4. Run ``poetry install --with=dev`` from the top level directory.  This will install all of the dependencies for the project.
+4. Run ``uv sync`` from the top level directory.  This will install all of the dependencies for the project.
 
-#. When that completes run ``poetry shell`` to start a poetry shell.  You can verify that this worked correctly by running ``which rsmanage``.  You should see a path something like `/path/to/rs/.venv/bin/rsmanage`.  If you do not see this then you may need to run ``poetry shell`` again.
+#. When that completes activate the virtual environment with ``source .venv/bin/activate``.  You can verify that this worked correctly by running ``which rsmanage``.  You should see a path something like `/path/to/rs/.venv/bin/rsmanage`.  If you do not see this then you may need to run ``uv sync`` and activate again.
 
-#. To leave the ``poetry`` shell, type ``exit``.
+#. To leave the virtual environment, type ``deactivate``.
 
 .. note::
-   Future instructions will make it clear which commands need to be run inside the poetry virtual environment by always including ``poetry run ...`` at the start of the command. This is what you will need to type if you are **NOT** in the poetry shell. If you activate the ``poetry shell``, you will be able to skip typing ``poetry run``. For example, to check the environmental variables, you would type ``poetry run rsmanage env`` if the poetry shell is not active; if the shell is active, you would just type ``rsmanage env``.
+   Future instructions will make it clear which commands need to be run inside the virtual environment by always including ``uv run ...`` at the start of the command. This is what you will need to type if you are **NOT** in the activated virtual environment. If you activate the virtual environment, you will be able to skip typing ``uv run``. For example, to check the environmental variables, you would type ``uv run rsmanage env`` if the virtual environment is not active; if the virtual environment is active, you would just type ``rsmanage env``.
 
 
 7.  Run the ``build`` script from the ``rs`` folder by doing ``build full``. The first step of this script will verify that you have all of your environment variables defined. It will then build the python wheels for all the runestone components and then build the docker servers. This will take a while.
@@ -95,7 +95,7 @@ The `build` script is a convenience script that will build the docker images for
 
 .. note::
 
-   You either have to be in the poetry shell or run the script with ``poetry run build ...``.
+   You either have to be in the activated virtual environment or run the script with ``uv run build ...``.
 
 There are several options that you can pass to the script.  You can see them by running ``build --help``.  The output of the help option is shown below:
 
@@ -139,7 +139,7 @@ Here is a bit more detail on how the script operates so you know what to expect:
 
 #. If you pass the ``--clean`` option it will remove all of the containers and images before starting.  This is useful if you are having trouble with the containers and want to start fresh.
 
-#. Build the python wheels for all of the runestone components.  This is done by running ``poetry build-project`` in each of the project directories.  This will create a wheel file in the ``dist`` directory of each project.  If there is a ``build.py`` file in the project folder it will be run before the wheel is built.  This is useful for projects that need to build some assets before the wheel is built. such as the interactives or the assignment projects.
+#. Build the python wheels for all of the runestone components.  This is done by running ``uv build`` in each of the project directories.  This will create a wheel file in the ``dist`` directory of each project.  If there is a ``build.py`` file in the project folder it will be run before the wheel is built.  This is useful for projects that need to build some assets before the wheel is built. such as the interactives or the assignment projects.
 
 #. Build the docker images for the runestone servers.  This is done by running ``docker compose build``.  This will build the images for the runestone servers.  If you pass the ``--all`` option it will also build the images for the author and worker servers.  If you pass one or more ``--service <service>`` option(s) it will build for the services you specify.
 
@@ -159,10 +159,93 @@ To keep the servers up to date with the latest changes in the codebase, you will
 The repository is under active development.  It is a really good idea to keep your local copy up to date.  You don't need to do this daily, but I would recommend weekly.  To do this you will need to:
 
 #. Pull the latest changes from the repo by running ``git pull``.
-#. Run ``poetry install --with=dev`` to install any new dependencies.
-#. Run ``poetry shell`` to start a poetry shell.
+#. Run ``uv sync`` to install any new dependencies.
+#. Activate the virtual environment with ``source .venv/bin/activate``.
 #. Run ``build full`` to rebuild the servers, and check the database.
 #. Run ``docker compose stop`` to start the servers.
 #. Run ``docker compose up -d`` to start the servers.
 
 If  you find that your database is horribly out of date, and running ``alembic upgrade head`` fails. You can run ``docker compose down db`` the down subcommand will  **remove** the database container and then run ``docker compose up -d db`` to start a fresh database.  You will then need to run ``docker compose run rsmanage rsmanage initdb`` to initialize the database.  This will create the tables and add the initial data.  You will then need to run ``alembic stamp head`` to mark the current state of the database.  This will allow you to run migrations in the future to ensure that your database schema is up to date.
+
+.. _releasing-compose-changes:
+
+Releasing a docker-compose.yml change to end users
+---------------------------------------------------------
+
+End users run the composed application from a ``docker-compose.yml`` file they
+downloaded (via ``init_runestone.sh``); they update their images with
+``docker compose pull`` and update the file itself with
+``./init_runestone.sh update``. The problem is that a new image sometimes
+*expects* changes in ``docker-compose.yml``, and a user who only pulls images
+can end up with a file that is out of sync with the images.
+
+To guard against that, the stack carries a **compose schema version**:
+
+- ``docker-compose.yml`` declares the version it provides via
+  ``COMPOSE_SCHEMA_VERSION`` in the ``preflight`` service.
+- The ``rs-book`` image bakes in the minimum version it requires via
+  ``REQUIRED_COMPOSE_SCHEMA_VERSION`` (see
+  ``projects/book_server/Dockerfile``).
+- A ``preflight`` service (which every long-running service depends on) runs
+  ``check_compose_version.sh`` at startup and refuses to bring the stack up,
+  with an actionable message, if the file's version is older than the image
+  requires.
+
+When you change ``docker-compose.yml`` you must decide whether the change is
+**breaking** (newer images cannot work with the old file) or
+**backward-compatible** (old images do not care).
+
+If the change is one users *must* adopt (breaking)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Do all of these together:
+
+#. Edit ``docker-compose.yml`` as needed.
+#. Bump the file's schema version in the ``preflight`` service, e.g.
+   ``COMPOSE_SCHEMA_VERSION=2`` (was ``1``).
+#. Bump the image's required version to match in
+   ``projects/book_server/Dockerfile``:
+   ``ENV REQUIRED_COMPOSE_SCHEMA_VERSION=2``. Keep these two numbers in
+   lockstep -- the invariant is that a matching file provides ``N`` and the
+   image requires ``N``, so any older file (``< N``) is rejected.
+#. Rebuild and publish the images, **always including** ``rs-book`` (the
+   preflight check -- ``check_compose_version.sh`` and
+   ``REQUIRED_COMPOSE_SCHEMA_VERSION`` -- lives in that image), plus any other
+   images that actually need the change. The ``preflight`` service has no image
+   of its own; it reuses ``rs-book``, so there is nothing extra to add to
+   ``docker-bake.hcl``. Republish ``rs-book`` with:
+
+   .. code-block:: bash
+
+      docker buildx bake --file docker-bake.hcl rs-book --push
+#. Commit and push the new ``docker-compose.yml`` to ``main`` -- that is where
+   ``init_runestone.sh update`` fetches it from.
+
+**Ordering matters:** make sure the new ``docker-compose.yml`` is on ``main``
+before (or at the same time as) you publish the new images. Otherwise a user
+who pulls the new image (requires ``2``) but whose ``update`` fetches a
+not-yet-updated file (still provides ``1``) is blocked with no working fix.
+
+The user experience is then: ``docker compose pull`` gets an image requiring
+the new version, the next ``docker compose up`` fails the preflight check with
+a message telling them to run ``./init_runestone.sh update``, and that command
+fetches the matching file, pulls images, restarts, and migrates.
+
+If the change is backward-compatible
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For cosmetic edits, comments, or additive ``${VAR:-default}`` options that old
+images simply ignore, just edit ``docker-compose.yml`` and push to ``main``.
+**Do not** bump the schema numbers, or you will force-block every user for a
+change that does not require it. They pick it up on their next
+``./init_runestone.sh update`` without being forced.
+
+New ``.env`` variables are not covered by this
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The schema version validates the *structure* of ``docker-compose.yml``, not the
+contents of ``.env`` (which is user-owned and never overwritten -- only
+``sample.env`` is refreshed by ``update``). If your change needs a new
+variable, give it a safe default in compose (``${NEW_VAR:-default}``) so
+existing ``.env`` files keep working, and add it to ``sample.env`` with
+documentation.

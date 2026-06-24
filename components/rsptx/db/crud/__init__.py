@@ -33,6 +33,7 @@ from .assignment import (
     fetch_assignments,
     fetch_deadline_exception,
     fetch_grade,
+    fetch_gradebook,
     fetch_one_assignment,
     fetch_problem_data,
     fetch_reading_assignment_data,
@@ -40,9 +41,14 @@ from .assignment import (
     remove_assignment_questions,
     reorder_assignment_questions,
     update_assignment,
+    update_assignment_released,
+    update_assignment_threshold,
     update_assignment_exercises,
     update_assignment_question,
+    update_deadline_exception,
     update_multiple_assignment_questions,
+    set_manual_total,
+    upsert_deadline_exception,
     upsert_grade,
 )
 
@@ -177,6 +183,8 @@ from .question import (
     create_question_grade_entry,
     create_question,
     create_user_experiment_entry,
+    delete_user_experiment_entries,
+    replace_user_experiment_entries,
     fetch_assignment_question,
     fetch_assignment_questions,
     fetch_matching_questions,
@@ -211,11 +219,14 @@ from .rslogging import (
     create_code_entry,
     create_useinfo_entry,
     fetch_code,
+    fetch_code_for_sid,
     fetch_last_answer_table_entry,
     fetch_last_course_access,
     fetch_last_poll_response,
     fetch_poll_summary,
+    fetch_recent_useinfo,
     fetch_top10_fitb,
+    fetch_useinfo_for_sid,
 )
 
 from .scoring import (
@@ -258,6 +269,7 @@ __all__ += [
     "fetch_all_deadline_exceptions",
     "fetch_deadline_exception",
     "fetch_grade",
+    "fetch_gradebook",
     "fetch_one_assignment",
     "fetch_problem_data",
     "fetch_reading_assignment_data",
@@ -265,9 +277,14 @@ __all__ += [
     "remove_assignment_questions",
     "reorder_assignment_questions",
     "update_assignment",
+    "update_assignment_released",
+    "update_assignment_threshold",
     "update_assignment_exercises",
     "update_assignment_question",
+    "update_deadline_exception",
     "update_multiple_assignment_questions",
+    "set_manual_total",
+    "upsert_deadline_exception",
     "upsert_grade",
 ]
 
@@ -425,6 +442,8 @@ __all__ += [
     "create_question",
     "create_question_grade_entry",
     "create_user_experiment_entry",
+    "delete_user_experiment_entries",
+    "replace_user_experiment_entries",
     "fetch_assignment_question",
     "fetch_assignment_questions",
     "fetch_matching_questions",
@@ -461,11 +480,14 @@ __all__ += [
     "create_code_entry",
     "create_useinfo_entry",
     "fetch_code",
+    "fetch_code_for_sid",
     "fetch_last_answer_table_entry",
     "fetch_last_course_access",
     "fetch_last_poll_response",
     "fetch_poll_summary",
+    "fetch_recent_useinfo",
     "fetch_top10_fitb",
+    "fetch_useinfo_for_sid",
 ]
 
 # from .scoring

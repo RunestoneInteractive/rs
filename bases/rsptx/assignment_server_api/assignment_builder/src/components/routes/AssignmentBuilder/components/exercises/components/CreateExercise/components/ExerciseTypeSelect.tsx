@@ -1,38 +1,80 @@
-import { ExerciseTypeTag } from "@components/ui/ExerciseTypeTag";
-import { Card } from "primereact/card";
+import { Stack, Text, UnstyledButton } from "@mantine/core";
+import { CSSProperties } from "react";
 
+import { Icon } from "@/components/ui/Icon";
+import {
+  ExerciseFamily,
+  exerciseFamilies,
+  getExerciseColorScheme,
+  getExerciseFamily,
+  getExerciseTypeIcon
+} from "@/config/exerciseTypes";
 import { useExerciseTypes } from "@/hooks/useExerciseTypes";
 
-import styles from "../CreateExercise.module.css";
+import styles from "./ExerciseTypeSelect.module.css";
 
 interface ExerciseTypeSelectProps {
   selectedType: string | null;
   onSelect: (type: string) => void;
 }
 
+const familyOrder = Object.keys(exerciseFamilies) as ExerciseFamily[];
+
 export const ExerciseTypeSelect = ({ selectedType, onSelect }: ExerciseTypeSelectProps) => {
-  const exerciseTypes = useExerciseTypes();
+  const exerciseTypes = useExerciseTypes().filter((type) => !!type.description);
+
+  const groups = familyOrder
+    .map((family) => ({
+      family,
+      label: exerciseFamilies[family].label,
+      types: exerciseTypes.filter((type) => getExerciseFamily(type.value) === family)
+    }))
+    .filter((group) => group.types.length > 0);
 
   return (
-    <div className="grid">
-      {exerciseTypes
-        .filter((type) => !!type.description)
-        .map((type) => (
-          <div key={type.value} className="col-12 sm:col-6 lg:col-3">
-            <Card
-              className={`${styles.typeCard} ${selectedType === type.value ? styles.selected : ""} cursor-pointer`}
-              onClick={() => onSelect(type.value)}
-            >
-              <div className="flex flex-column gap-1">
-                <div className="flex align-items-center gap-2">
-                  <ExerciseTypeTag type={type.value} />
-                  <span className="font-medium text-sm">{type.label}</span>
-                </div>
-                <p className="text-xs text-500 m-0 line-height-2">{type.description}</p>
-              </div>
-            </Card>
+    <Stack gap="lg">
+      {groups.map((group) => (
+        <div key={group.family} className={styles.familyGroup} data-family={group.family}>
+          <Text component="span" className={styles.familyLabel}>
+            {group.label}
+          </Text>
+          <div className={styles.grid}>
+            {group.types.map((type) => {
+              const scheme = getExerciseColorScheme(type.value);
+              const isSelected = selectedType === type.value;
+
+              return (
+                <UnstyledButton
+                  key={type.value}
+                  className={styles.typeCard}
+                  data-selected={isSelected || undefined}
+                  aria-pressed={isSelected}
+                  onClick={() => onSelect(type.value)}
+                  style={
+                    {
+                      "--extype-hue": scheme.hue,
+                      "--extype-text": scheme.text
+                    } as CSSProperties
+                  }
+                >
+                  <span className={styles.iconTile}>
+                    <Icon name={getExerciseTypeIcon(type.value)} size={20} />
+                  </span>
+                  <span className={styles.cardBody}>
+                    <span className={styles.cardName}>{type.label}</span>
+                    <span className={styles.cardDescription}>{type.description}</span>
+                  </span>
+                  {isSelected && (
+                    <span className={styles.checkBadge} data-check-badge>
+                      <Icon name="check" size={12} />
+                    </span>
+                  )}
+                </UnstyledButton>
+              );
+            })}
           </div>
-        ))}
-    </div>
+        </div>
+      ))}
+    </Stack>
   );
 };

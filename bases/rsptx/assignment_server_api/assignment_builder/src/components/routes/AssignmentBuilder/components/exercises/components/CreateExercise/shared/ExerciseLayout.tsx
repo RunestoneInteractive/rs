@@ -1,15 +1,17 @@
-import { Button } from "primereact/button";
-import { Steps } from "primereact/steps";
+import { Button, Stepper, Text, Tooltip } from "@mantine/core";
+import { modals } from "@mantine/modals";
 import { ReactNode, useMemo, createContext, useContext, useRef } from "react";
 
 import { ExerciseStepWrapper } from "@/components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/shared/ExerciseStepWrapper";
+import { ExerciseTypeTag } from "@/components/ui/ExerciseTypeTag";
+import { Icon } from "@/components/ui/Icon";
 import { useFullscreen } from "@/hooks/useFullscreen";
 
 import { getStepConfig } from "../config/stepConfigs";
 import { ValidationState } from "../hooks/useStepValidation";
 
+import styles from "./ExerciseLayout.module.css";
 import { ValidationMessage } from "./ValidationMessage";
-import styles from "./styles/CreateExercise.module.css";
 
 interface ValidationContextType {
   shouldShowValidation: boolean;
@@ -29,6 +31,7 @@ interface ExerciseLayoutProps {
   activeStep: number;
   isCurrentStepValid: () => boolean;
   isSaving: boolean;
+  isDirty?: boolean;
   stepsValidity: Record<number, boolean>;
   onCancel: () => void;
   onBack: () => void;
@@ -46,9 +49,8 @@ export const ExerciseLayout = ({
   isEdit,
   steps,
   activeStep,
-  isCurrentStepValid,
   isSaving,
-  stepsValidity,
+  isDirty = false,
   onCancel,
   onBack,
   onNext,
@@ -74,11 +76,24 @@ export const ExerciseLayout = ({
     [validation]
   );
 
+  const blockedReasons = validation && !validation.isValid ? validation.errors : [];
+  const isBlocked = blockedReasons.length > 0;
+
   const handleCancel = () => {
     if (isFullscreen) {
       exitFullscreen();
     }
-    onCancel();
+    if (!isDirty) {
+      onCancel();
+      return;
+    }
+    modals.openConfirmModal({
+      title: "Discard changes?",
+      children: <Text size="sm">Your unsaved changes to this exercise will be lost.</Text>,
+      labels: { confirm: "Discard", cancel: "Keep editing" },
+      confirmProps: { color: "red" },
+      onConfirm: onCancel
+    });
   };
 
   const handleSave = () => {
@@ -88,65 +103,107 @@ export const ExerciseLayout = ({
     onSave();
   };
 
+  const primaryAction =
+    activeStep === steps.length - 1 ? (
+      <Button
+        leftSection={<Icon name="save" size={14} />}
+        onClick={handleSave}
+        disabled={isSaving || isBlocked}
+        loading={isSaving}
+      >
+        Save
+      </Button>
+    ) : (
+      <Button
+        rightSection={<Icon name="chevron-right" size={14} />}
+        onClick={onNext}
+        disabled={isBlocked}
+      >
+        Next
+      </Button>
+    );
+
   return (
     <ValidationContext.Provider value={validationContextValue}>
-      <div id="exercise-layout" className={styles.container} ref={containerRef}>
+      <div id="exercise-layout" className={styles.root} ref={containerRef}>
         <div className={styles.header}>
-          <h2>{isEdit ? `Edit ${title}` : `Create ${title}`}</h2>
+          <h2 className={styles.title}>{isEdit ? `Edit ${title}` : `Create ${title}`}</h2>
+          <ExerciseTypeTag type={exerciseType} />
           {headerExtra}
           <div className={styles.headerButtons}>
             {isSupported && (
-              <Button
-                icon={isFullscreen ? "pi pi-times" : "pi pi-window-maximize"}
-                severity="secondary"
-                text
-                onClick={toggleFullscreen}
-                tooltip={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                tooltipOptions={{ position: "bottom" }}
-                data-tour="fullscreen-btn"
-              />
-            )}
-            <Button label="Cancel" icon="pi pi-times" severity="secondary" onClick={handleCancel} />
-            {activeStep > 0 && (
-              <Button label="Back" icon="pi pi-chevron-left" text onClick={onBack} />
-            )}
-            {activeStep === steps.length - 1 ? (
-              <Button
-                label="Save"
-                icon="pi pi-save"
-                onClick={handleSave}
-                disabled={isSaving}
-                loading={isSaving}
-              />
-            ) : (
-              <Button label="Next" icon="pi pi-chevron-right" iconPos="right" onClick={onNext} />
-            )}
-          </div>
-        </div>
-
-        <div className={styles.content}>
-          <Steps
-            model={steps}
-            activeIndex={activeStep}
-            onSelect={(e) => onStepSelect(e.index)}
-            readOnly={false}
-            className={styles.steps}
-          />
-
-          <div className={styles.exerciseContentWrapper}>
-            {currentStepConfig ? (
-              <ExerciseStepWrapper
-                title={currentStepConfig.title}
-                description={currentStepConfig.description}
+              <Tooltip
+                label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                position="bottom"
               >
-                {children}
-              </ExerciseStepWrapper>
-            ) : (
-              <>{children}</>
+                <Button
+                  variant="subtle"
+                  color="gray"
+                  onClick={toggleFullscreen}
+                  data-tour="fullscreen-btn"
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                >
+                  <Icon name={isFullscreen ? "window-minimize" : "window-maximize"} />
+                </Button>
+              </Tooltip>
             )}
+            <Button
+              variant="default"
+              leftSection={<Icon name="times" size={14} />}
+              onClick={handleCancel}
+            >
+              Cancel
+            </Button>
+            {activeStep > 0 && (
+              <Button
+                variant="subtle"
+                leftSection={<Icon name="chevron-left" size={14} />}
+                onClick={onBack}
+              >
+                Back
+              </Button>
+            )}
+            <Tooltip
+              label={blockedReasons.join(" · ")}
+              disabled={!isBlocked}
+              position="bottom"
+              multiline
+              maw={320}
+            >
+              <span className={styles.nextWrap} data-blocked={isBlocked || undefined}>
+                {primaryAction}
+              </span>
+            </Tooltip>
           </div>
-          {validation && !validation.isValid && <ValidationMessage errors={validation.errors} />}
         </div>
+
+        <div className={styles.stepperBar}>
+          <Stepper
+            active={activeStep}
+            onStepClick={onStepSelect}
+            size="xs"
+            wrap={false}
+            className={styles.stepper}
+          >
+            {steps.map((step, index) => (
+              <Stepper.Step key={index} label={step.label} aria-label={step.label} />
+            ))}
+          </Stepper>
+        </div>
+
+        <div className={styles.body}>
+          {currentStepConfig ? (
+            <ExerciseStepWrapper
+              title={currentStepConfig.title}
+              description={currentStepConfig.description}
+            >
+              {children}
+            </ExerciseStepWrapper>
+          ) : (
+            <div className={styles.plainContent}>{children}</div>
+          )}
+        </div>
+        {validation && !validation.isValid && <ValidationMessage errors={validation.errors} />}
       </div>
     </ValidationContext.Provider>
   );

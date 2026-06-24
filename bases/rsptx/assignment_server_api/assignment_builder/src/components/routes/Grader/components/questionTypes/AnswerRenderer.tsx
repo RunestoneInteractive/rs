@@ -1,6 +1,7 @@
 import React from "react";
 
 import { ActiveCodeAnswerView } from "./ActiveCodeAnswerView";
+import styles from "./AnswerViews.module.css";
 import { DefaultAnswerView } from "./DefaultAnswerView";
 import { FitbAnswerView } from "./FitbAnswerView";
 import { McqAnswerView } from "./McqAnswerView";
@@ -26,34 +27,21 @@ const RUNESTONE_GRADER_TYPES = new Set([
   "selectquestion"
 ]);
 
-export const AnswerRenderer: React.FC<
-  AnswerRendererProps & { questionType: string }
-> = (props) => {
-  const {
-    questionType,
-    htmlsrc,
-    questionName,
-    sid,
-    history,
-    activeAttemptIndex
-  } = props;
+export const AnswerRenderer: React.FC<AnswerRendererProps & { questionType: string }> = (props) => {
+  const { questionType, htmlsrc, questionName, sid, history, activeAttemptIndex } = props;
 
-  const hasIndex =
-    typeof activeAttemptIndex === "number" && activeAttemptIndex >= 0;
-  const isLatestAttempt =
-    hasIndex && activeAttemptIndex === history.length - 1;
+  const hasIndex = typeof activeAttemptIndex === "number" && activeAttemptIndex >= 0;
+  const isLatestAttempt = hasIndex && activeAttemptIndex === history.length - 1;
 
-  const attempt =
-    hasIndex && !isLatestAttempt ? history[activeAttemptIndex!] : null;
+  const attempt = hasIndex && !isLatestAttempt ? history[activeAttemptIndex!] : null;
 
   const interactive =
     htmlsrc && RUNESTONE_GRADER_TYPES.has(questionType) ? (
-      <section style={{ marginBottom: "0.75rem" }}>
-        <h4 style={{ margin: "0 0 0.5rem 0", color: "#0f172a" }}>
-          Question: <span style={{ fontFamily: "monospace" }}>{questionName}</span>
+      <section className={styles.interactiveSection}>
+        <h4 className={styles.rendererTitle}>
+          Question: <span className={styles.questionName}>{questionName}</span>
         </h4>
         <RunestoneGraderPreview
-
           key={`${sid}-${attempt?.id ?? "latest"}`}
           htmlsrc={htmlsrc}
           divId={questionName}

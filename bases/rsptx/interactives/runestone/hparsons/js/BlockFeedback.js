@@ -1,7 +1,9 @@
 import HParsonsFeedback from "./hparsonsFeedback";
+import { t } from "../../common/js/rsi18n.js";
 import BlockBasedGrader from "./blockGrader.js";
 import "../../parsons/js/parsons-i18n.en.js";
 import "../../parsons/js/parsons-i18n.pt-br.js";
+import "../../parsons/js/parsons-i18n.sr-Cyrl.js";
 
 export default class BlockFeedback extends HParsonsFeedback {
     createOutput() {
@@ -76,9 +78,9 @@ export default class BlockFeedback extends HParsonsFeedback {
             feedbackArea.className = "hp_feedback alert alert-info";
             if (this.checkCount > 1) {
                 feedbackArea.innerHTML =
-                    $.i18n("msg_parson_correct", this.checkCount);
+                    t("msg_parson_correct", this.checkCount);
             } else {
-                feedbackArea.innerHTML = $.i18n("msg_parson_correct_first_try");
+                feedbackArea.innerHTML = t("msg_parson_correct_first_try");
             }
             this.checkCount = 0;
         }
@@ -88,7 +90,7 @@ export default class BlockFeedback extends HParsonsFeedback {
             answerArea.classList.add("incorrect");
             feedbackArea.style.display = "";
             feedbackArea.className = "hp_feedback alert alert-danger";
-            feedbackArea.innerHTML = $.i18n("msg_parson_too_short");
+            feedbackArea.innerHTML = t("msg_parson_too_short");
         }
 
         if (this.grade === "incorrectMoveBlocks") {
@@ -116,7 +118,7 @@ export default class BlockFeedback extends HParsonsFeedback {
             for (let i = 0; i < notInSolution.length; i++) {
                 notInSolution[i].classList.add("incorrectPosition");
             }
-            feedbackArea.innerHTML = $.i18n("msg_parson_wrong_order");
+            feedbackArea.innerHTML = t("msg_parson_wrong_order");
         }
     }
 

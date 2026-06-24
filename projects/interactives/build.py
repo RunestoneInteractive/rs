@@ -15,7 +15,11 @@ project = toml.load("pyproject.toml")
 if sys.argv[1:] == ["--test"]:
     VERSION = "test"
 else:
-    VERSION = project["tool"]["poetry"]["version"]
+    # pyproject was migrated from poetry ([tool.poetry]) to PEP 621 ([project]);
+    # fall back to the old location for safety.
+    VERSION = project.get("project", {}).get("version") or project["tool"][
+        "poetry"
+    ]["version"]
 
 
 def rebuild_micro_parsons():
@@ -85,8 +89,8 @@ with pushd("../../bases/rsptx/interactives"):
 if "--dev" in sys.argv:
     sys.exit(0)
 
-if "--fromroot" not in sys.argv:
-    subprocess.run(["poetry", "build-project"], check=True)
+# if "--fromroot" not in sys.argv:
+#     subprocess.run(["poetry", "build-project"], check=True)
 
 
 if sys.argv[1:] == ["--publish"]:
@@ -122,15 +126,37 @@ if sys.argv[1:] == ["--publish"]:
             ],
             check=True,
         )
-        # tag the release in the repo
-        subprocess.run(
-            ["git", "tag", f"components_{VERSION}"], check=True
-        )
+        try:
+            # tag the release in the repo
+            subprocess.run(
+                ["git", "tag", f"components_{VERSION}"], check=True
+            )
+        except subprocess.CalledProcessError:
+            print(f"Failed to tag release components_{VERSION}")
         print("Moving release to jsdist")
         subprocess.run(
             " ".join(["mv", f"dist-{VERSION}.tgz", "../jsdist"]), check=True, shell=True
         )
-    with pushd("../author_server"):
-        subprocess.run(["poetry", "update", "pretext"], check=True)
-    with pushd("../rsmanage"):
-        subprocess.run(["poetry", "update", "pretext"], check=True)
+    with pushd("../../bases/rsptx/interactives"):
+        if os.path.exists("./extra_dependencies"):
+            folders = [f for f in os.listdir("./extra_dependencies") if os.path.isdir(os.path.join("./extra_dependencies", f))]
+            for folder in folders:
+                subprocess.run(
+                    [
+                        "rsync",
+                        "-avz",
+                        os.path.join("./extra_dependencies", folder),
+                        "balance.runestoneacademy.org:/var/www/html/cdn/runestone",
+                    ],
+                    check=True,
+                )
+
+# No longer need to poetry update pretext for other projects
+    with pushd("../../"):
+        subprocess.run(["pwd"], check=True, shell=True)
+        try:
+            subprocess.run(["uv", "lock", "--upgrade-package", "pretext"], check=True, shell=True)
+            subprocess.run(["uv", "sync"], check=True, shell=True)
+        except subprocess.CalledProcessError:
+            print("Failed to update pretext package")
+

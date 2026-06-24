@@ -9,8 +9,6 @@ import {
   DragMoveEvent,
   DragOverlay,
   defaultDropAnimation,
-  pointerWithin,
-  CollisionDetection,
   MeasuringStrategy
 } from "@dnd-kit/core";
 import {
@@ -18,14 +16,16 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from "@dnd-kit/sortable";
-import { Button } from "primereact/button";
+import { Button, UnstyledButton } from "@mantine/core";
 import React, { FC, useState, useCallback, useRef, useMemo } from "react";
 
+import { Icon } from "@/components/ui/Icon";
 import { ParsonsBlock } from "@/utils/preview/parsonsPreview";
 
 import { BlockItem } from "./BlockItem";
 import styles from "./ParsonsExercise.module.css";
 import { SortableBlock } from "./SortableBlock";
+import { parsonsCollisionDetection } from "./parsonsCollisionDetection";
 
 const MAX_INDENT_LEVELS = 10;
 
@@ -35,39 +35,11 @@ const MAX_ALTERNATIVES = 3;
 
 const SNAP_THRESHOLD = 12;
 
+const pluralize = (count: number, noun: string): string => (count === 1 ? noun : `${noun}s`);
+
 const customDropAnimation = {
   ...defaultDropAnimation,
   dragSourceOpacity: 0.5
-};
-
-const customCollisionDetection: CollisionDetection = (args) => {
-  const pointerCollisions = pointerWithin(args);
-
-  if (pointerCollisions.length > 0) {
-    return pointerCollisions;
-  }
-
-  const { droppableRects } = args;
-
-  const containerRect = droppableRects.get("blocks-container");
-
-  if (!containerRect) {
-    return [];
-  }
-
-  const coordinates = args.pointerCoordinates;
-
-  if (
-    coordinates &&
-    coordinates.x >= containerRect.left &&
-    coordinates.x <= containerRect.right &&
-    coordinates.y >= containerRect.top &&
-    coordinates.y <= containerRect.bottom
-  ) {
-    return [{ id: "blocks-container" }];
-  }
-
-  return [];
 };
 
 interface ParsonsBlocksManagerProps {
@@ -97,8 +69,6 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const blocksContainerRef = useRef<HTMLDivElement>(null);
 
-  const activeBlock = blocks.find((block) => block.id === activeId);
-
   const blockGroups = useMemo(() => {
     const groups: Record<string, ParsonsBlock[]> = {};
 
@@ -113,17 +83,6 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
 
     return groups;
   }, [blocks]);
-
-  const blockHasAlternatives = useCallback(
-    (blockId: string) => {
-      const block = blocks.find((b) => b.id === blockId);
-
-      if (!block || !block.groupId) return false;
-
-      return blockGroups[block.groupId]?.length > 1;
-    },
-    [blocks, blockGroups]
-  );
 
   const maxAllowedIndent = useMemo(() => {
     if (blocks.length === 0) return 0;
@@ -147,19 +106,6 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
     }
     return indents;
   }, [blocks, maxAllowedIndent]);
-
-  const getBlockWidth = useCallback(
-    (blockId: string) => {
-      const block = blocks.find((b) => b.id === blockId);
-
-      if (!block || !block.groupId) return 100;
-
-      const groupCount = blocks.filter((b) => b.groupId === block.groupId).length;
-
-      return 100 / groupCount;
-    },
-    [blocks]
-  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -248,8 +194,6 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
     (event: DragMoveEvent) => {
       if (!containerRef.current || !activeId) return;
 
-      const containerRect = containerRef.current.getBoundingClientRect();
-
       const currentBlock = blocks.find((block) => block.id === activeId);
 
       if (!currentBlock) return;
@@ -283,7 +227,6 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
     (clientY: number): number => {
       if (!blocksContainerRef.current) return blocks.length;
 
-      const containerRect = blocksContainerRef.current.getBoundingClientRect();
       const blockNodes = blocksContainerRef.current.querySelectorAll(".sortable-block");
 
       if (blockNodes.length > 0) {
@@ -475,6 +418,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
           if (otherBlock) {
             newBlocks = newBlocks.map((block) => {
               if (block.id === otherBlock.id) {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { groupId, isCorrect, ...rest } = block;
 
                 return rest;
@@ -486,7 +430,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
           onChange(newBlocks);
           return;
         } else {
-          let newBlocks = blocks.filter((block) => block.id !== id);
+          const newBlocks = blocks.filter((block) => block.id !== id);
 
           if (blockToRemove.isCorrect) {
             const remainingGroupBlocks = newBlocks.filter(
@@ -587,7 +531,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
 
       if (!block || !block.groupId) return;
 
-      let newBlocks = blocks.map((b) => {
+      const newBlocks = blocks.map((b) => {
         if (b.groupId === block.groupId) {
           return { ...b, isCorrect: b.id === id };
         }
@@ -791,24 +735,6 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
     return result;
   }, [blocks]);
 
-  const shouldShowDragHandle = useCallback(
-    (blockId: string) => {
-      const block = blocks.find((b) => b.id === blockId);
-
-      if (!block || !block.groupId) return true;
-
-      const groupBlocks = blocks.filter((b) => b.groupId === block.groupId);
-
-      const sortedGroupBlocks = groupBlocks.sort(
-        (a, b) =>
-          blocks.findIndex((blk) => blk.id === a.id) - blocks.findIndex((blk) => blk.id === b.id)
-      );
-
-      return sortedGroupBlocks[0]?.id === blockId;
-    },
-    [blocks]
-  );
-
   // Count stats for the header
   const solutionCount = blocks.filter((b) => !b.isDistractor).length;
   const distractorCount = blocks.filter((b) => b.isDistractor).length;
@@ -821,13 +747,13 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
         <div className={styles.statsBar} data-tour="stats-bar">
           <div className={styles.statItem}>
             <span className={styles.statCount}>{blocks.length}</span>
-            <span className={styles.statLabel}>blocks</span>
+            <span className={styles.statLabel}>{pluralize(blocks.length, "block")}</span>
           </div>
           <div className={styles.statDivider} />
           <div className={styles.statItem}>
             <span className={`${styles.statDot} ${styles.statDotSolution}`} />
             <span className={styles.statCount}>{solutionCount}</span>
-            <span className={styles.statLabel}>solution</span>
+            <span className={styles.statLabel}>{pluralize(solutionCount, "solution")}</span>
           </div>
           {distractorCount > 0 && (
             <>
@@ -835,7 +761,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
               <div className={styles.statItem}>
                 <span className={`${styles.statDot} ${styles.statDotDistractor}`} />
                 <span className={styles.statCount}>{distractorCount}</span>
-                <span className={styles.statLabel}>distractor</span>
+                <span className={styles.statLabel}>{pluralize(distractorCount, "distractor")}</span>
               </div>
             </>
           )}
@@ -845,7 +771,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
               <div className={styles.statItem}>
                 <span className={`${styles.statDot} ${styles.statDotGroup}`} />
                 <span className={styles.statCount}>{groupCount}</span>
-                <span className={styles.statLabel}>groups</span>
+                <span className={styles.statLabel}>{pluralize(groupCount, "group")}</span>
               </div>
             </>
           )}
@@ -860,7 +786,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
 
           <DndContext
             sensors={sensors}
-            collisionDetection={customCollisionDetection}
+            collisionDetection={parsonsCollisionDetection}
             onDragStart={handleDragStart}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
@@ -949,9 +875,13 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
                               onAddAlternative={handleAddAlternative}
                               onCorrectChange={handleCorrectChange}
                               onSplitBlock={handleSplitBlock}
-                              onDistractorChange={isFirstInGroup ? handleDistractorChange : undefined}
+                              onDistractorChange={
+                                isFirstInGroup ? handleDistractorChange : undefined
+                              }
                               onPairedChange={isFirstInGroup ? handlePairedChange : undefined}
-                              onExplanationChange={isFirstInGroup ? handleExplanationChange : undefined}
+                              onExplanationChange={
+                                isFirstInGroup ? handleExplanationChange : undefined
+                              }
                               onTagChange={isFirstInGroup ? handleTagChange : undefined}
                               onDependsChange={isFirstInGroup ? handleDependsChange : undefined}
                               onOrderChange={isFirstInGroup ? handleOrderChange : undefined}
@@ -971,6 +901,17 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
                   })}
                 </div>
               </SortableContext>
+              {blocks.length > 0 && (
+                <UnstyledButton
+                  className={styles.addRow}
+                  onClick={handleAddBlock}
+                  aria-label="Add block"
+                  data-tour="add-block-btn"
+                >
+                  <Icon name="plus" size={14} />
+                  Add block
+                </UnstyledButton>
+              )}
             </div>
 
             <DragOverlay dropAnimation={customDropAnimation}>
@@ -1048,22 +989,20 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
           {blocks.length === 0 && (
             <div className={styles.emptyState}>
               <div className={styles.emptyStateIcon}>
-                <i className="pi pi-code" />
+                <Icon name="code" />
               </div>
               <p className={styles.emptyStateTitle}>No code blocks yet</p>
-              <p className={styles.emptyStateDesc}>
-                Click <strong>"Add Block"</strong> in the toolbar above to create your first code
-                block.
-              </p>
+              <p className={styles.emptyStateDesc}>Add your first code block to get started.</p>
               <Button
-                label="Add Your First Block"
-                icon="pi pi-plus"
+                leftSection={<Icon name="plus" size={14} />}
                 className={styles.emptyStateBtn}
                 onClick={handleAddBlock}
-                severity="info"
-                outlined
-                size="small"
-              />
+                variant="outline"
+                size="xs"
+                data-tour="add-block-btn"
+              >
+                Add your first block
+              </Button>
             </div>
           )}
         </div>

@@ -85,7 +85,6 @@ export const useAutoSaveGrade = (args: Args): Result => {
     setStatus("idle");
     setErrorMessage(undefined);
     lastSavedRef.current = { score: initialScore, comment: initialComment };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sid]);
 
   const valuesRef = useRef({ score, comment });
@@ -134,9 +133,10 @@ export const useAutoSaveGrade = (args: Args): Result => {
         previous,
         next: { score: s, comment: c }
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const err = e as { data?: { detail?: string }; message?: string } | undefined;
       setStatus("error");
-      setErrorMessage(e?.data?.detail || e?.message || "Save failed");
+      setErrorMessage(err?.data?.detail || err?.message || "Save failed");
     }
   }, [isDemo, saveGrade, questionName, questionId, assignmentId]);
 

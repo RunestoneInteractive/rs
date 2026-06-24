@@ -163,7 +163,7 @@ export function checkAnswersCore(
         // If this blank is empty, provide no feedback for it.
         if (given === "") {
             isCorrectArray.push(null);
-            // TODO: was $.i18n("msg_no_answer").
+            // TODO: should be localized, e.g. t("msg_no_answer").
             displayFeed.push("No answer provided.");
             correct = false;
         } else {

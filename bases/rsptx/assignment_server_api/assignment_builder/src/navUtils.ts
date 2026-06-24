@@ -1,6 +1,19 @@
-import { MenuItem } from "primereact/menuitem";
+import { PrimeIconName } from "@components/ui/Icon";
 
 import { isEmptyObject } from "@/utils/object";
+
+export interface NavItem {
+  label?: string;
+  icon?: PrimeIconName;
+  command?: () => void;
+  items?: NavItem[];
+  visible?: boolean;
+  separator?: boolean;
+  activePrefixes?: string[];
+}
+
+export const isNavItemActive = (item: NavItem, pathname: string): boolean =>
+  !!item.activePrefixes?.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
 const defaultEBookConfig: EBookConfig = {
   isInstructor: true,
@@ -15,7 +28,12 @@ const createNavigateToPath = (navigate?: (path: string) => void) => (path: strin
     return;
   }
 
-  if (path.startsWith("/runestone") || path.startsWith("/ns") || path.startsWith("/assignment") || path.startsWith("/admin")) {
+  if (
+    path.startsWith("/runestone") ||
+    path.startsWith("/ns") ||
+    path.startsWith("/assignment") ||
+    path.startsWith("/admin")
+  ) {
     window.location.href = path;
     return;
   }
@@ -36,10 +54,10 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
 
   const navigateToPath = createNavigateToPath(navigate);
 
-  const items: Array<MenuItem> = [
+  const items: Array<NavItem> = [
     {
       label: "Home",
-      icon: "pi pi-home",
+      icon: "home",
       command: () => navigateToPath("/runestone/default/index")
     },
     {
@@ -48,88 +66,85 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
     },
     {
       label: "Dashboard",
-      icon: "pi pi-cog",
+      icon: "cog",
       command: () => navigateToPath("/admin/instructor/menu")
     },
-    // {
-    //   label: "Grader",
-    //   icon: "pi pi-gauge",
-    //   command: () => navigateToPath("grader")
-    // },
     {
       label: "Grader",
-      icon: "pi pi-check-square",
-      command: () => navigateToPath("grader")
+      icon: "check-square",
+      command: () => navigateToPath("grader"),
+      activePrefixes: ["/grader"]
     },
     {
       label: "Assignment Builder",
-      icon: "pi pi-file-edit",
-      command: () => navigateToPath("builder")
+      icon: "file-edit",
+      command: () => navigateToPath("builder"),
+      activePrefixes: ["/builder", "/"]
     },
     {
       label: "User",
-      icon: "pi pi-user",
+      icon: "user",
       items: [
         {
           label: `Welcome ${username || "User"}`,
-          icon: "pi pi-bolt"
+          icon: "bolt"
         },
         {
-          label: "Course Home",
-          icon: "pi pi-home",
+          label: "Course home",
+          icon: "home",
           command: () => navigateToPath("/ns/course/index")
         },
         {
           label: "Assignments",
-          icon: "pi pi-pencil",
+          icon: "pencil",
           command: () => navigateToPath("/assignment/student/chooseAssignment")
         },
         {
           label: "Practice",
-          icon: "pi pi-palette",
+          icon: "palette",
           command: () => navigateToPath("/runestone/assignments/practice")
         },
         {
-          label: "Peer Instruction (Instructor)",
+          label: "Peer instruction (instructor)",
           command: () => navigateToPath("/assignment/peer/instructor"),
           visible: isInstructor
         },
         {
-          label: "Peer Instruction (Student)",
+          label: "Peer instruction (student)",
           command: () => navigateToPath("/assignment/peer/student")
         },
         {
           separator: true
         },
         {
-          label: "Change Course",
+          label: "Change course",
           command: () => navigateToPath("/admin/auth/my_courses")
         },
         {
           separator: true
         },
         {
-          label: "Instructors Dashboard",
+          label: "Instructor's dashboard",
           command: () => navigateToPath("/admin/instructor/menu")
         },
         {
           label: "Accommodations",
-          icon: "pi pi-ban",
+          icon: "ban",
           command: () => navigateToPath("except")
         },
         {
-          label: "Progress Page",
-          command: () => navigateToPath("/runestone/dashboard/studentreport")
+          label: "Progress page",
+          command: () => navigateToPath("/assignment/student/studentreport")
         },
         {
           separator: true
         },
         {
-          label: "Edit Profile",
+          label: "Edit profile",
           command: () => navigateToPath("/admin/auth/profile")
         },
         {
-          label: "Change Password",
+          label: "Change password",
           command: () => navigateToPath("/runestone/default/user/change_password")
         },
         {
@@ -140,29 +155,29 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
     },
     {
       label: "Help",
-      icon: "pi pi-question-circle",
+      icon: "question-circle",
       items: [
         {
-          label: "Instructors Guide",
-          icon: "pi pi-book",
+          label: "Instructor's guide",
+          icon: "book",
           command: () => navigateToPath("https://guide.runestone.academy/")
         },
         {
-          label: "Video Tutorials",
-          icon: "pi pi-video",
+          label: "Video tutorials",
+          icon: "video",
           command: () =>
             navigateToPath(
               "https://www.youtube.com/playlist?list=PLnjfglXW2QQRG6NRsg5mq8V99MM_3j_ZU"
             )
         },
         {
-          label: "Contact Us",
-          icon: "pi pi-envelope",
+          label: "Contact us",
+          icon: "envelope",
           command: () => navigateToPath("https://github.com/RunestoneInteractive/rs/issues")
         },
         {
           label: "Join our Discord",
-          icon: "pi pi-discord",
+          icon: "discord",
           command: () => navigateToPath("https://discord.gg/f3Qmbk9P3U")
         }
       ]

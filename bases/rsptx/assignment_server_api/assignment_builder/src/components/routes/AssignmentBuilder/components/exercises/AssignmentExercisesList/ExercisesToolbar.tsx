@@ -1,81 +1,96 @@
+import { Icon } from "@components/ui/Icon";
 import { SearchInput } from "@components/ui/SearchInput";
-import { Button } from "primereact/button";
-import { Menu } from "primereact/menu";
-import { MenuItem } from "primereact/menuitem";
-import { useRef } from "react";
+import { TabToolbar } from "@components/ui/TabToolbar/TabToolbar";
+import { Button, Menu, Text } from "@mantine/core";
+import { modals } from "@mantine/modals";
 
 import { Exercise } from "@/types/exercises";
 
 import { ViewModeSetter } from "./types";
 
+import styles from "./ExercisesToolbar.module.css";
+
 interface ExercisesToolbarProps {
   globalFilter: string;
   setGlobalFilter: (value: string) => void;
+  totalCount: number;
   selectedExercises: Exercise[];
   handleRemoveSelected: () => void;
   setViewMode: ViewModeSetter;
   setResetExerciseForm: (reset: boolean) => void;
+  scrolled?: boolean;
 }
 
 export const ExercisesToolbar = ({
   globalFilter,
   setGlobalFilter,
+  totalCount,
   selectedExercises,
   handleRemoveSelected,
   setViewMode,
-  setResetExerciseForm
+  setResetExerciseForm,
+  scrolled = false
 }: ExercisesToolbarProps) => {
-  const menuRef = useRef<Menu>(null);
-
-  const addMenuItems: MenuItem[] = [
-    {
-      label: "Browse Chapter Exercises",
-      icon: "pi pi-book",
-      command: () => setViewMode("browse")
-    },
-    {
-      label: "Search Exercises",
-      icon: "pi pi-search",
-      command: () => setViewMode("search")
-    },
-    {
-      label: "Create New Exercise",
-      icon: "pi pi-plus",
-      command: () => {
-        setResetExerciseForm(true);
-        setViewMode("create");
-      }
-    }
-  ];
+  const onRemoveClick = () => {
+    modals.openConfirmModal({
+      title: "Remove exercises",
+      children: (
+        <Text size="sm">
+          Remove {selectedExercises.length}{" "}
+          {selectedExercises.length === 1 ? "exercise" : "exercises"} from this assignment?
+        </Text>
+      ),
+      labels: { confirm: "Remove", cancel: "Cancel" },
+      confirmProps: { color: "red" },
+      onConfirm: handleRemoveSelected
+    });
+  };
 
   return (
-    <div className="flex justify-content-between align-items-center mb-3">
-      <div className="flex-grow-1">
-        <SearchInput
-          value={globalFilter}
-          onChange={setGlobalFilter}
-          placeholder="Search exercises..."
-          className="w-full"
-        />
-      </div>
-      <div className="flex gap-2 ml-3">
-        {selectedExercises.length > 0 && (
-          <Button
-            icon="pi pi-trash"
-            severity="danger"
-            tooltip="Remove Selected"
-            tooltipOptions={{ position: "top" }}
-            onClick={handleRemoveSelected}
-          />
-        )}
-        <Button
-          label="Add Exercise"
-          icon="pi pi-plus"
-          onClick={(e) => menuRef.current?.toggle(e)}
-          severity="success"
-        />
-        <Menu model={addMenuItems} popup ref={menuRef} />
-      </div>
-    </div>
+    <TabToolbar title="Exercises" count={totalCount} scrolled={scrolled}>
+      <SearchInput
+        value={globalFilter}
+        onChange={setGlobalFilter}
+        placeholder="Search exercises…"
+        className={styles.search}
+      />
+      <Menu position="bottom-end" withinPortal>
+        <Menu.Target>
+          <Button leftSection={<Icon name="plus" size={16} />}>Add exercise</Button>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Item
+            leftSection={<Icon name="book" size={16} />}
+            onClick={() => setViewMode("browse")}
+          >
+            Choose from book
+          </Menu.Item>
+          <Menu.Item
+            leftSection={<Icon name="search" size={16} />}
+            onClick={() => setViewMode("search")}
+          >
+            Search exercises
+          </Menu.Item>
+          <Menu.Item
+            leftSection={<Icon name="plus" size={16} />}
+            onClick={() => {
+              setResetExerciseForm(true);
+              setViewMode("create");
+            }}
+          >
+            Create exercise
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
+      <Button
+        variant="outline"
+        color="red"
+        leftSection={<Icon name="trash" size={16} />}
+        disabled={!selectedExercises.length}
+        onClick={onRemoveClick}
+      >
+        {selectedExercises.length ? `Remove (${selectedExercises.length})` : "Remove"}
+      </Button>
+    </TabToolbar>
   );
 };

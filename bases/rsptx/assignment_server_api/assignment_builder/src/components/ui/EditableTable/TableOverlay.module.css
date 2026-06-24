@@ -1,0 +1,7 @@
+.overlay {
+  position: absolute;
+  border: 1.5px solid var(--rs-brand-500);
+  background-color: color-mix(in srgb, var(--rs-brand-500) 12%, transparent);
+  pointer-events: none;
+  z-index: var(--rs-z-float);
+}

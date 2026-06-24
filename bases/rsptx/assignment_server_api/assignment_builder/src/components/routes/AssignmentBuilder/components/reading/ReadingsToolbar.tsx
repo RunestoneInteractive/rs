@@ -1,116 +1,98 @@
+import { Icon } from "@components/ui/Icon";
 import { SearchInput } from "@components/ui/SearchInput";
-import { readingsActions, readingsSelectors } from "@store/readings/readings.logic";
-import { Button } from "primereact/button";
-import { Column } from "primereact/column";
-import { ConfirmPopup } from "primereact/confirmpopup";
-import { OverlayPanel } from "primereact/overlaypanel";
-import { TreeTable, TreeTableEvent } from "primereact/treetable";
-import { useRef } from "react";
-import { MouseEvent } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { TabToolbar } from "@components/ui/TabToolbar/TabToolbar";
+import { ActionIcon, Button, Text } from "@mantine/core";
+import { modals } from "@mantine/modals";
 
-import { useReadingsSelector } from "@/hooks/useReadingsSelector";
-import { useUpdateAssignmentExercise } from "@/hooks/useUpdateAssignmentExercise";
 import { Exercise } from "@/types/exercises";
-import { getLeafNodes } from "@/utils/exercise";
+
+import { ChooseReadingsButton } from "./components/ChooseReadingsButton";
+
+import styles from "./ReadingsToolbar.module.css";
+
+const TITLE = "Sections to read";
 
 interface ReadingsToolbarProps {
   globalFilter: string;
   setGlobalFilter: (value: string) => void;
+  totalCount: number;
   selectedReadings: Exercise[];
   handleRemoveSelected: () => void;
+  scrolled?: boolean;
 }
-
-type ButtonEvent = MouseEvent<HTMLButtonElement>;
 
 export const ReadingsToolbar = ({
   globalFilter,
   setGlobalFilter,
+  totalCount,
   selectedReadings,
-  handleRemoveSelected
+  handleRemoveSelected,
+  scrolled = false
 }: ReadingsToolbarProps) => {
-  const dispatch = useDispatch();
-  const { selectedKeys, readingExercises = [] } = useReadingsSelector();
-  const overlayRef = useRef<OverlayPanel>(null);
-  const availableReadings = useSelector(readingsSelectors.getAvailableReadings);
-  const { updateAssignmentExercises } = useUpdateAssignmentExercise();
-
-  const setSelectedReadings = (readings: Exercise[]) => {
-    dispatch(readingsActions.setSelectedReadings(readings));
-  };
-
-  const toggleAddReadingsOverlay = (event: ButtonEvent) => {
-    overlayRef.current?.toggle(event);
-  };
-
-  const onSelect = async ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
-    const entriesToAdd = getLeafNodes([node]).map((x) => x.data as Exercise);
-
-    await updateAssignmentExercises({
-      idsToAdd: entriesToAdd.map((x) => x.id),
-      isReading: true
+  const onInfoClick = () => {
+    modals.open({
+      size: "50vw",
+      title: TITLE,
+      children: (
+        <Text size="sm">
+          Reading assignments are meant to encourage students to do the reading, by giving them
+          points for interacting with various interactive elements that are a part of the page. The
+          number of activities required is set to 80% of the number of questions in the reading.
+          Reading assignments are meant to be <strong>formative</strong> and therefore the questions
+          are not graded for correctness, rather the students are given points for interacting with
+          them.
+        </Text>
+      )
     });
   };
 
-  const onUnselect = async ({ node }: Omit<TreeTableEvent, "originalEvent">) => {
-    const entriesToRemove = getLeafNodes([node]).map((x) => x.data as Exercise);
-    const entriesIdsToRemove = entriesToRemove.map((x) => x.id);
-    const idsToRemove = readingExercises
-      .filter((ex) => entriesIdsToRemove.includes(ex.question_id))
-      .map((x) => x.id);
-
-    await updateAssignmentExercises({
-      idsToRemove,
-      isReading: true
+  const onRemoveClick = () => {
+    modals.openConfirmModal({
+      title: "Remove readings",
+      children: (
+        <Text size="sm">
+          Remove {selectedReadings.length} {selectedReadings.length === 1 ? "reading" : "readings"}{" "}
+          from this assignment?
+        </Text>
+      ),
+      labels: { confirm: "Remove", cancel: "Cancel" },
+      confirmProps: { color: "red" },
+      onConfirm: handleRemoveSelected
     });
   };
 
   return (
-    <div className="flex justify-content-between align-items-center mb-3">
-      <div className="flex-grow-1">
-        <SearchInput
-          value={globalFilter}
-          onChange={setGlobalFilter}
-          placeholder="Search readings..."
-          className="w-full"
-        />
-      </div>
-      <div className="flex gap-2 ml-3">
-        <ConfirmPopup />
-        {selectedReadings.length > 0 && (
-          <Button
-            icon="pi pi-trash"
-            severity="danger"
-            tooltip="Remove Selected"
-            tooltipOptions={{ position: "top" }}
-            onClick={handleRemoveSelected}
-          />
-        )}
-        <Button
-          label="Choose Readings"
-          icon="pi pi-book"
-          onClick={toggleAddReadingsOverlay}
-          severity="success"
-        />
-
-        <OverlayPanel
-          ref={overlayRef}
-          id="overlay_panel_choose_readings"
-          style={{ width: "450px" }}
+    <TabToolbar
+      title={TITLE}
+      count={totalCount}
+      scrolled={scrolled}
+      titleExtra={
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          onClick={onInfoClick}
+          aria-label="Reading information"
         >
-          <TreeTable
-            selectionMode="checkbox"
-            selectionKeys={selectedKeys}
-            onSelect={onSelect}
-            onUnselect={onUnselect}
-            scrollable
-            scrollHeight="50vh"
-            value={availableReadings}
-          >
-            <Column field="title" header="Select readings" expander></Column>
-          </TreeTable>
-        </OverlayPanel>
-      </div>
-    </div>
+          <Icon name="info-circle" size={16} />
+        </ActionIcon>
+      }
+    >
+      <SearchInput
+        value={globalFilter}
+        onChange={setGlobalFilter}
+        placeholder="Search readings…"
+        className={styles.search}
+      />
+      <ChooseReadingsButton />
+      <Button
+        variant="outline"
+        color="red"
+        leftSection={<Icon name="trash" size={16} />}
+        disabled={!selectedReadings.length}
+        onClick={onRemoveClick}
+      >
+        {selectedReadings.length ? `Remove (${selectedReadings.length})` : "Remove"}
+      </Button>
+    </TabToolbar>
   );
 };

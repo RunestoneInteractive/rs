@@ -1,4 +1,6 @@
-$.i18n().load({
+import { load } from "../../common/js/rsi18n.js";
+
+load({
     en: {
         msg_mchoice_correct_answer: "Correct.",
         msg_mchoice_incorrect_answer:

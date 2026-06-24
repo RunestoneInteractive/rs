@@ -1,0 +1,82 @@
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-2);
+}
+
+.radioCard {
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-md);
+  background-color: var(--rs-surface);
+  padding: var(--rs-space-3) var(--rs-space-4);
+  cursor: pointer;
+  transition:
+    border-color var(--rs-transition-fast),
+    background-color var(--rs-transition-fast);
+}
+
+.radioCard:hover {
+  border-color: var(--rs-border-brand);
+}
+
+.radioCard[data-checked] {
+  border-color: var(--rs-brand-600);
+  background-color: var(--rs-brand-50);
+}
+
+.radioCard[data-checked] .cardDesc {
+  color: var(--rs-text);
+}
+
+.cardRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--rs-space-3);
+}
+
+.cardRow :global(.mantine-Radio-indicator) {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cardTitle {
+  font-size: var(--rs-font-size-sm);
+  font-weight: var(--rs-font-weight-medium);
+  color: var(--rs-text-strong);
+  line-height: var(--rs-line-height-heading);
+}
+
+.cardDesc {
+  font-size: var(--rs-font-size-xs);
+  color: var(--rs-text-muted);
+  line-height: var(--rs-line-height);
+}
+
+.cardInputs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-3);
+  margin: var(--rs-space-2) 0 var(--rs-space-1);
+  padding-left: var(--rs-space-8);
+}
+
+.inputLabel {
+  display: block;
+  font-size: var(--rs-font-size-xs);
+  font-weight: var(--rs-font-weight-medium);
+  color: var(--rs-text-muted);
+  margin-bottom: var(--rs-space-1);
+}
+
+.summary {
+  margin-top: var(--rs-space-3);
+  font-size: var(--rs-font-size-sm);
+  color: var(--rs-text-muted);
+}

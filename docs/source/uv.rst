@@ -1,0 +1,173 @@
+.. _development-prerequisites:
+
+Development Environment Pre-Requisites
+=======================================
+
+Make sure you have Python installed.  We use 3.13 in production and 3.13 in development.  The web2py server still uses 3.10.  Earlier versions of python are not tested regularly and are not recommended.  macOS is fully supported as well as Ubuntu.  Ubuntu 24.04 comes with Python 3.12 and will likely work just fine.  We jumped from 3.11 to 3.13 so please let us know if 3.12 works without issue. The docker containers are self contained so even on Ubuntu 24.04 they will be fine.
+
+uv
+--
+
+Runestone uses `uv <https://docs.astral.sh/uv/>`__ to manage Python dependencies
+and the `polylith structure <https://polylith.gitbook.io/polylith/introduction/polylith-in-a-nutshell>`__.
+Begin by `installing uv <https://docs.astral.sh/uv/getting-started/installation/>`__.
+
+The Polylith tooling is provided by the ``polylith-cli`` package (the ``poly``
+command), which is listed in the ``dev`` dependency group -- so unlike the old
+poetry setup there are no global plugins to install. From the repository root,
+run ``uv sync`` to create the virtual environment (in ``.venv``) and install all
+dependencies. The ``dev`` and ``docs`` groups are installed by default (see
+``[tool.uv] default-groups`` in ``pyproject.toml``).
+
+``uv`` has no ``shell`` subcommand. Either prefix commands with ``uv run`` (for
+example ``uv run pytest``), or activate the environment with
+``source .venv/bin/activate``.
+
+.. note::
+
+   ``uv run`` automatically reads variables from a ``.env`` file in the project
+   root, which keeps your Runestone installation self contained. If you edit
+   ``.env``, the new values take effect on the next ``uv run`` (there is no shell
+   to restart).
+
+.. note::
+
+   Each service under ``projects/`` builds its own isolated wheel and is **not**
+   a uv workspace member, so per-service dependency versions stay independent.
+   The root project serves as the shared development environment.
+
+With the environment set up, descend into the Runestone repository with ``cd rs``
+and run ``uv run poly info``. You should see something like this:
+
+
+.. code:: shell
+
+   projects: 8
+   components: 21
+   bases: 9
+   development: 1
+
+
+     brick                   admin_server   assignment_server   author_server   book_server   dash_server   runestone   rsmanage   w2p_login_assign_gr…   development  
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  .ruff_cache                  -                 -                 -              -             -            -          -                -                  -       
+  analytics                    -                 ✔                 -              -             -            -          -                -                  -       
+  auth                         ✔                 ✔                 ✔              ✔             -            -          -                -                  ✔       
+  build_tools                  -                 -                 ✔              -             -            ✔          ✔                -                  ✔       
+  cl_utils                     -                 -                 -              -             -            ✔          ✔                ✔                  ✔       
+  configuration                ✔                 ✔                 ✔              ✔             -            ✔          ✔                ✔                  ✔       
+  data_extract                 -                 -                 ✔              -             -            -          ✔                -                  ✔       
+  data_types                   ✔                 ✔                 ✔              ✔             -            ✔          ✔                ✔                  -       
+  db                           ✔                 ✔                 ✔              ✔             -            ✔          ✔                ✔                  ✔       
+  endpoint_validators          ✔                 ✔                 ✔              -             -            -          -                -                  -       
+  exceptions                   ✔                 ✔                 ✔              ✔             -            -          -                ✔                  ✔       
+  forms                        -                 -                 ✔              -             -            -          -                -                  ✔       
+  grading_helpers              -                 ✔                 -              ✔             -            -          -                -                  -       
+  logging                      ✔                 ✔                 ✔              ✔             -            ✔          ✔                ✔                  ✔       
+  lp_sim_builder               -                 ✔                 -              ✔             -            -          -                -                  ✔       
+  lti1p3                       ✔                 ✔                 -              ✔             -            -          -                ✔                  ✔       
+  practice                     -                 -                 -              ✔             -            -          -                -                  ✔       
+  response_helpers             ✔                 ✔                 ✔              ✔             -            ✔          ✔                ✔                  ✔       
+  templates                    ✔                 ✔                 ✔              ✔             -            -          -                -                  ✔       
+  validation                   ✔                 ✔                 ✔              ✔             -            ✔          ✔                ✔                  ✔       
+  visualization                -                 -                 ✔              -             -            -          -                -                  ✔       
+  admin_server_api             ✔                 -                 -              -             -            -          -                -                  ✔       
+  assignment_server_api        -                 ✔                 -              -             -            -          -                -                  ✔       
+  author_server_api            -                 -                 ✔              -             -            -          -                -                  ✔       
+  book_server_api              -                 -                 -              ✔             -            -          -                -                  ✔       
+  dash_server_api              -                 -                 -              -             ✔            -          -                -                  ✔       
+  interactives                 -                 -                 -              -             -            -          -                -                  -       
+  library_server               -                 -                 -              -             -            -          -                -                  -       
+  rsmanage                     -                 -                 -              -             -            -          ✔                -                  ✔       
+  web2py_server                -                 -                 -              -             -            -          -                ✔                  ✔       
+
+
+This tells you we have 8 projects. There may be more if we haven't kept
+this up to date.
+
+The **projects** listed across the top of the table define the artifacts
+- Docker images or applications, they could be a web application or a
+command line application or other software systems.
+The **bases** - contains the public facing API for a project.
+The **components** contain code that supports one or more
+projects/bases. You can see which projects use which base and
+which components by the check marks in the table.
+
+The goal is to put as much code as possible into the components in a way
+that is very reusable. For example our database code for doing Create,
+Retrieve, Update, and Delete operations in the database is ALL contained
+in the db component. You can probably do a lot of very useful
+development without having to know anything about database programming
+by simply using the functions defined there.
+
+With the structure we have in place, you can run and do development on
+any of the server projects **with** or **without** knowing anything about docker
+or containers.
+
+Let's discuss each of the projects at a high level to start
+with. Then you can find detailed documentation for each project in their
+project folder.
+
+**w2p_login_assign_grader** This is a legacy project that uses the
+web2py framework and currently supports - login, assignments, grading,
+and basic student analytics. We are actively working to migrate each of
+those pieces into its own project.
+
+**book_server** The book server is as FastAPI web application that
+serves the pages of each textbook to students and handles the API calls
+from the interactive components of the textbook. It also serves as the
+websocket server for peer instruction.
+
+**admin_server** The admin server is a FastAPI web application that
+provides an API for managing the Runestone system. It is used by instructors 
+to manage their courses, and contains functionality for LTI 1.3.
+
+**author_server** The author server allows the authors of the textbooks
+to build and deploy new versions of their books across the runestone
+system. It also contains functionality for authors and researchers to
+visualize how their textbooks are used, and to create anonymized data
+files for detailed analysis.
+
+**assignment_server** The assignment server is a FastAPI web
+application that provides an API for managing assignments, and
+submissions. It is used by instructors to create and manage assignments
+for their courses. It also provides an API for the book server to
+retrieve assignments and submissions for students.
+
+**dash_server** This is a new, modern take on the original student
+dashboard, but it will scale up to support very large classes. You can
+work on this 100% in python without needing to know css or javascript as
+it uses the Dash / Plotly framework.
+
+**rsmanage** This is a command line program for managing courses, users,
+and many other aspects of the Runestone system. It is mostly useful for
+people running large scale servers.
+
+**jobe** The jobe server is a custom job runner for compiling and
+running C, C++, and Java programs.  JOBE is not a python project, so
+there is no need to build a wheel for it. However it is a critical part
+of the system and you will need to build the docker image.
+
+**nginx** The nginx project uses nginx as the traffic director to route
+requests across the various servers that comprise the Runestone system.
+Nginx is not a python project, so there is no need to build a wheel for it.
+However it is a critical part of the system and you will need to build
+the docker image.
+
+**redis** Redis is a key value store that is used for caching and messaging.
+It is not a python project, and we use it like it is, so there is no need
+to build either a docker image or a wheel for it, we simply pull the latest
+from dockerhub.
+
+Docker
+------
+
+You need to have `Docker <https://docs.docker.com/get-docker/>`_ and the `compose subcommand <https://github.com/docker/compose/tree/main?tab=readme-ov-file#linux>`_  Make sure you have a recent version of docker compose We are using 2.27 in development.
+
+If you don't know anything about Docker you might want to start here:  `Docker 101 Tutorial <https://www.docker.com/101-tutorial/>`_.  We use docker to create a consistent development environment across all of the servers that make up the Runestone system.  We also use docker to deploy the system to production.
+
+
+Node and NPM
+------------
+
+Finally the runestone components and the new instructor interface use a lot of Javascript. The new instructor interface is being re-written using React.  If you want to hack on any of that you should familiarize yourself with React  There is a `Quick Start <https://react.dev/learn>`_ tutorial for React to get you started.   You will need to have node and npm installed.  We use node 22.1.x and npm 10.5 or later. Unfortunately Ubuntu 22.04 uses an older version of node and many of the packages used by React and our javascript require a later version.   You can install `node and npm <https://github.com/nodesource/distributions/blob/master/README.md>`_ by following the instructions on the node link.  On a mac you can use homebrew to install node and npm.  ``brew install node``. On the mac I am using node 24.4.x and npm 11.4.x.

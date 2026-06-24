@@ -26,6 +26,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 import boto3
 import botocore
+import botocore.config
 
 # Local application imports
 # -------------------------
@@ -100,7 +101,7 @@ async def get_assessment_results(
     # mypy complains that ``row.id`` doesn't exist (true, but the return type wasn't exact and this does exist).
     if not row or row.id is None:  # type: ignore
         return make_json_response(detail="no data")
-    ret = row.dict()
+    ret = row.model_dump()
     rslogger.debug(f"row is {ret}")
     if "timestamp" in ret:
         ret["timestamp"] = (
@@ -636,7 +637,7 @@ async def has_attachment(
     return make_json_response(detail={"hasAttachment": has_attachment})
 
 
-async def check_attachment(sid: str, div_id: str, course: str) -> str:
+async def check_attachment(sid: str, div_id: str, course: str) -> Optional[str]:
     """
     Check if a specific div has an attachment.
     """

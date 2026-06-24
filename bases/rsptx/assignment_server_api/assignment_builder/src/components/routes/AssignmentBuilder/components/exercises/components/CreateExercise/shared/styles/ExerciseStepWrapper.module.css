@@ -3,50 +3,55 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
+  min-height: 0;
   margin: 0 auto;
 }
 
 .stepCard {
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: var(--rs-surface);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .stepHeader {
-  padding: .75rem 1rem;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+  padding: var(--rs-space-3) var(--rs-space-4);
+  border-bottom: 1px solid var(--rs-border-solid);
 }
 
 .stepHeader h3 {
   margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #334155;
+  font-size: var(--rs-font-size-md);
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-strong);
+}
+
+.infoIcon {
+  color: var(--rs-text-muted);
+  cursor: help;
+  margin-block: -10px;
 }
 
 .stepContent {
-  padding: 2rem;
+  padding: var(--rs-space-6);
   flex: 1;
   overflow: auto;
   min-height: 0;
 }
 
 .contentSection {
-  background: #fff;
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: var(--rs-space-6);
   height: 100%;
   box-sizing: border-box;
 }
 
 @media screen and (max-width: 768px) {
   .stepContent {
-    padding: 0.5rem;
+    padding: var(--rs-space-2);
   }
 }

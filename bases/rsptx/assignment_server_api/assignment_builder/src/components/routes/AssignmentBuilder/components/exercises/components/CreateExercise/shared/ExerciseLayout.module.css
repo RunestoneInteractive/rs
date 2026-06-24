@@ -1,0 +1,184 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-lg);
+  overflow: hidden;
+}
+
+.root:fullscreen {
+  border: none;
+  border-radius: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--rs-space-3);
+  flex-shrink: 0;
+  padding: var(--rs-space-3) var(--rs-space-4);
+  border-bottom: 1px solid var(--rs-border-solid);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--rs-font-size-lg);
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-strong);
+}
+
+.headerButtons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--rs-space-2);
+  margin-left: auto;
+  min-width: 0;
+}
+
+.stepperBar {
+  flex-shrink: 0;
+  padding: var(--rs-space-3) var(--rs-space-4);
+  background: var(--rs-neutral-50);
+  border-bottom: 1px solid var(--rs-border-solid);
+  container-type: inline-size;
+  container-name: stepperbar;
+}
+
+.stepper :global(.mantine-Stepper-steps) {
+  min-width: 0;
+}
+
+.stepper :global(.mantine-Stepper-step) {
+  min-width: 0;
+}
+
+.stepper :global(.mantine-Stepper-stepBody) {
+  min-width: 0;
+}
+
+.stepper :global(.mantine-Stepper-stepLabel) {
+  white-space: nowrap;
+}
+
+.stepper :global(.mantine-Stepper-stepIcon) {
+  border-width: 2px;
+  border-color: var(--rs-neutral-300);
+  background-color: var(--rs-surface);
+  color: var(--rs-text-muted);
+  font-weight: var(--rs-font-weight-semibold);
+  transition:
+    background-color var(--rs-transition-fast),
+    border-color var(--rs-transition-fast),
+    color var(--rs-transition-fast);
+}
+
+.stepper :global(.mantine-Stepper-stepIcon[data-progress]) {
+  border-color: var(--rs-brand-600);
+  color: var(--rs-brand-700);
+}
+
+.stepper :global(.mantine-Stepper-stepIcon[data-completed]) {
+  background-color: var(--rs-brand-600);
+  border-color: var(--rs-brand-600);
+  color: var(--rs-text-on-brand);
+}
+
+.stepper :global(.mantine-Stepper-stepCompletedIcon) {
+  color: var(--rs-text-on-brand);
+}
+
+.stepper :global(.mantine-Stepper-stepLabel) {
+  font-size: var(--rs-font-size-sm);
+  font-weight: var(--rs-font-weight-medium);
+  color: var(--rs-text-muted);
+}
+
+.stepper :global(.mantine-Stepper-step[data-progress] .mantine-Stepper-stepLabel) {
+  color: var(--rs-text-strong);
+}
+
+.stepper :global(.mantine-Stepper-separator) {
+  height: 2px;
+  margin-inline: var(--rs-space-2);
+  background-color: var(--rs-neutral-200);
+  background-image: linear-gradient(var(--rs-brand-300), var(--rs-brand-300));
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  transition: background-size var(--rs-duration-slow) var(--rs-ease-out);
+}
+
+.stepper :global(.mantine-Stepper-separator[data-active]) {
+  background-size: 100% 100%;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.plainContent {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--rs-space-4);
+}
+
+.nextWrap {
+  display: inline-flex;
+}
+
+@container stepperbar (max-width: 900px) {
+  .stepper :global(.mantine-Stepper-separator) {
+    margin-inline: var(--rs-space-1);
+  }
+
+  .stepper :global(.mantine-Stepper-stepBody) {
+    margin-inline-start: var(--rs-space-2);
+  }
+}
+
+@container stepperbar (max-width: 720px) {
+  .stepper :global(.mantine-Stepper-stepLabel) {
+    font-size: var(--rs-font-size-xs);
+  }
+
+  .stepper :global(.mantine-Stepper-stepBody) {
+    margin-inline-start: var(--rs-space-1);
+  }
+}
+
+@container stepperbar (max-width: 560px) {
+  .stepper {
+    --stepper-icon-size: 28px;
+    --stepper-fz: var(--rs-font-size-xs);
+  }
+
+  .stepper :global(.mantine-Stepper-separator) {
+    margin-inline: 3px;
+  }
+}
+
+@container stepperbar (max-width: 440px) {
+  .stepper {
+    --stepper-icon-size: 24px;
+  }
+
+  .stepper :global(.mantine-Stepper-separator) {
+    margin-inline: 2px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .stepper :global(.mantine-Stepper-stepLabel) {
+    display: none;
+  }
+}

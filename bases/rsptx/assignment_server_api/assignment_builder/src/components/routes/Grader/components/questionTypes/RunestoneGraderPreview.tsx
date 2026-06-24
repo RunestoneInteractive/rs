@@ -5,6 +5,8 @@ import React, { useEffect, useReducer, useRef } from "react";
 import { renderRunestoneComponent } from "@/componentFuncs";
 import { GraderAnswerHistoryItem } from "@store/grader/grader.logic.api";
 
+import styles from "./AnswerViews.module.css";
+
 interface Props {
   htmlsrc?: string;
   divId: string;
@@ -31,13 +33,12 @@ export const RunestoneGraderPreview: React.FC<Props> = ({
     if (!ref.current || !htmlsrc) return;
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const cfg = (window as any).eBookConfig || {};
       if (cfg.email && cfg.course) {
         localStorage.removeItem(`${cfg.email}:${cfg.course}:${divId}-given`);
       }
-    } catch {
-
-    }
+    } catch {}
 
     ref.current.innerHTML = htmlsrc;
 
@@ -67,6 +68,7 @@ export const RunestoneGraderPreview: React.FC<Props> = ({
         if (useFetch) return;
 
         const cmKey = (opts.gradingContainer ? `${opts.gradingContainer} ` : "") + divId;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const componentMap = (window as any).componentMap || {};
         const inst = componentMap[cmKey] || componentMap[divId];
         if (!inst) return;
@@ -96,32 +98,39 @@ export const RunestoneGraderPreview: React.FC<Props> = ({
                     }
                   })();
 
-          const isCodeEditor =
-            inst.editor && typeof inst.editor.setValue === "function";
+          const isCodeEditor = inst.editor && typeof inst.editor.setValue === "function";
 
           if (isCodeEditor && (!inst.restoreAnswers || attempt!.source === "code_table")) {
-
             inst.editor.acEditEvent = false;
             inst.editor.setValue(codeString);
             if (typeof inst.setLockedRegions === "function") {
-              try { inst.setLockedRegions(); } catch {}
+              try {
+                inst.setLockedRegions();
+              } catch {}
             }
             if (typeof inst.setHighlightLines === "function") {
-              try { inst.setHighlightLines(); } catch {}
+              try {
+                inst.setHighlightLines();
+              } catch {}
             }
 
             try {
               if (Array.isArray(inst.history) && inst.history.length) {
                 const idx = inst.history.findIndex((h: string) => h === codeString);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const $ = (window as any).$;
                 if (idx >= 0 && $ && inst.scrubber) {
                   $(inst.scrubber).slider("value", idx);
                   if (typeof inst.slideit === "function") {
-                    try { inst.slideit(null); } catch  {}
+                    try {
+                      inst.slideit(null);
+                    } catch {}
                   }
                 }
               }
-            } catch { /* noop */ }
+            } catch {
+              /* noop */
+            }
             inst.attempted = true;
           } else if (typeof inst.restoreAnswers === "function") {
             inst.restoreAnswers({
@@ -146,16 +155,10 @@ export const RunestoneGraderPreview: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [htmlsrc, sid, divId, attempt?.id]);
 
   if (!htmlsrc) {
-    return (
-      <div style={{ padding: "1rem", color: "#64748b" }}>
-        No rendered question preview available.
-      </div>
-    );
+    return <div className={styles.emptyPreview}>No rendered question preview available.</div>;
   }
 
   const hostId = `grader-preview-${divId}-${sid}-${attempt?.id ?? "latest"}`;
@@ -179,13 +182,13 @@ export const RunestoneGraderPreview: React.FC<Props> = ({
             }
             .ptx-runestone-container th,
             .ptx-runestone-container td {
-              border: 1px solid #e2e8f0;
+              border: 1px solid var(--rs-border-solid);
               padding: 0.5rem;
               vertical-align: top;
               min-width: 100px;
             }
             .ptx-runestone-container th {
-              background: #f8fafc;
+              background: var(--rs-neutral-50);
               font-weight: 600;
               text-align: left;
             }
@@ -202,4 +205,3 @@ export const RunestoneGraderPreview: React.FC<Props> = ({
 };
 
 export default RunestoneGraderPreview;
-

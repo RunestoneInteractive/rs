@@ -2,6 +2,7 @@ export type TableDropdownOption = {
   value: string;
   label: string;
   description: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supported_question_types?: any;
 };
 

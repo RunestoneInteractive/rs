@@ -1,4 +1,6 @@
-$.i18n().load({
+import { load } from "../../common/js/rsi18n.js";
+
+load({
     "pt-br": {
         msg_parson_check_me: "Verificar",
         msg_parson_reset: "Resetar",

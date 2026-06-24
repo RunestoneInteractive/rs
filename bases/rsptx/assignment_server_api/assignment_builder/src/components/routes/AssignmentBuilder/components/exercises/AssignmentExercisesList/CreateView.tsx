@@ -1,6 +1,5 @@
 import { assignmentSelectors } from "@store/assignment/assignment.logic";
 import { useCreateNewExerciseMutation } from "@store/exercises/exercises.logic.api";
-import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 
 import { CreateExerciseFormType } from "@/types/exercises";
@@ -40,7 +39,7 @@ export const CreateView = ({
         setIsSaving(true);
 
         try {
-          const response = await createNewExercise({
+          await createNewExercise({
             author: data.author ?? "",
             autograde: null,
             chapter: data.chapter,
@@ -57,20 +56,13 @@ export const CreateView = ({
             is_reading: false,
             is_private: data.is_private ?? false,
             assignment_id: assignmentId!
-          });
+          }).unwrap();
 
-          if (response.data) {
-            // Remember the type of exercise created
-            setLastExerciseType(data.question_type);
-
-            // Show success message and dialog
-            toast.success("Exercise was successfully saved!");
-            setShowSuccessDialog(true);
-          }
+          setLastExerciseType(data.question_type);
+          setShowSuccessDialog(true);
         } catch (error) {
-          console.error("Error saving exercise:", error);
-          toast.error("An error occurred while saving the exercise. Please try again.");
           setIsSaving(false);
+          throw error;
         }
       }}
       resetForm={resetExerciseForm}

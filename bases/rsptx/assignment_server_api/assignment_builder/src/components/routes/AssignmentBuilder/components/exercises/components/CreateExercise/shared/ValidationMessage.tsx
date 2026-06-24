@@ -1,6 +1,8 @@
 import React from "react";
 
-import styles from "./styles/CreateExercise.module.css";
+import { Icon } from "@/components/ui/Icon";
+
+import styles from "./ValidationMessage.module.css";
 
 interface ValidationMessageProps {
   errors: string[];
@@ -12,10 +14,15 @@ export const ValidationMessage: React.FC<ValidationMessageProps> = ({ errors }) 
   }
 
   return (
-    <div className={styles.validationError}>
-      {errors.map((error, index) => (
-        <div key={index}>{error}</div>
-      ))}
+    <div className={styles.bar} role="alert">
+      <span className={styles.icon}>
+        <Icon name="exclamation-triangle" size={16} />
+      </span>
+      <ul className={styles.list}>
+        {errors.map((error, index) => (
+          <li key={index}>{error}</li>
+        ))}
+      </ul>
     </div>
   );
 };

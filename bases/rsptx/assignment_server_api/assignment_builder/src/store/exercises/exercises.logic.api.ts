@@ -1,7 +1,7 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { assignmentExerciseApi } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { baseQuery } from "@store/baseQuery";
-import toast from "react-hot-toast";
+import { notify } from "@components/ui/notify";
 
 import { DetailResponse } from "@/types/api";
 import {
@@ -11,6 +11,10 @@ import {
 } from "@/types/exercises";
 
 import { assignmentApi } from "../assignment/assignment.logic.api";
+
+export const EXERCISES_TOAST_COPY = {
+  createError: "Couldn't save exercise. Try again."
+} as const;
 
 export const exercisesApi = createApi({
   reducerPath: "exercisesAPI",
@@ -31,7 +35,7 @@ export const exercisesApi = createApi({
             dispatch(assignmentApi.util.invalidateTags(["Assignment", "Assignments"]));
           })
           .catch(() => {
-            toast.error("Error creating new exercise", { duration: Infinity });
+            notify.error(EXERCISES_TOAST_COPY.createError);
           });
       }
     }),
@@ -51,11 +55,6 @@ export const exercisesApi = createApi({
             pages: 0
           }
         };
-      },
-      onQueryStarted: (_, { queryFulfilled }) => {
-        queryFulfilled.catch(() => {
-          toast.error("Error searching exercises", { duration: Infinity });
-        });
       }
     })
   })

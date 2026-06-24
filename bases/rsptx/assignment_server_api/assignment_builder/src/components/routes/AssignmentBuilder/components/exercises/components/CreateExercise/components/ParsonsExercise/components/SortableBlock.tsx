@@ -70,6 +70,8 @@ export const SortableBlock: FC<SortableBlockProps> = ({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
 
+    transition: { duration: 250, easing: "var(--rs-spring-snappy)" },
+
     data: {
       type: "parsons-block",
       block,
@@ -82,11 +84,11 @@ export const SortableBlock: FC<SortableBlockProps> = ({
     }
   });
 
+  const baseTransform = CSS.Transform.toString(transform);
   const style = {
     marginLeft: !isDragging && !hasAlternatives ? `${block.indent * indentWidth}px` : 0,
-    transform: CSS.Transform.toString(transform),
+    transform: isDragging && baseTransform ? `${baseTransform} scale(0.98)` : baseTransform,
     transition,
-    opacity: isDragging ? 0.4 : 1,
     zIndex: isDragging ? 1 : 0,
     flex: hasAlternatives ? `0 0 ${blockWidth}%` : 1,
     width: `${blockWidth}%`,
@@ -99,6 +101,7 @@ export const SortableBlock: FC<SortableBlockProps> = ({
       ref={setNodeRef}
       style={style}
       className="sortable-block"
+      data-dragging={isDragging || undefined}
       data-indent={block.indent}
       data-group-id={block.groupId || ""}
       data-id={id}

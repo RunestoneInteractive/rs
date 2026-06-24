@@ -122,8 +122,10 @@ def normalize_and_compare_lines(line1, line2, line_similarity):
     if line_similarity == 1:
         return True
     # normalize indentation
-    indentation1 = re.match(r"^(\s*)", line1).group(1)
-    indentation2 = re.match(r"^(\s*)", line2).group(1)
+    match1 = re.match(r"^(\s*)", line1)
+    match2 = re.match(r"^(\s*)", line2)
+    indentation1 = match1.group(1) if match1 else ""
+    indentation2 = match2.group(1) if match2 else ""
     line1_normalized = line1.replace(indentation1, "")
     line2_normalized = line2.replace(indentation2, "")
 

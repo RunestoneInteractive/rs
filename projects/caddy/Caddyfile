@@ -117,6 +117,13 @@
 		# nginx keeps the /author prefix when proxying (proxy_pass without a
 		# trailing path), so we use `handle` (not handle_path) to preserve it.
 		# location /author/ { proxy_pass $aserver$request_uri; }
+		#
+		# A bare /author (no trailing slash) is not matched by /author/*
+		# and would otherwise fall through to runestone; redirect it to
+		# /author/ so it reaches the author server.
+		@author_bare path /author
+		redir @author_bare /author/ 308
+
 		handle /author/* {
 			reverse_proxy author:8114 {
 				header_up X-Forwarded-Proto https

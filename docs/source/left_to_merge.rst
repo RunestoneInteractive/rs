@@ -8,10 +8,10 @@ MERGE ME
 Getting a Server Started
 ------------------------
 
-This assumes that you have already followed the instructions for installing postgresql, poetry and the plugins as well as Docker.
+This assumes that you have already followed the instructions for installing postgresql, uv as well as Docker.
 
 1. copy ``sample.env`` to ``.env`` and edit the file.  For starters you will need to update the ``BOOK_PATH`` but everything else can stay at the default.
-2. Run ``poetry install --with=dev`` from the top level directory.  This will install all of the dependencies for the project.  When that completes run ``poetry shell`` to start a poetry shell.  You can verify that this worked correctly by running ``rsmanage env``.  You should see a list of environment variables that are set.  If you do not see them then you may need to run ``poetry shell`` again.  If you get an error message that you cannot interpret you can ask for help in the ``#developer`` channel on the Runestone discord server.
+2. Run ``uv sync`` from the top level directory.  This will install all of the dependencies for the project.  When that completes activate the virtual environment with ``source .venv/bin/activate``.  You can verify that this worked correctly by running ``rsmanage env``.  You should see a list of environment variables that are set.  If you do not see them then you may need to run ``uv sync`` and activate again.  If you get an error message that you cannot interpret you can ask for help in the ``#developer`` channel on the Runestone discord server.
 3.  Create a new database for your class or book.  You can do this by running ``createdb -O runestone <dbname>``.  You can also do this in the psql command line interface by running ``create database <dbname> owner runestone;``  You may have to become the postgres user in order to run that command.  If you have already created a database you can skip this one.
 4.  From the ``bases/rsptx/interactives`` folder run ``npm install``.  This will install all of the javascript dependencies for the interactives.  Next run ``npm run build`` this will build the Runestone Interactive javascript files.  You will need to do this every time you make a change to the javascript files.  If you are NOT going to build a book, then you can skip this step.
 5.  Run the ``build --core full`` command from the ``rs`` folder. The first step of this script will verify that you have all of your environment variables defined.
@@ -39,7 +39,7 @@ To run a project, for example the author server main web app:
 
 .. code:: bash
 
-   poetry shell
+   source .venv/bin/activate
    uvicorn rsptx.author_server_api.main:app --reload
 
 Better yet, I have added a simple script called ``dstart`` just give it the name of the service you want to run and it will start it up for you.  It is also a simple place to look if you want to see the command to start up a particular server.
@@ -48,7 +48,7 @@ Each project has a Dockerfile for building an image. These images should
 be push-able to our docker container registry and or the public docker
 container registry
 
-To build all of the docker containers and bring them up together.  You can run the ``build`` command in the top level directory. The dependencies for the build command are included in the top level ``pyproject.toml`` file.  The command is added to your path when you run ``poetry install``  ``poetry install --with=dev`` will install everything you need and then you may will want to start up a poetry shell. The ``build --core full`` command will build all of the Python wheels and Docker images, when that completes run ``docker-compose up``.  You can also run ``docker-compose up`` directly if you have already built the images.
+To build all of the docker containers and bring them up together.  You can run the ``build`` command in the top level directory. The dependencies for the build command are included in the top level ``pyproject.toml`` file.  The command is added to your path when you run ``uv sync``, which installs everything you need; then activate the virtual environment with ``source .venv/bin/activate``. The ``build --core full`` command will build all of the Python wheels and Docker images, when that completes run ``docker-compose up``.  You can also run ``docker-compose up`` directly if you have already built the images.
 
 .. code-block:: bash
 
@@ -96,13 +96,13 @@ system. You can run nginx in "non daemon mode" using
 
 .. code:: bash
 
-   poetry shell
+   source .venv/bin/activate
 
    uvicorn rsptx.book_server_api.main:app --reload --host 0.0.0.0 --port 8111
    cd ~/rs/bases/rsptx/web2py_server
    python web2py.py --no-gui --password whatever --ip 0.0.0.0 --port 8112
 
-If startup fails you may be missing a dependency... poetry seems to miss
+If startup fails you may be missing a dependency... uv seems to miss
 greenlet sometimes. But a quick check is to run python and then
 
 .. code:: python
@@ -129,9 +129,9 @@ By default we have logging set to DEBUG for all of the servers.  This is probabl
 Adding a new Project
 --------------------
 
-To add a new project to the monorepo, you will need to add a new folder in the ``bases`` directory.  The folder should be named ``rsptx.<project_name>``. You can do this with ``poetry poly create base --name <yourname>``  You will also need to add a new folder under ``projects/<project_name>``  You can create this with ``poetry poly create project --name <yourname>`` The folder will contain a ``pyproject.toml`` file.
+To add a new project to the monorepo, you will need to add a new folder in the ``bases`` directory.  The folder should be named ``rsptx.<project_name>``. You can do this with ``uv run poly create base --name <yourname>``  You will also need to add a new folder under ``projects/<project_name>``  You can create this with ``uv run poly create project --name <yourname>`` The folder will contain a ``pyproject.toml`` file.
 
-From the project folder you can do ``poetry add xxxx`` to add packages to your project.  To use any of the packages in your project you will need to add the following to the ``pyproject.toml`` file.  You will find the line ``packages = []`` To that list you will add the various ``rsptx.xxx`` modules from the various components, for example ``{include = "rsptx/db", from = "../../components"},``  You will also want to add your base module to the list of packages.  For example ``{include = "rsptx/<project_name>", from = "../../bases"},``  To build your new project you run ``poetry build-project`` from the project folder.  This will create a ``dist`` folder in the project folder.  The dist folder will contain a source distribution as well as a python wheel.
+From the project folder you can do ``uv add xxxx`` to add packages to your project.  To use any of the Polylith bricks in your project you will need to add a ``[tool.polylith.bricks]`` section to the ``pyproject.toml`` file (this replaces poetry's ``packages = []`` list).  Each entry maps a brick source directory to its package path in the wheel, for example ``"../../components/rsptx/db" = "rsptx/db"``  You will also want to add your base module, for example ``"../../bases/rsptx/<project_name>" = "rsptx/<project_name>"``  The ``hatch-polylith-bricks`` build hook bundles those bricks.  To build your new project you run ``uv build`` from the project folder.  This will create a ``dist`` folder in the project folder containing the python wheel.
 
 If the new project is going to be a FastAPI web server then you will need to write a Dockerfile to build an image using the wheel, and any other components.  For example the Dockerfile for the assignment server looks like this:
 
@@ -139,7 +139,7 @@ If the new project is going to be a FastAPI web server then you will need to wri
 
    FROM python:3.10-bullseye
 
-   # This is the name of the wheel that we build using `poetry build-project`
+   # This is the name of the wheel that we build using `uv build`
    ARG wheel=assignment_server-0.1.0-py3-none-any.whl
 
    # set work directory
@@ -177,18 +177,18 @@ You can build the image on your own and run it locally, or you can use the ``doc
 
    docker run auth_server -v /your/home/books:/usr/books
 
-When doing development it is often much more convenient to just run the server outside of the container.  If you have the poetry shell activated you can do the following:
+When doing development it is often much more convenient to just run the server outside of the container.  If you have the virtual environment activated you can do the following:
 
 .. code-block:: bash
 
    cd projects/assignment_server
-   poetry run uvicorn rsptx.assignment_server_api.core:app --host
+   uv run uvicorn rsptx.assignment_server_api.core:app --host
 
 All of the servers use an authentication token stored in a cookie.  You may need to start up the web2py server to get a cookie.  You can do this by running the following from the root of the monorepo:
 
 .. code-block:: bash
 
-   poetry run gunicorn --bind 0.0.0.0:8080 --workers 1 rsptx.web2py_server.wsgihandler:application
+   uv run gunicorn --bind 0.0.0.0:8080 --workers 1 rsptx.web2py_server.wsgihandler:application
 
 
 

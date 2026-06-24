@@ -1,0 +1,51 @@
+.dataFilesEditor {
+  width: 100%;
+}
+
+.grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.selectedList {
+  margin-top: var(--rs-space-4);
+  padding: var(--rs-space-4);
+  background: var(--rs-surface-sunken);
+  border-radius: var(--rs-radius-md);
+}
+
+.selectedTitle {
+  margin: 0 0 var(--rs-space-3);
+  font-size: var(--rs-font-size-sm);
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-strong);
+}
+
+.selectedRow {
+  padding: var(--rs-space-2) var(--rs-space-3);
+  background: var(--rs-surface-raised);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
+}
+
+.fileName {
+  font-weight: var(--rs-font-weight-medium);
+  color: var(--rs-text);
+}
+
+.fileOwner {
+  font-size: var(--rs-font-size-xs);
+  color: var(--rs-text-muted);
+}
+
+.imagePreview {
+  max-width: 300px;
+  max-height: 200px;
+  object-fit: contain;
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
+}
+
+.mono :global(textarea) {
+  font-family: var(--rs-font-mono);
+}

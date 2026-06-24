@@ -1,7 +1,7 @@
 import { BlankWithFeedback } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/FillInTheBlankExercise";
-import { FilterMatchMode } from "primereact/api";
 
 import { SelectedDataFile } from "@/types/datafile";
+import { FilterMatchMode } from "@/types/filterMatchMode";
 import { ParsonsBlock } from "@/utils/preview/parsonsPreview";
 
 export const supportedExerciseTypesToEdit = [
@@ -151,6 +151,7 @@ export type CreateExercisesPayload = {
   assignment_id: number;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isExerciseType = (value: any): value is ExerciseType => {
   return supportedExerciseTypesToEdit.includes(value);
 };
@@ -164,6 +165,7 @@ export type UpdateAssignmentExercisesPayload =
 
 // Define filter value structure
 export type FilterValue = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value: string | number | boolean | string[] | any[];
   mode: FilterMatchMode;
 };

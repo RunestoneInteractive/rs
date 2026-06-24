@@ -1,5 +1,5 @@
-import { Button } from "primereact/button";
-import { Dialog } from "primereact/dialog";
+import { Icon } from "@components/ui/Icon";
+import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 
 interface ExerciseSuccessDialogProps {
   showSuccessDialog: boolean;
@@ -16,34 +16,30 @@ export const ExerciseSuccessDialog = ({
   handleFinishCreating,
   lastExerciseType
 }: ExerciseSuccessDialogProps) => {
-  const successDialogFooter = (
-    <div className="flex justify-content-between gap-2">
-      <Button label="Create Another Exercise" icon="pi pi-plus" onClick={handleCreateAnother} />
-      <Button label="Go to Exercise List" icon="pi pi-list" onClick={handleFinishCreating} />
-    </div>
-  );
-
-  if (!showSuccessDialog) return null;
   return (
-    <Dialog
-      visible={showSuccessDialog}
-      onHide={() => setShowSuccessDialog(false)}
-      header="Exercise Saved Successfully"
-      footer={successDialogFooter}
-      style={{ width: "450px" }}
-      modal
-      closable={false}
+    <Modal
+      opened={showSuccessDialog}
+      onClose={() => setShowSuccessDialog(false)}
+      title="Exercise saved"
+      size={450}
+      withCloseButton={false}
+      centered
     >
-      <div className="flex flex-column align-items-center text-center gap-3 py-3">
-        <i
-          className="pi pi-check-circle"
-          style={{ fontSize: "3rem", color: "var(--green-500)" }}
-        ></i>
-        <p className="m-0 text-lg font-medium">
-          Your {lastExerciseType} exercise has been successfully saved!
-        </p>
-        <p className="m-0">Would you like to create another exercise?</p>
-      </div>
-    </Dialog>
+      <Stack align="center" ta="center" gap="md" py="md">
+        <Icon name="check-circle" size={48} color="var(--rs-success)" />
+        <Text size="lg" fw={500}>
+          Your {lastExerciseType} exercise is saved.
+        </Text>
+        <Text>Create another exercise?</Text>
+        <Group justify="space-between" gap="sm" w="100%">
+          <Button leftSection={<Icon name="plus" />} onClick={handleCreateAnother}>
+            Create another
+          </Button>
+          <Button leftSection={<Icon name="list" />} onClick={handleFinishCreating}>
+            Back to exercises
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
   );
 };

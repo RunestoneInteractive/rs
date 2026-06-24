@@ -5,7 +5,7 @@ from collections import OrderedDict
 def check_indentation_level(line):
     """Check the indentation level of a line."""
     match = re.match(r"^(\s*)", line)
-    indentation_level = len(match.group(1))
+    indentation_level = len(match.group(1)) if match else 0
     return indentation_level
 
 
@@ -83,7 +83,8 @@ def split_java_code_into_blocks(java_code):
     n = len(lines)
 
     def get_indent(line):
-        return len(re.match(r"^(\s*)", line).group(1))
+        m = re.match(r"^(\s*)", line)
+        return len(m.group(1)) if m else 0
 
     def is_real_code(line):
         s = line.strip()

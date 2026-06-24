@@ -333,11 +333,12 @@ Peer Instruction Dashboard - {{ assignment_name }}
                         <button type="button" id="facechat" class="step-action" onclick="enableFaceChat(event)" disabled>Enable In-Person Chat</button>
                         <span class="or">or</span>
                         <button type="button" id="makep" class="step-action" onclick="makePartners(event, false)" disabled>Enable Text Chat</button>
-                        {% if enable_ab %}
-                        <span class="or">or</span>
-                        <button type="button" id="makeabgroups" class="step-action" onclick="makePartners(event, true)" disabled>Run A/B Experiment</button>
-                        {% endif %}
                     </div>
+                    {% if enable_ab %}
+                    <div style="margin-top:8px; border-top:1px solid #e5e7eb; padding-top:8px;" class="step-actions">
+                        <button type="button" id="makeabgroups" class="step-action" onclick="makePartners(event, true)" disabled>Run A/B Experiment</button>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="pi-step-group pi-step" id="pi-step-col-3">
