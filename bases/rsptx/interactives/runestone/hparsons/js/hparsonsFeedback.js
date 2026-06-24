@@ -4,10 +4,10 @@ export default class HParsonsFeedback {
         this.percent = 0;
     }
     createOutput() {
-        console.log('createOutput method not implemented in feedback!');
+        console.log("createOutput method not implemented in feedback!");
     }
     async runButtonHandler() {
-        console.log('runButtonClicked method not implemented in feedback!');
+        console.log("runButtonClicked method not implemented in feedback!");
     }
     customizeUI() {
         // used to change some minor UI, e.g. the text on Run button
@@ -19,11 +19,11 @@ export default class HParsonsFeedback {
 
     clearFeedback() {
         // called when input is changed
-        console.log('clearFeedback method not implemented in feedback!');
+        console.log("clearFeedback method not implemented in feedback!");
     }
-    
+
     reset() {
         // called when reset is clicked
-        console.log('reset method not implemented in feedback!');
+        console.log("reset method not implemented in feedback!");
     }
 }

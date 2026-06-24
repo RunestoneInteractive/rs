@@ -39,7 +39,9 @@ export default class ParsonsBlock {
             } else {
                 lineIndent = line.indent - sharedIndent;
             }
-            $(line.view).removeClass("indent1 indent2 indent3 indent4 indent5 indent6");
+            $(line.view).removeClass(
+                "indent1 indent2 indent3 indent4 indent5 indent6",
+            );
             if (
                 this.problem.options.language != "natural" &&
                 this.problem.options.language != "math"
@@ -74,7 +76,9 @@ export default class ParsonsBlock {
     }
     // Add a line (from another block) to this block
     addLine(line) {
-        $(line.view).removeClass("indent1 indent2 indent3 indent4 indent5 indent6");
+        $(line.view).removeClass(
+            "indent1 indent2 indent3 indent4 indent5 indent6",
+        );
         if (this.problem.noindent) {
             if (line.indent > 0) {
                 $(line.view).addClass("indent" + line.indent);
@@ -90,7 +94,7 @@ export default class ParsonsBlock {
             } else if (sharedIndent > line.indent) {
                 for (let i = 0; i < lines.length; i++) {
                     $(lines[i].view).removeClass(
-                        "indent1 indent2 indent3 indent4 indent5 indent6"
+                        "indent1 indent2 indent3 indent4 indent5 indent6",
                     );
                     // todo: if language is natural or math then don't do this
                     if (
@@ -98,7 +102,7 @@ export default class ParsonsBlock {
                         this.problem.options.language !== "math"
                     ) {
                         $(lines[i].view).addClass(
-                            "indent" + (lines[i].indent - line.indent)
+                            "indent" + (lines[i].indent - line.indent),
                         );
                     }
                 }
@@ -125,7 +129,7 @@ export default class ParsonsBlock {
         for (let i = 0; i < block.labels.length; i++) {
             this.addLabel(
                 block.labels[i][0],
-                this.lines.length - block.lines.length + block.labels[i][1]
+                this.lines.length - block.lines.length + block.labels[i][1],
             );
         }
         this.problem.blocks = newBlocks;
@@ -138,7 +142,9 @@ export default class ParsonsBlock {
         for (let i = 0; i < this.lines.length; i++) {
             var line = this.lines[i];
             if (line.indent > 0) {
-                $(line.view).removeClass("indent1 indent2 indent3 indent4 indent5 indent6");
+                $(line.view).removeClass(
+                    "indent1 indent2 indent3 indent4 indent5 indent6",
+                );
                 $(line.view).addClass("indent" + line.indent);
             }
         }
@@ -165,7 +171,7 @@ export default class ParsonsBlock {
             $(div).css(
                 "margin-top",
                 (line - this.labels[this.labels.length - 1][1] - 1) *
-                    this.lines[line].view.offsetHeight
+                    this.lines[line].view.offsetHeight,
             );
         }
         this.labels.push([label, line]);
@@ -238,7 +244,7 @@ export default class ParsonsBlock {
         for (let i = 1; i < this.lines.length; i++) {
             minimumLineIndent = Math.min(
                 this.lines[i].indent,
-                minimumLineIndent
+                minimumLineIndent,
             );
         }
         return minimumLineIndent;
@@ -565,7 +571,7 @@ export default class ParsonsBlock {
                         this.problem.textMoving = true;
                         this.problem.sourceArea.insertBefore(
                             this.view,
-                            block.view
+                            block.view,
                         );
                         $(this.view).focus();
                         this.problem.state = undefined;
@@ -584,7 +590,7 @@ export default class ParsonsBlock {
                     this.problem.textMoving = true;
                     this.problem.answerArea.insertBefore(
                         this.view,
-                        blocks[i - 1].view
+                        blocks[i - 1].view,
                     );
                     $(this.view).focus();
                     this.problem.state = undefined;
@@ -649,7 +655,7 @@ export default class ParsonsBlock {
                     this.problem.textMoving = true;
                     this.problem.sourceArea.insertBefore(
                         this.view,
-                        blocks[index].view
+                        blocks[index].view,
                     );
                     $(this.view).focus();
                     this.problem.state = undefined;
@@ -670,7 +676,7 @@ export default class ParsonsBlock {
                         this.problem.textMoving = true;
                         this.problem.answerArea.insertBefore(
                             this.view,
-                            blocks[i + 2].view
+                            blocks[i + 2].view,
                         );
                     }
                     $(this.view).focus();
@@ -780,9 +786,7 @@ export default class ParsonsBlock {
             this.problem.textMove = false;
             this.problem.logMove("kmove");
             if (!this.isPlaceholder) {
-
                 this.problem.updatePlaceholders();
-
             }
         } else {
             $(this.view).removeClass("down");

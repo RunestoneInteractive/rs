@@ -1,0 +1,18 @@
+node_modules/
+dist/
+runestone/dist/
+
+# Generated / translation files
+**/*-i18n.*.js
+
+# Vendored & third-party libraries (keep upstream formatting)
+**/*.min.js
+**/*.bundle.js
+**/jquery*.js
+runestone/activecode/js/sharedb.js
+runestone/activecode/js/skulpt-stdlib.js
+runestone/dragndrop/js/DragDropTouch.js
+runestone/fitb/js/libs/
+runestone/parsons/js/prettify.js
+runestone/showeval/js/showEval-0.10.0.js
+**/sphinx_bootstrap/**

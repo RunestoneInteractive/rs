@@ -3,7 +3,7 @@ import { runestone_import } from "../../../webpack.index.js";
 export async function renderRunestoneComponent(
     componentSrc,
     whereDiv,
-    moreOpts
+    moreOpts,
 ) {
     /**
      *  The easy part is adding the componentSrc to the existing div.
@@ -12,14 +12,14 @@ export async function renderRunestoneComponent(
      */
     if (!componentSrc) {
         jQuery(`#${whereDiv}`).html(
-            `<p>Sorry, no source is available for preview.</p>`
+            `<p>Sorry, no source is available for preview.</p>`,
         );
         return;
     }
     let patt = /..\/_images/g;
     componentSrc = componentSrc.replace(
         patt,
-        `${eBookConfig.app}/books/published/${eBookConfig.basecourse}/_images`
+        `${eBookConfig.app}/books/published/${eBookConfig.basecourse}/_images`,
     );
     jQuery(`#${whereDiv}`).html(componentSrc);
 
@@ -28,7 +28,7 @@ export async function renderRunestoneComponent(
     }
 
     let componentKind = $($(`#${whereDiv} [data-component]`)[0]).data(
-        "component"
+        "component",
     );
     // Import the JavaScript for this component before proceeding.
     await runestone_import(componentKind);
@@ -54,7 +54,7 @@ export async function renderRunestoneComponent(
             !jQuery(`#${whereDiv}`).html()
         ) {
             jQuery(`#${whereDiv}`).html(
-                `<p>Preview not available for ${componentKind}</p>`
+                `<p>Preview not available for ${componentKind}</p>`,
             );
         } else {
             let res = window.component_factory[componentKind](opt);
@@ -80,11 +80,11 @@ export function createTimedComponent(componentSrc, moreOpts) {
     let patt = /..\/_images/g;
     componentSrc = componentSrc.replace(
         patt,
-        `${eBookConfig.app}/books/published/${eBookConfig.basecourse}/_images`
+        `${eBookConfig.app}/books/published/${eBookConfig.basecourse}/_images`,
     );
 
     let componentKind = $($(componentSrc).find("[data-component]")[0]).data(
-        "component"
+        "component",
     );
 
     let origId = $(componentSrc).find("[data-component]").first().attr("id");
@@ -127,7 +127,9 @@ export async function renderOneComponent(rsDiv) {
     // Find the actual component inside the runestone component.
     let component = rsDiv.querySelector("[data-component]");
     if (component == null) {
-        console.log("Render was called for a component, but now [data-component] attribute is present. This may mean the component has already been rendered.")
+        console.log(
+            "Render was called for a component, but now [data-component] attribute is present. This may mean the component has already been rendered.",
+        );
         return;
     }
     let componentKind = component.dataset.component;

@@ -142,7 +142,9 @@ export default class HTMLActiveCode extends ActiveCode {
     }
 
     displayTestResults(results) {
-        var passed = results.filter(function(r) { return r.pass; }).length;
+        var passed = results.filter(function (r) {
+            return r.pass;
+        }).length;
         var total = results.length;
         if (total === 0) return;
 
@@ -156,21 +158,30 @@ export default class HTMLActiveCode extends ActiveCode {
         tbl.className = "ac-feedback";
         tbl.style.width = "100%";
 
-        results.forEach(function(r) {
+        results.forEach(function (r) {
             var tr = document.createElement("tr");
             var td = document.createElement("td");
-            td.className = "ac-feedback " + (r.pass ? "ac-feedback-pass" : "ac-feedback-fail");
+            td.className =
+                "ac-feedback " +
+                (r.pass ? "ac-feedback-pass" : "ac-feedback-fail");
             td.textContent = (r.pass ? "✓ " : "✗ ") + r.message;
             tr.appendChild(td);
             tbl.appendChild(tr);
         });
 
         var summary = document.createElement("p");
-        summary.className = "ac-feedback " + (passed === total ? "ac-feedback-pass" : "ac-feedback-fail");
+        summary.className =
+            "ac-feedback " +
+            (passed === total ? "ac-feedback-pass" : "ac-feedback-fail");
         summary.style.textAlign = "center";
         summary.style.marginTop = "4px";
         summary.textContent =
-            passed + " of " + total + " test" + (total !== 1 ? "s" : "") + " passed";
+            passed +
+            " of " +
+            total +
+            " test" +
+            (total !== 1 ? "s" : "") +
+            " passed";
 
         div.appendChild(tbl);
         div.appendChild(summary);

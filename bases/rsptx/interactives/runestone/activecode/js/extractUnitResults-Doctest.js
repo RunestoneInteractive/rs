@@ -15,10 +15,10 @@ import { t } from "../../common/js/rsi18n.js";
 // [doctest] Status: FAILURE!
 // `;
 
-
 export default class DoctestTestParser {
     constructor(output, parentId) {
-        const sep = "===============================================================================";
+        const sep =
+            "===============================================================================";
 
         // Split the output into the program output, the test output, and the test results
         // If all tests pass, there are no testDetails
@@ -37,7 +37,7 @@ export default class DoctestTestParser {
 
         // Produce the output that we will display to the user - their output and the test output
         let cleanedOutput = "\n";
-        let programOutLines = pre.split("\n").slice(2);  // Trim doxygen cruft
+        let programOutLines = pre.split("\n").slice(2); // Trim doxygen cruft
         cleanedOutput = "Program output:\n";
         for (let line of programOutLines) {
             cleanedOutput += line + "\n";
@@ -66,13 +66,13 @@ export default class DoctestTestParser {
         // Parse the test results for use by autograder
         let patt = new RegExp(
             "\\[doctest\\] assertions: (?<tests>\\d+?) \\| (?<passed>\\d+?) passed \\| (?<failed>\\d+?) failed",
-            "g"
+            "g",
         );
 
         let matches = [...report.matchAll(patt)];
         if (matches.length > 0) {
             let match = matches[0];
-            this.pct = 100 * match.groups.passed / match.groups.tests;
+            this.pct = (100 * match.groups.passed) / match.groups.tests;
 
             let pctString = document.createElement("span");
             pctString.innerHTML = match[0].replace("[doctest] ", "");
@@ -89,8 +89,7 @@ export default class DoctestTestParser {
             parent.appendChild(tbl);
             parent.setAttribute("id", `${parentId}_unit_results`);
             let trh = document.createElement("tr");
-            trh.innerHTML =
-                `<th class="ac-feedback">Result</th><th class="ac-feedback">${t("msg_activecode_assertions_checked")}</th><th class="ac-feedback">Passed:</th><th class="ac-feedback">Failed:</th>`;
+            trh.innerHTML = `<th class="ac-feedback">Result</th><th class="ac-feedback">${t("msg_activecode_assertions_checked")}</th><th class="ac-feedback">Passed:</th><th class="ac-feedback">Failed:</th>`;
             tbl.appendChild(trh);
             let tr = document.createElement("tr");
             let td = document.createElement("td");

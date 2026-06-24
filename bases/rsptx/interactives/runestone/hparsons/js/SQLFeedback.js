@@ -79,11 +79,13 @@ export default class SQLFeedback extends HParsonsFeedback {
                     };
                 } else {
                     if (allDburls[self.dburl].status == "loading") {
-                        allDburls[self.dburl].xWaitFor.promise.then(function () {
-                            self.db = allDburls[self.dburl].dbObject;
-                            self.runButton.removeAttribute("disabled");
-                            self.runButton.textContent = buttonText;
-                        });
+                        allDburls[self.dburl].xWaitFor.promise.then(
+                            function () {
+                                self.db = allDburls[self.dburl].dbObject;
+                                self.runButton.removeAttribute("disabled");
+                                self.runButton.textContent = buttonText;
+                            },
+                        );
                         return;
                     }
                     self.db = allDburls[self.dburl].dbObject;
@@ -147,8 +149,7 @@ export default class SQLFeedback extends HParsonsFeedback {
         // Run this query
         let query = await this.buildProg();
         if (!this.hparsons.db) {
-            this.output.textContent =
-                `Error: Database not initialized! DBURL: ${this.hparsons.dburl}`;
+            this.output.textContent = `Error: Database not initialized! DBURL: ${this.hparsons.dburl}`;
             return;
         }
 
@@ -159,14 +160,14 @@ export default class SQLFeedback extends HParsonsFeedback {
         // executing hidden prefix if exist
         if (query.prefix) {
             this.prefixresults = this.executeIteratedStatements(
-                this.hparsons.db.iterateStatements(query.prefix)
+                this.hparsons.db.iterateStatements(query.prefix),
             );
             if (this.prefixresults.at(-1).status == "failure") {
                 // if error occured in hidden prefix, log and stop executing the rest
                 this.visualizeResults(
                     respDiv,
                     this.prefixresults,
-                    "Error executing hidden code in prefix"
+                    "Error executing hidden code in prefix",
                 );
                 executionSuccessFlag = false;
             }
@@ -175,7 +176,7 @@ export default class SQLFeedback extends HParsonsFeedback {
         // executing student input in micro Parsons
         if (executionSuccessFlag) {
             this.results = this.executeIteratedStatements(
-                this.hparsons.db.iterateStatements(query.input)
+                this.hparsons.db.iterateStatements(query.input),
             );
             if (this.results.at(-1).status == "failure") {
                 // if error occured in student input, stop executing suffix/unitttest
@@ -192,14 +193,14 @@ export default class SQLFeedback extends HParsonsFeedback {
         //    get all data from the table to see if the operations the table is correct
         if (executionSuccessFlag && query.suffix) {
             this.suffixresults = this.executeIteratedStatements(
-                this.hparsons.db.iterateStatements(query.suffix)
+                this.hparsons.db.iterateStatements(query.suffix),
             );
             if (this.suffixresults.at(-1).status == "failure") {
                 // if error occured in hidden suffix, visualize the results
                 this.visualizeResults(
                     respDiv,
                     this.suffixresults,
-                    "Error executing hidden code in suffix"
+                    "Error executing hidden code in suffix",
                 );
                 executionSuccessFlag = false;
             } else {
@@ -214,11 +215,11 @@ export default class SQLFeedback extends HParsonsFeedback {
             if (executionSuccessFlag) {
                 if (this.suffixresults) {
                     this.testResult = this.autograde(
-                        this.suffixresults[this.suffixresults.length - 1]
+                        this.suffixresults[this.suffixresults.length - 1],
                     );
                 } else {
                     this.testResult = this.autograde(
-                        this.results[this.results.length - 1]
+                        this.results[this.results.length - 1],
                     );
                 }
             } else {
@@ -434,7 +435,7 @@ export default class SQLFeedback extends HParsonsFeedback {
                 col,
                 oper,
                 expected,
-                result_table
+                result_table,
             );
             result += "\n";
         }
