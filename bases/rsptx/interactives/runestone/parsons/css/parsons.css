@@ -386,22 +386,22 @@
 }
 
 .block-label {
-    font-size: 90%;
+    font-size: 0.75rem;
     color: #7e7ee7;
-    vertical-align: top;
+    vertical-align: middle;
     white-space: pre;
 }
 .right-label {
-    padding: 0.2em 0em 0.3em 0.6em;
+    padding: 0.1em 0em 0.1em 0.6em;
 }
 .left-label {
-    padding: 0.2em 0.6em 0.3em 0em;
+    padding: 0.1em 0.6em 0.1em 0em;
 }
 
 .labels {
-    padding-top: 2px;
+    padding-top: 0;
     display: inline-block;
-    vertical-align: top;
+    vertical-align: middle;
 }
 
 .runestone .lines {
@@ -514,3 +514,13 @@
     pointer-events: none;
 }
 
+/* Override MathJax's automatic font scaling inside Parsons blocks.
+ * MathJax computes a scaling factor (typically ~118%) relative to the
+ * surrounding element's font size and sets it as an inline style on
+ * mjx-container. This causes math to render larger than the surrounding
+ * text. Setting font-size to 1em here (with !important to override the
+ * inline style) keeps the math at the same size as the surrounding text.
+ */
+.parsons .block mjx-container {
+    font-size: 1em !important;
+}

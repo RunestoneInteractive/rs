@@ -18,12 +18,21 @@
 import { pageProgressTracker } from "./bookfuncs.js";
 //import "./../styles/runestone-custom-sphinx-bootstrap.css";
 
-var NO_DECORATE = ["parsonsMove", "showeval", "video", "poll", "view_toggle",
-    "dashboard", "selectquestion", "codelens", "peer"]
+var NO_DECORATE = [
+    "parsonsMove",
+    "showeval",
+    "video",
+    "poll",
+    "view_toggle",
+    "dashboard",
+    "selectquestion",
+    "codelens",
+    "peer",
+];
 export default class RunestoneBase {
     constructor(opts) {
         this.component_ready_promise = new Promise(
-            (resolve) => (this._component_ready_resolve_fn = resolve)
+            (resolve) => (this._component_ready_resolve_fn = resolve),
         );
         this.optional = false;
         if (typeof window.allComponents === "undefined") {
@@ -40,7 +49,10 @@ export default class RunestoneBase {
             if (opts.enforceDeadline) {
                 this.deadline = opts.deadline;
             }
-            this.optional = this.parseBooleanAttribute(opts.orig, "data-optional");
+            this.optional = this.parseBooleanAttribute(
+                opts.orig,
+                "data-optional",
+            );
             if (opts.selector_id) {
                 this.selector_id = opts.selector_id;
             }
@@ -90,7 +102,7 @@ export default class RunestoneBase {
             y.style.display = "none";
             // Add the preamble to the queue object so it can prepend it to
             // future MathJax processing
-            this.aQueue.preamble = y
+            this.aQueue.preamble = y;
         }
 
         this.jsonHeaders = new Headers({
@@ -153,7 +165,7 @@ export default class RunestoneBase {
         if (this.selector_id) {
             eventInfo.div_id = this.selector_id.replace(
                 "-toggleSelectedQuestion",
-                ""
+                "",
             );
             eventInfo.event = "selectquestion";
             eventInfo.act = "interaction";
@@ -181,7 +193,7 @@ export default class RunestoneBase {
                 method: "POST",
                 headers: this.jsonHeaders,
                 body: JSON.stringify(eventInfo),
-            }
+            },
         );
         try {
             var response = await fetch(request);
@@ -194,7 +206,7 @@ export default class RunestoneBase {
                 } else if (response.status == 401) {
                     post_return = await response.json();
                     console.log(
-                        `Missing authentication token ${post_return.detail}`
+                        `Missing authentication token ${post_return.detail}`,
                     );
                     throw new Error("Missing authentication token");
                 }
@@ -207,7 +219,7 @@ export default class RunestoneBase {
             if (this.selector_id) {
                 let selector_id = this.selector_id.replace(
                     "-toggleSelectedQuestion",
-                    ""
+                    "",
                 );
                 gradeBox = document.getElementById(`${selector_id}_score`);
             } else {
@@ -230,7 +242,7 @@ export default class RunestoneBase {
             }
             // send a request to save this error
             console.log(
-                `Error: ${e} Detail: ${detail} Status Code: ${response.status}`
+                `Error: ${e} Detail: ${detail} Status Code: ${response.status}`,
             );
         }
         return post_return;
@@ -239,7 +251,8 @@ export default class RunestoneBase {
     // the presence of the gradeBox is used to determine if we are on an assignment page.
     updateScores(gradeBox, scoreSpec) {
         if (!scoreSpec.assigned || scoreSpec.score === null) {
-            document.getElementById(`${this.divid}_message`).innerHTML = "Score not updated.  Submissions are closed.";
+            document.getElementById(`${this.divid}_message`).innerHTML =
+                "Score not updated.  Submissions are closed.";
             return;
         }
         let scoreSpan = gradeBox.getElementsByClassName("qscore")[0];
@@ -298,7 +311,7 @@ export default class RunestoneBase {
                     method: "POST",
                     headers: this.jsonHeaders,
                     body: JSON.stringify(eventInfo),
-                }
+                },
             );
             let response = await fetch(request);
             if (!response.ok) {
@@ -307,19 +320,19 @@ export default class RunestoneBase {
                     alert(`Failed to save your code
                         Status is ${response.status}
                         Detail: ${JSON.stringify(
-                        post_promise.detail,
-                        null,
-                        4
-                    )}`);
+                            post_promise.detail,
+                            null,
+                            4,
+                        )}`);
                 } else {
                     console.log(
                         `Did not save the code.
                          Status: ${response.status}
                          Detail: ${JSON.stringify(
-                            post_promise.detail,
-                            null,
-                            4
-                        )}`
+                             post_promise.detail,
+                             null,
+                             4,
+                         )}`,
                     );
                 }
             } else {
@@ -349,7 +362,7 @@ export default class RunestoneBase {
         // If true, this function will invoke ``indicate_component_ready()`` just before it returns. This is provided since most components are ready after this function completes its work.
         //
         // TODO: This defaults to false, to avoid causing problems with any components that haven't been updated and tested. After all Runestone components have been updated, default this to true and remove the extra parameter from most calls to this function.
-        will_be_ready = false
+        will_be_ready = false,
     ) {
         // Check if the server has stored answer
         let self = this;
@@ -374,7 +387,7 @@ export default class RunestoneBase {
             }
             if (!(data.div_id && data.course && data.event)) {
                 console.log(
-                    `A required field is missing data ${data.div_id}:${data.course}:${data.event}`
+                    `A required field is missing data ${data.div_id}:${data.course}:${data.event}`,
                 );
             }
             // If we are NOT in practice mode and we are not in a peer exercise
@@ -390,7 +403,7 @@ export default class RunestoneBase {
                         method: "POST",
                         body: JSON.stringify(data),
                         headers: this.jsonHeaders,
-                    }
+                    },
                 );
                 try {
                     let response = await fetch(request);
@@ -398,7 +411,9 @@ export default class RunestoneBase {
                     if (response.ok) {
                         data = await response.json();
                         data = data.detail;
-                        console.log(`Data from server: ${JSON.stringify(data)} calling repopulateFromStorage`);
+                        console.log(
+                            `Data from server: ${JSON.stringify(data)} calling repopulateFromStorage`,
+                        );
                         this.repopulateFromStorage(data);
                         this.attempted = true;
                         if (typeof data.correct !== "undefined") {
@@ -410,7 +425,7 @@ export default class RunestoneBase {
                         this.csresolver("server");
                     } else {
                         console.log(
-                            `HTTP Error getting results: ${response.statusText}`
+                            `HTTP Error getting results: ${response.statusText}`,
                         );
                         this.checkLocalStorage(); // just go right to local storage
                         console.log(`resolving checkServer with local data`);
@@ -531,7 +546,7 @@ export default class RunestoneBase {
                 $(capDiv).html(
                     eBookConfig.useRunestoneServices
                         ? this.caption + " (" + this.divid + ")"
-                        : this.caption
+                        : this.caption,
                 ); // Without runestone
                 $(capDiv).addClass(`${elType}_caption`);
                 $(capDiv).addClass(`${elType}_caption_text`);
@@ -548,23 +563,23 @@ export default class RunestoneBase {
 
     checkCurrentAnswer() {
         console.log(
-            "Each component should provide an implementation of checkCurrentAnswer"
+            "Each component should provide an implementation of checkCurrentAnswer",
         );
     }
 
     async logCurrentAnswer() {
         console.log(
-            "Each component should provide an implementation of logCurrentAnswer"
+            "Each component should provide an implementation of logCurrentAnswer",
         );
     }
     renderFeedback() {
         console.log(
-            "Each component should provide an implementation of renderFeedback"
+            "Each component should provide an implementation of renderFeedback",
         );
     }
     disableInteraction() {
         console.log(
-            "Each component should provide an implementation of disableInteraction"
+            "Each component should provide an implementation of disableInteraction",
         );
     }
 
@@ -589,7 +604,7 @@ export default class RunestoneBase {
             if (MathJax.typesetPromise) {
                 if (typeof window.runestoneMathReady !== "undefined") {
                     return window.runestoneMathReady.then(() =>
-                        this.mjresolver(this.aQueue.enqueue(component))
+                        this.mjresolver(this.aQueue.enqueue(component)),
                     );
                 } else {
                     return this.mjresolver(this.aQueue.enqueue(component));
@@ -610,10 +625,12 @@ export default class RunestoneBase {
         rsDiv.classList.remove("notAnswered");
         rsDiv.classList.remove("isInCorrect");
         rsDiv.classList.remove("isCorrect");
-        let assignmentInfo = localStorage.getItem(`currentAssignmentInfo_${eBookConfig.course}`);
+        let assignmentInfo = localStorage.getItem(
+            `currentAssignmentInfo_${eBookConfig.course}`,
+        );
         let questions = [];
         if (assignmentInfo) {
-            questions = JSON.parse(assignmentInfo).questions
+            questions = JSON.parse(assignmentInfo).questions;
         }
         if (questions.indexOf(this.divid) >= 0) {
             rsDiv.classList.add("isAssigned");
@@ -673,26 +690,30 @@ class AutoQueue extends Queue {
         try {
             this._pendingPromise = true;
 
-            let payload = await window.runestoneMathReady
-                .then(async function () {
+            let payload = await window.runestoneMathReady.then(
+                async function () {
                     console.log(
-                        `MathJax Ready -- dequeing a typesetting run for ${item.component.id} ${qq.preamble?.innerHTML}`
+                        `MathJax Ready -- dequeing a typesetting run for ${item.component.id} ${qq.preamble?.innerHTML}`,
                     );
                     if (qq.preamble) {
-                        await MathJax.typesetPromise([qq.preamble])
+                        await MathJax.typesetPromise([qq.preamble]);
                         // Use insertAdjacentElement to preserve existing DOM elements and event listeners
                         // instead of overwriting innerHTML which destroys event handlers
                         let preambleDiv = document.createElement("div");
                         preambleDiv.innerHTML = qq.preamble.innerHTML;
-                        item.component.insertAdjacentElement("afterbegin", preambleDiv);
+                        item.component.insertAdjacentElement(
+                            "afterbegin",
+                            preambleDiv,
+                        );
                         console.log(
-                            `MathJax typeset the preamble for ${item.component.id}`
+                            `MathJax typeset the preamble for ${item.component.id}`,
                         );
                         return await MathJax.typesetPromise([item.component]);
                     } else {
                         return await MathJax.typesetPromise([item.component]);
                     }
-                });
+                },
+            );
 
             this._pendingPromise = false;
             item.resolve(payload);

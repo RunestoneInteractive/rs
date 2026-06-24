@@ -35,7 +35,6 @@ import "./runestone/common/js/bookfuncs.js";
 import "./runestone/common/js/user-highlights.js";
 import "./runestone/common/js/pretext.js";
 
-
 // These are only needed for the Runestone book, but not in a library mode (such as pretext). I would prefer to dynamically load them. However, these scripts are so small I haven't bothered to do so.
 import { getSwitch, switchTheme } from "./runestone/common/js/theme.js";
 import "./runestone/common/js/presenter_mode.js";
@@ -115,13 +114,13 @@ async function flushQueue() {
     queue.length = 0;
     console.log(
         "Webpack is starting the loading process for the following Runestone modules",
-        toFlush.map((item) => item.component_name)
+        toFlush.map((item) => item.component_name),
     );
     const flushedPromise = toFlush.map(async (item) => {
         try {
             await module_map[item.component_name]();
             console.log(
-                `Runestone component ${item.component_name} has been loaded`
+                `Runestone component ${item.component_name} has been loaded`,
             );
             return item;
         } catch (e) {
@@ -146,7 +145,7 @@ async function flushQueue() {
 // ========================
 // Fulfill a promise when the Runestone pre-login complete event occurs.
 let pre_login_complete_promise = new Promise((resolve) =>
-    $(document).on("runestone:pre-login-complete", resolve)
+    $(document).on("runestone:pre-login-complete", resolve),
 );
 let loadedComponents;
 // Provide a simple function to import the JS for all components on the page.
@@ -157,10 +156,10 @@ export function runestone_auto_import() {
         $("[data-component]")
             .map(
                 // Extract the value of the data-component attribute.
-                (index, element) => $(element).attr("data-component")
+                (index, element) => $(element).attr("data-component"),
                 // Switch from a jQuery object back to an array, passing that to the Set constructor.
             )
-            .get()
+            .get(),
     );
     // webwork questions are not wrapped in div with a data-component so we have to check a different way
     if (document.querySelector(".webwork-button")) {
@@ -203,7 +202,7 @@ export async function runestone_import(component_name) {
         return module_map_cache[component_name];
     }
     console.log(
-        `Runestone component ${component_name} is being queued for import`
+        `Runestone component ${component_name} is being queued for import`,
     );
     const promise = queueImport(component_name);
     module_map_cache[component_name] = promise;
@@ -220,7 +219,7 @@ async function popupScratchAC() {
         let divid = eBookConfig.scratchDiv;
         window.componentMap[divid] = ACFactory.createActiveCode(
             $(`#${divid}`)[0],
-            eBookConfig.acDefaultLanguage
+            eBookConfig.acDefaultLanguage,
         );
         if (eBookConfig.isLoggedIn) {
             window.componentMap[divid].enableSaveLoad();
@@ -235,7 +234,7 @@ async function popupScratchAC() {
 const script_src = document.currentScript.src;
 __webpack_public_path__ = script_src.substring(
     0,
-    script_src.lastIndexOf("/") + 1
+    script_src.lastIndexOf("/") + 1,
 );
 
 var splice = new SpliceWrapper();

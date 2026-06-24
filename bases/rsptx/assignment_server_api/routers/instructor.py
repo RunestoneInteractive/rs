@@ -1553,11 +1553,20 @@ async def get_add_token_page(
     # Fetch all tokens for the course
     tokens = await fetch_all_api_tokens(course.id)
 
-    # Count tokens by provider
-    token_counts = {}
+    # Build the itemized token list for the template
+    token_list = []
     for token in tokens:
-        provider = token.provider
-        token_counts[provider] = token_counts.get(provider, 0) + 1
+        token_list.append(
+            {
+                "id": token.id,
+                "provider": token.provider,
+                "masked_token": (
+                    token.token[:4] + "****" + token.token[-4:]
+                    if len(token.token) > 8
+                    else "****"
+                ),
+            }
+        )
 
     total_tokens = len(tokens)
 
@@ -1569,7 +1578,7 @@ async def get_add_token_page(
         "is_instructor": True,
         "student_page": False,
         "total_tokens": total_tokens,
-        "token_counts": token_counts,
+        "token_list": token_list,
     }
 
     return templates.TemplateResponse("assignment/instructor/add_token.html", context)
@@ -1604,6 +1613,46 @@ async def delete_course_tokens(
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error deleting tokens: {str(e)}",
+        )
+
+
+@router.delete("/delete_token/{token_id}")
+@instructor_role_required()
+@with_course()
+async def delete_single_token(
+    token_id: int,
+    request: Request,
+    course=None,
+):
+    """
+    Delete a specific API token for the instructor's course.
+
+    :param token_id: ID of the token to delete
+    :param course: Course object from decorator
+    :return: JSON response with success status
+    """
+    try:
+        deleted = await delete_api_token(course_id=course.id, token_id=token_id)
+        if deleted:
+            return make_json_response(
+                status=status.HTTP_200_OK,
+                detail={
+                    "status": "success",
+                    "message": "Token deleted successfully",
+                },
+            )
+        else:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail="Token not found",
+            )
+    except Exception as e:
+        rslogger.error(
+            f"Error deleting API token {token_id} for course {course.id}: {e}"
+        )
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error deleting token: {str(e)}",
         )
 
 

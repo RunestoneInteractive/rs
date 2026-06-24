@@ -54,7 +54,10 @@ export default class ClickableArea extends RunestoneBase {
     getQuestion() {
         for (var i = 0; i < this.origElem.childNodes.length; i++) {
             const node = this.origElem.childNodes[i];
-            if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("data-question")) {
+            if (
+                node.nodeType === Node.ELEMENT_NODE &&
+                node.hasAttribute("data-question")
+            ) {
                 this.question = node;
                 this.question.classList.add("exercise-statement");
                 break;
@@ -65,7 +68,10 @@ export default class ClickableArea extends RunestoneBase {
         this.feedback = "";
         for (var i = 0; i < this.origElem.childNodes.length; i++) {
             const node = this.origElem.childNodes[i];
-            if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("data-feedback")) {
+            if (
+                node.nodeType === Node.ELEMENT_NODE &&
+                node.hasAttribute("data-feedback")
+            ) {
                 this.feedback = node;
             }
         }
@@ -84,7 +90,9 @@ export default class ClickableArea extends RunestoneBase {
         this.containerDiv.appendChild(this.question);
         const origClass = this.origElem.getAttribute("class");
         if (origClass) {
-            this.containerDiv.classList.add(...origClass.split(" ").filter(Boolean));
+            this.containerDiv.classList.add(
+                ...origClass.split(" ").filter(Boolean),
+            );
         }
         this.newDiv = document.createElement("div");
         var newContent = this.origElem.innerHTML;
@@ -157,7 +165,9 @@ export default class ClickableArea extends RunestoneBase {
                     storageObj = JSON.parse(ex);
                 } catch (err) {
                     // error while parsing; likely due to bad value stored in storage
-                    console.log(`Error parsing stored ClickableArea data for ${this.divid}: ${err.message}`);
+                    console.log(
+                        `Error parsing stored ClickableArea data for ${this.divid}: ${err.message}`,
+                    );
                     error = true;
                 }
                 if (error || storageObj.timestamp < eBookConfig.termStartDate) {
@@ -171,7 +181,11 @@ export default class ClickableArea extends RunestoneBase {
                     // log answer to server
                     this.givenIndexArray = [];
                     for (var i = 0; i < this.clickableArray.length; i++) {
-                        if (this.clickableArray[i].classList.contains("clickable-clicked")) {
+                        if (
+                            this.clickableArray[i].classList.contains(
+                                "clickable-clicked",
+                            )
+                        ) {
                             this.givenIndexArray.push(i);
                         }
                     }
@@ -196,7 +210,11 @@ export default class ClickableArea extends RunestoneBase {
         } else {
             this.givenIndexArray = [];
             for (var i = 0; i < this.clickableArray.length; i++) {
-                if (this.clickableArray[i].classList.contains("clickable-clicked")) {
+                if (
+                    this.clickableArray[i].classList.contains(
+                        "clickable-clicked",
+                    )
+                ) {
                     this.givenIndexArray.push(i);
                 }
             }
@@ -211,7 +229,7 @@ export default class ClickableArea extends RunestoneBase {
         };
         localStorage.setItem(
             this.localStorageKey(),
-            JSON.stringify(storageObject)
+            JSON.stringify(storageObject),
         );
     }
     /*==========================
@@ -223,7 +241,8 @@ export default class ClickableArea extends RunestoneBase {
             const node = childNodes[i];
             if (
                 node.nodeType === Node.ELEMENT_NODE &&
-                (node.hasAttribute("data-correct") || node.hasAttribute("data-incorrect"))
+                (node.hasAttribute("data-correct") ||
+                    node.hasAttribute("data-incorrect"))
             ) {
                 this.manageNewClickable(node);
                 if (node.hasAttribute("data-correct")) {
@@ -310,36 +329,36 @@ export default class ClickableArea extends RunestoneBase {
                             this.ccIndex < this.ccArray.length &&
                             tmp ===
                                 Math.floor(
-                                    this.ccArray[this.ccIndex].split(",")[1]
+                                    this.ccArray[this.ccIndex].split(",")[1],
                                 ) &&
                             this.ccCounter ===
                                 Math.floor(
-                                    this.ccArray[this.ccIndex].split(",")[0]
+                                    this.ccArray[this.ccIndex].split(",")[0],
                                 )
                         ) {
                             this.manageNewClickable(
-                                tComponentArr[t].children[i].children[j]
+                                tComponentArr[t].children[i].children[j],
                             );
                             this.correctArray.push(
-                                tComponentArr[t].children[i].children[j]
+                                tComponentArr[t].children[i].children[j],
                             );
                             this.ccIndex++;
                         } else if (
                             this.ciIndex < this.ciArray.length &&
                             tmp ===
                                 Math.floor(
-                                    this.ciArray[this.ciIndex].split(",")[1]
+                                    this.ciArray[this.ciIndex].split(",")[1],
                                 ) &&
                             this.ccCounter ===
                                 Math.floor(
-                                    this.ciArray[this.ciIndex].split(",")[0]
+                                    this.ciArray[this.ciIndex].split(",")[0],
                                 )
                         ) {
                             this.manageNewClickable(
-                                tComponentArr[t].children[i].children[j]
+                                tComponentArr[t].children[i].children[j],
                             );
                             this.incorrectArray.push(
-                                tComponentArr[t].children[i].children[j]
+                                tComponentArr[t].children[i].children[j],
                             );
                             this.ciIndex++;
                         }
@@ -394,7 +413,9 @@ export default class ClickableArea extends RunestoneBase {
             }
         }
         for (let i = 0; i < this.incorrectArray.length; i++) {
-            if (this.incorrectArray[i].classList.contains("clickable-clicked")) {
+            if (
+                this.incorrectArray[i].classList.contains("clickable-clicked")
+            ) {
                 this.correct = false;
                 this.incorrectNum++;
             } else {
@@ -428,10 +449,16 @@ export default class ClickableArea extends RunestoneBase {
             this.feedBackDiv.className = "alert alert-info";
         } else {
             for (let i = 0; i < this.incorrectArray.length; i++) {
-                if (this.incorrectArray[i].classList.contains("clickable-clicked")) {
+                if (
+                    this.incorrectArray[i].classList.contains(
+                        "clickable-clicked",
+                    )
+                ) {
                     this.incorrectArray[i].classList.add("clickable-incorrect");
                 } else {
-                    this.incorrectArray[i].classList.remove("clickable-incorrect");
+                    this.incorrectArray[i].classList.remove(
+                        "clickable-incorrect",
+                    );
                 }
             }
             this.feedBackDiv.innerHTML =
@@ -464,18 +491,20 @@ export default class ClickableArea extends RunestoneBase {
 ==   execute our code on them    ==
 =================================*/
 document.addEventListener("runestone:login-complete", function () {
-    document.querySelectorAll("[data-component=clickablearea]").forEach(function (el, index) {
-        if (!el.closest("[data-component=timedAssessment]")) {
-            // If this element exists within a timed component, don't render it here
-            try {
-                window.componentMap[el.id] = new ClickableArea({
-                    orig: el,
-                    useRunestoneServices: eBookConfig.useRunestoneServices,
-                });
-            } catch (err) {
-                console.log(`Error rendering ClickableArea Problem ${el.id}
+    document
+        .querySelectorAll("[data-component=clickablearea]")
+        .forEach(function (el, index) {
+            if (!el.closest("[data-component=timedAssessment]")) {
+                // If this element exists within a timed component, don't render it here
+                try {
+                    window.componentMap[el.id] = new ClickableArea({
+                        orig: el,
+                        useRunestoneServices: eBookConfig.useRunestoneServices,
+                    });
+                } catch (err) {
+                    console.log(`Error rendering ClickableArea Problem ${el.id}
                              Details: ${err}`);
+                }
             }
-        }
-    });
+        });
 });

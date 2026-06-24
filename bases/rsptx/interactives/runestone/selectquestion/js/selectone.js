@@ -101,14 +101,14 @@ export default class SelectOne extends RunestoneBase {
                 method: "POST",
                 headers: this.jsonHeaders,
                 body: JSON.stringify(data),
-            }
+            },
         );
         let response = await fetch(request);
         let htmlsrc = await response.json();
         htmlsrc = htmlsrc.detail;
         if (htmlsrc.indexOf("No preview") >= 0) {
             alert(
-                `Error: Not able to find a question for ${selectorId} based on the criteria`
+                `Error: Not able to find a question for ${selectorId} based on the criteria`,
             );
             throw new Error(`Unable to find a question for ${selectorId}`);
         }
@@ -136,7 +136,9 @@ export default class SelectOne extends RunestoneBase {
             if (data.toggleOptions) {
                 var toggleLabels = data.toggleLabels;
                 if (toggleLabels) {
-                    toggleLabels = toggleLabels.replace("togglelabels:", "").trim();
+                    toggleLabels = toggleLabels
+                        .replace("togglelabels:", "")
+                        .trim();
                     toggleLabels = toggleLabels.split(",");
                     for (var t = 0; t < toggleLabels.length; t++) {
                         toggleLabels[t] = toggleLabels[t].trim();
@@ -166,14 +168,14 @@ export default class SelectOne extends RunestoneBase {
                 var toggleQuestionTypes = [];
                 for (i = 0; i < toggleQuestions.length; i++) {
                     toggleQuestionHTMLSrc = await this.getToggleSrc(
-                        toggleQuestions[i]
+                        toggleQuestions[i],
                     );
                     toggleQuestionSubstring =
                         toggleQuestionHTMLSrc.split('data-component="')[1];
                     switch (
                         toggleQuestionSubstring.slice(
                             0,
-                            toggleQuestionSubstring.indexOf('"')
+                            toggleQuestionSubstring.indexOf('"'),
                         )
                     ) {
                         case "activecode":
@@ -234,7 +236,7 @@ export default class SelectOne extends RunestoneBase {
             if (data.toggleOptions) {
                 $("#component-preview").hide();
                 var toggleQuestionSelect = document.getElementById(
-                    selectorId + "-toggleQuestion"
+                    selectorId + "-toggleQuestion",
                 );
                 for (i = 0; i < toggleQuestionSelect.options.length; i++) {
                     if (
@@ -243,11 +245,11 @@ export default class SelectOne extends RunestoneBase {
                         toggleQuestionSelect.value = toggleFirstID;
                         $("#" + selectorId).data(
                             "toggle_current",
-                            toggleFirstID
+                            toggleFirstID,
                         );
                         $("#" + selectorId).data(
                             "toggle_current_type",
-                            toggleQuestionTypes[0]
+                            toggleQuestionTypes[0],
                         );
                         break;
                     }
@@ -258,14 +260,14 @@ export default class SelectOne extends RunestoneBase {
                         await this.togglePreview(
                             toggleQuestionSelect.parentElement.id,
                             data.toggleOptions,
-                            toggleQuestionTypes
+                            toggleQuestionTypes,
                         );
                         this.logBookEvent({
                             event: "view_toggle",
                             act: toggleQuestionSelect.value,
                             div_id: toggleQuestionSelect.parentElement.id,
                         });
-                    }.bind(this)
+                    }.bind(this),
                 );
             }
         }
@@ -278,7 +280,7 @@ export default class SelectOne extends RunestoneBase {
             `${eBookConfig.new_server_prefix}/assessment/htmlsrc?acid=${toggleQuestionID}`,
             {
                 method: "GET",
-            }
+            },
         );
         let response = await fetch(request);
         let data = await response.json();
@@ -306,20 +308,21 @@ export default class SelectOne extends RunestoneBase {
         let closeButton = document.createElement("button");
         $(closeButton).text("Close Preview");
         $(closeButton).addClass("btn btn-default");
-        closeButton.addEventListener("click",
+        closeButton.addEventListener(
+            "click",
             function () {
                 $("#toggle-preview").html("");
                 toggleQuestionSelect.value = $("#" + parentID).data(
-                    "toggle_current"
+                    "toggle_current",
                 );
                 $("#component-preview").hide();
                 this.logBookEvent({
                     event: "close_toggle",
                     act: toggleQuestionSelect.value,
-                    div_id: toggleQuestionSelect.parentElement.id
+                    div_id: toggleQuestionSelect.parentElement.id,
                 });
-         }.bind(this)
-         );
+            }.bind(this),
+        );
         $("#toggle-buttons").append(closeButton);
 
         // if "lock" is not in toggle options, then allow adding more buttons to the preview panel
@@ -333,7 +336,7 @@ export default class SelectOne extends RunestoneBase {
                         parentID,
                         selectedQuestion,
                         htmlsrc,
-                        toggleQuestionTypes
+                        toggleQuestionTypes,
                     );
                     $("#component-preview").hide();
                     this.logBookEvent({
@@ -341,7 +344,7 @@ export default class SelectOne extends RunestoneBase {
                         act: selectedQuestion,
                         div_id: parentID,
                     });
-                }.bind(this)
+                }.bind(this),
             );
             $("#toggle-buttons").append(setButton);
 
@@ -363,9 +366,9 @@ export default class SelectOne extends RunestoneBase {
                                 parentID,
                                 selectedQuestion,
                                 htmlsrc,
-                                toggleQuestionTypes
+                                toggleQuestionTypes,
                             );
-                        }.bind(this)
+                        }.bind(this),
                     );
                     $("#toggle-buttons").append(transferButton);
                 }
@@ -391,14 +394,14 @@ export default class SelectOne extends RunestoneBase {
         });
         let request = new Request(
             `${eBookConfig.new_server_prefix}/assessment/set_selected_question?metaid=${parentID}&selected=${selectedQuestion}`,
-            {}
+            {},
         );
         await fetch(request);
         $("#toggle-preview").html("");
         $("#" + parentID).data("toggle_current", selectedQuestion);
         $("#" + parentID).data(
             "toggle_current_type",
-            toggleQuestionTypes[toggleQuestionSelect.selectedIndex]
+            toggleQuestionTypes[toggleQuestionSelect.selectedIndex],
         );
     }
 
@@ -407,7 +410,7 @@ export default class SelectOne extends RunestoneBase {
         parentID,
         selectedQuestion,
         htmlsrc,
-        toggleQuestionTypes
+        toggleQuestionTypes,
     ) {
         // retrieve all Parsons lines within the answer space and loop through this list
         var currentParsons = document
@@ -433,8 +436,8 @@ export default class SelectOne extends RunestoneBase {
                         parseInt(
                             currentParsonsClass.slice(
                                 6,
-                                currentParsonsClass.length
-                            )
+                                currentParsonsClass.length,
+                            ),
                         );
                 }
             }
@@ -447,8 +450,8 @@ export default class SelectOne extends RunestoneBase {
                     parseInt(
                         currentBlockIndent.slice(
                             0,
-                            currentBlockIndent.indexOf("px")
-                        ) / 30
+                            currentBlockIndent.indexOf("px"),
+                        ) / 30,
                     );
             }
             for (var d = 0; d < indentCount; d++) {
@@ -476,7 +479,7 @@ export default class SelectOne extends RunestoneBase {
                             parsonsLine[l].innerHTML;
                         parsonsLines = parsonsLines.replace(
                             "                            ",
-                            ""
+                            "",
                         );
                         count++;
                     }
@@ -488,11 +491,11 @@ export default class SelectOne extends RunestoneBase {
             0,
             htmlsrc.indexOf("<textarea") +
                 htmlsrc.split("<textarea")[1].indexOf(">") +
-                10
+                10,
         );
         var htmlsrcLatter = htmlsrc.slice(
             htmlsrc.indexOf("</textarea>"),
-            htmlsrc.length
+            htmlsrc.length,
         );
         htmlsrc = htmlsrcFormer + parsonsLines + htmlsrcLatter;
 
@@ -500,7 +503,7 @@ export default class SelectOne extends RunestoneBase {
             parentID,
             selectedQuestion,
             htmlsrc,
-            toggleQuestionTypes
+            toggleQuestionTypes,
         );
         $("#component-preview").hide();
     }
@@ -520,7 +523,7 @@ window.component_factory.selectquestion = function (opts) {
  **/
 $(document).on("runestone:login-complete", async function () {
     let selQuestions = document.querySelectorAll(
-        "[data-component=selectquestion]"
+        "[data-component=selectquestion]",
     );
     for (let cq of selQuestions) {
         try {

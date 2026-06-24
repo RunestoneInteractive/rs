@@ -2,7 +2,12 @@ import ParsonsBlock from "./parsonsBlock";
 import ParsonsLine from "./parsonsLine";
 
 export default class PlaceholderBlock extends ParsonsBlock {
-    constructor(problem, placeholderLines, placeholderSize, afterSettledBlockCount) {
+    constructor(
+        problem,
+        placeholderLines,
+        placeholderSize,
+        afterSettledBlockCount,
+    ) {
         // problem: Parsons instance
         // size: how many blocks it is holding
 
@@ -14,10 +19,10 @@ export default class PlaceholderBlock extends ParsonsBlock {
         // create a normal parsons block, but use css to control visibility of normal content
         $(this.view).addClass("placeholder-block");
         $(this.view).addClass("disabled");
-        
+
         // create a new div displaying how many blocks are missing
         this.placeholderSize = placeholderSize;
-        var content = document.createElement('div');
+        var content = document.createElement("div");
         $(content).addClass("placeholder-text");
         if (placeholderSize > 1) {
             content.innerText = `${placeholderSize} blocks are missing here`;

@@ -56,7 +56,7 @@ export default class JSActiveCode extends ActiveCode {
         this.errLastRun = true;
         var errHead = $("<h3>").html("Error");
         this.eContainer = this.outerDiv.appendChild(
-            document.createElement("div")
+            document.createElement("div"),
         );
         this.eContainer.setAttribute("aria-live", "polite");
         this.eContainer.setAttribute("aria-atomic", "true");
@@ -65,7 +65,7 @@ export default class JSActiveCode extends ActiveCode {
         this.eContainer.id = this.divid + "_errinfo";
         this.eContainer.appendChild(errHead[0]);
         var errText = this.eContainer.appendChild(
-            document.createElement("pre")
+            document.createElement("pre"),
         );
         var errString = err.toString();
         // screenreaders seem to miss error message without the delay

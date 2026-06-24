@@ -103,11 +103,17 @@ export default class FITB extends RunestoneBase {
             // if dict_.problemHtml starts with &lt; then unescape it this happens for previews
             // when the problem comes from the DB
             if (dict_.problemHtml.startsWith("&lt;")) {
-                dict_.problemHtml = dict_.problemHtml.replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+                dict_.problemHtml = dict_.problemHtml
+                    .replace(/&lt;/g, "<")
+                    .replace(/&gt;/g, ">");
             }
             if (eBookConfig.useRunestoneServices) {
-                dict_.problemHtml = dict_.problemHtml.replace(/src="external/g,
-                    'src="' + `/ns/books/published/${eBookConfig.basecourse}` + '/external');
+                dict_.problemHtml = dict_.problemHtml.replace(
+                    /src="external/g,
+                    'src="' +
+                        `/ns/books/published/${eBookConfig.basecourse}` +
+                        "/external",
+                );
             }
 
             this.problemHtml = dict_.problemHtml;
@@ -135,13 +141,13 @@ export default class FITB extends RunestoneBase {
                     // For imports known at webpack build, bring these in.
                     case "BTM":
                         import_promises.push(
-                            import("btm-expressions/src/BTM_root.js")
+                            import("btm-expressions/src/BTM_root.js"),
                         );
                         break;
                     // Allow for local imports, usually from problems defined outside the Runestone Components.
                     default:
                         import_promises.push(
-                            import(/* webpackIgnore: true */ import_)
+                            import(/* webpackIgnore: true */ import_),
                         );
                         break;
                 }
@@ -151,10 +157,10 @@ export default class FITB extends RunestoneBase {
             imports_promise = Promise.all(import_promises)
                 .then(
                     (module_namespace_arr) =>
-                    (this.dyn_imports = Object.assign(
-                        {},
-                        ...module_namespace_arr
-                    ))
+                        (this.dyn_imports = Object.assign(
+                            {},
+                            ...module_namespace_arr,
+                        )),
                 )
                 .catch((err) => {
                     throw `Failed dynamic import: ${err}.`;
@@ -186,7 +192,7 @@ export default class FITB extends RunestoneBase {
                 else if (has_static_seed && !is_client_dynamic) {
                     console.assert(
                         false,
-                        "Warning: the provided static seed was ignored, because it only affects client-side, dynamic problems."
+                        "Warning: the provided static seed was ignored, because it only affects client-side, dynamic problems.",
                     );
                 }
                 // Case 4
@@ -207,7 +213,7 @@ export default class FITB extends RunestoneBase {
                 ) {
                     console.assert(
                         false,
-                        "Warning: the provided static seed was overridden by the seed found in local storage."
+                        "Warning: the provided static seed was overridden by the seed found in local storage.",
                     );
                 }
                 // Cases 0 and 2
@@ -269,7 +275,7 @@ export default class FITB extends RunestoneBase {
                 this.checkCurrentAnswer();
                 await this.logCurrentAnswer();
             }.bind(this),
-            false
+            false,
         );
         this.containerDiv.appendChild(this.submitButton);
 
@@ -286,7 +292,7 @@ export default class FITB extends RunestoneBase {
                 function () {
                     this.compareFITBAnswers();
                 }.bind(this),
-                false
+                false,
             );
             this.containerDiv.appendChild(this.compareButton);
         }
@@ -303,7 +309,7 @@ export default class FITB extends RunestoneBase {
                 function () {
                     this.randomize();
                 }.bind(this),
-                false
+                false,
             );
             this.containerDiv.appendChild(this.randomizeButton);
         }
@@ -336,7 +342,7 @@ export default class FITB extends RunestoneBase {
                 this.dyn_imports,
                 this.descriptionDiv.origInnerHTML,
                 this.divid,
-                this.prepareCheckAnswers.bind(this)
+                this.prepareCheckAnswers.bind(this),
             );
             this.descriptionDiv.replaceChildren(...html_nodes);
 
@@ -346,7 +352,7 @@ export default class FITB extends RunestoneBase {
                 } catch (err) {
                     console.assert(
                         false,
-                        `Error in problem ${this.divid} invoking afterContentRender`
+                        `Error in problem ${this.divid} invoking afterContentRender`,
                     );
                     throw err;
                 }
@@ -360,7 +366,9 @@ export default class FITB extends RunestoneBase {
         // Find and format the blanks. If a dynamic problem just changed the HTML, this will find the newly-created blanks.
         // WARNING - this assumes that all text/number inputs in the descriptionDiv are the blanks.
         // Ideally, there should be some unique attribute that can be used to select the blanks.
-        const ba = this.descriptionDiv.querySelectorAll('input[type="text"],input[type="number"]');
+        const ba = this.descriptionDiv.querySelectorAll(
+            'input[type="text"],input[type="number"]',
+        );
         ba.forEach((el) => {
             el.className = "form form-control selectwidthauto";
             el.setAttribute("aria-label", "input area");
@@ -449,7 +457,9 @@ export default class FITB extends RunestoneBase {
                     storedData = JSON.parse(ex);
                 } catch (err) {
                     // error while parsing; likely due to bad value stored in storage
-                    console.log(`Error parsing stored FITB data for ${this.divid}: ${err.message}`);
+                    console.log(
+                        `Error parsing stored FITB data for ${this.divid}: ${err.message}`,
+                    );
                     error = true;
                 }
                 if (error || storedData.timestamp < eBookConfig.termStartDate) {
@@ -627,7 +637,9 @@ export default class FITB extends RunestoneBase {
                 if (this.isCorrectArray[j] !== true) {
                     this.blankArray[j].classList.add("input-validation-error");
                 } else {
-                    this.blankArray[j].classList.remove("input-validation-error");
+                    this.blankArray[j].classList.remove(
+                        "input-validation-error",
+                    );
                 }
             }
             this.feedBackDiv.className = "alert alert-danger fitb-feedback";
@@ -635,7 +647,7 @@ export default class FITB extends RunestoneBase {
         var feedback_html = "<ul>";
         for (var i = 0; i < this.displayFeed.length; i++) {
             let df = this.displayFeed[i];
-            let fm = (this.isCorrectArray[i] === true) ? '✔️' : '✖️';
+            let fm = this.isCorrectArray[i] === true ? "✔️" : "✖️";
             // Render any dynamic feedback in the provided feedback, for client-side grading of dynamic problems.
             if (typeof this.dyn_vars === "string") {
                 df = renderDynamicFeedback(
@@ -643,12 +655,13 @@ export default class FITB extends RunestoneBase {
                     this.given_arr,
                     i,
                     df,
-                    this.dyn_vars_eval
+                    this.dyn_vars_eval,
                 );
                 // Convert the returned NodeList into a string of HTML.
-                df = (df?.[0] !== undefined)
-                    ? df[0].parentElement.innerHTML
-                    : "No feedback provided";
+                df =
+                    df?.[0] !== undefined
+                        ? df[0].parentElement.innerHTML
+                        : "No feedback provided";
             }
             feedback_html += `<li>${fm} ${df}</li>`;
         }
@@ -657,7 +670,7 @@ export default class FITB extends RunestoneBase {
         if (this.displayFeed.length == 1) {
             feedback_html = feedback_html.slice(
                 "<ul><li>".length,
-                -"</li></ul>".length
+                -"</li></ul>".length,
             );
         }
         this.feedBackDiv.innerHTML = feedback_html;
@@ -679,7 +692,9 @@ export default class FITB extends RunestoneBase {
         data.course = eBookConfig.course;
         try {
             const params = new URLSearchParams(data);
-            const resp = await fetch(`${eBookConfig.new_server_prefix}/assessment/gettop10Answers?${params.toString()}`);
+            const resp = await fetch(
+                `${eBookConfig.new_server_prefix}/assessment/gettop10Answers?${params.toString()}`,
+            );
             const json = await resp.json();
             this.compareFITB(json);
         } catch (e) {
@@ -783,7 +798,7 @@ document.addEventListener("runestone:login-complete", function () {
                     console.assert(
                         false,
                         `Error rendering Fill in the Blank Problem ${el.id}
-                     Details: ${err}`
+                     Details: ${err}`,
                     );
                 }
             }

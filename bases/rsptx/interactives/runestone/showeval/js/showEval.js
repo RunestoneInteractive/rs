@@ -54,11 +54,11 @@ export class ShowEval extends RunestoneBase {
                 s.substring(s.indexOf("{{") + 2, s.indexOf("}}{{")), // 'before eval'
                 s.substring(
                     s.indexOf("}}{{") + 4,
-                    s.indexOf("}}", s.indexOf("}}{{") + 4)
+                    s.indexOf("}}", s.indexOf("}}{{") + 4),
                 ), // 'after eval'
                 s.substring(
                     s.indexOf("}}", s.indexOf("}}{{") + 4) + 2,
-                    endpoint
+                    endpoint,
                 ),
             ]; // 'post'
 
@@ -129,8 +129,8 @@ export class ShowEval extends RunestoneBase {
                 .html(
                     this.steps[step][0] +
                         this.steps[step][1] +
-                        this.steps[step][3]
-                )
+                        this.steps[step][3],
+                ),
         );
     }
 
@@ -180,13 +180,13 @@ export class ShowEval extends RunestoneBase {
                                         thisShowEval.steps.length
                                     ) {
                                         thisShowEval.setStep(
-                                            thisShowEval.currentStep
+                                            thisShowEval.currentStep,
                                         );
                                     }
                                     $(buttonId).attr("disabled", false);
                                 }, 600);
                             });
-                        }
+                        },
                     );
                 });
             }, 600);

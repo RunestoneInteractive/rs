@@ -27,7 +27,7 @@ function normalize(locale) {
 let currentLocale = normalize(
     (typeof document !== "undefined" && document.documentElement.lang) ||
         (typeof navigator !== "undefined" && navigator.language) ||
-        FALLBACK
+        FALLBACK,
 );
 
 export function setLocale(locale) {

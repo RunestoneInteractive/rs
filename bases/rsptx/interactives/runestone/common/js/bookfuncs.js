@@ -49,17 +49,28 @@ This page is not part of that assignment. Select a page to return to it:
 [Select input]
 */
 function addReadingList() {
-    let assignment_info_string = localStorage.getItem(`currentAssignmentInfo_${eBookConfig.course}`)
+    let assignment_info_string = localStorage.getItem(
+        `currentAssignmentInfo_${eBookConfig.course}`,
+    );
 
     if (assignment_info_string && eBookConfig.readings) {
-        var top, bottom, active, page_name, exit_link, fst, snd, new_pos, path_parts, new_pos_link;
+        var top,
+            bottom,
+            active,
+            page_name,
+            exit_link,
+            fst,
+            snd,
+            new_pos,
+            path_parts,
+            new_pos_link;
         var assignment_info = JSON.parse(assignment_info_string);
         let assignment_id = assignment_info.id;
         let assignment_name = assignment_info.name;
         let reading_names = assignment_info.readingNames;
 
         active = document.createElement("div");
-        active.textContent = "Active assignment: "
+        active.textContent = "Active assignment: ";
 
         page_name = document.createElement("a");
         page_name.textContent = assignment_name;
@@ -71,8 +82,10 @@ function addReadingList() {
         exit_link.textContent = " Exit Assignment";
         exit_link.href = window.location.pathname;
 
-        exit_link.addEventListener('click', function(event) {
-            localStorage.removeItem(`currentAssignmentInfo_${eBookConfig.course}`);
+        exit_link.addEventListener("click", function (event) {
+            localStorage.removeItem(
+                `currentAssignmentInfo_${eBookConfig.course}`,
+            );
         });
 
         //active.append(exit_link)
@@ -88,7 +101,9 @@ function addReadingList() {
         let endLop = 2;
         if (body.classList.contains("pretext")) {
             ptxbook = true;
-            eBookConfig.readings = eBookConfig.readings.map(r => r.split("/").pop());
+            eBookConfig.readings = eBookConfig.readings.map((r) =>
+                r.split("/").pop(),
+            );
             name = name.split("/").pop();
             endLop = 1;
         }
@@ -98,7 +113,10 @@ function addReadingList() {
         // get prev name
         if (position > 0) {
             new_pos = eBookConfig.readings[position - 1];
-            path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
+            path_parts = cur_path_parts.slice(
+                0,
+                cur_path_parts.length - endLop,
+            );
             path_parts.push(new_pos);
             new_pos_link = path_parts.join("/");
             fst = active.cloneNode(true);
@@ -107,11 +125,11 @@ function addReadingList() {
             var fst_lnk = document.createElement("a");
             //fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
             fst_lnk.href = new_pos_link;
-            fst_lnk.textContent = `Back to page ${position
-                } of ${num_readings}: ${reading_names[position - 1]}.`;
+            fst_lnk.textContent = `Back to page ${
+                position
+            } of ${num_readings}: ${reading_names[position - 1]}.`;
             txt.append(fst_lnk);
             fst.append(txt);
-
         } else if (position == 0) {
             fst = active.cloneNode(true);
             let txt = document.createElement("p");
@@ -124,9 +142,9 @@ function addReadingList() {
             let pageExercises = Object.keys(componentMap);
             if (pageExercises.length == 0) {
                 pageExercises = document.querySelectorAll("[data-component]");
-                pageExercises = Array.from(pageExercises).map(function(el) {
+                pageExercises = Array.from(pageExercises).map(function (el) {
                     return el.id;
-                })
+                });
             }
             for (let ex of pageExercises) {
                 if (assignment_info.questions.includes(ex)) {
@@ -135,15 +153,20 @@ function addReadingList() {
                 }
             }
             new_pos = eBookConfig.readings[0];
-            path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
+            path_parts = cur_path_parts.slice(
+                0,
+                cur_path_parts.length - endLop,
+            );
             path_parts.push(new_pos);
             new_pos_link = path_parts.join("/");
             fst = active.cloneNode(true);
             let txt = document.createElement("p");
             if (exerciseOnPage) {
-                txt.textContent = "This page has activities assigned to the current assignment.";
+                txt.textContent =
+                    "This page has activities assigned to the current assignment.";
             } else {
-                txt.textContent = "Notice: this page is not part of the assignment.";
+                txt.textContent =
+                    "Notice: this page is not part of the assignment.";
             }
             txt.append(exit_link);
             fst.append(txt);
@@ -157,37 +180,41 @@ function addReadingList() {
         } else if (position >= 0) {
             // get next name
             new_pos = eBookConfig.readings[position + 1];
-            path_parts = cur_path_parts.slice(0, cur_path_parts.length - endLop);
+            path_parts = cur_path_parts.slice(
+                0,
+                cur_path_parts.length - endLop,
+            );
             path_parts.push(new_pos);
             new_pos_link = path_parts.join("/");
             snd = active;
             var snd_lnk = document.createElement("a");
             //snd_lnk.className = "btn btn-lg reading-navigation next-reading";
             snd_lnk.href = new_pos_link;
-            snd_lnk.textContent = `Continue to page ${position + 2
-                } of ${num_readings}: ${reading_names[position + 1]}`;
+            snd_lnk.textContent = `Continue to page ${
+                position + 2
+            } of ${num_readings}: ${reading_names[position + 1]}`;
             let txt = document.createElement("p");
             txt.append(snd_lnk);
             snd.append(txt);
-
         } else {
             snd = active.cloneNode(true);
             let txt = document.createElement("p");
-            txt.textContent = "Notice: this page is not part of the assignment. To remove this warning click ";
+            txt.textContent =
+                "Notice: this page is not part of the assignment. To remove this warning click ";
             let exit_clone = exit_link.cloneNode(true);
 
-            exit_clone.addEventListener('click', function(event) {
-                localStorage.removeItem(`currentAssignmentInfo_${eBookConfig.course}`);
+            exit_clone.addEventListener("click", function (event) {
+                localStorage.removeItem(
+                    `currentAssignmentInfo_${eBookConfig.course}`,
+                );
             });
             txt.append(exit_clone);
             snd.append(txt);
-
-
         }
 
         top = document.createElement("div");
-        top.className = "ptx-runestone-container"
-        fst.className = "runestone assignment-nav top-assignment-nav"
+        top.className = "ptx-runestone-container";
+        fst.className = "runestone assignment-nav top-assignment-nav";
         //top.style.backgroundColor = "var(--componentBgColor)"
         //top.style.borderColor = "var(--componentBorderColor)"
         //top.style.borderWidth = "1px"
@@ -195,8 +222,8 @@ function addReadingList() {
         //top.append(snd);
 
         bottom = document.createElement("div");
-        bottom.className = "ptx-runestone-container"
-        snd.className = "runestone assignment-nav bottom-assignment-nav"
+        bottom.className = "ptx-runestone-container";
+        snd.className = "runestone assignment-nav bottom-assignment-nav";
         //bottom.style.backgroundColor = "var(--componentBgColor)"
         //bottom.style.borderColor = "var(--componentBorderColor)"
         //bottom.style.borderWidth = "1px"
@@ -204,7 +231,6 @@ function addReadingList() {
         //bottom.append(active.cloneNode(true));
         //bottom.append(fst.cloneNode(true));
         bottom.append(snd);
-
 
         // check the body tag to see if it has a pretext class (no jquery)
         if (ptxbook) {
@@ -222,9 +248,8 @@ function addReadingList() {
         }
         const mainContent = document.getElementById("main-content");
         if (mainContent && snd) {
-            mainContent.insertBefore(top, mainContent.firstChild)
+            mainContent.insertBefore(top, mainContent.firstChild);
             mainContent.appendChild(bottom);
-
         }
     }
 }
@@ -257,7 +282,9 @@ function timedRefresh() {
 
     ["mousemove", "keydown", "scroll", "click", "touchstart", "wheel"].forEach(
         (eventName) => {
-            window.addEventListener(eventName, resetIdleTimer, { passive: true });
+            window.addEventListener(eventName, resetIdleTimer, {
+                passive: true,
+            });
         },
     );
 
@@ -276,7 +303,7 @@ class PageProgressBar {
             this.activities = actDict;
         } else {
             let activities = { page: 0 };
-            document.querySelectorAll(".runestone").forEach(function(e) {
+            document.querySelectorAll(".runestone").forEach(function (e) {
                 activities[e.firstElementChild.id] = 0;
             });
             this.activities = activities;
@@ -398,7 +425,7 @@ class PageProgressBar {
             }
             if (
                 val == 100.0 &&
-                (function() {
+                (function () {
                     const cb = document.getElementById("completionButton");
                     return (
                         cb &&
@@ -422,7 +449,8 @@ class PageProgressBar {
         });
         let data = { ...this.assignment_spec };
         let request = new Request(
-            `${eBookConfig.new_server_prefix}/logger/update_reading_score`, {
+            `${eBookConfig.new_server_prefix}/logger/update_reading_score`,
+            {
                 method: "POST",
                 body: JSON.stringify(data),
                 headers: headers,
@@ -720,9 +748,10 @@ function createStudyCluesWidget() {
         var sectionInfo = "";
         // find the section title on the page to include in the initial query
         if (document.querySelector("body.pretext")) {
-            let section = document.querySelector('section.section');
-            let sectionTitle = section.querySelector('span.title').innerText;
-            let sectionNumber = section.querySelector('span.codenumber').innerText;
+            let section = document.querySelector("section.section");
+            let sectionTitle = section.querySelector("span.title").innerText;
+            let sectionNumber =
+                section.querySelector("span.codenumber").innerText;
             sectionInfo = `${sectionNumber} ${sectionTitle}`;
         } else {
             let sectionSpan = document.querySelector("span.section-number");
@@ -735,7 +764,11 @@ function createStudyCluesWidget() {
                 query = `Regarding section "${sectionInfo}": ${query}`;
             }
         }
-        rb.logBookEvent({ event: "studyclues_query", act: `query: ${query}`, div_id: `${sectionInfo}` });
+        rb.logBookEvent({
+            event: "studyclues_query",
+            act: `query: ${query}`,
+            div_id: `${sectionInfo}`,
+        });
         appendStudyCluesMessage(messagesEl, "user", query); // todo: make this conditional on being a book page and on the book being one of the supported books
         inputEl.value = "";
         sendBtn.disabled = true;
@@ -750,7 +783,8 @@ function createStudyCluesWidget() {
 
         try {
             const response = await fetch(
-                `/assignment/student/studyclues_query`, {
+                `/assignment/student/studyclues_query`,
+                {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -765,7 +799,9 @@ function createStudyCluesWidget() {
             );
 
             if (!response.ok) {
-                throw new Error(`Request failed with status ${response.status}`);
+                throw new Error(
+                    `Request failed with status ${response.status}`,
+                );
             }
 
             const payload = await response.json();
@@ -778,13 +814,12 @@ function createStudyCluesWidget() {
                 studyCluesConversationId = detail.conversation_id;
             }
 
-            const markdownResponse = (llmResponse || "No response available from StudyClues.").replace(
-                /\[([^\]]+)\]\(([^)]+)\)/g,
-                (match, text, key) => {
-                    const url = references[key]?.content_url;
-                    return url ? `[${text}](${url})` : match;
-                },
-            );
+            const markdownResponse = (
+                llmResponse || "No response available from StudyClues."
+            ).replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, key) => {
+                const url = references[key]?.content_url;
+                return url ? `[${text}](${url})` : match;
+            });
             const formattedResponse = marked.parse(markdownResponse);
 
             appendStudyCluesMessage(
@@ -819,16 +854,35 @@ function createStudyCluesWidget() {
 }
 
 function shouldShowStudyCluesWidget() {
-    if (!(location.pathname.includes("/ns/books/") || location.pathname.includes("doAssignment"))) {
+    if (
+        !(
+            location.pathname.includes("/ns/books/") ||
+            location.pathname.includes("doAssignment")
+        )
+    ) {
         return false;
     }
 
-
-    const enabledBasecourses = ["csawesome2", "py4e-int", "thinkcspy", "httlacs", "PTXSB", "cppds2"];
-    const enabledCourses = ["SI201-W26-MW", "SI201-W26-TTh", "DukeCS101SP26",
-        "mcd-csa-schoology", "mcd-csa-canvas", "csawesome2-MOOC",
-        "test_py4e-int_api", "bc_cppds_s26", "Test-py4e-int",
-        "virginiatech_py4e-int_spring26", "umsi101_fall26"
+    const enabledBasecourses = [
+        "csawesome2",
+        "py4e-int",
+        "thinkcspy",
+        "httlacs",
+        "PTXSB",
+        "cppds2",
+    ];
+    const enabledCourses = [
+        "SI201-W26-MW",
+        "SI201-W26-TTh",
+        "DukeCS101SP26",
+        "mcd-csa-schoology",
+        "mcd-csa-canvas",
+        "csawesome2-MOOC",
+        "test_py4e-int_api",
+        "bc_cppds_s26",
+        "Test-py4e-int",
+        "virginiatech_py4e-int_spring26",
+        "umsi101_fall26",
     ];
     const host = window.location.hostname;
 
@@ -879,7 +933,8 @@ async function handlePageSetup() {
         if (tz_match === false) {
             // Set a cookie so we don't have to do this again for a while.
             let request = new Request(
-                `${eBookConfig.new_server_prefix}/logger/set_tz_offset`, {
+                `${eBookConfig.new_server_prefix}/logger/set_tz_offset`,
+                {
                     method: "POST",
                     body: JSON.stringify(data),
                     headers: headers,
@@ -955,8 +1010,7 @@ function setupNavbarLoggedIn() {
     const registerLink = document.getElementById("registerlink");
     if (registerLink) registerLink.style.display = "none";
     document.querySelectorAll("li.loginout").forEach((el) => {
-        el.innerHTML =
-            '<a href="/admin/auth/logout">Log Out</a>';
+        el.innerHTML = '<a href="/admin/auth/logout">Log Out</a>';
     });
 }
 document.addEventListener("runestone:login", setupNavbarLoggedIn);
@@ -1007,7 +1061,7 @@ function placeAdCopy() {
 }
 
 // initialize stuff
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     if (eBookConfig) {
         handlePageSetup();
         placeAdCopy();
@@ -1022,9 +1076,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // misc stuff
 // todo:  This could be further distributed but making a video.js file just for one function seems dumb.
-window.addEventListener("load", function() {
+window.addEventListener("load", function () {
     // add the video play button overlay image
-    document.querySelectorAll(".video-play-overlay").forEach(function(el) {
+    document.querySelectorAll(".video-play-overlay").forEach(function (el) {
         el.style.backgroundImage =
             "url('{{pathto('_static/play_overlay_icon.png', 1)}}')";
     });
@@ -1034,8 +1088,8 @@ window.addEventListener("load", function() {
     // it (like the search bar) is clicked
     document
         .querySelectorAll(".dropdown input, .dropdown label")
-        .forEach(function(el) {
-            el.addEventListener("click", function(e) {
+        .forEach(function (el) {
+            el.addEventListener("click", function (e) {
                 e.stopPropagation();
             });
         });
@@ -1057,9 +1111,9 @@ window.addEventListener("load", function() {
                     anchorText = link.href.substring(aPoint);
                     link.href = link.href.substring(0, aPoint);
                 }
-                link.href = link.href.includes("?") ?
-                    link.href + queryString.replace("?", "&") + anchorText :
-                    link.href + queryString + anchorText;
+                link.href = link.href.includes("?")
+                    ? link.href + queryString.replace("?", "&") + anchorText
+                    : link.href + queryString + anchorText;
             }
         });
     }
@@ -1082,18 +1136,26 @@ Change Course
 Profile
 Log Out
 */
-window.addEventListener("DOMContentLoaded", function(event) {
+window.addEventListener("DOMContentLoaded", function (event) {
+    const oldDropDown = this.document.querySelector(
+        ".dropdown-content[data-deprecated]",
+    );
+    if (oldDropDown) oldDropDown.remove();
 
-    const oldDropDown = this.document.querySelector(".dropdown-content[data-deprecated]");
-    if (oldDropDown)
-        oldDropDown.remove();
-
-    const itemTemplate = this.document.getElementById("ptx-user-dropdown-content_item-template");
-    const sepTemplate = this.document.getElementById("ptx-user-dropdown-content_separator-template");
-    const menuContentArea = this.document.getElementById("ptx-user-dropdown_rs-content");
+    const itemTemplate = this.document.getElementById(
+        "ptx-user-dropdown-content_item-template",
+    );
+    const sepTemplate = this.document.getElementById(
+        "ptx-user-dropdown-content_separator-template",
+    );
+    const menuContentArea = this.document.getElementById(
+        "ptx-user-dropdown_rs-content",
+    );
 
     if (!itemTemplate || !sepTemplate || !menuContentArea) {
-        console.error("Missing required template or content area for user dropdown");
+        console.error(
+            "Missing required template or content area for user dropdown",
+        );
         return;
     }
 
@@ -1111,27 +1173,53 @@ window.addEventListener("DOMContentLoaded", function(event) {
     }
 
     menuContentArea.appendChild(makeLink("/ns/course/index", "Course Home"));
-    menuContentArea.appendChild(makeLink("/runestone/assignments/chooseAssignment", "Assignments"));
-    menuContentArea.appendChild(makeLink("/assignment/peer/student", "Peer Instruction (Student)"));
-    menuContentArea.appendChild(makeLink("/assignment/student/studentreport", "Progress"));
+    menuContentArea.appendChild(
+        makeLink("/runestone/assignments/chooseAssignment", "Assignments"),
+    );
+    menuContentArea.appendChild(
+        makeLink("/assignment/peer/student", "Peer Instruction (Student)"),
+    );
+    menuContentArea.appendChild(
+        makeLink("/assignment/student/studentreport", "Progress"),
+    );
     if (eBookConfig.isInstructor) {
         menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
-        menuContentArea.appendChild(makeLink("/admin/instructor/menu", "Instructor Dashboard"));
-        menuContentArea.appendChild(makeLink("/assignment/peer/instructor",
-            "Peer Instruction (Instructor)"));
+        menuContentArea.appendChild(
+            makeLink("/admin/instructor/menu", "Instructor Dashboard"),
+        );
+        menuContentArea.appendChild(
+            makeLink(
+                "/assignment/peer/instructor",
+                "Peer Instruction (Instructor)",
+            ),
+        );
         if (eBookConfig.isAuthor) {
-            menuContentArea.appendChild(makeLink("https://author.runestone.academy/author/",
-                "Author Dashboard"));
+            menuContentArea.appendChild(
+                makeLink(
+                    "https://author.runestone.academy/author/",
+                    "Author Dashboard",
+                ),
+            );
         }
         if (eBookConfig.isEditor) {
-            menuContentArea.appendChild(makeLink("https://author.runestone.academy/author/",
-                "Editor Dashboard"));
+            menuContentArea.appendChild(
+                makeLink(
+                    "https://author.runestone.academy/author/",
+                    "Editor Dashboard",
+                ),
+            );
         }
-        menuContentArea.appendChild(makeLink("/assignment/instructor/invoice_request",
-            "Request Invoice"));
+        menuContentArea.appendChild(
+            makeLink(
+                "/assignment/instructor/invoice_request",
+                "Request Invoice",
+            ),
+        );
     }
     menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
-    menuContentArea.appendChild(makeLink("/admin/auth/my_courses", "Change Course"));
+    menuContentArea.appendChild(
+        makeLink("/admin/auth/my_courses", "Change Course"),
+    );
     menuContentArea.appendChild(makeLink("/admin/auth/profile", "Profile"));
     menuContentArea.appendChild(makeLink("/admin/auth/logout", "Log Out"));
 });
