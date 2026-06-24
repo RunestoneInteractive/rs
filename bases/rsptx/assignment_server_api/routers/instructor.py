@@ -352,7 +352,17 @@ async def get_assignment_gb(
     # This dictionary will store each user's practice grade by user_id.
     practice_by_user_id = {}
     show_practice = False
+    practice_total_points = 0.0
 
+    def format_practice_grade(points_received, total_possible_points):
+        if not total_possible_points:
+            return ""
+
+        if show_points:
+            return "{0:.2f}".format(points_received)
+
+        return "{0:.2f}".format(100 * points_received / total_possible_points)
+    
     # Only calculate practice grades if this course has practice settings
     if not practice_setting.empty:
         show_practice = True
@@ -372,18 +382,16 @@ async def get_assignment_gb(
             )
 
             # Calculate the total possible points for practice days.
-            total_possible_points = float(ps.day_points or 0) * float(
-                ps.max_practice_days or 0
+            practice_total_points = float(ps.day_points or 0) * float(
+            ps.max_practice_days or 0
             )
 
-            # Store the percent grade, or leave it blank if there are no possible points.
             for _, prow in practice_counts.iterrows():
                 points_received = float(ps.day_points or 0) * float(
-                    prow.practice_completion_count or 0
-                )
-                practice_by_user_id[prow.user_id] = "{0:.2f}".format(
-                    100 * points_received / total_possible_points
-                )
+                prow.practice_completion_count or 0)
+                practice_by_user_id[prow.user_id] = format_practice_grade(
+                points_received, practice_total_points
+            )
 
         # Otherwise, grade practice based on the number of completed questions.
         else:
@@ -400,17 +408,16 @@ async def get_assignment_gb(
                 params=(course.course_name,),
             )
 
-            total_possible_points = float(ps.question_points or 0) * float(
-                ps.max_practice_questions or 0
+            practice_total_points = float(ps.question_points or 0) * float(
+            ps.max_practice_questions or 0
             )
 
             for _, prow in practice_counts.iterrows():
                 points_received = float(ps.question_points or 0) * float(
-                    prow.practice_completion_count or 0
-                )
-                practice_by_user_id[prow.user_id] = "{0:.2f}".format(
-                    100 * points_received / total_possible_points
-                )
+                prow.practice_completion_count or 0)
+                practice_by_user_id[prow.user_id] = format_practice_grade(
+                points_received, practice_total_points
+            )
     apoints = {}
     for ix, row in assignments.iterrows():
         rslogger.debug(f"AROW = {row['name']}, {row.points}")
@@ -456,8 +463,13 @@ async def get_assignment_gb(
 
     # Only add the Practice column if spaced practice is actually configured.
     if show_practice:
-        pt["Practice"] = pt.index.map(lambda sid: practice_by_user_id.get(sid, ""))
-        base_cols.append("Practice")
+        if show_points:
+            practice_col = f"Practice ({practice_total_points:g} pts)"
+        else:
+            practice_col = "Practice (%)"
+
+        pt[practice_col] = pt.index.map(lambda sid: practice_by_user_id.get(sid, ""))
+        base_cols.append(practice_col)
 
     pt["_last_name_missing"] = pt["last_name"].fillna("").str.strip().eq("")
     pt["_first_name_missing"] = pt["first_name"].fillna("").str.strip().eq("")
