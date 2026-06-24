@@ -81,14 +81,14 @@ class TabbedStuff extends RunestoneBase {
             var tabListElement = document.createElement("li");
             $(tabListElement).attr({
                 role: "presentation",
-                "aria-controls": this.divid + "-" + i
+                "aria-controls": this.divid + "-" + i,
             });
             // Using bootstrap tabs functionality
             var tabElement = document.createElement("a");
             $(tabElement).attr({
                 "data-toggle": "tab",
                 href: "#" + this.divid + "-" + i,
-                role: "tab"
+                role: "tab",
             });
             var tabTitle = document.createElement("span"); // Title of tab--what the user will see
             tabTitle.textContent = $(this.childTabs[i]).data("tabname");
@@ -100,7 +100,7 @@ class TabbedStuff extends RunestoneBase {
             tabPaneDiv.id = this.divid + "-" + i;
             $(tabPaneDiv).addClass("tab-pane");
             $(tabPaneDiv).attr({
-                role: "tabpanel"
+                role: "tabpanel",
             });
             //var tabHTML = $(this.childTabs[i]).html();
             //$(tabPaneDiv).html(tabHTML);
@@ -119,12 +119,12 @@ class TabbedStuff extends RunestoneBase {
     == Codemirror/Disqus functionality ==
     ===================================*/
     addCMD() {
-        $(this.togglesList).on("shown.bs.tab", function(e) {
+        $(this.togglesList).on("shown.bs.tab", function (e) {
             var content_div = $(e.target.attributes.href.value);
-            content_div.find(".disqus_thread_link").each(function() {
+            content_div.find(".disqus_thread_link").each(function () {
                 $(this).click();
             });
-            content_div.find(".CodeMirror").each(function(i, el) {
+            content_div.find(".CodeMirror").each(function (i, el) {
                 el.CodeMirror.refresh();
             });
         });
@@ -135,8 +135,8 @@ class TabbedStuff extends RunestoneBase {
 == Find the custom HTML tags and ==
 ==     execute our code on them        ==
 =================================*/
-$("load", function() {
-    $("[data-component=tabbedStuff]").each(function(index) {
+$("load", function () {
+    $("[data-component=tabbedStuff]").each(function (index) {
         TSList[this.id] = new TabbedStuff({ orig: this });
     });
 });

@@ -20,10 +20,16 @@ export default class HParsons extends RunestoneBase {
         var orig = opts.orig.querySelector("textarea");
         this.reuse = this.parseBooleanAttribute(orig, "data-reuse");
         this.randomize = this.parseBooleanAttribute(orig, "data-randomize");
-        this.isBlockGrading = this.parseBooleanAttribute(orig, "data-blockanswer");
+        this.isBlockGrading = this.parseBooleanAttribute(
+            orig,
+            "data-blockanswer",
+        );
         this.language = orig.getAttribute("data-language");
         // Detect math mode
-        if ((this.language == null) && orig.textContent.includes('span class="process-math"')) {
+        if (
+            this.language == null &&
+            orig.textContent.includes('span class="process-math"')
+        ) {
             this.language = "math";
         }
         if (this.isBlockGrading) {
@@ -125,9 +131,12 @@ export default class HParsons extends RunestoneBase {
         this.renderMathInBlocks();
         // Change "code" to "answer" in parsons direction for non-code languages
         if (this.language == null || this.language === "math") {
-            this.outerDiv.querySelectorAll(".hparsons-tip").forEach(el => {
+            this.outerDiv.querySelectorAll(".hparsons-tip").forEach((el) => {
                 if (el.textContent.includes("our code")) {
-                    el.textContent = el.textContent.replace("our code", "our answer");
+                    el.textContent = el.textContent.replace(
+                        "our code",
+                        "our answer",
+                    );
                 }
             });
         }
@@ -182,12 +191,17 @@ export default class HParsons extends RunestoneBase {
     renderMathInBlocks() {
         if (this.language !== "math") return;
         setTimeout(() => {
-            const blocks = document.querySelectorAll(`#${this.divid}-container .parsons-block`);
-            blocks.forEach(block => {
+            const blocks = document.querySelectorAll(
+                `#${this.divid}-container .parsons-block`,
+            );
+            blocks.forEach((block) => {
                 block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
                 if (block.innerHTML.indexOf("process-math") !== -1) {
                     // remove the span tag with process-math class
-                    block.innerHTML = block.innerHTML.replace(/<span class="process-math">|<\/span>/g, "");
+                    block.innerHTML = block.innerHTML.replace(
+                        /<span class="process-math">|<\/span>/g,
+                        "",
+                    );
                 }
 
                 this.queueMathJax(block);
@@ -227,9 +241,12 @@ export default class HParsons extends RunestoneBase {
                 const first = blocks[0];
 
                 // Prefer indices (numbers or numeric strings)
-                const looksNumeric = (typeof first === "number") || (/^\d+$/.test(String(first)));
+                const looksNumeric =
+                    typeof first === "number" || /^\d+$/.test(String(first));
                 if (looksNumeric && this.hparsonsInput.restoreAnswerByIndices) {
-                    this.hparsonsInput.restoreAnswerByIndices(blocks.map(Number));
+                    this.hparsonsInput.restoreAnswerByIndices(
+                        blocks.map(Number),
+                    );
                 } else {
                     this.hparsonsInput.restoreAnswer(blocks);
                 }
@@ -240,38 +257,6 @@ export default class HParsons extends RunestoneBase {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     // RunestoneBase: Load what is in local storage
     checkLocalStorage() {
         if (this.graderactive) {
@@ -280,12 +265,20 @@ export default class HParsons extends RunestoneBase {
         }
         let localData = this.localData();
         // Guard against no timestamp as it was only added 3/24/2026
-        if (localData.timestamp && localData.timestamp < eBookConfig.termStartDate) {
+        if (
+            localData.timestamp &&
+            localData.timestamp < eBookConfig.termStartDate
+        ) {
             localStorage.removeItem(this.storageId);
             return;
         }
-        if (localData.answerIndices && this.hparsonsInput.restoreAnswerByIndices) {
-            this.hparsonsInput.restoreAnswerByIndices(localData.answerIndices.map(Number));
+        if (
+            localData.answerIndices &&
+            this.hparsonsInput.restoreAnswerByIndices
+        ) {
+            this.hparsonsInput.restoreAnswerByIndices(
+                localData.answerIndices.map(Number),
+            );
         } else if (localData.answer) {
             // Legacy restore (string-based)
             this.hparsonsInput.restoreAnswer(localData.answer);
@@ -335,20 +328,22 @@ export default class HParsons extends RunestoneBase {
 ==   execute our code on them    ==
 =================================*/
 document.addEventListener("runestone:login-complete", function () {
-    document.querySelectorAll("[data-component=hparsons]").forEach(function (el) {
-        if (!el.closest("[data-component=timedAssessment]")) {
-            // If this element exists within a timed component, don't render it here
-            // try {
-            hpList[el.id] = new HParsons({
-                orig: el,
-                useRunestoneServices: eBookConfig.useRunestoneServices,
-            });
-            // } catch (err) {
-            //     console.log(`Error rendering ShortAnswer Problem ${this.id}
-            //     Details: ${err}`);
-            // }
-        }
-    });
+    document
+        .querySelectorAll("[data-component=hparsons]")
+        .forEach(function (el) {
+            if (!el.closest("[data-component=timedAssessment]")) {
+                // If this element exists within a timed component, don't render it here
+                // try {
+                hpList[el.id] = new HParsons({
+                    orig: el,
+                    useRunestoneServices: eBookConfig.useRunestoneServices,
+                });
+                // } catch (err) {
+                //     console.log(`Error rendering ShortAnswer Problem ${this.id}
+                //     Details: ${err}`);
+                // }
+            }
+        });
 });
 
 if (typeof window.component_factory === "undefined") {

@@ -6,7 +6,6 @@ __date__ = 6/12/2015  */
 import RunestoneBase from "../../common/js/runestonebase.js";
 import "../css/poll.css";
 
-
 export default class Poll extends RunestoneBase {
     constructor(opts) {
         super(opts);
@@ -63,13 +62,17 @@ export default class Poll extends RunestoneBase {
         this.containerDiv.id = this.divid;
         const origClass = this.origElem.getAttribute("class");
         if (origClass) {
-            this.containerDiv.classList.add(...origClass.split(" ").filter(Boolean));
+            this.containerDiv.classList.add(
+                ...origClass.split(" ").filter(Boolean),
+            );
         }
         this.pollForm.innerHTML = `<div class="exercise-statement">${this.question}</div>`;
         this.pollForm.id = this.divid + "_form";
         this.pollForm.method = "get";
         this.pollForm.action = "";
-        this.pollForm.onsubmit = function () { return false; };
+        this.pollForm.onsubmit = function () {
+            return false;
+        };
         this.pollFieldset = document.createElement("fieldset");
         this.pollForm.appendChild(this.pollFieldset);
         for (var i = 0; i < this.optionList.length; i++) {
@@ -153,7 +156,9 @@ export default class Poll extends RunestoneBase {
             data.course = eBookConfig.course;
             try {
                 const params = new URLSearchParams(data);
-                const resp = await fetch(`${eBookConfig.new_server_prefix}/assessment/getpollresults?${params.toString()}`);
+                const resp = await fetch(
+                    `${eBookConfig.new_server_prefix}/assessment/getpollresults?${params.toString()}`,
+                );
                 const json = await resp.json();
                 this.showPollResults(json);
             } catch (e) {
@@ -222,7 +227,7 @@ export default class Poll extends RunestoneBase {
         }
         this.indicate_component_ready();
     }
-    disableOptions() { }
+    disableOptions() {}
     async checkPollStorage() {
         //checks the localstorage to see if the poll has been completed already
         var _this = this;
@@ -234,7 +239,9 @@ export default class Poll extends RunestoneBase {
             data.course = eBookConfig.course;
             try {
                 const params = new URLSearchParams(data);
-                const resp = await fetch(`${eBookConfig.new_server_prefix}/assessment/getpollresults?${params.toString()}`);
+                const resp = await fetch(
+                    `${eBookConfig.new_server_prefix}/assessment/getpollresults?${params.toString()}`,
+                );
                 const json = await resp.json();
                 this.showPollResults(json);
             } catch (e) {
@@ -248,15 +255,17 @@ export default class Poll extends RunestoneBase {
 
 // Do not render poll data until login-complete event so we know instructor status
 document.addEventListener("runestone:login-complete", function () {
-    document.querySelectorAll("[data-component=poll]").forEach(function (el, index) {
-        try {
-            window.componentMap[el.id] = new Poll({ orig: el });
-        } catch (err) {
-            console.log(`Error rendering Poll Problem ${el.id}
+    document
+        .querySelectorAll("[data-component=poll]")
+        .forEach(function (el, index) {
+            try {
+                window.componentMap[el.id] = new Poll({ orig: el });
+            } catch (err) {
+                console.log(`Error rendering Poll Problem ${el.id}
                          Details: ${err}`);
-            console.log(err.stack);
-        }
-    });
+                console.log(err.stack);
+            }
+        });
 });
 
 if (typeof window.component_factory === "undefined") {

@@ -65,7 +65,9 @@ export default class MultipleChoice extends RunestoneBase {
         // Old HTML format had question inside ul
         // Newer format has a div.exercise-statement that is a part of the ul's parent
         // Check for newer format...
-        const exStatement = this.origElem.parentElement.querySelector('.exercise-statement');
+        const exStatement = this.origElem.parentElement.querySelector(
+            ".exercise-statement",
+        );
         if (exStatement) {
             this.question = exStatement;
         } else {
@@ -89,7 +91,10 @@ export default class MultipleChoice extends RunestoneBase {
         var ChildAnswerList = [];
         for (var i = 0; i < this.children.length; i++) {
             const child = this.children[i];
-            if (child.nodeType === Node.ELEMENT_NODE && child.matches("[data-component=answer]")) {
+            if (
+                child.nodeType === Node.ELEMENT_NODE &&
+                child.matches("[data-component=answer]")
+            ) {
                 ChildAnswerList.push(child);
             }
         }
@@ -113,7 +118,10 @@ export default class MultipleChoice extends RunestoneBase {
     findFeedbacks() {
         for (var i = 0; i < this.children.length; i++) {
             const child = this.children[i];
-            if (child.nodeType === Node.ELEMENT_NODE && child.matches("[data-component=feedback]")) {
+            if (
+                child.nodeType === Node.ELEMENT_NODE &&
+                child.matches("[data-component=feedback]")
+            ) {
                 this.feedbackList.push(child.innerHTML);
             }
         }
@@ -155,7 +163,9 @@ export default class MultipleChoice extends RunestoneBase {
         this.containerDiv.appendChild(this.questionDiv);
         const origClass = this.origElem.getAttribute("class");
         if (origClass) {
-            this.containerDiv.classList.add(...origClass.split(" ").filter(Boolean));
+            this.containerDiv.classList.add(
+                ...origClass.split(" ").filter(Boolean),
+            );
         }
         this.containerDiv.classList.add("mchoice");
         this.containerDiv.id = this.divid;
@@ -166,11 +176,16 @@ export default class MultipleChoice extends RunestoneBase {
         this.optsForm.id = this.divid + "_form";
         this.optsForm.method = "get";
         this.optsForm.action = "";
-        this.optsForm.onsubmit = function () { return false; };
+        this.optsForm.onsubmit = function () {
+            return false;
+        };
         // Add fieldset and legend for accessibility
         this.optsFieldSet = document.createElement("fieldset");
         this.optsFieldSet.setAttribute("role", "radiogroup");
-        this.optsFieldSet.setAttribute("aria-labelledby", this.divid + "_prompt");
+        this.optsFieldSet.setAttribute(
+            "aria-labelledby",
+            this.divid + "_prompt",
+        );
         this.optsForm.appendChild(this.optsFieldSet);
         // generate form options
         this.renderMCFormOpts();
@@ -250,7 +265,7 @@ export default class MultipleChoice extends RunestoneBase {
                 function () {
                     this.processMCMASubmission(true);
                 }.bind(this),
-                false
+                false,
             );
         } else {
             this.submitButton.addEventListener(
@@ -259,7 +274,7 @@ export default class MultipleChoice extends RunestoneBase {
                     ev.preventDefault();
                     this.processMCMFSubmission(true);
                 }.bind(this),
-                false
+                false,
             );
         } // end else
         this.optsForm.appendChild(this.submitButton);
@@ -276,7 +291,7 @@ export default class MultipleChoice extends RunestoneBase {
                 function () {
                     this.compareAnswers(this.divid);
                 }.bind(this),
-                false
+                false,
             );
             this.optsForm.appendChild(this.compareButton);
         }
@@ -353,7 +368,9 @@ export default class MultipleChoice extends RunestoneBase {
                     answers = storedData.answer.split(",");
                 } catch (err) {
                     // error while parsing; likely due to bad value stored in storage
-                    console.log(`Error parsing stored mchoice data for ${this.divid}: ${err.message}`);
+                    console.log(
+                        `Error parsing stored mchoice data for ${this.divid}: ${err.message}`,
+                    );
                     error = true;
                 }
                 if (error || storedData.timestamp < eBookConfig.termStartDate) {
@@ -390,7 +407,7 @@ export default class MultipleChoice extends RunestoneBase {
         };
         localStorage.setItem(
             this.localStorageKey(),
-            JSON.stringify(storageObj)
+            JSON.stringify(storageObj),
         );
     }
 
@@ -415,13 +432,16 @@ export default class MultipleChoice extends RunestoneBase {
             }
         } else {
             // acknowledge submission
-            if (eBookConfig.peer &&
+            if (
+                eBookConfig.peer &&
                 eBookConfig.peerMode === "async" &&
                 typeof studentVoteCount !== "undefined" &&
-                studentVoteCount > 1) {
+                studentVoteCount > 1
+            ) {
                 this.renderMCMAFeedBack();
             } else {
-                this.feedBackDiv.innerHTML = "<p>Your answer has been recorded</p>";
+                this.feedBackDiv.innerHTML =
+                    "<p>Your answer has been recorded</p>";
                 this.feedBackDiv.className = "alert alert-info";
             }
         }
@@ -439,8 +459,9 @@ export default class MultipleChoice extends RunestoneBase {
             if (buttonObjs[i].checked) {
                 given = buttonObjs[i].value;
                 this.givenArray.push(given);
-                this.feedbackString += `<li value="${i + 1}">${this.feedbackList[i]
-                    }</li>`;
+                this.feedbackString += `<li value="${i + 1}">${
+                    this.feedbackList[i]
+                }</li>`;
                 this.givenlog += given + ",";
                 this.singlefeedback = this.feedbackList[i];
             }
@@ -546,8 +567,7 @@ export default class MultipleChoice extends RunestoneBase {
             this.feedBackDiv.innerHTML = `✔️ <ol type="A">${feedbackText}</ul>`;
             this.feedBackDiv.className = "alert alert-info";
         } else {
-            this.feedBackDiv.innerHTML =
-                `✖️ You gave ${numGiven} ${answerStr} and got ${numCorrect} correct of ${numNeeded} needed.<ol type="A">${feedbackText}</ul>`;
+            this.feedBackDiv.innerHTML = `✖️ You gave ${numGiven} ${answerStr} and got ${numCorrect} correct of ${numNeeded} needed.<ol type="A">${feedbackText}</ul>`;
             this.feedBackDiv.className = "alert alert-danger";
         }
         this.queueMathJax(this.feedBackDiv);
@@ -570,13 +590,16 @@ export default class MultipleChoice extends RunestoneBase {
                 this.enableMCComparison();
             }
         } else {
-            if (eBookConfig.peer &&
+            if (
+                eBookConfig.peer &&
                 eBookConfig.peerMode === "async" &&
                 typeof studentVoteCount !== "undefined" &&
-                studentVoteCount > 1) {
+                studentVoteCount > 1
+            ) {
                 this.renderMCMAFeedBack();
             } else {
-                this.feedBackDiv.innerHTML = "<p>Your answer has been recorded</p>";
+                this.feedBackDiv.innerHTML =
+                    "<p>Your answer has been recorded</p>";
                 this.feedBackDiv.className = "alert alert-info";
             }
         }
@@ -739,7 +762,9 @@ export default class MultipleChoice extends RunestoneBase {
         data.course_name = eBookConfig.course;
         try {
             const params = new URLSearchParams(data);
-            const resp = await fetch(`${eBookConfig.new_server_prefix}/assessment/getaggregateresults?${params.toString()}`);
+            const resp = await fetch(
+                `${eBookConfig.new_server_prefix}/assessment/getaggregateresults?${params.toString()}`,
+            );
             const json = await resp.json();
             this.compareModal(json);
         } catch (e) {
@@ -765,15 +790,17 @@ export default class MultipleChoice extends RunestoneBase {
 ==   execute our code on them    ==
 =================================*/
 document.addEventListener("runestone:login-complete", function () {
-    document.querySelectorAll("[data-component=multiplechoice]").forEach(function (el, index) {
-        // MC
-        var opts = {
-            orig: el,
-            useRunestoneServices: eBookConfig.useRunestoneServices,
-        };
-        if (!el.closest("[data-component=timedAssessment]")) {
-            // If this element exists within a timed component, don't render it here
-            window.componentMap[el.id] = new MultipleChoice(opts);
-        }
-    });
+    document
+        .querySelectorAll("[data-component=multiplechoice]")
+        .forEach(function (el, index) {
+            // MC
+            var opts = {
+                orig: el,
+                useRunestoneServices: eBookConfig.useRunestoneServices,
+            };
+            if (!el.closest("[data-component=timedAssessment]")) {
+                // If this element exists within a timed component, don't render it here
+                window.componentMap[el.id] = new MultipleChoice(opts);
+            }
+        });
 });

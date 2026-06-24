@@ -112,7 +112,7 @@ export default class SQLActiveCode extends ActiveCode {
         let query = await this.buildProg(false); // false --> Do not include suffix
         if (!this.db) {
             $(this.output).text(
-                `Error: Database not initialized! DBURL: ${this.dburl}`
+                `Error: Database not initialized! DBURL: ${this.dburl}`,
             );
             return;
         }
@@ -177,7 +177,7 @@ export default class SQLActiveCode extends ActiveCode {
             if (this.slideit) {
                 $(this.historyScrubber).on(
                     "slidechange",
-                    this.slideit.bind(this)
+                    this.slideit.bind(this),
                 );
             }
             $(this.historyScrubber).slider("enable");
@@ -249,7 +249,7 @@ export default class SQLActiveCode extends ActiveCode {
         // Now handle autograding
         if (this.suffix) {
             this.testResult = this.autograde(
-                this.results[this.results.length - 1]
+                this.results[this.results.length - 1],
             );
         } else {
             $(this.output).css("visibility", "hidden");
@@ -318,7 +318,7 @@ export default class SQLActiveCode extends ActiveCode {
                 col,
                 oper,
                 expected,
-                result_table
+                result_table,
             );
             result += "\n";
         }
@@ -327,8 +327,9 @@ export default class SQLActiveCode extends ActiveCode {
             pct = 0.0;
         }
         pct = pct.toLocaleString(undefined, { maximumFractionDigits: 2 });
-        result += `You passed ${this.passed} out of ${this.passed + this.failed
-            } tests for ${pct}%`;
+        result += `You passed ${this.passed} out of ${
+            this.passed + this.failed
+        } tests for ${pct}%`;
         this.unit_results = `percent:${pct}:passed:${this.passed}:failed:${this.failed}`;
         return result;
     }

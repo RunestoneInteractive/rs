@@ -58,9 +58,15 @@ export default class ACFactory {
             } else if (lang === "sql") {
                 return new SQLActiveCode(opts);
             } else if (
-                ["java", "cpp", "c", "python3", "python2", "octave", "kotlin"].indexOf(
-                    lang
-                ) > -1
+                [
+                    "java",
+                    "cpp",
+                    "c",
+                    "python3",
+                    "python2",
+                    "octave",
+                    "kotlin",
+                ].indexOf(lang) > -1
             ) {
                 return new LiveCode(opts);
             } else {
@@ -142,8 +148,9 @@ export default class ACFactory {
                 <div class="ac-modal-content">
                   <div class="ac-modal-header">
                     <button type="button" class="close first-focusable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="ac-modal-title">Scratch ActiveCode (${languageNames[lang.toLowerCase()] || lang
-            })</h4>
+                    <h4 class="ac-modal-title">Scratch ActiveCode (${
+                        languageNames[lang.toLowerCase()] || lang
+                    })</h4>
                   </div>
                   <div class="ac-modal-body">
                   <div data-component="activecode" id=${divid}>
@@ -163,11 +170,16 @@ export default class ACFactory {
         // that it is properly displayed.
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
-                if (mutation.attributeName === 'style' || mutation.attributeName === 'class') {
+                if (
+                    mutation.attributeName === "style" ||
+                    mutation.attributeName === "class"
+                ) {
                     if (isInViewport(observable)) {
-                        observable.querySelectorAll(".CodeMirror").forEach(function (e) {
-                            e.CodeMirror.refresh();
-                        });
+                        observable
+                            .querySelectorAll(".CodeMirror")
+                            .forEach(function (e) {
+                                e.CodeMirror.refresh();
+                            });
                     }
                 }
             });
@@ -176,7 +188,7 @@ export default class ACFactory {
         // Start observing the element for style changes
         observer.observe(observable, {
             attributes: true,
-            attributeFilter: ['style', 'class']
+            attributeFilter: ["style", "class"],
         });
 
         //todo intercept the close event and return focus to the pencil icon
@@ -195,9 +207,13 @@ export default class ACFactory {
         var divid = "ac_modal_" + eBookConfig.scratchDiv;
         var realDiv = document.getElementById(divid);
         realDiv.classList.remove("ac_section");
-        realDiv.style.display = (realDiv.style.display === "none" || realDiv.style.display === "") ? "block" : "none";
+        realDiv.style.display =
+            realDiv.style.display === "none" || realDiv.style.display === ""
+                ? "block"
+                : "none";
 
-        const selectors = '.first-focusable, button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+        const selectors =
+            '.first-focusable, button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
         let firstFocusableElement = realDiv.querySelector(selectors);
         let focusableElements = realDiv.querySelectorAll(selectors);
         let lastFocusableElement =
@@ -230,8 +246,6 @@ export default class ACFactory {
             }
         });
 
-
-
         if (firstFocusableElement) {
             console.log(`focus on ${firstFocusableElement}`);
             firstFocusableElement.focus();
@@ -245,18 +259,26 @@ export default class ACFactory {
 
 document.addEventListener("runestone:login-complete", function () {
     ACFactory.createScratchActivecode();
-    document.querySelectorAll("[data-component='activecode']").forEach(function (element) {
-        if (element.closest("[data-component='timedAssessment']") === null) {
-            try {
-                let textArea = element.querySelector("textarea");
-                window.componentMap[element.id] = ACFactory.createActiveCode(element, textArea ? textArea.dataset.lang : null);
-            } catch (err) {
-                console.error(`Error rendering Activecode Problem ${element.id}
+    document
+        .querySelectorAll("[data-component='activecode']")
+        .forEach(function (element) {
+            if (
+                element.closest("[data-component='timedAssessment']") === null
+            ) {
+                try {
+                    let textArea = element.querySelector("textarea");
+                    window.componentMap[element.id] =
+                        ACFactory.createActiveCode(
+                            element,
+                            textArea ? textArea.dataset.lang : null,
+                        );
+                } catch (err) {
+                    console.error(`Error rendering Activecode Problem ${element.id}
                 Details: ${err}`);
-                console.error(err.stack);
+                    console.error(err.stack);
+                }
             }
-        }
-    });
+        });
     if (loggedout) {
         for (let k in window.componentMap) {
             if (window.componentMap[k].disableSaveLoad) {
