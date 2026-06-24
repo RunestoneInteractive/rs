@@ -78,29 +78,31 @@ export default class DragNDrop extends RunestoneBase {
         invisibleErrorDiv.classList.add("ptx-runestone-container");
         document.body.appendChild(invisibleErrorDiv);
         console.log("Populating DragNDrop with premises and responses");
+        // A question may be authored as a JSON <script> block (the same shape
+        // used by matching) instead of the legacy data-subcomponent markup.
+        const script = this.origElem.querySelector("script");
+        if (script) {
+            this.populateFromJson(script, invisibleErrorDiv);
+        } else {
+            this.populateFromHtml(invisibleErrorDiv);
+        }
+    }
+
+    /*
+     * Build the premises/responses from the legacy markup where each
+     * draggable/dropzone is a data-subcomponent element linked by data-category.
+     */
+    populateFromHtml(invisibleErrorDiv) {
         this.cards = this.origElem.querySelectorAll(
             "[data-subcomponent='draggable']"
         );
         for (let element of this.cards) {
-            let replaceSpan = document.createElement("span");
-            replaceSpan.innerHTML = element.innerHTML;
-            replaceSpan.id = element.id;
-            replaceSpan.setAttribute("draggable", "true");
-            replaceSpan.classList.add("draggable-drag");
-            replaceSpan.classList.add("premise");
-            replaceSpan.tabIndex = 0;
-            replaceSpan.setAttribute('role', 'button');
-            replaceSpan.dataset.category = this.getCategory(element);
-            replaceSpan.dataset.parent_id = this.divid;
-            this.premiseArray.push(replaceSpan);
-            this.setDragListeners(replaceSpan);
-            // now create an error message for when the premise is dropped in the wrong place
-            let errorMessage = document.createElement("div");
-            errorMessage.classList.add("vh-dnd-error");
-            errorMessage.innerHTML = "Incorrect drop zone for " + replaceSpan.innerHTML;
-            errorMessage.setAttribute("role", "alert");
-            errorMessage.id = replaceSpan.id + "_error";
-            invisibleErrorDiv.appendChild(errorMessage);
+            this.makePremise(
+                element.id,
+                element.innerHTML,
+                this.getCategory(element),
+                invisibleErrorDiv
+            );
         }
         if (this.random) {
             // Shuffle the premiseArray if random is true
@@ -109,22 +111,11 @@ export default class DragNDrop extends RunestoneBase {
         for (let element of this.origElem.querySelectorAll(
             "[data-subcomponent='dropzone']"
         )) {
-            let replaceSpan = document.createElement("span");
-            replaceSpan.innerHTML = element.innerHTML;
-            replaceSpan.id = element
-                .getAttribute("for")
-                .replace("drag", "drop");
-            replaceSpan.classList.add(
-                "draggable-drop",
-                "drop-label",
-                "response"
+            this.makeResponse(
+                element.getAttribute("for").replace("drag", "drop"),
+                element.innerHTML,
+                this.getCategory(element)
             );
-            replaceSpan.tabIndex = 0;
-            replaceSpan.setAttribute('role', 'button');
-            replaceSpan.dataset.category = this.getCategory(element);
-            replaceSpan.dataset.parent_id = this.divid;
-            this.responseArray.push(replaceSpan);
-            this.setDropListeners(replaceSpan);
         }
 
         this.question = this.origElem.querySelector(
@@ -136,6 +127,97 @@ export default class DragNDrop extends RunestoneBase {
         if (feedback) {
             this.feedback = feedback.innerHTML;
         }
+    }
+
+    /*
+     * Build the premises/responses from a JSON representation of the question.
+     * The schema matches matching.js:
+     *   { statement, feedback,
+     *     left:  [{id, label}, ...],   // draggables (premises)
+     *     right: [{id, label}, ...],   // dropzones (responses)
+     *     correctAnswers: [[leftId, rightId], ...] }
+     * A premise belongs in the dropzone given by its correctAnswers pair, so we
+     * use the response id as the shared category. Several premises may map to
+     * the same response (many-to-one). A premise that appears in no pair is a
+     * distractor and gets a category that matches no dropzone.
+     */
+    populateFromJson(script, invisibleErrorDiv) {
+        let data;
+        try {
+            data = JSON.parse(script.textContent);
+        } catch (err) {
+            console.error("Failed to parse dragndrop JSON:", err);
+            return;
+        }
+        this.boxData = data;
+        let premiseCategory = {};
+        for (let pair of data.correctAnswers || []) {
+            premiseCategory[pair[0]] = pair[1];
+        }
+        for (let item of data.left || []) {
+            let category = premiseCategory[item.id] || "distractor-" + item.id;
+            this.makePremise(item.id, item.label, category, invisibleErrorDiv);
+        }
+        if (this.random) {
+            // Shuffle the premiseArray if random is true
+            this.premiseArray = shuffleArray(this.premiseArray);
+        }
+        for (let item of data.right || []) {
+            // A response's category is its own id; the premises that belong in
+            // it share that category.
+            this.makeResponse(item.id, item.label, item.id);
+        }
+        this.question = data.statement || "";
+        this.feedback = data.feedback || "";
+    }
+
+    /*
+     * Create a draggable premise span and register it. Shared by the HTML and
+     * JSON population paths.
+     */
+    makePremise(id, label, category, invisibleErrorDiv) {
+        let replaceSpan = document.createElement("span");
+        replaceSpan.innerHTML = label;
+        replaceSpan.id = id;
+        replaceSpan.setAttribute("draggable", "true");
+        replaceSpan.classList.add("draggable-drag");
+        replaceSpan.classList.add("premise");
+        replaceSpan.tabIndex = 0;
+        replaceSpan.setAttribute('role', 'button');
+        replaceSpan.dataset.category = category;
+        replaceSpan.dataset.parent_id = this.divid;
+        this.premiseArray.push(replaceSpan);
+        this.setDragListeners(replaceSpan);
+        // now create an error message for when the premise is dropped in the wrong place
+        let errorMessage = document.createElement("div");
+        errorMessage.classList.add("vh-dnd-error");
+        errorMessage.innerHTML = "Incorrect drop zone for " + replaceSpan.innerHTML;
+        errorMessage.setAttribute("role", "alert");
+        errorMessage.id = replaceSpan.id + "_error";
+        invisibleErrorDiv.appendChild(errorMessage);
+        return replaceSpan;
+    }
+
+    /*
+     * Create a dropzone response span and register it. Shared by the HTML and
+     * JSON population paths.
+     */
+    makeResponse(id, label, category) {
+        let replaceSpan = document.createElement("span");
+        replaceSpan.innerHTML = label;
+        replaceSpan.id = id;
+        replaceSpan.classList.add(
+            "draggable-drop",
+            "drop-label",
+            "response"
+        );
+        replaceSpan.tabIndex = 0;
+        replaceSpan.setAttribute('role', 'button');
+        replaceSpan.dataset.category = category;
+        replaceSpan.dataset.parent_id = this.divid;
+        this.responseArray.push(replaceSpan);
+        this.setDropListeners(replaceSpan);
+        return replaceSpan;
     }
 
     getCategory(elem) {
