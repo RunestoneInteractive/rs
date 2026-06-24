@@ -363,7 +363,7 @@ async def get_assignment_gb(
             return "{0:.2f}".format(points_received)
 
         return "{0:.2f}".format(100 * points_received / total_possible_points)
-    
+
     # Only calculate practice grades if this course has practice settings
     if not practice_setting.empty:
         show_practice = True
@@ -384,17 +384,18 @@ async def get_assignment_gb(
 
             # Calculate the total possible points for practice days.
             practice_total_points = float(ps.day_points or 0) * float(
-            ps.max_practice_days or 0
+                ps.max_practice_days or 0
             )
 
             # Loop through each student with completed practice questions and calculate
             # their spaced practice grade based on the number of questions they completed.
             for _, prow in practice_counts.iterrows():
                 points_received = float(ps.day_points or 0) * float(
-                prow.practice_completion_count or 0)
+                    prow.practice_completion_count or 0
+                )
                 practice_by_user_id[prow.user_id] = format_practice_grade(
-                points_received, practice_total_points
-            )
+                    points_received, practice_total_points
+                )
 
         # Otherwise, grade practice based on the number of completed questions.
         else:
@@ -411,17 +412,18 @@ async def get_assignment_gb(
                 params=(course.course_name,),
             )
             practice_total_points = float(ps.question_points or 0) * float(
-            ps.max_practice_questions or 0
+                ps.max_practice_questions or 0
             )
 
             # Loop through each student with completed practice questions and calculate
             # their spaced practice grade based on the number of questions they completed.
             for _, prow in practice_counts.iterrows():
                 points_received = float(ps.question_points or 0) * float(
-                prow.practice_completion_count or 0)
+                    prow.practice_completion_count or 0
+                )
                 practice_by_user_id[prow.user_id] = format_practice_grade(
-                points_received, practice_total_points
-            )
+                    points_received, practice_total_points
+                )
     apoints = {}
     for ix, row in assignments.iterrows():
         rslogger.debug(f"AROW = {row['name']}, {row.points}")
@@ -443,7 +445,7 @@ async def get_assignment_gb(
     pt = pt.reindex(index=students.index)
     # Make sure reset_index() creates a sid column later.
     pt.index.name = "sid"
-    
+
     cols = pt.columns.to_list()
     display_cols = []
     formatter_map = {}
