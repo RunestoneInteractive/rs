@@ -30,7 +30,6 @@ import "codemirror/addon/hint/show-hint.css";
 import "codemirror/addon/hint/sql-hint.js";
 import "codemirror/addon/hint/anyword-hint.js";
 import "codemirror/addon/edit/matchbrackets.js";
-import { registerGDScriptMode } from "./codemirror_gdscript-mode.js";
 
 
 
@@ -72,12 +71,7 @@ const codeIndent = () => Number(window.getComputedStyle(document.body).getProper
 export class ActiveCode extends RunestoneBase {
     constructor(opts) {
         super(opts);
-        // for gdscript mode in codemirror (register once)
-        // may want to register this mode in a different spot
-        // where it wouldn't be called multiple times.
-        if (!CodeMirror.modes || !CodeMirror.modes.gdscript) {
-             registerGDScriptMode(CodeMirror);
-        }
+
         var orig = $(opts.orig).find("textarea")[0];
         this.containerDiv = opts.orig;
         this.useRunestoneServices = opts.useRunestoneServices;

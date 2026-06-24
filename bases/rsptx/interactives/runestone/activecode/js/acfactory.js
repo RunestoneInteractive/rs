@@ -4,6 +4,8 @@ import HTMLActiveCode from "./activecode_html.js";
 import SQLActiveCode from "./activecode_sql.js";
 import LiveCode from "./livecode.js";
 import GodotActiveCode from "./activecode_gdscript";
+import CodeMirror from "codemirror";
+import { registerGDScriptMode } from "./codemirror_gdscript-mode.js";
 
 
 import {
@@ -52,6 +54,12 @@ export default class ACFactory {
             } else if (lang === "sql") {
                 return new TimedSQLActiveCode(opts);
             } else if (lang === "gdscript") {
+                // for gdscript mode in codemirror (register once)
+                // may want to register this mode in a different spot
+                // where it wouldn't be called multiple times.
+                if (!CodeMirror.modes || !CodeMirror.modes.gdscript) {
+                    registerGDScriptMode(CodeMirror);
+                }
                 return new TimedGodotActiveCode(opts);
             } else {
                 return new TimedActiveCode(opts);
@@ -64,6 +72,12 @@ export default class ACFactory {
             } else if (lang === "sql") {
                 return new SQLActiveCode(opts);
             } else if (lang === "gdscript") {
+                // for gdscript mode in codemirror (register once)
+                // may want to register this mode in a different spot
+                // where it wouldn't be called multiple times.
+                if (!CodeMirror.modes || !CodeMirror.modes.gdscript) {
+                    registerGDScriptMode(CodeMirror);
+                }
                 return new GodotActiveCode(opts);
             } else if (
                 ["java", "cpp", "c", "python3", "python2", "octave", "kotlin"].indexOf(
