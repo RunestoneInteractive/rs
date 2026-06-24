@@ -87,10 +87,7 @@ export default class BlockBasedGrader {
             }
         }
 
-        if (
-            isCorrectOrder &&
-            this.correctLength
-        ) {
+        if (isCorrectOrder && this.correctLength) {
             // Perfect
             state = "correct";
         } else if (!isCorrectOrder && state != "incorrectTooShort") {

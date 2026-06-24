@@ -1,4 +1,4 @@
-import {MatchingProblem} from "./matching.js";
+import { MatchingProblem } from "./matching.js";
 
 export default class TimedMatching extends MatchingProblem {
     constructor(opts) {

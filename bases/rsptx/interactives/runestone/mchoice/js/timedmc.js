@@ -57,12 +57,12 @@ export default class TimedMC extends MultipleChoice {
             if (this.correctList.indexOf(tmpid) >= 0) {
                 this.feedBackEachArray[i].classList.add(
                     "alert",
-                    "alert-success"
+                    "alert-success",
                 );
             } else {
                 this.feedBackEachArray[i].classList.add(
                     "alert",
-                    "alert-danger"
+                    "alert-danger",
                 );
             }
         }

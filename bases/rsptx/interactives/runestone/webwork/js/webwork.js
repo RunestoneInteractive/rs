@@ -36,7 +36,7 @@ class WebWork extends RunestoneBase {
         this.correct = data.correct;
         this.percent = data.percent;
         console.log(
-            `about to decorate the status of WW ${this.divid} ${this.correct}`
+            `about to decorate the status of WW ${this.divid} ${this.correct}`,
         );
         this.decorateStatus();
     }
@@ -64,7 +64,9 @@ class WebWork extends RunestoneBase {
                 this.decorateStatus();
             } catch (err) {
                 // error while parsing; likely due to bad value stored in storage
-                console.log(`Error parsing stored WebWork data for ${this.divid}: ${err.message}`);
+                console.log(
+                    `Error parsing stored WebWork data for ${this.divid}: ${err.message}`,
+                );
                 error = true;
             }
             if (error || storedData.timestamp < eBookConfig.termStartDate) {
@@ -83,7 +85,7 @@ class WebWork extends RunestoneBase {
         };
         localStorage.setItem(
             this.localStorageKey(),
-            JSON.stringify(storageObj)
+            JSON.stringify(storageObj),
         );
     }
 
@@ -175,7 +177,7 @@ function logWebWork(e, data) {
             wwObj.logCurrentAnswer();
         } else {
             console.log(
-                `Error: Could not find webwork object ${data.inputs_ref.problemUUID}`
+                `Error: Could not find webwork object ${data.inputs_ref.problemUUID}`,
             );
         }
     }
@@ -192,7 +194,7 @@ function logShowCorrect(e, data) {
             });
         } else {
             console.log(
-                `Error: Could not find webwork object ${data.inputs_ref.problemUUID}`
+                `Error: Could not find webwork object ${data.inputs_ref.problemUUID}`,
             );
         }
     }

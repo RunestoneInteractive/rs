@@ -14,7 +14,7 @@ function presentToggle() {
     if (bod.hasClass(presentClass)) {
         $("section *")
             .not(
-                "h1, .presentation-title, .btn-presenter, .runestone, .runestone *, section, .pre, code"
+                "h1, .presentation-title, .btn-presenter, .runestone, .runestone *, section, .pre, code",
             )
             .removeClass("hidden"); //show everything
         $("#completionButton").removeClass("hidden");
@@ -27,7 +27,7 @@ function presentToggle() {
     } else {
         $("section *")
             .not(
-                "h1, .presentation-title, .btn-presenter, .runestone, .runestone *, section, .pre, code"
+                "h1, .presentation-title, .btn-presenter, .runestone, .runestone *, section, .pre, code",
             )
             .addClass("hidden"); // hide extraneous stuff
         $("#completionButton").addClass("hidden");
@@ -76,7 +76,7 @@ function presentModeSetup() {
         "<div class='presentation-title'> \
         <button class='prev-exercise btn-presenter btn-grey-outline' onclick='prevExercise()'>Back</button> \
         <button class='next-exercise btn-presenter btn-grey-solid' onclick='nextExercise()'>Next</button> \
-      </div>"
+      </div>",
     );
 }
 function getActiveExercise() {
@@ -98,21 +98,21 @@ function activateExercise(index) {
     }
 }
 
-window.nextExercise = function() {
+window.nextExercise = function () {
     let active = getActiveExercise();
     let nextIndex = codeExercises.index(active) + 1;
     if (nextIndex < codeExercises.length) {
         activateExercise(nextIndex);
     }
-}
+};
 
-window.prevExercise = function() {
+window.prevExercise = function () {
     let active = getActiveExercise();
     let prevIndex = codeExercises.index(active) - 1;
     if (prevIndex >= 0) {
         activateExercise(prevIndex);
     }
-}
+};
 
 function configure() {
     let rightNav = $(".navbar-right");
@@ -124,7 +124,7 @@ function configure() {
           <option value='present'>Code Presenter</option> \
         </select> \
       </label> \
-    </li>"
+    </li>",
     );
 
     let modeSelect = $(".mode-select").change(presentToggle);
@@ -177,7 +177,7 @@ function configureCodelens() {
 
     $("[data-childcomponent] .ac_section").each(function () {
         $(this).prepend(
-            '<div class="presentation-options"><button class="row-mode layout-btn"><img src="../_images/row-btn-content.png" alt="Rows"></button><button class="card-mode layout-btn"><img src="../_images/card-btn-content.png" alt="Card"></button></div>'
+            '<div class="presentation-options"><button class="row-mode layout-btn"><img src="../_images/row-btn-content.png" alt="Rows"></button><button class="card-mode layout-btn"><img src="../_images/card-btn-content.png" alt="Card"></button></div>',
         );
     });
 
@@ -192,7 +192,7 @@ function configureCodelens() {
         me.parent().prepend(
             "<div class='presentation-title'><div class='title-text'> Example " +
                 (Number(index) + 1) +
-                "</div></div>"
+                "</div></div>",
         );
     });
 

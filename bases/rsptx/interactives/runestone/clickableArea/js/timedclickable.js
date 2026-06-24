@@ -5,8 +5,8 @@ import ClickableArea from "./clickable.js";
 export default class TimedClickableArea extends ClickableArea {
     constructor(opts) {
         super(opts);
-        if (! this.assessmentTaken){
-            this.restoreAnswers({});  // This takes the place of reinitializeListeners -- but might be better to implement that method for consistency.
+        if (!this.assessmentTaken) {
+            this.restoreAnswers({}); // This takes the place of reinitializeListeners -- but might be better to implement that method for consistency.
         }
         this.renderTimedIcon(this.containerDiv);
         this.hideButtons();
