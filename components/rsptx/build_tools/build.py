@@ -853,7 +853,7 @@ def restart(config):
             "compose",
             "-f",
             "docker-compose.yml",
-            "stop",
+            "down",
         ]
         ret1 = subprocess.run(
             command_list,
@@ -871,7 +871,7 @@ def restart(config):
                 "compose",
                 "-f",
                 "docker-compose.yml",
-                "stop",
+                "down",
                 service,
             ]
             console.print(f"Restarting the {service} service...", style="bold")

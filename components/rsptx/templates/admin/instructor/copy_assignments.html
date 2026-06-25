@@ -93,7 +93,7 @@
             return;
         }
 
-        $.getJSON("/runestone/admin/get_assignment_list", data, function (data) {
+        $.getJSON("/admin/instructor/source_assignments", data, function (data) {
             let container = document.getElementById("assignSelection");
 
             // Create label

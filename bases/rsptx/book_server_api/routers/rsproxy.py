@@ -10,7 +10,10 @@
 #
 # Standard library
 # ----------------
+import ipaddress
+import socket
 from typing import Dict, Optional
+from urllib.parse import urlparse
 from PIL import Image
 from io import BytesIO
 
@@ -40,10 +43,95 @@ router = APIRouter(
 )
 
 
+# SSRF protections for the image proxy
+# ------------------------------------
+# The image proxy fetches a fully user-controlled URL (student Skulpt image
+# programs reference arbitrary public images), so we cannot use a host
+# allow-list.  Instead we permit any *public* URL and block anything that
+# resolves into our own network.
+MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB cap on the fetched body
+# Bound the decoded pixel count to guard against decompression bombs.
+Image.MAX_IMAGE_PIXELS = 64_000_000  # ~64 megapixels
+
+
+class ImageFetchError(Exception):
+    """Raised when an image URL is unsafe or cannot be safely retrieved."""
+
+
+def _assert_public_host(host: str) -> None:
+    """Resolve ``host`` and raise :class:`ImageFetchError` if any resolved
+    address is private, loopback, link-local, reserved, multicast, or
+    unspecified.  This is the core SSRF guard: it blocks the cloud metadata
+    endpoint (169.254.169.254) and anything inside our own network.
+    """
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror as e:
+        raise ImageFetchError(f"cannot resolve host {host}: {e}")
+    for info in infos:
+        ip = info[4][0]
+        addr = ipaddress.ip_address(ip)
+        if (
+            addr.is_private
+            or addr.is_loopback
+            or addr.is_link_local
+            or addr.is_reserved
+            or addr.is_multicast
+            or addr.is_unspecified
+        ):
+            raise ImageFetchError(f"blocked non-public address {ip} for host {host}")
+
+
+def safe_image_fetch(image_url: str) -> rq.Response:
+    """Fetch ``image_url`` with SSRF protections, returning the streamed
+    :class:`requests.Response`.
+
+    - only ``http``/``https`` schemes are allowed
+    - the host must resolve only to public addresses
+    - redirects are *not* followed (a public URL must not bounce to an internal
+      one); a 3xx is treated as a failure
+    - connect/read timeouts bound the request
+    - the response must advertise an ``image/*`` content type and stay within
+      the size cap
+
+    The caller is responsible for closing the returned response.
+    """
+    parsed = urlparse(image_url)
+    if parsed.scheme not in ("http", "https"):
+        raise ImageFetchError(f"unsupported scheme {parsed.scheme!r}")
+    if not parsed.hostname:
+        raise ImageFetchError("missing host")
+
+    _assert_public_host(parsed.hostname)
+
+    resp = rq.get(image_url, timeout=(5, 10), stream=True, allow_redirects=False)
+
+    # Treat any redirect as a failure rather than following it: the target
+    # could point at an internal address and sidestep _assert_public_host.
+    if resp.is_redirect or resp.is_permanent_redirect:
+        resp.close()
+        raise ImageFetchError(f"redirects are not allowed (got {resp.status_code})")
+
+    content_type = resp.headers.get("Content-Type", "")
+    if not content_type.lower().startswith("image/"):
+        resp.close()
+        raise ImageFetchError(f"not an image (Content-Type {content_type!r})")
+
+    # Reject oversized images up front when the server advertises a length.
+    declared = resp.headers.get("Content-Length")
+    if declared is not None and declared.isdigit() and int(declared) > MAX_IMAGE_BYTES:
+        resp.close()
+        raise ImageFetchError("image exceeds size limit")
+
+    return resp
+
+
 @router.api_route("/imageproxy/{image_url:path}", methods=["GET", "POST"])
 async def imageproxy(request: Request, image_url: str, response_class=HTMLResponse):
     """
-    Create the library page from the Library database table.
+    Proxy and thumbnail an image referenced by student code (Skulpt image
+    programs).  The image URL is fully user-controlled, so this endpoint applies
+    SSRF protections via :func:`safe_image_fetch` before retrieving anything.
 
     :param request: The FastAPI request object.
     :type request: Request
@@ -59,7 +147,12 @@ async def imageproxy(request: Request, image_url: str, response_class=HTMLRespon
         image_url = image_url.replace("https:/", "https://")
         rslogger.debug(f"NEW Image URL: {image_url}")
     try:
-        response = rq.get(image_url)
+        response = safe_image_fetch(image_url)
+    except ImageFetchError as e:
+        rslogger.warning(f"Blocked image proxy for {image_url}: {e}")
+        return HTMLResponse(
+            content="Cannot Retrieve Image", status_code=400, media_type="text/html"
+        )
     except Exception:
         rslogger.error(f"Error getting image: {image_url}")
         return HTMLResponse(
@@ -67,15 +160,21 @@ async def imageproxy(request: Request, image_url: str, response_class=HTMLRespon
         )
     try:
         if response.status_code == 200:
-            if "Content-type" in response.headers:
-                image_type = response.headers["Content-Type"].split("/")[1]
-                mt = response.headers["Content-Type"]
-            else:
-                image_type = image_url.split(".")[-1]
-                if image_type == "jpg":
-                    image_type = "jpeg"
-                mt = f"image/{image_type}"
-            img = Image.open(BytesIO(response.content))
+            mt = response.headers["Content-Type"]
+            image_type = mt.split("/")[1]
+            # Read the body with a hard size cap to avoid memory exhaustion.
+            content = b""
+            for chunk in response.iter_content(8192):
+                content += chunk
+                if len(content) > MAX_IMAGE_BYTES:
+                    response.close()
+                    return HTMLResponse(
+                        content="Image too large",
+                        status_code=413,
+                        media_type="text/html",
+                    )
+            response.close()
+            img = Image.open(BytesIO(content))
             img.thumbnail((320, 240))
             fake_file = BytesIO()
             img.save(fake_file, image_type)
@@ -85,8 +184,17 @@ async def imageproxy(request: Request, image_url: str, response_class=HTMLRespon
                 media_type=mt,
             )
         elif response.status_code == 404:
+            response.close()
             return HTMLResponse(
                 content="Image not found", status_code=404, media_type="text/html"
+            )
+        else:
+            status_code = response.status_code
+            response.close()
+            return HTMLResponse(
+                content="Cannot Retrieve Image",
+                status_code=status_code,
+                media_type="text/html",
             )
     except Exception as e:
         rslogger.error(f"Error resizing image: {e}")

@@ -284,11 +284,11 @@
 </style>
 {% endblock %}
 
-{% block navitems %}
+{% set navitems %}
 <li class="nav-item">
     <a class="nav-link" href="/ns/books/published/{{ course.course_name }}/index.html">Back to {{ course.course_name }}</a>
 </li>
-{% endblock %}
+{% endset %}
 
 {% block content %}
 <div style="max-width:1170px; margin:0 auto; padding:0 15px;">

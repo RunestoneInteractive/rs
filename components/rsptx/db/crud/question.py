@@ -58,6 +58,26 @@ async def fetch_question(
         return QuestionValidator.from_orm(res.scalars().first())
 
 
+async def fetch_question_by_id(question_id: int) -> Optional[QuestionValidator]:
+    """
+    Fetch a single question row by its primary key ``id``.
+
+    Useful for authorization checks where the caller supplies a question id and
+    we need to confirm which base course the existing row belongs to.
+
+    :param question_id: int, the primary key of the question
+    :return: QuestionValidator if a matching row exists, otherwise None
+    """
+    query = select(Question).where(Question.id == question_id)
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        row = res.scalars().first()
+        if row is None:
+            return None
+        return QuestionValidator.from_orm(row)
+
+
 async def count_matching_questions(name: str) -> int:
     """
     Count the number of Question entries that match the given name.
@@ -409,6 +429,34 @@ async def fetch_question_grade(sid: str, course_name: str, qid: str):
     async with async_session() as session:
         res = await session.execute(query)
         return QuestionGradeValidator.from_orm(res.scalars().one_or_none())
+
+
+async def fetch_assignment_release_for_div_id(course_id: int, div_id: str):
+    """
+    For the assignment question matching ``div_id`` in the given course, return a row
+    with the assignment's ``released`` flag and the question's ``points``.
+
+    :param course_id: int, the id of the course
+    :param div_id: str, the question name (div_id)
+    :return: a Row with ``released`` and ``points``, or ``None`` if the question is not
+        part of any assignment in the course.
+
+    Used by the activecode "grade report" popup (see the assignment server's
+    ``getassignmentgrade`` endpoint).
+    """
+    query = (
+        select(Assignment.released, AssignmentQuestion.points)
+        .where(
+            (Assignment.course == course_id)
+            & (AssignmentQuestion.assignment_id == Assignment.id)
+            & (AssignmentQuestion.question_id == Question.id)
+            & (Question.name == div_id)
+        )
+        .order_by(Assignment.id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return res.first()
 
 
 async def create_question_grade_entry(

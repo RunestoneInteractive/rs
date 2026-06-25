@@ -46,11 +46,14 @@ from fastapi import (
     APIRouter,
     Cookie,
     Query,
+    Request,
     WebSocket,  # Depends,; noqa F401
     status,
 )
+from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
+from rsptx.auth.session import auth_manager
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
 from rsptx.db.crud import create_useinfo_entry
@@ -58,8 +61,6 @@ from rsptx.db.models import UseinfoValidation
 from rsptx.validation.schemas import PeerMessage
 from ..localconfig import local_settings
 from rsptx.response_helpers.core import canonical_utcnow
-
-# from ..session import auth_manager
 
 # Routing
 # =======
@@ -154,7 +155,30 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
     will block
     """
     rslogger.info(f"PEERCOM {os.getpid()}: IN WEBSOCKET {uname=}")
-    username = uname
+
+    # Authenticate the connection from the access_token cookie.  The identity is
+    # taken from the validated JWT, never from the {uname} path segment, so a
+    # client cannot subscribe to another user's messages by changing the URL.
+    token = websocket.cookies.get(auth_manager.cookie_name)
+    authed_user = None
+    if token:
+        try:
+            authed_user = await auth_manager.get_current_user(token)
+        except Exception as e:
+            rslogger.warning(f"PEERCOM {os.getpid()}: websocket auth failed: {e}")
+    if authed_user is None:
+        rslogger.warning(
+            f"PEERCOM {os.getpid()}: rejecting unauthenticated websocket for {uname=}"
+        )
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+    if authed_user.username != uname:
+        rslogger.warning(
+            f"PEERCOM {os.getpid()}: websocket path user {uname!r} != authenticated "
+            f"user {authed_user.username!r}; using authenticated identity"
+        )
+
+    username = authed_user.username
     # local_users is a global/module variable shared by all  requests served
     # by the same worker process.
     local_users.add(username)
@@ -292,6 +316,15 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
 
 
 @router.post("/send_message")
-async def send_message(packet: PeerMessage):
+async def send_message(packet: PeerMessage, request: Request):
+    # Require an authenticated user and force the sender identity to that user so
+    # a caller cannot publish messages spoofed as someone else (or anonymously).
+    user = getattr(request.state, "user", None)
+    if user is None:
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"detail": "Not authenticated"},
+        )
+    packet.sender = user.username
     r = await aioredis.from_url(settings.redis_uri)
     r.publish("peermessages", packet.model_dump_json())

@@ -40,11 +40,11 @@
       <td style="white-space: nowrap;">
         {% if is_instructor %}
         <a href='/assignment/instructor/builder/{{assignment.id}}'>
-          <span class=" material-symbols-outlined" aria-label="edit" title="edit this assignment">edit</span></a>
+          <i class="ti ti-pencil" aria-label="edit" title="edit this assignment"></i></a>
         <a href="/runestone/admin/grading?selected_assignment={{assignment.name}}">
-          <span class="material-symbols-outlined" aria-label="grading" title="grade this assignment">grading</span></a>
+          <i class="ti ti-checklist" aria-label="grading" title="grade this assignment"></i></a>
         <a href='/assignment/instructor/assignment_summary/{{assignment.id}}'">
-          <span class=" material-symbols-outlined" aria-label="dashboard" title="view summary">dashboard</span></a>
+          <i class="ti ti-layout-dashboard" aria-label="dashboard" title="view summary"></i></a>
         {% else %}
         {% if assignment.id in stats %}
         {% set current = stats[assignment.id].is_submit %}

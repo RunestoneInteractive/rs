@@ -48,6 +48,7 @@ from rsptx.db.crud import (
     create_question,
     fetch_course,
     fetch_users_for_course,
+    create_code_entry,
     fetch_subchapters,
     create_assignment,
     fetch_questions_for_chapter_subchapter,
@@ -58,6 +59,7 @@ from rsptx.db.crud import (
     update_assignment_exercises,
     update_assignment,
     update_question,
+    fetch_question_by_id,
     fetch_one_assignment,
     get_peer_votes,
     search_exercises,
@@ -90,6 +92,7 @@ from rsptx.response_helpers.core import (
 from rsptx.db.models import (
     AssignmentQuestionValidator,
     AssignmentValidator,
+    CodeValidator,
     QuestionValidator,
 )
 from rsptx.endpoint_validators import with_course, instructor_role_required
@@ -549,9 +552,15 @@ async def get_assignments(
 
 @router.get("/assignments/{assignment_id}")
 @instructor_role_required()
-async def get_assignment(request: Request, assignment_id: int):
+@with_course()
+async def get_assignment(request: Request, assignment_id: int, course=None):
     # todo: update fetch to only get new style??
     assignment = await fetch_one_assignment(assignment_id)
+    # Only allow reading an assignment that belongs to the instructor's course.
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
     rslogger.debug(f"Got assignment: {assignment}")
 
     return make_json_response(
@@ -603,6 +612,15 @@ async def do_update_assignment(
     request_data: AssignmentValidator,
     course=None,
 ):
+    # Verify the assignment being updated already belongs to the instructor's
+    # course before mutating it. update_assignment keys by id, so without this
+    # an instructor could overwrite (and re-stamp into their own course) an
+    # assignment from another course by supplying its id.
+    existing = await fetch_one_assignment(request_data.id)
+    if not existing or existing.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
     request_data.course = course.id
     rslogger.debug(f"Updating assignment: {request_data}")
     if request_data.current_index is None:
@@ -707,6 +725,15 @@ async def do_update_question(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
     course = await fetch_course(user.course_name)
+    # Verify the question being updated belongs to the instructor's base course.
+    # update_question keys by id and this endpoint stamps base_course with the
+    # caller's course, so without this check an instructor could overwrite (and
+    # re-home) a question belonging to another book by supplying its id.
+    existing = await fetch_question_by_id(request_data.id)
+    if not existing or existing.base_course != course.base_course:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Question not found"
+        )
     rslogger.debug(f"Updating question: {request_data}")
     if request_data.author is None:
         request_data.author = user.first_name + " " + user.last_name
@@ -740,12 +767,24 @@ async def do_update_question(
 
 
 @router.post("/new_assignment_q")
+@instructor_role_required()
+@with_course()
 async def new_assignment_question(
     request_data: AssignmentQuestionIncoming,
     request: Request,
-    user=Depends(auth_manager),
+    course=None,
     response_class=JSONResponse,
 ):
+    # Verify the target assignment belongs to the instructor's own course before
+    # attaching a question to it. Without this an instructor (or any logged-in
+    # user, prior to the decorators above) could modify assignments in other
+    # courses by supplying an arbitrary assignment_id.
+    assignment = await fetch_one_assignment(request_data.assignment_id)
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
     new_aq = AssignmentQuestionValidator(
         **request_data.model_dump(),
         timed=False,
@@ -787,6 +826,13 @@ async def get_assignment_questions(
     if not user_is_instructor:
         return make_json_response(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    # Only allow reading questions for an assignment in the instructor's course.
+    assignment = await fetch_one_assignment(request_data.assignment)
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
         )
 
     res = await fetch_assignment_questions(request_data.assignment)
@@ -2234,3 +2280,70 @@ async def get_datafile_endpoint(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error fetching datafile: {str(e)}",
         )
+
+
+# Comment prefix by language, used when sharing instructor scratch code.
+BROADCAST_COMMENT_MAP = {
+    "sql": "--",
+    "python": "#",
+    "java": "//",
+    "javascript": "//",
+    "c": "//",
+    "cpp": "//",
+}
+
+
+class BroadcastCodeRequest(BaseModel):
+    divid: str
+    code: str
+    lang: str
+
+
+@router.post("/broadcast_code")
+@instructor_role_required()
+@with_course()
+async def broadcast_code(
+    request_data: BroadcastCodeRequest,
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Share the instructor's scratch activecode with every student in the course by
+    inserting a copy into each student's saved code for the given activecode (divid).
+
+    Ported from the legacy web2py ``ajax/broadcast_code`` endpoint.
+    """
+    students = await fetch_users_for_course(course.course_name)
+    prefix = BROADCAST_COMMENT_MAP.get(request_data.lang, "#")
+    now = canonical_utcnow()
+    shared_code = (
+        f"{prefix} Instructor shared code on {now.date()}\n{request_data.code}"
+    )
+
+    share_count = 0
+    for student in students:
+        if student.id == user.id:
+            continue
+        try:
+            await create_code_entry(
+                CodeValidator(
+                    sid=student.username,
+                    acid=request_data.divid,
+                    code=shared_code,
+                    emessage="",
+                    timestamp=now,
+                    course_id=course.id,
+                    language=request_data.lang,
+                    comment="Instructor shared code",
+                )
+            )
+        except Exception as e:
+            rslogger.error(f"Failed to insert instructor code: {e}")
+            return make_json_response(
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={"mess": "failed"},
+            )
+        share_count += 1
+
+    return JSONResponse(content={"mess": "success", "share_count": share_count})

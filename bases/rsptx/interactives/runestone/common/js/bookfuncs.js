@@ -125,9 +125,8 @@ function addReadingList() {
             var fst_lnk = document.createElement("a");
             //fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
             fst_lnk.href = new_pos_link;
-            fst_lnk.textContent = `Back to page ${
-                position
-            } of ${num_readings}: ${reading_names[position - 1]}.`;
+            fst_lnk.textContent = `Back to page ${position
+                } of ${num_readings}: ${reading_names[position - 1]}.`;
             txt.append(fst_lnk);
             fst.append(txt);
         } else if (position == 0) {
@@ -190,9 +189,8 @@ function addReadingList() {
             var snd_lnk = document.createElement("a");
             //snd_lnk.className = "btn btn-lg reading-navigation next-reading";
             snd_lnk.href = new_pos_link;
-            snd_lnk.textContent = `Continue to page ${
-                position + 2
-            } of ${num_readings}: ${reading_names[position + 1]}`;
+            snd_lnk.textContent = `Continue to page ${position + 2
+                } of ${num_readings}: ${reading_names[position + 1]}`;
             let txt = document.createElement("p");
             txt.append(snd_lnk);
             snd.append(txt);
@@ -1159,12 +1157,26 @@ window.addEventListener("DOMContentLoaded", function (event) {
         return;
     }
 
-    function makeLink(url, title, ariaLabel = null) {
+    function makeLink(url, title, icon = null, ariaLabel = null) {
         // All we should assume about the item template is that it has an anchor element
         const link = itemTemplate.content.cloneNode(true);
         const linkAnchor = link.querySelector("a");
         linkAnchor.href = url;
-        linkAnchor.innerText = title;
+        linkAnchor.innerText = "";
+        const contentSpan = document.createElement("span");
+        contentSpan.style.display = "inline-flex";
+        contentSpan.style.alignItems = "center";
+        contentSpan.style.gap = "0.35rem";
+        if (icon) {
+            const iconElement = document.createElement("span");
+            iconElement.className = "material-symbols-outlined";
+            iconElement.innerText = icon;
+            contentSpan.appendChild(iconElement);
+        }
+        let linkTitle = document.createElement("span");
+        linkTitle.innerText = title;
+        contentSpan.appendChild(linkTitle);
+        linkAnchor.appendChild(contentSpan);
         if (ariaLabel) {
             linkAnchor.ariaLabel = ariaLabel;
         }
@@ -1172,12 +1184,12 @@ window.addEventListener("DOMContentLoaded", function (event) {
         return link;
     }
 
-    menuContentArea.appendChild(makeLink("/ns/course/index", "Course Home"));
+    menuContentArea.appendChild(makeLink("/ns/course/index", "Course Home", "home"));
     menuContentArea.appendChild(
-        makeLink("/runestone/assignments/chooseAssignment", "Assignments"),
+        makeLink("/runestone/assignments/chooseAssignment", "Assignments", "edit"),
     );
     menuContentArea.appendChild(
-        makeLink("/assignment/peer/student", "Peer Instruction (Student)"),
+        makeLink("/assignment/peer/student", "Peer Instruction (Student)", "groups_3"),
     );
     menuContentArea.appendChild(
         makeLink("/assignment/student/studentreport", "Progress"),
@@ -1185,12 +1197,13 @@ window.addEventListener("DOMContentLoaded", function (event) {
     if (eBookConfig.isInstructor) {
         menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
         menuContentArea.appendChild(
-            makeLink("/admin/instructor/menu", "Instructor Dashboard"),
+            makeLink("/admin/instructor/menu", "Instructor Dashboard", "settings"),
         );
         menuContentArea.appendChild(
             makeLink(
                 "/assignment/peer/instructor",
                 "Peer Instruction (Instructor)",
+                "groups_3"
             ),
         );
         if (eBookConfig.isAuthor) {
@@ -1218,7 +1231,7 @@ window.addEventListener("DOMContentLoaded", function (event) {
     }
     menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
     menuContentArea.appendChild(
-        makeLink("/admin/auth/my_courses", "Change Course"),
+        makeLink("/admin/auth/my_courses", "Change Course", "newsstand"),
     );
     menuContentArea.appendChild(makeLink("/admin/auth/profile", "Profile"));
     menuContentArea.appendChild(makeLink("/admin/auth/logout", "Log Out"));

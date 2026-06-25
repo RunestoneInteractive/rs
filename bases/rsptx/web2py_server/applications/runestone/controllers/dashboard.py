@@ -116,7 +116,7 @@ def index():
             session.flash = "Student Progress page not available for {}".format(
                 auth.user.course_name
             )
-            return redirect(URL("admin", "admin"))
+            return redirect("/admin/instructor/menu")
 
     course = db(db.courses.id == auth.user.course_id).select().first()
     course_attrs = getCourseAttributesDict(course.id, course.base_course)
