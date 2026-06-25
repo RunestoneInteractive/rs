@@ -391,10 +391,11 @@ async def get_assignment_gb(
 
             # Loop through each student with completed practice questions and calculate
             # their spaced practice grade based on the number of questions they completed.
+            max_days = int(ps.max_practice_days or 0)
+            points_per_day = float(ps.day_points or 0)
             for _, prow in practice_counts.iterrows():
-                points_received = float(ps.day_points or 0) * float(
-                    prow.practice_completion_count or 0
-                )
+                completion_count = int(prow.practice_completion_count or 0)
+                points_received = points_per_day * min(completion_count, max_days)
                 practice_by_user_id[prow.user_id] = format_practice_grade(
                     points_received, practice_total_points
                 )
@@ -419,10 +420,11 @@ async def get_assignment_gb(
 
             # Loop through each student with completed practice questions and calculate
             # their spaced practice grade based on the number of questions they completed.
+            max_questions = int(ps.max_practice_questions or 0)
+            points_per_question = float(ps.question_points or 0)
             for _, prow in practice_counts.iterrows():
-                points_received = float(ps.question_points or 0) * float(
-                    prow.practice_completion_count or 0
-                )
+                completion_count = int(prow.practice_completion_count or 0)
+                points_received = points_per_question * min(completion_count, max_questions)
                 practice_by_user_id[prow.user_id] = format_practice_grade(
                     points_received, practice_total_points
                 )
