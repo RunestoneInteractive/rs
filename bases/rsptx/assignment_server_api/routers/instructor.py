@@ -626,12 +626,24 @@ async def do_update_question(
 
 
 @router.post("/new_assignment_q")
+@instructor_role_required()
+@with_course()
 async def new_assignment_question(
     request_data: AssignmentQuestionIncoming,
     request: Request,
-    user=Depends(auth_manager),
+    course=None,
     response_class=JSONResponse,
 ):
+    # Verify the target assignment belongs to the instructor's own course before
+    # attaching a question to it. Without this an instructor (or any logged-in
+    # user, prior to the decorators above) could modify assignments in other
+    # courses by supplying an arbitrary assignment_id.
+    assignment = await fetch_one_assignment(request_data.assignment_id)
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
     new_aq = AssignmentQuestionValidator(
         **request_data.model_dump(),
         timed=False,
