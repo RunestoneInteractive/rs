@@ -343,6 +343,8 @@ async def get_assignment_gb(
         select spacing, day_points, max_practice_days, question_points, max_practice_questions
         from course_practice
         where course_name = %s
+          and end_date is not null
+        order by id desc
         limit 1
         """,
         eng,
