@@ -1470,7 +1470,7 @@ export class ActiveCode extends RunestoneBase {
                     lang: this.language,
                 };
                 let request = new Request(
-                    eBookConfig.ajaxURL + "broadcast_code.json",
+                    "/assignment/instructor/broadcast_code",
                     {
                         method: "POST",
                         headers: this.jsonHeaders,
@@ -1922,7 +1922,7 @@ export class ActiveCode extends RunestoneBase {
         var data = {
             div_id: this.divid,
         };
-        let request = new Request(eBookConfig.ajaxURL + "getassignmentgrade", {
+        let request = new Request("/assignment/student/getassignmentgrade", {
             method: "POST",
             headers: this.jsonHeaders,
             body: JSON.stringify(data),

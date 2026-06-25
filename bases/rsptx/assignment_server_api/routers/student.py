@@ -51,6 +51,7 @@ from rsptx.db.crud import (
     fetch_one_assignment,
     fetch_assignment_questions,
     fetch_question_grade,
+    fetch_assignment_release_for_div_id,
     fetch_recent_useinfo,
     fetch_user,
     fetch_user_chapter_progress,
@@ -944,3 +945,50 @@ async def addPreamble(base_course: str) -> str:
         rslogger.error(f"Course attributes for {base_course} not found.")
         return ""
     return course_attrs.get("latex_macros", "")
+
+
+class GetAssignmentGradeRequest(BaseModel):
+    div_id: str
+
+
+@router.post("/getassignmentgrade")
+async def getassignmentgrade(
+    request_data: GetAssignmentGradeRequest,
+    request: Request,
+    user=Depends(auth_manager),
+):
+    """
+    Return the current grade and instructor comment for a single question (``div_id``)
+    for the logged-in student. Drives the activecode "grade report" popup.
+
+    Ported from the legacy web2py ``ajax/getassignmentgrade`` endpoint.
+    """
+    div_id = request_data.div_id
+    ret = {
+        "grade": "Not graded yet",
+        "comment": "No Comments",
+        "avg": "None",
+        "count": "None",
+        "released": False,
+    }
+
+    course = await fetch_course(user.course_name)
+    # Is this question part of an assignment in the course, and is it released?
+    a_q = await fetch_assignment_release_for_div_id(course.id, div_id)
+
+    # New-style scores/comments are stored per question in question_grades.
+    result = await fetch_question_grade(user.username, user.course_name, div_id)
+    if result:
+        ret["version"] = 2
+        ret["released"] = a_q.released if a_q else False
+        if a_q and not a_q.released:
+            ret["grade"] = "Not graded yet"
+        elif a_q and a_q.released:
+            ret["grade"] = result.score or "Written Feedback Only"
+
+        ret["max"] = a_q.points if (a_q and a_q.released) else ""
+
+        if result.comment:
+            ret["comment"] = result.comment
+
+    return JSONResponse(content=ret)

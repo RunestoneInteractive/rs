@@ -48,6 +48,7 @@ from rsptx.db.crud import (
     create_question,
     fetch_course,
     fetch_users_for_course,
+    create_code_entry,
     fetch_subchapters,
     create_assignment,
     fetch_questions_for_chapter_subchapter,
@@ -91,6 +92,7 @@ from rsptx.response_helpers.core import (
 from rsptx.db.models import (
     AssignmentQuestionValidator,
     AssignmentValidator,
+    CodeValidator,
     QuestionValidator,
 )
 from rsptx.endpoint_validators import with_course, instructor_role_required
@@ -2164,3 +2166,70 @@ async def get_datafile_endpoint(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error fetching datafile: {str(e)}",
         )
+
+
+# Comment prefix by language, used when sharing instructor scratch code.
+BROADCAST_COMMENT_MAP = {
+    "sql": "--",
+    "python": "#",
+    "java": "//",
+    "javascript": "//",
+    "c": "//",
+    "cpp": "//",
+}
+
+
+class BroadcastCodeRequest(BaseModel):
+    divid: str
+    code: str
+    lang: str
+
+
+@router.post("/broadcast_code")
+@instructor_role_required()
+@with_course()
+async def broadcast_code(
+    request_data: BroadcastCodeRequest,
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Share the instructor's scratch activecode with every student in the course by
+    inserting a copy into each student's saved code for the given activecode (divid).
+
+    Ported from the legacy web2py ``ajax/broadcast_code`` endpoint.
+    """
+    students = await fetch_users_for_course(course.course_name)
+    prefix = BROADCAST_COMMENT_MAP.get(request_data.lang, "#")
+    now = canonical_utcnow()
+    shared_code = (
+        f"{prefix} Instructor shared code on {now.date()}\n{request_data.code}"
+    )
+
+    share_count = 0
+    for student in students:
+        if student.id == user.id:
+            continue
+        try:
+            await create_code_entry(
+                CodeValidator(
+                    sid=student.username,
+                    acid=request_data.divid,
+                    code=shared_code,
+                    emessage="",
+                    timestamp=now,
+                    course_id=course.id,
+                    language=request_data.lang,
+                    comment="Instructor shared code",
+                )
+            )
+        except Exception as e:
+            rslogger.error(f"Failed to insert instructor code: {e}")
+            return make_json_response(
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={"mess": "failed"},
+            )
+        share_count += 1
+
+    return JSONResponse(content={"mess": "success", "share_count": share_count})
