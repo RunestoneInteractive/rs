@@ -1,5 +1,75 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-06-12 → 2026-06-25)
+
+Coverage: changes landed after the previous changelog update on **2026-06-12** (which covered through 2026-06-11), through **2026-06-25**.
+
+### Highlights
+
+- **Poetry → uv migration (major, tooling):** migrated the monorepo from poetry to uv — repo-root dev environment plus `book_server`, `assignment_server`, `author_server`, `admin_server`, `rsmanage`, and `w2p_login_assign_grade`, and `interactives` (JS-release-only, no Python wheel). `build.py` now supports uv builds; CI and docs updated; stale `poetry.lock` files removed; reformatted for black 25.12.0 (a42c7f90, dc528ac5, 6719210e, 79c1cf48, 87ccd3c0, 07f1b2ab, 8e229f28, 70a53a8d, bdc660b7).
+- **Caddy reverse proxy (new):** added Caddy as an HTTPS-capable alternative to nginx, matching nginx's custom access-log format, wired into the bake file, with a bare-`/author` redirect fix (adf37dd9, 73b1f056, 4d95f2e6, fdade39f, 7ab54973).
+- **Server security hardening (several fixes):** from the server security audit — SSRF protections on the image proxy (e24a0e3d); authenticated the peer-chat websocket and `send_message` (a9410736); required instructor + course ownership for `new_assignment_q` (e1926311); scoped instructor assignment/question endpoints to the caller's course (c72bcf45); disallowed `course_students` on base courses (e9f51d3c).
+- **web2py retirement (continued):** removed the old Peer Instruction controller/views (ce34b84d); retired most of the web2py admin controller — 32 endpoints plus orphaned views — keeping only grading, Manage Practice, and the Editorial Page, and added `GET /admin/instructor/source_assignments` for Copy Assignments (047241e5); ported `getassignmentgrade` and `broadcast_code` off the ajax controller to the assignment server (a8e2b694); removed other unused controllers/endpoints (f1c2e7db); ported the student report to FastAPI (7777b3aa).
+- **Interactives i18n (major):** added a dependency-free `rsi18n` and migrated activecode, fitb, mchoice, parsons, hparsons, and dragndrop off `jquery.i18n`, then removed the vendored jQuery i18n files (e4694b71, 3b2c2930, d3a1bd7d).
+- **Interactives question authoring + formatting:** added JSON and XML question representations to dragndrop (sharing a common XML converter base) and introduced an interactives prettier config with a first-pass format of first-party JS (1222b45e, a77296a9, 39186b0d).
+- **New user menu + Tabler icons:** new JS-built user menu for PreTeXt books; replaced Material icons with Tabler equivalents across the UI; shared the navbar between `_base` and auth templates (5e672911, 672b561b, bf9b3cf4, 20f20818, 9742715b).
+- **Peer Instruction (A/B testing + Likert):** added A/B testing of chat modes with group assignments persisted to `user_experiment`, plus graph fixes (instructor vote no longer counted toward the chart); added opt-in Likert reflection to async PI with logging (fc19afcd, a8cdcb59, cfc8c24f, ff120cf3, 1ddbac12).
+- **Parsons / hparsons:** source/answer area sizing fixes; replaced jQuery with vanilla JS in `initializeInteractivity`/`initializeAreas`; vendored the micro-parsons-element source into hparsons (a mathjax-performance change was reverted) (021d9a7e, 54517146, 91850ca3, fd0bae97, ec3aa4f4).
+- **Infra / DB:** persist basic-profile PostgreSQL data on a named volume; added a compose-version preflight guard and `init_runestone.sh` update flow (93c7166d, f551282a).
+- **Type checking:** fixed type/runtime bugs in `rsmanage` surfaced by `ty`, plus additional ty-analysis fixes (64880c16, 01a65120).
+- **f-1220 "Huge summer update":** large styles/grading/tests pass merged from a long-running branch, including accessibility-check refactors (7734847f, b9020f01, 9b01ac24).
+- **Content / misc:** added new StudyClues books and better knowledge sourcing (18392764, 7b6c7fd0); fixed the Runestone API-keys page showing two keys when only one was added (#1135, d5f761f8).
+- **Releases:** versions **8.7.5** and **8.8.0** shipped; bundled runestone JS bumped through **8.1.2 → 8.1.4**.
+
+### Commit notes (for reference)
+
+- a8e2b694 Port getassignmentgrade and broadcast_code off the web2py ajax controller
+- 047241e5 Retire most of the web2py admin controller
+- ce34b84d Remove old PI endpoints and views
+- c72bcf45 Scope instructor assignment/question endpoints to the caller's course
+- a9410736 Authenticate peer-chat websocket and send_message
+- e1926311 Require instructor + course ownership for new_assignment_q
+- e24a0e3d Add SSRF protections to the image proxy
+- e9f51d3c disallow course_students on base courses
+- f1c2e7db Remove unused controllers and endpoints
+- 7777b3aa port studentreport to FastAPI
+- 20f20818 Add icons to the user menu
+- 672b561b Replace Material icons with Tabler equivalents
+- bf9b3cf4 Use icons from Tabler project
+- 9742715b Share navbar between _base and auth templates
+- 5e672911 New user menu for PreTeXt books - built in js
+- a77296a9 Add XML question representation to dragndrop; share XML converter base
+- 1222b45e Add JSON question representation to dragndrop; add interactives prettier config
+- 39186b0d Apply prettier formatting to interactives first-party JS
+- 3b2c2930 interactives: migrate activecode, fitb, mchoice, parsons, hparsons off jquery.i18n
+- e4694b71 interactives: add dependency-free rsi18n, migrate dragndrop off jquery.i18n
+- d3a1bd7d remove jQuery i18n files
+- 1ddbac12 Add Likert reflection to async PI (opt-in per course) with logging
+- fc19afcd ab testing
+- cfc8c24f persist ab group assignments to user_experiment table
+- ff120cf3 fix bug where instructor vote was counting towards chart
+- fd0bae97 Vendor micro-parsons-element source into hparsons
+- 91850ca3 Replaced JQuery with JS in initializeInteractivity(), initializeAreas()
+- 021d9a7e Fix Parsons source area sizing
+- adf37dd9 Add Caddy reverse proxy as an HTTPS-capable alternative to nginx
+- 4d95f2e6 Add caddy to the bake file
+- 73b1f056 caddy: match nginx's custom access-log format
+- a42c7f90 Convert repo root from poetry to uv (dev environment)
+- dc528ac5 PoC: convert book_server from poetry to uv/hatchling
+- 6719210e build.py: support uv builds; convert assignment_server to uv
+- 79c1cf48 Convert author_server to uv
+- 87ccd3c0 Convert admin_server, rsmanage, w2p_login_assign_grade to uv
+- 07f1b2ab Convert interactives to uv (JS-release-only, no Python wheel)
+- 8e229f28 Update CI and docs for the poetry -> uv migration
+- 93c7166d Persist basic-profile PostgreSQL data on a named volume
+- f551282a Add compose-version preflight guard and init_runestone.sh update flow
+- 64880c16 Fix type/runtime bugs in rsmanage surfaced by ty
+- 7734847f f-1220 Huge summer Update (styles, grading, tests)
+- d5f761f8 Fix #1135: Runestone Issue: API keys shows two keys when only one added
+- 18392764 Add new books for StudyClues
+- 430de569 update version to 8.8.0
+- 91ce1aea update version to 8.7.5
+
 ## Updates since last changelog entry (2026-06-03 → 2026-06-11)
 
 Coverage: changes merged/landed after the previous changelog update on **2026-06-04** (which covered through 2026-06-02), through **2026-06-11**.
