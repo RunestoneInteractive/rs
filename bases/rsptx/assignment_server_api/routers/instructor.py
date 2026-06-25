@@ -424,7 +424,9 @@ async def get_assignment_gb(
             points_per_question = float(ps.question_points or 0)
             for _, prow in practice_counts.iterrows():
                 completion_count = int(prow.practice_completion_count or 0)
-                points_received = points_per_question * min(completion_count, max_questions)
+                points_received = points_per_question * min(
+                    completion_count, max_questions
+                )
                 practice_by_user_id[prow.user_id] = format_practice_grade(
                     points_received, practice_total_points
                 )
