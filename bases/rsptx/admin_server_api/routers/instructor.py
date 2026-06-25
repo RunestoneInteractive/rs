@@ -198,6 +198,48 @@ async def get_copy_assignments(
     return templates.TemplateResponse("admin/instructor/copy_assignments.html", context)
 
 
+@router.get("/source_assignments")
+@instructor_role_required()
+@with_course()
+async def get_source_assignments(
+    request: Request,
+    course_name: str,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    List the assignments for a course the instructor may copy from.
+
+    Used by the Copy Assignments page to populate the assignment dropdown once the
+    instructor picks a source course. Verifies the instructor is associated with the
+    source course (base courses are allowed) before returning its assignments.
+    """
+    source_course = await fetch_course(course_name)
+    if not source_course:
+        return JSONResponse(
+            status_code=404,
+            content={"message": "Source course not found"},
+        )
+
+    # Allow copying from a base course; otherwise require instructor access.
+    copy_base_course = source_course.course_name == source_course.base_course
+    if not copy_base_course:
+        instructor_courses = await fetch_instructor_courses(user.id)
+        has_access = any(ic.course == source_course.id for ic in instructor_courses)
+        if not has_access:
+            return JSONResponse(
+                status_code=403,
+                content={"message": "Not authorized to view this course"},
+            )
+
+    assignments = await fetch_assignments(course_name, fetch_all=True)
+    res = sorted(
+        ({"id": a.id, "name": a.name} for a in assignments),
+        key=lambda a: a["name"],
+    )
+    return JSONResponse(content={"assignments": res})
+
+
 # TA Management endpoints
 @router.post("/add_ta")
 @instructor_role_required()
