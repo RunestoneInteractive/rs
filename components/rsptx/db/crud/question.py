@@ -58,6 +58,26 @@ async def fetch_question(
         return QuestionValidator.from_orm(res.scalars().first())
 
 
+async def fetch_question_by_id(question_id: int) -> Optional[QuestionValidator]:
+    """
+    Fetch a single question row by its primary key ``id``.
+
+    Useful for authorization checks where the caller supplies a question id and
+    we need to confirm which base course the existing row belongs to.
+
+    :param question_id: int, the primary key of the question
+    :return: QuestionValidator if a matching row exists, otherwise None
+    """
+    query = select(Question).where(Question.id == question_id)
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        row = res.scalars().first()
+        if row is None:
+            return None
+        return QuestionValidator.from_orm(row)
+
+
 async def count_matching_questions(name: str) -> int:
     """
     Count the number of Question entries that match the given name.
