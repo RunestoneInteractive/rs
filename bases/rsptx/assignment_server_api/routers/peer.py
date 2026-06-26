@@ -716,11 +716,11 @@ async def make_pairs(
             for p in answerers:
                 if p in clustered:
                     continue
-                grp = {
-                    s
-                    for s in find_set_containing_string(in_person_groups, p)
-                    if s in sid_ans
-                }
+                # Keep the full recorded verbal group, including partners who did
+                # not vote on this question. Students should stay in the same condition
+                # as their verbal partners so they aren't split into text chat.
+                grp = set(find_set_containing_string(in_person_groups, p))
+                grp -= clustered
                 grp.add(p)
                 clustered |= grp
                 clusters.append(sorted(grp))
@@ -761,8 +761,10 @@ async def make_pairs(
             # Re-running the experiment will randomize it again so that it can clear any previous assignments to keep one unambiguous group per student.
             # Delete + insert now will happen in a single call so re-running stays fast for larger courses.
             experiment_id = f"{div_id}_ab"
+            # Record every clustered student in their group's condition, including
+            # students whose partner did not vote, so partners always share a condition
             assignments = [(sid, 0) for sid in peeps_in_person] + [
-                (sid, 1) for sid in peeps
+                (sid, 1) for sid in peeps_in_chat
             ]
             await replace_user_experiment_entries(experiment_id, assignments)
 
