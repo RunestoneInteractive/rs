@@ -51,3 +51,13 @@ body {
   align-items: center;    /* vertical centering */
   gap: 0.4em;             /* spacing between icon and text */
 }
+
+.caption-wrap i {
+  width: 1.2em;
+  min-width: 1.2em;
+  text-align: center;
+}
+
+.caption-wrap .ti-placeholder {
+  visibility: hidden;
+}

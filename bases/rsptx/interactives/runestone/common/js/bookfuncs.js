@@ -1167,12 +1167,21 @@ window.addEventListener("DOMContentLoaded", function (event) {
         contentSpan.style.display = "inline-flex";
         contentSpan.style.alignItems = "center";
         contentSpan.style.gap = "0.35rem";
+        const iconElement = document.createElement("span");
+        iconElement.setAttribute("aria-hidden", "true");
+        iconElement.className = "material-symbols-outlined";
+        iconElement.style.display = "inline-flex";
+        iconElement.style.alignItems = "center";
+        iconElement.style.justifyContent = "center";
+        iconElement.style.width = "1.25em";
+        iconElement.style.minWidth = "1.25em";
         if (icon) {
-            const iconElement = document.createElement("span");
-            iconElement.className = "material-symbols-outlined";
             iconElement.innerText = icon;
-            contentSpan.appendChild(iconElement);
+        } else {
+            iconElement.style.visibility = "hidden";
+            iconElement.innerText = "home";
         }
+        contentSpan.appendChild(iconElement);
         let linkTitle = document.createElement("span");
         linkTitle.innerText = title;
         contentSpan.appendChild(linkTitle);
