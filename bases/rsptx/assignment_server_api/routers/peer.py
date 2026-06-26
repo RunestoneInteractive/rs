@@ -717,10 +717,9 @@ async def make_pairs(
                 if p in clustered:
                     continue
                 # Keep the full recorded verbal group, including partners who did
-                # not vote on this question. A student stays in the same condition
-                # as the people they talked to verbal partner at all become text chat
+                # not vote on this question. Students should stay in the same condition
+                # as their verbal partners so they aren't split into text chat.
                 grp = set(find_set_containing_string(in_person_groups, p))
-                grp.add(p)
                 grp -= clustered
                 grp.add(p)
                 clustered |= grp
@@ -763,7 +762,7 @@ async def make_pairs(
             # Delete + insert now will happen in a single call so re-running stays fast for larger courses.
             experiment_id = f"{div_id}_ab"
             # Record every clustered student in their group's condition, including
-            # students whos partner did not vote so partners always share a condition
+            # students whose partner did not vote, so partners always share a condition
             assignments = [(sid, 0) for sid in peeps_in_person] + [
                 (sid, 1) for sid in peeps_in_chat
             ]
