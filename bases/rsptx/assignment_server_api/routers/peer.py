@@ -651,33 +651,40 @@ def split_ab_conditions(
         ids assigned to the verbal and chat conditions respectively.
     """
 
-    def find_set_containing_string(
-        list_of_sets: list[set[str]], target: str
-    ) -> set[str]:
-        result: set[str] = set()
-        for s in list_of_sets:
-            if target in s:
-                result |= s
-        return result
+    # Build connected components over all recorded verbal groups using union-find
+    # so that transitively-linked students (e.g. {A,B} and {B,C} recorded
+    # separately) always land in the same cluster. A per-seed union approach
+    # would make C a singleton when A is seeded first (issue #1261).
+    parent: dict[str, str] = {}
 
-    # Group the answering students into their recorded verbal-discussion
-    # clusters. A cluster is assigned to a condition as a whole and is never
-    # split, because verbal discussion depends on physical seating.
-    clusters: list[list[str]] = []
-    clustered: set[str] = set()
+    def _find(x: str) -> str:
+        while parent.setdefault(x, x) != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def _union(a: str, b: str) -> None:
+        parent[_find(a)] = _find(b)
+
+    for grp in in_person_groups:
+        members = list(grp)
+        for m in members[1:]:
+            _union(members[0], m)
+
+    # Group answerers into their connected component. Non-voting recorded
+    # partners are included so they stay in the same condition as their group.
+    component: dict[str, list[str]] = {}
     for p in answerers:
-        if p in clustered:
-            continue
-        # Keep the full recorded verbal group, including partners who did not
-        # vote on this question. Students should stay in the same condition as
-        # their verbal partners so they aren't split into text chat. Subtract
-        # already-clustered students so clusters stay disjoint when recorded
-        # groups overlap.
-        grp = set(find_set_containing_string(in_person_groups, p))
-        grp -= clustered
-        grp.add(p)
-        clustered |= grp
-        clusters.append(sorted(grp))
+        root = _find(p)
+        component.setdefault(root, []).append(p)
+    for grp in in_person_groups:
+        for m in grp:
+            if m not in parent:
+                continue
+            root = _find(m)
+            if root in component and m not in component[root]:
+                component[root].append(m)
+    clusters: list[list[str]] = [sorted(v) for v in component.values()]
 
     # Assign clusters to conditions with an approximately balanced (~50/50)
     # split rather than an independent per-cluster coin flip. Shuffle for
