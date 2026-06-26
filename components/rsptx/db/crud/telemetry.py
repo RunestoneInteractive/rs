@@ -18,6 +18,7 @@ import uuid
 from typing import List, Optional
 
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from ..models import Courses, Installation, Library, TelemetryState, UserCourse
 from ..async_session import async_session
@@ -154,38 +155,35 @@ async def upsert_installation(payload: dict) -> None:
     """
     now = datetime.datetime.utcnow()
     base_courses = json.dumps(payload.get("base_courses", []))
+    values = dict(
+        instance_id=payload["instance_id"],
+        region=payload.get("region", ""),
+        version=payload.get("version", ""),
+        base_courses=base_courses,
+        course_count_bucket=payload.get("course_count_bucket", ""),
+        student_count_bucket=payload.get("student_count_bucket", ""),
+        institution=payload.get("institution", ""),
+        first_seen=now,
+        last_seen=now,
+    )
+    # Use a single atomic INSERT ... ON CONFLICT DO UPDATE keyed on the unique
+    # instance_id. A plain select-then-insert/update races when multiple book
+    # server workers check in for the same brand-new install at once (each
+    # worker runs its own telemetry loop), producing duplicate-key errors.
+    # first_seen is preserved on conflict; everything else refreshes.
+    stmt = pg_insert(Installation).values(**values)
+    stmt = stmt.on_conflict_do_update(
+        index_elements=[Installation.instance_id],
+        set_={
+            "region": stmt.excluded.region,
+            "version": stmt.excluded.version,
+            "base_courses": stmt.excluded.base_courses,
+            "course_count_bucket": stmt.excluded.course_count_bucket,
+            "student_count_bucket": stmt.excluded.student_count_bucket,
+            "institution": stmt.excluded.institution,
+            "last_seen": stmt.excluded.last_seen,
+        },
+    )
     async with async_session.begin() as session:
-        row = (
-            (
-                await session.execute(
-                    select(Installation).where(
-                        Installation.instance_id == payload["instance_id"]
-                    )
-                )
-            )
-            .scalars()
-            .first()
-        )
-        if row is None:
-            session.add(
-                Installation(
-                    instance_id=payload["instance_id"],
-                    region=payload.get("region", ""),
-                    version=payload.get("version", ""),
-                    base_courses=base_courses,
-                    course_count_bucket=payload.get("course_count_bucket", ""),
-                    student_count_bucket=payload.get("student_count_bucket", ""),
-                    institution=payload.get("institution", ""),
-                    first_seen=now,
-                    last_seen=now,
-                )
-            )
-        else:
-            row.region = payload.get("region", "")
-            row.version = payload.get("version", "")
-            row.base_courses = base_courses
-            row.course_count_bucket = payload.get("course_count_bucket", "")
-            row.student_count_bucket = payload.get("student_count_bucket", "")
-            row.institution = payload.get("institution", "")
-            row.last_seen = now
+        await session.execute(stmt)
     rslogger.info(f"telemetry check-in recorded for instance {payload['instance_id']}")
