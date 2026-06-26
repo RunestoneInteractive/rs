@@ -627,6 +627,92 @@ async def get_peer_async(
     return templates.TemplateResponse("assignment/student/peer_async.html", context)
 
 
+def split_ab_conditions(
+    answerers: list[str],
+    in_person_groups: list[set[str]],
+    rng: random.Random = random,
+) -> tuple[list[str], list[str]]:
+    """Split answering students into the verbal (in-person) and chat conditions
+    for an A/B peer-instruction experiment.
+
+    Students recorded in the same verbal-discussion group share a single
+    condition so that verbal partners are never split into text chat. The full
+    recorded group is kept, including partners who did not vote on this question,
+    so a non-voting partner is still assigned the same condition.
+
+    :param answerers: students who voted on this question, in the order they
+        should be considered when forming clusters (callers typically shuffle).
+    :param in_person_groups: recorded verbal-discussion groups, each a set of
+        student ids, derived from prior ``peergroup`` useinfo events.
+    :param rng: random source; injectable so tests can pass a seeded
+        ``random.Random`` for deterministic results. Defaults to the module's
+        ``random``.
+    :return: ``(peeps_in_person, peeps_in_chat)`` — disjoint lists of student
+        ids assigned to the verbal and chat conditions respectively.
+    """
+
+    def find_set_containing_string(
+        list_of_sets: list[set[str]], target: str
+    ) -> set[str]:
+        result: set[str] = set()
+        for s in list_of_sets:
+            if target in s:
+                result |= s
+        return result
+
+    # Group the answering students into their recorded verbal-discussion
+    # clusters. A cluster is assigned to a condition as a whole and is never
+    # split, because verbal discussion depends on physical seating.
+    clusters: list[list[str]] = []
+    clustered: set[str] = set()
+    for p in answerers:
+        if p in clustered:
+            continue
+        # Keep the full recorded verbal group, including partners who did not
+        # vote on this question. Students should stay in the same condition as
+        # their verbal partners so they aren't split into text chat. Subtract
+        # already-clustered students so clusters stay disjoint when recorded
+        # groups overlap.
+        grp = set(find_set_containing_string(in_person_groups, p))
+        grp -= clustered
+        grp.add(p)
+        clustered |= grp
+        clusters.append(sorted(grp))
+
+    # Assign clusters to conditions with an approximately balanced (~50/50)
+    # split rather than an independent per-cluster coin flip. Shuffle for
+    # randomness, then use a greedy algorithm to place each cluster into
+    # whichever condition currently has fewer students. Singletons (no recorded
+    # verbal partner) can only go to text chat, since they have no one to
+    # discuss with verbally.
+    rng.shuffle(clusters)
+    peeps_in_person: list[str] = []
+    peeps_in_chat: list[str] = []
+    for grp in clusters:
+        if len(grp) == 1:
+            peeps_in_chat.extend(grp)
+            continue
+        if len(peeps_in_person) <= len(peeps_in_chat):
+            peeps_in_person.extend(grp)
+        else:
+            peeps_in_chat.extend(grp)
+
+    # Make sure there is at least one student in each condition whenever that is
+    # actually possible (i.e. there is more than one cluster, or a multi-person
+    # cluster exists to seed the verbal side).
+    multi_clusters = [g for g in clusters if len(g) > 1]
+    if not peeps_in_person and multi_clusters:
+        promote = multi_clusters[0]
+        peeps_in_chat = [s for s in peeps_in_chat if s not in promote]
+        peeps_in_person.extend(promote)
+    if not peeps_in_chat and len(clusters) > 1:
+        demote = clusters[-1]
+        peeps_in_person = [s for s in peeps_in_person if s not in demote]
+        peeps_in_chat.extend(demote)
+
+    return peeps_in_person, peeps_in_chat
+
+
 # API Endpoints
 # =============
 
@@ -698,61 +784,13 @@ async def make_pairs(
                 except Exception:  # defensive; malformed rows shouldn't break pairing
                     continue
 
-            def find_set_containing_string(
-                list_of_sets: list[set[str]], target: str
-            ) -> set[str]:
-                result: set[str] = set()
-                for s in list_of_sets:
-                    if target in s:
-                        result |= s
-                return result
-
-            # Group the answering students into their recorded verbal-discussion
-            # clusters. A cluster is assigned to a condition as a whole and is
-            # never split, because verbal discussion depends on physical seating.
+            # Group answering students into their recorded verbal clusters and
+            # split those clusters across the two conditions. See
+            # split_ab_conditions for the clustering and balancing rules.
             answerers = [p for p in peeps if p in sid_ans]
-            clusters: list[list[str]] = []
-            clustered: set[str] = set()
-            for p in answerers:
-                if p in clustered:
-                    continue
-                # Keep the full recorded verbal group, including partners who did
-                # not vote on this question. Students should stay in the same condition
-                # as their verbal partners so they aren't split into text chat.
-                grp = set(find_set_containing_string(in_person_groups, p))
-                grp -= clustered
-                grp.add(p)
-                clustered |= grp
-                clusters.append(sorted(grp))
-
-            # Assign clusters to conditions with an approximately balanced (~50/50)
-            # split rather than an independent per-cluster coin flip. Shuffle for randomness, then use greedy algorithm to place
-            # each cluster into whichever condition currently has fewer students.
-            # Singletons (no recorded verbal partner) can only go to text chat,
-            # since they have no one to discuss with verbally.
-            random.shuffle(clusters)
-            peeps_in_chat: list[str] = []
-            for grp in clusters:
-                if len(grp) == 1:
-                    peeps_in_chat.extend(grp)
-                    continue
-                if len(peeps_in_person) <= len(peeps_in_chat):
-                    peeps_in_person.extend(grp)
-                else:
-                    peeps_in_chat.extend(grp)
-
-            # make sure that  at least one student in each condition whenever
-            # that is actually possible (i.e. there is more than one cluster, or a
-            # multi-person cluster exists to seed the verbal side).
-            multi_clusters = [g for g in clusters if len(g) > 1]
-            if not peeps_in_person and multi_clusters:
-                promote = multi_clusters[0]
-                peeps_in_chat = [s for s in peeps_in_chat if s not in promote]
-                peeps_in_person.extend(promote)
-            if not peeps_in_chat and len(clusters) > 1:
-                demote = clusters[-1]
-                peeps_in_person = [s for s in peeps_in_person if s not in demote]
-                peeps_in_chat.extend(demote)
+            peeps_in_person, peeps_in_chat = split_ab_conditions(
+                answerers, in_person_groups
+            )
 
             peeps = [p for p in peeps_in_chat if p in sid_ans]
             rslogger.debug(f"FINAL PEEPS IN CHAT = {peeps}")
