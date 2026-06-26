@@ -112,15 +112,16 @@ if sys.argv[1:] == ["--publish"]:
             ["scp", f"dist-{VERSION}.tgz", "balance.runestoneacademy.org:~/"],
             check=True,
         )
-        subprocess.run(
-            [
-                "ssh",
-                "balance.runestoneacademy.org",
-                "/home/bmiller/bin/install_release.sh",
-                VERSION,
-            ],
-            check=True,
-        )
+        # Don't do this step on the legacy branch as we don't want to install this as latest.
+        # subprocess.run(
+        #     [
+        #         "ssh",
+        #         "balance.runestoneacademy.org",
+        #         "/home/bmiller/bin/install_release.sh",
+        #         VERSION,
+        #     ],
+        #     check=True,
+        # )
         # tag the release in the repo
         subprocess.run(
             ["git", "tag", f"components_{VERSION}"], check=True
