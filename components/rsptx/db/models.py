@@ -1093,6 +1093,9 @@ class TraceBack(Base, IdMixin):
     post_body = Column(String(1024))
     hash = Column(String(128))
     hostname = Column(String(128))
+    # Per-frame local variables for the last few stack frames, stored as
+    # [{"name": <frame>, "local_vars": {<var>: <json-safe value>}}, ...].
+    local_vars = Column(JSON)
 
 
 class Library(Base, IdMixin):
