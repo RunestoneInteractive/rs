@@ -75,12 +75,14 @@ dependencies = [
     "standard-cgi>=3.13.0,<4",
     "duckdb>=1.3.2,<2",
     "tldextract>=5.0.0,<6",
+    "textual>=0.86.0",
 ]
 
 [project.scripts]
 buildptx = "rsptx.interactives.scripts.buildptx:build_book"
 build = "rsptx.build_tools.build:cli"
 rsmanage = "rsptx.rsmanage.core:cli"
+tbm = "rsptx.build_tools.traceback_monitor:main"
 
 [dependency-groups]
 dev = [
