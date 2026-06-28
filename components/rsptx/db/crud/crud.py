@@ -208,6 +208,14 @@ async def create_traceback(exc: Exception, request: Request, host: str):
                 for d in dl[-2:]
             ]
 
+        # if the request is a post get the form data or json
+        pb = ""
+        if request.method == "POST":
+            if request.headers.get("Content-Type") == "application/json":
+                try:
+                    pb = (await request.body()).decode("utf-8")[:1024]
+                except Exception:
+                    pb = ""
         new_entry = TraceBack(
             traceback=tbtext,
             local_vars=local_vars_json,
@@ -216,6 +224,7 @@ async def create_traceback(exc: Exception, request: Request, host: str):
             path=request.url.path[:1024],
             query_string=str(request.query_params)[:512],
             hash=hashlib.md5(tbtext.encode("utf8")).hexdigest(),
+            post_body=pb,
             hostname=host,
         )
         session.add(new_entry)

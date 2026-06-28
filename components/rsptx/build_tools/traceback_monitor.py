@@ -43,7 +43,8 @@ from textual.widgets import DataTable, Footer, Header, Static
 DEFAULT_DBURL = "postgresql://runestone:runestone@localhost:2345/runestone_dev"
 REFRESH_SECONDS = 15
 QUERY = """
-    SELECT id, timestamp, err_message, hostname, path, traceback, local_vars
+    SELECT id, timestamp, err_message, hostname, path, traceback, local_vars,
+           query_string, post_body
     FROM traceback
     ORDER BY timestamp DESC NULLS LAST, id DESC
     LIMIT %s
@@ -52,7 +53,7 @@ QUERY = """
 
 def get_dburl():
     """psycopg2 wants a plain libpq URL; strip any SQLAlchemy +driver suffix."""
-    url = os.environ.get("DEV_DBURL", DEFAULT_DBURL)
+    url = os.environ.get("DBURL", DEFAULT_DBURL)
     return url.replace("postgresql+psycopg2", "postgresql").replace(
         "postgresql+asyncpg", "postgresql"
     )
@@ -246,15 +247,62 @@ class TracebackDetail(ModalScreen):
         self.dismiss()
 
 
+class FieldDetail(ModalScreen):
+    """A scrollable modal showing a single field's value (e.g. post_body)."""
+
+    BINDINGS = [
+        Binding("escape,q", "dismiss", "Close"),
+    ]
+
+    DEFAULT_CSS = """
+    FieldDetail {
+        align: center middle;
+    }
+    FieldDetail > VerticalScroll {
+        width: 90%;
+        height: 90%;
+        border: round $accent;
+        background: $surface;
+        padding: 1 2;
+    }
+    FieldDetail .field-title {
+        color: $accent;
+        text-style: bold;
+        margin-bottom: 1;
+    }
+    FieldDetail .field-value {
+        color: $text;
+    }
+    """
+
+    def __init__(self, title, value):
+        super().__init__()
+        self.field_title = title
+        self.field_value = value
+
+    def compose(self) -> ComposeResult:
+        with VerticalScroll():
+            yield Static(self.field_title, classes="field-title", markup=False)
+            value = self.field_value
+            if value is None or value == "":
+                value = "(empty)"
+            yield Static(str(value), classes="field-value", markup=False)
+
+    def action_dismiss(self) -> None:
+        self.dismiss()
+
+
 class TracebackMonitor(App):
     """Live view of the traceback table."""
 
     TITLE = "Traceback Monitor"
 
     BINDINGS = [
-        Binding("q,ctrl+c", "quit", "Quit"),
+        Binding("ctrl+c", "quit", "Quit"),
         Binding("r", "refresh", "Refresh"),
         Binding("enter", "show_detail", "Detail"),
+        Binding("p", "show_post_body", "Post body"),
+        Binding("q", "show_query_string", "Query string"),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),
     ]
@@ -345,14 +393,31 @@ class TracebackMonitor(App):
     def action_cursor_up(self) -> None:
         self.query_one(DataTable).action_cursor_up()
 
-    def action_show_detail(self) -> None:
+    def _selected_row(self):
         table = self.query_one(DataTable)
         if not table.row_count:
-            return
+            return None
         key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key.value
-        row = self.rows_by_key.get(key)
+        return self.rows_by_key.get(key)
+
+    def action_show_detail(self) -> None:
+        row = self._selected_row()
         if row:
             self.push_screen(TracebackDetail(row))
+
+    def action_show_post_body(self) -> None:
+        row = self._selected_row()
+        if row:
+            self.push_screen(
+                FieldDetail(f"post_body (id {row['id']})", row.get("post_body"))
+            )
+
+    def action_show_query_string(self) -> None:
+        row = self._selected_row()
+        if row:
+            self.push_screen(
+                FieldDetail(f"query_string (id {row['id']})", row.get("query_string"))
+            )
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         row = self.rows_by_key.get(event.row_key.value)
