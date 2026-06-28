@@ -2,7 +2,7 @@
 # Uses UV not Poetry -- conversion to uv in June 2026
 [project]
 name = "rs"
-version = "8.9.0"
+version = "8.9.1"
 description = ""
 authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
 requires-python = ">=3.13,<4"
