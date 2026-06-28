@@ -8,6 +8,7 @@ Rather than litter the code with raw database queries the vast majority should b
 turned into reusable functions that are defined in this file.
 
 """
+
 # Imports
 # =======
 # These are listed in the order prescribed by `PEP 8`_.
@@ -20,14 +21,12 @@ import json
 from typing import Dict, Optional, Any
 import traceback
 
-
 # Third-party imports
 # -------------------
 
 from sqlalchemy.sql import select
 from sqlalchemy.orm import attributes
 from starlette.requests import Request
-
 
 # Local application imports
 # -------------------------
@@ -211,11 +210,10 @@ async def create_traceback(exc: Exception, request: Request, host: str):
         # if the request is a post get the form data or json
         pb = ""
         if request.method == "POST":
-            if request.headers.get("Content-Type") == "application/json":
-                try:
-                    pb = (await request.body()).decode("utf-8")[:1024]
-                except Exception:
-                    pb = ""
+            try:
+                pb = (await request.body()).decode("utf-8")[:1024]
+            except Exception:
+                pb = ""
         new_entry = TraceBack(
             traceback=tbtext,
             local_vars=local_vars_json,
