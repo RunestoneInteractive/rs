@@ -82,7 +82,7 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
 
 export const getDefaultQuestionJson = (languageOptions: TableDropdownOption[]) => ({
   statement: "",
-  language: languageOptions && languageOptions[0].value,
+  language: languageOptions?.[0]?.value,
   instructions: "",
   prefix_code: "",
   starter_code: "",
