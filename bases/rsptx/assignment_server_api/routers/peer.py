@@ -10,49 +10,49 @@
 # Standard library
 # ----------------
 import datetime
+import json
+import random
 import sys
 from typing import Optional
 
+import pandas as pd
+
 # Third-party imports
 # -------------------
-from fastapi import APIRouter, Depends, Request, Body
+from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from rsptx.auth.session import auth_manager
+from rsptx.configuration import settings
+from rsptx.db.async_session import async_session
+from rsptx.db.crud import (
+    count_distinct_student_answers,
+    count_peer_messages,
+    create_useinfo_entry,
+    fetch_all_course_attributes,
+    fetch_api_token,
+    fetch_assignment_questions,
+    fetch_assignments,
+    fetch_course_students,
+    fetch_last_useinfo_peergroup,
+    fetch_lti_version,
+    fetch_one_assignment,
+    fetch_question,
+    fetch_recent_student_answers,
+    fetch_student_answers_in_timerange,
+    replace_user_experiment_entries,
+    update_assignment,
+)
+from rsptx.db.models import Useinfo, UseinfoValidation
+from rsptx.endpoint_validators import instructor_role_required, with_course
 
 # Local application imports
 # -------------------------
 from rsptx.logging import rslogger
-from rsptx.db.crud import (
-    fetch_assignments,
-    fetch_one_assignment,
-    update_assignment,
-    fetch_assignment_questions,
-    fetch_all_course_attributes,
-    create_useinfo_entry,
-    fetch_lti_version,
-    fetch_recent_student_answers,
-    fetch_student_answers_in_timerange,
-    count_distinct_student_answers,
-    count_peer_messages,
-    fetch_last_useinfo_peergroup,
-    fetch_course_students,
-    fetch_api_token,
-    fetch_question,
-    replace_user_experiment_entries,
-)
-from rsptx.db.models import UseinfoValidation, Useinfo
-from rsptx.db.async_session import async_session
-from rsptx.auth.session import auth_manager
-import pandas as pd
-import random
-import json
-from rsptx.templates import template_folder
-from rsptx.endpoint_validators import with_course, instructor_role_required
-from rsptx.configuration import settings
-
 from rsptx.response_helpers.core import (
     get_webpack_static_imports,
 )
+from rsptx.templates import template_folder
 
 # Analogy themes for async LLM mode
 # ==================================
@@ -207,9 +207,10 @@ async def get_peer_dashboard(
     await create_useinfo_entry(log_entry)
 
     # Initialize Redis state and publish enableNext message
-    import os
-    import redis
     import json
+    import os
+
+    import redis
 
     try:
         r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
@@ -744,6 +745,7 @@ async def make_pairs(
     mimicking the legacy web2py behavior.
     """
     import os
+
     import redis
     from dateutil.parser import parse
 
@@ -890,7 +892,14 @@ async def make_pairs(
         r.hset(
             f"{course.course_name}_state",
             "current_phase",
-            json.dumps({"type": "control", "message": phase_key, "broadcast": False, "course_name": course.course_name}),
+            json.dumps(
+                {
+                    "type": "control",
+                    "message": phase_key,
+                    "broadcast": False,
+                    "course_name": course.course_name,
+                }
+            ),
         )
 
         # If doing A/B, also send face-chat groups based on in-person groups
@@ -1208,9 +1217,10 @@ async def publish_message(
     Publish a message to the Redis pub/sub for peer instruction.
     Used for both text chat and control messages.
     """
-    import os
-    import redis
     import json
+    import os
+
+    import redis
 
     data = await request.json()
     rslogger.info(f"Publishing peer message: {data}")
@@ -1221,7 +1231,10 @@ async def publish_message(
 
         # Store phase-change control messages so reconnecting students can catch up
         if data.get("type") == "control" and data.get("message") in (
-            "enableVote", "enableNext", "enableChat", "enableFaceChat"
+            "enableVote",
+            "enableNext",
+            "enableChat",
+            "enableFaceChat",
         ):
             r.hset(f"{course.course_name}_state", "current_phase", json.dumps(data))
 
@@ -1252,6 +1265,7 @@ async def get_current_state(
     """Return the last phase-change control message for this course so a
     reconnecting student can catch up to the current session state."""
     import os
+
     import redis
 
     try:
@@ -1279,6 +1293,7 @@ async def log_peer_rating(
     Log a student's rating of their peer interaction.
     """
     import datetime
+
     from rsptx.validation.schemas import UseinfoValidation
 
     rslogger.info(
@@ -1321,6 +1336,7 @@ async def clear_pairs(
     Called when the instructor switches to face-chat mode.
     """
     import os
+
     import redis as redis_lib
 
     r = redis_lib.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
@@ -1580,6 +1596,7 @@ async def _generate_analogy_mapping_async(
 
     try:
         import os
+
         import aiohttp
 
         token_row = await fetch_api_token(course_id, "openai")
