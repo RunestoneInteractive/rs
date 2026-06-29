@@ -222,6 +222,7 @@ async def get_peer_dashboard(
             "course_name": course.course_name,
         }
         r.publish("peermessages", json.dumps(mess))
+        r.hset(f"{course.course_name}_state", "current_phase", json.dumps(mess))
     except Exception as e:
         rslogger.error(f"Error initializing Redis: {e}")
 
@@ -883,6 +884,15 @@ async def make_pairs(
             }
             r.publish("peermessages", json.dumps(mess))
 
+        # Store current phase so reconnecting students can catch up (see /api/current_state).
+        # Partner data is per-student and is in partnerdb
+        phase_key = "enableFaceChat" if (is_ab and peeps_in_person) else "enableChat"
+        r.hset(
+            f"{course.course_name}_state",
+            "current_phase",
+            json.dumps({"type": "control", "message": phase_key, "broadcast": False, "course_name": course.course_name}),
+        )
+
         # If doing A/B, also send face-chat groups based on in-person groups
         if is_ab and peeps_in_person:
             # Build a map of username -> full name for this course
@@ -1209,6 +1219,12 @@ async def publish_message(
         r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
         r.publish("peermessages", json.dumps(data))
 
+        # Store phase-change control messages so reconnecting students can catch up
+        if data.get("type") == "control" and data.get("message") in (
+            "enableVote", "enableNext", "enableChat", "enableFaceChat"
+        ):
+            r.hset(f"{course.course_name}_state", "current_phase", json.dumps(data))
+
         # Track message count for text messages
         if data.get("type") == "text":
             res = r.hget(f"{course.course_name}_state", "mess_count")
@@ -1224,6 +1240,29 @@ async def publish_message(
         return JSONResponse(
             status_code=500, content={"detail": f"Failed to publish message: {str(e)}"}
         )
+
+
+@router.get("/api/current_state")
+@with_course()
+async def get_current_state(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """Return the last phase-change control message for this course so a
+    reconnecting student can catch up to the current session state."""
+    import os
+    import redis
+
+    try:
+        r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
+        raw = r.hget(f"{course.course_name}_state", "current_phase")
+        if raw:
+            return JSONResponse(content=json.loads(raw))
+        return JSONResponse(content={})
+    except Exception as e:
+        rslogger.error(f"Error fetching current state: {e}")
+        return JSONResponse(content={})
 
 
 @router.post("/api/log_peer_rating")
