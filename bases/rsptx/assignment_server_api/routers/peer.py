@@ -886,21 +886,22 @@ async def make_pairs(
             }
             r.publish("peermessages", json.dumps(mess))
 
-        # Store current phase so reconnecting students can catch up (see /api/current_state).
-        # Partner data is per-student and is in partnerdb
-        phase_key = "enableFaceChat" if (is_ab and peeps_in_person) else "enableChat"
-        r.hset(
-            f"{course.course_name}_state",
-            "current_phase",
-            json.dumps(
-                {
-                    "type": "control",
-                    "message": phase_key,
-                    "broadcast": False,
-                    "course_name": course.course_name,
-                }
-            ),
-        )
+        # Store per-student phase so reconnecting students catch up to the right UI.
+        # Text-chat and verbal (face-chat) students get different phases in A/B mode,
+        # so we can't store a single course-wide phase here.
+        for sid in gdict:
+            r.hset(
+                f"{course.course_name}_state",
+                f"phase_{sid}",
+                json.dumps(
+                    {
+                        "type": "control",
+                        "message": "enableChat",
+                        "broadcast": False,
+                        "course_name": course.course_name,
+                    }
+                ),
+            )
 
         # If doing A/B, also send face-chat groups based on in-person groups
         if is_ab and peeps_in_person:
@@ -931,6 +932,18 @@ async def make_pairs(
                     "course_name": course.course_name,
                 }
                 r.publish("peermessages", json.dumps(mess))
+                r.hset(
+                    f"{course.course_name}_state",
+                    f"phase_{p}",
+                    json.dumps(
+                        {
+                            "type": "control",
+                            "message": "enableFaceChat",
+                            "broadcast": False,
+                            "course_name": course.course_name,
+                        }
+                    ),
+                )
 
         rslogger.info(f"Created {len(group_list)} chat groups (is_ab={is_ab})")
         return JSONResponse(content={"status": "success", "groups": len(group_list)})
@@ -1270,7 +1283,11 @@ async def get_current_state(
 
     try:
         r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
-        raw = r.hget(f"{course.course_name}_state", "current_phase")
+        # Per-student key set during make_pairs (handles A/B where phases differ).
+        # Falls back to course-wide current_phase for broadcast phases (enableVote, enableNext).
+        raw = r.hget(f"{course.course_name}_state", f"phase_{user.username}") or r.hget(
+            f"{course.course_name}_state", "current_phase"
+        )
         if raw:
             return JSONResponse(content=json.loads(raw))
         return JSONResponse(content={})

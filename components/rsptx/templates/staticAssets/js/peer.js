@@ -170,7 +170,9 @@ function connect(event) {
     // only happen on a live message (vote counting, page navigation).
     ws.onopen = async function () {
         try {
-            let resp = await fetch("/assignment/peer/api/current_state");
+            let urlParams = new URLSearchParams(window.location.search);
+            let assignmentId = urlParams.get('assignment_id');
+            let resp = await fetch(`/assignment/peer/api/current_state?assignment_id=${assignmentId}`);
             if (!resp.ok) return;
             let phase = await resp.json();
             if (phase && phase.message) {
@@ -345,11 +347,12 @@ function connect(event) {
                     }
                     let peerlist = document.getElementById("peerlist");
                     const ordA = 65;
-                    // Remove any partner rows from a previous enableChat
-                    while (peerlist.children.length > 1) {
-                        peerlist.removeChild(peerlist.lastChild);
+                    // On catch-up the per-partner payload isn't stored, so keep existing rows
+                    if (!mess._catchup) {
+                        while (peerlist.children.length > 1) {
+                            peerlist.removeChild(peerlist.lastChild);
+                        }
                     }
-                    // On catch-up the per-partner payload isn't stored, so the existing rows are kept
                     adict = mess.answer ? JSON.parse(mess.answer) : {};
                     for (const key in adict) {
                         let currAnswer = adict[key];
