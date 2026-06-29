@@ -229,7 +229,7 @@ services:
       - USE_MASTER_AUTHOR=${USE_MASTER_AUTHOR:-False}
       - EMAIL_SENDER=${EMAIL_SENDER}
       - EMAIL_SERVER=${EMAIL_SERVER}
-      - EMAIL_LOGIN=${EMAIL_LOGIN}
+      - EMAIL_LOGIN=${EMAIL_LOGIN}      
       - SPACES_KEY=${SPACES_KEY}
       - SPACES_SECRET=${SPACES_SECRET}
       - GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS}
@@ -554,6 +554,9 @@ services:
       - RUNESTONE_HOST=${RUNESTONE_HOST}
       - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
       - JWT_SECRET=${JWT_SECRET}
+      - MAILGUN_API_KEY=${MAILGUN_API_KEY}
+      - MAILGUN_DOMAIN=${MAILGUN_DOMAIN}
+      - EMAIL_SENDER=${EMAIL_SENDER}
       # - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
       - REDIS_URI=redis://${REDIS_HOST}:6379/0
       # Note: host.docker.internal refers back to the host so we can just use a local instance
