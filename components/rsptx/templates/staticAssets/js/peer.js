@@ -558,11 +558,14 @@ async function makePartners(event, is_ab) {
     let butt = document.querySelector("#makep");
     butt.classList.replace("btn-info", "btn-secondary");
     let gs = document.getElementById("groupsize").value;
+    let urlParams = new URLSearchParams(window.location.search);
+    let assignmentId = urlParams.get('assignment_id');
     let data = {
         div_id: currentQuestion,
         start_time: startTime, // set in dashboard.html when loaded
         group_size: gs,
         is_ab: is_ab,
+        assignment_id: assignmentId ? parseInt(assignmentId) : null,
     };
     let jsheaders = new Headers({
         "Content-type": "application/json; charset=utf-8",

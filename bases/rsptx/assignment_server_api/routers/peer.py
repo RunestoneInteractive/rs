@@ -735,6 +735,7 @@ async def make_pairs(
     start_time: str = Body(...),
     group_size: int = Body(2),
     is_ab: bool = Body(False),
+    assignment_id: Optional[int] = Body(None),
     user=Depends(auth_manager),
     course=None,
 ):
@@ -888,11 +889,16 @@ async def make_pairs(
 
         # Store per-student phase so reconnecting students catch up to the right UI.
         # Text-chat and verbal (face-chat) students get different phases in A/B mode,
-        # so we can't store a single course-wide phase here.
+        # so we store per-student under an assignment-scoped key to avoid cross-session bleed.
+        state_key = (
+            f"assignment_{assignment_id}_state"
+            if assignment_id
+            else f"{course.course_name}_state"
+        )
         for sid in gdict:
             r.hset(
-                f"{course.course_name}_state",
-                f"phase_{sid}",
+                state_key,
+                sid,
                 json.dumps(
                     {
                         "type": "control",
@@ -933,8 +939,8 @@ async def make_pairs(
                 }
                 r.publish("peermessages", json.dumps(mess))
                 r.hset(
-                    f"{course.course_name}_state",
-                    f"phase_{p}",
+                    state_key,
+                    p,
                     json.dumps(
                         {
                             "type": "control",
@@ -1272,10 +1278,11 @@ async def publish_message(
 @with_course()
 async def get_current_state(
     request: Request,
+    assignment_id: Optional[int] = None,
     user=Depends(auth_manager),
     course=None,
 ):
-    """Return the last phase-change control message for this course so a
+    """Return the last phase-change control message for this student so a
     reconnecting student can catch up to the current session state."""
     import os
 
@@ -1283,9 +1290,14 @@ async def get_current_state(
 
     try:
         r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
-        # Per-student key set during make_pairs (handles A/B where phases differ).
+        # Per-student key stored during make_pairs (handles A/B where phases differ per student).
         # Falls back to course-wide current_phase for broadcast phases (enableVote, enableNext).
-        raw = r.hget(f"{course.course_name}_state", f"phase_{user.username}") or r.hget(
+        state_key = (
+            f"assignment_{assignment_id}_state"
+            if assignment_id
+            else f"{course.course_name}_state"
+        )
+        raw = r.hget(state_key, user.username) or r.hget(
             f"{course.course_name}_state", "current_phase"
         )
         if raw:
