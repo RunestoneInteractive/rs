@@ -65,6 +65,11 @@ export const CreateExercise = ({
   const handleTypeSelect = (type: string) => {
     const nextType = type as ExerciseType;
 
+    // Picking a type manually starts a fresh form: drop any previously imported
+    // data (which carries its own question_type and field values) and remount the
+    // factory so it re-seeds from defaults rather than the stale import.
+    setImportedData(undefined);
+    setFactoryKey((key) => key + 1);
     setSelectedType(nextType);
     if (!isEdit) {
       updateExerciseType(type);
@@ -80,20 +85,25 @@ export const CreateExercise = ({
     }
   };
 
+  const effectiveInitialData = importedData ?? initialData;
+
+  // JSON shown in the edit-mode "View / Replace JSON" modal. Derived from the
+  // effective data so it reflects an in-session import/replace rather than the
+  // stale original exercise.
   const currentJson = useMemo(() => {
-    if (!isEdit || !initialData) {
+    if (!isEdit || !effectiveInitialData) {
       return "";
     }
     try {
       return JSON.stringify(
-        JSON.parse(buildQuestionJson(initialData as CreateExerciseFormType)),
+        JSON.parse(buildQuestionJson(effectiveInitialData as CreateExerciseFormType)),
         null,
         2
       );
     } catch {
       return "";
     }
-  }, [isEdit, initialData]);
+  }, [isEdit, effectiveInitialData]);
 
   const handleImportApply = (type: ExerciseType, data: QuestionJSON) => {
     const merged = mergeQuestionJsonWithDefaults(languageOptions, data);
@@ -110,8 +120,6 @@ export const CreateExercise = ({
       updateExerciseType(type);
     }
   };
-
-  const effectiveInitialData = importedData ?? initialData;
 
   if (!selectedType) {
     return (
