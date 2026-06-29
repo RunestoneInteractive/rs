@@ -164,6 +164,25 @@ function connect(event) {
         connect();
     };
 
+    // On connect/reconnect fetch the current session phase and re-apply it so a 
+    // student who briefly dropped catches up to whatever the class is doing.
+    // _catchup flag tells the handlers to skip side effects that should
+    // only happen on a live message (vote counting, page navigation).
+    ws.onopen = async function () {
+        try {
+            let resp = await fetch("/assignment/peer/api/current_state");
+            if (!resp.ok) return;
+            let phase = await resp.json();
+            if (phase && phase.message) {
+                console.log(`Catch-up: re-applying phase ${phase.message}`);
+                phase._catchup = true;
+                ws.onmessage({ data: JSON.stringify(phase) });
+            }
+        } catch (e) {
+            console.log(`current_state catch-up failed: ${e}`);
+        }
+    };
+
     ws.onmessage = function (event) {
         const messages = document.getElementById("messages");
         let mess = JSON.parse(event.data);
@@ -282,7 +301,7 @@ function connect(event) {
                     window.componentMap[currentQuestion].submitButton.innerHTML =
                         "Submit";
                     window.componentMap[currentQuestion].enableInteraction();
-                    if (typeof studentVoteCount !== "undefined") {
+                    if (typeof studentVoteCount !== "undefined" && !mess._catchup) {
                         studentVoteCount += 1;
                         if (studentVoteCount > 2) {
                             studentVoteCount = 2;
@@ -309,6 +328,7 @@ function connect(event) {
                     break;
                 case "enableNext":
                     console.log("Got enableNext message");
+                    if (mess._catchup) break;
                     // This moves the student to the next question in the assignment
                     // first disable the handler to prevent leaving the page.
                     $(window).off("beforeunload");
@@ -329,7 +349,8 @@ function connect(event) {
                     while (peerlist.children.length > 1) {
                         peerlist.removeChild(peerlist.lastChild);
                     }
-                    adict = JSON.parse(mess.answer);
+                    // On catch-up the per-partner payload isn't stored, so the existing rows are kept
+                    adict = mess.answer ? JSON.parse(mess.answer) : {};
                     for (const key in adict) {
                         let currAnswer = adict[key];
                         let newpeer = document.createElement("p");
