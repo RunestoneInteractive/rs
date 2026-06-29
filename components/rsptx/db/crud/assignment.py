@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional, List
 from fastapi import HTTPException, status
 from asyncpg.exceptions import UniqueViolationError
@@ -128,6 +129,50 @@ async def fetch_deadline_exception(
         return DeadlineExceptionValidator(
             course_id=course_id, sid=username, time_limit=time_limit, duedate=deadline
         )
+
+
+async def has_submissions_after_deadline(
+    username: str, assignment_id: int, deadline: datetime.datetime
+) -> bool:
+    """
+    Check whether a student has any logged activity (useinfo) for a question
+    that belongs to the given assignment after the supplied deadline.
+
+    Looking at the useinfo table is intentional: it captures a row for every
+    save/submission and is far cheaper than querying each of the per-type
+    ``*_answers`` tables individually.
+
+    :param username: str, the student's username (matches ``useinfo.sid``)
+    :param assignment_id: int, the id of the assignment to check
+    :param deadline: datetime, naive UTC cutoff; activity recorded strictly
+        after this time is considered late
+    :return: bool, True if the student logged work after the deadline
+    """
+    query = (
+        select(Useinfo.id)
+        .select_from(AssignmentQuestion)
+        .join(Question, Question.id == AssignmentQuestion.question_id)
+        .join(Assignment, Assignment.id == AssignmentQuestion.assignment_id)
+        .join(Courses, Courses.id == Assignment.course)
+        .join(
+            Useinfo,
+            and_(
+                Useinfo.div_id == Question.name,
+                Useinfo.course_id == Courses.course_name,
+            ),
+        )
+        .where(
+            and_(
+                AssignmentQuestion.assignment_id == assignment_id,
+                Useinfo.sid == username,
+                Useinfo.timestamp > deadline,
+            )
+        )
+        .limit(1)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return res.first() is not None
 
 
 async def create_deadline_exception(

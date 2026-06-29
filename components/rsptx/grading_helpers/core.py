@@ -1,5 +1,6 @@
 from typing import Union, List
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 from rsptx.db.models import AuthUserValidator, DeadlineExceptionValidator
 from rsptx.db.crud import (
     is_assigned,
@@ -11,7 +12,9 @@ from rsptx.db.crud import (
     upsert_grade,
     fetch_assignment_scores,
     fetch_deadline_exception,
+    fetch_one_assignment,
     fetch_peer_useinfo,
+    has_submissions_after_deadline,
 )
 from rsptx.validation.schemas import (
     LogItemIncoming,
@@ -332,3 +335,52 @@ def adjust_deadlines(
                     assignment.duedate += timedelta(days=exception.duedate)
                 break
     return assignment_list
+
+
+async def has_late_submission(
+    username: str, assignment_id: int, timezone: str = "UTC"
+) -> bool:
+    """
+    Determine whether a student has saved work for any question on an
+    assignment after its deadline.
+
+    The deadline is only meaningful when the instructor has chosen to enforce
+    the due date (``Assignment.enforce_due``); when it is not enforced nothing
+    counts as late.  Any per-student accommodation in the
+    ``deadline_exceptions`` table that extends the due date is applied before
+    the comparison is made.
+
+    Only the ``useinfo`` table is consulted -- it records a row for every save
+    a student makes, so it is both sufficient and far cheaper than querying the
+    individual ``*_answers`` tables.
+
+    :param username: The student's username (``auth_user.username`` / ``sid``).
+    :param assignment_id: The id of the assignment to check.
+    :param timezone: The course timezone used to interpret the due date, which
+        is stored in course-local time.
+    :return: True if the student saved work after the enforced (and
+        accommodated) deadline, False otherwise.
+    """
+    assignment = await fetch_one_assignment(assignment_id)
+
+    # If the instructor is not enforcing the due date, late work is allowed and
+    # nothing is considered late.
+    if not assignment.enforce_due:
+        return False
+
+    # Apply any accommodation (extra days) granted to this student.
+    accommodation = await fetch_deadline_exception(
+        assignment.course, username, assignment_id
+    )
+    deadline = assignment.duedate
+    if accommodation and accommodation.duedate:
+        deadline += timedelta(days=accommodation.duedate)
+
+    # The due date is stored in the course's local timezone, while useinfo
+    # timestamps are stored as naive UTC, so convert before comparing.
+    tz = ZoneInfo(timezone)
+    deadline_utc = (
+        deadline.replace(tzinfo=tz).astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+    )
+
+    return await has_submissions_after_deadline(username, assignment_id, deadline_utc)
