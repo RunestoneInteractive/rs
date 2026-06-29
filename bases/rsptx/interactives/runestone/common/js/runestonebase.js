@@ -225,7 +225,7 @@ export default class RunestoneBase {
             } else {
                 gradeBox = document.getElementById(`${this.divid}_score`);
             }
-            if (gradeBox && !this.isTimed && scoreSpec.score) {
+            if (gradeBox && !this.isTimed && scoreSpec) {
                 this.updateScores(gradeBox, scoreSpec);
             }
         } catch (e) {
