@@ -61,6 +61,7 @@ from rsptx.db.crud import (
     update_question,
     fetch_question_by_id,
     fetch_one_assignment,
+    fetch_late_students_for_assignment,
     get_peer_votes,
     search_exercises,
     create_api_token,
@@ -440,6 +441,8 @@ async def get_assignment_gb(
 
     assignments.index = assignments.id
     aname = assignments.name.to_dict()
+    # Reverse lookup so we can map a rendered column back to its assignment id.
+    aid_by_name = {name: aid for aid, name in aname.items()}
     students["full_name"] = students.first_name + " " + students.last_name
     students.index = students.id
     sfirst = students.first_name.to_dict()
@@ -458,6 +461,9 @@ async def get_assignment_gb(
     cols = pt.columns.to_list()
     display_cols = []
     formatter_map = {}
+    # Map each rendered assignment column header to its assignment id so the
+    # gradebook can request the late-work list for whichever column is clicked.
+    assignment_id_by_column = {}
 
     def format_percent(value):
         return "" if pd.isna(value) else f"{value:.2f}"
@@ -472,6 +478,8 @@ async def get_assignment_gb(
                 pt[c] = (pt[c] / points * 100).round(2)
             formatter_map[display_name] = format_percent
         display_cols.append(display_name)
+        if c in aid_by_name:
+            assignment_id_by_column[display_name] = aid_by_name[c]
 
     pt["first_name"] = pt.index.map(sfirst)
     pt["last_name"] = pt.index.map(slast)
@@ -530,6 +538,7 @@ async def get_assignment_gb(
             "request": request,
             "is_instructor": user_is_instructor,
             "student_page": False,
+            "assignment_id_by_column": json.dumps(assignment_id_by_column),
         },
     )
 
@@ -565,6 +574,41 @@ async def get_assignment(request: Request, assignment_id: int, course=None):
 
     return make_json_response(
         status=status.HTTP_200_OK, detail={"assignment": assignment}
+    )
+
+
+@router.get("/assignments/{assignment_id}/late_students")
+@instructor_role_required()
+@with_course()
+async def get_late_students(request: Request, assignment_id: int, course=None):
+    """Return the students who have saved work for ``assignment_id`` after the
+    (accommodation adjusted) deadline.
+
+    Used by the gradebook to show, on demand, who turned in late work for a
+    single assignment so the full gradebook does not have to compute this for
+    every student up front.
+    """
+    assignment = await fetch_one_assignment(assignment_id)
+    # Only expose data for an assignment that belongs to the instructor's course.
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
+    students = await fetch_late_students_for_assignment(assignment_id)
+    for s in students:
+        first = (s.get("first_name") or "").strip()
+        last = (s.get("last_name") or "").strip()
+        s["name"] = (f"{first} {last}").strip() or s["username"]
+
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "assignment_id": assignment_id,
+            "assignment_name": assignment.name,
+            "enforce_due": bool(assignment.enforce_due),
+            "students": students,
+        },
     )
 
 

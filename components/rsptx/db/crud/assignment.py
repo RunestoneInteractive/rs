@@ -175,6 +175,75 @@ async def has_submissions_after_deadline(
         return res.first() is not None
 
 
+async def fetch_late_students_for_assignment(assignment_id: int) -> List[dict]:
+    """
+    Return the students who saved work for a given assignment after the
+    (accommodation adjusted) deadline.
+
+    This is the multi-student counterpart to ``has_submissions_after_deadline``
+    for a single assignment: it answers the late-work question for every student
+    in one query.  The due date is only meaningful when the instructor enforces
+    it (``Assignment.enforce_due``); when it is not enforced the result is empty.
+    Any per-student accommodation in ``deadline_exceptions`` extends that
+    student's deadline.  Deadlines are compared in UTC, matching the default
+    behavior of the grading helpers.
+
+    :param assignment_id: int, the id of the assignment to check
+    :return: List[dict], one entry per late student with ``username``,
+        ``first_name`` and ``last_name``, ordered by name
+    """
+    query = (
+        select(
+            Useinfo.sid,
+            AuthUser.first_name,
+            AuthUser.last_name,
+        )
+        .select_from(Useinfo)
+        .join(Courses, Courses.course_name == Useinfo.course_id)
+        .join(Question, Question.name == Useinfo.div_id)
+        .join(AssignmentQuestion, AssignmentQuestion.question_id == Question.id)
+        .join(
+            Assignment,
+            and_(
+                Assignment.id == AssignmentQuestion.assignment_id,
+                Assignment.course == Courses.id,
+            ),
+        )
+        .outerjoin(
+            DeadlineException,
+            and_(
+                DeadlineException.course_id == Courses.id,
+                DeadlineException.assignment_id == Assignment.id,
+                DeadlineException.sid == Useinfo.sid,
+            ),
+        )
+        .outerjoin(AuthUser, AuthUser.username == Useinfo.sid)
+        .where(
+            and_(
+                Assignment.id == assignment_id,
+                Assignment.enforce_due == True,  # noqa: E712
+                Useinfo.timestamp
+                > Assignment.duedate
+                + func.make_interval(
+                    0, 0, 0, func.coalesce(DeadlineException.duedate, 0)
+                ),
+            )
+        )
+        .distinct()
+        .order_by(AuthUser.last_name, AuthUser.first_name, Useinfo.sid)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [
+            {
+                "username": row.sid,
+                "first_name": row.first_name,
+                "last_name": row.last_name,
+            }
+            for row in res.all()
+        ]
+
+
 async def create_deadline_exception(
     course_id: int,
     username: str,
