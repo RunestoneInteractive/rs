@@ -13,8 +13,6 @@
       <th>Name</th>
       {% if is_instructor %}
       <th>Action</th>
-      {% else %}
-      <th>My Progress</th>
       {% endif %}
       <th>Due</th>
       <th>Score</th>
@@ -37,30 +35,17 @@
       <td>
         <a href="/assignment/student/doAssignment?assignment_id={{assignment.id}}">{{assignment.name}}</a>
       </td>
-      <td style="white-space: nowrap;">
-        {% if is_instructor %}
-        <a href='/assignment/instructor/builder/{{assignment.id}}'>
-          <i class="ti ti-pencil" aria-label="edit" title="edit this assignment"></i></a>
-        <a href="/runestone/admin/grading?selected_assignment={{assignment.name}}">
-          <i class="ti ti-checklist" aria-label="grading" title="grade this assignment"></i></a>
-        <a href='/assignment/instructor/assignment_summary/{{assignment.id}}'">
-          <i class="ti ti-layout-dashboard" aria-label="dashboard" title="view summary"></i></a>
-        {% else %}
-        {% if assignment.id in stats %}
-        {% set current = stats[assignment.id].is_submit %}
-        {% else %}
-        {% set current = "" %}
-        {% endif %}
-        <select required onchange="updateAssignmentProgress(this.value, {{assignment.id}})">
-          <option disabled selected value="">Track my Progress</option>
-          {% for option in ["Not Started", "In Progress", "Finished"]:%}
-          <option {% if current==option: %} selected {% endif %} value="{{option}}">{{option}}
-          </option>
-          {% endfor %}
-        </select>
-        {% endif %}
-      </td>
-
+      
+    {% if is_instructor %}
+    <td style="white-space: nowrap;"></td>
+      <a href='/assignment/instructor/builder/{{assignment.id}}'>
+        <i class="ti ti-pencil" aria-label="edit" title="edit this assignment"></i></a>
+      <a href="/runestone/admin/grading?selected_assignment={{assignment.name}}">
+        <i class="ti ti-checklist" aria-label="grading" title="grade this assignment"></i></a>
+      <a href='/assignment/instructor/assignment_summary/{{assignment.id}}'">
+        <i class="ti ti-layout-dashboard" aria-label="dashboard" title="view summary"></i></a>
+    </td>
+    {% endif %}
       
       <td {% if assignment.duedate < now %}class="overdue"{% endif %}>{{assignment.duedate.strftime("%b %d, %Y %I:%M %p")}}</td>
       <td>

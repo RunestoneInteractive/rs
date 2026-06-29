@@ -49,23 +49,6 @@ Do Assignment
     <div style='background-color:powderblue; margin-left:2cm; margin-right:2cm;'>
         <p style='margin-left:0.5cm; margin-right:0.5cm;'>Description: {{ assignment['description'] }}</p>
     </div>
-    {% if not assignment.is_timed %}
-    <div>
-        {% if is_submit == "Finished" %}
-            <div style='background-color:rgb(146, 207, 165); margin-left:2cm; margin-right:2cm;'>
-                <p style='margin-left:0.5cm; margin-right:0.5cm;'>You have marked this assignment Finished.  Click to mark it <button onclick="updateAssignmentProgress('In Progress', assignmentId)" class="btn btn-info">In Progress</button></p>
-            </div>
-        {%elif is_submit == "In Progress"%}
-            <div style='background-color:rgb(247, 238, 158); margin-left:2cm; margin-right:2cm;'>
-                <p style='margin-left:0.5cm; margin-right:0.5cm;'>You have marked this assignment as In Progress.  Click to mark it as <button onclick="updateAssignmentProgress('Finished', assignmentId)" class="btn btn-info">Finished</button></p>
-            </div>
-        {% else %}
-            <div style='background-color:rgb(236, 189, 189); margin-left:2cm; margin-right:2cm;'>
-                <p style='margin-left:0.5cm; margin-right:0.5cm;'>You can mark this assignment as <button onclick="updateAssignmentProgress('In Progress', assignmentId)" class="btn btn-info">In Progress</button> by clicking the button.</p>
-            </div>
-        {% endif %}
-    </div>
-    {% endif %}
     {% if readings|length > 0 %}
         <div id='readings' style='margin-left:15%;'>
             <h3>Readings</h3>
@@ -175,35 +158,6 @@ Do Assignment
         </div>
     {% endif %}
 </div>
-{% if not assignment.is_timed %}
-<div>
-    {% if is_submit == "Finished" %}
-        <div style='background-color:rgb(146, 207, 165); margin-left:2cm; margin-right:2cm;'>
-            <p style='margin-left:0.5cm; margin-right:0.5cm;'>You have marked this assignment Finished.  Click to mark it <button onclick="updateAssignmentProgress('In Progress', assignmentId)" class="btn btn-info">In Progress</button></p>
-        </div>
-        {% if is_graded %}
-            <div style='background-color:powderblue; margin-left:2cm; margin-right:2cm;'>
-                <p style='margin-left:0.5cm; margin-right:0.5cm;'>This assignment is graded and is no longer
-                accepting submissions. You can still do the work, but it is up to your instructor whether
-                they will accept it or not.</p>
-            </div>
-        {% elif enforce_pastdue %}
-            <div style='background-color:powderblue; margin-left:2cm; margin-right:2cm;'>
-                <p style='margin-left:0.5cm; margin-right:0.5cm;'>The due date has passed for this assignment.
-                You can no longer change your status, but your work will be recorded and time stamped</p>
-            </div>
-        {% endif %}
-    {% elif is_submit == "In Progress" %}
-        <div style='background-color:rgb(247, 238, 158); margin-left:2cm; margin-right:2cm;'>
-            <p style='margin-left:0.5cm; margin-right:0.5cm;'>You have marked this assignment as In Progress.  Click to mark it as <button onclick="updateAssignmentProgress('Finished', assignmentId)" class="btn btn-info">Finished</button></p>
-        </div>
-    {% else %}
-        <div style='background-color:rgb(236, 189, 189); margin-left:2cm; margin-right:2cm;'>
-            <p style='margin-left:0.5cm; margin-right:0.5cm;'>You can mark this assignment as <button onclick="updateAssignmentProgress('In Progress', assignmentId)" class="btn btn-info">In Progress</button> by clicking the button.</p>
-        </div>
-    {% endif %}
-</div>
-{% endif %}
 
 {% if not released and not assignment.is_timed %}
 <div style="text-align:center">
@@ -213,21 +167,7 @@ Do Assignment
         No deadlines are enforced when self grading, but your instructor may penalize you
         for late work.</p>
 </div>
-{% elif False %}
-<div style="text-align:center">
-    <button class="btn btn-lg btn-warning buttonAskCompletion" id="gradeMeButton">Score Me</button>
-    {% if not is_graded and not enforce_pastdue %}
-    <button class="btn btn-lg buttonAskCompletion" id="submitMeButton">
-        {% if is_submit == "Not Started" %}
-            Mark In Progress
-        {% elif is_submit == "In Progress" %}
-            Mark Finished
-        {% else %}
-            Mark Incomplete
-        {% endif %}
-    </button>
-    {% endif %}
-</div>
+
 {% endif %}
 </div>
 
