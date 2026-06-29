@@ -587,7 +587,7 @@ def admin_logger(logger):
             )
         except Exception as e:
             logger.error(
-                f"failed to insert log record for user {sid} {request.controller} {request.function}: {e}"
+                f"failed to insert log record for user {sid} / {course} {request.controller} {request.function}: {e}"
             )
             db.rollback()
 
