@@ -1,0 +1,354 @@
+/* +--------------------------------+ */
+/* | Peer Instruction (PI) Stylesheet | */
+/* +--------------------------------+ */
+
+/* ---------------------- */
+/* Instructor's interface */
+/* ---------------------- */
+#pi-instructor-interface .row, #pi-instructor-interface #imessage {
+    margin-right: 0px;
+    margin-left: 0px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+#pi-session-status {
+    border: 1px solid #333333;
+    background-color: #F2E0C3;
+    padding: 9px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin: 5px;
+}
+
+#pi-question-indicator {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+#pi-group-size-selector {
+    gap: 5px;
+}
+
+#pi-group-size-selector label {
+    margin-bottom: 0;
+    font-weight: 500;
+}
+
+#pi-instructor-interface h3 {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+#pi-question-info {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#pi-assignment-navigation {
+    display: flex;
+    gap: 5px;
+}
+
+.pi-stepper {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    overflow: auto;
+    align-items: flex-start;
+}
+
+.pi-step-group {
+    display: flex;
+    flex-direction: row;
+    padding: 24px;
+    transition: background-color 0.3s ease;
+}
+
+.pi-step-group.middle {
+    width: 50%;
+}
+
+.pi-step-group.last {
+    width: 35%;
+}
+
+.pi-step-group.active {
+    background-color: #D7F1F999;
+    border-radius: 12px;
+}
+
+.pi-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    padding: 13px 16px 16px 16px;
+    transition: outline 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.pi-step.active:hover {
+    scale: 1.05;
+    transition: scale 0.2s ease-in-out;
+}
+
+.pi-step.active {
+    outline: 2px solid #1A6A83;
+    outline-offset: 2px;
+    border-radius: 5px;
+    margin-right: 10px;
+    margin-left: 10px;
+}
+
+.pi-step-number {
+    height: 42px;
+    width: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.pi-step-number-inner {
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #777777;
+    border: 1px solid #777777;
+    background-color: #FFFFFF;
+    font-size: 12px;
+    z-index: 100;
+}
+
+.pi-stepper-line {
+    height: 1px;
+    flex: 1;
+    background-color: #000000;
+    margin: 34px 0px 0 0px;
+}
+
+.pi-step-buttons {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+#chat-modality {
+    flex-direction: column;
+    gap: 0px;
+}
+
+.pi-step.active .pi-step-number {
+    background-color: #46B8DA80;
+}
+
+.pi-step.active .pi-step-number-inner {
+    color: #1A6A83;
+    border: 1px solid #46B8DA;
+}
+
+#pi-live-vote-graph {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.autopermalink {
+    display: none;
+}
+
+.oneq label.mchoice-option,
+#pi-student-interface label.mchoice-option {
+    display: block !important;
+    margin-bottom: 4px;
+}
+
+.oneq button[name="compare"],
+#pi-student-interface button[name="compare"] {
+    display: none !important;
+}
+
+.oneq button[aria-label="Close"],
+.oneq .close,
+.oneq .knowl-close,
+#pi-student-interface button[aria-label="Close"],
+#pi-student-interface .close {
+    display: none !important;
+}
+
+/* ------------------- */
+/* Student's interface */
+/* ------------------- */
+#pi-student-interface .row, #pi-student-interface #imessage {
+    margin-right: 0px;
+    margin-left: 0px;
+    padding-right: 15px;
+}
+
+#discussion_panel {
+    margin: 20px 0;
+    background: #FBFBFB;
+    border: 0.5px solid #C7CDD1;
+    border-radius: 12px;
+    box-shadow: 0px 20px 24px 0px rgba(17, 17, 17, 0.06);
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+#discussion-panel-heading {
+    font-size: 22px;
+    font-weight: 500;
+    padding: 12px 24px;
+    background: #FBFBFB;
+    border: 1px solid #C7CDD1;
+    border-radius: 12px 12px 0px 0px;
+    box-shadow: 0px 2px 2px 0px rgba(17, 17, 17, 0.06);
+}
+
+#discussion-panel-heading p {
+    margin: 0;
+}
+
+#discussion-panel-peer-votes {
+    border-bottom: 1px solid #C7CDD1;
+    padding: 16px 24px;
+}
+
+#discussion-panel-peer-votes-content {
+    border-radius: 12px;
+    border: 2px solid #C7CDD1;
+    background: #FFFFFF;
+    padding: 16px 32px;
+}
+
+#discussion-panel-peer-votes-content p {
+    margin: 0;
+    line-height: 28px;
+}
+
+#discussion-panel-peer-votes-content #peerlist {
+    margin-bottom: 8px;
+}
+
+#discussion-panel-messages {
+    padding: 16px 24px;
+}
+
+#discussion-panel-messages #messages {
+    margin: 0;
+    padding-left: 0;
+    padding-right: 10px;
+    min-height: 15vh;
+    max-height: 35vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#discussion-panel-messages #messages > li {
+    margin-top: 8px;
+}
+
+#discussion-panel-messages #messages .outgoing-mess + .incoming-mess,
+#discussion-panel-messages #messages .incoming-mess + .outgoing-mess {
+    margin-top: 16px;
+}
+
+#discussion-panel-messages #messages > li:first-child {
+    margin-top: 0;
+}
+
+#discussion-panel-messages #messages .outgoing-mess, #discussion-panel-messages #messages .incoming-mess {
+    display: flex;
+    flex-direction: column;
+    font-style: normal;
+    color: #333;
+    gap: 4px;
+}
+
+#discussion-panel-messages #messages .outgoing-mess {
+    align-items: end;
+}
+
+#discussion-panel-messages #messages .incoming-mess {
+    align-items: start;
+}
+
+#discussion-panel-messages #messages .sender {
+    display: flex;
+    font-size: 11px;
+    gap: 8px;
+    align-items: center;
+}
+
+#discussion-panel-messages #messages .sender-initials {
+    display: flex;
+    background: #777777;
+    height: 24px;
+    width: 24px;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+}
+
+#discussion-panel-messages #messages .sender-name {
+    font-weight: 700;
+}
+
+#discussion-panel-messages #messages .content {
+    border-radius: 15px;
+    padding: 8px 16px;
+}
+
+#discussion-panel-messages #messages .outgoing-mess .sender-initials {
+    order: 2;
+}
+
+#discussion-panel-messages #messages .outgoing-mess .content {
+    background: rgba(215, 241, 249, 0.60);
+}
+
+#discussion-panel-messages #messages .incoming-mess .content {
+    background: rgba(255, 255, 215, 0.60);
+}
+
+#peer-message-box {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    border-radius: 12px;
+    border: 2px solid #C7CDD1;
+    background: #FFFFFF;
+    padding: 8px 16px;
+    margin-top: 10px;
+    gap: 16px;
+}
+
+#peer-message-box input {
+    width: 100%;
+    border: none;
+}
+
+#sendpeermsg {
+    background: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+}
+
+#sendpeermsg.disabled {
+    pointer-events: none;
+    opacity: 0.5;
+}
