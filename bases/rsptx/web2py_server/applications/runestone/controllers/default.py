@@ -20,11 +20,19 @@ logger.setLevel(settings.log_level)
 def user():
     # this is kinda hacky but it's the only way I can figure out how to pre-populate
     # the course_id field
+
+    # Redirect logins to the new login server
     if not request.args(0):
-        redirect(URL("default", "user/login"))
+        redirect("/admin/auth/login")
+
+    if "login" in request.args(0):
+        redirect("/admin/auth/login")
 
     library_list = []
     if "register" in request.args(0):
+        redirect("/admin/auth/register")
+
+        # ignore the
         # If we can't pre-populate, just set it to blank.
         # This will force the user to choose a valid course name
         db.auth_user.course_id.default = ""
