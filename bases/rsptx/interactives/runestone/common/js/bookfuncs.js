@@ -1151,8 +1151,8 @@ window.addEventListener("DOMContentLoaded", function (event) {
     );
 
     if (!itemTemplate || !sepTemplate || !menuContentArea) {
-        console.error(
-            "Missing required template or content area for user dropdown",
+        console.warn(
+            "Missing template or content area for user dropdown",
         );
         return;
     }
