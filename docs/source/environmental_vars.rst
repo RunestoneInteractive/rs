@@ -11,7 +11,11 @@ Make a .env File
 You need to make a ``.env`` folder in the root level of your repository to define environmental variables.
 There is already a ``sample.env`` file in the repository root, you should copy that sample into a file named ``.env``.
 
-The ``.env`` file is read by docker-compose and used to set environment variables in the docker containers. ``uv run`` also automatically reads it on the host side.
+The ``.env`` file is read by docker-compose and used to set environment variables in the docker containers. ``uv run`` can be set to automatically read the env file by setting the ``UV_ENV_FILE`` variable in your login profile (.bashrc, config.fish, .zshrc, etc) to point to the ``.env`` file. Add the following line to your login profile:
+
+```
+export UV_ENV_FILE=".env"
+```
 
 .. note::
    If you run servers without ``uv run`` (for example after activating the venv with ``source .venv/bin/activate``), the ``.env`` file is not auto-loaded, so you will need to manually define the host (h) environment variables listed below in your login profile (.bashrc, config.fish, .zshrc, etc), or use ``uv run`` which loads ``.env`` for you.
