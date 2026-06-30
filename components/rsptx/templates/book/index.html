@@ -25,16 +25,18 @@
         the <a href="/admin/auth/my_courses">Change Course</a> page.
     </p>
     
-    <!--
     <div class="searchbar">
         <input
             type="text"
             id="searchbar"
             onkeyup="search_book()"
-            placeholder="Search by keyword..."
+            placeholder="Search by title, author, description, or book name..."
+            aria-label="Search the library"
         />
     </div>
-    -->
+    <p id="search_no_results" style="display: none">
+        No books match your search.
+    </p>
     <hr />
 
     {% for section in sections: %}
@@ -45,7 +47,10 @@
 
         {% for book in book_list: %} 
             {% if book['shelf_section'] == section: %}
-            <div class="library_entry">
+            <div
+                class="library_entry"
+                data-search="{{ (book['title'] ~ ' ' ~ (book['authors'] or '') ~ ' ' ~ (book['description'] or '') ~ ' ' ~ book['basecourse']) | lower }}"
+            >
                 <div class="book_title">
                     <a
                         class="link1"

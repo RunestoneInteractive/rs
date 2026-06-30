@@ -84,6 +84,16 @@ input {
     outline-style: none;
 }
 
+/* The .searchbar box (border, icon, padding) is on the wrapping div; make the
+   input fill it so the placeholder isn't clipped at the input's default width. */
+.searchbar input {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: inherit;
+    border: none;
+    background: transparent;
+}
+
 .library_entry {
     margin-bottom: 5pt;
 }
