@@ -37,12 +37,12 @@
       </td>
       
     {% if is_instructor %}
-    <td style="white-space: nowrap;"></td>
+    <td style="white-space: nowrap;">
       <a href='/assignment/instructor/builder/{{assignment.id}}'>
         <i class="ti ti-pencil" aria-label="edit" title="edit this assignment"></i></a>
       <a href="/runestone/admin/grading?selected_assignment={{assignment.name}}">
         <i class="ti ti-checklist" aria-label="grading" title="grade this assignment"></i></a>
-      <a href='/assignment/instructor/assignment_summary/{{assignment.id}}'">
+      <a href='/assignment/instructor/assignment_summary/{{assignment.id}}'>
         <i class="ti ti-layout-dashboard" aria-label="dashboard" title="view summary"></i></a>
     </td>
     {% endif %}
