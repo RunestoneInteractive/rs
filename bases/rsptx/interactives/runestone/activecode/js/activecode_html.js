@@ -21,6 +21,7 @@ export default class HTMLActiveCode extends ActiveCode {
         if (this.suffix) {
             // Build without suffix — we inject the harness + suffix ourselves
             var prog = await this.buildProg(false);
+            const rawHtmlSource = prog;
             this.testResultsDiv.innerHTML = "";
             this.testResultsDiv.style.display = "none";
 
@@ -43,7 +44,7 @@ export default class HTMLActiveCode extends ActiveCode {
             prog =
                 `<script type=text/javascript>window.onerror = function(msg,url,line) {alert(msg+' on line: '+line);};<\/script>` +
                 prog +
-                this._testHarnessScript() +
+                this._testHarnessScript(rawHtmlSource) +
                 `<script type=text/javascript>\nwindow.addEventListener('load', function() {\ntry {\n${this.suffix}\n} catch(e) { window.__rsTestError(e); }\n__rsRunTests();\n});\n<\/script>`;
         } else {
             var prog = await this.buildProg(true);
@@ -54,11 +55,28 @@ export default class HTMLActiveCode extends ActiveCode {
 
         $(this.output).text("");
         this.output.srcdoc = prog;
+
+        if (this.unit_results) {
+            let eventData = {
+                act: this.unit_results,
+                div_id: this.divid,
+                event: "unittest",
+            };
+            if (typeof sid !== "undefined") {
+                eventData.sid = sid;
+            }
+            this.logBookEvent(eventData);
+        }
     }
 
-    _testHarnessScript() {
+    _testHarnessScript(rawHtmlSource) {
+        const rawHtmlForScript = JSON.stringify(rawHtmlSource || "").replace(
+            /<\//g,
+            "<\\/",
+        );
         return `<script type=text/javascript>
 (function() {
+    var __rsRawHtmlSource = ${rawHtmlForScript};
     var __rsResults = [];
 
     function __pass(msg) { __rsResults.push({ pass: true, message: msg }); }
@@ -133,6 +151,107 @@ export default class HTMLActiveCode extends ActiveCode {
         if (actual !== expected) { __pass(msg); }
         else { __fail(msg + " — got '" + actual + "'"); }
     };
+
+    window.assertValidHTML = function(msg) {
+        msg = msg || "Document has properly nested HTML tags";
+        try {
+            var html = __rsRawHtmlSource || "";
+            var voidTags = new Set([
+                "area", "base", "br", "col", "embed", "hr", "img", "input",
+                "link", "meta", "param", "source", "track", "wbr",
+            ]);
+            var validTags = new Set([
+                "a", "abbr", "address", "article", "aside", "audio", "b", "base",
+                "bdi", "bdo", "blockquote", "body", "br", "button", "canvas",
+                "caption", "cite", "code", "col", "colgroup", "data", "datalist",
+                "dd", "del", "details", "dfn", "dialog", "div", "dl", "dt", "em",
+                "embed", "fieldset", "figcaption", "figure", "footer", "form",
+                "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup",
+                "hr", "html", "i", "iframe", "img", "input", "ins", "kbd", "label",
+                "legend", "li", "link", "main", "map", "mark", "menu", "meta",
+                "meter", "nav", "noscript", "object", "ol", "optgroup", "option",
+                "output", "p", "picture", "pre", "progress", "q", "rp", "rt", "ruby",
+                "s", "samp", "script", "search", "section", "select", "slot", "small",
+                "source", "span", "strong", "style", "sub", "summary", "sup", "table",
+                "tbody", "td", "template", "textarea", "tfoot", "th", "thead", "time",
+                "title", "tr", "track", "u", "ul", "var", "video", "wbr",
+                // Common deprecated tags still seen in instructional content.
+                "acronym", "applet", "basefont", "big", "center", "font", "frame",
+                "frameset", "marquee", "noframes", "strike", "tt",
+                // Common SVG/MathML container/content tags.
+                "svg", "g", "path", "circle", "rect", "line", "polyline", "polygon",
+                "ellipse", "text", "defs", "lineargradient", "radialgradient", "stop",
+                "clippath", "mask", "pattern", "symbol", "use", "view", "math", "mrow",
+                "mi", "mn", "mo", "msup", "msub", "msubsup", "mfrac", "msqrt", "mroot",
+            ]);
+
+            // Ignore regions where '<' is common text, not markup.
+            var sanitized = html
+                .replace(/<!--[\\s\\S]*?-->/g, "")
+                .replace(/<!DOCTYPE[^>]*>/gi, "")
+                .replace(/<!\\[CDATA\\[[\\s\\S]*?\\]\\]>/g, "")
+                .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script\\s*>/gi, "")
+                .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style\\s*>/gi, "")
+                .replace(/<textarea\\b[^>]*>[\\s\\S]*?<\\/textarea\\s*>/gi, "");
+
+            var tagRe = /<\\/?([a-zA-Z][\\w:-]*)(\\s[^>]*?)?>/g;
+            var stack = [];
+            var match;
+
+            while ((match = tagRe.exec(sanitized)) !== null) {
+                var fullTag = match[0];
+                var name = match[1].toLowerCase();
+                var isClosing = fullTag[1] === "/";
+                var isCustomElement = /^[a-z][a-z0-9._-]*-[a-z0-9._-]*$/.test(name);
+
+                if (!validTags.has(name) && !isCustomElement) {
+                    __fail(msg + " — invalid tag name <" + (isClosing ? "/" : "") + name + ">"
+                    );
+                    return;
+                }
+
+                if (isClosing) {
+                    if (stack.length === 0) {
+                        __fail(msg + " — unexpected closing tag </" + name + ">");
+                        return;
+                    }
+                    var openTag = stack.pop();
+                    if (openTag.name !== name) {
+                        __fail(
+                            msg +
+                                " — mismatched closing tag </" +
+                                name +
+                                "> for <" +
+                                openTag.name +
+                                ">",
+                        );
+                        return;
+                    }
+                } else {
+                    var isSelfClosing = /\\/\\s*>$/.test(fullTag) || voidTags.has(name);
+                    if (!isSelfClosing) {
+                        stack.push({ name: name });
+                    }
+                }
+            }
+
+            if (stack.length > 0) {
+                var unclosed = stack
+                    .slice(-3)
+                    .map(function (t) {
+                        return "<" + t.name + ">";
+                    })
+                    .join(", ");
+                __fail(msg + " — unclosed tag(s): " + unclosed);
+                return;
+            }
+
+            __pass(msg);
+        } catch (e) {
+            __fail(msg + " — " + e.message);
+        }
+    };
+    
 
     window.__rsRunTests = function() {
         window.parent.postMessage({ type: "rsTestResults", results: __rsResults }, "*");
