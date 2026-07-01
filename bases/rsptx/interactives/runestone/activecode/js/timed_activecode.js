@@ -8,6 +8,7 @@ import { ActiveCode } from "./activecode";
 import JSActiveCode from "./activecode_js";
 import HTMLActiveCode from "./activecode_html";
 import SQLActiveCode from "./activecode_sql";
+import GodotActiveCode from "./activecode_gdscript";
 
 var TimedActiveCodeMixin = {
     timedInit: async function (opts) {
@@ -143,3 +144,12 @@ export class TimedSQLActiveCode extends SQLActiveCode {
     }
 }
 Object.assign(TimedSQLActiveCode.prototype, TimedActiveCodeMixin);
+
+
+export class TimedGodotActiveCode extends GodotActiveCode {
+    constructor(opts) {
+        super(opts);
+        this.timedInit(opts);
+    }
+}
+Object.assign(TimedGodotActiveCode.prototype, TimedActiveCodeMixin);
