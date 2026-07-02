@@ -1,0 +1,325 @@
+/* ============================================================
+   auth.css — Shared styles for the account pages
+   (templates/admin/auth).  Loaded by admin/auth/_auth_base.html.
+
+   Common card/button/section styles first; page-specific rules
+   at the bottom, scoped by a page wrapper class.
+   ============================================================ */
+
+/* ---------- Auth card ---------- */
+.auth-card {
+    max-width: 520px;
+    margin: 40px auto;
+    padding: 36px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.auth-card h1 {
+    color: #4a90e2;
+    font-size: 2em;
+    font-weight: 300;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.auth-card .form-group label {
+    font-weight: 500;
+}
+
+/* Wider variants for the form-heavy pages */
+.auth-card--wide {
+    max-width: 640px;
+}
+
+.auth-card--full {
+    max-width: 860px;
+}
+
+.auth-card--full h1 {
+    text-align: left;
+    margin-bottom: 8px;
+}
+
+/* ---------- Buttons ---------- */
+.btn-rs-primary {
+    background: #4a90e2;
+    color: white;
+    border: none;
+    padding: 10px 28px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.btn-rs-primary:hover {
+    background: #357abd;
+    color: white;
+}
+
+.btn-rs-primary--inline {
+    width: auto;
+}
+
+.btn-rs-secondary {
+    background: transparent;
+    color: #4a90e2;
+    border: 2px solid #4a90e2;
+    padding: 9px 22px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-rs-secondary:hover {
+    background: #f0f7ff;
+    color: #4a90e2;
+}
+
+/* ---------- Section headings within cards ---------- */
+.section-label {
+    color: #4a90e2;
+    font-size: 1em;
+    font-weight: 600;
+    margin-top: 24px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #c8dff5;
+    padding-bottom: 4px;
+}
+
+.section-title {
+    color: #4a90e2;
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-top: 28px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #c8dff5;
+    padding-bottom: 4px;
+}
+
+/* ---------- Footer links under forms ---------- */
+.auth-links {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 0.92em;
+}
+
+.auth-links a {
+    color: #4a90e2;
+}
+
+/* ============================================================
+   Page-specific sections
+   ============================================================ */
+
+/* ---------- Profile (profile.html) ---------- */
+.danger-zone {
+    margin-top: 40px;
+    padding: 20px;
+    border: 1px solid #f5c6cb;
+    border-radius: 6px;
+    background: #fff8f8;
+}
+
+.danger-zone h5 {
+    color: #721c24;
+    margin-bottom: 12px;
+}
+
+.btn-danger-outline {
+    background: white;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-danger-outline:hover {
+    background: #dc3545;
+    color: white;
+}
+
+/* ---------- Choose a course (courses.html) ---------- */
+.courses-page .course-option {
+    padding: 6px 0;
+}
+
+.courses-page .course-option label {
+    font-weight: normal;
+    cursor: pointer;
+    margin-bottom: 0;
+}
+
+.courses-page #bookFilter {
+    margin-bottom: 12px;
+}
+
+/* ---------- My courses (my_courses.html) ---------- */
+.my-courses-page .course-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.my-courses-page .course-row:last-child {
+    border-bottom: none;
+}
+
+.my-courses-page .course-name {
+    flex: 1;
+    font-size: 1em;
+}
+
+.badge-active {
+    background: #4a90e2;
+    color: #fff;
+    font-size: 0.75em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.badge-instructor {
+    background: #5b9fc8;
+    color: #fff;
+    font-size: 0.75em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.btn-switch {
+    background: #4a90e2;
+    color: #fff;
+    border: none;
+    padding: 5px 14px;
+    border-radius: 5px;
+    font-size: 0.9em;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-switch:hover {
+    background: #357abd;
+    color: #fff;
+}
+
+.btn-switch:disabled {
+    background: #ccc;
+    cursor: default;
+}
+
+.btn-drop {
+    background: transparent;
+    color: #4a90e2;
+    border: 1px solid #4a90e2;
+    padding: 5px 12px;
+    border-radius: 5px;
+    font-size: 0.9em;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-drop:hover {
+    background: #f0f7ff;
+}
+
+.actions-row {
+    margin-top: 32px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.empty-notice {
+    color: #999;
+    font-style: italic;
+    padding: 8px 0;
+}
+
+/* ---------- Donate (donate.html) ---------- */
+.donate-card h1 {
+    text-align: left;
+}
+
+.donate-intro {
+    font-size: 1.05em;
+}
+
+.donate-intro img {
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.amount-panel {
+    border: 1px solid #c8dff5;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.amount-panel-heading {
+    background: #4a90e2;
+    color: #fff;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 8px 8px 0 0;
+}
+
+.amount-panel-body {
+    padding: 16px;
+}
+
+.amount-option {
+    margin-bottom: 8px;
+}
+
+.amount-option label {
+    font-weight: 500;
+    margin-left: 6px;
+}
+
+.donate-note {
+    margin-left: 16px;
+    padding: 6px 12px;
+    border: 1px solid #4a90e2;
+    border-radius: 10px;
+    font-size: 0.9em;
+    color: #357abd;
+}
+
+.other-amount input {
+    width: 120px;
+    display: inline-block;
+}
+
+.donate-actions {
+    margin-top: 15px;
+}
+
+#paypal-button-container {
+    max-width: 640px;
+    margin: 20px auto 0;
+}
+
+.payment-note {
+    color: #666;
+    font-style: italic;
+    margin-top: 18px;
+}
+
+.venmo-qr {
+    display: block;
+    margin: 16px auto 0;
+    max-width: 220px;
+}

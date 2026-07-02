@@ -371,15 +371,6 @@
     margin-bottom: 6px;
 }
 
-.instructions {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    font-size: 14px;
-    color: #666;
-}
-
 .warning-box {
     background: #fff3cd;
     border: 1px solid #ffeaa7;
@@ -612,35 +603,6 @@ tr.duplicate {
 
 .instructor-admin .panel .btn {
     margin-top: 10px;
-}
-
-/* ---------- Manage TAs (manage_tas.html) ---------- */
-.ta-management .search-input {
-    margin-bottom: 10px;
-}
-
-.ta-management .instructor-list,
-.ta-management .student-list {
-    height: 300px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-bottom: 15px;
-}
-
-.ta-management .instructor-list option,
-.ta-management .student-list option {
-    padding: 8px 12px;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.ta-management .instructor-list option:hover,
-.ta-management .student-list option:hover {
-    background: #f0f7ff;
-}
-
-.ta-management .action-buttons {
-    text-align: center;
 }
 
 /* ---------- Manage students (manage_students.html) ---------- */

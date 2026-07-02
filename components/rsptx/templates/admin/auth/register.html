@@ -2,23 +2,8 @@
 
 {% block title %}Register — Runestone Academy{% endblock %}
 
-{% block css %}
-<style>
-    .auth-card { max-width: 600px; }
-    .section-label {
-        color: #4a90e2;
-        font-size: 1em;
-        font-weight: 600;
-        margin-top: 20px;
-        margin-bottom: 8px;
-        border-bottom: 1px solid #c8dff5;
-        padding-bottom: 4px;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="auth-card">
+<div class="auth-card auth-card--wide">
     <h1>Create Account</h1>
 
     {% if errors %}
