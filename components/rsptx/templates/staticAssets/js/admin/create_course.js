@@ -58,10 +58,6 @@ function suggestedCourseName() {
     document.getElementById("projectname").value = suggestedCourse;
 }
 
-document.getElementById("startdate").addEventListener("focus", function () {
-    $(this).datepicker({ format: "mm/dd/yyyy" });
-});
-
 document
     .getElementById("designerForm")
     .addEventListener("submit", function (evt) {

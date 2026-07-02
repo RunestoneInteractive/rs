@@ -1245,11 +1245,27 @@ async def get_create_course_page(
         "request": request,
         "course_list": course_list,
         "sections": sections,
-        "current_date": datetime.date.today().strftime("%m/%d/%Y"),
+        "current_date": datetime.date.today().strftime("%Y-%m-%d"),
         "course": course,
         "user": user,
     }
     return templates.TemplateResponse("admin/instructor/create_course.html", context)
+
+
+def _parse_start_date(startdate: str) -> datetime.date:
+    """Parse the course start date from the designer form.
+
+    The form uses a native date input (ISO format), but accept the legacy
+    mm/dd/yyyy format as well for stale/cached copies of the form.
+    """
+    if not startdate:
+        return datetime.date.today()
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
+        try:
+            return datetime.datetime.strptime(startdate, fmt).date()
+        except ValueError:
+            continue
+    raise ValueError(f"Unrecognized start date: {startdate}")
 
 
 @router.post("/create_course", response_class=HTMLResponse)
@@ -1279,11 +1295,7 @@ async def post_create_course_page(
     try:
         course_data = {
             "course_name": projectname,
-            "term_start_date": (
-                datetime.datetime.strptime(startdate, "%m/%d/%Y").date()
-                if startdate
-                else datetime.date.today()
-            ),
+            "term_start_date": _parse_start_date(startdate),
             "institution": institution,
             "base_course": coursetype,
             "python3": True,

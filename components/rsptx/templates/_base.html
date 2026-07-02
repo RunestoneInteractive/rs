@@ -38,8 +38,13 @@
             media="screen"
         />
        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
-       <!-- always include jquery -->
+       {% if needs_jquery %}
+       {# jQuery is only for pages that load published book bundles (which
+          declare jQuery as a webpack external) or jQuery plugins such as
+          DataTables.  Opt in with {% set needs_jquery = true %} at the top
+          of the page template. #}
        <script src="/staticAssets/js/jquery.js"></script>
+       {% endif %}
         {% block css %}
         {% endblock %}
     </head>

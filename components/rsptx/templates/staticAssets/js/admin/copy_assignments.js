@@ -1,55 +1,65 @@
 /* Copy assignments (admin/instructor/copy_assignments.html) */
 
 // Populate the assignment dropdown when a source course is selected
-function getAssignList(sel) {
-    const data = { course_name: sel.value };
-    $("#assignSelection").empty(); // Clear the entire container
-    $("#copyButton").prop("disabled", true);
+async function getAssignList(sel) {
+    const container = document.getElementById("assignSelection");
+    const copyButton = document.getElementById("copyButton");
+    container.innerHTML = ""; // Clear the entire container
+    copyButton.disabled = true;
 
     if (!sel.value) {
         return;
     }
 
-    $.getJSON("/admin/instructor/source_assignments", data, function (data) {
-        let container = document.getElementById("assignSelection");
-
-        let label = document.createElement("label");
-        label.textContent = "Select assignment to copy:";
-        label.setAttribute("for", "assignmentsDropdown");
-        container.appendChild(label);
-
-        let sel = document.createElement("select");
-        sel.classList.add("form-control");
-        sel.id = "assignmentsDropdown";
-        sel.onchange = function () {
-            $("#copyButton").prop("disabled", false);
-        };
-
-        // Add "All" option, selected by default
-        let opt = document.createElement("option");
-        opt.value = -1;
-        opt.text = "All Assignments";
-        opt.selected = true;
-        sel.appendChild(opt);
-
-        for (let assign of data.assignments) {
-            let opt = document.createElement("option");
-            opt.value = assign.id;
-            opt.text = assign.name;
-            sel.appendChild(opt);
+    let data;
+    try {
+        const params = new URLSearchParams({ course_name: sel.value });
+        const response = await fetch(
+            `/admin/instructor/source_assignments?${params}`
+        );
+        if (!response.ok) {
+            throw new Error(response.statusText);
         }
-
-        container.appendChild(sel);
-
-        // Enable the copy button since "All Assignments" is selected by default
-        $("#copyButton").prop("disabled", false);
-    }).fail(function () {
+        data = await response.json();
+    } catch (error) {
         showMessage("Failed to load assignments for selected course", "error");
-    });
+        return;
+    }
+
+    const label = document.createElement("label");
+    label.textContent = "Select assignment to copy:";
+    label.setAttribute("for", "assignmentsDropdown");
+    container.appendChild(label);
+
+    const dropdown = document.createElement("select");
+    dropdown.classList.add("form-control");
+    dropdown.id = "assignmentsDropdown";
+    dropdown.onchange = function () {
+        copyButton.disabled = false;
+    };
+
+    // Add "All" option, selected by default
+    const allOpt = document.createElement("option");
+    allOpt.value = -1;
+    allOpt.text = "All Assignments";
+    allOpt.selected = true;
+    dropdown.appendChild(allOpt);
+
+    for (const assign of data.assignments) {
+        const opt = document.createElement("option");
+        opt.value = assign.id;
+        opt.text = assign.name;
+        dropdown.appendChild(opt);
+    }
+
+    container.appendChild(dropdown);
+
+    // Enable the copy button since "All Assignments" is selected by default
+    copyButton.disabled = false;
 }
 
 async function copyAssignments() {
-    let selectedCourse = document.getElementById("courseSelection").value;
+    const selectedCourse = document.getElementById("courseSelection").value;
     let selectedAssignment = document.getElementById("assignmentsDropdown");
 
     if (!selectedCourse || !selectedAssignment) {
@@ -86,14 +96,15 @@ async function copyAssignments() {
     }
 }
 
-// Show a dismissable Bootstrap alert in the floating message container
+// Show a dismissable alert in the floating message container
 function showMessage(message, type) {
     const alertClass = type === "success" ? "alert-success" : "alert-danger";
     const icon =
         type === "success" ? "fas fa-check-circle" : "fas fa-exclamation-circle";
 
-    const messageHtml = `
-        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+    const container = document.getElementById("messageContainer");
+    container.innerHTML = `
+        <div class="alert ${alertClass} alert-dismissible" role="alert">
             <i class="${icon}"></i> ${message}
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
@@ -101,10 +112,8 @@ function showMessage(message, type) {
         </div>
     `;
 
-    $("#messageContainer").html(messageHtml);
-
     // Auto-dismiss after 5 seconds
     setTimeout(function () {
-        $("#messageContainer .alert").remove();
+        container.innerHTML = "";
     }, 5000);
 }

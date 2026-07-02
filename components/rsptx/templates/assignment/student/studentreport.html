@@ -104,9 +104,13 @@ Progress Report
 
 {% block js %}
 <script>
-  $(".chapter .clickable").click(function () {
-    $(this).toggleClass("expanded");
-    $(this).parent().children(".chapter-detail").toggleClass("dhide");
+  document.querySelectorAll(".chapter .clickable").forEach(function (el) {
+    el.addEventListener("click", function () {
+      el.classList.toggle("expanded");
+      el.parentElement.querySelectorAll(":scope > .chapter-detail").forEach(function (detail) {
+        detail.classList.toggle("dhide");
+      });
+    });
   });
 </script>
 {% endblock %}

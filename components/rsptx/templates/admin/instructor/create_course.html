@@ -141,7 +141,7 @@
             <label><input type="checkbox" name="allowpairs" value="true" {% if submitted is defined and submitted.allowpairs == 'true' %}checked{% endif %}> Enable <strong>experimental</strong> pair programming features.</label><br>
             <label><input type="checkbox" name="instructor" value="yes" {% if submitted is defined and submitted.instructor == 'yes' %}checked{% else %}checked{% endif %}> Make me the Instructor of this course.</label><br>
             <label for="startdate">Term start date</label>
-            <input type="text" name="startdate" id="startdate" class="form-control" placeholder="{{ current_date }}" required value="{{ submitted.startdate if submitted is defined else current_date }}">
+            <input type="date" name="startdate" id="startdate" class="form-control" required value="{{ submitted.startdate if submitted is defined else current_date }}">
         </div>
         <div class="form-section">
             <div class="step-title">Step 6: (Optional !!): Support Runestone Academy</div>
@@ -156,6 +156,5 @@
 {% endblock %}
 
 {% block page_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 <script src="/staticAssets/js/admin/create_course.js"></script>
 {% endblock %}
