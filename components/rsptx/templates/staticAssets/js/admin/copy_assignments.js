@@ -105,6 +105,6 @@ function showMessage(message, type) {
 
     // Auto-dismiss after 5 seconds
     setTimeout(function () {
-        $("#messageContainer .alert").alert("close");
+        $("#messageContainer .alert").remove();
     }, 5000);
 }

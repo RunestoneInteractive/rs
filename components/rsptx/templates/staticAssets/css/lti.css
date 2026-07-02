@@ -36,5 +36,5 @@ h2 {
 }
 
 tr.error td {
-    background: var(--bs-danger-bg-subtle) !important;
+    background: #f8d7da !important;
 }
