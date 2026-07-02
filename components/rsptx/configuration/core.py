@@ -142,6 +142,36 @@ class Settings(BaseSettings):
     # For production usage set the LOGIN_URL to /runestone/default/user
     login_url: str = "/auth/login"
 
+    # Public-facing host used to build absolute URLs (e.g. course links in
+    # emails). Populated from the matching environment variables by
+    # pydantic-settings. In production set ``LOAD_BALANCER_HOST`` (preferred,
+    # behind a load balancer that terminates TLS) or ``RUNESTONE_HOST``. A
+    # non-empty ``CERTBOT_EMAIL`` indicates a single-server deployment is
+    # serving HTTPS.
+    load_balancer_host: str = ""
+    runestone_host: str = "localhost"
+    certbot_email: str = ""
+    caddy_site_address: str = ""
+
+    @property
+    def server_url(self) -> str:
+        """Return the public base URL (scheme + host) for this deployment.
+
+        Prefers ``LOAD_BALANCER_HOST``; otherwise falls back to
+        ``RUNESTONE_HOST``, using HTTPS only when ``CERTBOT_EMAIL`` indicates
+        certificates are configured. This mirrors the ``websocket_url``
+        resolution in the web2py models.
+
+        :return: The base URL, e.g. ``https://runestone.academy``.
+        :rtype: str
+        """
+        if self.load_balancer_host:
+            return f"https://{self.load_balancer_host}"
+        if self.caddy_site_address:
+            return self.caddy_site_address
+        scheme = "https" if self.certbot_email or self.caddy_site_address else "http"
+        return f"{scheme}://{self.runestone_host}"
+
     # Configure ads. TODO: Link to the place in the Runestone Components where this is used.
     adsenseid: str = ""
     num_banners: int = 0

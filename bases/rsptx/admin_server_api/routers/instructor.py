@@ -43,6 +43,7 @@ from rsptx.db.crud import (
     fetch_courses_for_user,
     fetch_group,
     fetch_instructor_courses,
+    fetch_library_book,
     fetch_library_books,
     fetch_membership,
     fetch_one_assignment,
@@ -55,6 +56,7 @@ from rsptx.db.crud import (
     update_user,
 )
 from rsptx.auth.session import auth_manager
+from rsptx.auth.email import send_welcome_email
 from rsptx.templates import template_folder
 from rsptx.configuration import settings
 from rsptx.endpoint_validators import with_course, instructor_role_required
@@ -1317,13 +1319,36 @@ async def post_create_course_page(
             user.id, {"course_id": new_course.id, "course_name": projectname}
         )
         rslogger.info(f"Created new course: {new_course.id}")
+
+        # Build the link the instructor can follow to open their new course.
+        # settings.server_url resolves to LOAD_BALANCER_HOST/RUNESTONE_HOST in
+        # production and falls back to localhost for local development.
+        course_url = (
+            f"{settings.server_url}/ns/books/published/{projectname}/index.html"
+        )
+        # The instructor Google group (if any) is stored on the base course's library entry.
+        library_book = await fetch_library_book(coursetype)
+        social_url = library_book.social_url if library_book else ""
+        invoice_url = f"{settings.server_url}/assignment/instructor/invoice_request"
+        # Send the welcome email. Failures are logged but must not block course creation.
+        try:
+            await send_welcome_email(
+                to=user.email,
+                course_name=projectname,
+                course_url=course_url,
+                social_url=social_url or "",
+                invoice_url=invoice_url,
+            )
+        except Exception as e:
+            rslogger.error(f"Failed to send welcome email to {user.email}: {e}")
+
         # Success: show welcome page
         context = {
             "course": new_course,
             "user": user,
             "request": request,
             "coursename": projectname,
-            "social_url": None,  # You can add logic to provide a social_url if needed
+            "social_url": social_url or None,
         }
         return templates.TemplateResponse("admin/instructor/build.html", context)
     except Exception as e:
