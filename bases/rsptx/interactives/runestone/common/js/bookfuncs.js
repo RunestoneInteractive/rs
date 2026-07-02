@@ -252,42 +252,6 @@ function addReadingList() {
     }
 }
 
-function timedRefresh() {
-    var timeoutPeriod = 900000; // 75 minutes
-    let idleTimeoutId;
-
-    function onIdle() {
-        // After timeout period send the user back to the index.  This will force a login
-        // if needed when they want to go to a particular page.  This may not be perfect
-        // but its an easy way to make sure laptop users are properly logged in when they
-        // take quizzes and save stuff.
-        if (location.href.indexOf("index.html") < 0) {
-            console.log("Idle timer - " + location.pathname);
-            location.href =
-                eBookConfig.app +
-                "/default/user/login?_next=" +
-                location.pathname +
-                location.search;
-        }
-    }
-
-    function resetIdleTimer() {
-        if (idleTimeoutId) {
-            clearTimeout(idleTimeoutId);
-        }
-        idleTimeoutId = setTimeout(onIdle, timeoutPeriod);
-    }
-
-    ["mousemove", "keydown", "scroll", "click", "touchstart", "wheel"].forEach(
-        (eventName) => {
-            window.addEventListener(eventName, resetIdleTimer, {
-                passive: true,
-            });
-        },
-    );
-
-    resetIdleTimer();
-}
 
 class PageProgressBar {
     constructor(actDict) {
@@ -878,6 +842,7 @@ function shouldShowStudyCluesWidget() {
         "csawesome2-MOOC",
         "test_py4e-int_api",
         "bc_cppds_s26",
+        "bc_cppds2_f26",
         "Test-py4e-int",
         "virginiatech_py4e-int_spring26",
         "umsi101_fall26",
@@ -970,13 +935,6 @@ async function handlePageSetup() {
         // This is a temporary measure to limit the widget to courses that are known to work well with it and to avoid showing it on non-book pages where it may not be as useful.
         if (shouldShowStudyCluesWidget()) {
             createStudyCluesWidget();
-        }
-        // Avoid the timedRefresh on the grading page.
-        if (
-            window.location.pathname.indexOf("/admin/grading") == -1 &&
-            window.location.pathname.indexOf("/peer/") == -1
-        ) {
-            timedRefresh();
         }
     } else {
         mess = "Not logged in";
