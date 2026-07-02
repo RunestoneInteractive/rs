@@ -1,0 +1,40 @@
+/* ============================================================
+   lti.css — Shared styles for the standalone LTI 1.3 pages
+   (templates/admin/lti1p3).  These pages use Bootstrap 5 from
+   a CDN and do not extend _base.html.
+   ============================================================ */
+
+body {
+    padding: 20px;
+}
+
+h2 {
+    margin-top: 30px;
+}
+
+.subchapter {
+    background: #f0f0f0;
+}
+
+.alert p:last-child {
+    margin-bottom: 0;
+}
+
+.book-links {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.book-links li {
+    margin-bottom: 10px;
+}
+
+.table-striped tr:last-child td {
+    background: none;
+    border-bottom: none;
+    box-shadow: none;
+}
+
+tr.error td {
+    background: var(--bs-danger-bg-subtle) !important;
+}

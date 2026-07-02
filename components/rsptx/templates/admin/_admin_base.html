@@ -1,0 +1,14 @@
+{# Base template for admin server pages.  Pulls in the shared admin
+   stylesheet and JS helpers; pages add their own assets through the
+   page_css / page_js blocks. #}
+{% extends "_base.html" %}
+
+{% block css %}
+<link href="/staticAssets/css/admin.css" rel="stylesheet" media="screen" />
+{% block page_css %}{% endblock %}
+{% endblock %}
+
+{% block js %}
+<script src="/staticAssets/js/admin/common.js"></script>
+{% block page_js %}{% endblock %}
+{% endblock %}
