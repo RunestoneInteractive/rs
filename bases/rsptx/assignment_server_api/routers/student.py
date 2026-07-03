@@ -66,6 +66,7 @@ from rsptx.db.models import GradeValidator, UseinfoValidation, CoursesValidator
 from rsptx.db.crud.assignment import is_assignment_visible_to_students
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
+from rsptx.response_helpers import construct_course_url, safe_join
 from rsptx.response_helpers.core import (
     make_json_response,
     get_webpack_static_imports,
@@ -565,18 +566,6 @@ async def update_submit(
     return make_json_response(detail=dict(success=True))
 
 
-def get_course_url(course: CoursesValidator, *args) -> str:
-    """Get the URL for the course.
-
-    :param course: _description_
-    :type course: CourseValidator
-    :return: _description_
-    :rtype: str
-    """
-    rest = "/".join(args)
-    return f"/ns/books/published/{course.course_name}/{rest}"
-
-
 @router.get("/doAssignment")
 async def doAssignment(
     request: Request,
@@ -688,11 +677,13 @@ async def doAssignment(
             # This replacement is to render images
             bts = q.Question.htmlsrc
             htmlsrc = bts.replace(
-                'src="../_static/', 'src="' + get_course_url(course, "_static/")
+                'src="../_static/', 'src="' + construct_course_url(course, "_static/")
             )
-            htmlsrc = htmlsrc.replace("../_images", get_course_url(course, "_images"))
             htmlsrc = htmlsrc.replace(
-                'src=\\"external', 'src=\\"' + get_course_url(course, "external")
+                "../_images", construct_course_url(course, "_images")
+            )
+            htmlsrc = htmlsrc.replace(
+                'src=\\"external', 'src=\\"' + construct_course_url(course, "external")
             )
             # htmlsrc = htmlsrc.replace(
             #     "generated/webwork", get_course_url(course, "generated/webwork")
