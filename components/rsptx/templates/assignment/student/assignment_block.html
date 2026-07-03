@@ -1,13 +1,13 @@
-<h2>Assignments</h2>
 {% if is_instructor %}
 <label style="margin-bottom:10px; display:block;">
   <input type="checkbox" id="hide_hidden_assignments" onchange="toggleHiddenAssignments(this.checked)">
-  Student View: Hide Hidden Assignments
+  <span for="hide_hidden_assignments"><strong>Student View</strong> (Hide Hidden Assignments)</span>
 </label>
 {% endif %}
 
 {% if assignment_list %}
-<table class="table">
+<table class="table rs-assignment-table">
+  <caption class="rs-sr-only">Assignment List</caption>
   <thead>
     <tr>
       <th>Name</th>
