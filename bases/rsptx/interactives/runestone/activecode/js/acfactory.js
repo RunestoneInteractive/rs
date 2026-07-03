@@ -10,7 +10,6 @@ import {
     TimedHTMLActiveCode,
     TimedSQLActiveCode,
 } from "./timed_activecode";
-import "../../common/js/jquery.highlight.js";
 
 export default class ACFactory {
     constructor() {

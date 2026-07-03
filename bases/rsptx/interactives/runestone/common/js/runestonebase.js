@@ -16,6 +16,7 @@
  */
 
 import { pageProgressTracker } from "./bookfuncs.js";
+import { getDataValue } from "./domutil.js";
 //import "./../styles/runestone-custom-sphinx-bootstrap.css";
 
 var NO_DECORATE = [
@@ -73,13 +74,15 @@ export default class RunestoneBase {
                 // is to look for doAssignment in the URL and then grab
                 // the assignment name from the heading.
                 if (location.href.indexOf("doAssignment") >= 0) {
-                    this.timedWrapper = $("h1#assignment_name").text();
+                    this.timedWrapper =
+                        document.querySelector("h1#assignment_name")
+                            ?.textContent || "";
                 } else {
                     this.timedWrapper = null;
                 }
             }
-            if ($(opts.orig).data("question_label")) {
-                this.question_label = $(opts.orig).data("question_label");
+            if (opts.orig && getDataValue(opts.orig, "question_label")) {
+                this.question_label = getDataValue(opts.orig, "question_label");
             }
             this.is_toggle = true ? opts.is_toggle : false;
             this.is_select = true ? opts.is_select : false;
@@ -539,17 +542,15 @@ export default class RunestoneBase {
                 this.caption = eBookConfig.useRunestoneServices
                     ? `Activity: ${this.question_label} ${this.caption}  <span class="runestone_caption_divid">(${this.divid})</span>`
                     : `Activity: ${this.question_label} ${this.caption}`; // Without runestone
-                $(capDiv).html(this.caption);
-                $(capDiv).addClass(`${elType}_caption`);
+                capDiv.innerHTML = this.caption;
+                capDiv.classList.add(`${elType}_caption`);
             } else {
                 // Display caption based on whether Runestone services have been detected
-                $(capDiv).html(
-                    eBookConfig.useRunestoneServices
-                        ? this.caption + " (" + this.divid + ")"
-                        : this.caption,
-                ); // Without runestone
-                $(capDiv).addClass(`${elType}_caption`);
-                $(capDiv).addClass(`${elType}_caption_text`);
+                capDiv.innerHTML = eBookConfig.useRunestoneServices
+                    ? this.caption + " (" + this.divid + ")"
+                    : this.caption; // Without runestone
+                capDiv.classList.add(`${elType}_caption`);
+                capDiv.classList.add(`${elType}_caption_text`);
             }
             this.capDiv = capDiv;
             //this.outerDiv.parentNode.insertBefore(capDiv, this.outerDiv.nextSibling);
@@ -620,7 +621,9 @@ export default class RunestoneBase {
 
     decorateStatus() {
         if (this.isTimed || eBookConfig.peer) return;
-        let rsDiv = $(this.containerDiv).closest("div.runestone")[0];
+        let rsDiv = this.containerDiv
+            ? this.containerDiv.closest("div.runestone")
+            : null;
         if (!rsDiv) return;
         rsDiv.classList.remove("notAnswered");
         rsDiv.classList.remove("isInCorrect");

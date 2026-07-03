@@ -26,3 +26,70 @@ The following is what you need to do to work on the javascript for a component t
 If you change your PreTeXt source, you just need to rerun 5 & 6. If you change your Runestone components code, rerun 3 (or use ``watch``) and then hard refresh your browser (Ctrl-F5).
 
 If you are still working with old RST-based books, you can simply use the ``runestone build`` command which automatically copies the files to the correct location.
+
+Unit tests
+~~~~~~~~~~
+
+The components have a `vitest <https://vitest.dev>`_-based unit test suite
+that runs in a jsdom environment — no book build, server, or browser needed.
+Tests live next to each component in
+``runestone/<component>/test/*.test.js``.
+
+Running the tests
+.................
+
+From ``bases/rsptx/interactives``::
+
+    npm install        # first time only
+    npm test           # run the whole suite once
+    npm run test:watch # re-run on file change while developing
+
+To run a single file or filter by test name::
+
+    npx vitest run runestone/activecode/test/activecode.test.js
+    npx vitest run -t "history scrubber"
+
+How the harness works
+.....................
+
+The pieces, all under ``bases/rsptx/interactives``:
+
+*   ``vitest.config.js`` — configures the jsdom environment and aliases
+    ``common/js/renderComponent.js`` to a stub (the real module imports
+    ``webpack.index.js`` and with it every component in the repo).
+*   ``test-support/setup.js`` — runs before every test file.  It defines a
+    minimal logged-out ``eBookConfig``, polyfills ``localStorage``, patches
+    jsdom's ``Range`` for CodeMirror, and imports ``bookfuncs.js`` first to
+    break the ``bookfuncs``/``runestonebase`` circular import.
+*   ``test-support/jquery-globals.js`` — provides the page globals ``$`` and
+    ``jQuery`` (plus tiny jQuery UI slider/resizable stubs).  On a real book
+    page these come from Sphinx/PreTeXt; in tests, a component that still
+    uses jQuery must import this shim explicitly at the top of its test file.
+    **Do not import it in tests for a component that has been migrated off
+    jQuery** — a passing suite without the shim is the proof that the
+    component no longer depends on it.
+
+Writing tests
+.............
+
+Tests build a DOM fixture the same way a book page does and construct the
+component directly, for example::
+
+    document.body.innerHTML = `
+      <div class="runestone">
+        <div data-component="activecode" id="test_ac_1" class="ac_section">
+          <textarea data-lang="python">print('hello')</textarea>
+        </div>
+      </div>`;
+    let ac = new ActiveCode({
+        orig: document.getElementById("test_ac_1"),
+        useRunestoneServices: false,
+    });
+
+Skulpt really runs Python inside jsdom, so tests can click Run (or call
+``runProg()``) and assert on the output.  Note that stdout writes are
+appended from short timeouts, so ``await`` a ~50ms delay after ``runProg()``
+before asserting on the output element.
+
+If you add a feature or a new component, please include tests that verify it
+works.  ``runestone/activecode/test/`` is a good model to copy.
