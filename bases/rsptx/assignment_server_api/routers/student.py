@@ -171,19 +171,25 @@ async def get_assignments(
     for a in assignments:
         visibility_map[a.id] = is_assignment_visible_to_students(a)
 
-    book_path = safe_join(
-        settings.book_path,
-        course.base_course,
-        "published",
-        course.base_course,
+    use_pretext_student_pages = (
+        str(course_attrs.get("use_pretext_student_pages", "false")).lower() == "true"
     )
-    if book_path:
-        templates = get_jinja_templates(book_path)
-    else:
-        rslogger.warning(
-            "Unsafe or invalid book_path computed for course %s; falling back to shared templates",
-            course.course_name,
+    if use_pretext_student_pages:
+        book_path = safe_join(
+            settings.book_path,
+            course.base_course,
+            "published",
+            course.base_course,
         )
+        if book_path:
+            templates = get_jinja_templates(book_path)
+        else:
+            rslogger.warning(
+                "Unsafe or invalid book_path computed for course %s; falling back to shared templates",
+                course.course_name,
+            )
+            templates = Jinja2Templates(directory=template_folder)
+    else:
         templates = Jinja2Templates(directory=template_folder)
 
     context = dict(
@@ -934,13 +940,26 @@ async def doAssignment(
     if timestamp > deadline:
         overdue = True
 
-    book_path = safe_join(
-        settings.book_path,
-        course.base_course,
-        "published",
-        course.base_course,
+    use_pretext_student_pages = (
+        str(course_attrs.get("use_pretext_student_pages", "false")).lower() == "true"
     )
-    templates = get_jinja_templates(book_path)
+    if use_pretext_student_pages:
+        book_path = safe_join(
+            settings.book_path,
+            course.base_course,
+            "published",
+            course.base_course,
+        )
+        if book_path:
+            templates = get_jinja_templates(book_path)
+        else:
+            rslogger.warning(
+                "Unsafe or invalid book_path computed for course %s; falling back to shared templates",
+                course.course_name,
+            )
+            templates = Jinja2Templates(directory=template_folder)
+    else:
+        templates = Jinja2Templates(directory=template_folder)
 
     # templates = Jinja2Templates(directory=template_folder)
     # reverse the order of the keys in the preambles dictionary so that the first key I added is now the last

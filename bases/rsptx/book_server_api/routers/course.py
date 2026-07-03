@@ -15,12 +15,13 @@ import datetime
 # -------------------
 from typing import Optional
 from fastapi import APIRouter, Cookie, Request, Depends
+from fastapi.templating import Jinja2Templates
 
 # Local application imports
 # -------------------------
 
 from rsptx.auth.session import auth_manager
-from rsptx.templates import get_jinja_templates
+from rsptx.templates import get_jinja_templates, template_folder
 from rsptx.db.crud import (
     fetch_assignments,
     fetch_all_assignment_stats,
@@ -146,14 +147,20 @@ async def index(
     for a in assignments:
         visibility_map[a.id] = is_assignment_visible_to_students(a)
 
-    book_path = safe_join(
-        settings.book_path,
-        course.base_course,
-        "published",
-        course.base_course,
+    use_pretext_student_pages = (
+        str(attrs.get("use_pretext_student_pages", "false")).lower() == "true"
     )
-    if book_path:
-        templates = get_jinja_templates(book_path)
+    if use_pretext_student_pages:
+        book_path = safe_join(
+            settings.book_path,
+            course.base_course,
+            "published",
+            course.base_course,
+        )
+        if book_path:
+            templates = get_jinja_templates(book_path)
+        else:
+            templates = Jinja2Templates(directory=template_folder)
     else:
         templates = Jinja2Templates(directory=template_folder)
 
