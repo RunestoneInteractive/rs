@@ -1,0 +1,66 @@
+/* custom css for pages using a PTX built template */
+
+:root {
+  --rs-table-border: #ddd;
+}
+:root.dark-mode {
+  --rs-table-border: #333;
+}
+
+.rs-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 50px;
+  line-height: 50px;
+}
+
+.taskbox {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.questionblock + .questionblock {
+  margin-top: 1.75em;
+}
+
+/* reset some PTX heading styles */
+.heading:is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-headings);
+  font-size: revert;
+}
+
+body.ptx-runestone-template .ptx-button {
+  border-width: 2px;
+}
+
+/* tighten up inter section spacing for sections in PTX content */
+section section>.heading {
+  margin-top: 1.5em;
+}
+
+/* reduce margin between list items (mostly for course index page) */
+.ptx-content li {
+  margin-top: 0;
+}
+
+/* make all links look like PTX internal links */
+.ptx-main .ptx-content a {
+  color: var(--link-text-color);
+  font-weight: bold;
+}
+.ptx-main .ptx-content a:hover, .ptx-main .ptx-content a:hover *, 
+.ptx-main .ptx-content a:focus, .ptx-content a.external:focus * {
+  background: var(--link-active-background);
+}

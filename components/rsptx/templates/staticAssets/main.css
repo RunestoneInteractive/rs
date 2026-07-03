@@ -1,4 +1,17 @@
-/* custom css */
+/* custom css for pages that are not using a PTX built template */
+
+
+.rs-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+
 
 html {
   position: relative;
@@ -60,4 +73,10 @@ body {
 
 .caption-wrap .ti-placeholder {
   visibility: hidden;
+}
+
+
+/* undo some PTX heading styles */
+section:first-of-type > h1.heading {
+    margin-top: 0.5em;
 }
