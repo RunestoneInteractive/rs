@@ -1,6 +1,6 @@
 [project]
 name = "runestone"
-version = "8.1.7"
+version = "8.1.8"
 description = "Sphinx extensions for writing interactive documents."
 authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
 requires-python = ">=3.10.0,<4"
