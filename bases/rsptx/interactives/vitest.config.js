@@ -14,6 +14,16 @@ export default defineConfig({
                     "test-support/stubs/renderComponent.js",
                 ),
             },
+            // The vendored pytutor bundle is sloppy-mode code (bare `delete x`)
+            // that Vite's ESM transform rejects; livecode.js pulls it in for
+            // the codelens visualizer, which no test exercises.
+            {
+                find: /^.*\/pytutor-embed\.bundle\.js$/,
+                replacement: path.resolve(
+                    __dirname,
+                    "test-support/stubs/empty.js",
+                ),
+            },
         ],
     },
     test: {
