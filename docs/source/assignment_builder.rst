@@ -16,6 +16,17 @@ app replaces the old web2py instructor pages, and a couple of the very first
 React screens it replaced are themselves still around as legacy routes
 (``/builderV2`` and ``/graderOld``) -- see `Two generations of code`_ below.
 
+.. figure:: ../images/AssignmentBuilderArch.svg
+   :width: 100%
+   :alt: The React SPA and the Runestone interactives bundle run in the
+         browser and talk to the FastAPI assignment server, which serves the
+         HTML shell, the JSON API, and the built static assets; a separate
+         build pipeline produces those assets.
+
+   Overview of the assignment builder and grader.  The left side is the
+   runtime picture (browser above, assignment server below); the right
+   column shows how the pieces are built, tested, and shipped.
+
 Technology stack
 ----------------
 
