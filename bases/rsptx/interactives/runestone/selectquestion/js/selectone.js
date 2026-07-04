@@ -8,6 +8,7 @@ import {
     createTimedComponent,
 } from "../../common/js/renderComponent.js";
 import RunestoneBase from "../../common/js/runestonebase.js";
+import { getDataValue } from "../../common/js/domutil.js";
 import "../css/selectquestion.css";
 
 export default class SelectOne extends RunestoneBase {
@@ -29,19 +30,19 @@ export default class SelectOne extends RunestoneBase {
     constructor(opts) {
         super(opts);
         this.origOpts = opts;
-        this.questions = $(opts.orig).data("questionlist");
-        this.proficiency = $(opts.orig).data("proficiency");
-        this.minDifficulty = $(opts.orig).data("minDifficulty");
-        this.maxDifficulty = $(opts.orig).data("maxDifficulty");
-        this.points = $(opts.orig).data("points");
-        this.autogradable = $(opts.orig).data("autogradable");
-        this.not_seen_ever = $(opts.orig).data("not_seen_ever");
-        this.selector_id = $(opts.orig).first().attr("id");
-        this.primaryOnly = $(opts.orig).data("primary");
-        this.ABExperiment = $(opts.orig).data("ab");
-        this.toggleOptions = $(opts.orig).data("toggleoptions");
-        this.toggleLabels = $(opts.orig).data("togglelabels");
-        this.limitBaseCourse = $(opts.orig).data("limit-basecourse");
+        this.questions = getDataValue(opts.orig, "questionlist");
+        this.proficiency = getDataValue(opts.orig, "proficiency");
+        this.minDifficulty = getDataValue(opts.orig, "min-difficulty");
+        this.maxDifficulty = getDataValue(opts.orig, "max-difficulty");
+        this.points = getDataValue(opts.orig, "points");
+        this.autogradable = getDataValue(opts.orig, "autogradable");
+        this.not_seen_ever = getDataValue(opts.orig, "not_seen_ever");
+        this.selector_id = opts.orig.getAttribute("id");
+        this.primaryOnly = getDataValue(opts.orig, "primary");
+        this.ABExperiment = getDataValue(opts.orig, "ab");
+        this.toggleOptions = getDataValue(opts.orig, "toggleoptions");
+        this.toggleLabels = getDataValue(opts.orig, "togglelabels");
+        this.limitBaseCourse = getDataValue(opts.orig, "limit-basecourse");
         opts.orig.id = this.selector_id;
     }
     /**
@@ -234,7 +235,7 @@ export default class SelectOne extends RunestoneBase {
                 useRunestoneServices: true,
             });
             if (data.toggleOptions) {
-                $("#component-preview").hide();
+                hideElement(document.getElementById("component-preview"));
                 var toggleQuestionSelect = document.getElementById(
                     selectorId + "-toggleQuestion",
                 );
@@ -243,14 +244,11 @@ export default class SelectOne extends RunestoneBase {
                         toggleQuestionSelect.options[i].value == toggleFirstID
                     ) {
                         toggleQuestionSelect.value = toggleFirstID;
-                        $("#" + selectorId).data(
-                            "toggle_current",
-                            toggleFirstID,
-                        );
-                        $("#" + selectorId).data(
-                            "toggle_current_type",
-                            toggleQuestionTypes[0],
-                        );
+                        let selectorElement =
+                            document.getElementById(selectorId);
+                        selectorElement.dataset.toggleCurrent = toggleFirstID;
+                        selectorElement.dataset.toggleCurrentType =
+                            toggleQuestionTypes[0];
                         break;
                     }
                 }
@@ -290,7 +288,8 @@ export default class SelectOne extends RunestoneBase {
 
     // on changing the value of toggle select dropdown, render selected question in preview panel, add appropriate buttons, then make preview panel visible
     async togglePreview(parentID, toggleOptions, toggleQuestionTypes) {
-        $("#toggle-buttons").html("");
+        const toggleButtons = document.getElementById("toggle-buttons");
+        toggleButtons.innerHTML = "";
         var parentDiv = document.getElementById(parentID);
         var toggleQuestionSelect = parentDiv.getElementsByTagName("select")[0];
         var selectedQuestion =
@@ -306,16 +305,15 @@ export default class SelectOne extends RunestoneBase {
 
         // add "Close Preview" button to the preview panel
         let closeButton = document.createElement("button");
-        $(closeButton).text("Close Preview");
-        $(closeButton).addClass("btn btn-default");
+        closeButton.textContent = "Close Preview";
+        closeButton.classList.add("btn", "btn-default");
         closeButton.addEventListener(
             "click",
             function () {
-                $("#toggle-preview").html("");
-                toggleQuestionSelect.value = $("#" + parentID).data(
-                    "toggle_current",
-                );
-                $("#component-preview").hide();
+                document.getElementById("toggle-preview").innerHTML = "";
+                toggleQuestionSelect.value =
+                    document.getElementById(parentID).dataset.toggleCurrent;
+                hideElement(document.getElementById("component-preview"));
                 this.logBookEvent({
                     event: "close_toggle",
                     act: toggleQuestionSelect.value,
@@ -323,14 +321,15 @@ export default class SelectOne extends RunestoneBase {
                 });
             }.bind(this),
         );
-        $("#toggle-buttons").append(closeButton);
+        toggleButtons.appendChild(closeButton);
 
         // if "lock" is not in toggle options, then allow adding more buttons to the preview panel
         if (!toggleOptions.includes("lock")) {
             let setButton = document.createElement("button");
-            $(setButton).text("Select this Problem");
-            $(setButton).addClass("btn btn-primary");
-            $(setButton).click(
+            setButton.textContent = "Select this Problem";
+            setButton.classList.add("btn", "btn-primary");
+            setButton.addEventListener(
+                "click",
                 async function () {
                     await this.toggleSet(
                         parentID,
@@ -338,7 +337,7 @@ export default class SelectOne extends RunestoneBase {
                         htmlsrc,
                         toggleQuestionTypes,
                     );
-                    $("#component-preview").hide();
+                    hideElement(document.getElementById("component-preview"));
                     this.logBookEvent({
                         event: "select_toggle",
                         act: selectedQuestion,
@@ -346,11 +345,13 @@ export default class SelectOne extends RunestoneBase {
                     });
                 }.bind(this),
             );
-            $("#toggle-buttons").append(setButton);
+            toggleButtons.appendChild(setButton);
 
             // if "transfer" in toggle options, and if current question type is Parsons and selected question type is active code, then add "Transfer" button to preview panel
             if (toggleOptions.includes("transfer")) {
-                var currentType = $("#" + parentID).data("toggle_current_type");
+                var currentType =
+                    document.getElementById(parentID).dataset
+                        .toggleCurrentType;
                 var selectedType =
                     toggleQuestionTypes[toggleQuestionSelect.selectedIndex];
                 if (
@@ -358,9 +359,10 @@ export default class SelectOne extends RunestoneBase {
                     selectedType == "Active Write Code"
                 ) {
                     let transferButton = document.createElement("button");
-                    $(transferButton).text("Transfer Response");
-                    $(transferButton).addClass("btn btn-primary");
-                    $(transferButton).click(
+                    transferButton.textContent = "Transfer Response";
+                    transferButton.classList.add("btn", "btn-primary");
+                    transferButton.addEventListener(
+                        "click",
                         async function () {
                             await this.toggleTransfer(
                                 parentID,
@@ -370,12 +372,12 @@ export default class SelectOne extends RunestoneBase {
                             );
                         }.bind(this),
                     );
-                    $("#toggle-buttons").append(transferButton);
+                    toggleButtons.appendChild(transferButton);
                 }
             }
         }
 
-        $("#component-preview").show();
+        showElement(document.getElementById("component-preview"));
     }
 
     // on clicking "Select this Problem" button, close preview panel, replace current question in assignments page with selected question, and send request to update grading database
@@ -397,12 +399,11 @@ export default class SelectOne extends RunestoneBase {
             {},
         );
         await fetch(request);
-        $("#toggle-preview").html("");
-        $("#" + parentID).data("toggle_current", selectedQuestion);
-        $("#" + parentID).data(
-            "toggle_current_type",
-            toggleQuestionTypes[toggleQuestionSelect.selectedIndex],
-        );
+        document.getElementById("toggle-preview").innerHTML = "";
+        let parentDiv = document.getElementById(parentID);
+        parentDiv.dataset.toggleCurrent = selectedQuestion;
+        parentDiv.dataset.toggleCurrentType =
+            toggleQuestionTypes[toggleQuestionSelect.selectedIndex];
     }
 
     // on clicking "Transfer" button, extract the current text and indentation of the Parsons blocks in the answer space, then paste that into the selected active code question
@@ -505,7 +506,21 @@ export default class SelectOne extends RunestoneBase {
             htmlsrc,
             toggleQuestionTypes,
         );
-        $("#component-preview").hide();
+        hideElement(document.getElementById("component-preview"));
+    }
+}
+
+// The preview panel is shared by all toggle questions on a page and may not
+// exist yet when hidden/shown.
+function hideElement(element) {
+    if (element) {
+        element.style.display = "none";
+    }
+}
+
+function showElement(element) {
+    if (element) {
+        element.style.display = "";
     }
 }
 
@@ -521,13 +536,13 @@ window.component_factory.selectquestion = function (opts) {
  * When the page is loaded and the login checks are complete find and render
  * each selectquestion component that is not part of a timedAssessment.
  **/
-$(document).on("runestone:login-complete", async function () {
+document.addEventListener("runestone:login-complete", async function () {
     let selQuestions = document.querySelectorAll(
         "[data-component=selectquestion]",
     );
     for (let cq of selQuestions) {
         try {
-            if ($(cq).closest("[data-component=timedAssessment]").length == 0) {
+            if (!cq.closest("[data-component=timedAssessment]")) {
                 // If this element exists within a timed component, don't render it here
                 let tmp = new SelectOne({ orig: cq });
                 await tmp.initialize();

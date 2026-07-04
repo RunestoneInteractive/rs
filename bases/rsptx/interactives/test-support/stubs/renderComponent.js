@@ -8,3 +8,15 @@ export async function renderRunestoneComponent(html, divid) {
 }
 
 export async function renderOneComponent() {}
+
+// Stand-in for the timed-assessment rendering path: hand back an inspectable
+// fake question instead of instantiating a real component.
+export function createTimedComponent(htmlsrc, opts) {
+    return {
+        question: {
+            containerDiv: document.createElement("div"),
+            htmlsrc,
+            opts,
+        },
+    };
+}
