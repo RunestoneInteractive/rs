@@ -1,10 +1,37 @@
-/*global variable declarations*/
+/* Page-completion tracking: the "Mark as Completed" button, the last-page
+ * bookmark, and the table-of-contents progress decorations. (The file name
+ * is historical.) */
 
 "use strict";
 
+import { outerWidth, animate } from "./domutil.js";
 import "../css/user-highlights.css";
 
-function getCompletions() {
+/*
+ * GET a server endpoint that answers either JSON or the literal string
+ * "None". Returns the parsed JSON or null.
+ */
+async function fetchJson(url, params) {
+    let fullUrl = params ? `${url}?${new URLSearchParams(params)}` : url;
+    try {
+        let response = await fetch(fullUrl);
+        if (!response.ok) {
+            console.log("Request Failed for " + fullUrl);
+            return null;
+        }
+        let text = await response.text();
+        if (text == "None" || text === "") {
+            return null;
+        }
+        return JSON.parse(text);
+    } catch (err) {
+        console.log("Request Failed for " + fullUrl);
+        console.log(err);
+        return null;
+    }
+}
+
+async function getCompletions() {
     // Get the completion status
     if (
         window.location.href.match(
@@ -21,52 +48,52 @@ function getCompletions() {
             currentPathname.lastIndexOf("?"),
         );
     }
-    var data = {
-        lastPageUrl: currentPathname,
-        isPtxBook: isPreTeXt(),
-    };
-    jQuery
-        .ajax({
-            url: `${eBookConfig.new_server_prefix}/logger/getCompletionStatus`,
-            data: data,
-            async: false,
-        })
-        .done(function (data) {
-            if (data != "None") {
-                var completionData = data.detail;
-                var completionClass, completionMsg;
-                if (completionData[0].completionStatus == 1) {
-                    completionClass = "buttonConfirmCompletion";
-                    completionMsg =
-                        "<i class='glyphicon glyphicon-ok'></i> Completed. Well Done!";
-                } else {
-                    completionClass = "buttonAskCompletion";
-                    completionMsg = "Mark as Completed";
-                }
-                let scp = document.querySelector("#scprogresscontainer");
-                if (scp) {
-                    scp.classList.add("ptx-runestone-container");
-                }
-                $("#scprogresscontainer").append(
-                    '<div style="text-align:center"><button class="btn btn-lg ' +
-                        completionClass +
-                        '" id="completionButton">' +
-                        completionMsg +
-                        "</button></div>",
-                );
-            }
-        });
+    var data = await fetchJson(
+        `${eBookConfig.new_server_prefix}/logger/getCompletionStatus`,
+        {
+            lastPageUrl: currentPathname,
+            isPtxBook: isPreTeXt(),
+        },
+    );
+    if (data) {
+        var completionData = data.detail;
+        var completionClass, completionMsg;
+        if (completionData[0].completionStatus == 1) {
+            completionClass = "buttonConfirmCompletion";
+            completionMsg =
+                "<i class='glyphicon glyphicon-ok'></i> Completed. Well Done!";
+        } else {
+            completionClass = "buttonAskCompletion";
+            completionMsg = "Mark as Completed";
+        }
+        let scp = document.querySelector("#scprogresscontainer");
+        if (scp) {
+            scp.classList.add("ptx-runestone-container");
+            scp.insertAdjacentHTML(
+                "beforeend",
+                '<div style="text-align:center"><button class="btn btn-lg ' +
+                    completionClass +
+                    '" id="completionButton">' +
+                    completionMsg +
+                    "</button></div>",
+            );
+        }
+    }
 }
 
 function showLastPositionBanner() {
-    var lastPositionVal = $.getUrlVar("lastPosition");
-    if (typeof lastPositionVal !== "undefined") {
-        $("body").append(
+    var lastPositionVal = getUrlVar("lastPosition");
+    if (lastPositionVal !== null) {
+        document.body.insertAdjacentHTML(
+            "beforeend",
             '<img src="../_static/last-point.png" style="position:absolute; padding-top:55px; left: 10px; top: ' +
                 parseInt(lastPositionVal) +
                 'px;"/>',
         );
-        $("html, body").animate({ scrollTop: parseInt(lastPositionVal) }, 1000);
+        window.scrollTo({
+            top: parseInt(lastPositionVal),
+            behavior: "smooth",
+        });
     }
 }
 
@@ -78,52 +105,79 @@ function addNavigationAndCompletionButtons() {
     ) {
         return;
     }
-    var navLinkBgRightHiddenPosition = -$("#navLinkBgRight").outerWidth() - 5;
+    var completionButton = document.getElementById("completionButton");
+    var navLinkBgRight = document.getElementById("navLinkBgRight");
+    var navLinkBgLeft = document.getElementById("navLinkBgLeft");
+    var relationsNext = document.getElementById("relations-next");
+    var navLinkBgRightHiddenPosition = navLinkBgRight
+        ? -outerWidth(navLinkBgRight) - 5
+        : -5;
     var navLinkBgRightHalfOpen;
     var navLinkBgRightFullOpen = 0;
 
-    if ($("#completionButton").hasClass("buttonAskCompletion")) {
+    if (completionButton?.classList.contains("buttonAskCompletion")) {
         navLinkBgRightHalfOpen = navLinkBgRightHiddenPosition + 70;
-    } else if ($("#completionButton").hasClass("buttonConfirmCompletion")) {
+    } else if (
+        completionButton?.classList.contains("buttonConfirmCompletion")
+    ) {
         navLinkBgRightHalfOpen = 0;
     }
-    var relationsNextIconInitialPosition = $("#relations-next").css("right");
+    var relationsNextIconInitialPosition = relationsNext
+        ? getComputedStyle(relationsNext).right
+        : "0px";
     var relationsNextIconNewPosition = -(navLinkBgRightHiddenPosition + 35);
 
-    $("#navLinkBgRight").css("right", navLinkBgRightHiddenPosition).show();
-    var navBgShown = false;
-    $(window).scroll(function () {
-        if (
-            $(window).scrollTop() + $(window).height() ==
-            $(document).height()
-        ) {
-            $("#navLinkBgRight").animate(
-                { right: navLinkBgRightHalfOpen },
-                200,
-            );
-            $("#navLinkBgLeft").animate({ left: "0px" }, 200);
-            if ($("#completionButton").hasClass("buttonConfirmCompletion")) {
-                $("#relations-next").animate(
-                    { right: relationsNextIconNewPosition },
-                    200,
+    if (navLinkBgRight) {
+        navLinkBgRight.style.right = navLinkBgRightHiddenPosition + "px";
+        navLinkBgRight.style.display = "";
+        var navBgShown = false;
+        window.addEventListener("scroll", function () {
+            if (
+                window.scrollY + window.innerHeight >=
+                document.documentElement.scrollHeight
+            ) {
+                animate(
+                    navLinkBgRight,
+                    { right: navLinkBgRightHalfOpen },
+                    { duration: 200 },
                 );
+                if (navLinkBgLeft) {
+                    animate(navLinkBgLeft, { left: 0 }, { duration: 200 });
+                }
+                if (
+                    relationsNext &&
+                    completionButton?.classList.contains(
+                        "buttonConfirmCompletion",
+                    )
+                ) {
+                    animate(
+                        relationsNext,
+                        { right: relationsNextIconNewPosition },
+                        { duration: 200 },
+                    );
+                }
+                navBgShown = true;
+            } else if (navBgShown) {
+                animate(
+                    navLinkBgRight,
+                    { right: navLinkBgRightHiddenPosition },
+                    { duration: 200 },
+                );
+                if (navLinkBgLeft) {
+                    animate(navLinkBgLeft, { left: -65 }, { duration: 200 });
+                }
+                if (relationsNext) {
+                    animate(relationsNext, {
+                        right: relationsNextIconInitialPosition,
+                    });
+                }
+                navBgShown = false;
             }
-            navBgShown = true;
-        } else if (navBgShown) {
-            $("#navLinkBgRight").animate(
-                { right: navLinkBgRightHiddenPosition },
-                200,
-            );
-            $("#navLinkBgLeft").animate({ left: "-65px" }, 200);
-            $("#relations-next").animate({
-                right: relationsNextIconInitialPosition,
-            });
-            navBgShown = false;
-        }
-    });
+        });
+    }
 
     var completionFlag = 0;
-    if ($("#completionButton").hasClass("buttonAskCompletion")) {
+    if (completionButton?.classList.contains("buttonAskCompletion")) {
         completionFlag = 0;
     } else {
         completionFlag = 1;
@@ -131,33 +185,40 @@ function addNavigationAndCompletionButtons() {
     // Make sure we mark this page as visited regardless of how flakey
     // the onunload handlers become.
     processPageState(completionFlag, true, false, false);
-    $("#completionButton").on("click", function () {
+    completionButton?.addEventListener("click", function () {
         var markingComplete = false;
         var markingIncomplete = false;
-        if ($(this).hasClass("buttonAskCompletion")) {
-            $(this)
-                .removeClass("buttonAskCompletion")
-                .addClass("buttonConfirmCompletion")
-                .html(
-                    "<i class='glyphicon glyphicon-ok'></i> Completed. Well Done!",
-                );
-            $("#navLinkBgRight").animate({ right: navLinkBgRightFullOpen });
-            $("#relations-next").animate({
-                right: relationsNextIconNewPosition,
-            });
+        if (completionButton.classList.contains("buttonAskCompletion")) {
+            completionButton.classList.remove("buttonAskCompletion");
+            completionButton.classList.add("buttonConfirmCompletion");
+            completionButton.innerHTML =
+                "<i class='glyphicon glyphicon-ok'></i> Completed. Well Done!";
+            if (navLinkBgRight) {
+                animate(navLinkBgRight, { right: navLinkBgRightFullOpen });
+            }
+            if (relationsNext) {
+                animate(relationsNext, {
+                    right: relationsNextIconNewPosition,
+                });
+            }
             navLinkBgRightHalfOpen = 0;
             completionFlag = 1;
             markingComplete = true;
-        } else if ($(this).hasClass("buttonConfirmCompletion")) {
-            $(this)
-                .removeClass("buttonConfirmCompletion")
-                .addClass("buttonAskCompletion")
-                .html("Mark as Completed");
+        } else if (
+            completionButton.classList.contains("buttonConfirmCompletion")
+        ) {
+            completionButton.classList.remove("buttonConfirmCompletion");
+            completionButton.classList.add("buttonAskCompletion");
+            completionButton.innerHTML = "Mark as Completed";
             navLinkBgRightHalfOpen = navLinkBgRightHiddenPosition + 70;
-            $("#navLinkBgRight").animate({ right: navLinkBgRightHalfOpen });
-            $("#relations-next").animate({
-                right: relationsNextIconInitialPosition,
-            });
+            if (navLinkBgRight) {
+                animate(navLinkBgRight, { right: navLinkBgRightHalfOpen });
+            }
+            if (relationsNext) {
+                animate(relationsNext, {
+                    right: relationsNextIconInitialPosition,
+                });
+            }
             completionFlag = 0;
             markingIncomplete = true;
         }
@@ -168,138 +229,112 @@ function addNavigationAndCompletionButtons() {
             markingIncomplete,
         );
     });
-
-    // we cannot afford to do this at both load and unload especially as users
-    // go from page to page. This just doubles the load.  So, try without this one.
-    // $(window).on("beforeunload", function (e) {
-    //     if (completionFlag == 0) {
-    //         processPageState(completionFlag, false, false, false);
-    //     }
-    // });
 }
 
 // _ decorateTableOfContents
 // -------------------------
-function decorateTableOfContents() {
+async function decorateTableOfContents() {
     if (
         window.location.href.toLowerCase().indexOf("toc.html") != -1 ||
         window.location.href.toLowerCase().indexOf("index.html") != -1 ||
         window.location.href.toLowerCase().indexOf("frontmatter") != -1
     ) {
         if (!isPreTeXt()) {
-            jQuery.get(
+            let data = await fetchJson(
                 `${eBookConfig.new_server_prefix}/logger/getAllCompletionStatus`,
-                function (data) {
-                    var subChapterList;
-                    if (data != "None") {
-                        subChapterList = data.detail;
-
-                        var allSubChapterURLs = $("#main-content div li a");
-                        $.each(subChapterList, function (index, item) {
-                            for (var s = 0; s < allSubChapterURLs.length; s++) {
-                                if (
-                                    allSubChapterURLs[s].href.indexOf(
-                                        item.chapterName +
-                                            "/" +
-                                            item.subChapterName,
-                                    ) != -1
-                                ) {
-                                    if (item.completionStatus == 1) {
-                                        $(allSubChapterURLs[s].parentElement)
-                                            .addClass("completed")
-                                            .append(
-                                                '<span class="infoTextCompleted">- Completed this topic on ' +
-                                                    item.endDate +
-                                                    "</span>",
-                                            )
-                                            .children()
-                                            .first()
-                                            .hover(
-                                                function () {
-                                                    $(this)
-                                                        .next(
-                                                            ".infoTextCompleted",
-                                                        )
-                                                        .show();
-                                                },
-                                                function () {
-                                                    $(this)
-                                                        .next(
-                                                            ".infoTextCompleted",
-                                                        )
-                                                        .hide();
-                                                },
-                                            );
-                                    } else if (item.completionStatus == 0) {
-                                        $(allSubChapterURLs[s].parentElement)
-                                            .addClass("active")
-                                            .append(
-                                                '<span class="infoTextActive">Last read this topic on ' +
-                                                    item.endDate +
-                                                    "</span>",
-                                            )
-                                            .children()
-                                            .first()
-                                            .hover(
-                                                function () {
-                                                    $(this)
-                                                        .next(".infoTextActive")
-                                                        .show();
-                                                },
-                                                function () {
-                                                    $(this)
-                                                        .next(".infoTextActive")
-                                                        .hide();
-                                                },
-                                            );
-                                    }
-                                }
-                            }
-                        });
-                    }
-                },
             );
-        }
-        var data = { course: eBookConfig.course };
-        jQuery.get(
-            `${eBookConfig.new_server_prefix}/logger/getlastpage`,
-            data,
-            function (data) {
-                var lastPageData;
-                if (data != "None") {
-                    lastPageData = data.detail;
-                    if (lastPageData.lastPageChapter != null) {
-                        $("#continue-reading")
-                            .show()
-                            .html(
-                                '<div id="jump-to-chapter" class="alert alert-info" ><strong>You were Last Reading:</strong> ' +
-                                    lastPageData.lastPageChapter +
-                                    (lastPageData.lastPageSubchapter
-                                        ? " &gt; " +
-                                          lastPageData.lastPageSubchapter
-                                        : "") +
-                                    ' <a href="' +
-                                    lastPageData.lastPageUrl +
-                                    "?lastPosition=" +
-                                    lastPageData.lastPageScrollLocation +
-                                    '">Continue Reading</a></div>',
-                            );
+            if (data) {
+                let subChapterList = data.detail;
+                let allSubChapterURLs = document.querySelectorAll(
+                    "#main-content div li a",
+                );
+                for (let item of subChapterList) {
+                    for (var s = 0; s < allSubChapterURLs.length; s++) {
+                        if (
+                            allSubChapterURLs[s].href.indexOf(
+                                item.chapterName + "/" + item.subChapterName,
+                            ) != -1
+                        ) {
+                            if (item.completionStatus == 1) {
+                                decorateTocEntry(
+                                    allSubChapterURLs[s].parentElement,
+                                    "completed",
+                                    "infoTextCompleted",
+                                    "- Completed this topic on " + item.endDate,
+                                );
+                            } else if (item.completionStatus == 0) {
+                                decorateTocEntry(
+                                    allSubChapterURLs[s].parentElement,
+                                    "active",
+                                    "infoTextActive",
+                                    "Last read this topic on " + item.endDate,
+                                );
+                            }
+                        }
                     }
                 }
-            },
+            }
+        }
+        let lastPage = await fetchJson(
+            `${eBookConfig.new_server_prefix}/logger/getlastpage`,
+            { course: eBookConfig.course },
         );
+        if (lastPage) {
+            let lastPageData = lastPage.detail;
+            if (lastPageData.lastPageChapter != null) {
+                let continueReading =
+                    document.getElementById("continue-reading");
+                if (continueReading) {
+                    continueReading.style.display = "";
+                    continueReading.innerHTML =
+                        '<div id="jump-to-chapter" class="alert alert-info" ><strong>You were Last Reading:</strong> ' +
+                        lastPageData.lastPageChapter +
+                        (lastPageData.lastPageSubchapter
+                            ? " &gt; " + lastPageData.lastPageSubchapter
+                            : "") +
+                        ' <a href="' +
+                        lastPageData.lastPageUrl +
+                        "?lastPosition=" +
+                        lastPageData.lastPageScrollLocation +
+                        '">Continue Reading</a></div>';
+                }
+            }
+        }
     }
 }
 
-function enableCompletions() {
-    getCompletions();
+/*
+ * Add a status class and a hover-revealed date annotation to one entry in
+ * the table of contents.
+ */
+function decorateTocEntry(entry, entryClass, infoClass, infoText) {
+    entry.classList.add(entryClass);
+    let info = document.createElement("span");
+    info.className = infoClass;
+    info.textContent = infoText;
+    entry.appendChild(info);
+    let link = entry.children[0];
+    if (link && link !== info) {
+        link.addEventListener("mouseenter", function () {
+            info.style.display = "";
+        });
+        link.addEventListener("mouseleave", function () {
+            info.style.display = "none";
+        });
+    }
+}
+
+async function enableCompletions() {
+    // The completion button must exist before the navigation logic looks
+    // for it (the jQuery version used a synchronous request here).
+    await getCompletions();
     showLastPositionBanner();
     addNavigationAndCompletionButtons();
-    decorateTableOfContents();
+    await decorateTableOfContents();
 }
 
 // call enable user highlights after login
-$(document).on("runestone:login", enableCompletions);
+document.addEventListener("runestone:login", enableCompletions);
 
 function isPreTeXt() {
     let ptxMarker = document.querySelector("body.pretext");
@@ -311,7 +346,7 @@ function isPreTeXt() {
 }
 // _ processPageState
 // -------------------------
-function processPageState(
+async function processPageState(
     completionFlag,
     pageLoad,
     markingComplete,
@@ -329,7 +364,7 @@ function processPageState(
     let isPtxBook = isPreTeXt();
     var data = {
         lastPageUrl: currentPathname,
-        lastPageScrollLocation: Math.round($(window).scrollTop()),
+        lastPageScrollLocation: Math.round(window.scrollY),
         completionFlag: completionFlag,
         pageLoad: pageLoad,
         markingComplete: markingComplete,
@@ -337,35 +372,19 @@ function processPageState(
         course: eBookConfig.course,
         isPtxBook: isPtxBook,
     };
-    $(document).ajaxError(function (e, jqhxr, settings, exception) {
-        console.log("Request Failed for " + settings.url);
-        console.log(e);
-    });
-    jQuery.ajax({
-        url: `${eBookConfig.new_server_prefix}/logger/updatelastpage`,
-        contentType: "application/json; charset=utf-8",
-        dataType: "json",
-        data: JSON.stringify(data),
-        method: "POST",
-        async: true,
-    });
+    let url = `${eBookConfig.new_server_prefix}/logger/updatelastpage`;
+    try {
+        await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+            body: JSON.stringify(data),
+        });
+    } catch (err) {
+        console.log("Request Failed for " + url);
+        console.log(err);
+    }
 }
 
-$.extend({
-    getUrlVars: function () {
-        var vars = [],
-            hash;
-        var hashes = window.location.search
-            .slice(window.location.search.indexOf("?") + 1)
-            .split("&");
-        for (var i = 0; i < hashes.length; i++) {
-            hash = hashes[i].split("=");
-            vars.push(hash[0]);
-            vars[hash[0]] = hash[1];
-        }
-        return vars;
-    },
-    getUrlVar: function (name) {
-        return $.getUrlVars()[name];
-    },
-});
+function getUrlVar(name) {
+    return new URLSearchParams(window.location.search).get(name);
+}
