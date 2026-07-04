@@ -12,6 +12,15 @@
 
 import Hammer from "./hammer.min.js";
 
+const INDENT_CLASSES = [
+    "indent1",
+    "indent2",
+    "indent3",
+    "indent4",
+    "indent5",
+    "indent6",
+];
+
 // Initialize based on the problem and the lines
 export default class ParsonsBlock {
     constructor(problem, lines) {
@@ -23,14 +32,14 @@ export default class ParsonsBlock {
         var view = document.createElement("div");
         view.id = problem.counterId + "-block-" + problem.blockIndex;
         problem.blockIndex += 1;
-        $(view).addClass("block");
+        view.classList.add("block");
         var sharedIndent = lines[0].indent;
         for (let i = 1; i < lines.length; i++) {
             sharedIndent = Math.min(sharedIndent, lines[i].indent);
         }
         var lineDiv = document.createElement("div");
-        $(lineDiv).addClass("lines");
-        $(view).append(lineDiv);
+        lineDiv.classList.add("lines");
+        view.append(lineDiv);
         for (let i = 0; i < lines.length; i++) {
             var line = lines[i];
             var lineIndent;
@@ -39,36 +48,28 @@ export default class ParsonsBlock {
             } else {
                 lineIndent = line.indent - sharedIndent;
             }
-            $(line.view).removeClass(
-                "indent1 indent2 indent3 indent4 indent5 indent6",
-            );
+            line.view.classList.remove(...INDENT_CLASSES);
             if (
                 this.problem.options.language != "natural" &&
                 this.problem.options.language != "math"
             ) {
                 if (lineIndent > 0) {
-                    $(line.view).addClass("indent" + lineIndent);
+                    line.view.classList.add("indent" + lineIndent);
                 }
             }
             lineDiv.appendChild(line.view);
         }
         var labelDiv = document.createElement("div");
-        $(labelDiv).addClass("labels");
+        labelDiv.classList.add("labels");
         if (this.problem.options.numbered == "left") {
-            $(lineDiv).addClass("border_left");
-            $(view).prepend(labelDiv);
-            $(view).css({
-                "justify-content": "flex-start",
-            });
+            lineDiv.classList.add("border_left");
+            view.prepend(labelDiv);
+            view.style.justifyContent = "flex-start";
         } else if (this.problem.options.numbered == "right") {
-            $(labelDiv).addClass("border_left");
-            $(labelDiv).css({
-                float: "right",
-            });
-            $(view).css({
-                "justify-content": "space-between",
-            });
-            $(view).append(labelDiv);
+            labelDiv.classList.add("border_left");
+            labelDiv.style.float = "right";
+            view.style.justifyContent = "space-between";
+            view.append(labelDiv);
         }
         this.view = view;
         // is not placeholder by default
@@ -76,12 +77,10 @@ export default class ParsonsBlock {
     }
     // Add a line (from another block) to this block
     addLine(line) {
-        $(line.view).removeClass(
-            "indent1 indent2 indent3 indent4 indent5 indent6",
-        );
+        line.view.classList.remove(...INDENT_CLASSES);
         if (this.problem.noindent) {
             if (line.indent > 0) {
-                $(line.view).addClass("indent" + line.indent);
+                line.view.classList.add("indent" + line.indent);
             }
         } else {
             var lines = this.lines;
@@ -90,18 +89,18 @@ export default class ParsonsBlock {
                 sharedIndent = Math.min(sharedIndent, lines[i].indent);
             }
             if (sharedIndent < line.indent) {
-                $(line.view).addClass("indent" + (line.indent - sharedIndent));
+                line.view.classList.add(
+                    "indent" + (line.indent - sharedIndent),
+                );
             } else if (sharedIndent > line.indent) {
                 for (let i = 0; i < lines.length; i++) {
-                    $(lines[i].view).removeClass(
-                        "indent1 indent2 indent3 indent4 indent5 indent6",
-                    );
+                    lines[i].view.classList.remove(...INDENT_CLASSES);
                     // todo: if language is natural or math then don't do this
                     if (
                         this.problem.options.language !== "natural" &&
                         this.problem.options.language !== "math"
                     ) {
-                        $(lines[i].view).addClass(
+                        lines[i].view.classList.add(
                             "indent" + (lines[i].indent - line.indent),
                         );
                     }
@@ -109,17 +108,17 @@ export default class ParsonsBlock {
             }
         }
         this.lines.push(line);
-        $(this.view).children(".lines")[0].appendChild(line.view);
+        this.view.querySelector(".lines").appendChild(line.view);
     }
     // Add the contents of that block to myself and then delete that block
     consumeBlock(block) {
         for (let i = 0; i < block.lines.length; i++) {
             this.addLine(block.lines[i]);
         }
-        if ($(block.view).attr("tabindex") == "0") {
+        if (block.view.getAttribute("tabindex") == "0") {
             this.makeTabIndex();
         }
-        $(block.view).detach();
+        block.view.remove();
         var newBlocks = [];
         for (let i = 0; i < this.problem.blocks.length; i++) {
             if (this.problem.blocks[i] !== block) {
@@ -142,46 +141,41 @@ export default class ParsonsBlock {
         for (let i = 0; i < this.lines.length; i++) {
             var line = this.lines[i];
             if (line.indent > 0) {
-                $(line.view).removeClass(
-                    "indent1 indent2 indent3 indent4 indent5 indent6",
-                );
-                $(line.view).addClass("indent" + line.indent);
+                line.view.classList.remove(...INDENT_CLASSES);
+                line.view.classList.add("indent" + line.indent);
             }
         }
         // Update the block model / view
         this.indent = 0;
-        $(this.view).css({
-            "padding-left": "",
-            width: this.problem.areaWidth - 22,
-        });
+        this.view.style.paddingLeft = "";
+        this.view.style.width = this.problem.areaWidth - 22 + "px";
     }
     // Add a label to block and update its view
     addLabel(label, line) {
         var div = document.createElement("div");
-        $(div).addClass("block-label");
+        div.classList.add("block-label");
         if (this.problem.options.numbered == "right") {
-            $(div).addClass("right-label");
+            div.classList.add("right-label");
         }
         if (this.problem.options.numbered == "left") {
-            $(div).addClass("left-label");
+            div.classList.add("left-label");
         }
-        $(div).append(document.createTextNode(label));
-        $(this.view).children(".labels")[0].append(div);
+        div.append(document.createTextNode(label));
+        this.view.querySelector(".labels").append(div);
         if (this.labels.length != 0) {
-            $(div).css(
-                "margin-top",
+            div.style.marginTop =
                 (line - this.labels[this.labels.length - 1][1] - 1) *
-                    this.lines[line].view.offsetHeight,
-            );
+                    this.lines[line].view.offsetHeight +
+                "px";
         }
         this.labels.push([label, line]);
     }
     // Initialize Interactivity
     initializeInteractivity() {
-        if ($(this.view).hasClass("disabled")) {
+        if (this.view.classList.contains("disabled")) {
             return this;
         }
-        $(this.view).attr("tabindex", "-1");
+        this.view.setAttribute("tabindex", "-1");
         this.hammer = new Hammer.Manager(this.view, {
             recognizers: [
                 [
@@ -207,7 +201,7 @@ export default class ParsonsBlock {
     }
     // Return a boolean as to whether this block is able to be selected
     enabled() {
-        return $(this.view).attr("tabindex") !== undefined;
+        return this.view.getAttribute("tabindex") !== null;
     }
     // Return a boolean as to whether this block is a distractor
     isDistractor() {
@@ -350,24 +344,24 @@ export default class ParsonsBlock {
             this.problem.enterKeyboardMode();
             this.problem.textFocus = this;
             this.problem.textMove = false;
-            $(this.view).addClass("down");
+            this.view.classList.add("down");
         } else if (this.problem.textFocus == this) {
             if (this.problem.textMove) {
-                $(this.view).addClass("up");
+                this.view.classList.add("up");
             } else {
-                $(this.view).addClass("down");
+                this.view.classList.add("down");
             }
         } else {
             // already in keyboard mode
             this.problem.textFocus = this;
             this.problem.textMove = false;
-            $(this.view).addClass("down");
+            this.view.classList.add("down");
         }
         this.problem.textMoving = false;
     }
     // This block just lost textual focus
     releaseFocus() {
-        $(this.view).removeClass("down up");
+        this.view.classList.remove("down", "up");
         if (this.problem.textFocus == this) {
             if (!this.problem.textMoving) {
                 // exit out of problem but stay way into problem
@@ -382,37 +376,36 @@ export default class ParsonsBlock {
             }
         } else {
             // become selectable, but not active
-            $(this.view).attr("tabindex", "-1");
-            $(this.view).unbind("focus");
-            $(this.view).unbind("blur");
-            $(this.view).unbind("keydown");
+            this.view.setAttribute("tabindex", "-1");
+            this.view.removeEventListener("focus", this.focusHandler);
+            this.view.removeEventListener("blur", this.blurHandler);
+            this.view.removeEventListener("keydown", this.keydownHandler);
         }
     }
     // Make this block into the keyboard entry point
     makeTabIndex() {
-        $(this.view).attr("tabindex", "0");
-        var that = this;
-        $(this.view).focus(function () {
-            that.newFocus();
-        });
-        $(this.view).blur(function () {
-            that.releaseFocus();
-        });
-        $(this.view).keydown(function (event) {
-            that.keyDown(event);
-        });
+        this.view.setAttribute("tabindex", "0");
+        if (this.focusHandler === undefined) {
+            this.focusHandler = () => this.newFocus();
+            this.blurHandler = () => this.releaseFocus();
+            this.keydownHandler = (event) => this.keyDown(event);
+        }
+        // re-adding an identical listener is a no-op, so repeated calls are safe
+        this.view.addEventListener("focus", this.focusHandler);
+        this.view.addEventListener("blur", this.blurHandler);
+        this.view.addEventListener("keydown", this.keydownHandler);
     }
     // Called to disable interaction for the future
     disable() {
         if (this.hammer !== undefined) {
             this.hammer.set({ enable: false });
         }
-        if ($(this.view).attr("tabindex") == "0") {
+        if (this.view.getAttribute("tabindex") == "0") {
             this.releaseFocus();
-            $(this.view).removeAttr("tabindex");
+            this.view.removeAttribute("tabindex");
             this.problem.initializeTabIndex();
         } else {
-            $(this.view).removeAttr("tabindex");
+            this.view.removeAttribute("tabindex");
         }
     }
     // Enable functionality after reset button has been pressed
@@ -420,10 +413,10 @@ export default class ParsonsBlock {
         if (this.hammer !== undefined) {
             this.hammer.set({ enable: true });
         }
-        if (!$(this.view)[0].hasAttribute("tabindex")) {
-            $(this.view).attr("tabindex", "-1");
+        if (!this.view.hasAttribute("tabindex")) {
+            this.view.setAttribute("tabindex", "-1");
         }
-        $(this.view).css({ opacity: "" });
+        this.view.style.opacity = "";
     }
     // Called to destroy interaction for the future
     destroy() {
@@ -431,10 +424,10 @@ export default class ParsonsBlock {
             this.hammer.destroy();
             delete this.hammer;
         }
-        if ($(this.view).attr("tabindex") == "0") {
+        if (this.view.getAttribute("tabindex") == "0") {
             this.releaseFocus();
         }
-        $(this.view).removeAttr("tabindex");
+        this.view.removeAttribute("tabindex");
     }
     // Called when a block is picked up
     panStart(event) {
@@ -534,7 +527,7 @@ export default class ParsonsBlock {
                     if (index == blocks.length) {
                         this.problem.textMoving = true;
                         this.problem.sourceArea.appendChild(this.view);
-                        $(this.view).focus();
+                        this.view.focus();
                         this.problem.state = undefined;
                         this.problem.updateView();
                         return this;
@@ -547,7 +540,7 @@ export default class ParsonsBlock {
                 }
                 this.problem.textMoving = true;
                 this.problem.sourceArea.insertBefore(this.view, block.view);
-                $(this.view).focus();
+                this.view.focus();
             } else {
                 // reduce indent
                 this.indent = this.indent - 1;
@@ -573,7 +566,7 @@ export default class ParsonsBlock {
                             this.view,
                             block.view,
                         );
-                        $(this.view).focus();
+                        this.view.focus();
                         this.problem.state = undefined;
                         this.problem.updateView();
                         return this;
@@ -592,7 +585,7 @@ export default class ParsonsBlock {
                         this.view,
                         blocks[i - 1].view,
                     );
-                    $(this.view).focus();
+                    this.view.focus();
                     this.problem.state = undefined;
                     this.problem.updateView();
                 }
@@ -612,7 +605,7 @@ export default class ParsonsBlock {
                 if (itemOffset >= offset) {
                     this.problem.textMoving = true;
                     this.problem.answerArea.insertBefore(this.view, item.view);
-                    $(this.view).focus();
+                    this.view.focus();
                     this.problem.state = undefined;
                     this.problem.updateView();
                     return this;
@@ -620,7 +613,7 @@ export default class ParsonsBlock {
             }
             this.problem.textMoving = true;
             this.problem.answerArea.appendChild(this.view);
-            $(this.view).focus();
+            this.view.focus();
             this.problem.state = undefined;
             this.problem.updateView();
         } else {
@@ -647,7 +640,7 @@ export default class ParsonsBlock {
                 if (index == blocks.length) {
                     this.problem.textMoving = true;
                     this.problem.sourceArea.appendChild(this.view);
-                    $(this.view).focus();
+                    this.view.focus();
                     this.problem.state = undefined;
                     this.problem.updateView();
                     return this;
@@ -657,7 +650,7 @@ export default class ParsonsBlock {
                         this.view,
                         blocks[index].view,
                     );
-                    $(this.view).focus();
+                    this.view.focus();
                     this.problem.state = undefined;
                     this.problem.updateView();
                     return this;
@@ -679,7 +672,7 @@ export default class ParsonsBlock {
                             blocks[i + 2].view,
                         );
                     }
-                    $(this.view).focus();
+                    this.view.focus();
                     this.problem.state = undefined;
                     this.problem.updateView();
                 }
@@ -706,7 +699,7 @@ export default class ParsonsBlock {
             }
             this.problem.textFocus = chooseNext;
             chooseNext.makeTabIndex();
-            $(chooseNext.view).focus();
+            chooseNext.view.focus();
         }
     }
     // Move selection up
@@ -723,7 +716,7 @@ export default class ParsonsBlock {
             if (chooseNext) {
                 this.problem.textFocus = item;
                 item.makeTabIndex();
-                $(item.view).focus();
+                item.view.focus();
                 return this;
             } else {
                 if (item.view.id == this.view.id) {
@@ -752,7 +745,7 @@ export default class ParsonsBlock {
             }
             this.problem.textFocus = chooseNext;
             chooseNext.makeTabIndex();
-            $(chooseNext.view).focus();
+            chooseNext.view.focus();
         }
     }
     // Move selection down
@@ -769,7 +762,7 @@ export default class ParsonsBlock {
             if (chooseNext) {
                 this.problem.textFocus = item;
                 item.makeTabIndex();
-                $(item.view).focus();
+                item.view.focus();
                 return this;
             } else {
                 if (item.view.id == this.view.id) {
@@ -781,16 +774,16 @@ export default class ParsonsBlock {
     // Toggle whether to move this block
     toggleMove() {
         if (this.problem.textMove) {
-            $(this.view).removeClass("up");
-            $(this.view).addClass("down");
+            this.view.classList.remove("up");
+            this.view.classList.add("down");
             this.problem.textMove = false;
             this.problem.logMove("kmove");
             if (!this.isPlaceholder) {
                 this.problem.updatePlaceholders();
             }
         } else {
-            $(this.view).removeClass("down");
-            $(this.view).addClass("up");
+            this.view.classList.remove("down");
+            this.view.classList.add("up");
             this.problem.textMove = true;
         }
     }

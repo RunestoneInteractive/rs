@@ -11,15 +11,17 @@ export default class TimedParsons extends Parsons {
         }
         this.grader.showfeedback = this.showfeedback;
         this.hideFeedback();
-        $(this.checkButton).hide();
-        $(this.helpButton).hide();
-        $(this.resetButton).hide();
+        this.checkButton.style.display = "none";
+        if (this.helpButton) {
+            this.helpButton.style.display = "none";
+        }
+        this.resetButton.style.display = "none";
     }
     checkCorrectTimed() {
         return this.correct ? "T" : "F";
     }
     hideFeedback() {
-        $(this.messageDiv).hide();
+        this.messageDiv.style.display = "none";
     }
 }
 
