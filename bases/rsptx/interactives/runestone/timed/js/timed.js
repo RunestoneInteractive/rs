@@ -645,7 +645,7 @@ export default class Timed extends RunestoneBase {
             (opts.state === "broken_exam" && opts.initAttempts < 3)
         ) {
             let tmpChild = opts.orig;
-            if (tmpChild.matches("[data-component=selectquestion]")) {
+            if (tmpChild && tmpChild.matches("[data-component=selectquestion]")) {
                 if (this.done && opts.state == "prepared") {
                     this.renderedQuestionArray[
                         this.currentQuestionIndex
@@ -675,7 +675,7 @@ export default class Timed extends RunestoneBase {
                         );
                     }
                 }
-            } else if (tmpChild.matches("[data-component]")) {
+            } else if (tmpChild && tmpChild.matches("[data-component]")) {
                 let componentKind = tmpChild.dataset.component;
                 this.renderedQuestionArray[this.currentQuestionIndex] = {
                     question: window.component_factory[componentKind](opts),
