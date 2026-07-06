@@ -91,6 +91,12 @@ async def _navbar_context(user: AuthUserValidator) -> dict:
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = "/ns/course/index"):
+    # If a valid JWT is already present the user is logged in; send them
+    # straight to the course home page rather than showing the login form.
+    user = await _current_user(request)
+    if _user_exists(user):
+        return RedirectResponse("/ns/course/index", status_code=status.HTTP_302_FOUND)
+
     return templates.TemplateResponse(
         "admin/auth/login.html",
         {"request": request, "next": next, "error": None},
