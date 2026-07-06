@@ -564,7 +564,8 @@ function createStudyCluesWidget() {
             display: flex;
             flex-direction: column;
             gap: 10px;
-            background: #f8fafc;
+            background: var(--background);
+            color: var(--bodyFont);
         }
 
         .studyclues-message {
@@ -579,18 +580,20 @@ function createStudyCluesWidget() {
 
         .studyclues-message.user {
             margin-left: auto;
-            background: #dbeafe;
+            background: var(--componentBgColor);
             border: 1px solid #bfdbfe;
+            color: var(--bodyFont);
         }
 
         .studyclues-message.assistant {
             margin-right: auto;
-            background: #fff;
-            border: 1px solid #e5e7eb;
+            background: var(--background);
+            border: 1px solid var(--grayToWhite);
+            color: var(--bodyFont);
         }
 
         .studyclues-message.studyclues-loading {
-            color: #6b7280;
+            color: var(--bodyFont);
             font-style: italic;
         }
 
