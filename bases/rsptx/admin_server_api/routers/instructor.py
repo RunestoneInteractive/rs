@@ -1151,7 +1151,7 @@ async def _copy_one_assignment(
         assignment_questions = await fetch_assignment_questions(old_assignment_id)
 
         for question_data in assignment_questions:
-            question, assignment_question, chapter, subchapter = question_data
+            assignment_question = question_data.AssignmentQuestion
 
             new_assignment_question_data = AssignmentQuestionValidator(
                 assignment_id=new_assignment.id,
