@@ -1319,7 +1319,7 @@ export class ActiveCode extends RunestoneBase {
                     lang: this.language,
                 };
                 let request = new Request(
-                    eBookConfig.ajaxURL + "broadcast_code.json",
+                    "/assignment/instructor/broadcast_code",
                     {
                         method: "POST",
                         headers: this.jsonHeaders,
