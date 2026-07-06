@@ -709,7 +709,7 @@ function createStudyCluesWidget() {
         }
         var sectionInfo = "";
         // find the section title on the page to include in the initial query
-        if (document.querySelector("body.pretext")) {
+        if (document.querySelector("body.pretext") && document.querySelector("section.section")) {
             let section = document.querySelector("section.section");
             let sectionTitle = section.querySelector("span.title").innerText;
             let sectionNumber =
