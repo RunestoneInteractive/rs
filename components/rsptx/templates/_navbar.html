@@ -7,7 +7,7 @@
 
   <div class="collapse navbar-collapse" id="navbarSupportedContent">
     <ul class="navbar-nav mr-auto">
-      {% if not student_page or is_instructor %}
+      {% if not student_page or is_instructor == True or is_instructor | lower == "true" %}
       <li class="nav-item">
         <a class="nav-link" href="/ns/books/published/{{ course.course_name }}/index.html">Back to {{ back_to | default(course.course_name, true) }} <span class="sr-only">(current)</span></a>
       </li>
@@ -37,7 +37,7 @@
           <a class="dropdown-item" href="/assignment/student/studentreport"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Progress</span></span></a>
           <div class="dropdown-divider"></div>
           <div class="dropdown-divider"></div>
-          {% if is_instructor %}
+          {% if is_instructor == True or is_instructor | lower == "true" %}
           <a class="dropdown-item" href="/admin/instructor/menu"><span class="caption-wrap"><i class="ti ti-settings"></i><span>Instructor Dashboard</span></span></a>
           <a class="dropdown-item" href="/assignment/peer/instructor"><span class="caption-wrap"><i class="ti ti-users-group"></i><span>Peer Instruction (Instructor)</span></span></a>
           <a class="dropdown-item" href="https://author.runestone.academy/author/"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Author Tools</span></span></a>

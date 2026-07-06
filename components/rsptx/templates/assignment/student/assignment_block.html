@@ -1,4 +1,4 @@
-{% if is_instructor %}
+{% if is_instructor == True or is_instructor | lower == "true" %}
 <label style="margin-bottom:10px; display:block;">
   <input type="checkbox" id="hide_hidden_assignments" onchange="toggleHiddenAssignments(this.checked)">
   <span for="hide_hidden_assignments"><strong>Student View</strong> (Hide Hidden Assignments)</span>
@@ -11,7 +11,7 @@
   <thead>
     <tr>
       <th>Name</th>
-      {% if is_instructor %}
+      {% if is_instructor == True or is_instructor | lower == "true" %}
       <th>Action</th>
       {% endif %}
       <th>Due</th>
@@ -36,7 +36,7 @@
         <a href="/assignment/student/doAssignment?assignment_id={{assignment.id}}">{{assignment.name}}</a>
       </td>
       
-    {% if is_instructor %}
+    {% if is_instructor == True or is_instructor | lower == "true" %}
     <td style="white-space: nowrap;">
       <a href='/assignment/instructor/builder/{{assignment.id}}'>
         <i class="ti ti-pencil" aria-label="edit" title="edit this assignment"></i></a>
