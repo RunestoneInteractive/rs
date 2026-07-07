@@ -1,5 +1,96 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-06-26 → 2026-07-07)
+
+Coverage: changes landed after the previous changelog update on **2026-06-25**, through **2026-07-07**.
+
+### Highlights
+
+- **jQuery removal from interactives (major):** removed jQuery from activecode, parsons, dragndrop, video, webwork, tabbedStuff (native tab switching), groupsub (also select2), selectquestion, timed assessment, showeval (rebased on the 0.10.0 core), and the common modules (deleting dead jQuery plugins); pages that don't need jQuery no longer load it. Added a vitest suite for activecode plus shortanswer/dragndrop tests (bbe95719, 7a5026b3, 18eca441, ab9bc4b3, fdd4f724, fbf09fcc, cc193cd0, dedb0192, 250b0879, 095dedf8, 42cb89c2, 2751ec8f).
+- **Bootstrap removal / frontend slimming (major):** replaced Bootstrap with a first-party `rs-core.css` + `nav.js`; removed Bootstrap from the interactives bundle and consolidated CSS variables; extracted embedded CSS/JS out of admin and auth templates into shared static files (deleting the dead `manage_tas` page); renamed the assignment-server static CSS to `assignment.css`; restored/moved `peer.css` and the timed-assessment pagination layout after the Bootstrap removal (6d4d2444, 6349428b, c1934e83, df36edb2, d9b3ad04, cbadd217, c663a948).
+- **PreTeXt-based student pages (assignment server):** moved the course homepage, `doAssignment`, and `chooseAssignment` onto a PreTeXt-based `_base` template (opt-in per course); split `main.css` into ptx-based and non-ptx-based, gating some static assets accordingly and dropping hardcoded old PreTeXt CSS; added `get_jinja_templates` to load templates from multiple directories and moved `safe_join`/`construct_course_url` into `response_helpers` (3c4b3b12, b576465c, e5805185, cb00c664, 47eb62a4, 3cafb1eb, 906f11f7, 335c3f72, dba3a011, 72162a2f, 24da474d, 6f6f8e6d).
+- **LTI 1.1 port to admin server (new):** added an LTI 1.1 configuration page and ported the LTI 1.1 launch from web2py to the admin FastAPI server (2d579e6d, 537f025b).
+- **Peer Instruction A/B (continued):** store the current PI phase and reapply it on websocket reconnect (new `/current_state` endpoint); fix the A/B catch-up phase and partner list on reconnect; switch per-student phase to use `assignment_id`; extract A/B verbal-cluster splitting into a testable helper (a52bc08c, 365f0be7, 3c1708ed, 612acda2, 28f95237, 7a3be60a).
+- **Email (new + fixes):** send a welcome email to the instructor on course creation; get Mailgun API sending working and fix missing email-API settings (56255d26, 890e2c8c, 1841bbed).
+- **Grading / gradebook:** added a late-work popup to the instructor gradebook and a `has_late_submission` helper; removed visible references to the `is_submit` assignment status; fixed a no-score regression (381bd5bd, 1fba673a, 1499cc28, 9419377e).
+- **Traceback monitor:** added a `tbm` command with better local-variable storage, post-body capture, and p/q field popups; capture the raw body for all POST types (3299e2af, 8184da27, 29d326e1, 4de398e2).
+- **Library / exercise builder:** added search to the library and fixed the assignment table actions-cell markup; fixed JSON-import bugs in the exercise builder (e112d748, 9fae69a5, 98f1ff18).
+- **StudyClues / dark mode:** fixed the StudyClues TOC error and dark-mode colors; taught `timed.js` to handle dark mode (eb0fc14d, e2e791a2, d56dbf12).
+- **Timed assessments:** eliminated the timed refresh loop and cleared `timed-hidden` on score reveal (69081688, 86bbe9bc).
+- **Auth:** redirect an already-logged-in user to their course, and redirect old login/register attempts (d39d0dd3, b55b2f5b).
+- **DB / infra:** `fetch_assignment_questions` now returns chapter and subchapter with each question (callers updated); fixed a telemetry check-in duplicate-key race with an atomic upsert; uv build updates (a99c5f8b, fbb80311, 16d649f1, 012bf610).
+- **Docs:** new chapter and architecture-overview diagram for the assignment builder/grader React app; silenced SQLAlchemy `declared_attr` warnings during doc builds; added `UV_ENV_FILE` info (f302e829, 40e6d83a, e97fd719, 9803f25f).
+- **Releases:** versions **8.9.0 → 8.9.3** shipped; bundled runestone JS bumped through **8.1.5 → 8.1.9**.
+
+### Commit notes (for reference)
+
+- bbe95719 feat: remove jQuery from activecode components; add vitest test suite
+- 7a5026b3 feat: remove jQuery from parsons component
+- 18eca441 feat: remove jQuery from dragndrop; add shortanswer + dragndrop tests
+- ab9bc4b3 feat: remove jQuery from video component
+- fdd4f724 feat: remove jQuery from webwork component
+- fbf09fcc feat: remove jQuery from tabbedStuff; own tab switching natively
+- cc193cd0 feat: remove jQuery and select2 from groupsub
+- dedb0192 feat: remove jQuery from selectquestion component
+- 250b0879 feat: remove jQuery from timed assessment component
+- 095dedf8 feat: remove jQuery from showeval; base it on the 0.10.0 core
+- 42cb89c2 feat: remove jQuery from common modules; delete dead jQuery plugins
+- 2751ec8f feat: stop loading jQuery on pages that don't need it
+- 6d4d2444 feat: replace Bootstrap with our own rs-core.css and nav.js
+- 6349428b Remove Bootstrap from interactives bundle; consolidate CSS variables
+- c1934e83 refactor: extract embedded CSS/JS from admin templates into shared static files
+- df36edb2 refactor: extract embedded CSS/JS from auth pages; delete dead manage_tas
+- d9b3ad04 Rename assignment-server staticAssets CSS to assignment.css
+- cbadd217 restore and move peer.css
+- c663a948 Restore timed assessment pagination layout after Bootstrap removal
+- 3c4b3b12 Move course homepage to ptx-based _base
+- b576465c Move doAssignment and chooseAssignment to ptx-based _base
+- e5805185 Require opt in for ptx-based student pages
+- cb00c664 Split main.css into ptx-based and not
+- 47eb62a4 Gate some static_assets to not apply in RS pages using ptx-based _base template
+- 3cafb1eb Drop hardcoded old pretext css from static_assets
+- 906f11f7 Add get_jinja_templates to load templates from multiple directories
+- 335c3f72 Move safe_join and construct_course_url to response_helpers
+- dba3a011 Move macro_with_errors to editlibrary (only consumer)
+- 6f6f8e6d Handle boolean or string is_instructor in existing templates
+- 2d579e6d Add LTI 1.1 configuration page to admin server
+- 537f025b Port LTI 1.1 launch from web2py to the admin server
+- a52bc08c store current phase + add /current_state endpoint
+- 365f0be7 reapply current PI phase on websocket reconnect
+- 3c1708ed Fix A/B catch-up phase and partner list on reconnect
+- 612acda2 per-student phase to use assignment_id
+- 28f95237 Extract A/B verbal-cluster splitting into testable helper
+- 7a3be60a Rebase onto main and apply fix inside split_ab_conditions
+- 56255d26 feat: send welcome email to instructor on course creation
+- 890e2c8c Fix: get mailgun API sending working
+- 1841bbed fix: missing settings for email api
+- 381bd5bd Add late-work popup to instructor gradebook
+- 1fba673a Add has_late_submission grading helper
+- 1499cc28 Remove visible references to is_submit assignment status
+- 9419377e fix regression for lack of score
+- 3299e2af Add tbm command
+- 8184da27 Better store of locals for traceback monitor
+- 29d326e1 Add post_body capture and p/q field popups to traceback monitor
+- 4de398e2 Fix: get raw body for all post types
+- e112d748 Add search to library
+- 9fae69a5 Fix assignment table actions cell markup
+- 98f1ff18 Fix JSON-import bugs in exercise builder
+- eb0fc14d Fix: error on toc for studyClues
+- e2e791a2 Quick fix of colors for dark mode / studyClues UI
+- d56dbf12 Update timed.js to handle dark mode
+- 69081688 Eliminate the timed refresh loop
+- 86bbe9bc Clear timed-hidden on score reveal; assert fullwidth class in test
+- d39d0dd3 Fix: redirect user to course if already logged in
+- b55b2f5b redirect old login/register attempts
+- a99c5f8b DB: fetch_assignment_questions returns chapter and subchapter with question
+- fbb80311 Explicitly unpack fetch_assignment_questions results in existing code
+- 16d649f1 Fix telemetry check-in duplicate-key race with atomic upsert
+- 012bf610 uv updates for build
+- f302e829 docs: add chapter on the assignment builder/grader React app
+- 40e6d83a docs: add architecture overview diagram to the assignment builder chapter
+- e97fd719 docs: silence SQLAlchemy declared_attr warnings during doc builds
+- 9803f25f Add UV_ENV_FILE info to docs
+
 ## Updates since last changelog entry (2026-06-12 → 2026-06-25)
 
 Coverage: changes landed after the previous changelog update on **2026-06-12** (which covered through 2026-06-11), through **2026-06-25**.
