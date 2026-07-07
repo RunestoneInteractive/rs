@@ -41,7 +41,7 @@ async function startExam(exam) {
     await tick();
 }
 
-const isHidden = (el) => el.style.display === "none";
+const isHidden = (el) => el.classList.contains("timed-hidden");
 const qnums = () => [...document.querySelectorAll("ul#pageNums > ul > li")];
 
 let logSpy;
