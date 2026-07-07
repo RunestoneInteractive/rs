@@ -28,12 +28,15 @@ from rsptx.db.crud import (
     create_course_attribute,
     create_instructor_course_entry,
     create_invoice_request,
+    create_lti1p1_config,
     create_membership,
     create_user_course_entry,
     delete_course_completely,
     delete_course_instructor,
+    delete_lti_course,
     delete_user_course_entry,
     fetch_all_course_attributes,
+    fetch_lti1p1_config,
     fetch_assignment_questions,
     fetch_assignments,
     fetch_available_students_for_instructor_add,
@@ -429,6 +432,83 @@ async def get_course_settings(
     }
 
     return templates.TemplateResponse("admin/instructor/course_settings.html", context)
+
+
+@router.get("/lti_config")
+@instructor_role_required()
+@with_course()
+async def get_lti_config(
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+    course=None,
+):
+    """
+    Display the LTI integration configuration page.  Handles LTI 1.1 key/secret
+    management (the LTI 1.3 pieces are configured elsewhere and are only surfaced
+    here for informational purposes and to allow removing an association).
+    """
+    templates = Jinja2Templates(directory=template_folder)
+
+    lti_key = await fetch_lti1p1_config(course.id)
+    course_attrs = await fetch_all_course_attributes(course.id)
+
+    context = {
+        "course": course,
+        "user": user,
+        "request": request,
+        "is_instructor": True,
+        "student_page": False,
+        "settings": settings,
+        "consumer": lti_key.consumer if lti_key else "",
+        "secret": lti_key.secret if lti_key else "",
+        "ignore_lti_dates": course_attrs.get("ignore_lti_dates") == "true",
+        "no_lti_auto_grade_update": course_attrs.get("no_lti_auto_grade_update")
+        == "true",
+    }
+
+    return templates.TemplateResponse("admin/instructor/lti_config.html", context)
+
+
+@router.post("/create_lti_keys")
+@instructor_role_required()
+@with_course()
+async def post_create_lti_keys(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Generate an LTI 1.1 consumer key and secret for this course and store them.
+    Triggered from the LTI configuration page.
+    """
+    existing = await fetch_lti1p1_config(course.id)
+    if existing:
+        return JSONResponse(
+            content={"consumer": existing.consumer, "secret": existing.secret}
+        )
+
+    lti_key = await create_lti1p1_config(course.course_name, course.id)
+    return JSONResponse(
+        content={"consumer": lti_key.consumer, "secret": lti_key.secret}
+    )
+
+
+@router.post("/delete_lti_keys")
+@instructor_role_required()
+@with_course()
+async def post_delete_lti_keys(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Remove the LTI 1.1 consumer key and secret for this course.
+    Triggered from the LTI configuration page.
+    """
+    if await fetch_lti1p1_config(course.id):
+        await delete_lti_course(course.id)
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
 
 
 # Assessment Reset Model

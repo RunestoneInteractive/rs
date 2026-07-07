@@ -1,3 +1,4 @@
+import uuid
 from typing import List, Optional
 from rsptx.configuration import settings
 from pydal.validators import CRYPT
@@ -411,6 +412,43 @@ async def create_lti_course(course_id: int, lti_id: str) -> CourseLtiMap:
         session.add(new_entry)
 
     return new_entry
+
+
+async def fetch_lti1p1_config(course_id: int) -> Optional[LtiKey]:
+    """
+    Fetch the LTI 1.1 key/secret associated with a course, if any.
+
+    :param course_id: int, the id of the course
+    :return: Optional[LtiKey], the LtiKey record for the course or None
+    """
+    query = (
+        select(LtiKey)
+        .join(CourseLtiMap, CourseLtiMap.lti_id == LtiKey.id)
+        .where(CourseLtiMap.course_id == course_id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return res.scalars().first()
+
+
+async def create_lti1p1_config(course_name: str, course_id: int) -> LtiKey:
+    """
+    Generate an LTI 1.1 consumer key and secret, store them, and associate them
+    with the given course.  There is no real magic about the keys so a UUID is
+    just as good a solution as anything.
+
+    :param course_name: str, the name of the course (used to build the consumer key)
+    :param course_id: int, the id of the course
+    :return: LtiKey, the newly created LtiKey record
+    """
+    consumer = f"{course_name}-{uuid.uuid1()}"
+    secret = str(uuid.uuid4())
+    new_key = LtiKey(consumer=consumer, secret=secret, application="runestone")
+    async with async_session.begin() as session:
+        session.add(new_key)
+        await session.flush()
+        session.add(CourseLtiMap(course_id=course_id, lti_id=new_key.id))
+    return new_key
 
 
 async def delete_lti_course(course_id: int) -> bool:

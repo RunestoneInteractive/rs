@@ -45,7 +45,7 @@ function showExerciseMetrics() {
 }
 
 function showLTISetup() {
-    alert("LTI setup panel coming soon!");
+    window.location.href = "/admin/instructor/lti_config";
 }
 
 // Open first accordion by default

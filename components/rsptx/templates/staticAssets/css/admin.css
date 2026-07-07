@@ -771,3 +771,60 @@ tr.duplicate {
         max-width: 300px;
     }
 }
+
+/* LTI configuration page (admin/instructor/lti_config.html) */
+.lti-config .panel {
+    margin-bottom: 20px;
+}
+
+.lti-config .panel h2 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.4em;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #4a90e2;
+}
+
+.lti-config .panel h3 {
+    text-align: left;
+    font-size: 1.15em;
+    border-bottom: none;
+    margin-top: 20px;
+}
+
+.lti-config .lti-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.lti-config .btn-sm {
+    padding: 4px 10px;
+    font-size: 0.85em;
+}
+
+.lti-config .lti-keys-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.lti-config .lti-keys-table th {
+    text-align: left;
+    white-space: nowrap;
+    padding: 8px 12px 8px 0;
+    vertical-align: top;
+    width: 130px;
+}
+
+.lti-config .lti-keys-table td {
+    padding: 8px 0;
+    word-break: break-all;
+}
+
+.lti-config .copy-link {
+    cursor: pointer;
+    margin-left: 6px;
+    text-decoration: none;
+}
