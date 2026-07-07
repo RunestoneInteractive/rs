@@ -14,6 +14,7 @@ Before running the setup script, you need:
   
   - Download from https://docs.docker.com/compose/install/
   - The Docker Desktop installer should match your machine (e.g., if you are on a Windows machine, download Docker Desktop for Windows).
+  - Sign in to Docker Desktop when prompted on first launch. Signing in keeps your file sharing path settings saved across restarts. If you skip sign-in, Docker may lose your shared folder configuration each time it closes.
   - Make sure Docker Desktop is running before starting the setup
   - For Windows: Enable WSL2 integration in Docker Desktop settings
   - **Important**: Configure file sharing in Docker Desktop (Settings → Resources → File Sharing) to include the directory where you'll create your Runestone configuration and your ``BOOK_PATH`` directory. Without this, Docker won't be able to access your book files.
