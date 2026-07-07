@@ -84,6 +84,7 @@ from rsptx.db.crud.assignment import (
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
 from rsptx.configuration import settings
+from rsptx.response_helpers import construct_course_url
 from rsptx.response_helpers.core import (
     make_json_response,
     get_webpack_static_imports,
@@ -115,8 +116,6 @@ from rsptx.data_types.which_to_grade import WhichToGradeOptions
 from rsptx.data_types.autograde import AutogradeOptions
 from rsptx.data_types.language import LanguageOptions
 from rsptx.data_types.question_type import QuestionType
-
-from .student import get_course_url
 
 # Routing
 # =======
@@ -184,9 +183,11 @@ async def review_peer_assignment(
             # This replacement is to render images
             bts = q.Question.htmlsrc
             htmlsrc = bts.replace(
-                'src="../_static/', 'src="' + get_course_url(course, "_static/")
+                'src="../_static/', 'src="' + construct_course_url(course, "_static/")
             )
-            htmlsrc = htmlsrc.replace("../_images", get_course_url(course, "_images"))
+            htmlsrc = htmlsrc.replace(
+                "../_images", construct_course_url(course, "_images")
+            )
 
             # Rewrite xref links and knowls in fillintheblank questions
             if "fillintheblank" in htmlsrc:

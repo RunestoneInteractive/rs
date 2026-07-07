@@ -1,24 +1,34 @@
-{% extends "_base.html" %} 
+{% extends "_base.html" %}
+
 {% block title %}
 Choose Assignment
 {% endblock %}
+
+
 {% block css %}
+    <link href="/staticAssets/assignment/assignment.css" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link href="/staticAssets/assignment/assignment_block.css" rel="stylesheet" />
 
-<link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
-{% endblock %} 
-{% block content %}
-<div>
-    {% if lti1p1 %}
-    <h3>You must launch assignments through your LMS for this course</h3>
-    {% else %}
-    {% include 'assignment/student/assignment_block.html'%}
+    {% if origin == "PreTeXt" and using_ptx_base != "true" %}
+    <link href="/ns/books/published/{{ course.base_course }}/_static/pretext/css/theme.css" rel="stylesheet" />
     {% endif %}
-    <h3>Help</h3>
-    <p><strong>Hint: </strong>You can help yourself stay organized by tracking your progress on an assignment.  Use the dropdown menu to quickly mark your assignment as Not Started, In Progress, or Complete.  When your instructor grades the assignment it will be graded regardless of the value in the dropdown menu.  You can also get a preliminary score by clicking on the "Compute Score for Assignment" button on the assignment page.</p>
-
-</div>
-
 {% endblock %} 
+
+{% block content %}
+<section class="assignment-page">
+<h1 class="heading">Choose Assignment</h1>
+
+<section>
+    {% if lti1p1 %}
+    <h2>You must launch assignments through your LMS for this course</h2>
+    {% else %}
+    {% include 'assignment/student/assignment_block.html' %}
+    {% endif %}
+</section>
+</section>
+{% endblock %} 
+
 
 {% block js %}
 <script src="/staticAssets/assignment/student.js"></script>

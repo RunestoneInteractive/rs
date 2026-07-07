@@ -21,7 +21,7 @@ from fastapi.templating import Jinja2Templates
 # -------------------------
 
 from rsptx.auth.session import auth_manager
-from rsptx.templates import template_folder
+from rsptx.templates import get_jinja_templates, template_folder
 from rsptx.db.crud import (
     fetch_assignments,
     fetch_all_assignment_stats,
@@ -35,7 +35,9 @@ from rsptx.db.crud import (
     update_user,
     fetch_lti_version,
 )
+from rsptx.configuration import settings
 from rsptx.logging import rslogger
+from rsptx.response_helpers import construct_course_url, safe_join
 from rsptx.response_helpers.core import canonical_utcnow, make_json_response
 from rsptx.auth.session import is_instructor
 from rsptx.db.crud.assignment import is_assignment_visible_to_students
@@ -70,12 +72,10 @@ async def index(
     instructors = await fetch_course_instructors(course_name)
     rslogger.debug(f"{instructors=}")
     attrs = await fetch_all_course_attributes(course.id)
-    templates = Jinja2Templates(directory=template_folder)
-    books = await fetch_library_book(course.base_course)
-    if books is None:
-        books = []
-    else:
-        books = [books]
+    book = await fetch_library_book(course.base_course)
+
+    course_markup_system = attrs.get("markup_system", "Runestone")
+
     row = await fetch_last_page(user, course_name)
     if row:
         last_page_url = row.last_page_url
@@ -147,6 +147,23 @@ async def index(
     for a in assignments:
         visibility_map[a.id] = is_assignment_visible_to_students(a)
 
+    use_pretext_student_pages = (
+        str(attrs.get("use_pretext_student_pages", "false")).lower() == "true"
+    )
+    if use_pretext_student_pages:
+        book_path = safe_join(
+            settings.book_path,
+            course.base_course,
+            "published",
+            course.base_course,
+        )
+        if book_path:
+            templates = get_jinja_templates(book_path)
+        else:
+            templates = Jinja2Templates(directory=template_folder)
+    else:
+        templates = Jinja2Templates(directory=template_folder)
+
     return templates.TemplateResponse(
         "book/course/current_course.html",
         {
@@ -160,16 +177,18 @@ async def index(
             "institution": course.institution,
             "instructor_list": instructors,
             "base_course": course.base_course,
-            "book_list": books,
+            "origin": course_markup_system,
+            "book": book,
             "lastPageUrl": last_page_url,
             "student_page": True,
             "course_list": course_list,
-            "is_instructor": user_is_instructor,
-            "has_discussion_group": any([book.social_url for book in books]),
+            "is_instructor": "true" if user_is_instructor else "false",
+            "has_discussion_group": book.social_url,
             "lti1p1": is_lti1p1_course,
             "now": now,
             "visibility_map": visibility_map,
             "course_attrs": attrs,
+            "base_url": construct_course_url(course),
         },
     )
 

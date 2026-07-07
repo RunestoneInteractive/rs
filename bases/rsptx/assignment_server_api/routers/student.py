@@ -65,7 +65,8 @@ from rsptx.grading_helpers.core import check_for_exceptions
 from rsptx.db.models import GradeValidator, UseinfoValidation, CoursesValidator
 from rsptx.db.crud.assignment import is_assignment_visible_to_students
 from rsptx.auth.session import auth_manager, is_instructor
-from rsptx.templates import template_folder
+from rsptx.templates import template_folder, get_jinja_templates
+from rsptx.response_helpers import construct_course_url, safe_join
 from rsptx.response_helpers.core import (
     make_json_response,
     get_webpack_static_imports,
@@ -103,8 +104,11 @@ async def get_assignments(
 
     sid = user.username
     course = await fetch_course(user.course_name)
+    course_attrs = await fetch_all_course_attributes(course.id)
     is_lti1p1_course = await fetch_lti_version(course.id) == "1.1"
-    templates = Jinja2Templates(directory=template_folder)
+
+    course_markup_system = course_attrs.get("markup_system", "Runestone")
+
     user_is_instructor = await is_instructor(request, user=user)
     if user_is_instructor:
         # if the user is an instructor, we need to show all assignments
@@ -167,20 +171,51 @@ async def get_assignments(
     for a in assignments:
         visibility_map[a.id] = is_assignment_visible_to_students(a)
 
+    use_pretext_student_pages = (
+        str(course_attrs.get("use_pretext_student_pages", "false")).lower() == "true"
+    )
+    if use_pretext_student_pages:
+        book_path = safe_join(
+            settings.book_path,
+            course.base_course,
+            "published",
+            course.base_course,
+        )
+        if book_path:
+            templates = get_jinja_templates(book_path)
+        else:
+            rslogger.warning(
+                "Unsafe or invalid book_path computed for course %s; falling back to shared templates",
+                course.course_name,
+            )
+            templates = Jinja2Templates(directory=template_folder)
+    else:
+        templates = Jinja2Templates(directory=template_folder)
+
+    context = dict(
+        course=course,
+        course_name=user.course_name,
+        request=request,
+        assignment_list=assignments,
+        readings="null",  # force bookfuncs to not render assignment tracker
+        stats=stats,
+        user=sid,
+        is_logged_in="true",
+        is_instructor="true" if user_is_instructor else "false",
+        student_page=True,
+        lti1p1=is_lti1p1_course,
+        now=now,
+        visibility_map=visibility_map,
+        settings=settings,
+        base_url=construct_course_url(course),
+        activity_info="{}",
+        downloads_enabled="true" if course.downloads_enabled else "false",
+        allow_pairs="true" if course.allow_pairs else "false",
+        origin=course_markup_system,
+        **course_attrs,
+    )
     return templates.TemplateResponse(
-        "assignment/student/chooseAssignment.html",
-        {
-            "assignment_list": assignments,
-            "stats": stats,
-            "course": course,
-            "user": sid,
-            "request": request,
-            "is_instructor": user_is_instructor,
-            "student_page": True,
-            "lti1p1": is_lti1p1_course,
-            "now": now,
-            "visibility_map": visibility_map,
-        },
+        "assignment/student/chooseAssignment.html", context
     )
 
 
@@ -565,18 +600,6 @@ async def update_submit(
     return make_json_response(detail=dict(success=True))
 
 
-def get_course_url(course: CoursesValidator, *args) -> str:
-    """Get the URL for the course.
-
-    :param course: _description_
-    :type course: CourseValidator
-    :return: _description_
-    :rtype: str
-    """
-    rest = "/".join(args)
-    return f"/ns/books/published/{course.course_name}/{rest}"
-
-
 @router.get("/doAssignment")
 async def doAssignment(
     request: Request,
@@ -677,6 +700,7 @@ async def doAssignment(
     questions_score = 0
     readings = dict()
     readings_score = 0
+    needs_manual_grading = False
 
     # For each question, accumulate information, and add it to either the readings or questions data structure
     # If scores have not been released for the question or if there are no scores yet available, the scoring information will be recorded as empty strings
@@ -688,11 +712,13 @@ async def doAssignment(
             # This replacement is to render images
             bts = q.Question.htmlsrc
             htmlsrc = bts.replace(
-                'src="../_static/', 'src="' + get_course_url(course, "_static/")
+                'src="../_static/', 'src="' + construct_course_url(course, "_static/")
             )
-            htmlsrc = htmlsrc.replace("../_images", get_course_url(course, "_images"))
             htmlsrc = htmlsrc.replace(
-                'src=\\"external', 'src=\\"' + get_course_url(course, "external")
+                "../_images", construct_course_url(course, "_images")
+            )
+            htmlsrc = htmlsrc.replace(
+                'src=\\"external', 'src=\\"' + construct_course_url(course, "external")
             )
             # htmlsrc = htmlsrc.replace(
             #     "generated/webwork", get_course_url(course, "generated/webwork")
@@ -735,27 +761,52 @@ async def doAssignment(
         if score is None:
             score = 0
 
-        chap_name = q.Question.chapter
-        subchap_name = q.Question.subchapter
+        is_incorrect = score == 0 and comment != "ungraded"
+
+        chap_label = q.Question.chapter
+        subchap_label = q.Question.subchapter
         if q.Question.base_course not in preambles:
             preambles[q.Question.base_course] = await addPreamble(
                 q.Question.base_course
             )
 
+        # Temporarily prevent chapter numbers from being duplicated while we unwind
+        # number being added to chapter name in DB. Assume any leaning numbers are
+        # not part of the chapter name and should be stripped off.
+        chapter_name = q.Chapter.chapter_name
+        chapter_name = re.sub(r"^\d+\s*", "", chapter_name)
+        chapter_chapter_name = q.SubChapter.sub_chapter_name
+        chapter_chapter_name = re.sub(r"^[\d\.]+\s*", "", chapter_chapter_name)
+
         info = dict(
             htmlsrc=htmlsrc,
             score=score,
+            is_incorrect=is_incorrect,
             points=q.AssignmentQuestion.points,
             comment=comment,
-            chapter=q.Question.chapter,
-            subchapter=q.Question.subchapter,
-            chapter_name=chap_name,
-            subchapter_name=subchap_name,
             name=q.Question.name,
+            qnumber=q.Question.qnumber,
             question_type=q.Question.question_type,
             activities_required=q.AssignmentQuestion.activities_required,
+            chapter_name=chapter_name,
+            chapter_label=chap_label,
+            chapter_num=q.Chapter.chapter_num,
+            chapter_chapter_name=chapter_chapter_name,
+            sub_chapter_label=subchap_label,
+            chapter_chapter_num=q.SubChapter.sub_chapter_num,
+            base_url=construct_course_url(course),
+            # for rendering with ptx template, we need these for the menu
+            is_logged_in="true",
+            is_instructor="true" if user_is_instructor else "false",
+            readings=[],
+            activity_info="{}",
+            downloads_enabled="true" if course.downloads_enabled else "false",
+            allow_pairs="true" if course.allow_pairs else "false",
+            **course_attrs,
         )
         if q.AssignmentQuestion.autograde == "manual":
+            if comment == "ungraded":
+                needs_manual_grading = True
             info["how_graded"] = "Needs Manual Grading"
         elif q.AssignmentQuestion.which_to_grade == "first_answer":
             info["how_graded"] = "First Answer"
@@ -766,9 +817,9 @@ async def doAssignment(
 
         if q.AssignmentQuestion.reading_assignment:
             # add to readings
-            if chap_name not in readings:
+            if chap_label not in readings:
                 # add chapter info
-                completion = await fetch_user_chapter_progress(user, chap_name)
+                completion = await fetch_user_chapter_progress(user, chap_label)
                 if not completion:
                     status = "notstarted"
                 elif completion.status == 1:
@@ -777,12 +828,18 @@ async def doAssignment(
                     status = "started"
                 else:
                     status = "notstarted"
-                readings[chap_name] = dict(status=status, subchapters=[])
+                readings[chap_label] = dict(
+                    status=status,
+                    subchapters=[],
+                    chapter_label=chap_label,
+                    chapter_name=chapter_name,
+                    chapter_num=q.Chapter.chapter_num,
+                )
 
             # add subchapter info
             # add completion status to info
             subch_completion = await fetch_user_sub_chapter_progress(
-                user, chap_name, subchap_name
+                user, chap_label, subchap_label
             )
 
             if not subch_completion:
@@ -797,8 +854,8 @@ async def doAssignment(
 
             # Make sure we don't create duplicate entries for older courses. New style
             # courses only have the base course in the database, but old will have both
-            if info not in readings[chap_name]["subchapters"]:
-                readings[chap_name]["subchapters"].append(info)
+            if info not in readings[chap_label]["subchapters"]:
+                readings[chap_label]["subchapters"].append(info)
                 readings_score += info["score"]
 
         else:
@@ -833,7 +890,7 @@ async def doAssignment(
     readings_names = []
     for chapname in readings:
         readings_names = readings_names + [
-            "{}/{}.html".format(d["chapter"], d["subchapter"])
+            "{}/{}.html".format(d["chapter_label"], d["sub_chapter_label"])
             for d in readings[chapname]["subchapters"]
         ]
 
@@ -848,8 +905,7 @@ async def doAssignment(
         parsed_js = {}
     parsed_js["readings"] = readings_names
 
-    c_origin = course_attrs.get("markup_system", "Runestone")
-    print("ORIGIN", c_origin)
+    course_markup_system = course_attrs.get("markup_system", "Runestone")
 
     # grabs the row for the current user and and assignment in the grades table
     grade = await fetch_grade(user.id, assignment_id)
@@ -883,37 +939,67 @@ async def doAssignment(
     overdue = False
     if timestamp > deadline:
         overdue = True
-    templates = Jinja2Templates(directory=template_folder)
+
+    use_pretext_student_pages = (
+        str(course_attrs.get("use_pretext_student_pages", "false")).lower() == "true"
+    )
+    if use_pretext_student_pages:
+        book_path = safe_join(
+            settings.book_path,
+            course.base_course,
+            "published",
+            course.base_course,
+        )
+        if book_path:
+            templates = get_jinja_templates(book_path)
+        else:
+            rslogger.warning(
+                "Unsafe or invalid book_path computed for course %s; falling back to shared templates",
+                course.course_name,
+            )
+            templates = Jinja2Templates(directory=template_folder)
+    else:
+        templates = Jinja2Templates(directory=template_folder)
+
+    # templates = Jinja2Templates(directory=template_folder)
     # reverse the order of the keys in the preambles dictionary so that the first key I added is now the last
     # this will ensure that when multiple preamble definitions are used the last one is from the current course
     preambles = dict((k, v) for k, v in reversed(preambles.items()))
     context = dict(  # This is all the variables that will be used in the doAssignment.html document
         course=course,
+        request=request,
         course_name=user.course_name,
         assignment=assignment,
         questioninfo=questionslist,
         course_id=user.course_name,
-        readings=readings,
+        readings="null",  # force bookfuncs to not render assignment tracker
+        readings_full=readings,
         questions_score=questions_score,
         readings_score=readings_score,
         user=user,
         # gradeRecordingUrl=URL('assignments', 'record_grade'),
         # calcTotalsURL=URL('assignments', 'calculate_totals'),
         released=assignment.released,
-        is_instructor=user_is_instructor,
-        student_page=True,
-        origin=c_origin,
+        is_logged_in="true",
+        is_instructor="true" if user_is_instructor else "false",
+        needs_manual_grading=needs_manual_grading,
+        student_page="true",
+        origin=course_markup_system,
         is_submit=grade.is_submit,
         is_graded=is_graded,
         overdue=overdue,
         enforce_pastdue=enforce_pastdue,
         ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
         webwork_js_version=course_attrs.get("webwork_js_version", "2.20"),
-        request=request,
         latex_preamble_dict=preambles,
         wp_imports=get_webpack_static_imports(course),
         settings=settings,
         course_attrs=course_attrs,
+        base_url=construct_course_url(course),
+        activity_info="{}",
+        downloads_enabled="true" if course.downloads_enabled else "false",
+        allow_pairs="true" if course.allow_pairs else "false",
+        **course_attrs,
     )
     response = templates.TemplateResponse(
         "assignment/student/doAssignment.html", context

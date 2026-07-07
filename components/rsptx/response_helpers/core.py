@@ -14,9 +14,10 @@ import datetime
 import json
 import os
 from pathlib import Path
+import posixpath
 import re
 import sys
-from typing import Any, List
+from typing import Any, List, Optional
 
 # Third-party imports
 # -------------------
@@ -153,3 +154,31 @@ def canonical_utcnow():
         return datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
     else:
         return datetime.datetime.utcnow()
+
+
+def construct_course_url(course: Any, *args: str) -> str:
+    """Build the published book URL for a course with an optional suffix."""
+    rest = "/".join(args)
+    return f"/ns/books/published/{course.course_name}/{rest}"
+
+
+# This is copied verbatim from
+# https://github.com/pallets/werkzeug/blob/master/werkzeug/security.py#L30.
+_os_alt_seps = [sep for sep in [os.path.sep, os.path.altsep] if sep not in (None, "/")]
+
+
+# This is copied verbatim from
+# https://github.com/pallets/werkzeug/blob/master/werkzeug/security.py#L216.
+def safe_join(directory: str, *pathnames: str) -> Optional[str]:
+    """Safely join a trusted base directory and untrusted relative paths."""
+    parts = [directory]
+    for filename in pathnames:
+        if filename != "":
+            filename = posixpath.normpath(filename)
+        for sep in _os_alt_seps:
+            if sep in filename:
+                return None
+        if os.path.isabs(filename) or filename == ".." or filename.startswith("../"):
+            return None
+        parts.append(filename)
+    return posixpath.join(*parts)
