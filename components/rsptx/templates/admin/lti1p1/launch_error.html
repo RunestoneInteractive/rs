@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LTI Launch Error</title>
+    <link href="/staticAssets/css/admin.css" rel="stylesheet" media="screen" />
+</head>
+
+<body>
+    <div class="admin-page admin-page--narrow">
+        <div class="page-header">
+            <h1>LTI Launch Not Completed</h1>
+        </div>
+        <div class="panel">
+            <p>The tool could not be launched due to the following error(s):</p>
+            <ul>
+                {% for item in lti_errors %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+            <p>If you are an instructor, check your LTI configuration in Runestone
+                and in your LMS. Otherwise, please contact your instructor.</p>
+        </div>
+    </div>
+</body>
+
+</html>

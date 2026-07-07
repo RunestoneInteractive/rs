@@ -22,7 +22,7 @@ import asyncio
 # Third Party library
 # -------------------
 import boto3, botocore  # for the S3 API
-from rs_grading import _get_assignment, send_lti_grades
+from rs_grading import _get_assignment, send_lti_grades, _get_lti_record_for_course
 from runestone import cmap
 
 from rs_practice import _get_qualified_questions
@@ -1276,7 +1276,7 @@ def releasegrades():
             )
         if lti_method == "1.1":
             assignment = _get_assignment(assignmentid)
-            lti_record = _get_lti_record(session.oauth_consumer_key)
+            lti_record = _get_lti_record_for_course(auth.user.course_id)
             if assignment and lti_record:
                 send_lti_grades(
                     assignment.id,
@@ -1307,7 +1307,7 @@ def push_lti_grades():
         )
     if lti_method == "1.1":
         assignment = _get_assignment(assignmentid)
-        lti_record = _get_lti_record(session.oauth_consumer_key)
+        lti_record = _get_lti_record_for_course(auth.user.course_id)
         if assignment and lti_record:
             send_lti_grades(
                 assignment.id, assignment.points, auth.user.course_id, lti_record, db

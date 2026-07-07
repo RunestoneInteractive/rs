@@ -144,6 +144,7 @@ from .lti import (
     delete_lti1p3_course,
     fetch_lti_version,
     fetch_lti1p1_config,
+    fetch_lti1p1_config_by_consumer,
     fetch_lti1p3_assignments_by_rs_assignment_id,
     fetch_lti1p3_assignments_by_rs_course_id,
     fetch_lti1p3_config_by_lti_data,
@@ -156,10 +157,12 @@ from .lti import (
     fetch_lti1p3_grading_data_for_assignment,
     fetch_lti1p3_user,
     fetch_lti1p3_users_for_course,
+    upsert_lti1p1_grade_link,
     upsert_lti1p3_assignment,
     upsert_lti1p3_config,
     upsert_lti1p3_course,
     upsert_lti1p3_user,
+    upsert_practice_grade_link,
     validate_user_credentials,
 )
 
@@ -346,6 +349,7 @@ __all__ += [
     "delete_lti1p3_course",
     "fetch_lti_version",
     "fetch_lti1p1_config",
+    "fetch_lti1p1_config_by_consumer",
     "fetch_lti1p3_assignments_by_rs_assignment_id",
     "fetch_lti1p3_assignments_by_rs_course_id",
     "fetch_lti1p3_config_by_lti_data",
@@ -358,10 +362,12 @@ __all__ += [
     "fetch_lti1p3_grading_data_for_assignment",
     "fetch_lti1p3_user",
     "fetch_lti1p3_users_for_course",
+    "upsert_lti1p1_grade_link",
     "upsert_lti1p3_assignment",
     "upsert_lti1p3_config",
     "upsert_lti1p3_course",
     "upsert_lti1p3_user",
+    "upsert_practice_grade_link",
     "validate_user_credentials",
 ]
 

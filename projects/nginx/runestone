@@ -144,6 +144,21 @@ include /etc/nginx/default.d/\*.conf;
 
     }
 
+    # LTI 1.1 launches historically POST to /runestone/lti (handled by web2py).
+    # That endpoint now lives on the admin server at /lti1p1, so route it there
+    # without changing the public URL (existing LMS configurations keep working).
+    # X-Original-URI preserves the URL the LMS signed so the OAuth signature can
+    # be verified.
+    location /runestone/lti {
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto https;
+       proxy_set_header Host $http_host;
+       proxy_set_header X-Original-URI $request_uri;
+       proxy_redirect off;
+       rewrite ^/runestone/lti(/.*)?$ /lti1p1 break;
+       proxy_pass http://admin:8115;
+    }
+
     # This should probably be /runestone and then we need to add a different default
     location / {
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

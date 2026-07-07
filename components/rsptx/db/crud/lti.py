@@ -10,6 +10,7 @@ from ..models import (
     AuthUserValidator,
     CourseLtiMap,
     CoursesValidator,
+    Grade,
     Lti1p3Assignment,
     Lti1p3AssignmentValidator,
     Lti1p3Conf,
@@ -19,6 +20,7 @@ from ..models import (
     Lti1p3User,
     Lti1p3UserValidator,
     LtiKey,
+    PracticeGrade,
 )
 from ..async_session import async_session
 
@@ -449,6 +451,104 @@ async def create_lti1p1_config(course_name: str, course_id: int) -> LtiKey:
         await session.flush()
         session.add(CourseLtiMap(course_id=course_id, lti_id=new_key.id))
     return new_key
+
+
+async def fetch_lti1p1_config_by_consumer(consumer: str) -> Optional[LtiKey]:
+    """
+    Fetch the LTI 1.1 key record for a given consumer key. Used to validate the
+    OAuth signature of an incoming launch.
+
+    :param consumer: str, the oauth_consumer_key sent by the LMS
+    :return: Optional[LtiKey], the matching LtiKey record or None
+    """
+    query = select(LtiKey).where(LtiKey.consumer == consumer)
+    async with async_session() as session:
+        res = await session.execute(query)
+        return res.scalars().first()
+
+
+async def upsert_lti1p1_grade_link(
+    user_id: int,
+    assignment_id: int,
+    result_sourcedid: Optional[str],
+    outcome_url: Optional[str],
+) -> tuple[Optional[float], bool]:
+    """
+    Record the LTI 1.1 grade passback identifiers (lis_result_sourcedid and
+    lis_outcome_url) on a student's grade row for an assignment, creating the row
+    if it does not yet exist. Called when an assignment is launched from the LMS.
+
+    :param user_id: int, the auth_user id
+    :param assignment_id: int, the assignment id
+    :param result_sourcedid: str, the LMS-provided result identifier
+    :param outcome_url: str, the LMS outcome service URL
+    :return: tuple of (current score, first_link) where first_link is True when an
+        existing grade row had no passback identifiers before this call (i.e. this
+        is the first launch, and an already-released grade should be pushed).
+    """
+    query = select(Grade).where(
+        (Grade.auth_user == user_id) & (Grade.assignment == assignment_id)
+    )
+    async with async_session.begin() as session:
+        res = await session.execute(query)
+        grade = res.scalars().first()
+        if grade:
+            first_link = not grade.lis_result_sourcedid and not grade.lis_outcome_url
+            score = grade.score
+            grade.lis_result_sourcedid = result_sourcedid
+            grade.lis_outcome_url = outcome_url
+        else:
+            # A brand-new row means the student has no score yet, so there is
+            # nothing to push back on this first launch.
+            first_link = False
+            score = None
+            grade = Grade(
+                auth_user=user_id,
+                assignment=assignment_id,
+                manual_total=False,
+                lis_result_sourcedid=result_sourcedid,
+                lis_outcome_url=outcome_url,
+            )
+            session.add(grade)
+    return score, first_link
+
+
+async def upsert_practice_grade_link(
+    user_id: int,
+    course_name: str,
+    result_sourcedid: Optional[str] = None,
+    outcome_url: Optional[str] = None,
+) -> PracticeGrade:
+    """
+    Record (or refresh) a student's practice_grades row and, when provided, the
+    LTI 1.1 grade passback identifiers. Called when the practice tool is launched
+    from the LMS. When the identifiers are omitted they are left untouched so an
+    existing passback link is not clobbered.
+
+    :param user_id: int, the auth_user id
+    :param course_name: str, the course name
+    :param result_sourcedid: Optional[str], the LMS-provided result identifier
+    :param outcome_url: Optional[str], the LMS outcome service URL
+    :return: PracticeGrade, the upserted practice grade row
+    """
+    query = select(PracticeGrade).where(PracticeGrade.auth_user == user_id)
+    async with async_session.begin() as session:
+        res = await session.execute(query)
+        pgrade = res.scalars().first()
+        if pgrade:
+            pgrade.course_name = course_name
+            if result_sourcedid is not None and outcome_url is not None:
+                pgrade.lis_result_sourcedid = result_sourcedid
+                pgrade.lis_outcome_url = outcome_url
+        else:
+            pgrade = PracticeGrade(
+                auth_user=user_id,
+                course_name=course_name,
+                lis_result_sourcedid=result_sourcedid,
+                lis_outcome_url=outcome_url,
+            )
+            session.add(pgrade)
+    return pgrade
 
 
 async def delete_lti_course(course_id: int) -> bool:

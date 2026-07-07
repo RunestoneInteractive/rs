@@ -130,6 +130,19 @@
 			}
 		}
 
+		# ----- LTI 1.1 launch -> admin server -----
+		# Historically /runestone/lti was served by web2py; it now lives on the
+		# admin server at /lti1p1. Keep the public URL stable so existing LMS
+		# configurations keep working. X-Original-URI carries the URL the LMS
+		# signed so the OAuth signature can be verified after the rewrite.
+		handle /runestone/lti* {
+			rewrite * /lti1p1
+			reverse_proxy admin:8115 {
+				header_up X-Forwarded-Proto https
+				header_up X-Original-URI {http.request.orig_uri}
+			}
+		}
+
 		# ----- everything else -> web2py (runestone) -----
 		# location / { proxy_pass http://runestone:8112; }
 		handle {
