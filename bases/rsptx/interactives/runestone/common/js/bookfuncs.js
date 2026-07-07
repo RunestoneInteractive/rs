@@ -1156,7 +1156,7 @@ window.addEventListener("DOMContentLoaded", function (event) {
 
     menuContentArea.appendChild(makeLink("/ns/course/index", "Course Home", "home"));
     menuContentArea.appendChild(
-        makeLink("/assignments/student/chooseAssignment", "Assignments", "edit"),
+        makeLink("/assignment/student/chooseAssignment", "Assignments", "edit"),
     );
     menuContentArea.appendChild(
         makeLink("/assignment/peer/student", "Peer Instruction (Student)", "groups_3"),
