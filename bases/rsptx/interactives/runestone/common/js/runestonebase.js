@@ -17,7 +17,7 @@
 
 import { pageProgressTracker } from "./bookfuncs.js";
 import { getDataValue } from "./domutil.js";
-//import "./../styles/runestone-custom-sphinx-bootstrap.css";
+//import "./../styles/runestone.css";
 
 var NO_DECORATE = [
     "parsonsMove",

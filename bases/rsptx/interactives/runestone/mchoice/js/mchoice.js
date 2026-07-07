@@ -12,7 +12,7 @@
 ==========================================*/
 
 import RunestoneBase from "../../common/js/runestonebase.js";
-//import "./../styles/runestone-custom-sphinx-bootstrap.css";
+//import "./../styles/runestone.css";
 import "../css/mchoice.css";
 
 // MC constructor

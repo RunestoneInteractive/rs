@@ -1,20 +1,134 @@
+// ***********************************************************************************
+// |docname| - The single, authoritative home for global CSS custom properties
+// ***********************************************************************************
+// Everything under ``bases/rsptx/interactives/runestone`` should rely on the
+// variables defined here rather than redefining them. Global theme colors and
+// layout widths live in the ``:root`` block; the two dark-mode variants
+// (``:root.dark-mode`` toggled by our theme JS, and ``[data-theme="dark"]`` used
+// by PreTeXt) override them.
+//
+// Component-specific variables (e.g. ``--ac-*`` for activecode, ``--clickable*``
+// for clickableArea) stay in their component CSS. The ``--draggable*`` family
+// below is the exception: it is shared by both dragndrop and matching, so it is
+// kept here.
+//
+// This file is imported at the top level (not nested inside a selector) so the
+// ``:root`` rules resolve globally.
+
 :root {
+    // --- Global theme (light) ---
+    --background: #ffffff;
+    --outerBackground: #eeeeee;
+    --links: #0645ad;
+    --bodyFont: var(--body-text-color, #000000);
+    --tooltip: #ffffff;
+    --grayToWhite: #333333;
+    --dropdownBg: #ffffff;
+    --dropdownHoverBg: #f5f5f5;
+    --navbar: #f8f8f8;
+    --navbarFont: #707070;
+    --navbarFontHover: #000000;
+    --alerts: #d9edf7;
+    --completionButton: #f19711;
+    --completionButtonHover: #ff9f19;
+    --completionButtonText: #000000;
+    --admonition: #fcf8e3;
+    --admonitionBorder: #fbeed5;
+    --codeButtons: #474949;
+    --codeButtonsBorder: #474949;
+    --dangerAlerts: #f2dede;
+    --successAlerts: #dff0d8;
+    --contentWidthRegular: 660px;
+    --contentWidthWide: 1060px;
+    --componentBgColor: #f0f8ff;
+    --componentBorderColor: #000000;
+    --questionBgColor: #e1efff;
+    --parsonsBgColor: #ffa;
+    --parsonsBorderColor: #ee0;
+    --parsonsCorrectBgColor: #dff0d8;
+    --parsonsCorrectBorderColor: #ade595;
+    --parsonsIncorrectBgColor: #f2dede;
+    --parsonsIncorrectBorderColor: #f2b6b6;
+
+    // --- Shared drag/drop + matching ---
     --draggableBgColor: #EFEFEF;
     --dropableBgColor: #DDDDDD;
     --draggableIncorrectBorder: red;
     --draggableIncorrectBg: #f2dede;
     --dragLineColor: #000000;
     --boxBorderColor: #000000;
-
 }
 
-:root.dark-mode,
-[data-theme="dark"] {
+:root.dark-mode {
+    --background: #2c2f33;
+    --outerBackground: #23272a;
+    --links: #7289da;
+    --bodyFont: var(--body-text-color, #99aab5);
+    --tooltip: #000000;
+    --grayToWhite: #e1e1e1;  /* AA compliant against known backgrounds */
+    --navbar: #3d3d3d;
+    --navbarFont: #ffffff;
+    --navbarFontHover: #d6d6d6;
+    --alerts: #714082;
+    --completionButton: #650087;
+    --completionButtonHover: #560073;
+    --completionButtonText: #ffffff;
+    --admonition: #3d3d3d;
+    --admonitionBorder: #262626;
+    --codeButtons: #67739d;
+    --codeButtonsBorder: #ffffff;
+    --dangerAlerts: #8c2626;
+    --successAlerts: #217300;
+    --componentBgColor: var(--rs-component-bg, var(--knowl-background, #07467d));
+    --componentBorderColor: var(--rs-component-border, var(--knowl-border-color, #939090));
+    --questionBgColor: var(--rs-component-bg, var(--knowl-nested-1-background, #0f5a9b));
+    --parsonsBgColor: rgb(232, 232, 178);
+    --parsonsBorderColor: rgb(168, 168, 45);
+    --parsonsCorrectBgColor: #a3c097;
+    --parsonsCorrectBorderColor: #60904c;
+    --parsonsIncorrectBgColor: #ae9090;
+    --parsonsIncorrectBorderColor: #c16b6b;
+
+    // --- Shared drag/drop + matching ---
     --draggableBgColor: #393434;
-    --dropableBgColor:  #2a2d30;
+    --dropableBgColor: #2a2d30;
     --draggableIncorrectBorder: red;
     --draggableIncorrectBg: #6d2d2d;
     --dragLineColor: #ffffff;
     --boxBorderColor: #ffffff;
+}
 
+[data-theme="dark"] {
+    --background: #2c2f33;
+    --outerBackground: #23272a;
+    --links: #7289da;
+    --bodyFont: #99aab5;
+    --tooltip: #000000;
+    --grayToWhite: #ffffff;
+    --dropdownBg: #1a1a1a;
+    --dropdownHoverBg: #333333;
+    --navbar: #3d3d3d;
+    --navbarFont: #ffffff;
+    --navbarFontHover: #d6d6d6;
+    --alerts: #714082;
+    --completionButton: #650087;
+    --completionButtonHover: #560073;
+    --completionButtonText: #ffffff;
+    --admonition: #3d3d3d;
+    --admonitionBorder: #262626;
+    --codeButtons: #7289da;
+    --codeButtonsBorder: #ffffff;
+    --dangerAlerts: #8c2626;
+    --successAlerts: #217300;
+    --componentBgColor: #07467d;
+    --componentBorderColor: #939090;
+    --questionBgColor: rgb(23, 85, 93);
+
+    // --- Shared drag/drop + matching ---
+    --draggableBgColor: #393434;
+    --dropableBgColor: #2a2d30;
+    --draggableIncorrectBorder: red;
+    --draggableIncorrectBg: #6d2d2d;
+    --dragLineColor: #ffffff;
+    --boxBorderColor: #ffffff;
 }

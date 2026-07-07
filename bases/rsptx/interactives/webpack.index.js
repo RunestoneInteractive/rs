@@ -24,9 +24,6 @@ import "jquery-ui/themes/base/jquery.ui.all.css";
 // i18n is now handled by the dependency-free runestone/common/js/rsi18n.js;
 // the vendored Wikimedia jquery.i18n plugin has been removed.
 
-// Bootstrap - not needed for pxx development
-import "bootstrap/dist/js/bootstrap.js";
-
 // common styles come from here
 import "./ptxrs-bootstrap.less";
 import "./runestone/common/project_template/_templates/plugin_layouts/sphinx_bootstrap/static/bootstrap-sphinx.js";
