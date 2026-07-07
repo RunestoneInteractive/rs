@@ -13,6 +13,7 @@ Before running the setup script, you need:
 - **Docker Desktop** with Docker Compose 2.20.2 or later (current version: 2.38.2)
   
   - Download from https://docs.docker.com/compose/install/
+  - The Docker Desktop installer should match your machine (e.g., if you are on a Windows machine, download Docker Desktop for Windows).
   - Make sure Docker Desktop is running before starting the setup
   - For Windows: Enable WSL2 integration in Docker Desktop settings
   - **Important**: Configure file sharing in Docker Desktop (Settings → Resources → File Sharing) to include the directory where you'll create your Runestone configuration and your ``BOOK_PATH`` directory. Without this, Docker won't be able to access your book files.
