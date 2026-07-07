@@ -17,6 +17,8 @@
 ===================================================================== */
 // Initialize from codestring
 
+import { outerWidth } from "../../common/js/domutil.js";
+
 export default class ParsonsLine {
     constructor(problem, codestring, displaymath) {
         this.problem = problem;
@@ -88,7 +90,11 @@ export default class ParsonsLine {
             }
         } else {
             view = document.createElement("code");
-            $(view).addClass(problem.options.prettifyLanguage);
+            if (problem.options.prettifyLanguage) {
+                view.classList.add(
+                    ...problem.options.prettifyLanguage.split(" "),
+                );
+            }
         }
         view.id = problem.counterId + "-line-" + this.index;
         view.innerHTML += this.text;
@@ -100,7 +106,7 @@ export default class ParsonsLine {
         // this.width does not appear to be used anywhere later
         // since changing the value of this.width appears to have no effect. - Vincent Qiu (September 2020)
         this.width =
-            $(this.view).outerWidth(true) -
+            outerWidth(this.view) -
             this.problem.options.pixelsPerIndent * this.indent;
 
         // Pass this information on to be used in class Parsons function initializeAreas

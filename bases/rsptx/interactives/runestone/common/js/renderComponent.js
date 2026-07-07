@@ -1,4 +1,5 @@
 import { runestone_import } from "../../../webpack.index.js";
+import { getDataValue } from "./domutil.js";
 
 export async function renderRunestoneComponent(
     componentSrc,
@@ -10,10 +11,12 @@ export async function renderRunestoneComponent(
      *  The tedious part is calling the right functions to turn the
      *  source into the actual component.
      */
+    let target = document.getElementById(whereDiv);
+    if (!target) {
+        return;
+    }
     if (!componentSrc) {
-        jQuery(`#${whereDiv}`).html(
-            `<p>Sorry, no source is available for preview.</p>`,
-        );
+        target.innerHTML = `<p>Sorry, no source is available for preview.</p>`;
         return;
     }
     let patt = /..\/_images/g;
@@ -21,21 +24,20 @@ export async function renderRunestoneComponent(
         patt,
         `${eBookConfig.app}/books/published/${eBookConfig.basecourse}/_images`,
     );
-    jQuery(`#${whereDiv}`).html(componentSrc);
+    target.innerHTML = componentSrc;
 
     if (typeof window.componentMap === "undefined") {
         window.componentMap = {};
     }
 
-    let componentKind = $($(`#${whereDiv} [data-component]`)[0]).data(
-        "component",
-    );
+    let componentElement = target.querySelector("[data-component]");
+    let componentKind = componentElement?.dataset.component;
     // Import the JavaScript for this component before proceeding.
     await runestone_import(componentKind);
     let opt = {};
-    opt.orig = jQuery(`#${whereDiv} [data-component]`)[0];
+    opt.orig = componentElement;
     if (opt.orig) {
-        opt.lang = $(opt.orig).data("lang");
+        opt.lang = getDataValue(opt.orig, "lang");
         opt.useRunestoneServices = true;
         opt.graderactive = false;
         opt.python3 = true;
@@ -49,13 +51,8 @@ export async function renderRunestoneComponent(
     if (typeof component_factory === "undefined") {
         alert("Error:  Missing the component factory!");
     } else {
-        if (
-            !window.component_factory[componentKind] &&
-            !jQuery(`#${whereDiv}`).html()
-        ) {
-            jQuery(`#${whereDiv}`).html(
-                `<p>Preview not available for ${componentKind}</p>`,
-            );
+        if (!window.component_factory[componentKind] && !target.innerHTML) {
+            target.innerHTML = `<p>Preview not available for ${componentKind}</p>`;
         } else {
             let res = window.component_factory[componentKind](opt);
             if (componentKind === "activecode") {
@@ -83,22 +80,20 @@ export function createTimedComponent(componentSrc, moreOpts) {
         `${eBookConfig.app}/books/published/${eBookConfig.basecourse}/_images`,
     );
 
-    let componentKind = $($(componentSrc).find("[data-component]")[0]).data(
-        "component",
-    );
-
-    let origId = $(componentSrc).find("[data-component]").first().attr("id");
+    let parsed = document.createElement("div");
+    parsed.innerHTML = componentSrc;
+    let componentElement = parsed.querySelector("[data-component]");
+    let componentKind = componentElement?.dataset.component;
+    let origId = componentElement?.getAttribute("id");
 
     // Double check -- if the component source is not in the DOM, then briefly add it
     // and call the constructor.
-    let hdiv;
     if (!document.getElementById(origId)) {
-        hdiv = $("<div/>", {
-            css: { display: "none" },
-        }).appendTo("body");
-        hdiv.html(componentSrc);
+        let hdiv = document.createElement("div");
+        hdiv.style.display = "none";
+        hdiv.innerHTML = componentSrc;
+        document.body.appendChild(hdiv);
     }
-    // at this point hdiv is a jquery object
 
     let ret;
     let opts = {
@@ -134,7 +129,7 @@ export async function renderOneComponent(rsDiv) {
     }
     let componentKind = component.dataset.component;
     await runestone_import(componentKind);
-    if ($(this).closest("[data-component=timedAssessment]").length == 0) {
+    if (!rsDiv.closest("[data-component=timedAssessment]")) {
         // If this element exists within a timed component, don't render it here
         try {
             let divid = component.id;
@@ -145,7 +140,7 @@ export async function renderOneComponent(rsDiv) {
                 useRunestoneServices: eBookConfig.useRunestoneServices,
             });
         } catch (err) {
-            console.log(`Error rendering ${componentKind} Problem ${this.id}
+            console.log(`Error rendering ${componentKind} Problem ${component.id}
                          Details: ${err}`);
         }
     }

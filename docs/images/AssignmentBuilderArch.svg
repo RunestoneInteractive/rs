@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 680" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrowlight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- ===================== Browser band ===================== -->
+  <rect x="20" y="28" width="620" height="380" rx="10" fill="#eef2f7" stroke="#cbd5e1"/>
+  <text x="36" y="52" font-size="14" font-weight="bold" fill="#1e293b">Browser &#8212; instructor session</text>
+
+  <!-- React SPA -->
+  <rect x="40" y="66" width="390" height="326" rx="8" fill="#ffffff" stroke="#2563eb"/>
+  <text x="56" y="90" font-size="12.5" font-weight="bold" fill="#1d4ed8">React SPA (assignment_builder)</text>
+
+  <rect x="56" y="102" width="358" height="48" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="68" y="121" font-size="12" font-weight="bold" fill="#1e293b">App shell + router (react-router v7)</text>
+  <text x="68" y="138" font-size="10.5" fill="#475569">the URL is the source of truth for all screen state</text>
+
+  <rect x="56" y="162" width="170" height="94" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="68" y="181" font-size="12" font-weight="bold" fill="#1e293b">Builder routes</text>
+  <text x="68" y="198" font-size="10.5" fill="#475569">list &#183; wizard &#183; edit tabs</text>
+  <text x="68" y="213" font-size="10.5" fill="#475569">exercise editors</text>
+  <text x="68" y="228" font-size="10.5" fill="#475569">choose / search / create</text>
+  <text x="68" y="243" font-size="10.5" fill="#475569">previews</text>
+
+  <rect x="244" y="162" width="170" height="94" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="256" y="181" font-size="12" font-weight="bold" fill="#1e293b">Grader routes</text>
+  <text x="256" y="198" font-size="10.5" fill="#475569">questions &#183; grading</text>
+  <text x="256" y="213" font-size="10.5" fill="#475569">gradebook &#183; regrade</text>
+  <text x="256" y="228" font-size="10.5" fill="#475569">release &#183; accommodations</text>
+  <text x="256" y="243" font-size="10.5" fill="#475569">hotkeys &#183; autosave &#183; tour</text>
+
+  <rect x="56" y="268" width="358" height="52" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="68" y="287" font-size="12" font-weight="bold" fill="#1e293b">Redux store</text>
+  <text x="68" y="304" font-size="10.5" fill="#475569">RTK Query APIs + slices (src/store) &#183; legacy slices (src/state)</text>
+
+  <rect x="56" y="330" width="358" height="46" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="68" y="349" font-size="12" font-weight="bold" fill="#1e293b">Mantine UI &#183; TipTap &#183; Monaco &#183; dnd-kit</text>
+  <text x="68" y="366" font-size="10.5" fill="#475569">plus in-house widgets in src/components/ui</text>
+
+  <!-- Interactives bundle -->
+  <rect x="450" y="102" width="172" height="128" rx="8" fill="#fffbeb" stroke="#d97706"/>
+  <text x="462" y="123" font-size="12" font-weight="bold" fill="#92400e">Runestone</text>
+  <text x="462" y="139" font-size="12" font-weight="bold" fill="#92400e">interactives bundle</text>
+  <text x="462" y="158" font-size="10.5" fill="#78350f">window.component_factory</text>
+  <text x="462" y="174" font-size="10.5" fill="#78350f">activecode, mchoice,</text>
+  <text x="462" y="189" font-size="10.5" fill="#78350f">parsons, dragndrop, &#8230;</text>
+  <text x="462" y="211" font-size="10.5" fill="#78350f">renders previews and</text>
+  <text x="462" y="226" font-size="10.5" fill="#78350f">student submissions</text>
+
+  <!-- SPA -> interactives arrow -->
+  <line x1="430" y1="166" x2="448" y2="166" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- eBookConfig chip -->
+  <rect x="450" y="244" width="172" height="64" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
+  <text x="462" y="263" font-size="11" font-weight="bold" fill="#1e293b">eBookConfig</text>
+  <text x="462" y="280" font-size="10.5" fill="#475569">prod: from HTML shell</text>
+  <text x="462" y="295" font-size="10.5" fill="#475569">dev: empty stub</text>
+
+  <!-- ===================== HTTP lanes ===================== -->
+  <line x1="90" y1="408" x2="90" y2="468" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="100" y="428" font-size="10.5" fill="#475569">GET /assignment/instructor/builder</text>
+  <text x="100" y="443" font-size="10.5" fill="#475569">&#8594; HTML shell + eBookConfig</text>
+
+  <line x1="330" y1="408" x2="330" y2="468" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="340" y="428" font-size="10.5" fill="#475569">JSON (RTK Query)</text>
+  <text x="340" y="443" font-size="10.5" fill="#475569">/assignment/instructor/&#8230;</text>
+
+  <line x1="530" y1="408" x2="530" y2="468" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="540" y="428" font-size="10.5" fill="#475569">static assets</text>
+  <text x="540" y="443" font-size="10.5" fill="#475569">/assignment/react/*</text>
+
+  <!-- ===================== Server band ===================== -->
+  <rect x="20" y="470" width="620" height="182" rx="10" fill="#f0f4f1" stroke="#cbd5e1"/>
+  <text x="36" y="494" font-size="14" font-weight="bold" fill="#1e293b">Assignment server &#8212; FastAPI</text>
+
+  <rect x="40" y="506" width="290" height="58" rx="6" fill="#ffffff" stroke="#059669"/>
+  <text x="52" y="525" font-size="12" font-weight="bold" fill="#065f46">get_builder &#8594; Jinja builder.html</text>
+  <text x="52" y="542" font-size="10.5" fill="#475569">instructor check &#183; injects manifest imports,</text>
+  <text x="52" y="556" font-size="10.5" fill="#475569">runestone imports, eBookConfig</text>
+
+  <rect x="40" y="576" width="290" height="58" rx="6" fill="#ffffff" stroke="#059669"/>
+  <text x="52" y="595" font-size="12" font-weight="bold" fill="#065f46">routers/instructor.py &#183; routers/grader.py</text>
+  <text x="52" y="612" font-size="10.5" fill="#475569">JSON API, prefix /assignment/instructor</text>
+  <text x="52" y="626" font-size="10.5" fill="#475569">and /assignment/instructor/grader</text>
+
+  <rect x="350" y="506" width="270" height="58" rx="6" fill="#ffffff" stroke="#059669"/>
+  <text x="362" y="525" font-size="12" font-weight="bold" fill="#065f46">StaticFiles mount /assignment/react</text>
+  <text x="362" y="542" font-size="10.5" fill="#475569">the built SPA (hashed JS/CSS)</text>
+  <text x="362" y="556" font-size="10.5" fill="#475569">read via .vite/manifest.json</text>
+
+  <!-- DB -->
+  <path d="M 470 583 a 60 10 0 0 1 120 0 v 44 a 60 10 0 0 1 -120 0 z" fill="#ffffff" stroke="#64748b"/>
+  <ellipse cx="530" cy="583" rx="60" ry="10" fill="#ffffff" stroke="#64748b"/>
+  <text x="530" y="612" font-size="11.5" font-weight="bold" fill="#334155" text-anchor="middle">PostgreSQL</text>
+
+  <line x1="330" y1="605" x2="468" y2="605" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ===================== Build pipeline column ===================== -->
+  <rect x="660" y="28" width="280" height="624" rx="10" fill="#faf5ff" stroke="#a78bfa" stroke-dasharray="6 4"/>
+  <text x="676" y="52" font-size="14" font-weight="bold" fill="#5b21b6">Build pipeline (build time)</text>
+
+  <rect x="676" y="66" width="248" height="52" rx="6" fill="#ffffff" stroke="#a78bfa"/>
+  <text x="688" y="85" font-size="12" font-weight="bold" fill="#1e293b">assignment_builder/ source</text>
+  <text x="688" y="102" font-size="10.5" fill="#475569">React + TypeScript, Vite project</text>
+
+  <line x1="800" y1="118" x2="800" y2="156" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowlight)"/>
+  <text x="808" y="141" font-size="10.5" fill="#6d28d9">npm run build (tsc + vite)</text>
+
+  <rect x="676" y="158" width="248" height="52" rx="6" fill="#ffffff" stroke="#a78bfa"/>
+  <text x="688" y="177" font-size="12" font-weight="bold" fill="#1e293b">assignment_server_api/react/</text>
+  <text x="688" y="194" font-size="10.5" fill="#475569">hashed assets + .vite/manifest.json</text>
+
+  <!-- built assets feed the static mount -->
+  <polyline points="676,184 648,184 648,535 624,535" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrowlight)"/>
+
+  <rect x="676" y="236" width="248" height="66" rx="6" fill="#ffffff" stroke="#a78bfa"/>
+  <text x="688" y="255" font-size="12" font-weight="bold" fill="#1e293b">bases/rsptx/interactives</text>
+  <text x="688" y="272" font-size="10.5" fill="#475569">webpack &#8594; runestone component bundle</text>
+  <text x="688" y="287" font-size="10.5" fill="#475569">dev snapshot: public/runestone</text>
+
+  <!-- interactives bundle feeds the browser -->
+  <polyline points="676,269 636,269 636,166 624,166" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrowlight)"/>
+
+  <rect x="676" y="330" width="248" height="86" rx="6" fill="#ffffff" stroke="#a78bfa" stroke-dasharray="4 3"/>
+  <text x="688" y="349" font-size="12" font-weight="bold" fill="#1e293b">Development mode</text>
+  <text x="688" y="366" font-size="10.5" fill="#475569">vite dev server on :5173 (HMR)</text>
+  <text x="688" y="381" font-size="10.5" fill="#475569">proxies /ns and /assignment &#8594; localhost</text>
+  <text x="688" y="396" font-size="10.5" fill="#475569">session cookie shared with the backend</text>
+  <text x="688" y="411" font-size="10.5" fill="#475569">runestone bundle from public/runestone</text>
+
+  <rect x="676" y="440" width="248" height="66" rx="6" fill="#ffffff" stroke="#a78bfa"/>
+  <text x="688" y="459" font-size="12" font-weight="bold" fill="#1e293b">Shipping</text>
+  <text x="688" y="476" font-size="10.5" fill="#475569">uv run build --service assignment full</text>
+  <text x="688" y="491" font-size="10.5" fill="#475569">(npm build &#8594; wheel &#8594; image &#8594; restart)</text>
+
+  <rect x="676" y="530" width="248" height="104" rx="6" fill="#ffffff" stroke="#a78bfa" stroke-dasharray="4 3"/>
+  <text x="688" y="549" font-size="12" font-weight="bold" fill="#1e293b">Testing</text>
+  <text x="688" y="566" font-size="10.5" fill="#475569">vitest + Testing Library (*.spec next</text>
+  <text x="688" y="581" font-size="10.5" fill="#475569">to source)</text>
+  <text x="688" y="598" font-size="10.5" fill="#475569">Playwright e2e against :5173 or the</text>
+  <text x="688" y="613" font-size="10.5" fill="#475569">docker deployment (E2E_TARGET)</text>
+</svg>

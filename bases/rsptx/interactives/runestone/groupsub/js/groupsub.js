@@ -11,19 +11,14 @@
 
 import RunestoneBase from "../../common/js/runestonebase";
 import "../css/groupsub.css";
-import "select2/dist/js/select2.min.js";
-import "select2/dist/css/select2.css";
-
-var pageReveal;
 
 // Define Reveal object
-class GroupSub extends RunestoneBase {
+export class GroupSub extends RunestoneBase {
     constructor(opts) {
         super(opts);
         var orig = opts.orig; // entire <div> element that will be replaced by new HTML
         this.origElem = orig;
         this.divid = orig.id;
-        self.group = [];
         this.limit = this.origElem.dataset.size_limit;
         this.isPretext = document.body.classList.contains("pretext");
         // Create submit button
@@ -94,12 +89,9 @@ class GroupSub extends RunestoneBase {
             opt.innerHTML = this.studentList[sid];
             select.appendChild(opt);
         }
-        // Make the select element searchable with multiple selections
-        $(".assignment_partner_select").select2({
-            placeholder: "Select up to 4 team members",
-            allowClear: true,
-            maximumSelectionLength: this.limit,
-        });
+        // A native multi-select (select2 used to enhance this; the size
+        // limit is enforced in submitAll).
+        select.title = `Select up to ${this.limit} team members`;
     }
 
     async submitAll() {
@@ -114,7 +106,7 @@ class GroupSub extends RunestoneBase {
         if (username && !group.includes(username)) {
             group.push(username);
         }
-        if (group.len > this.limit) {
+        if (group.length > this.limit) {
             alert(
                 `You may not have more than ${this.limit} students in a group`,
             );
@@ -155,7 +147,7 @@ class GroupSub extends RunestoneBase {
     }
 }
 
-$(document).on("runestone:login-complete", async function () {
+document.addEventListener("runestone:login-complete", async function () {
     let gs = document.querySelectorAll("[data-component=groupsub]");
     if (gs.length > 1) {
         alert("Only one Group Submit is allowed per page");

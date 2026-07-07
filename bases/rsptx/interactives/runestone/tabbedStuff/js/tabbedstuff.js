@@ -18,16 +18,13 @@ import RunestoneBase from "../../common/js/runestonebase";
 import "../css/tabbedstuff.css";
 
 // Define TabbedStuff object
-class TabbedStuff extends RunestoneBase {
+export class TabbedStuff extends RunestoneBase {
     constructor(opts) {
         super(opts);
         var orig = opts.orig;
         this.origElem = orig; // entire original <div> element that will be replaced by new HTML
         this.divid = orig.id;
-        this.inactive = false;
-        if ($(this.origElem).is("[data-inactive]")) {
-            this.inactive = true;
-        }
+        this.inactive = orig.hasAttribute("data-inactive");
         this.togglesList = []; // For use in Codemirror/Disqus
         this.childTabs = [];
         this.populateChildTabs();
@@ -42,14 +39,18 @@ class TabbedStuff extends RunestoneBase {
     ===========================================*/
     populateChildTabs() {
         for (var i = 0; i < this.origElem.childNodes.length; i++) {
-            if ($(this.origElem.childNodes[i]).data("component") === "tab") {
-                this.childTabs.push(this.origElem.childNodes[i]);
+            const node = this.origElem.childNodes[i];
+            if (
+                node.nodeType === Node.ELEMENT_NODE &&
+                node.dataset.component === "tab"
+            ) {
+                this.childTabs.push(node);
             }
         }
     }
     findActiveTab() {
         for (var i = 0; i < this.childTabs.length; i++) {
-            if ($(this.childTabs[i]).is("[data-active]")) {
+            if (this.childTabs[i].hasAttribute("data-active")) {
                 this.activeTab = i;
             }
         }
@@ -60,74 +61,86 @@ class TabbedStuff extends RunestoneBase {
     createTabContainer() {
         this.containerDiv = document.createElement("div");
         this.containerDiv.id = this.divid;
-        $(this.containerDiv).addClass(this.origElem.getAttribute("class"));
-        $(this.containerDiv).attr({ role: "tabpanel" });
+        const origClass = this.origElem.getAttribute("class");
+        if (origClass) {
+            this.containerDiv.classList.add(
+                ...origClass.split(" ").filter(Boolean),
+            );
+        }
+        this.containerDiv.setAttribute("role", "tabpanel");
         this.tabsUL = document.createElement("ul");
         this.tabsUL.id = this.divid + "_tab";
-        $(this.tabsUL).addClass("nav nav-tabs");
-        $(this.tabsUL).attr({ role: "tablist" });
+        this.tabsUL.classList.add("nav", "nav-tabs");
+        this.tabsUL.setAttribute("role", "tablist");
         this.tabContentDiv = document.createElement("div"); // Create tab content container that holds tab panes w/content
-        $(this.tabContentDiv).addClass("tab-content");
+        this.tabContentDiv.classList.add("tab-content");
         this.createTabs(); // create and append tabs to the <ul>
         this.containerDiv.appendChild(this.tabsUL);
         this.containerDiv.appendChild(this.tabContentDiv);
-        this.addCMD(); // Adds fuctionality for Codemirror/Disqus
-        $(this.origElem).replaceWith(this.containerDiv);
+        this.origElem.replaceWith(this.containerDiv);
     }
     createTabs() {
         // Create tabs in format <li><a><span></span></a></li> to be appended to the <ul>
         for (var i = 0; i < this.childTabs.length; i++) {
             // First create tabname and tabfriendly name that has no spaces to be used for the id
             var tabListElement = document.createElement("li");
-            $(tabListElement).attr({
-                role: "presentation",
-                "aria-controls": this.divid + "-" + i,
-            });
-            // Using bootstrap tabs functionality
+            tabListElement.setAttribute("role", "presentation");
+            tabListElement.setAttribute(
+                "aria-controls",
+                this.divid + "-" + i,
+            );
             var tabElement = document.createElement("a");
-            $(tabElement).attr({
-                "data-toggle": "tab",
-                href: "#" + this.divid + "-" + i,
-                role: "tab",
-            });
+            tabElement.setAttribute("href", "#" + this.divid + "-" + i);
+            tabElement.setAttribute("role", "tab");
+            tabElement.addEventListener("click", this.handleTabClick(i));
             var tabTitle = document.createElement("span"); // Title of tab--what the user will see
-            tabTitle.textContent = $(this.childTabs[i]).data("tabname");
+            tabTitle.textContent = this.childTabs[i].dataset.tabname;
             tabElement.appendChild(tabTitle);
             tabListElement.appendChild(tabElement);
             this.tabsUL.appendChild(tabListElement);
             // tabPane is what holds the contents of the tab
             var tabPaneDiv = document.createElement("div");
             tabPaneDiv.id = this.divid + "-" + i;
-            $(tabPaneDiv).addClass("tab-pane");
-            $(tabPaneDiv).attr({
-                role: "tabpanel",
-            });
-            //var tabHTML = $(this.childTabs[i]).html();
-            //$(tabPaneDiv).html(tabHTML);
+            tabPaneDiv.classList.add("tab-pane");
+            tabPaneDiv.setAttribute("role", "tabpanel");
             tabPaneDiv.appendChild(this.childTabs[i]);
             if (!this.inactive) {
                 if (this.activeTab === i) {
-                    $(tabListElement).addClass("active");
-                    $(tabPaneDiv).addClass("active");
+                    tabListElement.classList.add("active");
+                    tabPaneDiv.classList.add("active");
                 }
             }
             this.togglesList.push(tabElement);
             this.tabContentDiv.appendChild(tabPaneDiv);
         }
     }
-    /*===================================
-    == Codemirror/Disqus functionality ==
-    ===================================*/
-    addCMD() {
-        $(this.togglesList).on("shown.bs.tab", function (e) {
-            var content_div = $(e.target.attributes.href.value);
-            content_div.find(".disqus_thread_link").each(function () {
-                $(this).click();
-            });
-            content_div.find(".CodeMirror").each(function (i, el) {
-                el.CodeMirror.refresh();
-            });
-        });
+    /*=====================================================
+    == Tab switching (was Bootstrap 3's jQuery tab plugin) ==
+    =====================================================*/
+    handleTabClick(index) {
+        return (event) => {
+            event.preventDefault();
+            this.showTab(index);
+        };
+    }
+    showTab(index) {
+        for (const li of this.tabsUL.children) {
+            li.classList.remove("active");
+        }
+        for (const pane of this.tabContentDiv.children) {
+            pane.classList.remove("active");
+        }
+        this.tabsUL.children[index].classList.add("active");
+        const pane = this.tabContentDiv.children[index];
+        pane.classList.add("active");
+        // Anything that was rendered while the pane was hidden may need a
+        // nudge now that it is visible (was the shown.bs.tab handler).
+        for (const link of pane.querySelectorAll(".disqus_thread_link")) {
+            link.click();
+        }
+        for (const el of pane.querySelectorAll(".CodeMirror")) {
+            el.CodeMirror.refresh();
+        }
     }
 }
 
@@ -135,8 +148,15 @@ class TabbedStuff extends RunestoneBase {
 == Find the custom HTML tags and ==
 ==     execute our code on them        ==
 =================================*/
-$("load", function () {
-    $("[data-component=tabbedStuff]").each(function (index) {
-        TSList[this.id] = new TabbedStuff({ orig: this });
-    });
-});
+function initTabbedStuff() {
+    for (const element of document.querySelectorAll(
+        "[data-component=tabbedStuff]",
+    )) {
+        TSList[element.id] = new TabbedStuff({ orig: element });
+    }
+}
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initTabbedStuff);
+} else {
+    initTabbedStuff();
+}

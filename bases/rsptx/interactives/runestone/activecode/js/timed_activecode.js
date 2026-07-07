@@ -30,7 +30,7 @@ var TimedActiveCodeMixin = {
         ];
         for (var i = 0; i < buttonList.length; i++) {
             if (buttonList[i] !== undefined && buttonList[i] !== null)
-                $(buttonList[i]).hide();
+                buttonList[i].style.display = "none";
         }
     },
 
@@ -40,14 +40,12 @@ var TimedActiveCodeMixin = {
         // is the element that the icon should be appended to.
         var timeIconDiv = document.createElement("div");
         var timeIcon = document.createElement("img");
-        $(timeIcon).attr({
-            src: "../_static/clock.png",
-            style: "width:15px;height:15px",
-        });
+        timeIcon.setAttribute("src", "../_static/clock.png");
+        timeIcon.setAttribute("style", "width:15px;height:15px");
         timeIconDiv.className = "timeTip";
         timeIconDiv.title = "";
         timeIconDiv.appendChild(timeIcon);
-        $(component).prepend(timeIconDiv);
+        component.prepend(timeIconDiv);
     },
 
     checkCorrectTimed: function () {
@@ -65,7 +63,7 @@ var TimedActiveCodeMixin = {
     },
 
     hideFeedback: function () {
-        $(this.output).css("visibility", "hidden");
+        this.output.style.visibility = "hidden";
     },
 
     reinitializeListeners: function (taken) {
@@ -73,20 +71,23 @@ var TimedActiveCodeMixin = {
             console.log("reattaching runbuttonhandler");
             this.runButton.onclick = this.runButtonHander.bind(this);
         }
-        $(this.codeDiv).show();
+        this.codeDiv.style.display = "";
         this.runButton.disabled = false;
-        $(this.codeDiv).removeClass("ac-disabled");
+        this.codeDiv.classList.remove("ac-disabled");
         this.editor.refresh();
         if (this.historyScrubber !== null) {
-            $(this.historyScrubber).slider({
-                max: this.history.length - 1,
-                value: this.history.length - 1,
-                slide: this.slideit.bind(this),
-                change: this.slideit.bind(this),
-            });
+            // the scrubber is a range input; reset its bounds and position
+            this.historyScrubber.max = this.history.length - 1;
+            this.historyScrubber.value = this.history.length - 1;
+            this.slideit(null);
         }
         if (taken) {
-            $(`#${this.divid}_unit_results`).show();
+            let unitResults = document.getElementById(
+                `${this.divid}_unit_results`,
+            );
+            if (unitResults) {
+                unitResults.style.display = "";
+            }
         }
     },
 };

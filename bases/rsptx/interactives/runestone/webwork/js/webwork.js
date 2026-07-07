@@ -210,21 +210,59 @@ window.component_factory.webwork = function (opts) {
     return new WebWork(opts);
 };
 
-$(function () {
-    $("body").on("runestone_ww_check", logWebWork);
-    $("body").on("runestone_show_correct", logShowCorrect);
-});
+// The WeBWorK server's own JS fires these events. Historically it does so
+// with the page's jQuery (`$("body").trigger(...)`, payload as an extra
+// handler argument); jQuery-triggered events never reach native listeners, so
+// when the page provides jQuery we must register through it. A jQuery
+// registration also sees natively dispatched CustomEvents, so exactly one
+// registration path is used to avoid handling an event twice. The payload
+// can arrive as the extra jQuery argument or as the CustomEvent detail.
+function wwHandler(handler) {
+    return function (e, data) {
+        const payload =
+            data !== undefined
+                ? data
+                : (e.detail ?? e.originalEvent?.detail);
+        if (payload === undefined) return;
+        handler(e, payload);
+    };
+}
 
-$(document).on("runestone:login-complete", function () {
-    $("[data-component=webwork]").each(function (index) {
-        // MC
+function registerWWListeners() {
+    if (window.jQuery) {
+        window.jQuery("body").on("runestone_ww_check", wwHandler(logWebWork));
+        window
+            .jQuery("body")
+            .on("runestone_show_correct", wwHandler(logShowCorrect));
+    } else {
+        document.body.addEventListener(
+            "runestone_ww_check",
+            wwHandler(logWebWork),
+        );
+        document.body.addEventListener(
+            "runestone_show_correct",
+            wwHandler(logShowCorrect),
+        );
+    }
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", registerWWListeners);
+} else {
+    registerWWListeners();
+}
+
+document.addEventListener("runestone:login-complete", function () {
+    for (let element of document.querySelectorAll(
+        "[data-component=webwork]",
+    )) {
         var opts = {
-            orig: this,
+            orig: element,
             useRunestoneServices: eBookConfig.useRunestoneServices,
         };
-        if ($(this).closest("[data-component=timedAssessment]").length == 0) {
+        if (!element.closest("[data-component=timedAssessment]")) {
             // If this element exists within a timed component, don't render it here
-            window.wwList[this.id] = new WebWork(opts);
+            window.wwList[element.id] = new WebWork(opts);
         }
-    });
+    }
 });

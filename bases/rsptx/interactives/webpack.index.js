@@ -16,10 +16,11 @@
 //
 // These are static imports; code in `dynamically loaded components`_ deals with dynamic imports.
 //
-// jQuery-related imports.
+// jQuery-related imports. jQuery UI is still needed by the vendored pytutor
+// bundle (codelens); the jquery.idle-timer plugin was dead code and has been
+// removed.
 import "jquery-ui/jquery-ui.js";
 import "jquery-ui/themes/base/jquery.ui.all.css";
-import "./runestone/common/js/jquery.idle-timer.js";
 // i18n is now handled by the dependency-free runestone/common/js/rsi18n.js;
 // the vendored Wikimedia jquery.i18n plugin has been removed.
 
@@ -145,7 +146,7 @@ async function flushQueue() {
 // ========================
 // Fulfill a promise when the Runestone pre-login complete event occurs.
 let pre_login_complete_promise = new Promise((resolve) =>
-    $(document).on("runestone:pre-login-complete", resolve),
+    document.addEventListener("runestone:pre-login-complete", resolve),
 );
 let loadedComponents;
 // Provide a simple function to import the JS for all components on the page.
@@ -153,13 +154,9 @@ export function runestone_auto_import() {
     // Create a set of ``data-component`` values, to avoid duplication.
     const s = new Set(
         // All Runestone components have a ``data-component`` attribute.
-        $("[data-component]")
-            .map(
-                // Extract the value of the data-component attribute.
-                (index, element) => $(element).attr("data-component"),
-                // Switch from a jQuery object back to an array, passing that to the Set constructor.
-            )
-            .get(),
+        [...document.querySelectorAll("[data-component]")].map((element) =>
+            element.getAttribute("data-component"),
+        ),
     );
     // webwork questions are not wrapped in div with a data-component so we have to check a different way
     if (document.querySelector(".webwork-button")) {
@@ -192,7 +189,11 @@ pre_login_complete_promise.then(() => {
 });
 
 // Load component JS when the document is ready.
-$(document).ready(runestone_auto_import);
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", runestone_auto_import);
+} else {
+    runestone_auto_import();
+}
 
 // Provide a function to import one specific `Runestone` component.
 // the import function inside module_map is async -- runestone_import
@@ -218,7 +219,7 @@ async function popupScratchAC() {
         window.ACFactory.createScratchActivecode();
         let divid = eBookConfig.scratchDiv;
         window.componentMap[divid] = ACFactory.createActiveCode(
-            $(`#${divid}`)[0],
+            document.getElementById(divid),
             eBookConfig.acDefaultLanguage,
         );
         if (eBookConfig.isLoggedIn) {

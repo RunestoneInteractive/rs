@@ -19,8 +19,11 @@ Coding Standards
 *   We use black to format all of our Python code.
 *   No Tabs in Javascript files (4 spaces = 1 indentation)
 *   We use Prettier to format our Javascript - please make sure you configure prettier to use 4 spaces as the tab size.
-*   Avoid proliferation of jQuery versions.  Make your stuff compatible with the version
-    of jQuery in the common folder.
+*   Do not use jQuery in new code, and do not add new jQuery plugins.  We are
+    actively migrating components to plain DOM APIs (activecode and
+    runestonebase are already jQuery-free).  The helpers in
+    ``runestone/common/js/domutil.js`` (``getDataValue``, ``toggleDisplay``)
+    cover the common jQuery idioms.
 *   Avoid proliferation of additional third party javascript modules.  We are already out of
     control in this regard and it would be nice to rein it in.
 *   To add JavaScript for a new component, follow the directions in `webpack.index.js` for dynamically-loaded components.
@@ -36,7 +39,12 @@ Coding Standards
 Unit Testing
 ------------
 
-We are using Selenium to create unit tests for each of the components.  Nearly every component has selenium tests now.  If you add a feature or a new component, please make sure to include a selenium test that verifies it works.
+JavaScript unit tests use `vitest <https://vitest.dev>`_ with a jsdom
+environment; run them with ``npm test`` from ``bases/rsptx/interactives``.
+Full instructions for running and writing tests are in the *Unit tests*
+section of ``docs/source/javascript_feature.rst``.  If you add a feature or
+a new component, please include tests that verify it works.  There are also
+older Selenium-based tests for many components; new tests should use vitest.
 
 Provide an example
 ------------------

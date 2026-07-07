@@ -4,11 +4,11 @@ import { t } from "../../common/js/rsi18n.js";
 export default class HTMLActiveCode extends ActiveCode {
     constructor(opts) {
         super(opts);
-        // The base class reads code via $(orig).text() which already decodes HTML entities
+        // The base class reads code via textContent which already decodes HTML entities
         // (the browser HTML parser decodes &lt; etc. in textarea content).
         // We must NOT re-read from origElem.innerHTML here — that would re-include the
         // suffix that the base class already stripped into this.suffix.
-        $(this.runButton).text("Render");
+        this.runButton.textContent = "Render";
         this.editor.setValue(this.code);
         this._messageHandler = null;
     }
@@ -53,7 +53,7 @@ export default class HTMLActiveCode extends ActiveCode {
                 prog;
         }
 
-        $(this.output).text("");
+        this.output.textContent = "";
         this.output.srcdoc = prog;
 
         if (this.unit_results) {
@@ -309,13 +309,13 @@ export default class HTMLActiveCode extends ActiveCode {
 
     createOutput() {
         var outDiv = document.createElement("div");
-        $(outDiv).addClass("ac_output");
+        outDiv.classList.add("ac_output");
         this.outDiv = outDiv;
         this.output = document.createElement("iframe");
-        $(this.output).css("background-color", "white");
-        $(this.output).css("position", "relative");
-        $(this.output).css("height", "400px");
-        $(this.output).css("width", "100%");
+        this.output.style.backgroundColor = "white";
+        this.output.style.position = "relative";
+        this.output.style.height = "400px";
+        this.output.style.width = "100%";
         outDiv.appendChild(this.output);
 
         this.testResultsDiv = document.createElement("div");
@@ -325,11 +325,11 @@ export default class HTMLActiveCode extends ActiveCode {
 
         this.outerDiv.appendChild(outDiv);
         var clearDiv = document.createElement("div");
-        $(clearDiv).css("clear", "both"); // needed to make parent div resize properly
+        clearDiv.style.clear = "both"; // needed to make parent div resize properly
         this.outerDiv.appendChild(clearDiv);
     }
 
     enableSaveLoad() {
-        $(this.runButton).text(t("msg_activecode_render"));
+        this.runButton.textContent = t("msg_activecode_render");
     }
 }

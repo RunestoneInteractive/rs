@@ -1,13 +1,14 @@
 "use strict";
 
 import RunestoneBase from "../../common/js/runestonebase";
+import { getDataValue } from "../../common/js/domutil.js";
 import "../css/video.css";
 
 class RunestoneVideo extends RunestoneBase {
     constructor(opts) {
         super(opts);
         this.divid = opts.orig.id;
-        this.container = $(`#${this.divid}`);
+        this.container = document.getElementById(this.divid);
         this.caption = "YouTube";
         if (document.getElementById("youtubescript") == null) {
             let script = document.createElement("script");
@@ -15,7 +16,7 @@ class RunestoneVideo extends RunestoneBase {
             script.src = "https://www.youtube.com/player_api";
             document.body.appendChild(script);
         }
-        this.containerDiv = this.container[0].parentElement;
+        this.containerDiv = this.container.parentElement;
         this.addCaption("runestone");
         this.indicate_component_ready();
     }
@@ -46,42 +47,47 @@ window.onPlayerStateChange = function (event) {
 
 //Callback function to load youtube videos once IFrame Player loads
 window.onYouTubeIframeAPIReady = function () {
-    let videolist = $(".youtube-video");
-    videolist.each(function (i, video) {
+    for (let video of document.querySelectorAll(".youtube-video")) {
         let playerVars = {};
-        playerVars["start"] = $(video).data("video-start");
-        if ($(video).data("video-end") != -1)
-            playerVars["end"] = $(video).data("video-end");
-        let player = new YT.Player($(video).data("video-divid"), {
-            height: $(video).data("video-height"),
-            width: $(video).data("video-width"),
-            videoId: $(video).data("video-videoid"),
+        playerVars["start"] = getDataValue(video, "video-start");
+        if (getDataValue(video, "video-end") != -1)
+            playerVars["end"] = getDataValue(video, "video-end");
+        let player = new YT.Player(getDataValue(video, "video-divid"), {
+            height: getDataValue(video, "video-height"),
+            width: getDataValue(video, "video-width"),
+            videoId: getDataValue(video, "video-videoid"),
             align: "center",
             playerVars: playerVars,
             events: {
                 onStateChange: window.onPlayerStateChange,
             },
         });
-    });
+    }
 };
 
 //Need to make sure the YouTube IFrame Player API is not loaded until after
 // all YouTube videos are in the DOM. Add a script tag with it after document is loaded
-$(function () {
+function addPlayerApiScript() {
     let script = document.createElement("script");
     script.src = "https://www.youtube.com/player_api";
     document.body.appendChild(script);
-});
+}
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", addPlayerApiScript);
+} else {
+    addPlayerApiScript();
+}
 
-$(document).on("runestone:login-complete", function () {
-    $("[data-component=youtube]").each(function (index) {
-        // MC
+document.addEventListener("runestone:login-complete", function () {
+    for (let element of document.querySelectorAll(
+        "[data-component=youtube]",
+    )) {
         var opts = {
-            orig: this,
+            orig: element,
             useRunestoneServices: eBookConfig.useRunestoneServices,
         };
-        window.componentMap[this.id] = new RunestoneVideo(opts);
-    });
+        window.componentMap[element.id] = new RunestoneVideo(opts);
+    }
 });
 
 if (typeof window.component_factory === "undefined") {

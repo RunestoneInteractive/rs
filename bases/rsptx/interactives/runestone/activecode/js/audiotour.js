@@ -105,7 +105,7 @@ export default class AudioTour extends RunestoneBase {
         this.audio_code = document.createElement("p");
         this.windowcode = document.createElement("div");
         this.windowcode.align = "left";
-        $(this.windowcode).html(first);
+        this.windowcode.innerHTML = first;
         this.first_audio = document.createElement("button");
         this.prev_audio = document.createElement("button");
         this.pause_audio = document.createElement("button");
@@ -169,7 +169,7 @@ export default class AudioTour extends RunestoneBase {
         this.stop_button = document.createElement("button");
         this.stop_button.className = "btn btn-default";
         this.stop_button.innerHTML = "Stop tour";
-        $(this.audio_tour).append(
+        this.audio_tour.append(
             this.audio_code,
             this.windowcode,
             document.createElement("br"),
@@ -181,14 +181,25 @@ export default class AudioTour extends RunestoneBase {
             document.createElement("br"),
             this.status,
             document.createElement("br"),
-            this.tourButtons,
+            ...this.tourButtons,
             this.stop_button,
         );
-        $("#" + divid + " .ac_code_div").append(this.audio_tour);
-        $("#" + divid + " .ac_code_div").css("width", "100%");
-        $("#" + divid + " .CodeMirror.cm-s-default.ui-resizable").hide();
-        $("#" + divid + " .ac_opt.btn.btn-default:last-child").hide();
-        $(this.stop_button).click(
+        let acContainer = document.getElementById(divid);
+        let codeDiv = acContainer.querySelector(".ac_code_div");
+        let editorEl = acContainer.querySelector(".CodeMirror.ac-resizable");
+        let lastOptButton = acContainer.querySelector(
+            ".ac_opt.btn.btn-default:last-child",
+        );
+        codeDiv.appendChild(this.audio_tour);
+        codeDiv.style.width = "100%";
+        if (editorEl) {
+            editorEl.style.display = "none";
+        }
+        if (lastOptButton) {
+            lastOptButton.style.display = "none";
+        }
+        this.stop_button.addEventListener(
+            "click",
             function () {
                 if (this.playing) {
                     this.elem.pause();
@@ -199,75 +210,67 @@ export default class AudioTour extends RunestoneBase {
                     act: "closeWindow",
                     div_id: divid,
                 });
-                $(this.audio_tour).remove();
-                $(
-                    "#" + divid + " .CodeMirror.cm-s-default.ui-resizable",
-                ).show();
-                $("#" + divid + " .ac_opt.btn.btn-default:last-child").show();
-                $("#" + divid + " .ac_code_div").css("width", "");
+                this.audio_tour.remove();
+                if (editorEl) {
+                    editorEl.style.display = "";
+                }
+                if (lastOptButton) {
+                    lastOptButton.style.display = "";
+                }
+                codeDiv.style.width = "";
             }.bind(this),
         );
-        $(this.tourButtons[0]).click(
-            function () {
-                this.tour(divid, audio_hash[0], bcount);
-            }.bind(this),
-        );
-        $(this.tourButtons[1]).click(
-            function () {
-                this.tour(divid, audio_hash[1], bcount);
-            }.bind(this),
-        );
-        $(this.tourButtons[2]).click(
-            function () {
-                this.tour(divid, audio_hash[2], bcount);
-            }.bind(this),
-        );
-        $(this.tourButtons[3]).click(
-            function () {
-                this.tour(divid, audio_hash[3], bcount);
-            }.bind(this),
-        );
-        $(this.tourButtons[4]).click(
-            function () {
-                this.tour(divid, audio_hash[4], bcount);
-            }.bind(this),
-        );
-        // handle the click to go to the next audio
-        $(this.first_audio).click(
+        for (let i = 0; i < 5; i++) {
+            if (this.tourButtons[i]) {
+                this.tourButtons[i].addEventListener(
+                    "click",
+                    function () {
+                        this.tour(divid, audio_hash[i], bcount);
+                    }.bind(this),
+                );
+            }
+        }
+        // handle the click to go to the first audio
+        this.first_audio.addEventListener(
+            "click",
             function () {
                 this.firstAudio();
             }.bind(this),
         );
-        // handle the click to go to the next audio
-        $(this.prev_audio).click(
+        // handle the click to go to the previous audio
+        this.prev_audio.addEventListener(
+            "click",
             function () {
                 this.prevAudio();
             }.bind(this),
         );
         // handle the click to pause or play the audio
-        $(this.pause_audio).click(
+        this.pause_audio.addEventListener(
+            "click",
             function () {
                 this.pauseAndPlayAudio(divid);
             }.bind(this),
         );
         // handle the click to go to the next audio
-        $(this.next_audio).click(
+        this.next_audio.addEventListener(
+            "click",
             function () {
                 this.nextAudio();
             }.bind(this),
         );
-        // handle the click to go to the next audio
-        $(this.last_audio).click(
+        // handle the click to go to the last audio
+        this.last_audio.addEventListener(
+            "click",
             function () {
                 this.lastAudio();
             }.bind(this),
         );
         // make the image buttons look disabled
-        $(this.first_audio).css("opacity", 0.25);
-        $(this.prev_audio).css("opacity", 0.25);
-        $(this.pause_audio).css("opacity", 0.25);
-        $(this.next_audio).css("opacity", 0.25);
-        $(this.last_audio).css("opacity", 0.25);
+        this.first_audio.style.opacity = 0.25;
+        this.prev_audio.style.opacity = 0.25;
+        this.pause_audio.style.opacity = 0.25;
+        this.next_audio.style.opacity = 0.25;
+        this.last_audio.style.opacity = 0.25;
     }
     tour(divid, audio_type, bcount) {
         // set globals
@@ -278,23 +281,22 @@ export default class AudioTour extends RunestoneBase {
             "display: inline-block; margin-top: 7px; margin-bottom: 3px;",
         );
         // enable prev, pause/play and next buttons and make visible
-        $(this.first_audio).removeAttr("disabled");
-        $(this.prev_audio).removeAttr("disabled");
-        $(this.pause_audio).removeAttr("disabled");
-        $(this.next_audio).removeAttr("disabled");
-        $(this.last_audio).removeAttr("disabled");
-        $(this.first_audio).css("opacity", 1.0);
-        $(this.prev_audio).css("opacity", 1.0);
-        $(this.pause_audio).css("opacity", 1.0);
-        $(this.next_audio).css("opacity", 1.0);
-        $(this.last_audio).css("opacity", 1.0);
+        this.first_audio.disabled = false;
+        this.prev_audio.disabled = false;
+        this.pause_audio.disabled = false;
+        this.next_audio.disabled = false;
+        this.last_audio.disabled = false;
+        this.first_audio.style.opacity = 1.0;
+        this.prev_audio.style.opacity = 1.0;
+        this.pause_audio.style.opacity = 1.0;
+        this.next_audio.style.opacity = 1.0;
+        this.last_audio.style.opacity = 1.0;
         // disable tour buttons
-        for (var i = 0; i < bcount; i++)
-            $(this.tourButtons[i]).attr("disabled", "disabled");
+        for (var i = 0; i < bcount; i++) this.tourButtons[i].disabled = true;
         var atype = audio_type.split(";");
         var name = atype[0].replaceAll('"', " ");
         this.tourName = name;
-        $(this.status).html(t("msg_activecode_starting", name));
+        this.status.innerHTML = t("msg_activecode_starting", name);
         //log tour type to db
         this.logBookEvent({ event: "Audio", act: name, div_id: divid });
         var max = atype.length;
@@ -325,7 +327,7 @@ export default class AudioTour extends RunestoneBase {
             this.ahash[akey] = lnums;
             this.aname.push(akey);
         }
-        $(this.audio_code).html(str);
+        this.audio_code.innerHTML = str;
         this.len = this.aname.length; // set the number of audio file in the tour
         this.currIndex = 0;
         this.playCurrIndexAudio();
@@ -333,7 +335,7 @@ export default class AudioTour extends RunestoneBase {
     handlePlaying() {
         this.elem.pause();
         // unbind current ended
-        $("#" + this.afile).unbind("ended");
+        this.elem.onended = null;
         // unhighlight the prev lines
         this.unhighlightLines(
             this.theDivid,
@@ -412,28 +414,30 @@ export default class AudioTour extends RunestoneBase {
     }
     // handle the end of the tour
     handleTourEnd() {
-        $(this.status).html("The " + this.tourName + " has ended.");
+        this.status.innerHTML = "The " + this.tourName + " has ended.";
         this.pause_audio.className = "btn-default glyphicon glyphicon-pause";
         this.pause_audio.title = "Pause audio";
         this.pause_audio.setAttribute("aria-label", "Pause audio");
-        $(this.first_audio).attr("disabled", "disabled");
-        $(this.prev_audio).attr("disabled", "disabled");
-        $(this.pause_audio).attr("disabled", "disabled");
-        $(this.next_audio).attr("disabled", "disabled");
-        $(this.last_audio).attr("disabled", "disabled");
-        $(this.first_audio).css("opacity", 0.25);
-        $(this.prev_audio).css("opacity", 0.25);
-        $(this.pause_audio).css("opacity", 0.25);
-        $(this.next_audio).css("opacity", 0.25);
-        $(this.last_audio).css("opacity", 0.25);
+        this.first_audio.disabled = true;
+        this.prev_audio.disabled = true;
+        this.pause_audio.disabled = true;
+        this.next_audio.disabled = true;
+        this.last_audio.disabled = true;
+        this.first_audio.style.opacity = 0.25;
+        this.prev_audio.style.opacity = 0.25;
+        this.pause_audio.style.opacity = 0.25;
+        this.next_audio.style.opacity = 0.25;
+        this.last_audio.style.opacity = 0.25;
         // enable the tour buttons
         for (var j = 0; j < this.buttonCount; j++)
-            $(this.tourButtons[j]).removeAttr("disabled");
+            this.tourButtons[j].disabled = false;
     }
     // only call this one after the first time
     outerAudio() {
         // unbind ended
-        $("#" + this.afile).unbind("ended");
+        if (this.elem) {
+            this.elem.onended = null;
+        }
         // set this.playing to false
         this.playing = false;
         // unhighlight previous lines from the last audio
@@ -456,30 +460,20 @@ export default class AudioTour extends RunestoneBase {
     // play the audio now that it is ready
     playWhenReady(afile, divid, ahash) {
         // unbind current
-        $("#" + afile).unbind("canplaythrough");
+        this.elem.oncanplaythrough = null;
         this.elem.currentTime = 0;
         this.playing = true;
         //console.log("in playWhenReady " + elem.duration);
         this.highlightLines(divid, ahash[afile]);
+        this.elem.onended = function () {
+            this.outerAudio();
+        }.bind(this);
         if (
             this.pause_audio.className ===
             "btn-default glyphicon glyphicon-pause"
         ) {
-            $(this.status).html(t("msg_activecode_playing", this.tourName));
-            $("#" + afile).bind(
-                "ended",
-                function () {
-                    this.outerAudio();
-                }.bind(this),
-            );
+            this.status.innerHTML = t("msg_activecode_playing", this.tourName);
             this.elem.play();
-        } else {
-            $("#" + afile).bind(
-                "ended",
-                function () {
-                    this.outerAudio();
-                }.bind(this),
-            );
         }
     }
     // play the audio at the specified index i and set the duration and highlight the lines
@@ -490,13 +484,10 @@ export default class AudioTour extends RunestoneBase {
         //console.log("in playaudio " + elem.duration);
         if (isNaN(this.elem.duration) || this.elem.duration == 0) {
             // set the status
-            $(this.status).html(t("msg_activecode_loading_audio"));
-            $("#" + this.afile).bind(
-                "canplaythrough",
-                function () {
-                    this.playWhenReady(this.afile, divid, ahash);
-                }.bind(this),
-            );
+            this.status.innerHTML = t("msg_activecode_loading_audio");
+            this.elem.oncanplaythrough = function () {
+                this.playWhenReady(this.afile, divid, ahash);
+            }.bind(this);
         }
         // otherwise it is ready so play it
         else {
@@ -518,7 +509,7 @@ export default class AudioTour extends RunestoneBase {
                 "aria-label",
                 t("msg_activecode_pause_audio"),
             );
-            $(this.status).html(t("msg_activecode_playing", this.tourName));
+            this.status.innerHTML = t("msg_activecode_playing", this.tourName);
             //log change to db
             this.logBookEvent({
                 event: "Audio",
@@ -535,8 +526,9 @@ export default class AudioTour extends RunestoneBase {
                 "aria-label",
                 t("msg_activecode_play_paused_audio"),
             );
-            $(this.status).html(
-                t("msg_activecode_audio_paused", this.tourName),
+            this.status.innerHTML = t(
+                "msg_activecode_audio_paused",
+                this.tourName,
             );
             //log change to db
             this.logBookEvent({
@@ -574,18 +566,16 @@ export default class AudioTour extends RunestoneBase {
             var start = parseInt(hyphen[0]);
             var end = parseInt(hyphen[1]) + 1;
             for (var k = start; k < end; k++) {
-                //alert(k);
-                str = "#" + divid + "_l" + k;
-                if ($(str).text() != "") {
-                    $(str).css("background-color", color);
+                let line = document.getElementById(divid + "_l" + k);
+                if (line && line.textContent != "") {
+                    line.style.backgroundColor = color;
                 }
-                //$(str).effect("highlight",{},(dur*1000)+4500);
             }
         } else {
-            //alert(lnum);
-            str = "#" + divid + "_l" + lnum;
-            $(str).css("background-color", color);
-            //$(str).effect("highlight",{},(dur*1000)+4500);
+            let line = document.getElementById(divid + "_l" + lnum);
+            if (line) {
+                line.style.backgroundColor = color;
+            }
         }
     }
 }

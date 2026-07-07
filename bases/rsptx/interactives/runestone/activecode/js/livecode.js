@@ -1,5 +1,6 @@
 import { ActiveCode } from "./activecode.js";
 import { t } from "../../common/js/rsi18n.js";
+import { getDataValue } from "../../common/js/domutil.js";
 import MD5 from "./md5.js";
 import JUnitTestParser from "./extractUnitResults-JUnit.js";
 import DoctestTestParser from "./extractUnitResults-Doctest.js";
@@ -8,18 +9,21 @@ import { base64encode } from "byte-base64";
 
 export default class LiveCode extends ActiveCode {
     constructor(opts) {
-        var orig = $(opts.orig).find("textarea")[0];
+        var orig = opts.orig.querySelector("textarea");
         super(opts);
-        this.stdin = $(orig).data("stdin");
-        this.additional_files = $(orig).data("add-files");
+        this.stdin = getDataValue(orig, "stdin");
+        this.additional_files = getDataValue(orig, "add-files");
         // Accept older "datafile" attribute for backwards compatibility
-        this.datafiles = $(orig).data("datafile");
-        this.sourcefile = $(orig).data("sourcefile");
-        this.compileargs = unescapeHtml($(orig).data("compileargs")) || "";
-        this.compileAlso = unescapeHtml($(orig).data("compile-also"));
-        this.linkargs = unescapeHtml($(orig).data("linkargs"));
-        this.runargs = unescapeHtml($(orig).data("runargs"));
-        this.interpreterargs = unescapeHtml($(orig).data("interpreterargs"));
+        this.datafiles = getDataValue(orig, "datafile");
+        this.sourcefile = getDataValue(orig, "sourcefile");
+        this.compileargs =
+            unescapeHtml(getDataValue(orig, "compileargs")) || "";
+        this.compileAlso = unescapeHtml(getDataValue(orig, "compile-also"));
+        this.linkargs = unescapeHtml(getDataValue(orig, "linkargs"));
+        this.runargs = unescapeHtml(getDataValue(orig, "runargs"));
+        this.interpreterargs = unescapeHtml(
+            getDataValue(orig, "interpreterargs"),
+        );
         this.API_KEY = "67033pV7eUUvqo07OJDIV8UZ049aLEK1";
         this.USE_API_KEY = true;
         this.JOBE_SERVER = eBookConfig.jobehost || eBookConfig.host;
@@ -40,7 +44,7 @@ export default class LiveCode extends ActiveCode {
         let inputContainer = document.createElement("div");
         var label = document.createElement("label");
         label.for = this.divid + "_stdin";
-        $(label).text(t("msg_activecode_input_prg"));
+        label.textContent = t("msg_activecode_input_prg");
         var input = document.createElement("textarea");
         input.id = this.divid + "_stdin";
         input.classList.add("activecode__stdin");
@@ -99,7 +103,7 @@ export default class LiveCode extends ActiveCode {
                     this.addJobeErrorMessage(
                         t(`Server Error: ${res.statusText}`),
                     );
-                    $(this.runButton).removeAttr("disabled");
+                    this.runButton.disabled = false;
                     return "fail";
                 }
                 let runResults = await res.json();
@@ -120,7 +124,7 @@ export default class LiveCode extends ActiveCode {
                             this.addJobeErrorMessage(
                                 t(`Server Error: ${iores.statusText}`),
                             );
-                            $(this.runButton).removeAttr("disabled");
+                            this.runButton.disabled = false;
                             return "fail";
                         }
                         let result = await iores.json();
@@ -134,7 +138,7 @@ export default class LiveCode extends ActiveCode {
             this.addJobeErrorMessage(
                 t("msg_activecode_server_comm_err") + e.toString(),
             );
-            $(this.runButton).removeAttr("disabled");
+            this.runButton.disabled = false;
             return `fail: ${e}`;
         }
         return "success";
@@ -239,13 +243,13 @@ export default class LiveCode extends ActiveCode {
         }
 
         if (this.stdin) {
-            stdin = $(this.stdin_el).val();
+            stdin = this.stdin_el.value;
         }
         if (!this.sourcefile) {
             this.sourcefile = sfilemap[this.language];
         }
 
-        $(this.output).html(t("msg_activecode_compiling_running"));
+        this.output.innerHTML = t("msg_activecode_compiling_running");
 
         // Need to handle additional files
         // that come from additional_files (based on ids) and datafiles (based on filenames)
@@ -337,14 +341,17 @@ export default class LiveCode extends ActiveCode {
                         // do nothing, we will just use the original code
                     }
                 }
-                // Now make request for source_code
-                $.ajax({
-                    async: false,
-                    url: url,
-                    success: function (data) {
-                        result = data.detail;
-                    },
-                });
+                // Now make request for source_code. This lookup was
+                // historically synchronous ($.ajax async:false), but we are
+                // in an async function, so a normal fetch works here.
+                try {
+                    let response = await fetch(url);
+                    if (response.ok) {
+                        result = (await response.json()).detail;
+                    }
+                } catch (e) {
+                    console.log(`failed to fetch ${url}: ${e}`);
+                }
                 if (result) {
                     // favor student code if it exists
                     content = studentCode || result.file_contents;
@@ -476,10 +483,13 @@ export default class LiveCode extends ActiveCode {
     async submitToJobe() {
         var data = this.json_runspec;
         let host = this.JOBE_SERVER + this.resource;
-        $(this.runButton).attr("disabled", "disabled");
-        $(this.outDiv).show({ duration: 700, queue: false });
-        $(this.errDiv).remove();
-        $(this.output).css("visibility", "visible");
+        this.runButton.disabled = true;
+        this.outDiv.style.display = "";
+        this.outDiv.style.visibility = "visible";
+        if (this.errDiv) {
+            this.errDiv.remove();
+        }
+        this.output.style.visibility = "visible";
 
         let headers = new Headers({
             "Content-type": "application/json; charset=utf-8",
@@ -501,7 +511,7 @@ export default class LiveCode extends ActiveCode {
         var logresult;
         var odiv = this.output;
         this.parsedOutput = {};
-        $(this.runButton).removeAttr("disabled");
+        this.runButton.disabled = false;
         if (result.outcome === 15) {
             logresult = "success";
         } else {
@@ -515,7 +525,7 @@ export default class LiveCode extends ActiveCode {
                         result.stdout,
                         this.divid,
                     );
-                    $(odiv).html(this.parsedOutput.stdout);
+                    odiv.innerHTML = this.parsedOutput.stdout;
                 } else if (
                     this.language === "cpp" &&
                     result.stdout.includes("[doctest]")
@@ -524,10 +534,10 @@ export default class LiveCode extends ActiveCode {
                         result.stdout,
                         this.divid,
                     );
-                    $(odiv).html(this.parsedOutput.stdout);
+                    odiv.innerHTML = this.parsedOutput.stdout;
                 } else {
                     let output = result.stdout ? result.stdout : "";
-                    $(odiv).html(output);
+                    odiv.innerHTML = output;
                 }
                 if (this.hasUnitTests() || this.iotests) {
                     if (this.parsedOutput.pct === undefined) {
@@ -541,7 +551,7 @@ export default class LiveCode extends ActiveCode {
                 break;
             }
             case 11: // compiler error
-                $(odiv).html(t("msg_activecode_were_compiling_err"));
+                odiv.innerHTML = t("msg_activecode_were_compiling_err");
                 this.addJobeErrorMessage(result.cmpinfo);
                 this.errinfo = result.cmpinfo;
                 break;
@@ -553,22 +563,25 @@ export default class LiveCode extends ActiveCode {
                     this.compileargs &&
                     this.compileargs.includes("-c")
                 ) {
-                    $(odiv).html(t("msg_activecode_compile_only"));
+                    odiv.innerHTML = t("msg_activecode_compile_only");
                 } else {
                     // any other case is real run time error
-                    $(odiv).html(result.stdout.replace(/\n/g, "<br>"));
+                    odiv.innerHTML = result.stdout.replace(/\n/g, "<br>");
                     if (result.stderr) {
                         this.addJobeErrorMessage(result.stderr);
                     }
                 }
                 break;
             case 13: // time limit
-                $(odiv).html(escapeHtml(result.stdout).replace(/\n/g, "<br>"));
+                odiv.innerHTML = escapeHtml(result.stdout).replace(
+                    /\n/g,
+                    "<br>",
+                );
                 this.addJobeErrorMessage(t("msg_activecode_time_limit_exc"));
                 break;
             default:
                 if (result.stderr) {
-                    $(odiv).html(result.stderr.replace(/\n/g, "<br>"));
+                    odiv.innerHTML = result.stderr.replace(/\n/g, "<br>");
                 } else {
                     this.addJobeErrorMessage(t("msg_activecode_server_err"));
                 }
@@ -580,8 +593,8 @@ export default class LiveCode extends ActiveCode {
     processJobeIOResponses(resultList) {
         //process a series of IO test results into one unittest-like result
 
-        $(this.output).html(t("msg_activecode_iotest_results"));
-        $(this.runButton).removeAttr("disabled");
+        this.output.innerHTML = t("msg_activecode_iotest_results");
+        this.runButton.disabled = false;
         const odiv = this.output;
         this.parsedOutput = {};
 
@@ -651,20 +664,21 @@ export default class LiveCode extends ActiveCode {
                     }
                     break;
                 case 11: // compiler error
-                    $(odiv).html(result.cmpinfo.replace(/\n/g, "<br>"));
+                    odiv.innerHTML = result.cmpinfo.replace(/\n/g, "<br>");
                     td4.innerHTML = t("msg_activecode_test_compile_error");
                     td4.classList.add("ac-feedback-fail");
                     this.errinfo = result.cmpinfo;
                     break;
                 case 12: // run time error
-                    $(odiv).html(result.stderr.replace(/\n/g, "<br>"));
+                    odiv.innerHTML = result.stderr.replace(/\n/g, "<br>");
                     td4.innerHTML = t("msg_activecode_test_run_error");
                     td4.classList.add("ac-feedback-fail");
                     this.errinfo = result.stderr;
                     break;
                 case 13: // time limit
-                    $(odiv).html(
-                        escapeHtml(result.stdout).replace(/\n/g, "<br>"),
+                    odiv.innerHTML = escapeHtml(result.stdout).replace(
+                        /\n/g,
+                        "<br>",
                     );
                     td4.innerHTML = t("msg_activecode_time_limit_exc");
                     td4.classList.add("ac-feedback-fail");
@@ -672,7 +686,7 @@ export default class LiveCode extends ActiveCode {
                     break;
                 default:
                     if (result.stderr) {
-                        $(odiv).html(result.stderr.replace(/\n/g, "<br>"));
+                        odiv.innerHTML = result.stderr.replace(/\n/g, "<br>");
                     }
                     td4.innerHTML = t("msg_activecode_server_err");
                     td4.classList.add("ac-feedback-fail");
@@ -714,7 +728,8 @@ export default class LiveCode extends ActiveCode {
         if (this.errDiv) {
             this.errDiv.remove();
         }
-        var errHead = $("<h3>").html("Error");
+        var errHead = document.createElement("h3");
+        errHead.innerHTML = "Error";
         var eContainer = this.outerDiv.appendChild(
             document.createElement("div"),
         );
@@ -724,7 +739,7 @@ export default class LiveCode extends ActiveCode {
         eContainer.setAttribute("role", "log");
         eContainer.className = "error alert alert-danger";
         eContainer.id = this.divid + "_errinfo";
-        eContainer.appendChild(errHead[0]);
+        eContainer.appendChild(errHead);
         var errText = eContainer.appendChild(document.createElement("pre"));
         // screenreaders seem to miss error message without the delay
         setTimeout(() => {
@@ -851,7 +866,7 @@ export default class LiveCode extends ActiveCode {
         myVars.code = code;
         myVars.lang = this.language;
         if (this.stdin) {
-            myVars.stdin = $(this.stdin_el).val();
+            myVars.stdin = this.stdin_el.value;
         }
         var targetDiv = this.codelens.id;
 
