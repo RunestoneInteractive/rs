@@ -69,6 +69,7 @@ p.examwarning {
     margin-left: auto;
     margin-right: auto;
     background-color: rgba(243, 156, 156, 0.822);
+    color: black;
     border: solid black;
     border-radius: 5px;
     border-width: 2px;
@@ -99,4 +100,43 @@ p.examwarning {
 .switchcontainer {
     height: 1000px;
     overflow: auto;
+}
+
+
+/* Inline styles converted to classes */
+.timed-container-fullwidth {
+    max-width: none;
+}
+
+.timed-center {
+    text-align: center;
+}
+
+.timed-hidden {
+    display: none;
+}
+
+.timed-visible {
+    display: block;
+}
+
+.timed-cursor-pointer {
+    cursor: pointer;
+}
+
+.timed-summary-style {
+    width: 50%;
+    margin: 0 auto;
+    background-color: #DFF0D8;
+    color: #000000;
+    text-align: center;
+    border: 2px solid #DFF0D8;
+    border-radius: 25px;
+}
+
+.timed-tooltip-time {
+    margin: 0;
+    padding: 0;
+    background-color: black;
+    color: white;
 }
