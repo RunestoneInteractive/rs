@@ -73,6 +73,15 @@ Course Settings
             </div>
 
             <div class="settingsbox">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="use_pretext_student_pages" {% if use_pretext_student_pages=="true" %}checked{% endif %}
+                        onchange="updateCourse(this,'use_pretext_student_pages')">
+                    <label for="use_pretext_student_pages">Use PreTeXt based student pages</label>
+                </div>
+                <div class="setting-description">When enabled, student pages can use book-specific template overrides.</div>
+            </div>
+
+            <div class="settingsbox">
                 <label for="groupsize">Group Size for Peer Instruction</label>
                 <select id="groupsize" onchange="updateCourse(this,'groupsize')">
                     <option value="2" {% if groupsize=="2" %}selected{% endif %}>2</option>

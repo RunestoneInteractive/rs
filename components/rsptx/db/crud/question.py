@@ -346,17 +346,27 @@ async def fetch_assignment_question(
 
 async def fetch_assignment_questions(
     assignment_id: int,
-) -> List[Tuple[Question, AssignmentQuestion]]:
+) -> List[Tuple[Question, AssignmentQuestion, Chapter, SubChapter]]:
     """
     Retrieve the AssignmentQuestion entry for the given assignment_name and question_name.
 
     :param assignment_name: str, the name of the assignment
     :param question_name: str, the name (div_id) of the question
-    :return: AssignmentQuestionValidator, the AssignmentQuestionValidator object
+    :return: AssignmentQuestionValidator, AssignmentQuestionValidator, ChapterValidator, SubChapterValidator
     """
     query = (
-        select(Question, AssignmentQuestion)
+        select(Question, AssignmentQuestion, Chapter, SubChapter)
         .join(Question, AssignmentQuestion.question_id == Question.id)
+        .join(
+            Chapter,
+            (Question.chapter == Chapter.chapter_label)
+            & (Question.base_course == Chapter.course_id),
+        )
+        .join(
+            SubChapter,
+            (Question.subchapter == SubChapter.sub_chapter_label)
+            & (SubChapter.chapter_id == Chapter.id),
+        )
         .where(AssignmentQuestion.assignment_id == assignment_id)
         .order_by(AssignmentQuestion.sorting_priority)
     )

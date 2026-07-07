@@ -161,7 +161,7 @@ async def get_peer_dashboard(
     questions_result = await fetch_assignment_questions(assignment_id)
     questions = []
     for row in questions_result:
-        question, assignment_question = row
+        question = row.Question
         questions.append(question)
 
     # Get current question based on assignment's current_index
@@ -287,7 +287,7 @@ async def get_peer_extra(
 
     assignment = await fetch_one_assignment(assignment_id)
     questions_result = await fetch_assignment_questions(assignment_id)
-    questions = [q for q, _aq in questions_result]
+    questions = [q.Question for q in questions_result]
 
     current_idx = (
         assignment.current_index if assignment.current_index is not None else 0
@@ -400,7 +400,7 @@ async def get_peer_question(
     questions_result = await fetch_assignment_questions(assignment_id)
     questions = []
     for row in questions_result:
-        question, assignment_question = row
+        question = row.Question
         questions.append(question)
 
     # Get the current question based on assignment's current_index
@@ -529,7 +529,7 @@ async def get_peer_async(
         )
 
     qa_pairs = list(await fetch_assignment_questions(assignment_id))
-    questions = [q for q, _aq in qa_pairs]
+    questions = [q.Question for q in qa_pairs]
     total_questions = len(questions)
 
     idx = question_num - 1

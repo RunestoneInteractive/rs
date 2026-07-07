@@ -423,6 +423,9 @@ async def get_course_settings(
         "show_points": course_attrs.get("show_points") == "true",
         "groupsize": course_attrs.get("groupsize", "3"),
         "enable_async_llm_modes": course_attrs.get("enable_async_llm_modes", "false"),
+        "use_pretext_student_pages": str(
+            course_attrs.get("use_pretext_student_pages", "false")
+        ).lower(),
     }
 
     return templates.TemplateResponse("admin/instructor/course_settings.html", context)
@@ -1151,7 +1154,7 @@ async def _copy_one_assignment(
         assignment_questions = await fetch_assignment_questions(old_assignment_id)
 
         for question_data in assignment_questions:
-            question, assignment_question = question_data
+            assignment_question = question_data.AssignmentQuestion
 
             new_assignment_question_data = AssignmentQuestionValidator(
                 assignment_id=new_assignment.id,

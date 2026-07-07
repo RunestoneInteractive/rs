@@ -1,0 +1,62 @@
+/* 
+Styles for the assignment block table.
+This is used in the chooseAssignment page and the current_course page.
+*/
+
+/* This should only be applied when using the pretext template.
+   :where forces low specificity */
+:where(body:is(.ptx-runestone-template)) {
+  .rs-assignment-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+  }
+
+  .rs-assignment-table thead {
+      border-bottom: 2px solid var(--rs-table-border, #888);
+  }
+  
+  .rs-assignment-table th {
+    border-bottom: 2px solid var(--rs-table-border, #888);
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    text-align: start;
+    font-size: 100%;
+  }
+
+  .rs-assignment-table td {
+    border-bottom: 1px solid var(--rs-table-border, #888);
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    font-size: 100%;
+  }
+
+  .rs-assignment-table .ti {
+    font-size: 125%;
+  }
+  .rs-assignment-table a {
+    border: 0;
+  }
+}
+
+
+:root {
+  --color-success: #11b70e;
+  --color-error: #ff0000;
+  --rs-assignment-meta: #fafafa;
+  --rs-assignment-meta-border: #aaa;
+}
+
+:root.dark-mode {
+  --color-success: rgb(110, 183, 14);
+  --color-error: rgb(230, 50, 50);
+  --rs-assignment-meta: #2d2d2d;
+  --rs-assignment-meta-border: #555;
+}
+
+.overdue {
+    color: var(--color-error);
+}
+.duesoon {
+    color: var(--color-success);
+}
