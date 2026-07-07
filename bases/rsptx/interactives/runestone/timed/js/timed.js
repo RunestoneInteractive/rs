@@ -1252,6 +1252,10 @@ export default class Timed extends RunestoneBase {
         );
     }
     displayScore() {
+        // Reveal the score, clearing the initial hidden state so the element
+        // isn't left with both timed-hidden and timed-visible (which only
+        // works by CSS source order).
+        this.scoreDiv.classList.remove("timed-hidden");
         if (this.showResults) {
             var scoreString = "";
             var numQuestions;

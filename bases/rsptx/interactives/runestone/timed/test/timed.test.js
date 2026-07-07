@@ -98,7 +98,9 @@ describe("construction", () => {
         expect(isHidden(exam.timerContainer)).toBe(true);
         expect(exam.nopause).toBe(true);
         expect(exam.pauseBtn.parentElement).toBe(null);
-        expect(exam.containerDiv.style.maxWidth).toBe("none");
+        expect(
+            exam.containerDiv.classList.contains("timed-container-fullwidth"),
+        ).toBe(true);
         expect(exam.showFeedback).toBe(false);
     });
 });
