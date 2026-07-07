@@ -1,26 +1,7 @@
 /* Styles for choose/do assignment pages. */
 /* Styles at top are universal. Below are sections for RS or PTX based templates. */
 
-:root {
-  --color-success: #11b70e;
-  --color-error: #ff0000;
-  --rs-assignment-meta: #fafafa;
-  --rs-assignment-meta-border: #aaa;
-}
-
-:root.dark-mode {
-  --color-success: rgb(110, 183, 14);
-  --color-error: rgb(230, 50, 50);
-  --rs-assignment-meta: #2d2d2d;
-  --rs-assignment-meta-border: #555;
-}
-
-.overdue {
-    color: var(--color-error);
-}
-.duesoon {
-    color: var(--color-success);
-}
+/* assumes that assignment_block.css will also be loaded on the page */
 
 .assignment-questions {
   padding-left: 0;
