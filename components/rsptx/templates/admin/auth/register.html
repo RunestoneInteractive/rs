@@ -35,7 +35,7 @@
             <input type="text" class="form-control" id="username" name="username"
                    autocomplete="username"
                    value="{{ submitted.username if submitted is defined else '' }}" required>
-            <small class="form-text text-muted">Letters, digits, and underscores only. Cannot be changed later.</small>
+            <small class="form-text text-muted">Letters, digits, and <code>@ . _ - + %</code> (no spaces). You may use your email address. Cannot be changed later.</small>
         </div>
         <div class="form-group">
             <label for="email">Email Address</label>
