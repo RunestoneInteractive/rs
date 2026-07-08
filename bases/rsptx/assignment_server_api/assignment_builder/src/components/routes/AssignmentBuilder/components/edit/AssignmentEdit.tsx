@@ -5,6 +5,7 @@ import {
   ActionIcon,
   Center,
   Checkbox,
+  CopyButton,
   Group,
   Loader,
   NumberInput,
@@ -303,6 +304,53 @@ export const AssignmentEdit = ({
     </Paper>
   );
 
+  const renderLtiSection = () => {
+    if (!selectedAssignment?.id) {
+      return null;
+    }
+    const { protocol, host } = window.location;
+    const ltiLink = `${protocol}//${host}/runestone/lti?assignment_id=${selectedAssignment.id}`;
+
+    return (
+      <Paper className={styles.section}>
+        <h3 className={styles.sectionTitle}>LTI 1.1 link</h3>
+        <div className={styles.fields}>
+          <div className={styles.field}>
+            <label htmlFor="lti-link">
+              Paste this URL as the launch URL of an external tool / assignment in your LMS (Canvas,
+              Moodle, Blackboard, …) to link it to this Runestone assignment. Your LMS must already
+              have the Runestone consumer key and shared secret configured.
+            </label>
+            <Group gap="xs" wrap="nowrap">
+              <TextInput
+                id="lti-link"
+                value={ltiLink}
+                readOnly
+                onFocus={(e) => e.currentTarget.select()}
+                style={{ flex: 1 }}
+              />
+              <CopyButton value={ltiLink} timeout={2000}>
+                {({ copied, copy }) => (
+                  <Tooltip label={copied ? "Copied" : "Copy LTI link"} position="left">
+                    <ActionIcon
+                      variant="subtle"
+                      color={copied ? "green" : "gray"}
+                      size={40}
+                      onClick={copy}
+                      aria-label="Copy LTI link"
+                    >
+                      <Icon name={copied ? "check" : "copy"} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </CopyButton>
+            </Group>
+          </div>
+        </div>
+      </Paper>
+    );
+  };
+
   return (
     <div className={styles.layout}>
       <nav
@@ -395,6 +443,7 @@ export const AssignmentEdit = ({
               {kind === "Timed" && renderBehaviorSection()}
               {kind === "Peer" && renderPeerSection()}
               {renderVisibilitySection()}
+              {renderLtiSection()}
             </div>
           )}
           {activeTab === "readings" && <AssignmentReadings />}
