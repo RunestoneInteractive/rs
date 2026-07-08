@@ -37,7 +37,7 @@ LEGAL_DOCS = {
         "updated": "July 2026",
         "template": "legal/privacy.html",
         "blurb": "What data we collect, how we use and protect it, and your "
-        "rights (COPPA, GDPR, CCPA, data retention and deletion).",
+        "rights (FERPA,COPPA, GDPR, CCPA, data retention and deletion).",
         "hub": True,
     },
     "terms": {
@@ -66,6 +66,13 @@ LEGAL_DOCS = {
         "hub": True,
         # Downloadable VPAT/ACR, served from the shared staticAssets.
         "extra": {"vpat_url": "/staticAssets/docs/runestone-vpat.pdf"},
+    },
+    "HECVAT": {
+        "title": "Higher Education Community Vendor Assessment Toolkit (HECVAT)",
+        "updated": None,
+        "template": "#",
+        "blurb": "Runestone does not provide a HECVAT as it is intended for much larger organizations.",
+        "hub": True,
     },
     "ads": {
         "title": "About Advertising",

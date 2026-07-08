@@ -36,6 +36,7 @@
     .legal-card .legal-card-updated {
         display: block; margin-top: 12px; color: #8a8a8a; font-size: 0.82rem;
     }
+    .legal-hub-section { margin-top: 32px; }
     .legal-hub-footnote { margin-top: 32px; color: #666; font-size: 0.9rem; }
 </style>
 {% endblock %}
@@ -52,6 +53,7 @@
 
     <div class="legal-hub-grid">
         {% for card in cards %}
+        {% if card.template != "#" %}
         <a class="legal-card" href="/admin/legal/{{ card.key }}">
             <h2>{{ card.title }}</h2>
             <p>{{ card.blurb }}</p>
@@ -59,9 +61,32 @@
             <span class="legal-card-updated">Last updated: {{ card.updated }}</span>
             {% endif %}
         </a>
+        {% else %}
+        <a class="legal-card" href="#">
+            <h2>{{ card.title }}</h2>
+            <p>{{ card.blurb }}</p>
+            {% if card.updated %}
+            <span class="legal-card-updated">Last updated: {{ card.updated }}</span>
+            {% endif %}
+        </a>
+
+        {% endif %}
         {% endfor %}
     </div>
 
+    <div class="legal-hub-section">
+        <h2>National Data Privacy Agreement (NDPA)</h2>
+        <p class="legal-hub-intro">We already signed the NDPA in many states!  Please check with your state alliance
+        to see if your state already has a signed NDPA.</p>
+        <p class="legal-hub-intro">The NDPA version 2 has been developed by the 28 state Alliances addressing common
+        obligations across the U.S. as well as their specific state needs.  Version 2 
+        incorporates feedback from Alliance leaders and Vendor Community Members, 
+        and has been reviewed by legal representatives through A4L Community Member Review.  
+        It is designed to address common student data privacy concerns and streamline the 
+        educational application contracting processes for schools/districts who do not have 
+        the legal or fiscal resources and vendors who previously had to sign “one off” 
+        contracts with each of the over 13,000 US school districts. </p>
+    </div>
     <p class="legal-hub-footnote">
         Related: <a href="/admin/legal/ads">About Advertising</a>.
         State-specific addenda to the Terms of Service are linked from the
