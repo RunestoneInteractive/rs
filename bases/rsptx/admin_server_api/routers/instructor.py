@@ -74,7 +74,6 @@ from rsptx.db.models import (
 from rsptx.response_helpers.core import canonical_utcnow, make_json_response
 import datetime
 
-
 # Routing
 # =======
 # See `APIRouter config` for an explanation of this approach.
@@ -1310,15 +1309,13 @@ async def root(request: Request, response_class: JSONResponse):
 
 # Designer page endpoints (moved to end of file)
 @router.get("/create_course", response_class=HTMLResponse)
-@with_course()
-async def get_create_course_page(
-    request: Request, user=Depends(auth_manager), course=None
-):
+async def get_create_course_page(request: Request, user=Depends(auth_manager)):
     """
     Display the course designer form for instructors.
     """
     templates = Jinja2Templates(directory=template_folder)
     # Fetch real course list from the library table
+    course = user.course_name
 
     course_list = await fetch_library_books()
     # Convert LibraryValidator objects to dicts for template compatibility
@@ -1352,7 +1349,6 @@ def _parse_start_date(startdate: str) -> datetime.date:
 
 
 @router.post("/create_course", response_class=HTMLResponse)
-@with_course()
 async def post_create_course_page(
     request: Request,
     institution: str = Form(...),
