@@ -26,7 +26,7 @@ Before running the setup script, you need:
 
 - **bash** (Linux and macOS have this by default, but...)
 
-  - The script uses features of bash introduced in version 5.0 so make sure you have a compatible version (Linux typically has this, macOS may require installing a newer version via Homebrew)
+  - The script uses features of bash introduced in version 5.0 so make sure you have a compatible version (Linux typically has this, macOS may require installing a newer version via Homebrew(https://brew.sh/))
 
 **Optional:**
 
