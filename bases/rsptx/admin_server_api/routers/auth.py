@@ -156,6 +156,7 @@ async def login_post(
     else:
         response = RedirectResponse(next, status_code=status.HTTP_302_FOUND)
     auth_manager.set_cookie(response, access_token)
+    rslogger.info(f"LOGIN: {username}")
     return response
 
 
@@ -301,6 +302,9 @@ async def register_post(
 
     response = RedirectResponse(redirect_to, status_code=status.HTTP_302_FOUND)
     auth_manager.set_cookie(response, access_token)
+    rslogger.info(
+        f"REGISTER: {username} (instructor={is_instructor}, institution='{institution}')"
+    )
     return response
 
 
@@ -754,6 +758,7 @@ async def reset_password_post(
         )
 
     await update_user(user.id, {"password": password})
+    rslogger.info(f"RESET PASSWORD: {user.username}")
     return RedirectResponse(
         f"{_LOGIN}?next=/ns/course/index", status_code=status.HTTP_302_FOUND
     )
