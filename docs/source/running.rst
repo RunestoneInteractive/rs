@@ -26,7 +26,7 @@ Before running the setup script, you need:
 
 - **bash** (Linux and macOS have this by default, but...)
 
-  - The script uses features of bash introduced in version 5.0 so make sure you have a compatible version (Linux typically has this, macOS may require installing a newer version via Homebrew)
+  - The script uses features of bash introduced in version 5.0 so make sure you have a compatible version (Linux typically has this, macOS may require installing a newer version via `Homebrew <https://brew.sh>`_)
 
 **Optional:**
 
@@ -148,7 +148,7 @@ If you prefer to update manually (note this does **not** refresh
 
    docker compose pull
    docker compose run --rm rsmanage check-db-migrations.sh
-   docker compose stop. # or use down IF you run you DB outside of Docker
+   docker compose stop # or use down IF you run you DB outside of Docker
    docker compose up -d
 
 If database migrations are required, the ``check-db-migrations.sh`` script will prompt you to run them.
