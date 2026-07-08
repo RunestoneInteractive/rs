@@ -965,6 +965,16 @@ async def doAssignment(
     # reverse the order of the keys in the preambles dictionary so that the first key I added is now the last
     # this will ensure that when multiple preamble definitions are used the last one is from the current course
     preambles = dict((k, v) for k, v in reversed(preambles.items()))
+    if "webwork_js_version" in course_attrs:
+        webwork_js_version = course_attrs["webwork_js_version"]
+        del course_attrs["webwork_js_version"]
+    else:
+        webwork_js_version = "2.20"
+    if "ptx_js_version" in course_attrs:
+        ptx_js_version = course_attrs["ptx_js_version"]
+        del course_attrs["ptx_js_version"]
+    else:
+        ptx_js_version = "0.2"
     context = dict(  # This is all the variables that will be used in the doAssignment.html document
         course=course,
         request=request,
@@ -989,8 +999,8 @@ async def doAssignment(
         is_graded=is_graded,
         overdue=overdue,
         enforce_pastdue=enforce_pastdue,
-        ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
-        webwork_js_version=course_attrs.get("webwork_js_version", "2.20"),
+        ptx_js_version=ptx_js_version,
+        webwork_js_version=webwork_js_version,
         latex_preamble_dict=preambles,
         wp_imports=get_webpack_static_imports(course),
         settings=settings,
