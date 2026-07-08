@@ -123,8 +123,8 @@ def test_killer(test_assignment, test_client, test_user_1, runestone_db_tools):
         ("default/reportabug", False, "Report a Bug", 1),
         ("default/reportabug", True, "Report a Bug", 1),
         # ('default/sendreport', True, 'Could not create issue', 1),
-        ("default/terms", False, "Terms and Conditions", 1),
-        ("default/privacy", False, "Runestone Academy Privacy Policy", 1),
+        # NOTE: terms/privacy/wisp/ads legal pages were migrated to the admin
+        # server at /admin/legal/* and removed from web2py.
         ("default/donate", False, "Support Runestone Academy", 1),
         # TODO: This doesn't really test much of the body of either of these.
         ("default/coursechooser", True, "Course Selection", 1),

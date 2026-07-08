@@ -44,6 +44,14 @@ include /etc/nginx/default.d/\*.conf;
     server_name RunestoneMobile.local;
 
     rewrite ^/ads.txt /runestone/static/ads.txt;
+    # Serve the security contact file (RFC 9116) from the shared staticAssets.
+    rewrite ^/\.well-known/security\.txt$ /staticAssets/.well-known/security.txt last;
+    # Global Privacy Control signal (https://globalprivacycontrol.github.io/gpc-spec/).
+    rewrite ^/\.well-known/gpc\.json$ /staticAssets/.well-known/gpc.json last;
+    # Well-known change-password URL: deep-links password managers to the change page.
+    location = /.well-known/change-password {
+        return 302 /admin/auth/forgot-password;
+    }
     rewrite ^/runestone/static/JavaReview/(\w+)/(.*)$ /ns/books/published/apcsareview/$1/$2;
     rewrite ^/runestone/static/csawesome/(\w+)/(.*)$ /ns/books/published/csawesome/$1/$2;
 

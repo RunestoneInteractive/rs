@@ -1,0 +1,6 @@
+# Runestone Academy security contact information (RFC 9116)
+Contact: mailto:info@runestone.academy
+Expires: 2027-07-08T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://runestone.academy/.well-known/security.txt
+Policy: https://runestone.academy/admin/legal/security

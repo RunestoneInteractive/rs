@@ -44,6 +44,19 @@
 		@ads path /ads.txt
 		rewrite @ads /runestone/static/ads.txt
 
+		# Serve the security contact file (RFC 9116) from staticAssets.
+		# rewrite ^/.well-known/security.txt$ /staticAssets/.well-known/security.txt
+		@securitytxt path /.well-known/security.txt
+		rewrite @securitytxt /staticAssets/.well-known/security.txt
+
+		# Global Privacy Control signal (https://globalprivacycontrol.github.io/gpc-spec/).
+		@gpc path /.well-known/gpc.json
+		rewrite @gpc /staticAssets/.well-known/gpc.json
+
+		# Well-known change-password URL: deep-links password managers to the change page.
+		@changepw path /.well-known/change-password
+		redir @changepw /admin/auth/forgot-password 302
+
 		# rewrite ^/runestone/static/JavaReview/(\w+)/(.*)$ /ns/books/published/apcsareview/$1/$2;
 		@javareview path_regexp jr ^/runestone/static/JavaReview/(\w+)/(.*)$
 		rewrite @javareview /ns/books/published/apcsareview/{re.jr.1}/{re.jr.2}

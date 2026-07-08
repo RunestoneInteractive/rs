@@ -217,7 +217,7 @@
                 <p>
                     &copy; Copyright {{=request.now.year}} Runestone Academy Ltd
                     {{ if settings.academy_mode: }}
-                        &emsp; ● <a href="/{{=request.application}}/default/privacy">Privacy Policy</a> &emsp; ●  <a href="/{{=request.application}}/default/terms">Terms of Service</a>
+                        &emsp; ● <a href="/admin/legal/privacy">Privacy Policy</a> &emsp; ●  <a href="/admin/legal/terms">Terms of Service</a>
                     {{ pass }}
                     {{ if auth.user: }}
                         <span class='loggedinuser'>{{=auth.user.email}}</span> | <a href="#" onclick="document.getElementById('skip-to-content').focus()">Back to top</a>
@@ -238,7 +238,7 @@
             data-link="#F1D600"
             data-cookie="CookieInfoScript"
             data-message="By continuing to visit this site you agree to our use of cookies and our privacy policy."
-            data-moreinfo="https://runestone.academy/runestone/default/privacy"
+            data-moreinfo="https://runestone.academy/admin/legal/privacy"
             data-text-align="left"
             data-close-text="Got it!"></script>
         {{ pass }}

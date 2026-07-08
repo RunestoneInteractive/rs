@@ -30,6 +30,7 @@ from .routers import instructor
 from .routers import analytics
 from .routers import auth
 from .routers import telemetry
+from .routers import legal
 
 # FastAPI setup
 # =============
@@ -53,6 +54,7 @@ app.include_router(instructor.router)
 app.include_router(analytics.router)
 app.include_router(auth.router)
 app.include_router(telemetry.router)
+app.include_router(legal.router)
 
 # load a common set of middleware/exception handlers
 add_exception_handlers(app)

@@ -1,0 +1,63 @@
+{# Shared layout for a single legal document.  Extends the site base so
+   these pages get the standard navbar + footer.  Pages fill `legal_content`;
+   the router supplies `page_title` and an optional `updated` date. #}
+{% extends "_base.html" %}
+
+{% block title %}{{ page_title }} — Runestone Academy{% endblock %}
+
+{% block navbar %}{% include "legal/_public_nav.html" %}{% endblock %}
+
+{% block css %}
+<style>
+    .legal-doc {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: 24px 20px 72px;
+        font-size: 1.0625rem;
+        line-height: 1.65;
+        color: #1a1a1a;
+    }
+    .legal-breadcrumb {
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+    }
+    .legal-breadcrumb a { color: #555; text-decoration: none; }
+    .legal-breadcrumb a:hover { text-decoration: underline; }
+    .legal-header {
+        border-bottom: 1px solid #e0e0e0;
+        padding-bottom: 16px;
+        margin-bottom: 28px;
+    }
+    .legal-header h1 { margin: 0 0 6px; line-height: 1.2; }
+    .legal-updated { margin: 0; color: #6a6a6a; font-size: 0.9rem; }
+    .legal-doc h2 { margin-top: 2rem; font-size: 1.4rem; }
+    .legal-doc h3 { margin-top: 1.6rem; font-size: 1.15rem; }
+    .legal-doc ul, .legal-doc ol { padding-left: 1.4rem; }
+    .legal-doc li { margin-bottom: 0.4rem; }
+    .legal-doc a { color: #1565c0; }
+    .legal-contact {
+        margin-top: 2.5rem;
+        padding: 16px 20px;
+        background: #f7f7f7;
+        border-radius: 8px;
+        font-size: 0.95rem;
+    }
+    @media (max-width: 640px) {
+        .legal-doc { font-size: 1rem; padding: 16px 16px 56px; }
+    }
+</style>
+{% block legal_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="legal-doc">
+    <nav class="legal-breadcrumb">
+        <a href="/admin/legal">&larr; Legal &amp; Compliance</a>
+    </nav>
+    <header class="legal-header">
+        <h1>{{ page_title }}</h1>
+        {% if updated %}<p class="legal-updated">Last updated: {{ updated }}</p>{% endif %}
+    </header>
+    {% block legal_content %}{% endblock %}
+</div>
+{% endblock %}
