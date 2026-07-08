@@ -392,15 +392,15 @@ async def courses_post(
 
 @router.get("/donate", response_class=HTMLResponse)
 async def donate_page(request: Request):
+    # The donate page is open to everyone -- logged-in students we prompt after
+    # registration as well as anonymous visitors who want to support Runestone.
+    # Only build the (user-specific) navbar context when someone is signed in.
     user = await _current_user(request)
-    if not _user_exists(user):
-        return RedirectResponse(
-            f"{_LOGIN}?next={_DONATE}", status_code=status.HTTP_302_FOUND
-        )
-    return templates.TemplateResponse(
-        "admin/auth/donate.html",
-        {"request": request, "user": user, **(await _navbar_context(user))},
-    )
+    context = {"request": request, "user": None}
+    if _user_exists(user):
+        context["user"] = user
+        context.update(await _navbar_context(user))
+    return templates.TemplateResponse("admin/auth/donate.html", context)
 
 
 @router.post("/donate/mark")
