@@ -346,7 +346,9 @@ def ack():
 
 
 def start():
-    return dict()
+    # The Getting Started page was migrated to the admin server and is now
+    # served at /admin/get-started.  Redirect old links/bookmarks there.
+    redirect("/admin/get-started")
 
 
 @auth.requires_login()

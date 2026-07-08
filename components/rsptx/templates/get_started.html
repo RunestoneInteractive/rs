@@ -1,0 +1,383 @@
+{# Getting Started — a wayfinding page.  "Runestone" stones marked routes for
+   travelers; this page does the same, sending each visitor down one of three
+   paths to their first book.  Public: extends the site base but uses a minimal
+   brand navbar (the full instructor navbar assumes a course context). #}
+{% extends "_base.html" %}
+
+{% block title %}Getting Started — Runestone Academy{% endblock %}
+
+{% block navbar %}
+<nav class="navbar navbar-expand-sm sticky-top navbar-light bg-light">
+    <a class="navbar-brand" href="https://runestone.academy">
+        <img src="/staticAssets/RAIcon.png" height="30" alt="Runestone Academy" />
+    </a>
+    <div class="ml-auto nav-item">
+        <a class="nav-link" href="/ns/books/index">Browse the Library</a>
+    </div>
+</nav>
+{% endblock %}
+
+{% block css %}
+<style>
+    .gs {
+        --gs-ink: #12233b;
+        --gs-muted: #5a6a7d;
+        --gs-line: #e2e7ee;
+        --gs-surface: #fbfcfe;
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 8px 20px 80px;
+        color: var(--gs-ink);
+    }
+
+    /* ---- Hero ---- */
+    .gs-hero { padding: 44px 0 8px; max-width: 760px; }
+    .gs-eyebrow {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--gs-muted);
+        margin: 0 0 12px;
+    }
+    .gs-hero h1 {
+        font-size: clamp(2rem, 4.5vw, 3rem);
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+        margin: 0 0 14px;
+        font-weight: 800;
+    }
+    .gs-hero p {
+        font-size: 1.15rem;
+        line-height: 1.55;
+        color: var(--gs-muted);
+        margin: 0;
+    }
+
+    /* ---- The three paths ---- */
+    .gs-paths {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-top: 48px;
+    }
+    .gs-path {
+        --gs-accent: #1565c0;
+        --gs-accent-soft: #e8f1fb;
+        background: var(--gs-surface);
+        border: 1px solid var(--gs-line);
+        border-radius: 16px;
+        padding: 26px 24px 28px;
+        display: flex;
+        flex-direction: column;
+    }
+    .gs-path--learner    { --gs-accent: #0e7490; --gs-accent-soft: #e2f4f8; }
+    .gs-path--student    { --gs-accent: #b45309; --gs-accent-soft: #fbeedd; }
+    .gs-path--instructor { --gs-accent: #6d28d9; --gs-accent-soft: #efe8fc; }
+
+    /* Persona header */
+    .gs-persona { padding-bottom: 22px; border-bottom: 1px solid var(--gs-line); }
+    .gs-persona__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        background: var(--gs-accent-soft);
+        color: var(--gs-accent);
+        font-size: 1.5rem;
+        margin-bottom: 14px;
+    }
+    .gs-persona h2 {
+        font-size: 1.3rem;
+        margin: 0 0 6px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }
+    .gs-persona p { margin: 0; color: var(--gs-muted); font-size: 0.95rem; line-height: 1.5; }
+
+    /* Numbered steps connected by a route line */
+    .gs-steps {
+        list-style: none;
+        margin: 22px 0 0;
+        padding: 0;
+        position: relative;
+        flex: 1;
+    }
+    /* the "road": a vertical line running through the number column */
+    .gs-steps::before {
+        content: "";
+        position: absolute;
+        left: 15px;
+        top: 14px;
+        bottom: 22px;
+        width: 2px;
+        background: var(--gs-line);
+    }
+    .gs-step {
+        position: relative;
+        padding: 0 0 22px 46px;
+    }
+    .gs-step:last-child { padding-bottom: 0; }
+    .gs-step__num {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid var(--gs-accent);
+        color: var(--gs-accent);
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .gs-step h3 {
+        font-size: 1.02rem;
+        margin: 4px 0 4px;
+        font-weight: 650;
+        line-height: 1.3;
+    }
+    .gs-step h3 a { color: var(--gs-accent); text-decoration: none; }
+    .gs-step h3 a:hover { text-decoration: underline; }
+    .gs-step p { margin: 0; color: var(--gs-muted); font-size: 0.9rem; line-height: 1.5; }
+
+    /* Final step = the destination.  Filled marker + a real CTA button. */
+    .gs-step--goal .gs-step__num {
+        background: var(--gs-accent);
+        color: #fff;
+        font-size: 1rem;
+    }
+    .gs-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+        padding: 9px 18px;
+        border-radius: 10px;
+        background: var(--gs-accent);
+        color: #fff;
+        font-weight: 650;
+        font-size: 0.95rem;
+        text-decoration: none;
+        transition: transform 0.12s ease, filter 0.12s ease;
+    }
+    .gs-cta:hover { filter: brightness(1.08); text-decoration: none; color: #fff; transform: translateY(-1px); }
+    .gs-cta .ti { font-size: 1.05rem; }
+
+    /* ---- Quick jump + resources ---- */
+    .gs-more {
+        margin-top: 56px;
+        display: grid;
+        grid-template-columns: 1fr 1.3fr;
+        gap: 28px;
+        align-items: start;
+    }
+    .gs-panel {
+        border: 1px solid var(--gs-line);
+        border-radius: 16px;
+        padding: 26px 26px 28px;
+    }
+    .gs-panel h2 {
+        font-size: 1.15rem;
+        margin: 0 0 4px;
+        font-weight: 700;
+    }
+    .gs-panel > p { margin: 0 0 18px; color: var(--gs-muted); font-size: 0.95rem; }
+    .gs-quick { display: flex; flex-wrap: wrap; gap: 12px; }
+    .gs-quick a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 0.95rem;
+    }
+    .gs-quick .gs-quick--primary { background: #1565c0; color: #fff; }
+    .gs-quick .gs-quick--primary:hover { background: #0d4d99; }
+    .gs-quick .gs-quick--ghost { border: 1px solid var(--gs-line); color: var(--gs-ink); }
+    .gs-quick .gs-quick--ghost:hover { border-color: #c3ccd8; background: #f6f8fb; }
+
+    .gs-reslist { list-style: none; margin: 0; padding: 0; }
+    .gs-reslist li {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 12px 0;
+        border-top: 1px solid var(--gs-line);
+    }
+    .gs-reslist li:first-child { border-top: 0; padding-top: 0; }
+    .gs-reslist .ti { color: #1565c0; font-size: 1.2rem; margin-top: 2px; flex: none; }
+    .gs-reslist a { color: #1565c0; text-decoration: none; font-weight: 600; }
+    .gs-reslist a:hover { text-decoration: underline; }
+    .gs-reslist span { color: var(--gs-muted); font-size: 0.9rem; }
+    .gs-reslist strong { display: block; font-weight: 650; color: var(--gs-ink); }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 900px) {
+        .gs-paths { grid-template-columns: 1fr; }
+        .gs-more { grid-template-columns: 1fr; }
+    }
+
+    /* ---- Motion: a gentle staggered reveal of each path ---- */
+    @media (prefers-reduced-motion: no-preference) {
+        .gs-path { opacity: 0; transform: translateY(14px); animation: gs-rise 0.5s ease forwards; }
+        .gs-path--learner    { animation-delay: 0.05s; }
+        .gs-path--student    { animation-delay: 0.13s; }
+        .gs-path--instructor { animation-delay: 0.21s; }
+        @keyframes gs-rise { to { opacity: 1; transform: none; } }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gs">
+    <header class="gs-hero">
+        <p class="gs-eyebrow">Getting Started</p>
+        <h1>Find your path into Runestone</h1>
+        <p>
+            Everyone is welcome here. Pick the description that fits you best and
+            follow the steps — you'll be reading an interactive book in minutes.
+        </p>
+    </header>
+
+    <div class="gs-paths">
+
+        <!-- Independent learner -->
+        <section class="gs-path gs-path--learner" aria-labelledby="gs-learner">
+            <div class="gs-persona">
+                <span class="gs-persona__icon" aria-hidden="true"><i class="ti ti-compass"></i></span>
+                <h2 id="gs-learner">Independent learner</h2>
+                <p>You're teaching yourself and choosing your own book.</p>
+            </div>
+            <ol class="gs-steps">
+                <li class="gs-step">
+                    <span class="gs-step__num">1</span>
+                    <h3><a href="/ns/books/index">Browse the Library</a></h3>
+                    <p>Explore every open, interactive book we host.</p>
+                </li>
+                <li class="gs-step">
+                    <span class="gs-step__num">2</span>
+                    <h3>Note the book's code</h3>
+                    <p>Each Library card shows a short course code — you'll need it to sign up.</p>
+                </li>
+                <li class="gs-step">
+                    <span class="gs-step__num">3</span>
+                    <h3><a href="/admin/auth/register">Register for that book</a></h3>
+                    <p>Create a free account and enter the code.</p>
+                </li>
+                <li class="gs-step gs-step--goal">
+                    <span class="gs-step__num" aria-hidden="true"><i class="ti ti-check"></i></span>
+                    <h3>Start reading</h3>
+                    <p>Your book opens right where you left off, every time.</p>
+                    <a class="gs-cta" href="/ns/books/index">Open the Library <i class="ti ti-arrow-right" aria-hidden="true"></i></a>
+                </li>
+            </ol>
+        </section>
+
+        <!-- Student with a course code -->
+        <section class="gs-path gs-path--student" aria-labelledby="gs-student">
+            <div class="gs-persona">
+                <span class="gs-persona__icon" aria-hidden="true"><i class="ti ti-school"></i></span>
+                <h2 id="gs-student">Student in a class</h2>
+                <p>Your teacher gave you a course code to join.</p>
+            </div>
+            <ol class="gs-steps">
+                <li class="gs-step">
+                    <span class="gs-step__num">1</span>
+                    <h3><a href="/admin/auth/register">Register with your course code</a></h3>
+                    <p>Sign up and enter the exact code your instructor gave you.</p>
+                </li>
+                <li class="gs-step gs-step--goal">
+                    <span class="gs-step__num" aria-hidden="true"><i class="ti ti-check"></i></span>
+                    <h3>Start reading</h3>
+                    <p>You're in your class's book — assignments and all.</p>
+                    <a class="gs-cta" href="/admin/auth/register">Sign up &amp; join <i class="ti ti-arrow-right" aria-hidden="true"></i></a>
+                </li>
+            </ol>
+        </section>
+
+        <!-- Instructor -->
+        <section class="gs-path gs-path--instructor" aria-labelledby="gs-instructor">
+            <div class="gs-persona">
+                <span class="gs-persona__icon" aria-hidden="true"><i class="ti ti-chalkboard"></i></span>
+                <h2 id="gs-instructor">Instructor</h2>
+                <p>You want to teach with a Runestone book of your own.</p>
+            </div>
+            <ol class="gs-steps">
+                <li class="gs-step">
+                    <span class="gs-step__num">1</span>
+                    <h3><a href="/ns/books/index">Browse the Library</a></h3>
+                    <p>Find a book that fits your course.</p>
+                </li>
+                <li class="gs-step">
+                    <span class="gs-step__num">2</span>
+                    <h3>Note the book's code</h3>
+                    <p>You'll register for it before building your own course from it.</p>
+                </li>
+                <li class="gs-step">
+                    <span class="gs-step__num">3</span>
+                    <h3><a href="/admin/auth/register">Register for that book</a></h3>
+                    <p>Create your free account. You become an instructor in the next step.</p>
+                </li>
+                <li class="gs-step gs-step--goal">
+                    <span class="gs-step__num" aria-hidden="true"><i class="ti ti-check"></i></span>
+                    <h3>Create your course</h3>
+                    <p>Spin up your own copy, invite students, and track their progress.</p>
+                    <a class="gs-cta" href="/admin/instructor/create_course">Create a course <i class="ti ti-arrow-right" aria-hidden="true"></i></a>
+                </li>
+            </ol>
+        </section>
+
+    </div>
+
+    <div class="gs-more">
+        <div class="gs-panel">
+            <h2>Prefer to dive right in?</h2>
+            <p>Skip the map and head straight to the two places that matter most.</p>
+            <div class="gs-quick">
+                <a class="gs-quick--primary" href="/ns/books/index"><i class="ti ti-books" aria-hidden="true"></i> Browse the Library</a>
+                <a class="gs-quick--ghost" href="/admin/auth/register"><i class="ti ti-user-plus" aria-hidden="true"></i> Create an account</a>
+            </div>
+        </div>
+
+        <div class="gs-panel">
+            <h2>Resources for instructors</h2>
+            <p>Everything you need to run your first Runestone course.</p>
+            <ul class="gs-reslist">
+                <li>
+                    <i class="ti ti-book-2" aria-hidden="true"></i>
+                    <span><a href="https://guide.runestone.academy">The Instructor's Guide</a>
+                    <span>Setup, assignments, grading, and LMS integration.</span></span>
+                </li>
+                <li>
+                    <i class="ti ti-brand-youtube" aria-hidden="true"></i>
+                    <span><a href="https://www.youtube.com/playlist?list=PLnjfglXW2QQSVCuOj4VsdmWTRAfQy6Zrb">Video guides on YouTube</a>
+                    <span>Watch the essentials in a few minutes each.</span></span>
+                </li>
+                <li>
+                    <i class="ti ti-plus" aria-hidden="true"></i>
+                    <span><a href="/admin/instructor/create_course">Create a course</a>
+                    <span>Build your own copy of any book in the Library.</span></span>
+                </li>
+                <li>
+                    <i class="ti ti-help-circle" aria-hidden="true"></i>
+                    <span><strong>Need a hand?</strong>
+                    <span>Use the Help menu in the top-right corner, or the Help / Documentation tab on the Instructor page.</span></span>
+                </li>
+                <li>
+                    <i class="ti ti-news" aria-hidden="true"></i>
+                    <span><a href="https://blog.runestone.academy">Runestone News</a>
+                    <span>Stay up to date with new books and features.</span></span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
