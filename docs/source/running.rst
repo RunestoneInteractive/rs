@@ -167,7 +167,7 @@ For database issues, you can reset the database by running ``docker compose down
 Developer Setup (From Cloned Repository)
 -----------------------------------------
 
-If you're planning to contributing to Runestone development or want the source code locally, you need to fork the repository before you clone the repository: 
+If you're planning to contribute to Runestone development or want the source code locally, you need to fork the repository before you clone the repository: 
 
 .. code-block:: bash
 
